@@ -7,6 +7,8 @@ import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import type { Recommendation } from "@shared/schema";
+import { useLocale } from "@/contexts/LocaleContext";
+import { unitConfigs, convertValue, formatValue } from "@/lib/unitConversions";
 
 interface DashboardStats {
   dailySteps: number;
@@ -25,6 +27,8 @@ interface ChartDataPoint {
 }
 
 export default function Dashboard() {
+  const { unitSystem } = useLocale();
+  
   const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
     queryKey: ["/api/dashboard/stats"],
   });
@@ -53,6 +57,22 @@ export default function Dashboard() {
         return AlertCircle;
     }
   };
+
+  const convertedGlucoseData = glucoseData?.map(point => ({
+    ...point,
+    value: parseFloat(formatValue(
+      convertValue(point.value, "blood-glucose", "mg/dL", unitConfigs["blood-glucose"][unitSystem].unit),
+      "blood-glucose"
+    )),
+  }));
+
+  const convertedWeightData = weightData?.map(point => ({
+    ...point,
+    value: parseFloat(formatValue(
+      convertValue(point.value, "weight", "lbs", unitConfigs.weight[unitSystem].unit),
+      "weight"
+    )),
+  }));
 
   return (
     <div className="space-y-8">
@@ -124,7 +144,7 @@ export default function Dashboard() {
           <HealthMetricCard
             title="Heart Rate"
             value={stats.heartRate.value.toString()}
-            unit="bpm"
+            unit={unitConfigs["heart-rate"][unitSystem].unit}
             trend={stats.heartRate.trend}
             status={stats.heartRate.value < 100 ? "optimal" : "warning"}
             icon={Heart}
@@ -132,8 +152,11 @@ export default function Dashboard() {
           />
           <HealthMetricCard
             title="Blood Glucose"
-            value={stats.bloodGlucose.value.toString()}
-            unit="mg/dL"
+            value={formatValue(
+              convertValue(stats.bloodGlucose.value, "blood-glucose", "mg/dL", unitConfigs["blood-glucose"][unitSystem].unit),
+              "blood-glucose"
+            )}
+            unit={unitConfigs["blood-glucose"][unitSystem].unit}
             trend={stats.bloodGlucose.trend}
             status={stats.bloodGlucose.value <= 100 ? "optimal" : "warning"}
             icon={Droplet}
@@ -141,8 +164,11 @@ export default function Dashboard() {
           />
           <HealthMetricCard
             title="Weight"
-            value={stats.weight.value.toString()}
-            unit="lbs"
+            value={formatValue(
+              convertValue(stats.weight.value, "weight", "lbs", unitConfigs.weight[unitSystem].unit),
+              "weight"
+            )}
+            unit={unitConfigs.weight[unitSystem].unit}
             trend={stats.weight.trend}
             status="optimal"
             icon={Scale}
@@ -158,12 +184,12 @@ export default function Dashboard() {
               <Skeleton className="h-64 w-full" />
             </CardContent>
           </Card>
-        ) : glucoseData && glucoseData.length > 0 ? (
+        ) : convertedGlucoseData && convertedGlucoseData.length > 0 ? (
           <BiomarkerChart
             title="Blood Glucose Trend"
             description="7-day fasting glucose levels"
-            data={glucoseData}
-            unit="mg/dL"
+            data={convertedGlucoseData}
+            unit={unitConfigs["blood-glucose"][unitSystem].unit}
             color="hsl(var(--chart-1))"
           />
         ) : (
@@ -180,12 +206,12 @@ export default function Dashboard() {
               <Skeleton className="h-64 w-full" />
             </CardContent>
           </Card>
-        ) : weightData && weightData.length > 0 ? (
+        ) : convertedWeightData && convertedWeightData.length > 0 ? (
           <BiomarkerChart
             title="Weight Progress"
             description="4-week weight tracking"
-            data={weightData}
-            unit="lbs"
+            data={convertedWeightData}
+            unit={unitConfigs.weight[unitSystem].unit}
             color="hsl(var(--chart-2))"
           />
         ) : (
