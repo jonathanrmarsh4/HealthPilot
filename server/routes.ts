@@ -548,6 +548,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         "blood_glucose": "blood-glucose",
         "Weight": "weight",
         "weight": "weight",
+        "weight_body_mass": "weight",
         "Steps": "steps",
         "step_count": "steps",
         "Active Energy": "calories",
