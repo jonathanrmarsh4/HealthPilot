@@ -1,0 +1,486 @@
+export interface BiomarkerConfig {
+  title: string;
+  description: string;
+  days: number;
+  color: string;
+}
+
+export const biomarkerDisplayConfig: Record<string, BiomarkerConfig> = {
+  // Lipid Panel
+  "ldl-cholesterol": {
+    title: "LDL Cholesterol",
+    description: "6-month trend",
+    days: 180,
+    color: "hsl(var(--chart-1))"
+  },
+  "hdl-cholesterol": {
+    title: "HDL Cholesterol",
+    description: "6-month trend",
+    days: 180,
+    color: "hsl(var(--chart-2))"
+  },
+  "total-cholesterol": {
+    title: "Total Cholesterol",
+    description: "6-month trend",
+    days: 180,
+    color: "hsl(var(--chart-3))"
+  },
+  "cholesterol": {
+    title: "Total Cholesterol",
+    description: "6-month trend",
+    days: 180,
+    color: "hsl(var(--chart-3))"
+  },
+  "triglycerides": {
+    title: "Triglycerides",
+    description: "6-month trend",
+    days: 180,
+    color: "hsl(var(--chart-4))"
+  },
+  "vldl-cholesterol": {
+    title: "VLDL Cholesterol",
+    description: "6-month trend",
+    days: 180,
+    color: "hsl(var(--chart-5))"
+  },
+  
+  // Liver Function
+  "alt": {
+    title: "ALT (Liver Enzyme)",
+    description: "6-month trend",
+    days: 180,
+    color: "hsl(var(--chart-1))"
+  },
+  "ast": {
+    title: "AST (Liver Enzyme)",
+    description: "6-month trend",
+    days: 180,
+    color: "hsl(var(--chart-2))"
+  },
+  "alp": {
+    title: "Alkaline Phosphatase",
+    description: "6-month trend",
+    days: 180,
+    color: "hsl(var(--chart-3))"
+  },
+  "bilirubin": {
+    title: "Bilirubin",
+    description: "6-month trend",
+    days: 180,
+    color: "hsl(var(--chart-4))"
+  },
+  "albumin": {
+    title: "Albumin",
+    description: "6-month trend",
+    days: 180,
+    color: "hsl(var(--chart-5))"
+  },
+  "ggt": {
+    title: "GGT",
+    description: "6-month trend",
+    days: 180,
+    color: "hsl(var(--chart-1))"
+  },
+  
+  // Kidney Function
+  "creatinine": {
+    title: "Creatinine",
+    description: "6-month trend",
+    days: 180,
+    color: "hsl(var(--chart-2))"
+  },
+  "bun": {
+    title: "BUN (Blood Urea Nitrogen)",
+    description: "6-month trend",
+    days: 180,
+    color: "hsl(var(--chart-3))"
+  },
+  "egfr": {
+    title: "eGFR",
+    description: "6-month trend",
+    days: 180,
+    color: "hsl(var(--chart-4))"
+  },
+  "urea": {
+    title: "Urea",
+    description: "6-month trend",
+    days: 180,
+    color: "hsl(var(--chart-5))"
+  },
+  
+  // Blood Counts
+  "rbc": {
+    title: "Red Blood Cell Count",
+    description: "6-month trend",
+    days: 180,
+    color: "hsl(var(--chart-1))"
+  },
+  "wbc": {
+    title: "White Blood Cell Count",
+    description: "6-month trend",
+    days: 180,
+    color: "hsl(var(--chart-2))"
+  },
+  "hemoglobin": {
+    title: "Hemoglobin",
+    description: "6-month trend",
+    days: 180,
+    color: "hsl(var(--chart-3))"
+  },
+  "hematocrit": {
+    title: "Hematocrit",
+    description: "6-month trend",
+    days: 180,
+    color: "hsl(var(--chart-4))"
+  },
+  "platelets": {
+    title: "Platelet Count",
+    description: "6-month trend",
+    days: 180,
+    color: "hsl(var(--chart-5))"
+  },
+  "mcv": {
+    title: "MCV",
+    description: "6-month trend",
+    days: 180,
+    color: "hsl(var(--chart-1))"
+  },
+  "mch": {
+    title: "MCH",
+    description: "6-month trend",
+    days: 180,
+    color: "hsl(var(--chart-2))"
+  },
+  "mchc": {
+    title: "MCHC",
+    description: "6-month trend",
+    days: 180,
+    color: "hsl(var(--chart-3))"
+  },
+  
+  // Thyroid
+  "tsh": {
+    title: "TSH (Thyroid)",
+    description: "6-month trend",
+    days: 180,
+    color: "hsl(var(--chart-4))"
+  },
+  "t3": {
+    title: "T3",
+    description: "6-month trend",
+    days: 180,
+    color: "hsl(var(--chart-5))"
+  },
+  "t4": {
+    title: "T4",
+    description: "6-month trend",
+    days: 180,
+    color: "hsl(var(--chart-1))"
+  },
+  "free-t3": {
+    title: "Free T3",
+    description: "6-month trend",
+    days: 180,
+    color: "hsl(var(--chart-2))"
+  },
+  "free-t4": {
+    title: "Free T4",
+    description: "6-month trend",
+    days: 180,
+    color: "hsl(var(--chart-3))"
+  },
+  
+  // Diabetes
+  "hba1c": {
+    title: "HbA1c",
+    description: "6-month trend",
+    days: 180,
+    color: "hsl(var(--chart-4))"
+  },
+  "blood-glucose": {
+    title: "Blood Glucose",
+    description: "30-day trend",
+    days: 30,
+    color: "hsl(var(--chart-2))"
+  },
+  "fasting-glucose": {
+    title: "Fasting Glucose",
+    description: "6-month trend",
+    days: 180,
+    color: "hsl(var(--chart-5))"
+  },
+  "insulin": {
+    title: "Insulin",
+    description: "6-month trend",
+    days: 180,
+    color: "hsl(var(--chart-1))"
+  },
+  
+  // Vitamins & Minerals
+  "vitamin-d": {
+    title: "Vitamin D",
+    description: "6-month trend",
+    days: 180,
+    color: "hsl(var(--chart-2))"
+  },
+  "vitamin-b12": {
+    title: "Vitamin B12",
+    description: "6-month trend",
+    days: 180,
+    color: "hsl(var(--chart-3))"
+  },
+  "iron": {
+    title: "Iron",
+    description: "6-month trend",
+    days: 180,
+    color: "hsl(var(--chart-4))"
+  },
+  "ferritin": {
+    title: "Ferritin",
+    description: "6-month trend",
+    days: 180,
+    color: "hsl(var(--chart-5))"
+  },
+  "calcium": {
+    title: "Calcium",
+    description: "6-month trend",
+    days: 180,
+    color: "hsl(var(--chart-1))"
+  },
+  "magnesium": {
+    title: "Magnesium",
+    description: "6-month trend",
+    days: 180,
+    color: "hsl(var(--chart-2))"
+  },
+  "folate": {
+    title: "Folate",
+    description: "6-month trend",
+    days: 180,
+    color: "hsl(var(--chart-3))"
+  },
+  
+  // Inflammation
+  "crp": {
+    title: "C-Reactive Protein",
+    description: "6-month trend",
+    days: 180,
+    color: "hsl(var(--chart-4))"
+  },
+  "esr": {
+    title: "ESR",
+    description: "6-month trend",
+    days: 180,
+    color: "hsl(var(--chart-5))"
+  },
+  
+  // Electrolytes
+  "sodium": {
+    title: "Sodium",
+    description: "30-day trend",
+    days: 30,
+    color: "hsl(var(--chart-1))"
+  },
+  "potassium": {
+    title: "Potassium",
+    description: "30-day trend",
+    days: 30,
+    color: "hsl(var(--chart-2))"
+  },
+  "chloride": {
+    title: "Chloride",
+    description: "30-day trend",
+    days: 30,
+    color: "hsl(var(--chart-3))"
+  },
+  "bicarbonate": {
+    title: "Bicarbonate",
+    description: "30-day trend",
+    days: 30,
+    color: "hsl(var(--chart-4))"
+  },
+  
+  // Vitals & Body Metrics
+  "blood-pressure": {
+    title: "Blood Pressure (Systolic)",
+    description: "4-week average",
+    days: 28,
+    color: "hsl(var(--chart-3))"
+  },
+  "heart-rate": {
+    title: "Resting Heart Rate",
+    description: "7-day average",
+    days: 7,
+    color: "hsl(var(--chart-4))"
+  },
+  "temperature": {
+    title: "Body Temperature",
+    description: "7-day trend",
+    days: 7,
+    color: "hsl(var(--chart-5))"
+  },
+  "respiratory-rate": {
+    title: "Respiratory Rate",
+    description: "7-day trend",
+    days: 7,
+    color: "hsl(var(--chart-1))"
+  },
+  "oxygen-saturation": {
+    title: "Oxygen Saturation",
+    description: "7-day trend",
+    days: 7,
+    color: "hsl(var(--chart-2))"
+  },
+  "weight": {
+    title: "Body Weight",
+    description: "3-month trend",
+    days: 90,
+    color: "hsl(var(--chart-5))"
+  },
+  "height": {
+    title: "Height",
+    description: "All time",
+    days: 365,
+    color: "hsl(var(--chart-3))"
+  },
+  "bmi": {
+    title: "Body Mass Index",
+    description: "3-month trend",
+    days: 90,
+    color: "hsl(var(--chart-3))"
+  },
+  "body-fat-percentage": {
+    title: "Body Fat %",
+    description: "3-month trend",
+    days: 90,
+    color: "hsl(var(--chart-4))"
+  },
+  "waist-circumference": {
+    title: "Waist Circumference",
+    description: "3-month trend",
+    days: 90,
+    color: "hsl(var(--chart-1))"
+  },
+  "steps": {
+    title: "Daily Steps",
+    description: "7-day average",
+    days: 7,
+    color: "hsl(var(--chart-1))"
+  },
+  "calories": {
+    title: "Active Calories",
+    description: "7-day average",
+    days: 7,
+    color: "hsl(var(--chart-2))"
+  },
+  
+  // Other
+  "uric-acid": {
+    title: "Uric Acid",
+    description: "6-month trend",
+    days: 180,
+    color: "hsl(var(--chart-2))"
+  },
+  "psa": {
+    title: "PSA",
+    description: "6-month trend",
+    days: 180,
+    color: "hsl(var(--chart-3))"
+  },
+  "cortisol": {
+    title: "Cortisol",
+    description: "6-month trend",
+    days: 180,
+    color: "hsl(var(--chart-4))"
+  },
+  "testosterone": {
+    title: "Testosterone",
+    description: "6-month trend",
+    days: 180,
+    color: "hsl(var(--chart-5))"
+  },
+  "estrogen": {
+    title: "Estrogen",
+    description: "6-month trend",
+    days: 180,
+    color: "hsl(var(--chart-1))"
+  },
+  "progesterone": {
+    title: "Progesterone",
+    description: "6-month trend",
+    days: 180,
+    color: "hsl(var(--chart-2))"
+  },
+  "rdw": {
+    title: "RDW",
+    description: "6-month trend",
+    days: 180,
+    color: "hsl(var(--chart-3))"
+  },
+  "neutrophils": {
+    title: "Neutrophils",
+    description: "6-month trend",
+    days: 180,
+    color: "hsl(var(--chart-4))"
+  },
+  "lymphocytes": {
+    title: "Lymphocytes",
+    description: "6-month trend",
+    days: 180,
+    color: "hsl(var(--chart-5))"
+  },
+  "monocytes": {
+    title: "Monocytes",
+    description: "6-month trend",
+    days: 180,
+    color: "hsl(var(--chart-1))"
+  },
+  "eosinophils": {
+    title: "Eosinophils",
+    description: "6-month trend",
+    days: 180,
+    color: "hsl(var(--chart-2))"
+  },
+  "basophils": {
+    title: "Basophils",
+    description: "6-month trend",
+    days: 180,
+    color: "hsl(var(--chart-3))"
+  },
+  "transferrin": {
+    title: "Transferrin",
+    description: "6-month trend",
+    days: 180,
+    color: "hsl(var(--chart-4))"
+  },
+  "transferrin-saturation": {
+    title: "Transferrin Saturation",
+    description: "6-month trend",
+    days: 180,
+    color: "hsl(var(--chart-5))"
+  },
+  "total-protein": {
+    title: "Total Protein",
+    description: "6-month trend",
+    days: 180,
+    color: "hsl(var(--chart-1))"
+  },
+  "globulin": {
+    title: "Globulin",
+    description: "6-month trend",
+    days: 180,
+    color: "hsl(var(--chart-2))"
+  },
+  "corrected-calcium": {
+    title: "Corrected Calcium",
+    description: "6-month trend",
+    days: 180,
+    color: "hsl(var(--chart-3))"
+  },
+  "ldh": {
+    title: "LDH",
+    description: "6-month trend",
+    days: 180,
+    color: "hsl(var(--chart-4))"
+  }
+};

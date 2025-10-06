@@ -1,5 +1,6 @@
 import { HealthMetricCard } from "@/components/HealthMetricCard";
 import { BiomarkerChart } from "@/components/BiomarkerChart";
+import { BiomarkerChartWidget } from "@/components/BiomarkerChartWidget";
 import { RecommendationCard } from "@/components/RecommendationCard";
 import { QuickStats } from "@/components/QuickStats";
 import { Heart, Activity, Scale, Droplet, TrendingUp, Zap, Apple, AlertCircle, Dumbbell, Settings2, Eye, EyeOff } from "lucide-react";
@@ -12,6 +13,7 @@ import type { Recommendation } from "@shared/schema";
 import { useLocale } from "@/contexts/LocaleContext";
 import { unitConfigs, convertValue, formatValue } from "@/lib/unitConversions";
 import { useState, useEffect } from "react";
+import { biomarkerDisplayConfig } from "@/lib/biomarkerConfig";
 
 interface DashboardStats {
   dailySteps: number;
@@ -105,6 +107,32 @@ export default function Dashboard() {
     queryKey: ["/api/recommendations"],
   });
 
+  const { data: allBiomarkers } = useQuery<Array<{ type: string }>>({
+    queryKey: ["/api/biomarkers"],
+  });
+
+  const availableBiomarkerTypes = Array.from(new Set(allBiomarkers?.map(b => b.type) || []));
+
+  const allWidgetConfigs = {
+    ...WIDGET_CONFIG,
+    ...Object.fromEntries(
+      availableBiomarkerTypes.map(type => [
+        `biomarker-${type}`,
+        {
+          title: biomarkerDisplayConfig[type]?.title || type,
+          description: biomarkerDisplayConfig[type]?.description || "Health metric chart"
+        }
+      ])
+    )
+  };
+
+  const allWidgets = [
+    ...DEFAULT_WIDGETS,
+    ...availableBiomarkerTypes
+      .filter(type => type !== 'blood-glucose' && type !== 'weight')
+      .map(type => `biomarker-${type}`)
+  ];
+
   const getCategoryIcon = (category: string) => {
     switch (category.toLowerCase()) {
       case 'biomarker':
@@ -153,7 +181,7 @@ export default function Dashboard() {
               </SheetDescription>
             </SheetHeader>
             
-            <div className="mt-6 space-y-4">
+            <div className="mt-6 space-y-4 flex flex-col h-[calc(100vh-12rem)]">
               <div className="flex gap-2">
                 <Button 
                   variant="outline" 
@@ -175,9 +203,9 @@ export default function Dashboard() {
                 </Button>
               </div>
 
-              <div className="space-y-2">
-                {DEFAULT_WIDGETS.map((widget) => {
-                  const config = WIDGET_CONFIG[widget];
+              <div className="space-y-2 overflow-y-auto flex-1 pr-2">
+                {allWidgets.map((widget) => {
+                  const config = allWidgetConfigs[widget];
                   const visible = isVisible(widget);
                   
                   return (
@@ -187,9 +215,9 @@ export default function Dashboard() {
                       data-testid={`widget-item-${widget}`}
                     >
                       <div className="flex flex-col gap-1 flex-1">
-                        <span className="font-medium">{config.title}</span>
+                        <span className="font-medium">{config?.title || widget}</span>
                         <span className="text-sm text-muted-foreground">
-                          {config.description}
+                          {config?.description || "Health widget"}
                         </span>
                       </div>
                       <Button
@@ -394,6 +422,25 @@ export default function Dashboard() {
           )}
         </div>
       )}
+
+      {availableBiomarkerTypes
+        .filter(type => type !== 'blood-glucose' && type !== 'weight')
+        .map(type => {
+          const widgetKey = `biomarker-${type}`;
+          if (!isVisible(widgetKey)) return null;
+
+          const config = biomarkerDisplayConfig[type];
+          if (!config) return null;
+
+          return (
+            <BiomarkerChartWidget
+              key={type}
+              type={type}
+              config={config}
+              unitSystem={unitSystem}
+            />
+          );
+        })}
     </div>
   );
 }
