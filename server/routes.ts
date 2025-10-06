@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import multer from "multer";
 import { insertBiomarkerSchema, insertHealthRecordSchema } from "@shared/schema";
 import { listHealthDocuments, downloadFile, getFileMetadata } from "./services/googleDrive";
-import { analyzeHealthDocument, generateMealPlan, generateTrainingSchedule, generateHealthRecommendations } from "./services/ai";
+import { analyzeHealthDocument, generateMealPlan, generateTrainingSchedule, generateHealthRecommendations, chatWithHealthCoach } from "./services/ai";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_MIME_TYPES = [
@@ -311,6 +311,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { id } = req.params;
       await storage.dismissRecommendation(id);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/chat", async (req, res) => {
+    try {
+      const { message } = req.body;
+      
+      if (!message || typeof message !== 'string') {
+        return res.status(400).json({ error: "Message is required" });
+      }
+
+      const userMessage = await storage.createChatMessage({
+        userId: TEST_USER_ID,
+        role: "user",
+        content: message,
+      });
+
+      const chatHistory = await storage.getChatMessages(TEST_USER_ID);
+      
+      const conversationHistory = chatHistory.map(msg => ({
+        role: msg.role as "user" | "assistant",
+        content: msg.content
+      }));
+
+      const aiResponse = await chatWithHealthCoach(conversationHistory);
+
+      const assistantMessage = await storage.createChatMessage({
+        userId: TEST_USER_ID,
+        role: "assistant",
+        content: aiResponse,
+      });
+
+      res.json({
+        userMessage,
+        assistantMessage,
+      });
+    } catch (error: any) {
+      console.error("Error in chat:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/chat/history", async (req, res) => {
+    try {
+      const messages = await storage.getChatMessages(TEST_USER_ID);
+      res.json(messages);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/chat/history", async (req, res) => {
+    try {
+      await storage.clearChatHistory(TEST_USER_ID);
       res.json({ success: true });
     } catch (error: any) {
       res.status(500).json({ error: error.message });

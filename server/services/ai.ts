@@ -220,3 +220,43 @@ Provide 3-5 specific, actionable recommendations prioritized by importance.`,
 
   return [];
 }
+
+export async function chatWithHealthCoach(
+  conversationHistory: Array<{ role: "user" | "assistant"; content: string }>
+) {
+  const systemPrompt = `You are a friendly and knowledgeable health and fitness coach AI. Your role is to:
+
+1. Ask thoughtful questions about the user's health and fitness goals
+2. Understand their current lifestyle, habits, and challenges
+3. Learn about their dietary preferences and restrictions
+4. Understand their fitness level and exercise history
+5. Identify any health concerns or medical conditions
+
+Your goal is to gather information that will help create personalized:
+- Meal plans tailored to their nutritional needs
+- Training schedules appropriate for their fitness level
+- Health recommendations based on their specific situation
+
+Be conversational, empathetic, and encouraging. Ask one or two questions at a time. Keep responses concise and focused. Remember any information the user shares and reference it in future responses.
+
+Start by introducing yourself and asking about their primary health or fitness goal.`;
+
+  const messages = conversationHistory.map(msg => ({
+    role: msg.role,
+    content: msg.content
+  }));
+
+  const message = await anthropic.messages.create({
+    model: "claude-sonnet-4-5",
+    max_tokens: 2048,
+    system: systemPrompt,
+    messages: messages as any,
+  });
+
+  const content = message.content[0];
+  if (content.type === "text") {
+    return content.text;
+  }
+
+  return "I'm here to help with your health and fitness goals. How can I assist you today?";
+}
