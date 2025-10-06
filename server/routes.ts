@@ -390,6 +390,97 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/health-auto-export/ingest", async (req, res) => {
+    try {
+      const { data } = req.body;
+      
+      if (!data || !data.metrics) {
+        return res.status(400).json({ error: "Invalid data format" });
+      }
+
+      const metricMapping: Record<string, string> = {
+        "Heart Rate": "heart-rate",
+        "Resting Heart Rate": "heart-rate",
+        "Blood Glucose": "blood-glucose",
+        "Weight": "weight",
+        "Steps": "steps",
+        "Active Energy": "calories",
+        "Active Energy Burned": "calories",
+        "Blood Pressure Systolic": "blood-pressure-systolic",
+        "Blood Pressure Diastolic": "blood-pressure-diastolic",
+        "Oxygen Saturation": "oxygen-saturation",
+        "Body Temperature": "body-temperature",
+        "Sleep Analysis": "sleep-hours",
+      };
+
+      let insertedCount = 0;
+
+      for (const metric of data.metrics) {
+        const biomarkerType = metricMapping[metric.name];
+        
+        if (!biomarkerType) {
+          continue;
+        }
+
+        if (metric.name === "Blood Pressure" && metric.data) {
+          for (const dataPoint of metric.data) {
+            if (dataPoint.systolic) {
+              await storage.createBiomarker({
+                userId: TEST_USER_ID,
+                type: "blood-pressure-systolic",
+                value: dataPoint.systolic,
+                unit: "mmHg",
+                source: "health-auto-export",
+                recordedAt: new Date(dataPoint.date),
+              });
+              insertedCount++;
+            }
+            if (dataPoint.diastolic) {
+              await storage.createBiomarker({
+                userId: TEST_USER_ID,
+                type: "blood-pressure-diastolic",
+                value: dataPoint.diastolic,
+                unit: "mmHg",
+                source: "health-auto-export",
+                recordedAt: new Date(dataPoint.date),
+              });
+              insertedCount++;
+            }
+          }
+        } else if (metric.data && Array.isArray(metric.data)) {
+          for (const dataPoint of metric.data) {
+            let value = dataPoint.qty;
+            
+            if (metric.name === "Sleep Analysis" && dataPoint.asleep) {
+              value = dataPoint.asleep;
+            }
+
+            if (value !== undefined && value !== null) {
+              await storage.createBiomarker({
+                userId: TEST_USER_ID,
+                type: biomarkerType,
+                value: value,
+                unit: metric.units || "",
+                source: "health-auto-export",
+                recordedAt: new Date(dataPoint.date),
+              });
+              insertedCount++;
+            }
+          }
+        }
+      }
+
+      res.json({ 
+        success: true, 
+        message: `Successfully imported ${insertedCount} health metrics`,
+        count: insertedCount 
+      });
+    } catch (error: any) {
+      console.error("Error processing Health Auto Export data:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
