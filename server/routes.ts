@@ -5,6 +5,43 @@ import multer from "multer";
 import { insertBiomarkerSchema, insertHealthRecordSchema } from "@shared/schema";
 import { listHealthDocuments, downloadFile, getFileMetadata } from "./services/googleDrive";
 import { analyzeHealthDocument, generateMealPlan, generateTrainingSchedule, generateHealthRecommendations, chatWithHealthCoach } from "./services/ai";
+import { parseISO, isValid } from "date-fns";
+
+// Helper function to parse biomarker dates with fallback
+function parseBiomarkerDate(dateStr: string | undefined, documentDate: string | undefined, fileDate: Date | undefined): Date {
+  // Try the biomarker's specific date first
+  if (dateStr) {
+    try {
+      const parsed = parseISO(dateStr);
+      if (isValid(parsed)) {
+        return parsed;
+      }
+    } catch (e) {
+      console.warn(`Failed to parse biomarker date: ${dateStr}`);
+    }
+  }
+  
+  // Fall back to document-level date from AI
+  if (documentDate) {
+    try {
+      const parsed = parseISO(documentDate);
+      if (isValid(parsed)) {
+        return parsed;
+      }
+    } catch (e) {
+      console.warn(`Failed to parse document date: ${documentDate}`);
+    }
+  }
+  
+  // Fall back to file metadata date
+  if (fileDate && isValid(fileDate)) {
+    return fileDate;
+  }
+  
+  // Last resort: current date
+  console.warn('No valid date found for biomarker, using current date');
+  return new Date();
+}
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_MIME_TYPES = [
@@ -71,7 +108,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const fileText = fileBuffer.toString('utf-8');
       
-      const analysis = await analyzeHealthDocument(fileText, metadata.name || 'Unknown');
+      // Pass file creation date to AI for fallback
+      const fileCreatedDate = metadata.createdTime ? new Date(metadata.createdTime) : undefined;
+      const analysis = await analyzeHealthDocument(fileText, metadata.name || 'Unknown', fileCreatedDate);
       
       // Check if record was deleted during analysis
       const stillExists = await storage.getHealthRecordByFileId(fileId);
@@ -96,7 +135,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             unit: biomarker.unit,
             source: 'ai-extracted',
             recordId: record.id,
-            recordedAt: biomarker.date ? new Date(biomarker.date) : new Date(),
+            recordedAt: parseBiomarkerDate(biomarker.date, analysis.documentDate, fileCreatedDate),
           });
         }
       }
@@ -138,7 +177,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             unit: biomarker.unit,
             source: 'ai-extracted',
             recordId: record.id,
-            recordedAt: biomarker.date ? new Date(biomarker.date) : new Date(),
+            recordedAt: parseBiomarkerDate(biomarker.date, analysis.documentDate, undefined),
           });
         }
       }

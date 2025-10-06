@@ -4,7 +4,7 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
-export async function analyzeHealthDocument(documentText: string, fileName: string) {
+export async function analyzeHealthDocument(documentText: string, fileName: string, documentDate?: Date) {
   const message = await anthropic.messages.create({
     model: "claude-sonnet-4-5",
     max_tokens: 4096,
@@ -35,12 +35,13 @@ Extract EVERY biomarker value found in the document. Common biomarker types incl
 
 Return a JSON object with this structure:
 {
+  "documentDate": "YYYY-MM-DD",
   "biomarkers": [
     {
       "type": "ldl-cholesterol" | "hdl-cholesterol" | "alt" | "creatinine" | "tsh" | etc,
       "value": number,
       "unit": "mg/dL" | "U/L" | "mmol/L" | "bpm" | etc,
-      "date": "ISO date if available"
+      "date": "YYYY-MM-DD"
     }
   ],
   "summary": "Brief summary of the health document",
@@ -48,7 +49,16 @@ Return a JSON object with this structure:
   "recommendations": ["List any recommendations mentioned in the document"]
 }
 
-IMPORTANT: 
+CRITICAL DATE EXTRACTION REQUIREMENTS:
+- MUST extract the collection date, report date, or specimen date from the document
+- Look for dates near headers like "Collection Date", "Report Date", "Date of Service", "Test Date", "Specimen Date"
+- Format ALL dates as YYYY-MM-DD (ISO format)
+- If the document has a single date that applies to all tests, include it as "documentDate" AND set each biomarker's "date" to that same value
+- If individual tests have different dates, use those specific dates
+- Common date formats in labs: "01/15/2024", "January 15, 2024", "15-Jan-2024" - convert ALL to "2024-01-15"
+- NEVER omit the date field - it is REQUIRED for proper historical tracking
+
+OTHER REQUIREMENTS: 
 - Extract EVERY numeric biomarker value you find
 - Use the exact biomarker type names listed above (lowercase, hyphenated)
 - If a biomarker doesn't match the list, use a descriptive lowercase-hyphenated name
