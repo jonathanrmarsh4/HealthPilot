@@ -66,7 +66,12 @@ export async function generateMealPlan(userProfile: {
   dietaryRestrictions?: string[];
   healthGoals?: string[];
   recentBiomarkers?: any[];
+  chatContext?: string;
 }) {
+  const chatContextSection = userProfile.chatContext 
+    ? `\n\n## Conversation History with User:\n${userProfile.chatContext}\n\nUse insights from the conversation to personalize the meal plan based on the user's preferences, goals, and lifestyle discussed in the chat.`
+    : '';
+
   const message = await anthropic.messages.create({
     model: "claude-sonnet-4-5",
     max_tokens: 4096,
@@ -75,7 +80,7 @@ export async function generateMealPlan(userProfile: {
         role: "user",
         content: `You are a nutritionist AI. Create a personalized daily meal plan based on the following user profile:
 
-${JSON.stringify(userProfile, null, 2)}
+${JSON.stringify(userProfile, null, 2)}${chatContextSection}
 
 Generate a JSON array of 4 meals (breakfast, lunch, dinner, snack) with this structure:
 [
@@ -93,7 +98,7 @@ Generate a JSON array of 4 meals (breakfast, lunch, dinner, snack) with this str
   }
 ]
 
-Make sure the meals are balanced, nutritious, and aligned with the user's health goals.`,
+Make sure the meals are balanced, nutritious, and aligned with the user's health goals and preferences shared in the conversation.`,
       },
     ],
   });
@@ -119,7 +124,12 @@ export async function generateTrainingSchedule(userProfile: {
   availableDays?: number;
   healthConstraints?: string[];
   recentBiomarkers?: any[];
+  chatContext?: string;
 }) {
+  const chatContextSection = userProfile.chatContext 
+    ? `\n\n## Conversation History with User:\n${userProfile.chatContext}\n\nUse insights from the conversation to personalize the training schedule based on the user's fitness goals, preferences, and any discussed limitations or interests.`
+    : '';
+
   const message = await anthropic.messages.create({
     model: "claude-sonnet-4-5",
     max_tokens: 4096,
@@ -128,7 +138,7 @@ export async function generateTrainingSchedule(userProfile: {
         role: "user",
         content: `You are a fitness coach AI. Create a personalized weekly training schedule based on the following user profile:
 
-${JSON.stringify(userProfile, null, 2)}
+${JSON.stringify(userProfile, null, 2)}${chatContextSection}
 
 Generate a JSON array of workouts for the week with this structure:
 [
@@ -148,7 +158,7 @@ Generate a JSON array of workouts for the week with this structure:
   }
 ]
 
-Make sure the schedule is safe, progressive, and aligned with the user's fitness level and health constraints.`,
+Make sure the schedule is safe, progressive, and aligned with the user's fitness level, health constraints, and goals discussed in the conversation.`,
       },
     ],
   });
@@ -172,7 +182,12 @@ export async function generateHealthRecommendations(data: {
   biomarkers: any[];
   recentTrends?: any;
   healthGoals?: string[];
+  chatContext?: string;
 }) {
+  const chatContextSection = data.chatContext 
+    ? `\n\n## Conversation History with User:\n${data.chatContext}\n\nUse insights from the conversation to provide recommendations that align with the user's goals, preferences, and lifestyle discussed in the chat.`
+    : '';
+
   const message = await anthropic.messages.create({
     model: "claude-sonnet-4-5",
     max_tokens: 4096,
@@ -181,7 +196,7 @@ export async function generateHealthRecommendations(data: {
         role: "user",
         content: `You are a health insights AI. Analyze the following health data and provide actionable recommendations:
 
-${JSON.stringify(data, null, 2)}
+${JSON.stringify(data, null, 2)}${chatContextSection}
 
 Generate a JSON array of recommendations with this structure:
 [
@@ -200,8 +215,9 @@ Focus on:
 2. Concerning trends
 3. Opportunities for improvement
 4. Preventive health measures
+5. User's personal goals and preferences shared in the conversation
 
-Provide 3-5 specific, actionable recommendations prioritized by importance.`,
+Provide 3-5 specific, actionable recommendations prioritized by importance and aligned with what the user shared about their health journey.`,
       },
     ],
   });

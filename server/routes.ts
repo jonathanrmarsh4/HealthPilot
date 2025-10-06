@@ -199,7 +199,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/meal-plans/generate", async (req, res) => {
     try {
       const userProfile = req.body;
-      const mealPlans = await generateMealPlan(userProfile);
+      
+      const chatHistory = await storage.getChatMessages(TEST_USER_ID);
+      const chatContext = chatHistory.map(msg => `${msg.role}: ${msg.content}`).join('\n');
+      
+      const mealPlans = await generateMealPlan({
+        ...userProfile,
+        chatContext
+      });
       
       const savedPlans = [];
       for (const plan of mealPlans) {
@@ -229,7 +236,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/training-schedules/generate", async (req, res) => {
     try {
       const userProfile = req.body;
-      const schedules = await generateTrainingSchedule(userProfile);
+      
+      const chatHistory = await storage.getChatMessages(TEST_USER_ID);
+      const chatContext = chatHistory.map(msg => `${msg.role}: ${msg.content}`).join('\n');
+      
+      const schedules = await generateTrainingSchedule({
+        ...userProfile,
+        chatContext
+      });
       
       const savedSchedules = [];
       for (const schedule of schedules) {
@@ -277,9 +291,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const biomarkers = await storage.getBiomarkers(TEST_USER_ID);
       
+      const chatHistory = await storage.getChatMessages(TEST_USER_ID);
+      const chatContext = chatHistory.map(msg => `${msg.role}: ${msg.content}`).join('\n');
+      
       const recommendations = await generateHealthRecommendations({
         biomarkers,
         healthGoals: req.body.healthGoals || [],
+        chatContext
       });
       
       const savedRecs = [];
