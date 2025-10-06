@@ -459,11 +459,19 @@ export default function Dashboard() {
               </div>
 
               <div className="space-y-2 overflow-y-auto flex-1 pr-2">
-                {allWidgets.map((widget, index) => {
+                {allWidgets
+                  .sort((a, b) => {
+                    const aVisible = isVisible(a);
+                    const bVisible = isVisible(b);
+                    if (aVisible === bVisible) return 0;
+                    return aVisible ? -1 : 1;
+                  })
+                  .map((widget, index, sortedArray) => {
                   const config = allWidgetConfigs[widget];
                   const visible = isVisible(widget);
-                  const isFirst = index === 0;
-                  const isLast = index === allWidgets.length - 1;
+                  const originalIndex = allWidgets.indexOf(widget);
+                  const isFirst = originalIndex === 0;
+                  const isLast = originalIndex === allWidgets.length - 1;
                   
                   return (
                     <div
