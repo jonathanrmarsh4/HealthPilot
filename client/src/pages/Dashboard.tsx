@@ -125,11 +125,11 @@ export default function Dashboard() {
   });
 
   const { data: glucoseData, isLoading: glucoseLoading } = useQuery<ChartDataPoint[]>({
-    queryKey: ["/api/biomarkers/chart/blood-glucose?days=7"],
+    queryKey: ["/api/biomarkers/chart/blood-glucose?days=180"],
   });
 
   const { data: weightData, isLoading: weightLoading } = useQuery<ChartDataPoint[]>({
-    queryKey: ["/api/biomarkers/chart/weight?days=365"],
+    queryKey: ["/api/biomarkers/chart/weight?days=180"],
   });
 
   const { data: recommendations, isLoading: recommendationsLoading } = useQuery<Recommendation[]>({
@@ -305,58 +305,52 @@ export default function Dashboard() {
         ) : null;
 
       case "blood-glucose-chart":
-        return (
-          <div key={widget} className="grid gap-6 lg:grid-cols-2">
-            {glucoseLoading ? (
-              <Card>
-                <CardContent className="p-6">
-                  <Skeleton className="h-64 w-full" />
-                </CardContent>
-              </Card>
-            ) : convertedGlucoseData && convertedGlucoseData.length > 0 ? (
-              <BiomarkerChart
-                title="Blood Glucose Trend"
-                description="7-day fasting glucose levels"
-                data={convertedGlucoseData}
-                unit={unitConfigs["blood-glucose"][unitSystem].unit}
-                color="hsl(var(--chart-1))"
-              />
-            ) : (
-              <Card>
-                <CardContent className="p-6 text-center text-muted-foreground">
-                  No glucose data available
-                </CardContent>
-              </Card>
-            )}
-          </div>
+        return glucoseLoading ? (
+          <Card key={widget}>
+            <CardContent className="p-6">
+              <Skeleton className="h-64 w-full" />
+            </CardContent>
+          </Card>
+        ) : convertedGlucoseData && convertedGlucoseData.length > 0 ? (
+          <BiomarkerChart
+            key={widget}
+            title="Blood Glucose Trend"
+            description="6-month glucose levels"
+            data={convertedGlucoseData}
+            unit={unitConfigs["blood-glucose"][unitSystem].unit}
+            color="hsl(var(--chart-1))"
+          />
+        ) : (
+          <Card key={widget}>
+            <CardContent className="p-6 text-center text-muted-foreground">
+              No glucose data available
+            </CardContent>
+          </Card>
         );
 
       case "weight-chart":
-        return (
-          <div key={widget} className="grid gap-6 lg:grid-cols-2">
-            {weightLoading ? (
-              <Card>
-                <CardContent className="p-6">
-                  <Skeleton className="h-64 w-full" />
-                </CardContent>
-              </Card>
-            ) : convertedWeightData && convertedWeightData.length > 0 ? (
-              <BiomarkerChart
-                title="Weight Progress"
-                description="12-month weight tracking"
-                data={convertedWeightData}
-                unit={unitConfigs.weight[unitSystem].unit}
-                color="hsl(var(--chart-2))"
-                domain={unitSystem === "metric" ? [60, 80] : [132, 176]}
-              />
-            ) : (
-              <Card>
-                <CardContent className="p-6 text-center text-muted-foreground">
-                  No weight data available
-                </CardContent>
-              </Card>
-            )}
-          </div>
+        return weightLoading ? (
+          <Card key={widget}>
+            <CardContent className="p-6">
+              <Skeleton className="h-64 w-full" />
+            </CardContent>
+          </Card>
+        ) : convertedWeightData && convertedWeightData.length > 0 ? (
+          <BiomarkerChart
+            key={widget}
+            title="Weight Progress"
+            description="6-month weight tracking"
+            data={convertedWeightData}
+            unit={unitConfigs.weight[unitSystem].unit}
+            color="hsl(var(--chart-2))"
+            domain={unitSystem === "metric" ? [60, 80] : [132, 176]}
+          />
+        ) : (
+          <Card key={widget}>
+            <CardContent className="p-6 text-center text-muted-foreground">
+              No weight data available
+            </CardContent>
+          </Card>
         );
 
       case "recommendations":

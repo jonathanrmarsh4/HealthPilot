@@ -199,8 +199,8 @@ export const biomarkerDisplayConfig: Record<string, BiomarkerConfig> = {
   },
   "blood-glucose": {
     title: "Blood Glucose",
-    description: "30-day trend",
-    days: 30,
+    description: "6-month trend",
+    days: 180,
     color: "hsl(var(--chart-2))"
   },
   "fasting-glucose": {
@@ -277,100 +277,100 @@ export const biomarkerDisplayConfig: Record<string, BiomarkerConfig> = {
   // Electrolytes
   "sodium": {
     title: "Sodium",
-    description: "30-day trend",
-    days: 30,
+    description: "6-month trend",
+    days: 180,
     color: "hsl(var(--chart-1))"
   },
   "potassium": {
     title: "Potassium",
-    description: "30-day trend",
-    days: 30,
+    description: "6-month trend",
+    days: 180,
     color: "hsl(var(--chart-2))"
   },
   "chloride": {
     title: "Chloride",
-    description: "30-day trend",
-    days: 30,
+    description: "6-month trend",
+    days: 180,
     color: "hsl(var(--chart-3))"
   },
   "bicarbonate": {
     title: "Bicarbonate",
-    description: "30-day trend",
-    days: 30,
+    description: "6-month trend",
+    days: 180,
     color: "hsl(var(--chart-4))"
   },
   
   // Vitals & Body Metrics
   "blood-pressure": {
     title: "Blood Pressure (Systolic)",
-    description: "4-week average",
-    days: 28,
+    description: "6-month trend",
+    days: 180,
     color: "hsl(var(--chart-3))"
   },
   "heart-rate": {
     title: "Resting Heart Rate",
-    description: "7-day average",
-    days: 7,
+    description: "6-month trend",
+    days: 180,
     color: "hsl(var(--chart-4))"
   },
   "temperature": {
     title: "Body Temperature",
-    description: "7-day trend",
-    days: 7,
+    description: "6-month trend",
+    days: 180,
     color: "hsl(var(--chart-5))"
   },
   "respiratory-rate": {
     title: "Respiratory Rate",
-    description: "7-day trend",
-    days: 7,
+    description: "6-month trend",
+    days: 180,
     color: "hsl(var(--chart-1))"
   },
   "oxygen-saturation": {
     title: "Oxygen Saturation",
-    description: "7-day trend",
-    days: 7,
+    description: "6-month trend",
+    days: 180,
     color: "hsl(var(--chart-2))"
   },
   "weight": {
     title: "Body Weight",
-    description: "3-month trend",
-    days: 90,
+    description: "6-month trend",
+    days: 180,
     color: "hsl(var(--chart-5))"
   },
   "height": {
     title: "Height",
-    description: "All time",
-    days: 365,
+    description: "6-month trend",
+    days: 180,
     color: "hsl(var(--chart-3))"
   },
   "bmi": {
     title: "Body Mass Index",
-    description: "3-month trend",
-    days: 90,
+    description: "6-month trend",
+    days: 180,
     color: "hsl(var(--chart-3))"
   },
   "body-fat-percentage": {
     title: "Body Fat %",
-    description: "3-month trend",
-    days: 90,
+    description: "6-month trend",
+    days: 180,
     color: "hsl(var(--chart-4))"
   },
   "waist-circumference": {
     title: "Waist Circumference",
-    description: "3-month trend",
-    days: 90,
+    description: "6-month trend",
+    days: 180,
     color: "hsl(var(--chart-1))"
   },
   "steps": {
     title: "Daily Steps",
-    description: "7-day average",
-    days: 7,
+    description: "6-month trend",
+    days: 180,
     color: "hsl(var(--chart-1))"
   },
   "calories": {
     title: "Active Calories",
-    description: "7-day average",
-    days: 7,
+    description: "6-month trend",
+    days: 180,
     color: "hsl(var(--chart-2))"
   },
   
