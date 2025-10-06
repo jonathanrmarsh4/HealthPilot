@@ -12,12 +12,15 @@ import {
   type InsertTrainingSchedule,
   type Recommendation,
   type InsertRecommendation,
+  type ChatMessage,
+  type InsertChatMessage,
   users,
   healthRecords,
   biomarkers,
   mealPlans,
   trainingSchedules,
   recommendations,
+  chatMessages,
 } from "@shared/schema";
 import { eq, desc, and } from "drizzle-orm";
 
@@ -46,6 +49,10 @@ export interface IStorage {
   createRecommendation(recommendation: InsertRecommendation): Promise<Recommendation>;
   getRecommendations(userId: string): Promise<Recommendation[]>;
   dismissRecommendation(id: string): Promise<void>;
+  
+  createChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
+  getChatMessages(userId: string): Promise<ChatMessage[]>;
+  clearChatHistory(userId: string): Promise<void>;
 }
 
 export class DbStorage implements IStorage {
@@ -190,6 +197,23 @@ export class DbStorage implements IStorage {
       .update(recommendations)
       .set({ dismissed: 1 })
       .where(eq(recommendations.id, id));
+  }
+
+  async createChatMessage(message: InsertChatMessage): Promise<ChatMessage> {
+    const result = await db.insert(chatMessages).values(message).returning();
+    return result[0];
+  }
+
+  async getChatMessages(userId: string): Promise<ChatMessage[]> {
+    return await db
+      .select()
+      .from(chatMessages)
+      .where(eq(chatMessages.userId, userId))
+      .orderBy(chatMessages.createdAt);
+  }
+
+  async clearChatHistory(userId: string): Promise<void> {
+    await db.delete(chatMessages).where(eq(chatMessages.userId, userId));
   }
 }
 
