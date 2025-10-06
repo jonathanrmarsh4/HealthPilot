@@ -215,29 +215,17 @@ export function GoogleDriveFiles() {
                   >
                     <Eye className="h-4 w-4" />
                   </Button>
-                  {isFileAnalyzing(file.id) ? (
-                    <>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => handleCancelAnalysis(file.id)}
-                        data-testid={`button-cancel-${file.id}`}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                      {getRecordIdForFile(file.id) && (
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => deleteMutation.mutate(getRecordIdForFile(file.id)!)}
-                          disabled={deleteMutation.isPending}
-                          data-testid={`button-delete-google-${file.id}`}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </>
-                  ) : isFileAnalyzed(file.id) && getRecordIdForFile(file.id) && (
+                  {isFileAnalyzing(file.id) && (
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => handleCancelAnalysis(file.id)}
+                      data-testid={`button-cancel-${file.id}`}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                  {getRecordIdForFile(file.id) && (
                     <Button
                       size="icon"
                       variant="ghost"
