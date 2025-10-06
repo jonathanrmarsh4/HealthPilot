@@ -60,18 +60,12 @@ export default function Dashboard() {
 
   const convertedGlucoseData = glucoseData?.map(point => ({
     ...point,
-    value: parseFloat(formatValue(
-      convertValue(point.value, "blood-glucose", "mg/dL", unitConfigs["blood-glucose"][unitSystem].unit),
-      "blood-glucose"
-    )),
+    value: convertValue(point.value, "blood-glucose", "mg/dL", unitConfigs["blood-glucose"][unitSystem].unit),
   }));
 
   const convertedWeightData = weightData?.map(point => ({
     ...point,
-    value: parseFloat(formatValue(
-      convertValue(point.value, "weight", "lbs", unitConfigs.weight[unitSystem].unit),
-      "weight"
-    )),
+    value: convertValue(point.value, "weight", "lbs", unitConfigs.weight[unitSystem].unit),
   }));
 
   return (
@@ -158,7 +152,10 @@ export default function Dashboard() {
             )}
             unit={unitConfigs["blood-glucose"][unitSystem].unit}
             trend={stats.bloodGlucose.trend}
-            status={stats.bloodGlucose.value <= 100 ? "optimal" : "warning"}
+            status={
+              convertValue(stats.bloodGlucose.value, "blood-glucose", "mg/dL", unitConfigs["blood-glucose"][unitSystem].unit) <= 
+              (unitSystem === "metric" ? 5.5 : 100) ? "optimal" : "warning"
+            }
             icon={Droplet}
             lastUpdated={stats.bloodGlucose.lastUpdated}
           />

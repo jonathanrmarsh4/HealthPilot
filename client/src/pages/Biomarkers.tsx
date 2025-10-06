@@ -29,10 +29,7 @@ export default function Biomarkers() {
 
   const convertedCholesterolData = cholesterolData?.map(point => ({
     ...point,
-    value: parseFloat(formatValue(
-      convertValue(point.value, "cholesterol", "mg/dL", unitConfigs.cholesterol[unitSystem].unit),
-      "cholesterol"
-    )),
+    value: convertValue(point.value, "cholesterol", "mg/dL", unitConfigs.cholesterol[unitSystem].unit),
   }));
 
   return (
