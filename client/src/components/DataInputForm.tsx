@@ -11,20 +11,23 @@ import { format } from "date-fns";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useLocale } from "@/contexts/LocaleContext";
+import { unitConfigs, convertValue, type MetricType } from "@/lib/unitConversions";
 
-const metricConfig: Record<string, { unit: string; type: string }> = {
-  "weight": { unit: "lbs", type: "weight" },
-  "blood-glucose": { unit: "mg/dL", type: "blood-glucose" },
-  "blood-pressure": { unit: "mmHg", type: "blood-pressure" },
-  "heart-rate": { unit: "bpm", type: "heart-rate" },
-  "cholesterol": { unit: "mg/dL", type: "cholesterol" },
-  "sleep": { unit: "hours", type: "sleep" },
-  "steps": { unit: "steps", type: "steps" },
-  "exercise": { unit: "minutes", type: "exercise" },
+const storageUnits: Record<string, string> = {
+  "weight": "lbs",
+  "blood-glucose": "mg/dL",
+  "blood-pressure": "mmHg",
+  "heart-rate": "bpm",
+  "cholesterol": "mg/dL",
+  "sleep": "hours",
+  "steps": "steps",
+  "exercise": "minutes",
 };
 
 export function DataInputForm() {
   const { toast } = useToast();
+  const { unitSystem } = useLocale();
   const [date, setDate] = useState<Date>(new Date());
   const [metric, setMetric] = useState<string>("");
   const [value, setValue] = useState<string>("");
@@ -60,8 +63,12 @@ export function DataInputForm() {
     
     if (!metric || !value) return;
 
-    const config = metricConfig[metric];
-    const numericValue = parseFloat(value);
+    const metricType = metric as MetricType;
+    const config = unitConfigs[metricType];
+    const currentUnit = config[unitSystem].unit;
+    const storageUnit = storageUnits[metric];
+    
+    let numericValue = parseFloat(value);
 
     if (isNaN(numericValue)) {
       toast({
@@ -72,10 +79,14 @@ export function DataInputForm() {
       return;
     }
 
+    if (currentUnit !== storageUnit) {
+      numericValue = convertValue(numericValue, metricType, currentUnit, storageUnit);
+    }
+
     createBiomarkerMutation.mutate({
-      type: config.type,
+      type: metric,
       value: numericValue,
-      unit: config.unit,
+      unit: storageUnit,
       recordedAt: date,
       source: "manual",
       userId: "user-1",
@@ -99,14 +110,14 @@ export function DataInputForm() {
                 <SelectValue placeholder="Select a metric" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="weight">Weight (lbs)</SelectItem>
-                <SelectItem value="blood-glucose">Blood Glucose (mg/dL)</SelectItem>
-                <SelectItem value="blood-pressure">Blood Pressure (mmHg)</SelectItem>
-                <SelectItem value="heart-rate">Heart Rate (bpm)</SelectItem>
-                <SelectItem value="cholesterol">Cholesterol (mg/dL)</SelectItem>
-                <SelectItem value="sleep">Sleep Duration (hours)</SelectItem>
-                <SelectItem value="steps">Steps</SelectItem>
-                <SelectItem value="exercise">Exercise Duration (min)</SelectItem>
+                <SelectItem value="weight">{unitConfigs.weight[unitSystem].label}</SelectItem>
+                <SelectItem value="blood-glucose">{unitConfigs["blood-glucose"][unitSystem].label}</SelectItem>
+                <SelectItem value="blood-pressure">{unitConfigs["blood-pressure"][unitSystem].label}</SelectItem>
+                <SelectItem value="heart-rate">{unitConfigs["heart-rate"][unitSystem].label}</SelectItem>
+                <SelectItem value="cholesterol">{unitConfigs.cholesterol[unitSystem].label}</SelectItem>
+                <SelectItem value="sleep">{unitConfigs.sleep[unitSystem].label}</SelectItem>
+                <SelectItem value="steps">{unitConfigs.steps[unitSystem].label}</SelectItem>
+                <SelectItem value="exercise">{unitConfigs.exercise[unitSystem].label}</SelectItem>
               </SelectContent>
             </Select>
           </div>
