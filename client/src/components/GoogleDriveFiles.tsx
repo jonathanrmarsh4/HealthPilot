@@ -1,12 +1,12 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FileText, Eye, Loader2, CheckCircle2 } from "lucide-react";
+import { FileText, Eye, Loader2, CheckCircle2, X } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import type { HealthRecord } from "@shared/schema";
 
 interface GoogleDriveFile {
@@ -20,6 +20,7 @@ interface GoogleDriveFile {
 export function GoogleDriveFiles() {
   const { toast } = useToast();
   const [analyzingFiles, setAnalyzingFiles] = useState<Set<string>>(new Set());
+  const abortControllers = useRef<Map<string, AbortController>>(new Map());
   
   const { data: files, isLoading: filesLoading } = useQuery<GoogleDriveFile[]>({
     queryKey: ["/api/google-drive/files"],
@@ -31,7 +32,12 @@ export function GoogleDriveFiles() {
 
   const analyzeMutation = useMutation({
     mutationFn: async (fileId: string) => {
-      const res = await apiRequest("POST", `/api/health-records/analyze/${fileId}`);
+      const controller = new AbortController();
+      abortControllers.current.set(fileId, controller);
+      
+      const res = await apiRequest("POST", `/api/health-records/analyze/${fileId}`, undefined, {
+        signal: controller.signal,
+      });
       return res.json();
     },
     onSuccess: (data, fileId) => {
@@ -43,6 +49,7 @@ export function GoogleDriveFiles() {
         next.delete(fileId);
         return next;
       });
+      abortControllers.current.delete(fileId);
     },
     onError: (error: Error, fileId) => {
       console.error("Error analyzing file:", error);
@@ -51,6 +58,7 @@ export function GoogleDriveFiles() {
         next.delete(fileId);
         return next;
       });
+      abortControllers.current.delete(fileId);
     },
   });
 
@@ -87,6 +95,23 @@ export function GoogleDriveFiles() {
 
   const isFileAnalyzing = (fileId: string) => {
     return analyzingFiles.has(fileId);
+  };
+
+  const handleCancelAnalysis = (fileId: string) => {
+    const controller = abortControllers.current.get(fileId);
+    if (controller) {
+      controller.abort();
+      setAnalyzingFiles(prev => {
+        const next = new Set(prev);
+        next.delete(fileId);
+        return next;
+      });
+      abortControllers.current.delete(fileId);
+      toast({
+        title: "Analysis Cancelled",
+        description: "File analysis has been stopped",
+      });
+    }
   };
 
   return (
@@ -147,6 +172,16 @@ export function GoogleDriveFiles() {
                   >
                     <Eye className="h-4 w-4" />
                   </Button>
+                  {isFileAnalyzing(file.id) && (
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => handleCancelAnalysis(file.id)}
+                      data-testid={`button-cancel-${file.id}`}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
               </div>
             ))}
