@@ -7,6 +7,7 @@ interface BiomarkerChartProps {
   data: Array<{ date: string; value: number; target?: number }>;
   unit: string;
   color?: string;
+  domain?: [number, number];
 }
 
 export function BiomarkerChart({ 
@@ -14,7 +15,8 @@ export function BiomarkerChart({
   description, 
   data, 
   unit,
-  color = "hsl(var(--chart-1))"
+  color = "hsl(var(--chart-1))",
+  domain
 }: BiomarkerChartProps) {
   return (
     <Card data-testid={`chart-${title.toLowerCase().replace(/\s/g, "-")}`}>
@@ -42,6 +44,7 @@ export function BiomarkerChart({
                 className="text-xs text-muted-foreground"
                 tick={{ fill: "hsl(var(--muted-foreground))" }}
                 label={{ value: unit, angle: -90, position: 'insideLeft', fill: "hsl(var(--muted-foreground))" }}
+                domain={domain}
               />
               <Tooltip 
                 contentStyle={{

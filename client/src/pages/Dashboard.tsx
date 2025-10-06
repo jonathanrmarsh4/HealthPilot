@@ -210,6 +210,7 @@ export default function Dashboard() {
             data={convertedWeightData}
             unit={unitConfigs.weight[unitSystem].unit}
             color="hsl(var(--chart-2))"
+            domain={unitSystem === "metric" ? [60, 80] : [132, 176]}
           />
         ) : (
           <Card>
