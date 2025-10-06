@@ -20,9 +20,7 @@ export default function HealthRecords() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      await apiRequest(`/api/health-records/${id}`, {
-        method: "DELETE",
-      });
+      await apiRequest("DELETE", `/api/health-records/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/health-records"] });
