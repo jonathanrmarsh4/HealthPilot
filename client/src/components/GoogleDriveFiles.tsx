@@ -1,11 +1,13 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FileText, Download, Eye, Sparkles } from "lucide-react";
+import { FileText, Eye, Loader2, CheckCircle2 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useEffect, useState } from "react";
+import type { HealthRecord } from "@shared/schema";
 
 interface GoogleDriveFile {
   id: string;
@@ -17,34 +19,61 @@ interface GoogleDriveFile {
 
 export function GoogleDriveFiles() {
   const { toast } = useToast();
+  const [analyzingFiles, setAnalyzingFiles] = useState<Set<string>>(new Set());
   
-  const { data: files, isLoading } = useQuery<GoogleDriveFile[]>({
+  const { data: files, isLoading: filesLoading } = useQuery<GoogleDriveFile[]>({
     queryKey: ["/api/google-drive/files"],
+  });
+
+  const { data: existingRecords } = useQuery<HealthRecord[]>({
+    queryKey: ["/api/health-records"],
   });
 
   const analyzeMutation = useMutation({
     mutationFn: async (fileId: string) => {
-      return await apiRequest(`/api/health-records/analyze/${fileId}`, {
-        method: "POST",
-      });
+      const res = await apiRequest("POST", `/api/health-records/analyze/${fileId}`);
+      return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data, fileId) => {
       queryClient.invalidateQueries({ queryKey: ["/api/health-records"] });
       queryClient.invalidateQueries({ queryKey: ["/api/biomarkers"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
-      toast({
-        title: "Success",
-        description: "Google Drive file analyzed successfully!",
+      setAnalyzingFiles(prev => {
+        const next = new Set(prev);
+        next.delete(fileId);
+        return next;
       });
     },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to analyze file",
-        variant: "destructive",
+    onError: (error: Error, fileId) => {
+      console.error("Error analyzing file:", error);
+      setAnalyzingFiles(prev => {
+        const next = new Set(prev);
+        next.delete(fileId);
+        return next;
       });
     },
   });
+
+  // Auto-analyze new files
+  useEffect(() => {
+    if (!files || !existingRecords || filesLoading) return;
+
+    const existingFileIds = new Set(
+      existingRecords
+        .filter(r => r.fileId)
+        .map(r => r.fileId)
+    );
+
+    const newFiles = files.filter(file => !existingFileIds.has(file.id));
+
+    // Analyze new files automatically
+    newFiles.forEach(file => {
+      if (!analyzingFiles.has(file.id)) {
+        setAnalyzingFiles(prev => new Set(prev).add(file.id));
+        analyzeMutation.mutate(file.id);
+      }
+    });
+  }, [files, existingRecords, filesLoading]);
 
   const handleViewFile = (file: GoogleDriveFile) => {
     if (file.webViewLink) {
@@ -52,8 +81,12 @@ export function GoogleDriveFiles() {
     }
   };
 
-  const handleAnalyze = (fileId: string) => {
-    analyzeMutation.mutate(fileId);
+  const isFileAnalyzed = (fileId: string) => {
+    return existingRecords?.some(r => r.fileId === fileId);
+  };
+
+  const isFileAnalyzing = (fileId: string) => {
+    return analyzingFiles.has(fileId);
   };
 
   return (
@@ -61,11 +94,11 @@ export function GoogleDriveFiles() {
       <CardHeader>
         <CardTitle>Google Drive Files</CardTitle>
         <CardDescription>
-          Your health documents from Google Drive
+          Your health documents from Google Drive (automatically analyzed by AI)
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {isLoading ? (
+        {filesLoading ? (
           <div className="space-y-3">
             {[...Array(3)].map((_, i) => (
               <Skeleton key={i} className="h-20 w-full" />
@@ -90,6 +123,18 @@ export function GoogleDriveFiles() {
                       <Badge variant="outline" className="text-xs">
                         Google Drive
                       </Badge>
+                      {isFileAnalyzing(file.id) && (
+                        <Badge className="bg-primary/10 text-primary text-xs">
+                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                          Analyzing...
+                        </Badge>
+                      )}
+                      {isFileAnalyzed(file.id) && !isFileAnalyzing(file.id) && (
+                        <Badge className="bg-chart-4 text-white text-xs">
+                          <CheckCircle2 className="h-3 w-3 mr-1" />
+                          AI Analyzed
+                        </Badge>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -101,15 +146,6 @@ export function GoogleDriveFiles() {
                     data-testid={`button-view-google-${file.id}`}
                   >
                     <Eye className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={() => handleAnalyze(file.id)}
-                    disabled={analyzeMutation.isPending}
-                    data-testid={`button-analyze-${file.id}`}
-                  >
-                    <Sparkles className="h-4 w-4 mr-2" />
-                    Analyze
                   </Button>
                 </div>
               </div>
