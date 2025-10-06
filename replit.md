@@ -15,6 +15,7 @@ This is a full-stack application built with:
 
 - Health record upload and AI analysis
 - Biomarker tracking with trend visualization
+- **Localization support** - Switch between imperial (lbs, mg/dL) and metric (kg, mmol/L) units
 - **Apple Health integration** via Health Auto Export app (iOS)
 - AI-generated personalized meal plans
 - AI-generated training schedules
