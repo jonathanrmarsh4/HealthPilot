@@ -89,6 +89,11 @@ export class DbStorage implements IStorage {
     return result[0];
   }
 
+  async getHealthRecordByFileId(fileId: string): Promise<HealthRecord | undefined> {
+    const result = await db.select().from(healthRecords).where(eq(healthRecords.fileId, fileId));
+    return result[0];
+  }
+
   async updateHealthRecord(id: string, data: Partial<HealthRecord>): Promise<HealthRecord> {
     const result = await db
       .update(healthRecords)
@@ -99,6 +104,9 @@ export class DbStorage implements IStorage {
   }
 
   async deleteHealthRecord(id: string): Promise<void> {
+    // Delete associated biomarkers first
+    await db.delete(biomarkers).where(eq(biomarkers.recordId, id));
+    // Then delete the health record
     await db.delete(healthRecords).where(eq(healthRecords.id, id));
   }
 

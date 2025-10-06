@@ -47,6 +47,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { fileId } = req.params;
       
+      // Check if a record with this fileId already exists
+      const existingRecord = await storage.getHealthRecordByFileId(fileId);
+      if (existingRecord) {
+        return res.json(existingRecord);
+      }
+      
       const metadata = await getFileMetadata(fileId);
       const fileBuffer = await downloadFile(fileId);
       
@@ -57,6 +63,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const fileText = fileBuffer.toString('utf-8');
       
       const analysis = await analyzeHealthDocument(fileText, metadata.name || 'Unknown');
+      
+      // Double-check that record wasn't created/deleted during analysis
+      const stillExists = await storage.getHealthRecordByFileId(fileId);
+      if (stillExists) {
+        return res.json(stillExists);
+      }
       
       const record = await storage.createHealthRecord({
         userId: TEST_USER_ID,
@@ -85,6 +97,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json(record);
     } catch (error: any) {
+      if (error.name === 'AbortError') {
+        return res.status(499).json({ error: 'Request cancelled' });
+      }
       console.error("Error analyzing document:", error);
       res.status(500).json({ error: error.message });
     }

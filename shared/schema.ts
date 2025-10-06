@@ -91,12 +91,10 @@ export const insertUserSchema = createInsertSchema(users).pick({
 export const insertHealthRecordSchema = createInsertSchema(healthRecords).omit({
   id: true,
   uploadedAt: true,
-  analyzedAt: true,
 });
 
 export const insertBiomarkerSchema = createInsertSchema(biomarkers).omit({
   id: true,
-  recordedAt: true,
 });
 
 export const insertMealPlanSchema = createInsertSchema(mealPlans).omit({
