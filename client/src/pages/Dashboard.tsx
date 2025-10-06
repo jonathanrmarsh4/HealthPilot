@@ -38,7 +38,7 @@ export default function Dashboard() {
   });
 
   const { data: weightData, isLoading: weightLoading } = useQuery<ChartDataPoint[]>({
-    queryKey: ["/api/biomarkers/chart/weight?days=28"],
+    queryKey: ["/api/biomarkers/chart/weight?days=365"],
   });
 
   const { data: recommendations, isLoading: recommendationsLoading } = useQuery<Recommendation[]>({
@@ -206,7 +206,7 @@ export default function Dashboard() {
         ) : convertedWeightData && convertedWeightData.length > 0 ? (
           <BiomarkerChart
             title="Weight Progress"
-            description="4-week weight tracking"
+            description="12-month weight tracking"
             data={convertedWeightData}
             unit={unitConfigs.weight[unitSystem].unit}
             color="hsl(var(--chart-2))"
