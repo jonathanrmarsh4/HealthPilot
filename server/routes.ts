@@ -60,22 +60,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'File too large. Maximum size is 10MB.' });
       }
       
-      const fileText = fileBuffer.toString('utf-8');
-      
-      const analysis = await analyzeHealthDocument(fileText, metadata.name || 'Unknown');
-      
-      // Double-check that record wasn't created/deleted during analysis
-      const stillExists = await storage.getHealthRecordByFileId(fileId);
-      if (stillExists) {
-        return res.json(stillExists);
-      }
-      
-      const record = await storage.createHealthRecord({
+      // Create record immediately (before analysis) so it can be deleted
+      const pendingRecord = await storage.createHealthRecord({
         userId: TEST_USER_ID,
         name: metadata.name || 'Uploaded Document',
         fileId: fileId,
         fileUrl: metadata.webViewLink || '',
         type: 'Lab Results',
+      });
+      
+      const fileText = fileBuffer.toString('utf-8');
+      
+      const analysis = await analyzeHealthDocument(fileText, metadata.name || 'Unknown');
+      
+      // Check if record was deleted during analysis
+      const stillExists = await storage.getHealthRecordByFileId(fileId);
+      if (!stillExists) {
+        // Record was deleted during analysis, don't update or create biomarkers
+        return res.status(410).json({ error: 'Record was deleted during analysis' });
+      }
+      
+      // Update record with analysis results
+      const record = await storage.updateHealthRecord(pendingRecord.id, {
         aiAnalysis: analysis,
         extractedData: analysis.biomarkers,
         analyzedAt: new Date(),
