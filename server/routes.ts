@@ -1,11 +1,13 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { db } from "./db";
 import multer from "multer";
-import { insertBiomarkerSchema, insertHealthRecordSchema } from "@shared/schema";
+import { insertBiomarkerSchema, insertHealthRecordSchema, biomarkers } from "@shared/schema";
 import { listHealthDocuments, downloadFile, getFileMetadata } from "./services/googleDrive";
 import { analyzeHealthDocument, generateMealPlan, generateTrainingSchedule, generateHealthRecommendations, chatWithHealthCoach } from "./services/ai";
 import { parseISO, isValid } from "date-fns";
+import { eq } from "drizzle-orm";
 
 // Helper function to parse biomarker dates with fallback
 function parseBiomarkerDate(dateStr: string | undefined, documentDate: string | undefined, fileDate: Date | undefined): Date {
@@ -525,6 +527,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/biomarkers/cleanup-duplicates", async (req, res) => {
+    try {
+      console.log("🧹 Starting duplicate cleanup...");
+      
+      // First, delete the bad weight spike
+      const badWeightId = '21d7e29c-713b-4c1c-97d0-657548ef41ad';
+      await db.delete(biomarkers).where(eq(biomarkers.id, badWeightId));
+      console.log("✅ Deleted bad weight spike");
+      
+      // Now delete all duplicates keeping only the first occurrence
+      const allBiomarkers = await db.select().from(biomarkers).where(eq(biomarkers.userId, TEST_USER_ID));
+      console.log(`📊 Total biomarkers: ${allBiomarkers.length}`);
+      
+      const seen = new Set<string>();
+      const toDelete: string[] = [];
+      
+      // Sort by ID to ensure consistent "first" record
+      const sorted = [...allBiomarkers].sort((a, b) => a.id.localeCompare(b.id));
+      
+      for (const biomarker of sorted) {
+        const key = `${biomarker.type}-${biomarker.recordedAt.toISOString()}-${biomarker.source}`;
+        
+        if (seen.has(key)) {
+          toDelete.push(biomarker.id);
+        } else {
+          seen.set(key);
+        }
+      }
+      
+      console.log(`🗑️  Found ${toDelete.length} duplicates to delete`);
+      
+      // Delete in batches
+      for (const id of toDelete) {
+        await db.delete(biomarkers).where(eq(biomarkers.id, id));
+      }
+      
+      console.log("✅ Cleanup complete");
+      
+      res.json({ 
+        success: true, 
+        message: `Cleaned up ${toDelete.length + 1} biomarkers (including bad spike)`,
+        deletedCount: toDelete.length + 1,
+        details: {
+          duplicatesRemoved: toDelete.length,
+          badSpikeRemoved: 1
+        }
+      });
+    } catch (error: any) {
+      console.error("Error cleaning up duplicates:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.post("/api/health-auto-export/ingest", async (req, res) => {
     try {
       console.log("📥 Received Health Auto Export data:", JSON.stringify(req.body, null, 2));
@@ -618,7 +673,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (metric.name === "Blood Pressure" && metric.data) {
           for (const dataPoint of metric.data) {
             if (dataPoint.systolic) {
-              await storage.createBiomarker({
+              await storage.upsertBiomarker({
                 userId: TEST_USER_ID,
                 type: "blood-pressure-systolic",
                 value: dataPoint.systolic,
@@ -629,7 +684,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               insertedCount++;
             }
             if (dataPoint.diastolic) {
-              await storage.createBiomarker({
+              await storage.upsertBiomarker({
                 userId: TEST_USER_ID,
                 type: "blood-pressure-diastolic",
                 value: dataPoint.diastolic,
@@ -656,7 +711,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               // Convert to standardized storage units
               const converted = convertToStorageUnit(value, metric.units, biomarkerType);
               
-              await storage.createBiomarker({
+              await storage.upsertBiomarker({
                 userId: TEST_USER_ID,
                 type: biomarkerType,
                 value: converted.value,

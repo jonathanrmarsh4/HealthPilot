@@ -1,14 +1,16 @@
 import { useState, useEffect } from "react";
 import { DataInputForm } from "@/components/DataInputForm";
 import { BiomarkerChart } from "@/components/BiomarkerChart";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useLocale } from "@/contexts/LocaleContext";
 import { unitConfigs, convertValue } from "@/lib/unitConversions";
-import { Settings2, Eye, EyeOff, ChevronUp, ChevronDown, X } from "lucide-react";
+import { Settings2, Eye, EyeOff, ChevronUp, ChevronDown, X, Trash2 } from "lucide-react";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import {
   Sheet,
   SheetContent,
@@ -43,6 +45,7 @@ interface BiomarkerPreferences {
 
 export default function Biomarkers() {
   const { unitSystem } = useLocale();
+  const { toast } = useToast();
   
   // Get all biomarkers to determine which types exist
   const { data: allBiomarkers, isLoading: biomarkersLoading } = useQuery<Biomarker[]>({
@@ -51,6 +54,25 @@ export default function Biomarkers() {
 
   // Get unique biomarker types that have data
   const availableTypes = Array.from(new Set(allBiomarkers?.map(b => b.type) || []));
+  
+  // Cleanup duplicates mutation
+  const cleanupMutation = useMutation({
+    mutationFn: () => apiRequest("/api/biomarkers/cleanup-duplicates", "POST", {}),
+    onSuccess: (data: any) => {
+      toast({
+        title: "Cleanup Complete",
+        description: data.message || `Removed ${data.deletedCount} duplicate biomarkers`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/biomarkers"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Cleanup Failed",
+        description: error.message || "Failed to clean up duplicates",
+        variant: "destructive",
+      });
+    },
+  });
 
   // Load preferences from localStorage
   const [preferences, setPreferences] = useState<BiomarkerPreferences>(() => {
@@ -134,13 +156,25 @@ export default function Biomarkers() {
           </p>
         </div>
         
-        <Sheet>
-          <SheetTrigger asChild>
-            <Button variant="outline" size="default" data-testid="button-manage-biomarkers">
-              <Settings2 className="h-4 w-4 mr-2" />
-              Manage Charts
-            </Button>
-          </SheetTrigger>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            size="default" 
+            onClick={() => cleanupMutation.mutate()}
+            disabled={cleanupMutation.isPending}
+            data-testid="button-cleanup-duplicates"
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            {cleanupMutation.isPending ? "Cleaning..." : "Clean Duplicates"}
+          </Button>
+          
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="outline" size="default" data-testid="button-manage-biomarkers">
+                <Settings2 className="h-4 w-4 mr-2" />
+                Manage Charts
+              </Button>
+            </SheetTrigger>
           <SheetContent className="w-[400px] sm:w-[540px]">
             <SheetHeader>
               <SheetTitle>Manage Biomarker Charts</SheetTitle>
@@ -236,7 +270,8 @@ export default function Biomarkers() {
               </div>
             </div>
           </SheetContent>
-        </Sheet>
+          </Sheet>
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">

@@ -35,6 +35,7 @@ export interface IStorage {
   deleteHealthRecord(id: string): Promise<void>;
   
   createBiomarker(biomarker: InsertBiomarker): Promise<Biomarker>;
+  upsertBiomarker(biomarker: InsertBiomarker): Promise<Biomarker>;
   getBiomarkers(userId: string, type?: string): Promise<Biomarker[]>;
   getBiomarkersByTimeRange(userId: string, type: string, startDate: Date, endDate: Date): Promise<Biomarker[]>;
   
@@ -117,6 +118,36 @@ export class DbStorage implements IStorage {
   async createBiomarker(biomarker: InsertBiomarker): Promise<Biomarker> {
     const result = await db.insert(biomarkers).values(biomarker).returning();
     return result[0];
+  }
+
+  async upsertBiomarker(biomarker: InsertBiomarker): Promise<Biomarker> {
+    // Check if biomarker exists with same userId, type, value, recordedAt, and source
+    const existing = await db
+      .select()
+      .from(biomarkers)
+      .where(
+        and(
+          eq(biomarkers.userId, biomarker.userId),
+          eq(biomarkers.type, biomarker.type),
+          eq(biomarkers.recordedAt, biomarker.recordedAt),
+          eq(biomarkers.source, biomarker.source)
+        )
+      )
+      .limit(1);
+    
+    if (existing.length > 0) {
+      // Update existing record
+      const [updated] = await db
+        .update(biomarkers)
+        .set({ value: biomarker.value, unit: biomarker.unit })
+        .where(eq(biomarkers.id, existing[0].id))
+        .returning();
+      return updated;
+    }
+    
+    // Insert new record
+    const [inserted] = await db.insert(biomarkers).values(biomarker).returning();
+    return inserted;
   }
 
   async getBiomarkers(userId: string, type?: string): Promise<Biomarker[]> {
