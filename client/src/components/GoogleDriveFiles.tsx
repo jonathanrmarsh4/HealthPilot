@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FileText, Eye, Loader2, CheckCircle2, X } from "lucide-react";
+import { FileText, Eye, Loader2, CheckCircle2, X, Trash2 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
@@ -114,6 +114,49 @@ export function GoogleDriveFiles() {
     }
   };
 
+  const deleteMutation = useMutation({
+    mutationFn: async (recordId: string) => {
+      // Find the record to get its fileId
+      const record = existingRecords?.find(r => r.id === recordId);
+      if (record?.fileId) {
+        // Cancel ongoing analysis if any
+        const controller = abortControllers.current.get(record.fileId);
+        if (controller) {
+          controller.abort();
+          setAnalyzingFiles(prev => {
+            const next = new Set(prev);
+            next.delete(record.fileId!);
+            return next;
+          });
+          abortControllers.current.delete(record.fileId);
+        }
+      }
+      
+      const res = await apiRequest("DELETE", `/api/health-records/${recordId}`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/health-records"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/biomarkers"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+      toast({
+        title: "Record Deleted",
+        description: "Health record and analysis have been removed",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const getRecordIdForFile = (fileId: string) => {
+    return existingRecords?.find(r => r.fileId === fileId)?.id;
+  };
+
   return (
     <Card data-testid="card-google-drive">
       <CardHeader>
@@ -172,14 +215,37 @@ export function GoogleDriveFiles() {
                   >
                     <Eye className="h-4 w-4" />
                   </Button>
-                  {isFileAnalyzing(file.id) && (
+                  {isFileAnalyzing(file.id) ? (
+                    <>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => handleCancelAnalysis(file.id)}
+                        data-testid={`button-cancel-${file.id}`}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                      {getRecordIdForFile(file.id) && (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => deleteMutation.mutate(getRecordIdForFile(file.id)!)}
+                          disabled={deleteMutation.isPending}
+                          data-testid={`button-delete-google-${file.id}`}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </>
+                  ) : isFileAnalyzed(file.id) && getRecordIdForFile(file.id) && (
                     <Button
                       size="icon"
                       variant="ghost"
-                      onClick={() => handleCancelAnalysis(file.id)}
-                      data-testid={`button-cancel-${file.id}`}
+                      onClick={() => deleteMutation.mutate(getRecordIdForFile(file.id)!)}
+                      disabled={deleteMutation.isPending}
+                      data-testid={`button-delete-google-${file.id}`}
                     >
-                      <X className="h-4 w-4" />
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   )}
                 </div>
