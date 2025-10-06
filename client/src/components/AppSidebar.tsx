@@ -8,6 +8,7 @@ import {
   Settings,
   HeartPulse,
   Smartphone,
+  MessageCircle,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import {
@@ -57,6 +58,11 @@ const menuItems = [
     title: "AI Insights",
     url: "/insights",
     icon: Sparkles,
+  },
+  {
+    title: "Health Coach",
+    url: "/chat",
+    icon: MessageCircle,
   },
 ];
 
