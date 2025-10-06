@@ -6,9 +6,11 @@ import { QuickStats } from "@/components/QuickStats";
 import { Heart, Activity, Scale, Droplet, TrendingUp, Zap, Apple, AlertCircle, Dumbbell, Settings2, Eye, EyeOff, ChevronUp, ChevronDown } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Link } from "wouter";
 import type { Recommendation } from "@shared/schema";
 import { useLocale } from "@/contexts/LocaleContext";
 import { unitConfigs, convertValue, formatValue } from "@/lib/unitConversions";
@@ -354,42 +356,44 @@ export default function Dashboard() {
         );
 
       case "recommendations":
-        return (
-          <div key={widget}>
-            <h2 className="text-2xl font-semibold mb-6">AI Recommendations</h2>
-            {recommendationsLoading ? (
-              <div className="space-y-6">
-                {[...Array(3)].map((_, i) => (
-                  <Card key={i}>
-                    <CardContent className="p-6">
-                      <Skeleton className="h-24 w-full" />
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : recommendations && recommendations.length > 0 ? (
-              <div className="grid gap-6">
-                {recommendations.slice(0, 3).map((rec) => (
-                  <RecommendationCard
-                    key={rec.id}
-                    title={rec.title}
-                    description={rec.description}
-                    category={rec.category}
-                    priority={rec.priority as "high" | "medium" | "low"}
-                    icon={getCategoryIcon(rec.category)}
-                    details={rec.details || ""}
-                    actionLabel={rec.actionLabel || "View Details"}
-                  />
-                ))}
-              </div>
-            ) : (
-              <Card>
-                <CardContent className="p-12 text-center text-muted-foreground">
-                  No recommendations available. Add health data to get personalized insights.
-                </CardContent>
-              </Card>
-            )}
-          </div>
+        return recommendationsLoading ? (
+          <Card key={widget}>
+            <CardContent className="p-6">
+              <Skeleton className="h-48 w-full" />
+            </CardContent>
+          </Card>
+        ) : recommendations && recommendations.length > 0 ? (
+          <Card key={widget}>
+            <CardHeader>
+              <CardTitle>AI Recommendations</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {recommendations.slice(0, 3).map((rec) => (
+                <div key={rec.id} className="flex items-start gap-3 p-3 rounded-md hover-elevate">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-medium text-sm">{rec.title}</span>
+                      <Badge variant={rec.priority === 'high' ? 'destructive' : rec.priority === 'medium' ? 'default' : 'secondary'} className="text-xs">
+                        {rec.priority}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground line-clamp-2">{rec.description}</p>
+                  </div>
+                </div>
+              ))}
+              <Link href="/ai-insights">
+                <Button variant="outline" size="sm" className="w-full mt-2" data-testid="button-view-all-recommendations">
+                  View All Insights →
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card key={widget}>
+            <CardContent className="p-6 text-center text-muted-foreground">
+              No recommendations available
+            </CardContent>
+          </Card>
         );
 
       default:
