@@ -541,17 +541,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const metricMapping: Record<string, string> = {
         "Heart Rate": "heart-rate",
+        "heart_rate": "heart-rate",
         "Resting Heart Rate": "heart-rate",
+        "resting_heart_rate": "heart-rate",
         "Blood Glucose": "blood-glucose",
+        "blood_glucose": "blood-glucose",
         "Weight": "weight",
+        "weight": "weight",
         "Steps": "steps",
+        "step_count": "steps",
         "Active Energy": "calories",
+        "active_energy": "calories",
         "Active Energy Burned": "calories",
+        "active_energy_burned": "calories",
         "Blood Pressure Systolic": "blood-pressure-systolic",
+        "blood_pressure_systolic": "blood-pressure-systolic",
         "Blood Pressure Diastolic": "blood-pressure-diastolic",
+        "blood_pressure_diastolic": "blood-pressure-diastolic",
         "Oxygen Saturation": "oxygen-saturation",
+        "oxygen_saturation": "oxygen-saturation",
         "Body Temperature": "body-temperature",
+        "body_temperature": "body-temperature",
         "Sleep Analysis": "sleep-hours",
+        "sleep_analysis": "sleep-hours",
       };
 
       let insertedCount = 0;
