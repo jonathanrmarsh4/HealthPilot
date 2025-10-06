@@ -138,6 +138,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.delete("/api/health-records/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteHealthRecord(id);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.post("/api/biomarkers", async (req, res) => {
     try {
       const validatedData = insertBiomarkerSchema.parse({

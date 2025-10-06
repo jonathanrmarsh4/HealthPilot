@@ -30,6 +30,7 @@ export interface IStorage {
   getHealthRecords(userId: string): Promise<HealthRecord[]>;
   getHealthRecord(id: string): Promise<HealthRecord | undefined>;
   updateHealthRecord(id: string, data: Partial<HealthRecord>): Promise<HealthRecord>;
+  deleteHealthRecord(id: string): Promise<void>;
   
   createBiomarker(biomarker: InsertBiomarker): Promise<Biomarker>;
   getBiomarkers(userId: string, type?: string): Promise<Biomarker[]>;
@@ -88,6 +89,10 @@ export class DbStorage implements IStorage {
       .where(eq(healthRecords.id, id))
       .returning();
     return result[0];
+  }
+
+  async deleteHealthRecord(id: string): Promise<void> {
+    await db.delete(healthRecords).where(eq(healthRecords.id, id));
   }
 
   async createBiomarker(biomarker: InsertBiomarker): Promise<Biomarker> {

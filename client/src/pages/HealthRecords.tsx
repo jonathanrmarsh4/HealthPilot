@@ -3,15 +3,41 @@ import { GoogleDriveFiles } from "@/components/GoogleDriveFiles";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FileText, Download, Eye } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { FileText, Download, Eye, Trash2 } from "lucide-react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { HealthRecord } from "@shared/schema";
 import { format } from "date-fns";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 export default function HealthRecords() {
+  const { toast } = useToast();
+  
   const { data: records, isLoading } = useQuery<HealthRecord[]>({
     queryKey: ["/api/health-records"],
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest(`/api/health-records/${id}`, {
+        method: "DELETE",
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/health-records"] });
+      toast({
+        title: "Success",
+        description: "Health record deleted successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to delete health record",
+        variant: "destructive",
+      });
+    },
   });
 
   const handleViewRecord = (record: HealthRecord) => {
@@ -96,6 +122,15 @@ export default function HealthRecords() {
                         data-testid={`button-download-${record.id}`}
                       >
                         <Download className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => deleteMutation.mutate(record.id)}
+                        disabled={deleteMutation.isPending}
+                        data-testid={`button-delete-${record.id}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
