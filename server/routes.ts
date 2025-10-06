@@ -488,9 +488,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/health-auto-export/ingest", async (req, res) => {
     try {
+      console.log("📥 Received Health Auto Export data:", JSON.stringify(req.body, null, 2));
+      
       const { data } = req.body;
       
       if (!data || !data.metrics) {
+        console.log("❌ Invalid data format - missing data.metrics");
         return res.status(400).json({ error: "Invalid data format" });
       }
 
