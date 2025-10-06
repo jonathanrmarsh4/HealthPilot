@@ -7,6 +7,7 @@ import {
   Sparkles,
   Settings,
   HeartPulse,
+  Smartphone,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import {
@@ -36,6 +37,11 @@ const menuItems = [
     title: "Biomarkers",
     url: "/biomarkers",
     icon: Activity,
+  },
+  {
+    title: "Apple Health Setup",
+    url: "/apple-health",
+    icon: Smartphone,
   },
   {
     title: "Meal Plans",

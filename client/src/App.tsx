@@ -13,6 +13,7 @@ import Biomarkers from "@/pages/Biomarkers";
 import MealPlans from "@/pages/MealPlans";
 import Training from "@/pages/Training";
 import AIInsights from "@/pages/AIInsights";
+import AppleHealthSetup from "@/pages/AppleHealthSetup";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -24,6 +25,7 @@ function Router() {
       <Route path="/meals" component={MealPlans} />
       <Route path="/training" component={Training} />
       <Route path="/insights" component={AIInsights} />
+      <Route path="/apple-health" component={AppleHealthSetup} />
       <Route component={NotFound} />
     </Switch>
   );
