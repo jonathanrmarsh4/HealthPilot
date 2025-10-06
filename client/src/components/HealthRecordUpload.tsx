@@ -2,29 +2,65 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Upload, FileText, Loader2 } from "lucide-react";
 import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 export function HealthRecordUpload() {
-  const [uploading, setUploading] = useState(false);
+  const { toast } = useToast();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  const uploadMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch("/api/health-records/upload", {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || "Upload failed");
+      }
+
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/health-records"] });
+      setSelectedFile(null);
+      toast({
+        title: "Success",
+        description: "Health record uploaded successfully!",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to upload file",
+        variant: "destructive",
+      });
+    },
+  });
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setSelectedFile(e.target.files[0]);
-      console.log("File selected:", e.target.files[0].name);
     }
   };
 
   const handleUpload = async () => {
     if (!selectedFile) return;
-    
-    setUploading(true);
-    console.log("Uploading file:", selectedFile.name);
-    
-    setTimeout(() => {
-      setUploading(false);
-      setSelectedFile(null);
-      console.log("Upload completed");
-    }, 2000);
+    uploadMutation.mutate(selectedFile);
+  };
+
+  const handleGoogleDriveConnect = () => {
+    toast({
+      title: "Google Drive Integration",
+      description: "Google Drive is already connected! You can view and analyze your files from the Health Records page.",
+    });
   };
 
   return (
@@ -76,11 +112,11 @@ export function HealthRecordUpload() {
             </div>
             <Button
               onClick={handleUpload}
-              disabled={uploading}
+              disabled={uploadMutation.isPending}
               size="sm"
               data-testid="button-upload"
             >
-              {uploading ? (
+              {uploadMutation.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Uploading...
@@ -99,7 +135,7 @@ export function HealthRecordUpload() {
           <Button 
             variant="outline" 
             className="w-full"
-            onClick={() => console.log("Connect Google Drive")}
+            onClick={handleGoogleDriveConnect}
             data-testid="button-connect-drive"
           >
             <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">

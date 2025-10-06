@@ -2,7 +2,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Clock, Zap, CheckCircle2 } from "lucide-react";
-import { useState } from "react";
 
 interface Exercise {
   name: string;
@@ -12,12 +11,14 @@ interface Exercise {
 }
 
 interface TrainingScheduleCardProps {
+  id?: string;
   day: string;
   workoutType: string;
   duration: number;
   intensity: "Low" | "Moderate" | "High";
   exercises: Exercise[];
   completed?: boolean;
+  onToggleComplete?: (id: string, currentCompleted: boolean) => void;
 }
 
 const intensityConfig = {
@@ -27,18 +28,24 @@ const intensityConfig = {
 };
 
 export function TrainingScheduleCard({
+  id,
   day,
   workoutType,
   duration,
   intensity,
   exercises,
   completed = false,
+  onToggleComplete,
 }: TrainingScheduleCardProps) {
-  const [isCompleted, setIsCompleted] = useState(completed);
+  const handleToggle = () => {
+    if (id && onToggleComplete) {
+      onToggleComplete(id, completed);
+    }
+  };
 
   return (
     <Card 
-      className={isCompleted ? "border-chart-4 bg-chart-4/5" : ""}
+      className={completed ? "border-chart-4 bg-chart-4/5" : ""}
       data-testid={`card-training-${day.toLowerCase()}`}
     >
       <CardHeader>
@@ -49,7 +56,7 @@ export function TrainingScheduleCard({
               <Badge className={intensityConfig[intensity]}>
                 {intensity}
               </Badge>
-              {isCompleted && (
+              {completed && (
                 <Badge className="bg-chart-4 text-white">
                   <CheckCircle2 className="mr-1 h-3 w-3" />
                   Completed
@@ -92,16 +99,13 @@ export function TrainingScheduleCard({
         </div>
 
         <Button
-          variant={isCompleted ? "outline" : "default"}
+          variant={completed ? "outline" : "default"}
           className="w-full"
           size="sm"
-          onClick={() => {
-            setIsCompleted(!isCompleted);
-            console.log(`Training ${isCompleted ? 'uncompleted' : 'completed'} for ${day}`);
-          }}
+          onClick={handleToggle}
           data-testid="button-toggle-completion"
         >
-          {isCompleted ? "Mark as Incomplete" : "Mark as Complete"}
+          {completed ? "Mark as Incomplete" : "Mark as Complete"}
         </Button>
       </CardContent>
     </Card>

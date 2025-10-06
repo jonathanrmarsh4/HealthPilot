@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ChevronRight, LucideIcon } from "lucide-react";
+import { ChevronRight, LucideIcon, X } from "lucide-react";
 import { useState } from "react";
 
 type Priority = "high" | "medium" | "low";
@@ -15,6 +15,7 @@ interface RecommendationCardProps {
   details?: string;
   actionLabel?: string;
   onAction?: () => void;
+  onDismiss?: () => void;
 }
 
 const priorityConfig = {
@@ -41,6 +42,7 @@ export function RecommendationCard({
   details,
   actionLabel = "View Details",
   onAction,
+  onDismiss,
 }: RecommendationCardProps) {
   const [expanded, setExpanded] = useState(false);
   const config = priorityConfig[priority];
@@ -71,7 +73,20 @@ export function RecommendationCard({
               <p className="text-sm text-muted-foreground">{description}</p>
             </div>
           </div>
-          <Badge className={config.badge}>{config.label}</Badge>
+          <div className="flex items-center gap-2 shrink-0">
+            <Badge className={config.badge}>{config.label}</Badge>
+            {onDismiss && (
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-6 w-6"
+                onClick={onDismiss}
+                data-testid="button-dismiss"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
         </div>
       </CardHeader>
       {(details || expanded) && (

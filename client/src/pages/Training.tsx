@@ -1,78 +1,62 @@
 import { TrainingScheduleCard } from "@/components/TrainingScheduleCard";
 import { Button } from "@/components/ui/button";
-import { Sparkles } from "lucide-react";
-
-const mockWorkouts = [
-  {
-    day: "Monday",
-    workoutType: "Upper Body Strength",
-    duration: 45,
-    intensity: "High" as const,
-    exercises: [
-      { name: "Bench Press", sets: 4, reps: "8-10" },
-      { name: "Pull-ups", sets: 3, reps: "10-12" },
-      { name: "Shoulder Press", sets: 3, reps: "10" },
-      { name: "Dumbbell Rows", sets: 3, reps: "12" },
-    ],
-    completed: true,
-  },
-  {
-    day: "Tuesday",
-    workoutType: "Cardio & Core",
-    duration: 30,
-    intensity: "Moderate" as const,
-    exercises: [
-      { name: "Running", duration: "20 min" },
-      { name: "Planks", sets: 3, reps: "60 sec" },
-      { name: "Russian Twists", sets: 3, reps: "20" },
-    ],
-  },
-  {
-    day: "Wednesday",
-    workoutType: "Lower Body Strength",
-    duration: 50,
-    intensity: "High" as const,
-    exercises: [
-      { name: "Squats", sets: 4, reps: "8-10" },
-      { name: "Deadlifts", sets: 3, reps: "8" },
-      { name: "Lunges", sets: 3, reps: "12 each" },
-      { name: "Leg Press", sets: 3, reps: "12" },
-    ],
-  },
-  {
-    day: "Thursday",
-    workoutType: "Active Recovery",
-    duration: 30,
-    intensity: "Low" as const,
-    exercises: [
-      { name: "Yoga Flow", duration: "20 min" },
-      { name: "Stretching", duration: "10 min" },
-    ],
-  },
-  {
-    day: "Friday",
-    workoutType: "Full Body Circuit",
-    duration: 40,
-    intensity: "High" as const,
-    exercises: [
-      { name: "Burpees", sets: 3, reps: "15" },
-      { name: "Kettlebell Swings", sets: 3, reps: "20" },
-      { name: "Box Jumps", sets: 3, reps: "12" },
-      { name: "Mountain Climbers", sets: 3, reps: "30" },
-    ],
-  },
-  {
-    day: "Saturday",
-    workoutType: "Outdoor Activity",
-    duration: 60,
-    intensity: "Moderate" as const,
-    exercises: [
-      { name: "Hiking", duration: "60 min" },
-    ],
-  },
-];
+import { Sparkles, Loader2 } from "lucide-react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
+import type { TrainingSchedule } from "@shared/schema";
 
 export default function Training() {
+  const { toast } = useToast();
+  
+  const { data: workouts, isLoading } = useQuery<TrainingSchedule[]>({
+    queryKey: ["/api/training-schedules"],
+  });
+
+  const generateMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/training-schedules/generate");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/training-schedules"] });
+      toast({
+        title: "Success",
+        description: "New training schedule generated successfully!",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to generate training schedule",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const toggleCompleteMutation = useMutation({
+    mutationFn: async ({ id, completed }: { id: string; completed: boolean }) => {
+      const res = await apiRequest("PATCH", `/api/training-schedules/${id}/complete`, { completed });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/training-schedules"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update workout status",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleToggleComplete = (id: string, currentCompleted: boolean) => {
+    toggleCompleteMutation.mutate({ id, completed: !currentCompleted });
+  };
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -82,17 +66,58 @@ export default function Training() {
             Personalized workout programs based on your fitness level and goals
           </p>
         </div>
-        <Button onClick={() => console.log("Generate new training plan")} data-testid="button-generate-training">
-          <Sparkles className="mr-2 h-4 w-4" />
-          Generate New Schedule
+        <Button 
+          onClick={() => generateMutation.mutate()} 
+          disabled={generateMutation.isPending}
+          data-testid="button-generate-training"
+        >
+          {generateMutation.isPending ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Generating...
+            </>
+          ) : (
+            <>
+              <Sparkles className="mr-2 h-4 w-4" />
+              Generate New Schedule
+            </>
+          )}
         </Button>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {mockWorkouts.map((workout, idx) => (
-          <TrainingScheduleCard key={idx} {...workout} />
-        ))}
-      </div>
+      {isLoading ? (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {[...Array(6)].map((_, i) => (
+            <Card key={i}>
+              <CardContent className="p-6">
+                <Skeleton className="h-64 w-full" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : workouts && workouts.length > 0 ? (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {workouts.map((workout) => (
+            <TrainingScheduleCard 
+              key={workout.id} 
+              id={workout.id}
+              day={workout.day}
+              workoutType={workout.workoutType}
+              duration={workout.duration}
+              intensity={workout.intensity as "Low" | "Moderate" | "High"}
+              exercises={workout.exercises as any[]}
+              completed={workout.completed === 1}
+              onToggleComplete={handleToggleComplete}
+            />
+          ))}
+        </div>
+      ) : (
+        <Card>
+          <CardContent className="p-12 text-center text-muted-foreground">
+            No training schedule available. Click "Generate New Schedule" to create a personalized workout plan.
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

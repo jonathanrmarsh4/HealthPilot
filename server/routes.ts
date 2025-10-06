@@ -6,7 +6,29 @@ import { insertBiomarkerSchema, insertHealthRecordSchema } from "@shared/schema"
 import { listHealthDocuments, downloadFile, getFileMetadata } from "./services/googleDrive";
 import { analyzeHealthDocument, generateMealPlan, generateTrainingSchedule, generateHealthRecommendations } from "./services/ai";
 
-const upload = multer({ storage: multer.memoryStorage() });
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const ALLOWED_MIME_TYPES = [
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'image/jpeg',
+  'image/png',
+  'text/plain'
+];
+
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: MAX_FILE_SIZE
+  },
+  fileFilter: (req, file, cb) => {
+    if (ALLOWED_MIME_TYPES.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type. Only PDF, DOC, DOCX, JPG, PNG, and TXT files are allowed.'));
+    }
+  }
+});
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const TEST_USER_ID = "test-user-1";
@@ -27,6 +49,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const metadata = await getFileMetadata(fileId);
       const fileBuffer = await downloadFile(fileId);
+      
+      if (fileBuffer.length > MAX_FILE_SIZE) {
+        return res.status(400).json({ error: 'File too large. Maximum size is 10MB.' });
+      }
       
       const fileText = fileBuffer.toString('utf-8');
       

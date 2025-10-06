@@ -3,24 +3,56 @@ import { BiomarkerChart } from "@/components/BiomarkerChart";
 import { RecommendationCard } from "@/components/RecommendationCard";
 import { QuickStats } from "@/components/QuickStats";
 import { Heart, Activity, Scale, Droplet, TrendingUp, Zap, Apple, AlertCircle, Dumbbell } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent } from "@/components/ui/card";
+import type { Recommendation } from "@shared/schema";
+
+interface DashboardStats {
+  dailySteps: number;
+  restingHR: number;
+  activeDays: number;
+  calories: number;
+  heartRate: { value: number; trend: number; lastUpdated: string };
+  bloodGlucose: { value: number; trend: number; lastUpdated: string };
+  weight: { value: number; trend: number; lastUpdated: string };
+}
+
+interface ChartDataPoint {
+  date: string;
+  value: number;
+  target?: number;
+}
 
 export default function Dashboard() {
-  const glucoseData = [
-    { date: "Mon", value: 95, target: 100 },
-    { date: "Tue", value: 102, target: 100 },
-    { date: "Wed", value: 98, target: 100 },
-    { date: "Thu", value: 105, target: 100 },
-    { date: "Fri", value: 92, target: 100 },
-    { date: "Sat", value: 110, target: 100 },
-    { date: "Sun", value: 115, target: 100 },
-  ];
+  const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
+    queryKey: ["/api/dashboard/stats"],
+  });
 
-  const weightData = [
-    { date: "Week 1", value: 175 },
-    { date: "Week 2", value: 174 },
-    { date: "Week 3", value: 173.5 },
-    { date: "Week 4", value: 172 },
-  ];
+  const { data: glucoseData, isLoading: glucoseLoading } = useQuery<ChartDataPoint[]>({
+    queryKey: ["/api/biomarkers/chart/blood-glucose?days=7"],
+  });
+
+  const { data: weightData, isLoading: weightLoading } = useQuery<ChartDataPoint[]>({
+    queryKey: ["/api/biomarkers/chart/weight?days=28"],
+  });
+
+  const { data: recommendations, isLoading: recommendationsLoading } = useQuery<Recommendation[]>({
+    queryKey: ["/api/recommendations"],
+  });
+
+  const getCategoryIcon = (category: string) => {
+    switch (category.toLowerCase()) {
+      case 'biomarker':
+        return AlertCircle;
+      case 'nutrition':
+        return Apple;
+      case 'exercise':
+        return Dumbbell;
+      default:
+        return AlertCircle;
+    }
+  };
 
   return (
     <div className="space-y-8">
@@ -31,114 +63,174 @@ export default function Dashboard() {
         </p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-4">
-        <QuickStats
-          icon={Activity}
-          label="Daily Steps"
-          value="8,247"
-          trend="+12%"
-          trendDirection="up"
-        />
-        <QuickStats
-          icon={Heart}
-          label="Resting HR"
-          value="62 bpm"
-          trend="-3%"
-          trendDirection="down"
-        />
-        <QuickStats
-          icon={TrendingUp}
-          label="Active Days"
-          value="5/7"
-          trend="71%"
-        />
-        <QuickStats
-          icon={Zap}
-          label="Calories"
-          value="2,145"
-          trend="+5%"
-          trendDirection="up"
-        />
-      </div>
+      {statsLoading ? (
+        <div className="grid gap-6 md:grid-cols-4">
+          {[...Array(4)].map((_, i) => (
+            <Card key={i}>
+              <CardContent className="p-6">
+                <Skeleton className="h-20 w-full" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : stats ? (
+        <div className="grid gap-6 md:grid-cols-4">
+          <QuickStats
+            icon={Activity}
+            label="Daily Steps"
+            value={stats.dailySteps.toLocaleString()}
+            trend="+12%"
+            trendDirection="up"
+          />
+          <QuickStats
+            icon={Heart}
+            label="Resting HR"
+            value={`${stats.restingHR} bpm`}
+            trend="-3%"
+            trendDirection="down"
+          />
+          <QuickStats
+            icon={TrendingUp}
+            label="Active Days"
+            value={`${stats.activeDays}/7`}
+            trend={`${Math.round((stats.activeDays / 7) * 100)}%`}
+          />
+          <QuickStats
+            icon={Zap}
+            label="Calories"
+            value={stats.calories.toLocaleString()}
+            trend="+5%"
+            trendDirection="up"
+          />
+        </div>
+      ) : (
+        <div className="text-center py-8 text-muted-foreground">
+          No stats available. Start tracking your health data.
+        </div>
+      )}
 
-      <div className="grid gap-6 md:grid-cols-3">
-        <HealthMetricCard
-          title="Heart Rate"
-          value="68"
-          unit="bpm"
-          trend={-2.5}
-          status="optimal"
-          icon={Heart}
-          lastUpdated="2 hours ago"
-        />
-        <HealthMetricCard
-          title="Blood Glucose"
-          value="115"
-          unit="mg/dL"
-          trend={8}
-          status="warning"
-          icon={Droplet}
-          lastUpdated="1 day ago"
-        />
-        <HealthMetricCard
-          title="Weight"
-          value="172"
-          unit="lbs"
-          trend={-1.2}
-          status="optimal"
-          icon={Scale}
-          lastUpdated="Today"
-        />
-      </div>
+      {statsLoading ? (
+        <div className="grid gap-6 md:grid-cols-3">
+          {[...Array(3)].map((_, i) => (
+            <Card key={i}>
+              <CardContent className="p-6">
+                <Skeleton className="h-32 w-full" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : stats ? (
+        <div className="grid gap-6 md:grid-cols-3">
+          <HealthMetricCard
+            title="Heart Rate"
+            value={stats.heartRate.value.toString()}
+            unit="bpm"
+            trend={stats.heartRate.trend}
+            status={stats.heartRate.value < 100 ? "optimal" : "warning"}
+            icon={Heart}
+            lastUpdated={stats.heartRate.lastUpdated}
+          />
+          <HealthMetricCard
+            title="Blood Glucose"
+            value={stats.bloodGlucose.value.toString()}
+            unit="mg/dL"
+            trend={stats.bloodGlucose.trend}
+            status={stats.bloodGlucose.value <= 100 ? "optimal" : "warning"}
+            icon={Droplet}
+            lastUpdated={stats.bloodGlucose.lastUpdated}
+          />
+          <HealthMetricCard
+            title="Weight"
+            value={stats.weight.value.toString()}
+            unit="lbs"
+            trend={stats.weight.trend}
+            status="optimal"
+            icon={Scale}
+            lastUpdated={stats.weight.lastUpdated}
+          />
+        </div>
+      ) : null}
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <BiomarkerChart
-          title="Blood Glucose Trend"
-          description="7-day fasting glucose levels"
-          data={glucoseData}
-          unit="mg/dL"
-          color="hsl(var(--chart-1))"
-        />
-        <BiomarkerChart
-          title="Weight Progress"
-          description="4-week weight tracking"
-          data={weightData}
-          unit="lbs"
-          color="hsl(var(--chart-2))"
-        />
+        {glucoseLoading ? (
+          <Card>
+            <CardContent className="p-6">
+              <Skeleton className="h-64 w-full" />
+            </CardContent>
+          </Card>
+        ) : glucoseData && glucoseData.length > 0 ? (
+          <BiomarkerChart
+            title="Blood Glucose Trend"
+            description="7-day fasting glucose levels"
+            data={glucoseData}
+            unit="mg/dL"
+            color="hsl(var(--chart-1))"
+          />
+        ) : (
+          <Card>
+            <CardContent className="p-6 text-center text-muted-foreground">
+              No glucose data available
+            </CardContent>
+          </Card>
+        )}
+        
+        {weightLoading ? (
+          <Card>
+            <CardContent className="p-6">
+              <Skeleton className="h-64 w-full" />
+            </CardContent>
+          </Card>
+        ) : weightData && weightData.length > 0 ? (
+          <BiomarkerChart
+            title="Weight Progress"
+            description="4-week weight tracking"
+            data={weightData}
+            unit="lbs"
+            color="hsl(var(--chart-2))"
+          />
+        ) : (
+          <Card>
+            <CardContent className="p-6 text-center text-muted-foreground">
+              No weight data available
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       <div>
         <h2 className="text-2xl font-semibold mb-6">AI Recommendations</h2>
-        <div className="grid gap-6">
-          <RecommendationCard
-            title="Elevated Blood Glucose Levels"
-            description="Recent readings show above-optimal fasting glucose. Consider dietary adjustments."
-            category="Biomarker"
-            priority="high"
-            icon={AlertCircle}
-            details="Your fasting blood glucose has been trending upward over the past week. Consider reducing refined carbohydrates and increasing fiber intake. Consult with your healthcare provider if levels remain elevated."
-            actionLabel="Schedule Consultation"
-          />
-          <RecommendationCard
-            title="Increase Protein Intake"
-            description="Your recent biomarkers suggest you may benefit from higher protein consumption"
-            category="Nutrition"
-            priority="medium"
-            icon={Apple}
-            details="Based on your muscle mass and activity level, aim for 0.8-1g of protein per pound of body weight. Consider adding lean meats, fish, eggs, or plant-based proteins to each meal."
-            actionLabel="View Meal Plan"
-          />
-          <RecommendationCard
-            title="Add Resistance Training"
-            description="Build muscle mass and improve metabolic health with strength training"
-            category="Exercise"
-            priority="low"
-            icon={Dumbbell}
-            details="Incorporate 2-3 resistance training sessions per week. This can help improve insulin sensitivity and overall metabolic health."
-            actionLabel="View Program"
-          />
-        </div>
+        {recommendationsLoading ? (
+          <div className="space-y-6">
+            {[...Array(3)].map((_, i) => (
+              <Card key={i}>
+                <CardContent className="p-6">
+                  <Skeleton className="h-24 w-full" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : recommendations && recommendations.length > 0 ? (
+          <div className="grid gap-6">
+            {recommendations.slice(0, 3).map((rec) => (
+              <RecommendationCard
+                key={rec.id}
+                title={rec.title}
+                description={rec.description}
+                category={rec.category}
+                priority={rec.priority as "high" | "medium" | "low"}
+                icon={getCategoryIcon(rec.category)}
+                details={rec.details || ""}
+                actionLabel={rec.actionLabel || "View Details"}
+              />
+            ))}
+          </div>
+        ) : (
+          <Card>
+            <CardContent className="p-12 text-center text-muted-foreground">
+              No recommendations available. Add health data to get personalized insights.
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );
