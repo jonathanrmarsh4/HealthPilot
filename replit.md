@@ -9,12 +9,13 @@ This is a full-stack application built with:
 - **Backend**: Express.js + TypeScript
 - **Database**: PostgreSQL (via Drizzle ORM)
 - **AI**: Anthropic Claude API
-- **Integrations**: Google Drive
+- **Integrations**: Google Drive, Apple Health (via Health Auto Export)
 
 ## Key Features
 
 - Health record upload and AI analysis
 - Biomarker tracking with trend visualization
+- **Apple Health integration** via Health Auto Export app (iOS)
 - AI-generated personalized meal plans
 - AI-generated training schedules
 - Smart health recommendations based on biomarker analysis
@@ -52,6 +53,31 @@ Current file upload validation includes:
 ### Google Drive Integration
 The Google Drive integration is configured and functional for listing and analyzing files. The connector handles OAuth automatically through Replit's integration system.
 
+### Apple Health Integration
+**Implementation**: Uses Health Auto Export iOS app (DIY budget solution)
+
+**How it works**:
+1. User installs "Health Auto Export - JSON+CSV" from App Store (~$5-10 for Premium with REST API)
+2. User configures REST API automation in the app to send data to webhook endpoint
+3. App automatically exports Apple Health data (heart rate, blood glucose, weight, steps, sleep, etc.)
+4. Data is received via webhook and stored in biomarkers table
+
+**Webhook Endpoint**: `POST /api/health-auto-export/ingest`
+
+**Supported Metrics**:
+- Heart Rate (Resting & Active)
+- Blood Glucose
+- Weight
+- Steps & Active Energy (Calories)
+- Blood Pressure (Systolic/Diastolic)
+- Oxygen Saturation
+- Body Temperature
+- Sleep Analysis
+
+**Setup Instructions**: Available at `/apple-health` route in the app
+
+**Technical Note**: Direct HealthKit API integration is not possible in web apps due to Apple's privacy restrictions. Health Auto Export bridges this gap by allowing users to export their own data to a REST API endpoint.
+
 ## Development
 
 ```bash
@@ -64,11 +90,13 @@ npm run db:push  # Syncs database schema
 - `GET /api/dashboard/stats` - Dashboard statistics
 - `GET /api/health-records` - List health records
 - `POST /api/health-records/upload` - Upload health document
+- `DELETE /api/health-records/:id` - Delete health record
 - `POST /api/health-records/analyze/:fileId` - Analyze Google Drive file
 - `GET /api/google-drive/files` - List Google Drive files
 - `GET /api/biomarkers` - List biomarkers
 - `POST /api/biomarkers` - Create biomarker entry
 - `GET /api/biomarkers/chart/:type` - Get chart data for biomarker type
+- `POST /api/health-auto-export/ingest` - Webhook for Apple Health data from Health Auto Export app
 - `GET /api/meal-plans` - List meal plans
 - `POST /api/meal-plans/generate` - Generate AI meal plan
 - `GET /api/training-schedules` - List training schedules  
@@ -96,10 +124,10 @@ Tables:
 
 ## Future Enhancements
 
-1. **Apple HealthKit Integration** - Via third-party API (Terra API or OneTwentyOne)
+1. **Enhanced Apple Health Sync** - Consider premium APIs (Terra, Vital, ROOK) for automatic multi-platform sync
 2. **User Authentication** - Secure user accounts with proper password hashing
 3. **Multi-user Support** - User-specific data isolation
 4. **Advanced Analytics** - Predictive health insights and early warning systems
 5. **Export/Sharing** - Generate PDF reports for healthcare providers
-6. **Mobile App** - React Native companion app
-7. **Wearable Integration** - Direct sync with fitness trackers
+6. **Native Mobile App** - iOS/Android apps with direct HealthKit/Google Fit access
+7. **Additional Wearables** - Fitbit, Garmin, Whoop, Oura Ring integration
