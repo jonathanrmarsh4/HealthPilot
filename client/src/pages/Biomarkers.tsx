@@ -57,7 +57,10 @@ export default function Biomarkers() {
   
   // Cleanup duplicates mutation
   const cleanupMutation = useMutation({
-    mutationFn: () => apiRequest("/api/biomarkers/cleanup-duplicates", "POST", {}),
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/biomarkers/cleanup-duplicates", {});
+      return await res.json();
+    },
     onSuccess: (data: any) => {
       toast({
         title: "Cleanup Complete",
