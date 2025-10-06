@@ -11,20 +11,35 @@ export async function analyzeHealthDocument(documentText: string, fileName: stri
     messages: [
       {
         role: "user",
-        content: `You are a health data extraction specialist. Analyze the following health document and extract all relevant biomarkers, test results, and health metrics.
+        content: `You are a health data extraction specialist. Analyze the following health document and extract ALL relevant biomarkers, test results, and health metrics.
 
 Document Name: ${fileName}
 
 Document Content:
 ${documentText}
 
-Please extract and return a JSON object with the following structure:
+Extract EVERY biomarker value found in the document. Common biomarker types include:
+
+**Lipid Panel**: ldl-cholesterol, hdl-cholesterol, total-cholesterol, triglycerides, vldl-cholesterol
+**Liver Function**: alt, ast, alp, bilirubin, albumin, ggt
+**Kidney Function**: creatinine, bun, egfr, urea
+**Blood Counts**: rbc, wbc, hemoglobin, hematocrit, platelets, mcv, mch, mchc
+**Thyroid**: tsh, t3, t4, free-t3, free-t4
+**Diabetes**: hba1c, blood-glucose, fasting-glucose, insulin
+**Vitamins/Minerals**: vitamin-d, vitamin-b12, iron, ferritin, calcium, magnesium, folate
+**Inflammation**: crp, esr
+**Electrolytes**: sodium, potassium, chloride, bicarbonate
+**Vitals**: blood-pressure, heart-rate, temperature, respiratory-rate, oxygen-saturation
+**Body Metrics**: weight, height, bmi, body-fat-percentage, waist-circumference
+**Other**: uric-acid, psa, cortisol, testosterone, estrogen, progesterone
+
+Return a JSON object with this structure:
 {
   "biomarkers": [
     {
-      "type": "blood-glucose" | "cholesterol" | "blood-pressure" | "heart-rate" | "weight" | "bmi" | other,
+      "type": "ldl-cholesterol" | "hdl-cholesterol" | "alt" | "creatinine" | "tsh" | etc,
       "value": number,
-      "unit": "mg/dL" | "bpm" | "lbs" | etc,
+      "unit": "mg/dL" | "U/L" | "mmol/L" | "bpm" | etc,
       "date": "ISO date if available"
     }
   ],
@@ -33,7 +48,12 @@ Please extract and return a JSON object with the following structure:
   "recommendations": ["List any recommendations mentioned in the document"]
 }
 
-If you cannot extract meaningful health data, return an empty biomarkers array with a summary explaining what the document contains.`,
+IMPORTANT: 
+- Extract EVERY numeric biomarker value you find
+- Use the exact biomarker type names listed above (lowercase, hyphenated)
+- If a biomarker doesn't match the list, use a descriptive lowercase-hyphenated name
+- Include the correct unit for each measurement
+- If no meaningful health data exists, return empty biomarkers array with explanatory summary`,
       },
     ],
   });
