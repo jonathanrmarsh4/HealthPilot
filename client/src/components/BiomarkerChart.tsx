@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from "recharts";
+import { format, parseISO } from "date-fns";
 
 interface BiomarkerChartProps {
   title: string;
@@ -18,6 +19,15 @@ export function BiomarkerChart({
   color = "hsl(var(--chart-1))",
   domain
 }: BiomarkerChartProps) {
+  const formatXAxis = (dateStr: string) => {
+    try {
+      const date = parseISO(dateStr);
+      return format(date, 'MMM');
+    } catch {
+      return dateStr;
+    }
+  };
+
   return (
     <Card data-testid={`chart-${title.toLowerCase().replace(/\s/g, "-")}`}>
       <CardHeader>
@@ -39,6 +49,7 @@ export function BiomarkerChart({
                 dataKey="date" 
                 className="text-xs text-muted-foreground"
                 tick={{ fill: "hsl(var(--muted-foreground))" }}
+                tickFormatter={formatXAxis}
               />
               <YAxis 
                 className="text-xs text-muted-foreground"
