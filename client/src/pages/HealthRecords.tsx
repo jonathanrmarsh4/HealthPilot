@@ -1,4 +1,5 @@
 import { HealthRecordUpload } from "@/components/HealthRecordUpload";
+import { GoogleDriveFiles } from "@/components/GoogleDriveFiles";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -108,6 +109,8 @@ export default function HealthRecords() {
           </CardContent>
         </Card>
       </div>
+
+      <GoogleDriveFiles />
     </div>
   );
 }
