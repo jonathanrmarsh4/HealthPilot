@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import { useLocale } from "@/contexts/LocaleContext";
-import { unitConfigs, convertValue, formatValue } from "@/lib/unitConversions";
+import { unitConfigs, convertValue } from "@/lib/unitConversions";
 
 interface ChartDataPoint {
   date: string;
@@ -12,25 +12,70 @@ interface ChartDataPoint {
   target?: number;
 }
 
+interface Biomarker {
+  id: string;
+  type: string;
+  value: number;
+  unit: string;
+  recordedAt: string;
+  source: string;
+}
+
+const biomarkerDisplayConfig: Record<string, { title: string; description: string; days: number; color: string }> = {
+  "blood-glucose": {
+    title: "Blood Glucose",
+    description: "30-day trend",
+    days: 30,
+    color: "hsl(var(--chart-2))"
+  },
+  "cholesterol": {
+    title: "Total Cholesterol",
+    description: "6-month trend",
+    days: 180,
+    color: "hsl(var(--chart-1))"
+  },
+  "blood-pressure": {
+    title: "Blood Pressure (Systolic)",
+    description: "4-week average",
+    days: 28,
+    color: "hsl(var(--chart-3))"
+  },
+  "heart-rate": {
+    title: "Resting Heart Rate",
+    description: "7-day average",
+    days: 7,
+    color: "hsl(var(--chart-4))"
+  },
+  "weight": {
+    title: "Body Weight",
+    description: "3-month trend",
+    days: 90,
+    color: "hsl(var(--chart-5))"
+  },
+  "steps": {
+    title: "Daily Steps",
+    description: "7-day average",
+    days: 7,
+    color: "hsl(var(--chart-1))"
+  },
+  "bmi": {
+    title: "Body Mass Index",
+    description: "3-month trend",
+    days: 90,
+    color: "hsl(var(--chart-3))"
+  }
+};
+
 export default function Biomarkers() {
   const { unitSystem } = useLocale();
   
-  const { data: heartRateData, isLoading: heartRateLoading } = useQuery<ChartDataPoint[]>({
-    queryKey: ["/api/biomarkers/chart/heart-rate?days=7"],
+  // Get all biomarkers to determine which types exist
+  const { data: allBiomarkers, isLoading: biomarkersLoading } = useQuery<Biomarker[]>({
+    queryKey: ["/api/biomarkers"],
   });
 
-  const { data: cholesterolData, isLoading: cholesterolLoading } = useQuery<ChartDataPoint[]>({
-    queryKey: ["/api/biomarkers/chart/cholesterol?days=180"],
-  });
-
-  const { data: bloodPressureData, isLoading: bloodPressureLoading } = useQuery<ChartDataPoint[]>({
-    queryKey: ["/api/biomarkers/chart/blood-pressure?days=28"],
-  });
-
-  const convertedCholesterolData = cholesterolData?.map(point => ({
-    ...point,
-    value: convertValue(point.value, "cholesterol", "mg/dL", unitConfigs.cholesterol[unitSystem].unit),
-  }));
+  // Get unique biomarker types that have data
+  const availableTypes = Array.from(new Set(allBiomarkers?.map(b => b.type) || []));
 
   return (
     <div className="space-y-8">
@@ -43,74 +88,97 @@ export default function Biomarkers() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         <DataInputForm />
-        {heartRateLoading ? (
+        
+        {biomarkersLoading ? (
           <Card>
             <CardContent className="p-6">
               <Skeleton className="h-64 w-full" />
             </CardContent>
           </Card>
-        ) : heartRateData && heartRateData.length > 0 ? (
-          <BiomarkerChart
-            title="Resting Heart Rate"
-            description="7-day average"
-            data={heartRateData}
-            unit={unitConfigs["heart-rate"][unitSystem].unit}
-            color="hsl(var(--chart-4))"
-          />
+        ) : availableTypes.length > 0 ? (
+          <BiomarkerTypeChart type={availableTypes[0]} />
         ) : (
           <Card>
             <CardContent className="p-6 text-center text-muted-foreground">
-              No heart rate data available
+              No biomarker data available. Upload health records or manually enter data to get started.
             </CardContent>
           </Card>
         )}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        {cholesterolLoading ? (
-          <Card>
-            <CardContent className="p-6">
-              <Skeleton className="h-64 w-full" />
-            </CardContent>
-          </Card>
-        ) : convertedCholesterolData && convertedCholesterolData.length > 0 ? (
-          <BiomarkerChart
-            title="Total Cholesterol"
-            description="6-month trend"
-            data={convertedCholesterolData}
-            unit={unitConfigs.cholesterol[unitSystem].unit}
-            color="hsl(var(--chart-1))"
-          />
-        ) : (
-          <Card>
-            <CardContent className="p-6 text-center text-muted-foreground">
-              No cholesterol data available
-            </CardContent>
-          </Card>
-        )}
-        
-        {bloodPressureLoading ? (
-          <Card>
-            <CardContent className="p-6">
-              <Skeleton className="h-64 w-full" />
-            </CardContent>
-          </Card>
-        ) : bloodPressureData && bloodPressureData.length > 0 ? (
-          <BiomarkerChart
-            title="Blood Pressure (Systolic)"
-            description="4-week average"
-            data={bloodPressureData}
-            unit={unitConfigs["blood-pressure"][unitSystem].unit}
-            color="hsl(var(--chart-3))"
-          />
-        ) : (
-          <Card>
-            <CardContent className="p-6 text-center text-muted-foreground">
-              No blood pressure data available
-            </CardContent>
-          </Card>
-        )}
-      </div>
+      {!biomarkersLoading && availableTypes.length > 1 && (
+        <div className="grid gap-6 lg:grid-cols-2">
+          {availableTypes.slice(1).map(type => (
+            <BiomarkerTypeChart key={type} type={type} />
+          ))}
+        </div>
+      )}
     </div>
+  );
+}
+
+function BiomarkerTypeChart({ type }: { type: string }) {
+  const { unitSystem } = useLocale();
+  const config = biomarkerDisplayConfig[type] || {
+    title: type.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
+    description: "Recent trend",
+    days: 30,
+    color: "hsl(var(--chart-2))"
+  };
+
+  const { data: chartData, isLoading } = useQuery<ChartDataPoint[]>({
+    queryKey: [`/api/biomarkers/chart/${type}?days=${config.days}`],
+  });
+
+  // Convert data if needed for this biomarker type
+  const convertedData = chartData?.map(point => {
+    const biomarkerConfig = unitConfigs[type];
+    if (biomarkerConfig && biomarkerConfig.imperial && biomarkerConfig.metric) {
+      // Find the original unit from the config
+      const originalUnit = biomarkerConfig.imperial.unit;
+      const targetUnit = biomarkerConfig[unitSystem].unit;
+      
+      return {
+        ...point,
+        value: convertValue(point.value, type, originalUnit, targetUnit),
+      };
+    }
+    return point;
+  });
+
+  const displayUnit = unitConfigs[type]?.[unitSystem]?.unit || chartData?.[0]?.value !== undefined ? 
+    (type === "steps" ? "steps" : 
+     type === "heart-rate" ? "bpm" : 
+     type === "blood-pressure" ? "mmHg" :
+     type === "bmi" ? "BMI" : "units") : "units";
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <Skeleton className="h-64 w-full" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!convertedData || convertedData.length === 0) {
+    return (
+      <Card>
+        <CardContent className="p-6 text-center text-muted-foreground">
+          No {config.title.toLowerCase()} data available
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <BiomarkerChart
+      title={config.title}
+      description={config.description}
+      data={convertedData}
+      unit={displayUnit}
+      color={config.color}
+    />
   );
 }
