@@ -608,6 +608,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             if (metric.name === "Sleep Analysis" && dataPoint.asleep) {
               value = dataPoint.asleep;
             }
+            
+            if (metric.name === "heart_rate" && dataPoint.Avg !== undefined) {
+              value = dataPoint.Avg;
+            }
 
             if (value !== undefined && value !== null) {
               // Convert to standardized storage units
