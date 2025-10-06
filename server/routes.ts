@@ -473,6 +473,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid data format" });
       }
 
+      // Helper function to convert incoming units to standardized storage units
+      const convertToStorageUnit = (value: number, incomingUnit: string, biomarkerType: string): { value: number; unit: string } => {
+        const normalizedUnit = incomingUnit?.toLowerCase().trim() || "";
+        
+        // Weight conversions - store in lbs
+        if (biomarkerType === "weight") {
+          if (normalizedUnit === "kg" || normalizedUnit === "kilogram") {
+            return { value: value * 2.20462, unit: "lbs" };
+          }
+          return { value, unit: "lbs" };
+        }
+        
+        // Blood glucose conversions - store in mg/dL
+        if (biomarkerType === "blood-glucose") {
+          if (normalizedUnit === "mmol/l" || normalizedUnit === "mmol") {
+            return { value: value * 18.018, unit: "mg/dL" };
+          }
+          return { value, unit: "mg/dL" };
+        }
+        
+        // Temperature conversions - store in °F
+        if (biomarkerType === "body-temperature") {
+          if (normalizedUnit === "°c" || normalizedUnit === "c" || normalizedUnit === "celsius") {
+            return { value: (value * 9/5) + 32, unit: "°F" };
+          }
+          return { value, unit: "°F" };
+        }
+        
+        // Default units for other types
+        const defaultUnits: Record<string, string> = {
+          "heart-rate": "bpm",
+          "steps": "steps",
+          "calories": "kcal",
+          "blood-pressure-systolic": "mmHg",
+          "blood-pressure-diastolic": "mmHg",
+          "oxygen-saturation": "%",
+          "sleep-hours": "hours",
+        };
+        
+        return { value, unit: defaultUnits[biomarkerType] || incomingUnit || "" };
+      };
+
       const metricMapping: Record<string, string> = {
         "Heart Rate": "heart-rate",
         "Resting Heart Rate": "heart-rate",
@@ -531,11 +573,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
 
             if (value !== undefined && value !== null) {
+              // Convert to standardized storage units
+              const converted = convertToStorageUnit(value, metric.units, biomarkerType);
+              
               await storage.createBiomarker({
                 userId: TEST_USER_ID,
                 type: biomarkerType,
-                value: value,
-                unit: metric.units || "",
+                value: converted.value,
+                unit: converted.unit,
                 source: "health-auto-export",
                 recordedAt: new Date(dataPoint.date),
               });
