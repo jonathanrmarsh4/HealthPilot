@@ -552,7 +552,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (seen.has(key)) {
           toDelete.push(biomarker.id);
         } else {
-          seen.set(key);
+          seen.add(key);
         }
       }
       
