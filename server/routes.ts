@@ -319,9 +319,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
           latestByType[b.type] = b;
         }
       });
+
+      const getPreviousValue = (type: string, currentDate: Date) => {
+        const filtered = biomarkers
+          .filter(b => b.type === type && new Date(b.recordedAt) < currentDate)
+          .sort((a, b) => new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime());
+        return filtered.length > 0 ? filtered[0].value : null;
+      };
+
+      const calculateTrend = (current: number, previous: number | null) => {
+        if (previous === null || previous === 0) return 0;
+        return ((current - previous) / previous) * 100;
+      };
+
+      const formatLastUpdated = (date: Date) => {
+        const now = new Date();
+        const diffMs = now.getTime() - new Date(date).getTime();
+        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+        const diffDays = Math.floor(diffHours / 24);
+        
+        if (diffHours < 1) return 'Just now';
+        if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+        if (diffDays === 0) return 'Today';
+        if (diffDays === 1) return 'Yesterday';
+        return `${diffDays} days ago`;
+      };
+
+      const heartRate = latestByType['heart-rate'];
+      const bloodGlucose = latestByType['blood-glucose'];
+      const weight = latestByType['weight'];
+      const steps = latestByType['steps'];
+      const calories = latestByType['calories'];
       
       res.json({
-        biomarkers: latestByType,
+        dailySteps: steps ? steps.value : 0,
+        restingHR: heartRate ? heartRate.value : 0,
+        activeDays: 5,
+        calories: calories ? calories.value : 0,
+        heartRate: heartRate ? {
+          value: heartRate.value,
+          trend: calculateTrend(heartRate.value, getPreviousValue('heart-rate', new Date(heartRate.recordedAt))),
+          lastUpdated: formatLastUpdated(heartRate.recordedAt)
+        } : { value: 0, trend: 0, lastUpdated: 'Never' },
+        bloodGlucose: bloodGlucose ? {
+          value: bloodGlucose.value,
+          trend: calculateTrend(bloodGlucose.value, getPreviousValue('blood-glucose', new Date(bloodGlucose.recordedAt))),
+          lastUpdated: formatLastUpdated(bloodGlucose.recordedAt)
+        } : { value: 0, trend: 0, lastUpdated: 'Never' },
+        weight: weight ? {
+          value: weight.value,
+          trend: calculateTrend(weight.value, getPreviousValue('weight', new Date(weight.recordedAt))),
+          lastUpdated: formatLastUpdated(weight.recordedAt)
+        } : { value: 0, trend: 0, lastUpdated: 'Never' },
         totalRecords: records.length,
         analyzedRecords: records.filter(r => r.analyzedAt).length,
         activeRecommendations: recommendations.length,
