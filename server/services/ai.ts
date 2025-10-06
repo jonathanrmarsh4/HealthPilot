@@ -6,7 +6,7 @@ const anthropic = new Anthropic({
 
 export async function analyzeHealthDocument(documentText: string, fileName: string) {
   const message = await anthropic.messages.create({
-    model: "claude-3-5-sonnet-latest",
+    model: "claude-sonnet-4-5",
     max_tokens: 4096,
     messages: [
       {
@@ -68,7 +68,7 @@ export async function generateMealPlan(userProfile: {
   recentBiomarkers?: any[];
 }) {
   const message = await anthropic.messages.create({
-    model: "claude-3-5-sonnet-latest",
+    model: "claude-sonnet-4-5",
     max_tokens: 4096,
     messages: [
       {
@@ -121,7 +121,7 @@ export async function generateTrainingSchedule(userProfile: {
   recentBiomarkers?: any[];
 }) {
   const message = await anthropic.messages.create({
-    model: "claude-3-5-sonnet-latest",
+    model: "claude-sonnet-4-5",
     max_tokens: 4096,
     messages: [
       {
@@ -174,7 +174,7 @@ export async function generateHealthRecommendations(data: {
   healthGoals?: string[];
 }) {
   const message = await anthropic.messages.create({
-    model: "claude-3-5-sonnet-latest",
+    model: "claude-sonnet-4-5",
     max_tokens: 4096,
     messages: [
       {
