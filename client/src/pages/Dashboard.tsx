@@ -520,7 +520,11 @@ export default function Dashboard() {
         </Sheet>
       </div>
 
-      {allWidgets.map(widget => renderWidget(widget))}
+      {allWidgets.filter(w => w === 'quick-stats' || w === 'health-metrics').map(widget => renderWidget(widget))}
+      
+      <div className="grid gap-6 lg:grid-cols-3">
+        {allWidgets.filter(w => w !== 'quick-stats' && w !== 'health-metrics').map(widget => renderWidget(widget))}
+      </div>
     </div>
   );
 }
