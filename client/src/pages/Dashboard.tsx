@@ -3,6 +3,7 @@ import { BiomarkerChart } from "@/components/BiomarkerChart";
 import { BiomarkerChartWidget } from "@/components/BiomarkerChartWidget";
 import { RecommendationCard } from "@/components/RecommendationCard";
 import { QuickStats } from "@/components/QuickStats";
+import { TrendLineWidget } from "@/components/TrendLineWidget";
 import { Heart, Activity, Scale, Droplet, TrendingUp, Zap, Apple, AlertCircle, Dumbbell, Settings2, Eye, EyeOff, ChevronUp, ChevronDown } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -280,56 +281,27 @@ export default function Dashboard() {
         );
 
       case "health-metrics":
-        return statsLoading ? (
+        return (
           <div key={widget} className="grid gap-6 md:grid-cols-3">
-            {[...Array(3)].map((_, i) => (
-              <Card key={i}>
-                <CardContent className="p-6">
-                  <Skeleton className="h-32 w-full" />
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : stats ? (
-          <div key={widget} className="grid gap-6 md:grid-cols-3">
-            <HealthMetricCard
-              title="Heart Rate"
-              value={stats.heartRate.value.toString()}
-              unit={unitConfigs["heart-rate"][unitSystem].unit}
-              trend={stats.heartRate.trend}
-              status={stats.heartRate.value < 100 ? "optimal" : "warning"}
-              icon={Heart}
-              lastUpdated={stats.heartRate.lastUpdated}
-            />
+            <TrendLineWidget type="heart-rate" />
             <HealthMetricCard
               title="Blood Glucose"
               value={formatValue(
-                convertValue(stats.bloodGlucose.value, "blood-glucose", "mg/dL", unitConfigs["blood-glucose"][unitSystem].unit),
+                convertValue(stats?.bloodGlucose.value || 0, "blood-glucose", "mg/dL", unitConfigs["blood-glucose"][unitSystem].unit),
                 "blood-glucose"
               )}
               unit={unitConfigs["blood-glucose"][unitSystem].unit}
-              trend={stats.bloodGlucose.trend}
+              trend={stats?.bloodGlucose.trend}
               status={
-                convertValue(stats.bloodGlucose.value, "blood-glucose", "mg/dL", unitConfigs["blood-glucose"][unitSystem].unit) <= 
+                convertValue(stats?.bloodGlucose.value || 0, "blood-glucose", "mg/dL", unitConfigs["blood-glucose"][unitSystem].unit) <= 
                 (unitSystem === "metric" ? 5.5 : 100) ? "optimal" : "warning"
               }
               icon={Droplet}
-              lastUpdated={stats.bloodGlucose.lastUpdated}
+              lastUpdated={stats?.bloodGlucose.lastUpdated}
             />
-            <HealthMetricCard
-              title="Weight"
-              value={formatValue(
-                convertValue(stats.weight.value, "weight", "lbs", unitConfigs.weight[unitSystem].unit),
-                "weight"
-              )}
-              unit={unitConfigs.weight[unitSystem].unit}
-              trend={stats.weight.trend}
-              status="optimal"
-              icon={Scale}
-              lastUpdated={stats.weight.lastUpdated}
-            />
+            <TrendLineWidget type="weight" />
           </div>
-        ) : null;
+        );
 
       case "blood-glucose-chart":
         return glucoseLoading ? (
