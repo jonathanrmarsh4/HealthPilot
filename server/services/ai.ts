@@ -39,8 +39,9 @@ function estimateTokens(text: string): number {
 }
 
 // Split text into chunks that fit within token limit
-// Account for ~10k tokens used by the prompt itself
-function chunkText(text: string, maxTokens: number = 50000): string[] {
+// Claude 3 Haiku has 200k context window
+// Account for ~2k tokens used by the prompt itself, leaving 198k for content
+function chunkText(text: string, maxTokens: number = 195000): string[] {
   const estimatedTokens = estimateTokens(text);
   
   if (estimatedTokens <= maxTokens) {
@@ -94,6 +95,15 @@ export async function analyzeHealthDocument(documentText: string, fileName: stri
     }
     if (result.summary && i === 0) {
       summary = result.summary;
+    }
+    
+    // Add delay between chunks to respect rate limits (avoid hitting tokens/minute cap)
+    if (i < chunks.length - 1) {
+      const estimatedChunkTokens = estimateTokens(chunks[i]);
+      // Wait ~60 seconds per 30k tokens to stay under rate limits
+      const delayMs = Math.max(1000, Math.ceil((estimatedChunkTokens / 30000) * 60000));
+      console.log(`  ⏳ Waiting ${Math.ceil(delayMs / 1000)}s before next chunk to respect rate limits...`);
+      await new Promise(resolve => setTimeout(resolve, delayMs));
     }
   }
   
