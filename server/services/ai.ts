@@ -10,14 +10,15 @@ function estimateTokens(text: string): number {
 }
 
 // Split text into chunks that fit within token limit
-function chunkText(text: string, maxTokens: number = 150000): string[] {
+// Account for ~10k tokens used by the prompt itself
+function chunkText(text: string, maxTokens: number = 100000): string[] {
   const estimatedTokens = estimateTokens(text);
   
   if (estimatedTokens <= maxTokens) {
     return [text];
   }
   
-  // Calculate number of chunks needed
+  // Calculate number of chunks needed (with safety margin for prompt)
   const numChunks = Math.ceil(estimatedTokens / maxTokens);
   const chunkSize = Math.ceil(text.length / numChunks);
   
