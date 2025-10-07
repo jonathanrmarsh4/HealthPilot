@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { LineChart, Line, ResponsiveContainer, YAxis } from "recharts";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useLocale } from "@/contexts/LocaleContext";
 import { unitConfigs, convertValue } from "@/lib/unitConversions";
@@ -32,20 +33,20 @@ export function TrendLineWidget({ type }: TrendLineWidgetProps) {
 
   // Convert data if needed for this biomarker type
   const convertedData = chartData?.map(point => {
-    const biomarkerConfig = unitConfigs[type];
+    const biomarkerConfig = unitConfigs[type as keyof typeof unitConfigs];
     if (biomarkerConfig && biomarkerConfig.imperial && biomarkerConfig.metric) {
       const originalUnit = biomarkerConfig.imperial.unit;
       const targetUnit = biomarkerConfig[unitSystem].unit;
       
       return {
         ...point,
-        value: convertValue(point.value, type, originalUnit, targetUnit),
+        value: convertValue(point.value, type as any, originalUnit, targetUnit),
       };
     }
     return point;
   });
 
-  const displayUnit = unitConfigs[type]?.[unitSystem]?.unit || "";
+  const displayUnit = unitConfigs[type as keyof typeof unitConfigs]?.[unitSystem]?.unit || "";
   
   // Calculate trend
   const getTrend = () => {
@@ -63,6 +64,30 @@ export function TrendLineWidget({ type }: TrendLineWidgetProps) {
 
   const trend = getTrend();
   const latestValue = convertedData?.[convertedData.length - 1]?.value;
+
+  // Check reference range status
+  const getRangeStatus = () => {
+    if (!config.referenceRange || latestValue === undefined) return null;
+    
+    // Convert reference range if needed
+    const biomarkerConfig = unitConfigs[type as keyof typeof unitConfigs];
+    let lowThreshold = config.referenceRange.low;
+    let highThreshold = config.referenceRange.high;
+    
+    if (biomarkerConfig && biomarkerConfig.imperial && biomarkerConfig.metric) {
+      const imperialUnit = biomarkerConfig.imperial.unit;
+      const targetUnit = biomarkerConfig[unitSystem].unit;
+      
+      lowThreshold = convertValue(config.referenceRange.low, type as any, imperialUnit, targetUnit);
+      highThreshold = convertValue(config.referenceRange.high, type as any, imperialUnit, targetUnit);
+    }
+    
+    if (latestValue < lowThreshold) return { status: "below", label: "Below Range" };
+    if (latestValue > highThreshold) return { status: "above", label: "Above Range" };
+    return { status: "normal", label: "In Range" };
+  };
+
+  const rangeStatus = getRangeStatus();
 
   if (isLoading) {
     return (
@@ -94,29 +119,46 @@ export function TrendLineWidget({ type }: TrendLineWidgetProps) {
                 <span className="text-xs text-muted-foreground">{displayUnit}</span>
               )}
             </div>
-            {trend && (
-              <div className="flex items-center gap-1 mt-1">
-                {trend.direction === "up" && (
-                  <ArrowUp className="h-3 w-3 text-green-500" />
-                )}
-                {trend.direction === "down" && (
-                  <ArrowDown className="h-3 w-3 text-red-500" />
-                )}
-                {trend.direction === "stable" && (
-                  <Minus className="h-3 w-3 text-muted-foreground" />
-                )}
-                <span className={`text-xs ${
-                  trend.direction === "up" ? "text-green-500" : 
-                  trend.direction === "down" ? "text-red-500" : 
-                  "text-muted-foreground"
-                }`}>
-                  {trend.direction === "stable" ? "Stable" : `${trend.value.toFixed(1)}%`}
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  {convertedData.length} readings
-                </span>
-              </div>
-            )}
+            <div className="flex flex-wrap items-center gap-2 mt-1">
+              {trend && (
+                <div className="flex items-center gap-1">
+                  {trend.direction === "up" && (
+                    <ArrowUp className="h-3 w-3 text-green-500" />
+                  )}
+                  {trend.direction === "down" && (
+                    <ArrowDown className="h-3 w-3 text-red-500" />
+                  )}
+                  {trend.direction === "stable" && (
+                    <Minus className="h-3 w-3 text-muted-foreground" />
+                  )}
+                  <span className={`text-xs ${
+                    trend.direction === "up" ? "text-green-500" : 
+                    trend.direction === "down" ? "text-red-500" : 
+                    "text-muted-foreground"
+                  }`}>
+                    {trend.direction === "stable" ? "Stable" : `${trend.value.toFixed(1)}%`}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {convertedData.length} readings
+                  </span>
+                </div>
+              )}
+              {rangeStatus && (
+                <Badge 
+                  variant={rangeStatus.status === "normal" ? "default" : "destructive"}
+                  className={`text-xs ${
+                    rangeStatus.status === "normal" 
+                      ? "bg-green-500 hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700" 
+                      : rangeStatus.status === "above"
+                      ? "bg-red-500 hover:bg-red-600"
+                      : "bg-orange-500 hover:bg-orange-600 dark:bg-orange-600 dark:hover:bg-orange-700"
+                  }`}
+                  data-testid={`range-status-${type}`}
+                >
+                  {rangeStatus.label}
+                </Badge>
+              )}
+            </div>
           </div>
           
           <div className="w-24 h-16">
