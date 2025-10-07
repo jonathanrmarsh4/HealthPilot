@@ -4,10 +4,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useLocale } from "@/contexts/LocaleContext";
+import { useTimezone } from "@/contexts/TimezoneContext";
 import { unitConfigs, convertValue } from "@/lib/unitConversions";
 import { biomarkerDisplayConfig } from "@/lib/biomarkerConfig";
 import { ArrowUp, ArrowDown, Minus } from "lucide-react";
-import { format, parseISO } from "date-fns";
+import { formatDate } from "@/lib/timezone";
 
 interface ChartDataPoint {
   date: string;
@@ -21,6 +22,7 @@ interface TrendLineWidgetProps {
 
 export function TrendLineWidget({ type }: TrendLineWidgetProps) {
   const { unitSystem } = useLocale();
+  const { timezone } = useTimezone();
   
   const config = biomarkerDisplayConfig[type] || {
     title: type.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
@@ -75,7 +77,7 @@ export function TrendLineWidget({ type }: TrendLineWidgetProps) {
   // Format the test date
   const formatTestDate = (dateStr: string) => {
     try {
-      return format(parseISO(dateStr), 'MMM d, yyyy');
+      return formatDate(dateStr, timezone, 'MMM d, yyyy');
     } catch {
       return dateStr;
     }
