@@ -30,6 +30,7 @@ interface DashboardStats {
 interface ChartDataPoint {
   date: string;
   value: number;
+  unit: string;
   target?: number;
 }
 
@@ -193,15 +194,39 @@ export default function Dashboard() {
     }
   };
 
-  const convertedGlucoseData = glucoseData?.map(point => ({
-    ...point,
-    value: convertValue(point.value, "blood-glucose", "mg/dL", unitConfigs["blood-glucose"][unitSystem].unit),
-  }));
+  const convertedGlucoseData = glucoseData?.map(point => {
+    const storedUnit = point.unit;
+    const targetUnit = unitConfigs["blood-glucose"][unitSystem].unit;
+    
+    if (storedUnit !== targetUnit) {
+      return {
+        ...point,
+        value: convertValue(point.value, "blood-glucose", storedUnit, targetUnit),
+        target: point.target !== undefined
+          ? convertValue(point.target, "blood-glucose", storedUnit, targetUnit)
+          : undefined,
+        unit: targetUnit,
+      };
+    }
+    return point;
+  });
 
-  const convertedWeightData = weightData?.map(point => ({
-    ...point,
-    value: convertValue(point.value, "weight", "lbs", unitConfigs.weight[unitSystem].unit),
-  }));
+  const convertedWeightData = weightData?.map(point => {
+    const storedUnit = point.unit;
+    const targetUnit = unitConfigs.weight[unitSystem].unit;
+    
+    if (storedUnit !== targetUnit) {
+      return {
+        ...point,
+        value: convertValue(point.value, "weight", storedUnit, targetUnit),
+        target: point.target !== undefined
+          ? convertValue(point.target, "weight", storedUnit, targetUnit)
+          : undefined,
+        unit: targetUnit,
+      };
+    }
+    return point;
+  });
 
   const renderWidget = (widget: string) => {
     if (!isVisible(widget)) return null;

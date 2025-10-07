@@ -14,6 +14,7 @@ interface BiomarkerChartWidgetProps {
 interface ChartDataPoint {
   date: string;
   value: number;
+  unit: string;
   target?: number;
 }
 
@@ -24,14 +25,23 @@ export function BiomarkerChartWidget({ type, config, unitSystem }: BiomarkerChar
 
   const unitConfig = unitConfigs[type as keyof typeof unitConfigs];
   const targetUnit = unitConfig ? unitConfig[unitSystem].unit : "";
-  const sourceUnit = unitConfig ? unitConfig.imperial.unit : "";
 
-  const convertedData = data?.map(point => ({
-    ...point,
-    value: unitConfig 
-      ? convertValue(point.value, type as keyof typeof unitConfigs, sourceUnit, targetUnit)
-      : point.value,
-  }));
+  const convertedData = data?.map(point => {
+    const storedUnit = point.unit;
+    
+    // Only convert if stored unit differs from target unit
+    if (unitConfig && storedUnit !== targetUnit) {
+      return {
+        ...point,
+        value: convertValue(point.value, type as keyof typeof unitConfigs, storedUnit, targetUnit),
+        target: point.target !== undefined 
+          ? convertValue(point.target, type as keyof typeof unitConfigs, storedUnit, targetUnit)
+          : undefined,
+        unit: targetUnit,
+      };
+    }
+    return point;
+  });
 
   if (isLoading) {
     return (
