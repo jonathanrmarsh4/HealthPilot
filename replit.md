@@ -8,7 +8,7 @@ This is a full-stack application built with:
 - **Frontend**: React + TypeScript + Tailwind CSS + shadcn/ui
 - **Backend**: Express.js + TypeScript
 - **Database**: PostgreSQL (via Drizzle ORM)
-- **AI**: Anthropic Claude API
+- **AI**: Anthropic Claude 3 Haiku
 - **Integrations**: Google Drive, Apple Health (via Health Auto Export)
 
 ## Key Features

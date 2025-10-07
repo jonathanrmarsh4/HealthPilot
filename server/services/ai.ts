@@ -116,7 +116,7 @@ export async function analyzeHealthDocument(documentText: string, fileName: stri
 async function analyzeSingleChunk(documentText: string, fileName: string, documentDate?: Date) {
   return await retryWithBackoff(async () => {
     const message = await anthropic.messages.create({
-    model: "claude-sonnet-4-5",
+    model: "claude-3-haiku-20240307",
     max_tokens: 4096,
     messages: [
       {
@@ -214,7 +214,7 @@ export async function generateMealPlan(userProfile: {
     : '';
 
   const message = await anthropic.messages.create({
-    model: "claude-sonnet-4-5",
+    model: "claude-3-haiku-20240307",
     max_tokens: 4096,
     messages: [
       {
@@ -272,7 +272,7 @@ export async function generateTrainingSchedule(userProfile: {
     : '';
 
   const message = await anthropic.messages.create({
-    model: "claude-sonnet-4-5",
+    model: "claude-3-haiku-20240307",
     max_tokens: 4096,
     messages: [
       {
@@ -330,7 +330,7 @@ export async function generateHealthRecommendations(data: {
     : '';
 
   const message = await anthropic.messages.create({
-    model: "claude-sonnet-4-5",
+    model: "claude-3-haiku-20240307",
     max_tokens: 4096,
     messages: [
       {
@@ -404,7 +404,7 @@ Start by introducing yourself and asking about their primary health or fitness g
   }));
 
   const message = await anthropic.messages.create({
-    model: "claude-sonnet-4-5",
+    model: "claude-3-haiku-20240307",
     max_tokens: 2048,
     system: systemPrompt,
     messages: messages as any,
