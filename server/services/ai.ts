@@ -4,6 +4,35 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
+// Retry helper with exponential backoff for rate limit errors
+async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  maxRetries: number = 3,
+  initialDelay: number = 1000
+): Promise<T> {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error: any) {
+      const isRateLimit = error.status === 429 || error.error?.type === 'rate_limit_error';
+      const isTransient = error.status === 500 || error.status === 502 || error.status === 503;
+      
+      if (!isRateLimit && !isTransient) {
+        throw error;
+      }
+      
+      if (attempt === maxRetries) {
+        throw error;
+      }
+      
+      const delay = initialDelay * Math.pow(2, attempt);
+      console.log(`⏳ Rate limit/transient error. Retrying in ${delay}ms (attempt ${attempt + 1}/${maxRetries})...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  throw new Error('Max retries exceeded');
+}
+
 // Estimate tokens (rough approximation: 1 token ≈ 4 characters)
 function estimateTokens(text: string): number {
   return Math.ceil(text.length / 4);
@@ -85,7 +114,8 @@ export async function analyzeHealthDocument(documentText: string, fileName: stri
 }
 
 async function analyzeSingleChunk(documentText: string, fileName: string, documentDate?: Date) {
-  const message = await anthropic.messages.create({
+  return await retryWithBackoff(async () => {
+    const message = await anthropic.messages.create({
     model: "claude-sonnet-4-5",
     max_tokens: 4096,
     messages: [
@@ -166,6 +196,7 @@ OTHER REQUIREMENTS:
     concerns: [],
     recommendations: []
   };
+  });
 }
 
 export async function generateMealPlan(userProfile: {

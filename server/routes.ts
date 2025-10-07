@@ -99,55 +99,137 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'File too large. Maximum size is 10MB.' });
       }
       
-      // Create record immediately (before analysis) so it can be deleted
-      const pendingRecord = await storage.createHealthRecord({
+      // Create record with 'processing' status
+      const processingRecord = await storage.createHealthRecord({
         userId: TEST_USER_ID,
         name: metadata.name || 'Uploaded Document',
         fileId: fileId,
         fileUrl: metadata.webViewLink || '',
         type: 'Lab Results',
+        status: 'processing',
       });
       
-      const fileText = fileBuffer.toString('utf-8');
-      
-      // Pass file creation date to AI for fallback
-      const fileCreatedDate = metadata.createdTime ? new Date(metadata.createdTime) : undefined;
-      const analysis = await analyzeHealthDocument(fileText, metadata.name || 'Unknown', fileCreatedDate);
-      
-      // Check if record was deleted during analysis
-      const stillExists = await storage.getHealthRecordByFileId(fileId);
-      if (!stillExists) {
-        // Record was deleted during analysis, don't update or create biomarkers
-        return res.status(410).json({ error: 'Record was deleted during analysis' });
-      }
-      
-      // Update record with analysis results
-      const record = await storage.updateHealthRecord(pendingRecord.id, {
-        aiAnalysis: analysis,
-        extractedData: analysis.biomarkers,
-        analyzedAt: new Date(),
-      });
-
-      if (analysis.biomarkers && Array.isArray(analysis.biomarkers)) {
-        for (const biomarker of analysis.biomarkers) {
-          await storage.createBiomarker({
-            userId: TEST_USER_ID,
-            type: biomarker.type,
-            value: biomarker.value,
-            unit: biomarker.unit,
-            source: 'ai-extracted',
-            recordId: record.id,
-            recordedAt: parseBiomarkerDate(biomarker.date, analysis.documentDate, fileCreatedDate),
-          });
+      try {
+        const fileText = fileBuffer.toString('utf-8');
+        
+        // Pass file creation date to AI for fallback
+        const fileCreatedDate = metadata.createdTime ? new Date(metadata.createdTime) : undefined;
+        const analysis = await analyzeHealthDocument(fileText, metadata.name || 'Unknown', fileCreatedDate);
+        
+        // Check if record was deleted during analysis
+        const stillExists = await storage.getHealthRecordByFileId(fileId);
+        if (!stillExists) {
+          // Record was deleted during analysis, don't update or create biomarkers
+          return res.status(410).json({ error: 'Record was deleted during analysis' });
         }
-      }
+        
+        // Update record with completed status and analysis results
+        const record = await storage.updateHealthRecord(processingRecord.id, {
+          status: 'completed',
+          aiAnalysis: analysis,
+          extractedData: analysis.biomarkers,
+          analyzedAt: new Date(),
+          errorMessage: null,
+        });
 
-      res.json(record);
+        if (analysis.biomarkers && Array.isArray(analysis.biomarkers)) {
+          for (const biomarker of analysis.biomarkers) {
+            await storage.createBiomarker({
+              userId: TEST_USER_ID,
+              type: biomarker.type,
+              value: biomarker.value,
+              unit: biomarker.unit,
+              source: 'ai-extracted',
+              recordId: record.id,
+              recordedAt: parseBiomarkerDate(biomarker.date, analysis.documentDate, fileCreatedDate),
+            });
+          }
+        }
+
+        res.json(record);
+      } catch (analysisError: any) {
+        // Update record with failed status and error message
+        await storage.updateHealthRecord(processingRecord.id, {
+          status: 'failed',
+          errorMessage: analysisError.message || 'Unknown error during analysis',
+        });
+        throw analysisError;
+      }
     } catch (error: any) {
       if (error.name === 'AbortError') {
         return res.status(499).json({ error: 'Request cancelled' });
       }
       console.error("Error analyzing document:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/health-records/:id/retry", async (req, res) => {
+    try {
+      const { id } = req.params;
+      
+      const record = await storage.getHealthRecord(id);
+      if (!record) {
+        return res.status(404).json({ error: 'Health record not found' });
+      }
+      
+      if (record.status !== 'failed') {
+        return res.status(400).json({ error: 'Only failed records can be retried' });
+      }
+      
+      if (!record.fileId) {
+        return res.status(400).json({ error: 'No Google Drive file associated with this record' });
+      }
+      
+      // Verify file still exists in Google Drive
+      const metadata = await getFileMetadata(record.fileId);
+      const fileBuffer = await downloadFile(record.fileId);
+      
+      // Update status to processing
+      await storage.updateHealthRecord(id, {
+        status: 'processing',
+        errorMessage: null,
+      });
+      
+      try {
+        const fileText = fileBuffer.toString('utf-8');
+        const fileCreatedDate = metadata.createdTime ? new Date(metadata.createdTime) : undefined;
+        const analysis = await analyzeHealthDocument(fileText, record.name, fileCreatedDate);
+        
+        // Update record with completed status and analysis results
+        const updatedRecord = await storage.updateHealthRecord(id, {
+          status: 'completed',
+          aiAnalysis: analysis,
+          extractedData: analysis.biomarkers,
+          analyzedAt: new Date(),
+          errorMessage: null,
+        });
+
+        if (analysis.biomarkers && Array.isArray(analysis.biomarkers)) {
+          for (const biomarker of analysis.biomarkers) {
+            await storage.createBiomarker({
+              userId: TEST_USER_ID,
+              type: biomarker.type,
+              value: biomarker.value,
+              unit: biomarker.unit,
+              source: 'ai-extracted',
+              recordId: updatedRecord.id,
+              recordedAt: parseBiomarkerDate(biomarker.date, analysis.documentDate, fileCreatedDate),
+            });
+          }
+        }
+
+        res.json(updatedRecord);
+      } catch (analysisError: any) {
+        // Update record with failed status and error message
+        await storage.updateHealthRecord(id, {
+          status: 'failed',
+          errorMessage: analysisError.message || 'Unknown error during analysis',
+        });
+        throw analysisError;
+      }
+    } catch (error: any) {
+      console.error("Error retrying analysis:", error);
       res.status(500).json({ error: error.message });
     }
   });
@@ -165,6 +247,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId: TEST_USER_ID,
         name: req.file.originalname,
         type: req.body.type || 'Lab Results',
+        status: 'completed',
         aiAnalysis: analysis,
         extractedData: analysis.biomarkers,
         analyzedAt: new Date(),
