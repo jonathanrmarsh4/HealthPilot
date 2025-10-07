@@ -633,6 +633,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Sleep endpoints
+  app.get("/api/sleep/stats", async (req, res) => {
+    try {
+      const latest = await storage.getLatestSleepSession(TEST_USER_ID);
+      
+      if (!latest) {
+        return res.json({
+          hasData: false,
+          sleepScore: 0,
+          totalSleepMinutes: 0,
+          quality: 'No data',
+          lastNight: null,
+        });
+      }
+
+      res.json({
+        hasData: true,
+        sleepScore: latest.sleepScore || 0,
+        totalSleepMinutes: latest.totalMinutes,
+        quality: latest.quality || 'Unknown',
+        lastNight: {
+          bedtime: latest.bedtime,
+          waketime: latest.waketime,
+          totalMinutes: latest.totalMinutes,
+          awakeMinutes: latest.awakeMinutes || 0,
+          lightMinutes: latest.lightMinutes || 0,
+          deepMinutes: latest.deepMinutes || 0,
+          remMinutes: latest.remMinutes || 0,
+          sleepScore: latest.sleepScore || 0,
+        },
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/sleep/sessions", async (req, res) => {
+    try {
+      const days = parseInt(req.query.days as string) || 30;
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - days);
+
+      const sessions = await storage.getSleepSessions(TEST_USER_ID, startDate, endDate);
+      res.json(sessions);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/sleep/latest", async (req, res) => {
+    try {
+      const latest = await storage.getLatestSleepSession(TEST_USER_ID);
+      if (!latest) {
+        return res.status(404).json({ error: "No sleep data found" });
+      }
+      res.json(latest);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.post("/api/biomarkers/cleanup-duplicates", async (req, res) => {
     try {
       console.log("🧹 Starting duplicate cleanup...");

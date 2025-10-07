@@ -14,6 +14,8 @@ import {
   type InsertRecommendation,
   type ChatMessage,
   type InsertChatMessage,
+  type SleepSession,
+  type InsertSleepSession,
   users,
   healthRecords,
   biomarkers,
@@ -21,8 +23,9 @@ import {
   trainingSchedules,
   recommendations,
   chatMessages,
+  sleepSessions,
 } from "@shared/schema";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, gte, lte } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -53,6 +56,10 @@ export interface IStorage {
   createChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
   getChatMessages(userId: string): Promise<ChatMessage[]>;
   clearChatHistory(userId: string): Promise<void>;
+  
+  createSleepSession(session: InsertSleepSession): Promise<SleepSession>;
+  getSleepSessions(userId: string, startDate?: Date, endDate?: Date): Promise<SleepSession[]>;
+  getLatestSleepSession(userId: string): Promise<SleepSession | undefined>;
 }
 
 export class DbStorage implements IStorage {
@@ -257,6 +264,37 @@ export class DbStorage implements IStorage {
 
   async clearChatHistory(userId: string): Promise<void> {
     await db.delete(chatMessages).where(eq(chatMessages.userId, userId));
+  }
+
+  async createSleepSession(session: InsertSleepSession): Promise<SleepSession> {
+    const result = await db.insert(sleepSessions).values(session).returning();
+    return result[0];
+  }
+
+  async getSleepSessions(userId: string, startDate?: Date, endDate?: Date): Promise<SleepSession[]> {
+    let query = db
+      .select()
+      .from(sleepSessions)
+      .where(eq(sleepSessions.userId, userId));
+
+    if (startDate && endDate) {
+      const result = await query.orderBy(desc(sleepSessions.bedtime));
+      return result.filter(
+        s => s.bedtime >= startDate && s.bedtime <= endDate
+      );
+    }
+
+    return await query.orderBy(desc(sleepSessions.bedtime));
+  }
+
+  async getLatestSleepSession(userId: string): Promise<SleepSession | undefined> {
+    const result = await db
+      .select()
+      .from(sleepSessions)
+      .where(eq(sleepSessions.userId, userId))
+      .orderBy(desc(sleepSessions.bedtime))
+      .limit(1);
+    return result[0];
   }
 }
 
