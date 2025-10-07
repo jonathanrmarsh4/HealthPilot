@@ -12,6 +12,7 @@ import { LocaleSelector } from "@/components/LocaleSelector";
 import Dashboard from "@/pages/Dashboard";
 import HealthRecords from "@/pages/HealthRecords";
 import Biomarkers from "@/pages/Biomarkers";
+import Sleep from "@/pages/Sleep";
 import MealPlans from "@/pages/MealPlans";
 import Training from "@/pages/Training";
 import AIInsights from "@/pages/AIInsights";
@@ -25,6 +26,7 @@ function Router() {
       <Route path="/" component={Dashboard} />
       <Route path="/records" component={HealthRecords} />
       <Route path="/biomarkers" component={Biomarkers} />
+      <Route path="/sleep" component={Sleep} />
       <Route path="/meals" component={MealPlans} />
       <Route path="/training" component={Training} />
       <Route path="/insights" component={AIInsights} />

@@ -9,6 +9,7 @@ import {
   HeartPulse,
   Smartphone,
   MessageCircle,
+  Moon,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import {
@@ -38,6 +39,11 @@ const menuItems = [
     title: "Biomarkers",
     url: "/biomarkers",
     icon: Activity,
+  },
+  {
+    title: "Sleep",
+    url: "/sleep",
+    icon: Moon,
   },
   {
     title: "Apple Health Setup",
