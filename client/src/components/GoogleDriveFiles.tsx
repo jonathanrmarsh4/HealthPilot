@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FileText, Eye, Loader2, CheckCircle2, X, Trash2, Sparkles } from "lucide-react";
+import { FileText, Eye, Loader2, CheckCircle2, X, Trash2, Sparkles, Unplug } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
@@ -144,13 +144,33 @@ export function GoogleDriveFiles() {
     return existingRecords?.find(r => r.fileId === fileId)?.id;
   };
 
+  const handleDisconnect = () => {
+    window.open("https://replit.com/integrations", "_blank");
+    toast({
+      title: "Disconnect Google Drive",
+      description: "You can manage your Google Drive connection in the Replit integrations page that just opened",
+    });
+  };
+
   return (
     <Card data-testid="card-google-drive">
-      <CardHeader>
-        <CardTitle>Google Drive Files</CardTitle>
-        <CardDescription>
-          Your health documents from Google Drive - click the sparkle icon to analyze with AI
-        </CardDescription>
+      <CardHeader className="flex flex-row items-center justify-between gap-4 space-y-0 pb-4">
+        <div className="flex-1">
+          <CardTitle>Google Drive Files</CardTitle>
+          <CardDescription className="mt-1.5">
+            Your health documents from Google Drive - click the sparkle icon to analyze with AI
+          </CardDescription>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleDisconnect}
+          className="shrink-0"
+          data-testid="button-disconnect-google-drive"
+        >
+          <Unplug className="h-4 w-4 mr-2" />
+          Disconnect
+        </Button>
       </CardHeader>
       <CardContent>
         {filesLoading ? (
