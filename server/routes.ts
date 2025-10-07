@@ -252,7 +252,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         endDate
       );
       
-      res.json(biomarkers);
+      // Transform to chart data format
+      const chartData = biomarkers.map(b => ({
+        date: b.recordedAt.toISOString(),
+        value: b.value,
+      }));
+      
+      res.json(chartData);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
