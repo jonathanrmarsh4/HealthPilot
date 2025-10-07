@@ -3,11 +3,11 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
 import multer from "multer";
-import { insertBiomarkerSchema, insertHealthRecordSchema, biomarkers } from "@shared/schema";
+import { insertBiomarkerSchema, insertHealthRecordSchema, biomarkers, sleepSessions } from "@shared/schema";
 import { listHealthDocuments, downloadFile, getFileMetadata } from "./services/googleDrive";
 import { analyzeHealthDocument, generateMealPlan, generateTrainingSchedule, generateHealthRecommendations, chatWithHealthCoach } from "./services/ai";
 import { parseISO, isValid } from "date-fns";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 
 // Helper function to parse biomarker dates with fallback
 function parseBiomarkerDate(dateStr: string | undefined, documentDate: string | undefined, fileDate: Date | undefined): Date {
@@ -995,6 +995,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       console.error("Error processing Health Auto Export data:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Cleanup endpoint to remove old test data
+  app.post("/api/cleanup-test-data", async (req, res) => {
+    try {
+      // Delete old ai-extracted biomarkers
+      const deletedBiomarkers = await db.delete(biomarkers)
+        .where(and(
+          eq(biomarkers.userId, TEST_USER_ID),
+          eq(biomarkers.source, 'ai-extracted')
+        ))
+        .returning();
+      
+      // Delete all old sleep sessions
+      const deletedSleep = await db.delete(sleepSessions)
+        .where(eq(sleepSessions.userId, TEST_USER_ID))
+        .returning();
+      
+      console.log(`🗑️ Cleaned up ${deletedBiomarkers.length} ai-extracted biomarkers and ${deletedSleep.length} sleep sessions`);
+      
+      res.json({
+        success: true,
+        deletedBiomarkers: deletedBiomarkers.length,
+        deletedSleepSessions: deletedSleep.length
+      });
+    } catch (error: any) {
+      console.error("Error cleaning up test data:", error);
       res.status(500).json({ error: error.message });
     }
   });
