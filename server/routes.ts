@@ -695,6 +695,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/user/settings", async (req, res) => {
+    try {
+      const settings = await storage.getUserSettings(TEST_USER_ID);
+      res.json(settings);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.patch("/api/user/settings", async (req, res) => {
+    try {
+      const { timezone } = req.body;
+      if (!timezone) {
+        return res.status(400).json({ error: "Timezone is required" });
+      }
+      await storage.updateUserSettings(TEST_USER_ID, { timezone });
+      res.json({ success: true, timezone });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.post("/api/biomarkers/cleanup-duplicates", async (req, res) => {
     try {
       console.log("🧹 Starting duplicate cleanup...");

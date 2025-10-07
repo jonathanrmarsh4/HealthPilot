@@ -30,6 +30,8 @@ import { eq, desc, and, gte, lte } from "drizzle-orm";
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
+  getUserSettings(userId: string): Promise<{ timezone: string }>;
+  updateUserSettings(userId: string, settings: { timezone: string }): Promise<void>;
   
   createHealthRecord(record: InsertHealthRecord): Promise<HealthRecord>;
   getHealthRecords(userId: string): Promise<HealthRecord[]>;
@@ -81,6 +83,22 @@ export class DbStorage implements IStorage {
       })
       .returning();
     return user;
+  }
+
+  async getUserSettings(userId: string): Promise<{ timezone: string }> {
+    const user = await this.getUser(userId);
+    if (!user) {
+      await this.upsertUser({ id: userId, timezone: "UTC" });
+      return { timezone: "UTC" };
+    }
+    return { timezone: user.timezone || "UTC" };
+  }
+
+  async updateUserSettings(userId: string, settings: { timezone: string }): Promise<void> {
+    await db
+      .update(users)
+      .set({ timezone: settings.timezone, updatedAt: new Date() })
+      .where(eq(users.id, userId));
   }
 
   async createHealthRecord(record: InsertHealthRecord): Promise<HealthRecord> {
