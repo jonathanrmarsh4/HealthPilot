@@ -98,10 +98,10 @@ export class DbStorage implements IStorage {
   }
 
   async updateUserSettings(userId: string, settings: { timezone: string }): Promise<void> {
-    await db
-      .update(users)
-      .set({ timezone: settings.timezone, updatedAt: new Date() })
-      .where(eq(users.id, userId));
+    // Use raw SQL to avoid schema mismatch issues
+    await db.execute(
+      sql`UPDATE users SET timezone = ${settings.timezone} WHERE id = ${userId}`
+    );
   }
 
   async createHealthRecord(record: InsertHealthRecord): Promise<HealthRecord> {
