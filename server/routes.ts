@@ -252,10 +252,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         endDate
       );
       
-      // Transform to chart data format
+      // Transform to chart data format with unit information
       const chartData = biomarkers.map(b => ({
         date: b.recordedAt.toISOString(),
         value: b.value,
+        unit: b.unit, // Include the stored unit for proper conversion
       }));
       
       res.json(chartData);

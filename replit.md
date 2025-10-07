@@ -14,13 +14,16 @@ This is a full-stack application built with:
 ## Key Features
 
 - Health record upload and AI analysis
-- Biomarker tracking with trend visualization
+- **Biomarker tracking** with trend visualization organized into 10 clinical subsections
+  - Displays multiple data points over time (not just latest value)
+  - Shows reference range status (in range, above, below) with color-coded badges
+  - Compact trend line widgets with dynamic time periods
 - **Localization support** - Switch between imperial (lbs, mg/dL) and metric (kg, mmol/L) units
 - **Apple Health integration** via Health Auto Export app (iOS)
 - AI-generated personalized meal plans
 - AI-generated training schedules
 - Smart health recommendations based on biomarker analysis
-- Google Drive integration for document management
+- **Google Drive integration** - Manual analysis (click sparkle icon to analyze files with AI)
 - Dark mode support
 - Responsive design
 

@@ -11,6 +11,7 @@ import { ArrowUp, ArrowDown, Minus } from "lucide-react";
 interface ChartDataPoint {
   date: string;
   value: number;
+  unit: string;
 }
 
 interface TrendLineWidgetProps {
@@ -35,13 +36,16 @@ export function TrendLineWidget({ type }: TrendLineWidgetProps) {
   const convertedData = chartData?.map(point => {
     const biomarkerConfig = unitConfigs[type as keyof typeof unitConfigs];
     if (biomarkerConfig && biomarkerConfig.imperial && biomarkerConfig.metric) {
-      const originalUnit = biomarkerConfig.imperial.unit;
+      const storedUnit = point.unit; // Use the actual stored unit
       const targetUnit = biomarkerConfig[unitSystem].unit;
       
-      return {
-        ...point,
-        value: convertValue(point.value, type as any, originalUnit, targetUnit),
-      };
+      // Only convert if stored unit differs from target unit
+      if (storedUnit !== targetUnit) {
+        return {
+          ...point,
+          value: convertValue(point.value, type as any, storedUnit, targetUnit),
+        };
+      }
     }
     return point;
   });
@@ -67,23 +71,31 @@ export function TrendLineWidget({ type }: TrendLineWidgetProps) {
 
   // Check reference range status
   const getRangeStatus = () => {
-    if (!config.referenceRange || latestValue === undefined) return null;
+    if (!config.referenceRange || latestValue === undefined || !chartData || chartData.length === 0) return null;
     
-    // Convert reference range if needed
     const biomarkerConfig = unitConfigs[type as keyof typeof unitConfigs];
+    const latestPoint = chartData[chartData.length - 1];
+    const storedUnit = latestPoint.unit;
+    
+    // Reference ranges are defined in imperial units (see biomarkerConfig comments)
+    // We need to convert them to the stored unit for comparison
     let lowThreshold = config.referenceRange.low;
     let highThreshold = config.referenceRange.high;
     
     if (biomarkerConfig && biomarkerConfig.imperial && biomarkerConfig.metric) {
       const imperialUnit = biomarkerConfig.imperial.unit;
-      const targetUnit = biomarkerConfig[unitSystem].unit;
       
-      lowThreshold = convertValue(config.referenceRange.low, type as any, imperialUnit, targetUnit);
-      highThreshold = convertValue(config.referenceRange.high, type as any, imperialUnit, targetUnit);
+      // Convert reference ranges from imperial to stored unit for proper comparison
+      if (storedUnit !== imperialUnit) {
+        lowThreshold = convertValue(config.referenceRange.low, type as any, imperialUnit, storedUnit);
+        highThreshold = convertValue(config.referenceRange.high, type as any, imperialUnit, storedUnit);
+      }
     }
     
-    if (latestValue < lowThreshold) return { status: "below", label: "Below Range" };
-    if (latestValue > highThreshold) return { status: "above", label: "Above Range" };
+    // Compare the stored value (not the converted display value) with the converted thresholds
+    const storedValue = latestPoint.value;
+    if (storedValue < lowThreshold) return { status: "below", label: "Below Range" };
+    if (storedValue > highThreshold) return { status: "above", label: "Above Range" };
     return { status: "normal", label: "In Range" };
   };
 
