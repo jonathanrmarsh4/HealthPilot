@@ -406,7 +406,7 @@ export const biomarkerDisplayConfig: Record<string, BiomarkerConfig> = {
     description: "6-month trend",
     days: 180,
     color: "hsl(var(--chart-5))",
-    decimals: 0
+    decimals: 1
     // No fixed range - varies by individual
   },
   "height": {
