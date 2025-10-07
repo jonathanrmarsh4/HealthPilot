@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
 import multer from "multer";
-import { insertBiomarkerSchema, insertHealthRecordSchema, biomarkers, sleepSessions } from "@shared/schema";
+import { insertBiomarkerSchema, insertHealthRecordSchema, biomarkers, sleepSessions, healthRecords, mealPlans, trainingSchedules, recommendations } from "@shared/schema";
 import { listHealthDocuments, downloadFile, getFileMetadata } from "./services/googleDrive";
 import { analyzeHealthDocument, generateMealPlan, generateTrainingSchedule, generateHealthRecommendations, chatWithHealthCoach } from "./services/ai";
 import { parseISO, isValid } from "date-fns";
@@ -1181,6 +1181,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       console.error("Error cleaning up test data:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Migrate test user data to authenticated user
+  app.post("/api/migrate-test-data", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const testUserId = 'test-user-1';
+
+    try {
+      if (userId === testUserId) {
+        return res.json({ 
+          success: true, 
+          message: "You are already the test user, no migration needed" 
+        });
+      }
+
+      // Update all tables to transfer data from test-user-1 to current user
+      const [healthRecordsUpdated] = await Promise.all([
+        db.update(healthRecords)
+          .set({ userId })
+          .where(eq(healthRecords.userId, testUserId))
+          .returning(),
+        db.update(biomarkers)
+          .set({ userId })
+          .where(eq(biomarkers.userId, testUserId)),
+        db.update(sleepSessions)
+          .set({ userId })
+          .where(eq(sleepSessions.userId, testUserId)),
+        db.update(mealPlans)
+          .set({ userId })
+          .where(eq(mealPlans.userId, testUserId)),
+        db.update(trainingSchedules)
+          .set({ userId })
+          .where(eq(trainingSchedules.userId, testUserId)),
+        db.update(recommendations)
+          .set({ userId })
+          .where(eq(recommendations.userId, testUserId)),
+      ]);
+
+      console.log(`✅ Migrated all test-user-1 data to user ${userId}`);
+      
+      res.json({
+        success: true,
+        message: "Successfully migrated all test data to your account",
+        healthRecordsMigrated: healthRecordsUpdated.length
+      });
+    } catch (error: any) {
+      console.error("Error migrating test data:", error);
       res.status(500).json({ error: error.message });
     }
   });
