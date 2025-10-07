@@ -117,7 +117,6 @@ export function convertValue(
 export function formatValue(value: number, type: MetricType): string {
   switch (type) {
     case "weight":
-      return Math.round(value).toString();
     case "height":
       return value.toFixed(1);
     case "blood-glucose":

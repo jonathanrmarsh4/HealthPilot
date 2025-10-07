@@ -166,7 +166,7 @@ export function TrendLineWidget({ type }: TrendLineWidgetProps) {
                     trend.direction === "down" ? "text-red-500" : 
                     "text-muted-foreground"
                   }`}>
-                    {trend.direction === "stable" ? "Stable" : `${trend.value.toFixed(1)}%`}
+                    {trend.direction === "stable" ? "Stable" : `${trend.value.toFixed(0)}%`}
                   </span>
                   <span className="text-xs text-muted-foreground">
                     {convertedData.length} readings
