@@ -3,9 +3,10 @@ import { GoogleDriveFiles } from "@/components/GoogleDriveFiles";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FileText, Download, Eye, Trash2 } from "lucide-react";
+import { FileText, Download, Eye, Trash2, RefreshCw, Loader2, AlertCircle } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { HealthRecord } from "@shared/schema";
 import { format } from "date-fns";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -37,6 +38,66 @@ export default function HealthRecords() {
       });
     },
   });
+
+  const retryMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return await apiRequest("POST", `/api/health-records/${id}/retry`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/health-records"] });
+      toast({
+        title: "Success",
+        description: "Analysis restarted successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to retry analysis",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const getStatusBadge = (record: HealthRecord) => {
+    const status = record.status || (record.analyzedAt ? 'completed' : 'pending');
+    
+    switch (status) {
+      case 'processing':
+        return (
+          <Badge className="bg-primary/10 text-primary text-xs">
+            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+            Processing...
+          </Badge>
+        );
+      case 'completed':
+        return (
+          <Badge className="bg-chart-4 text-white text-xs">
+            AI Analyzed
+          </Badge>
+        );
+      case 'failed':
+        return (
+          <div className="flex items-center gap-1">
+            <Badge className="bg-destructive text-destructive-foreground text-xs">
+              <AlertCircle className="h-3 w-3 mr-1" />
+              Failed
+            </Badge>
+            {record.errorMessage && (
+              <span className="text-xs text-muted-foreground truncate max-w-[200px]" title={record.errorMessage}>
+                {record.errorMessage}
+              </span>
+            )}
+          </div>
+        );
+      default:
+        return (
+          <Badge className="bg-chart-5 text-white text-xs">
+            Pending
+          </Badge>
+        );
+    }
+  };
 
   const handleViewRecord = (record: HealthRecord) => {
     if (record.fileUrl) {
@@ -92,19 +153,29 @@ export default function HealthRecords() {
                           <Badge variant="outline" className="text-xs">
                             {record.type}
                           </Badge>
-                          <Badge
-                            className={
-                              record.analyzedAt
-                                ? "bg-chart-4 text-white text-xs"
-                                : "bg-chart-5 text-white text-xs"
-                            }
-                          >
-                            {record.analyzedAt ? "AI Analyzed" : "Pending"}
-                          </Badge>
+                          {getStatusBadge(record)}
                         </div>
                       </div>
                     </div>
                     <div className="flex gap-2 shrink-0">
+                      {record.status === 'failed' && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => retryMutation.mutate(record.id)}
+                              disabled={retryMutation.isPending}
+                              data-testid={`button-retry-${record.id}`}
+                            >
+                              <RefreshCw className={`h-4 w-4 ${retryMutation.isPending ? 'animate-spin' : ''}`} />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Retry analysis</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
                       <Button
                         size="icon"
                         variant="ghost"
