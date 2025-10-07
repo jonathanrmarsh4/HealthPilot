@@ -25,7 +25,7 @@ import {
   chatMessages,
   sleepSessions,
 } from "@shared/schema";
-import { eq, desc, and, gte, lte } from "drizzle-orm";
+import { eq, desc, and, gte, lte, sql } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -86,12 +86,15 @@ export class DbStorage implements IStorage {
   }
 
   async getUserSettings(userId: string): Promise<{ timezone: string }> {
-    const user = await this.getUser(userId);
-    if (!user) {
-      await this.upsertUser({ id: userId, timezone: "UTC" });
+    // Use raw SQL to avoid schema mismatch issues
+    const result = await db.execute(
+      sql`SELECT timezone FROM users WHERE id = ${userId}`
+    );
+    const rows: any[] = result.rows || [];
+    if (rows.length === 0) {
       return { timezone: "UTC" };
     }
-    return { timezone: user.timezone || "UTC" };
+    return { timezone: rows[0].timezone || "UTC" };
   }
 
   async updateUserSettings(userId: string, settings: { timezone: string }): Promise<void> {
