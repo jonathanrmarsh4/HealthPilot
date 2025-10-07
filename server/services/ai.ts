@@ -11,7 +11,7 @@ function estimateTokens(text: string): number {
 
 // Split text into chunks that fit within token limit
 // Account for ~10k tokens used by the prompt itself
-function chunkText(text: string, maxTokens: number = 100000): string[] {
+function chunkText(text: string, maxTokens: number = 50000): string[] {
   const estimatedTokens = estimateTokens(text);
   
   if (estimatedTokens <= maxTokens) {
