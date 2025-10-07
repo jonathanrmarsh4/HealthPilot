@@ -852,8 +852,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       let insertedCount = 0;
+      let sleepSessionsCount = 0;
 
       for (const metric of data.metrics) {
+        // Special handling for sleep analysis - create sleep sessions
+        if (metric.name === "sleep_analysis" && metric.data && Array.isArray(metric.data)) {
+          for (const dataPoint of metric.data) {
+            if (dataPoint.sleepStart && dataPoint.sleepEnd && dataPoint.totalSleep) {
+              const bedtime = new Date(dataPoint.sleepStart);
+              const waketime = new Date(dataPoint.sleepEnd);
+              const totalMinutes = Math.round(dataPoint.totalSleep * 60);
+              const awakeMinutes = Math.round((dataPoint.awake || 0) * 60);
+              const deepMinutes = Math.round((dataPoint.deep || 0) * 60);
+              const remMinutes = Math.round((dataPoint.rem || 0) * 60);
+              const coreMinutes = Math.round((dataPoint.core || 0) * 60);
+              
+              // Calculate sleep score (0-100) based on sleep quality
+              let sleepScore = 70; // Base score
+              const sleepHours = dataPoint.totalSleep;
+              
+              // Adjust for total sleep duration (optimal 7-9 hours)
+              if (sleepHours >= 7 && sleepHours <= 9) {
+                sleepScore += 10;
+              } else if (sleepHours >= 6 && sleepHours < 7) {
+                sleepScore += 5;
+              } else if (sleepHours < 6) {
+                sleepScore -= 10;
+              }
+              
+              // Adjust for deep sleep (should be ~20% of total)
+              const deepPercentage = (dataPoint.deep || 0) / sleepHours;
+              if (deepPercentage >= 0.15 && deepPercentage <= 0.25) {
+                sleepScore += 10;
+              } else if (deepPercentage < 0.10) {
+                sleepScore -= 5;
+              }
+              
+              // Adjust for REM sleep (should be ~20-25% of total)
+              const remPercentage = (dataPoint.rem || 0) / sleepHours;
+              if (remPercentage >= 0.18 && remPercentage <= 0.28) {
+                sleepScore += 10;
+              } else if (remPercentage < 0.15) {
+                sleepScore -= 5;
+              }
+              
+              // Ensure score is between 0 and 100
+              sleepScore = Math.max(0, Math.min(100, sleepScore));
+              
+              // Determine quality
+              let quality = "Fair";
+              if (sleepScore >= 85) quality = "Excellent";
+              else if (sleepScore >= 75) quality = "Good";
+              else if (sleepScore >= 60) quality = "Fair";
+              else quality = "Poor";
+              
+              await storage.createSleepSession({
+                userId: TEST_USER_ID,
+                bedtime,
+                waketime,
+                totalMinutes,
+                awakeMinutes,
+                lightMinutes: coreMinutes, // Core sleep maps to light
+                deepMinutes,
+                remMinutes,
+                sleepScore,
+                quality,
+                source: "apple-health",
+              });
+              
+              sleepSessionsCount++;
+            }
+          }
+          continue; // Skip the normal biomarker processing for sleep
+        }
+        
         const biomarkerType = metricMapping[metric.name];
         
         if (!biomarkerType) {
@@ -917,8 +989,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({ 
         success: true, 
-        message: `Successfully imported ${insertedCount} health metrics`,
-        count: insertedCount 
+        message: `Successfully imported ${insertedCount} biomarkers and ${sleepSessionsCount} sleep sessions`,
+        biomarkersCount: insertedCount,
+        sleepSessionsCount: sleepSessionsCount
       });
     } catch (error: any) {
       console.error("Error processing Health Auto Export data:", error);
