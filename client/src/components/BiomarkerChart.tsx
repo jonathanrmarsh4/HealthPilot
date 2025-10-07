@@ -9,6 +9,10 @@ interface BiomarkerChartProps {
   unit: string;
   color?: string;
   domain?: [number, number];
+  referenceRange?: {
+    low: number;
+    high: number;
+  };
 }
 
 export function BiomarkerChart({ 
@@ -17,7 +21,8 @@ export function BiomarkerChart({
   data, 
   unit,
   color = "hsl(var(--chart-1))",
-  domain
+  domain,
+  referenceRange
 }: BiomarkerChartProps) {
   const formatXAxis = (dateStr: string) => {
     try {
@@ -32,7 +37,14 @@ export function BiomarkerChart({
     <Card data-testid={`chart-${title.toLowerCase().replace(/\s/g, "-")}`}>
       <CardHeader>
         <CardTitle>{title}</CardTitle>
-        {description && <CardDescription>{description}</CardDescription>}
+        <div className="flex flex-col gap-1">
+          {description && <CardDescription>{description}</CardDescription>}
+          {referenceRange && (
+            <CardDescription data-testid={`reference-range-${title.toLowerCase().replace(/\s/g, "-")}`}>
+              Reference range: {referenceRange.low.toFixed(1)} - {referenceRange.high.toFixed(1)} {unit}
+            </CardDescription>
+          )}
+        </div>
       </CardHeader>
       <CardContent>
         <div className="h-[300px]">

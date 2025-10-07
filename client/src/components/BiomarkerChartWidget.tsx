@@ -43,6 +43,21 @@ export function BiomarkerChartWidget({ type, config, unitSystem }: BiomarkerChar
     return point;
   });
 
+  // Convert reference range if needed
+  let convertedReferenceRange = config.referenceRange;
+  if (config.referenceRange && unitConfig && unitConfig.imperial && unitConfig.metric) {
+    const imperialUnit = unitConfig.imperial.unit;
+    const targetUnitForRange = unitConfig[unitSystem].unit;
+    
+    // Reference ranges are defined in imperial units
+    if (imperialUnit !== targetUnitForRange) {
+      convertedReferenceRange = {
+        low: convertValue(config.referenceRange.low, type as keyof typeof unitConfigs, imperialUnit, targetUnitForRange),
+        high: convertValue(config.referenceRange.high, type as keyof typeof unitConfigs, imperialUnit, targetUnitForRange),
+      };
+    }
+  }
+
   if (isLoading) {
     return (
       <Card>
@@ -70,6 +85,7 @@ export function BiomarkerChartWidget({ type, config, unitSystem }: BiomarkerChar
       data={convertedData}
       unit={targetUnit}
       color={config.color}
+      referenceRange={convertedReferenceRange}
     />
   );
 }
