@@ -39,9 +39,9 @@ function estimateTokens(text: string): number {
 }
 
 // Split text into chunks that fit within token limit
-// Claude 3 Haiku has 200k context window
-// Account for ~2k tokens used by the prompt itself, leaving 198k for content
-function chunkText(text: string, maxTokens: number = 195000): string[] {
+// Use smaller chunks to respect Anthropic's acceleration limits
+// (API won't allow sudden jumps from 0 to high token usage)
+function chunkText(text: string, maxTokens: number = 10000): string[] {
   const estimatedTokens = estimateTokens(text);
   
   if (estimatedTokens <= maxTokens) {
@@ -97,12 +97,14 @@ export async function analyzeHealthDocument(documentText: string, fileName: stri
       summary = result.summary;
     }
     
-    // Add delay between chunks to respect rate limits (avoid hitting tokens/minute cap)
+    // Add delay between chunks to respect Anthropic's acceleration limits
+    // Gradual scaling: wait longer for each successive chunk
     if (i < chunks.length - 1) {
-      const estimatedChunkTokens = estimateTokens(chunks[i]);
-      // Wait ~60 seconds per 30k tokens to stay under rate limits
-      const delayMs = Math.max(1000, Math.ceil((estimatedChunkTokens / 30000) * 60000));
-      console.log(`  ⏳ Waiting ${Math.ceil(delayMs / 1000)}s before next chunk to respect rate limits...`);
+      // Progressive delays: 15s, 20s, 25s, 30s... to allow gradual token usage increase
+      const baseDelay = 15000; // 15 seconds base
+      const progressiveDelay = i * 5000; // Add 5s per chunk
+      const delayMs = baseDelay + progressiveDelay;
+      console.log(`  ⏳ Waiting ${Math.ceil(delayMs / 1000)}s before chunk ${i + 2} (gradual scaling for API acceleration limits)...`);
       await new Promise(resolve => setTimeout(resolve, delayMs));
     }
   }
