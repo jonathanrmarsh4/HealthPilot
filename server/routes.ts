@@ -8,6 +8,15 @@ import { listHealthDocuments, downloadFile, getFileMetadata } from "./services/g
 import { analyzeHealthDocument, generateMealPlan, generateTrainingSchedule, generateHealthRecommendations, chatWithHealthCoach } from "./services/ai";
 import { parseISO, isValid } from "date-fns";
 import { eq, and } from "drizzle-orm";
+import { isAuthenticated, isAdmin, webhookAuth } from "./replitAuth";
+import { z } from "zod";
+
+// Zod schema for admin user updates
+const adminUserUpdateSchema = z.object({
+  role: z.enum(["user", "admin"]).optional(),
+  subscriptionTier: z.enum(["free", "premium", "enterprise"]).optional(),
+  subscriptionStatus: z.enum(["active", "inactive", "cancelled", "past_due"]).optional(),
+});
 
 // Helper function to parse biomarker dates with fallback
 function parseBiomarkerDate(dateStr: string | undefined, documentDate: string | undefined, fileDate: Date | undefined): Date {
@@ -70,9 +79,101 @@ const upload = multer({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  const TEST_USER_ID = "test-user-1";
+  app.get("/api/auth/user", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.json(null);
+      }
 
-  app.get("/api/google-drive/files", async (req, res) => {
+      const user = req.user as any;
+      if (!user.claims?.sub) {
+        return res.json(null);
+      }
+
+      const dbUser = await storage.getUser(user.claims.sub);
+      if (!dbUser) {
+        return res.json(null);
+      }
+
+      res.json({
+        id: dbUser.id,
+        email: dbUser.email,
+        firstName: dbUser.firstName,
+        lastName: dbUser.lastName,
+        profileImageUrl: dbUser.profileImageUrl,
+        role: dbUser.role,
+        subscriptionTier: dbUser.subscriptionTier,
+        subscriptionStatus: dbUser.subscriptionStatus,
+      });
+    } catch (error: any) {
+      console.error("Error getting user:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/admin/users", isAdmin, async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 20;
+      const offset = parseInt(req.query.offset as string) || 0;
+      const search = req.query.search as string | undefined;
+
+      const result = await storage.getAllUsers(limit, offset, search);
+      res.json(result);
+    } catch (error: any) {
+      console.error("Error getting users:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/admin/users/:id", isAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const user = await storage.getUser(id);
+      
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      res.json(user);
+    } catch (error: any) {
+      console.error("Error getting user:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.patch("/api/admin/users/:id", isAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      
+      // Validate request body with Zod
+      const validationResult = adminUserUpdateSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        return res.status(400).json({ 
+          error: "Invalid update data", 
+          details: validationResult.error.format() 
+        });
+      }
+
+      const updates = validationResult.data;
+      const updatedUser = await storage.updateUserAdminFields(id, updates);
+      res.json(updatedUser);
+    } catch (error: any) {
+      console.error("Error updating user:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/admin/stats", isAdmin, async (req, res) => {
+    try {
+      const stats = await storage.getAdminStats();
+      res.json(stats);
+    } catch (error: any) {
+      console.error("Error getting admin stats:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/google-drive/files", isAuthenticated, async (req, res) => {
     try {
       const files = await listHealthDocuments();
       res.json(files);
@@ -82,12 +183,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/health-records/analyze/:fileId", async (req, res) => {
+  app.post("/api/health-records/analyze/:fileId", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+
     try {
       const { fileId } = req.params;
       
       // Check if a record with this fileId already exists
-      const existingRecord = await storage.getHealthRecordByFileId(fileId);
+      const existingRecord = await storage.getHealthRecordByFileId(fileId, userId);
       if (existingRecord) {
         return res.json(existingRecord);
       }
@@ -101,7 +204,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Create record with 'processing' status
       const processingRecord = await storage.createHealthRecord({
-        userId: TEST_USER_ID,
+        userId,
         name: metadata.name || 'Uploaded Document',
         fileId: fileId,
         fileUrl: metadata.webViewLink || '',
@@ -117,14 +220,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const analysis = await analyzeHealthDocument(fileText, metadata.name || 'Unknown', fileCreatedDate);
         
         // Check if record was deleted during analysis
-        const stillExists = await storage.getHealthRecordByFileId(fileId);
+        const stillExists = await storage.getHealthRecordByFileId(fileId, userId);
         if (!stillExists) {
           // Record was deleted during analysis, don't update or create biomarkers
           return res.status(410).json({ error: 'Record was deleted during analysis' });
         }
         
         // Update record with completed status and analysis results
-        const record = await storage.updateHealthRecord(processingRecord.id, {
+        const record = await storage.updateHealthRecord(processingRecord.id, userId, {
           status: 'completed',
           aiAnalysis: analysis,
           extractedData: analysis.biomarkers,
@@ -132,10 +235,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           errorMessage: null,
         });
 
-        if (analysis.biomarkers && Array.isArray(analysis.biomarkers)) {
+        if (record && analysis.biomarkers && Array.isArray(analysis.biomarkers)) {
           for (const biomarker of analysis.biomarkers) {
             await storage.createBiomarker({
-              userId: TEST_USER_ID,
+              userId,
               type: biomarker.type,
               value: biomarker.value,
               unit: biomarker.unit,
@@ -149,7 +252,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.json(record);
       } catch (analysisError: any) {
         // Update record with failed status and error message
-        await storage.updateHealthRecord(processingRecord.id, {
+        await storage.updateHealthRecord(processingRecord.id, userId, {
           status: 'failed',
           errorMessage: analysisError.message || 'Unknown error during analysis',
         });
@@ -164,11 +267,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/health-records/:id/retry", async (req, res) => {
+  app.post("/api/health-records/:id/retry", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+
     try {
       const { id } = req.params;
       
-      const record = await storage.getHealthRecord(id);
+      const record = await storage.getHealthRecord(id, userId);
       if (!record) {
         return res.status(404).json({ error: 'Health record not found' });
       }
@@ -186,7 +291,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const fileBuffer = await downloadFile(record.fileId);
       
       // Update status to processing
-      await storage.updateHealthRecord(id, {
+      await storage.updateHealthRecord(id, userId, {
         status: 'processing',
         errorMessage: null,
       });
@@ -197,7 +302,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const analysis = await analyzeHealthDocument(fileText, record.name, fileCreatedDate);
         
         // Update record with completed status and analysis results
-        const updatedRecord = await storage.updateHealthRecord(id, {
+        const updatedRecord = await storage.updateHealthRecord(id, userId, {
           status: 'completed',
           aiAnalysis: analysis,
           extractedData: analysis.biomarkers,
@@ -205,10 +310,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           errorMessage: null,
         });
 
-        if (analysis.biomarkers && Array.isArray(analysis.biomarkers)) {
+        if (updatedRecord && analysis.biomarkers && Array.isArray(analysis.biomarkers)) {
           for (const biomarker of analysis.biomarkers) {
             await storage.createBiomarker({
-              userId: TEST_USER_ID,
+              userId,
               type: biomarker.type,
               value: biomarker.value,
               unit: biomarker.unit,
@@ -222,7 +327,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.json(updatedRecord);
       } catch (analysisError: any) {
         // Update record with failed status and error message
-        await storage.updateHealthRecord(id, {
+        await storage.updateHealthRecord(id, userId, {
           status: 'failed',
           errorMessage: analysisError.message || 'Unknown error during analysis',
         });
@@ -234,7 +339,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/health-records/upload", upload.single('file'), async (req, res) => {
+  app.post("/api/health-records/upload", isAuthenticated, upload.single('file'), async (req, res) => {
+    const userId = (req.user as any).claims.sub;
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No file uploaded" });
@@ -244,7 +350,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const analysis = await analyzeHealthDocument(fileText, req.file.originalname);
 
       const record = await storage.createHealthRecord({
-        userId: TEST_USER_ID,
+        userId,
         name: req.file.originalname,
         type: req.body.type || 'Lab Results',
         status: 'completed',
@@ -256,7 +362,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (analysis.biomarkers && Array.isArray(analysis.biomarkers)) {
         for (const biomarker of analysis.biomarkers) {
           await storage.createBiomarker({
-            userId: TEST_USER_ID,
+            userId,
             type: biomarker.type,
             value: biomarker.value,
             unit: biomarker.unit,
@@ -290,30 +396,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/health-records", async (req, res) => {
+  app.get("/api/health-records", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+
     try {
-      const records = await storage.getHealthRecords(TEST_USER_ID);
+      const records = await storage.getHealthRecords(userId);
       res.json(records);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
   });
 
-  app.delete("/api/health-records/:id", async (req, res) => {
+  app.delete("/api/health-records/:id", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
     try {
       const { id } = req.params;
-      await storage.deleteHealthRecord(id);
+      await storage.deleteHealthRecord(id, userId);
       res.json({ success: true });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
   });
 
-  app.post("/api/biomarkers", async (req, res) => {
+  app.post("/api/biomarkers", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+
     try {
       const validatedData = insertBiomarkerSchema.parse({
         ...req.body,
-        userId: TEST_USER_ID,
+        userId,
       });
       const biomarker = await storage.createBiomarker(validatedData);
       res.json(biomarker);
@@ -322,11 +433,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/biomarkers", async (req, res) => {
+  app.get("/api/biomarkers", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+
     try {
       const { type } = req.query;
       const biomarkers = await storage.getBiomarkers(
-        TEST_USER_ID,
+        userId,
         type as string | undefined
       );
       res.json(biomarkers);
@@ -335,7 +448,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/biomarkers/chart/:type", async (req, res) => {
+  app.get("/api/biomarkers/chart/:type", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+
     try {
       const { type } = req.params;
       const { days = '7' } = req.query;
@@ -345,7 +460,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       startDate.setDate(startDate.getDate() - parseInt(days as string));
       
       const biomarkers = await storage.getBiomarkersByTimeRange(
-        TEST_USER_ID,
+        userId,
         type,
         startDate,
         endDate
@@ -364,11 +479,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/meal-plans/generate", async (req, res) => {
+  app.post("/api/meal-plans/generate", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+
     try {
       const userProfile = req.body;
       
-      const chatHistory = await storage.getChatMessages(TEST_USER_ID);
+      const chatHistory = await storage.getChatMessages(userId);
       const chatContext = chatHistory.map(msg => `${msg.role}: ${msg.content}`).join('\n');
       
       const mealPlans = await generateMealPlan({
@@ -380,7 +497,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       for (const plan of mealPlans) {
         const saved = await storage.createMealPlan({
           ...plan,
-          userId: TEST_USER_ID,
+          userId,
         });
         savedPlans.push(saved);
       }
@@ -392,20 +509,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/meal-plans", async (req, res) => {
+  app.get("/api/meal-plans", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+
     try {
-      const plans = await storage.getMealPlans(TEST_USER_ID);
+      const plans = await storage.getMealPlans(userId);
       res.json(plans);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
   });
 
-  app.post("/api/training-schedules/generate", async (req, res) => {
+  app.post("/api/training-schedules/generate", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+
     try {
       const userProfile = req.body;
       
-      const chatHistory = await storage.getChatMessages(TEST_USER_ID);
+      const chatHistory = await storage.getChatMessages(userId);
       const chatContext = chatHistory.map(msg => `${msg.role}: ${msg.content}`).join('\n');
       
       const schedules = await generateTrainingSchedule({
@@ -417,7 +538,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       for (const schedule of schedules) {
         const saved = await storage.createTrainingSchedule({
           ...schedule,
-          userId: TEST_USER_ID,
+          userId,
           completed: 0,
         });
         savedSchedules.push(saved);
@@ -430,24 +551,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/training-schedules", async (req, res) => {
+  app.get("/api/training-schedules", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+
     try {
-      const schedules = await storage.getTrainingSchedules(TEST_USER_ID);
+      const schedules = await storage.getTrainingSchedules(userId);
       res.json(schedules);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
   });
 
-  app.patch("/api/training-schedules/:id/complete", async (req, res) => {
+  app.patch("/api/training-schedules/:id/complete", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
     try {
       const { id } = req.params;
       const { completed } = req.body;
       
-      const updated = await storage.updateTrainingSchedule(id, {
+      const updated = await storage.updateTrainingSchedule(id, userId, {
         completed: completed ? 1 : 0,
         completedAt: completed ? new Date() : null,
       });
+      
+      if (!updated) {
+        return res.status(404).json({ error: 'Training schedule not found' });
+      }
       
       res.json(updated);
     } catch (error: any) {
@@ -455,11 +583,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/recommendations/generate", async (req, res) => {
+  app.post("/api/recommendations/generate", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+
     try {
-      const biomarkers = await storage.getBiomarkers(TEST_USER_ID);
+      const biomarkers = await storage.getBiomarkers(userId);
       
-      const chatHistory = await storage.getChatMessages(TEST_USER_ID);
+      const chatHistory = await storage.getChatMessages(userId);
       const chatContext = chatHistory.map(msg => `${msg.role}: ${msg.content}`).join('\n');
       
       const recommendations = await generateHealthRecommendations({
@@ -472,7 +602,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       for (const rec of recommendations) {
         const saved = await storage.createRecommendation({
           ...rec,
-          userId: TEST_USER_ID,
+          userId,
         });
         savedRecs.push(saved);
       }
@@ -484,26 +614,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/recommendations", async (req, res) => {
+  app.get("/api/recommendations", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+
     try {
-      const recommendations = await storage.getRecommendations(TEST_USER_ID);
+      const recommendations = await storage.getRecommendations(userId);
       res.json(recommendations);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
   });
 
-  app.patch("/api/recommendations/:id/dismiss", async (req, res) => {
+  app.patch("/api/recommendations/:id/dismiss", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
     try {
       const { id } = req.params;
-      await storage.dismissRecommendation(id);
+      await storage.dismissRecommendation(id, userId);
       res.json({ success: true });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
   });
 
-  app.post("/api/chat", async (req, res) => {
+  app.post("/api/chat", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+
     try {
       const { message } = req.body;
       
@@ -512,12 +647,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const userMessage = await storage.createChatMessage({
-        userId: TEST_USER_ID,
+        userId,
         role: "user",
         content: message,
       });
 
-      const chatHistory = await storage.getChatMessages(TEST_USER_ID);
+      const chatHistory = await storage.getChatMessages(userId);
       
       const conversationHistory = chatHistory.map(msg => ({
         role: msg.role as "user" | "assistant",
@@ -527,7 +662,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const aiResponse = await chatWithHealthCoach(conversationHistory);
 
       const assistantMessage = await storage.createChatMessage({
-        userId: TEST_USER_ID,
+        userId,
         role: "assistant",
         content: aiResponse,
       });
@@ -542,29 +677,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/chat/history", async (req, res) => {
+  app.get("/api/chat/history", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+
     try {
-      const messages = await storage.getChatMessages(TEST_USER_ID);
+      const messages = await storage.getChatMessages(userId);
       res.json(messages);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
   });
 
-  app.delete("/api/chat/history", async (req, res) => {
+  app.delete("/api/chat/history", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+
     try {
-      await storage.clearChatHistory(TEST_USER_ID);
+      await storage.clearChatHistory(userId);
       res.json({ success: true });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
   });
 
-  app.get("/api/dashboard/stats", async (req, res) => {
+  app.get("/api/dashboard/stats", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+
     try {
-      const biomarkers = await storage.getBiomarkers(TEST_USER_ID);
-      const records = await storage.getHealthRecords(TEST_USER_ID);
-      const recommendations = await storage.getRecommendations(TEST_USER_ID);
+      const biomarkers = await storage.getBiomarkers(userId);
+      const records = await storage.getHealthRecords(userId);
+      const recommendations = await storage.getRecommendations(userId);
       
       const latestByType: Record<string, any> = {};
       biomarkers.forEach(b => {
@@ -634,9 +775,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Sleep endpoints
-  app.get("/api/sleep/stats", async (req, res) => {
+  app.get("/api/sleep/stats", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+
     try {
-      const latest = await storage.getLatestSleepSession(TEST_USER_ID);
+      const latest = await storage.getLatestSleepSession(userId);
       
       if (!latest) {
         return res.json({
@@ -669,23 +812,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/sleep/sessions", async (req, res) => {
+  app.get("/api/sleep/sessions", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+
     try {
       const days = parseInt(req.query.days as string) || 30;
       const endDate = new Date();
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - days);
 
-      const sessions = await storage.getSleepSessions(TEST_USER_ID, startDate, endDate);
+      const sessions = await storage.getSleepSessions(userId, startDate, endDate);
       res.json(sessions);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
   });
 
-  app.get("/api/sleep/latest", async (req, res) => {
+  app.get("/api/sleep/latest", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+
     try {
-      const latest = await storage.getLatestSleepSession(TEST_USER_ID);
+      const latest = await storage.getLatestSleepSession(userId);
       if (!latest) {
         return res.status(404).json({ error: "No sleep data found" });
       }
@@ -695,29 +842,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/user/settings", async (req, res) => {
+  app.get("/api/user/settings", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+
     try {
-      const settings = await storage.getUserSettings(TEST_USER_ID);
+      const settings = await storage.getUserSettings(userId);
       res.json(settings);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
   });
 
-  app.patch("/api/user/settings", async (req, res) => {
+  app.patch("/api/user/settings", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+
     try {
       const { timezone } = req.body;
       if (!timezone) {
         return res.status(400).json({ error: "Timezone is required" });
       }
-      await storage.updateUserSettings(TEST_USER_ID, { timezone });
+      await storage.updateUserSettings(userId, { timezone });
       res.json({ success: true, timezone });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
   });
 
-  app.post("/api/biomarkers/cleanup-duplicates", async (req, res) => {
+  app.post("/api/biomarkers/cleanup-duplicates", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+
     try {
       console.log("🧹 Starting duplicate cleanup...");
       
@@ -727,7 +880,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("✅ Deleted bad weight spike");
       
       // Now delete all duplicates keeping only the first occurrence
-      const allBiomarkers = await db.select().from(biomarkers).where(eq(biomarkers.userId, TEST_USER_ID));
+      const allBiomarkers = await db.select().from(biomarkers).where(eq(biomarkers.userId, userId));
       console.log(`📊 Total biomarkers: ${allBiomarkers.length}`);
       
       const seen = new Set<string>();
@@ -770,7 +923,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/health-auto-export/ingest", async (req, res) => {
+  app.post("/api/health-auto-export/ingest", webhookAuth, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+
     try {
       console.log("📥 Received Health Auto Export data:", JSON.stringify(req.body, null, 2));
       
@@ -907,7 +1062,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               else quality = "Poor";
               
               await storage.createSleepSession({
-                userId: TEST_USER_ID,
+                userId,
                 bedtime,
                 waketime,
                 totalMinutes,
@@ -936,7 +1091,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           for (const dataPoint of metric.data) {
             if (dataPoint.systolic) {
               await storage.upsertBiomarker({
-                userId: TEST_USER_ID,
+                userId,
                 type: "blood-pressure-systolic",
                 value: dataPoint.systolic,
                 unit: "mmHg",
@@ -947,7 +1102,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
             if (dataPoint.diastolic) {
               await storage.upsertBiomarker({
-                userId: TEST_USER_ID,
+                userId,
                 type: "blood-pressure-diastolic",
                 value: dataPoint.diastolic,
                 unit: "mmHg",
@@ -974,7 +1129,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               const converted = convertToStorageUnit(value, metric.units, biomarkerType);
               
               await storage.upsertBiomarker({
-                userId: TEST_USER_ID,
+                userId,
                 type: biomarkerType,
                 value: converted.value,
                 unit: converted.unit,
@@ -1000,19 +1155,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Cleanup endpoint to remove old test data
-  app.post("/api/cleanup-test-data", async (req, res) => {
+  app.post("/api/cleanup-test-data", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+
     try {
       // Delete old ai-extracted biomarkers
       const deletedBiomarkers = await db.delete(biomarkers)
         .where(and(
-          eq(biomarkers.userId, TEST_USER_ID),
+          eq(biomarkers.userId, userId),
           eq(biomarkers.source, 'ai-extracted')
         ))
         .returning();
       
       // Delete all old sleep sessions
       const deletedSleep = await db.delete(sleepSessions)
-        .where(eq(sleepSessions.userId, TEST_USER_ID))
+        .where(eq(sleepSessions.userId, userId))
         .returning();
       
       console.log(`🗑️ Cleaned up ${deletedBiomarkers.length} ai-extracted biomarkers and ${deletedSleep.length} sleep sessions`);

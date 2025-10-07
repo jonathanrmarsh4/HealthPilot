@@ -174,3 +174,42 @@ export const isAdmin: RequestHandler = async (req, res, next) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
+
+// Middleware for webhook authentication (for external services like iOS Health Auto Export)
+// Uses shared secret authentication instead of session-based auth
+export const webhookAuth: RequestHandler = async (req, res, next) => {
+  const webhookSecret = req.headers['x-webhook-secret'] as string;
+  const userId = req.headers['x-user-id'] as string;
+
+  if (!webhookSecret || !userId) {
+    return res.status(401).json({ 
+      message: "Unauthorized - Missing webhook credentials",
+      required: "Headers: X-Webhook-Secret and X-User-Id"
+    });
+  }
+
+  // Verify webhook secret matches environment variable
+  const validSecret = process.env.WEBHOOK_SECRET || "dev-webhook-secret-12345";
+  if (webhookSecret !== validSecret) {
+    return res.status(401).json({ message: "Unauthorized - Invalid webhook secret" });
+  }
+
+  // Verify user exists
+  try {
+    const dbUser = await storage.getUser(userId);
+    if (!dbUser) {
+      return res.status(401).json({ message: "Unauthorized - Invalid user ID" });
+    }
+
+    // Set req.user to match the format expected by routes
+    req.user = {
+      claims: {
+        sub: userId
+      }
+    } as any;
+
+    next();
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error" });
+  }
+};

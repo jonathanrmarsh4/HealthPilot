@@ -20,6 +20,7 @@ import AIInsights from "@/pages/AIInsights";
 import AppleHealthSetup from "@/pages/AppleHealthSetup";
 import Chat from "@/pages/Chat";
 import Settings from "@/pages/Settings";
+import Admin from "@/pages/Admin";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -35,6 +36,7 @@ function Router() {
       <Route path="/chat" component={Chat} />
       <Route path="/apple-health" component={AppleHealthSetup} />
       <Route path="/settings" component={Settings} />
+      <Route path="/admin" component={Admin} />
       <Route component={NotFound} />
     </Switch>
   );

@@ -31,18 +31,31 @@ This is a full-stack application built with:
 
 ## Important Notes
 
-### Authentication
-**Current MVP Status**: The application uses a test user ID (`test-user-1`) for all operations to enable rapid prototyping and demonstration of core features.
+### Authentication & Security
+**Current Status**: ✅ **Production-Ready Security Implementation**
 
-**Before Production Deployment**:
-1. Remove the plaintext password field from the `users` table schema
-2. Implement proper authentication system with:
-   - Password hashing (bcrypt or argon2)
-   - Session management or JWT tokens
-   - Protected API routes with user authentication middleware
-   - User registration and login flows
-3. Update all API routes to use authenticated user ID instead of `TEST_USER_ID`
-4. Add user-specific data isolation and access controls
+The application now uses **Replit Auth** (OpenID Connect) with comprehensive security features:
+
+**Authentication Features**:
+- Session-based authentication with automatic token refresh
+- Secure user registration and login via Replit Auth
+- Role-based access control (user/admin roles)
+- Admin control panel with user management
+- Protected API routes with `isAuthenticated` and `isAdmin` middleware
+
+**Security Protections**:
+- ✅ **IDOR Protection**: All storage methods enforce user ownership checks (filter by both id AND userId)
+- ✅ **Privilege Escalation Prevention**: Admin updates use dedicated `updateUserAdminFields` method with storage-layer whitelist
+- ✅ **Data Isolation**: Users can ONLY access their own health records, biomarkers, and other resources
+- ✅ **Webhook Authentication**: External services use X-Webhook-Secret header authentication
+- ✅ **Input Validation**: Zod schema validation on all admin endpoints
+
+**Admin Features**:
+- View all users with search and pagination
+- Update user roles (user/admin)
+- Manage subscription tiers (free/premium/enterprise)
+- Manage subscription status (active/inactive/cancelled/past_due)
+- Platform statistics dashboard
 
 ### File Upload Security
 Current file upload validation includes:
@@ -70,6 +83,13 @@ The Google Drive integration is configured and functional for listing and analyz
 
 **Webhook Endpoint**: `POST /api/health-auto-export/ingest`
 
+**Webhook Authentication**:
+- Uses custom webhook authentication (not session-based)
+- Requires two headers:
+  - `X-Webhook-Secret`: Shared secret (configured via `WEBHOOK_SECRET` env var)
+  - `X-User-Id`: User ID to associate the data with
+- This allows external iOS clients to send data without browser sessions
+
 **Supported Metrics**:
 - Heart Rate (Resting & Active)
 - Blood Glucose
@@ -93,6 +113,19 @@ npm run db:push  # Syncs database schema
 
 ## API Endpoints
 
+### Authentication Endpoints
+- `GET /api/login` - Initiate Replit Auth login flow
+- `GET /api/callback` - OAuth callback handler
+- `GET /api/logout` - Logout and clear session
+- `GET /api/auth/user` - Get current authenticated user
+
+### Admin Endpoints (requires admin role)
+- `GET /api/admin/users` - List all users with search/pagination
+- `GET /api/admin/users/:id` - Get user details
+- `PATCH /api/admin/users/:id` - Update user (role, subscription tier/status only)
+- `GET /api/admin/stats` - Platform statistics
+
+### User Endpoints (requires authentication)
 - `GET /api/dashboard/stats` - Dashboard statistics
 - `GET /api/health-records` - List health records
 - `POST /api/health-records/upload` - Upload health document
@@ -103,7 +136,6 @@ npm run db:push  # Syncs database schema
 - `GET /api/biomarkers` - List biomarkers
 - `POST /api/biomarkers` - Create biomarker entry
 - `GET /api/biomarkers/chart/:type` - Get chart data for biomarker type
-- `POST /api/health-auto-export/ingest` - Webhook for Apple Health data from Health Auto Export app
 - `GET /api/meal-plans` - List meal plans
 - `POST /api/meal-plans/generate` - Generate AI meal plan
 - `GET /api/training-schedules` - List training schedules  
@@ -113,12 +145,20 @@ npm run db:push  # Syncs database schema
 - `POST /api/recommendations/generate` - Generate AI recommendations
 - `PATCH /api/recommendations/:id/dismiss` - Dismiss recommendation
 
+### Webhook Endpoints (requires webhook authentication)
+- `POST /api/health-auto-export/ingest` - Webhook for Apple Health data (requires X-Webhook-Secret and X-User-Id headers)
+
 ## Database Schema
 
 Tables:
-- `users` - User accounts (MVP: test user only)
-- `health_records` - Uploaded health documents and AI analysis (includes status tracking: pending/processing/completed/failed)
+- `users` - User accounts with role-based access control
+  - Roles: user, admin
+  - Subscription tiers: free, premium, enterprise
+  - Subscription status: active, inactive, cancelled, past_due
+- `sessions` - Session storage for Replit Auth
+- `health_records` - Uploaded health documents and AI analysis (status: pending/processing/completed/failed)
 - `biomarkers` - Health metrics (glucose, weight, heart rate, etc.)
+- `sleep_sessions` - Sleep tracking data from Apple Health
 - `meal_plans` - AI-generated meal suggestions
 - `training_schedules` - AI-generated workout plans
 - `recommendations` - AI health recommendations
@@ -127,14 +167,30 @@ Tables:
 
 - `ANTHROPIC_API_KEY` - Anthropic Claude API key
 - `DATABASE_URL` - PostgreSQL connection string
+- `SESSION_SECRET` - Secret for session encryption
+- `REPL_ID` - Replit app ID (auto-provided)
+- `REPLIT_DOMAINS` - Comma-separated list of domains (auto-provided)
+- `ISSUER_URL` - OIDC issuer URL (default: https://replit.com/oidc)
+- `WEBHOOK_SECRET` - Shared secret for webhook authentication (optional, defaults to "dev-webhook-secret-12345")
 - Google Drive integration credentials (managed by Replit connector)
+
+## Security Best Practices
+
+For production deployment, consider:
+1. **Rotate Secrets**: Change `WEBHOOK_SECRET` and `SESSION_SECRET` regularly
+2. **Rate Limiting**: Add rate limiting to prevent abuse
+3. **Audit Logging**: Log admin actions for compliance
+4. **File Scanning**: Add virus/malware scanning for uploaded files
+5. **HTTPS Only**: Ensure all connections use HTTPS
+6. **Regular Updates**: Keep dependencies up to date
+7. **Monitoring**: Set up alerts for suspicious activity
 
 ## Future Enhancements
 
 1. **Enhanced Apple Health Sync** - Consider premium APIs (Terra, Vital, ROOK) for automatic multi-platform sync
-2. **User Authentication** - Secure user accounts with proper password hashing
-3. **Multi-user Support** - User-specific data isolation
-4. **Advanced Analytics** - Predictive health insights and early warning systems
-5. **Export/Sharing** - Generate PDF reports for healthcare providers
-6. **Native Mobile App** - iOS/Android apps with direct HealthKit/Google Fit access
-7. **Additional Wearables** - Fitbit, Garmin, Whoop, Oura Ring integration
+2. **Stripe Integration** - Billing and subscription management
+3. **Advanced Analytics** - Predictive health insights and early warning systems
+4. **Export/Sharing** - Generate PDF reports for healthcare providers
+5. **Native Mobile App** - iOS/Android apps with direct HealthKit/Google Fit access
+6. **Additional Wearables** - Fitbit, Garmin, Whoop, Oura Ring integration
+7. **Email Notifications** - Health alerts and recommendations via email
