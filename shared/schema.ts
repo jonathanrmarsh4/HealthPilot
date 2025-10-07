@@ -101,6 +101,22 @@ export const chatMessages = pgTable("chat_messages", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const sleepSessions = pgTable("sleep_sessions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  bedtime: timestamp("bedtime").notNull(),
+  waketime: timestamp("waketime").notNull(),
+  totalMinutes: integer("total_minutes").notNull(),
+  awakeMinutes: integer("awake_minutes").default(0),
+  lightMinutes: integer("light_minutes").default(0),
+  deepMinutes: integer("deep_minutes").default(0),
+  remMinutes: integer("rem_minutes").default(0),
+  sleepScore: integer("sleep_score"),
+  quality: text("quality"),
+  source: text("source").notNull().default("apple-health"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const insertHealthRecordSchema = createInsertSchema(healthRecords).omit({
   id: true,
   uploadedAt: true,
@@ -131,6 +147,11 @@ export const insertChatMessageSchema = createInsertSchema(chatMessages).omit({
   createdAt: true,
 });
 
+export const insertSleepSessionSchema = createInsertSchema(sleepSessions).omit({
+  id: true,
+  createdAt: true,
+});
+
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
 
@@ -151,3 +172,6 @@ export type Recommendation = typeof recommendations.$inferSelect;
 
 export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
 export type ChatMessage = typeof chatMessages.$inferSelect;
+
+export type InsertSleepSession = z.infer<typeof insertSleepSessionSchema>;
+export type SleepSession = typeof sleepSessions.$inferSelect;
