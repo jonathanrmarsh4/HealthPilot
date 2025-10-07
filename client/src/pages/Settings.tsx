@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -34,8 +34,12 @@ const COMMON_TIMEZONES = [
 
 export default function Settings() {
   const { toast } = useToast();
-  const { timezone, setTimezone } = useTimezone();
+  const { timezone, setTimezone, isLoading: timezoneLoading } = useTimezone();
   const [selectedTimezone, setSelectedTimezone] = useState(timezone);
+
+  useEffect(() => {
+    setSelectedTimezone(timezone);
+  }, [timezone]);
 
   const { isLoading } = useQuery({
     queryKey: ["/api/user/settings"],
@@ -44,11 +48,7 @@ export default function Settings() {
 
   const updateTimezoneMutation = useMutation({
     mutationFn: async (tz: string) => {
-      return await apiRequest("/api/user/settings", {
-        method: "PATCH",
-        body: JSON.stringify({ timezone: tz }),
-        headers: { "Content-Type": "application/json" },
-      });
+      return await apiRequest("PATCH", "/api/user/settings", { timezone: tz });
     },
     onSuccess: (_, tz) => {
       setTimezone(tz);
@@ -72,7 +72,7 @@ export default function Settings() {
     updateTimezoneMutation.mutate(value);
   };
 
-  if (isLoading) {
+  if (timezoneLoading) {
     return (
       <div className="space-y-6">
         <div>
