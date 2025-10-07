@@ -32,6 +32,8 @@ export const healthRecords = pgTable("health_records", {
   fileId: text("file_id"),
   fileUrl: text("file_url"),
   type: text("type").notNull(),
+  status: text("status").notNull().default("pending"),
+  errorMessage: text("error_message"),
   uploadedAt: timestamp("uploaded_at").notNull().defaultNow(),
   analyzedAt: timestamp("analyzed_at"),
   aiAnalysis: jsonb("ai_analysis"),
