@@ -24,6 +24,8 @@ This is a full-stack application built with:
 - AI-generated training schedules
 - Smart health recommendations based on biomarker analysis
 - **Google Drive integration** - Manual analysis (click sparkle icon to analyze files with AI)
+- **Analysis status tracking** - Real-time status for health record processing (pending/processing/completed/failed)
+- **Retry failed analyses** - One-click retry for failed AI analysis with exponential backoff
 - Dark mode support
 - Responsive design
 
@@ -96,6 +98,7 @@ npm run db:push  # Syncs database schema
 - `POST /api/health-records/upload` - Upload health document
 - `DELETE /api/health-records/:id` - Delete health record
 - `POST /api/health-records/analyze/:fileId` - Analyze Google Drive file
+- `POST /api/health-records/:id/retry` - Retry failed AI analysis
 - `GET /api/google-drive/files` - List Google Drive files
 - `GET /api/biomarkers` - List biomarkers
 - `POST /api/biomarkers` - Create biomarker entry
@@ -114,7 +117,7 @@ npm run db:push  # Syncs database schema
 
 Tables:
 - `users` - User accounts (MVP: test user only)
-- `health_records` - Uploaded health documents and AI analysis
+- `health_records` - Uploaded health documents and AI analysis (includes status tracking: pending/processing/completed/failed)
 - `biomarkers` - Health metrics (glucose, weight, heart rate, etc.)
 - `meal_plans` - AI-generated meal suggestions
 - `training_schedules` - AI-generated workout plans
