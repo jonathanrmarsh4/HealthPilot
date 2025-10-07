@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FileText, Eye, Loader2, CheckCircle2, X, Trash2 } from "lucide-react";
+import { FileText, Eye, Loader2, CheckCircle2, X, Trash2, Sparkles } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
@@ -62,26 +62,13 @@ export function GoogleDriveFiles() {
     },
   });
 
-  // Auto-analyze new files
-  useEffect(() => {
-    if (!files || !existingRecords || filesLoading) return;
-
-    const existingFileIds = new Set(
-      existingRecords
-        .filter(r => r.fileId)
-        .map(r => r.fileId)
-    );
-
-    const newFiles = files.filter(file => !existingFileIds.has(file.id));
-
-    // Analyze new files automatically
-    newFiles.forEach(file => {
-      if (!analyzingFiles.has(file.id)) {
-        setAnalyzingFiles(prev => new Set(prev).add(file.id));
-        analyzeMutation.mutate(file.id);
-      }
-    });
-  }, [files, existingRecords, filesLoading]);
+  // Manual analyze function
+  const handleAnalyze = (fileId: string) => {
+    if (!analyzingFiles.has(fileId)) {
+      setAnalyzingFiles(prev => new Set(prev).add(fileId));
+      analyzeMutation.mutate(fileId);
+    }
+  };
 
   const handleViewFile = (file: GoogleDriveFile) => {
     if (file.webViewLink) {
@@ -162,7 +149,7 @@ export function GoogleDriveFiles() {
       <CardHeader>
         <CardTitle>Google Drive Files</CardTitle>
         <CardDescription>
-          Your health documents from Google Drive (automatically analyzed by AI)
+          Your health documents from Google Drive - click the sparkle icon to analyze with AI
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -215,6 +202,16 @@ export function GoogleDriveFiles() {
                   >
                     <Eye className="h-4 w-4" />
                   </Button>
+                  {!isFileAnalyzed(file.id) && !isFileAnalyzing(file.id) && (
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => handleAnalyze(file.id)}
+                      data-testid={`button-analyze-${file.id}`}
+                    >
+                      <Sparkles className="h-4 w-4" />
+                    </Button>
+                  )}
                   {isFileAnalyzing(file.id) && (
                     <Button
                       size="icon"
