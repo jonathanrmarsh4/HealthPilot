@@ -3,7 +3,56 @@ export interface BiomarkerConfig {
   description: string;
   days: number;
   color: string;
+  subsection?: string;
 }
+
+export interface SubsectionConfig {
+  title: string;
+  biomarkers: string[];
+}
+
+export const subsections: Record<string, SubsectionConfig> = {
+  "electrolytes-renal": {
+    title: "Electrolytes / Renal Function",
+    biomarkers: ["sodium", "potassium", "chloride", "bicarbonate", "urea", "creatinine", "egfr", "calcium", "corrected-calcium", "magnesium", "uric-acid"]
+  },
+  "liver-function": {
+    title: "Liver Function",
+    biomarkers: ["total-protein", "albumin", "alp", "bilirubin", "ggt", "ast", "alt", "globulin"]
+  },
+  "hormone-studies": {
+    title: "Hormone Studies",
+    biomarkers: ["progesterone", "cortisol"]
+  },
+  "haematology": {
+    title: "General Haematology",
+    biomarkers: ["hemoglobin", "rbc", "hematocrit", "mcv", "mch", "mchc", "rdw", "wbc", "neutrophils", "lymphocytes", "monocytes", "eosinophils", "basophils", "platelets"]
+  },
+  "lipid-studies": {
+    title: "Lipid Studies",
+    biomarkers: ["cholesterol", "total-cholesterol", "hdl-cholesterol", "ldl-cholesterol", "triglycerides", "vldl-cholesterol"]
+  },
+  "iron-studies": {
+    title: "Iron Studies",
+    biomarkers: ["iron", "transferrin", "transferrin-saturation", "ferritin"]
+  },
+  "biochemistry": {
+    title: "Biochemistry",
+    biomarkers: ["crp"]
+  },
+  "thyroid-function": {
+    title: "Thyroid Function",
+    biomarkers: ["free-t4", "tsh", "free-t3", "t3", "t4"]
+  },
+  "androgen-studies": {
+    title: "Androgen Studies",
+    biomarkers: ["testosterone", "estrogen"]
+  },
+  "other": {
+    title: "Other",
+    biomarkers: ["blood-glucose", "fasting-glucose", "hba1c", "insulin", "vitamin-d", "vitamin-b12", "folate", "weight", "height", "bmi", "blood-pressure", "heart-rate", "steps", "calories", "temperature", "oxygen-saturation", "psa"]
+  }
+};
 
 export const biomarkerDisplayConfig: Record<string, BiomarkerConfig> = {
   // Lipid Panel
