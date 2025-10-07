@@ -4,6 +4,10 @@ export interface BiomarkerConfig {
   days: number;
   color: string;
   subsection?: string;
+  referenceRange?: {
+    low: number;
+    high: number;
+  };
 }
 
 export interface SubsectionConfig {
@@ -55,42 +59,48 @@ export const subsections: Record<string, SubsectionConfig> = {
 };
 
 export const biomarkerDisplayConfig: Record<string, BiomarkerConfig> = {
-  // Lipid Panel
+  // Lipid Panel (values in mg/dL)
   "ldl-cholesterol": {
     title: "LDL Cholesterol",
     description: "6-month trend",
     days: 180,
-    color: "hsl(var(--chart-1))"
+    color: "hsl(var(--chart-1))",
+    referenceRange: { low: 0, high: 100 } // Optimal < 100 mg/dL
   },
   "hdl-cholesterol": {
     title: "HDL Cholesterol",
     description: "6-month trend",
     days: 180,
-    color: "hsl(var(--chart-2))"
+    color: "hsl(var(--chart-2))",
+    referenceRange: { low: 40, high: 200 } // > 40 mg/dL for men, > 50 for women
   },
   "total-cholesterol": {
     title: "Total Cholesterol",
     description: "6-month trend",
     days: 180,
-    color: "hsl(var(--chart-3))"
+    color: "hsl(var(--chart-3))",
+    referenceRange: { low: 0, high: 200 } // < 200 mg/dL desirable
   },
   "cholesterol": {
     title: "Total Cholesterol",
     description: "6-month trend",
     days: 180,
-    color: "hsl(var(--chart-3))"
+    color: "hsl(var(--chart-3))",
+    referenceRange: { low: 0, high: 200 }
   },
   "triglycerides": {
     title: "Triglycerides",
     description: "6-month trend",
     days: 180,
-    color: "hsl(var(--chart-4))"
+    color: "hsl(var(--chart-4))",
+    referenceRange: { low: 0, high: 150 } // < 150 mg/dL normal
   },
   "vldl-cholesterol": {
     title: "VLDL Cholesterol",
     description: "6-month trend",
     days: 180,
-    color: "hsl(var(--chart-5))"
+    color: "hsl(var(--chart-5))",
+    referenceRange: { low: 2, high: 30 } // 2-30 mg/dL
   },
   
   // Liver Function
@@ -239,30 +249,34 @@ export const biomarkerDisplayConfig: Record<string, BiomarkerConfig> = {
     color: "hsl(var(--chart-3))"
   },
   
-  // Diabetes
+  // Diabetes (glucose in mg/dL, HbA1c in %)
   "hba1c": {
     title: "HbA1c",
     description: "6-month trend",
     days: 180,
-    color: "hsl(var(--chart-4))"
+    color: "hsl(var(--chart-4))",
+    referenceRange: { low: 4, high: 5.6 } // < 5.7% normal
   },
   "blood-glucose": {
     title: "Blood Glucose",
     description: "6-month trend",
     days: 180,
-    color: "hsl(var(--chart-2))"
+    color: "hsl(var(--chart-2))",
+    referenceRange: { low: 70, high: 140 } // 70-140 mg/dL normal random
   },
   "fasting-glucose": {
     title: "Fasting Glucose",
     description: "6-month trend",
     days: 180,
-    color: "hsl(var(--chart-5))"
+    color: "hsl(var(--chart-5))",
+    referenceRange: { low: 70, high: 100 } // 70-100 mg/dL normal fasting
   },
   "insulin": {
     title: "Insulin",
     description: "6-month trend",
     days: 180,
-    color: "hsl(var(--chart-1))"
+    color: "hsl(var(--chart-1))",
+    referenceRange: { low: 2.6, high: 24.9 } // 2.6-24.9 μIU/mL fasting
   },
   
   // Vitamins & Minerals
@@ -354,49 +368,57 @@ export const biomarkerDisplayConfig: Record<string, BiomarkerConfig> = {
     title: "Blood Pressure (Systolic)",
     description: "6-month trend",
     days: 180,
-    color: "hsl(var(--chart-3))"
+    color: "hsl(var(--chart-3))",
+    referenceRange: { low: 90, high: 120 } // < 120 mmHg normal systolic
   },
   "heart-rate": {
     title: "Resting Heart Rate",
     description: "6-month trend",
     days: 180,
-    color: "hsl(var(--chart-4))"
+    color: "hsl(var(--chart-4))",
+    referenceRange: { low: 60, high: 100 } // 60-100 bpm normal resting
   },
   "temperature": {
     title: "Body Temperature",
     description: "6-month trend",
     days: 180,
-    color: "hsl(var(--chart-5))"
+    color: "hsl(var(--chart-5))",
+    referenceRange: { low: 97.0, high: 99.0 } // 97-99°F normal (stored in F)
   },
   "respiratory-rate": {
     title: "Respiratory Rate",
     description: "6-month trend",
     days: 180,
-    color: "hsl(var(--chart-1))"
+    color: "hsl(var(--chart-1))",
+    referenceRange: { low: 12, high: 20 } // 12-20 breaths/min
   },
   "oxygen-saturation": {
     title: "Oxygen Saturation",
     description: "6-month trend",
     days: 180,
-    color: "hsl(var(--chart-2))"
+    color: "hsl(var(--chart-2))",
+    referenceRange: { low: 95, high: 100 } // 95-100% normal
   },
   "weight": {
     title: "Body Weight",
     description: "6-month trend",
     days: 180,
     color: "hsl(var(--chart-5))"
+    // No fixed range - varies by individual
   },
   "height": {
     title: "Height",
     description: "6-month trend",
     days: 180,
     color: "hsl(var(--chart-3))"
+    // No range needed
   },
   "bmi": {
     title: "Body Mass Index",
     description: "6-month trend",
     days: 180,
-    color: "hsl(var(--chart-3))"
+    color: "hsl(var(--chart-3))",
+    referenceRange: { low: 18.5, high: 24.9 } // 18.5-24.9 normal BMI
   },
   "body-fat-percentage": {
     title: "Body Fat %",
