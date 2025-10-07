@@ -4,6 +4,7 @@ export interface BiomarkerConfig {
   days: number;
   color: string;
   subsection?: string;
+  decimals?: number;
   referenceRange?: {
     low: number;
     high: number;
@@ -376,6 +377,7 @@ export const biomarkerDisplayConfig: Record<string, BiomarkerConfig> = {
     description: "6-month trend",
     days: 180,
     color: "hsl(var(--chart-4))",
+    decimals: 0,
     referenceRange: { low: 60, high: 100 } // 60-100 bpm normal resting
   },
   "temperature": {
@@ -403,7 +405,8 @@ export const biomarkerDisplayConfig: Record<string, BiomarkerConfig> = {
     title: "Body Weight",
     description: "6-month trend",
     days: 180,
-    color: "hsl(var(--chart-5))"
+    color: "hsl(var(--chart-5))",
+    decimals: 0
     // No fixed range - varies by individual
   },
   "height": {
@@ -436,13 +439,15 @@ export const biomarkerDisplayConfig: Record<string, BiomarkerConfig> = {
     title: "Daily Steps",
     description: "6-month trend",
     days: 180,
-    color: "hsl(var(--chart-1))"
+    color: "hsl(var(--chart-1))",
+    decimals: 0
   },
   "calories": {
     title: "Active Calories",
     description: "6-month trend",
     days: 180,
-    color: "hsl(var(--chart-2))"
+    color: "hsl(var(--chart-2))",
+    decimals: 0
   },
   
   // Other

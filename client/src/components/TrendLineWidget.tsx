@@ -138,7 +138,7 @@ export function TrendLineWidget({ type }: TrendLineWidgetProps) {
             </h3>
             <div className="flex items-baseline gap-2 mt-1">
               <span className="text-2xl font-bold" data-testid={`trend-value-${type}`}>
-                {latestValue?.toFixed(1)}
+                {latestValue?.toFixed(config.decimals ?? 1)}
               </span>
               {displayUnit && (
                 <span className="text-xs text-muted-foreground">{displayUnit}</span>
