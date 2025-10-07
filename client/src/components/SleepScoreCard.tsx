@@ -1,7 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Moon, Clock, TrendingUp } from "lucide-react";
-import { format } from "date-fns";
+import { useTimezone } from "@/contexts/TimezoneContext";
+import { formatTime } from "@/lib/timezone";
 
 interface SleepScoreCardProps {
   score: number;
@@ -22,6 +23,8 @@ export function SleepScoreCard({
   deepMinutes = 0,
   remMinutes = 0
 }: SleepScoreCardProps) {
+  const { timezone } = useTimezone();
+  
   const getScoreColor = (score: number) => {
     if (score >= 80) return { bg: "bg-green-500 hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700", label: "Excellent" };
     if (score >= 60) return { bg: "bg-yellow-500 hover:bg-yellow-600 dark:bg-yellow-600 dark:hover:bg-yellow-700", label: "Good" };
@@ -84,7 +87,7 @@ export function SleepScoreCard({
               <div>
                 <p className="text-xs text-muted-foreground">Bedtime</p>
                 <p className="font-medium" data-testid="text-bedtime">
-                  {format(new Date(bedtime), 'h:mm a')}
+                  {formatTime(bedtime, timezone)}
                 </p>
               </div>
             </div>
@@ -93,7 +96,7 @@ export function SleepScoreCard({
               <div>
                 <p className="text-xs text-muted-foreground">Wake Time</p>
                 <p className="font-medium" data-testid="text-waketime">
-                  {format(new Date(waketime), 'h:mm a')}
+                  {formatTime(waketime, timezone)}
                 </p>
               </div>
             </div>
