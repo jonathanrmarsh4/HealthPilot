@@ -7,6 +7,7 @@ import { useLocale } from "@/contexts/LocaleContext";
 import { unitConfigs, convertValue } from "@/lib/unitConversions";
 import { biomarkerDisplayConfig } from "@/lib/biomarkerConfig";
 import { ArrowUp, ArrowDown, Minus } from "lucide-react";
+import { format, parseISO } from "date-fns";
 
 interface ChartDataPoint {
   date: string;
@@ -69,6 +70,16 @@ export function TrendLineWidget({ type }: TrendLineWidgetProps) {
 
   const trend = getTrend();
   const latestValue = convertedData?.[convertedData.length - 1]?.value;
+  const latestDate = convertedData?.[convertedData.length - 1]?.date;
+
+  // Format the test date
+  const formatTestDate = (dateStr: string) => {
+    try {
+      return format(parseISO(dateStr), 'MMM d, yyyy');
+    } catch {
+      return dateStr;
+    }
+  };
 
   // Check reference range status
   const getRangeStatus = () => {
@@ -131,6 +142,11 @@ export function TrendLineWidget({ type }: TrendLineWidgetProps) {
                 <span className="text-xs text-muted-foreground">{displayUnit}</span>
               )}
             </div>
+            {latestDate && (
+              <div className="text-xs text-muted-foreground mt-0.5" data-testid={`trend-date-${type}`}>
+                Tested: {formatTestDate(latestDate)}
+              </div>
+            )}
             <div className="flex flex-wrap items-center gap-2 mt-1">
               {trend && (
                 <div className="flex items-center gap-1">
