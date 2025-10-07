@@ -4,7 +4,86 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
+// Estimate tokens (rough approximation: 1 token ≈ 4 characters)
+function estimateTokens(text: string): number {
+  return Math.ceil(text.length / 4);
+}
+
+// Split text into chunks that fit within token limit
+function chunkText(text: string, maxTokens: number = 150000): string[] {
+  const estimatedTokens = estimateTokens(text);
+  
+  if (estimatedTokens <= maxTokens) {
+    return [text];
+  }
+  
+  // Calculate number of chunks needed
+  const numChunks = Math.ceil(estimatedTokens / maxTokens);
+  const chunkSize = Math.ceil(text.length / numChunks);
+  
+  const chunks: string[] = [];
+  for (let i = 0; i < text.length; i += chunkSize) {
+    chunks.push(text.slice(i, i + chunkSize));
+  }
+  
+  return chunks;
+}
+
 export async function analyzeHealthDocument(documentText: string, fileName: string, documentDate?: Date) {
+  const chunks = chunkText(documentText);
+  
+  // If document is small enough, process normally
+  if (chunks.length === 1) {
+    return await analyzeSingleChunk(documentText, fileName, documentDate);
+  }
+  
+  // For large documents, analyze each chunk and merge results
+  console.log(`📄 Large document detected (${estimateTokens(documentText)} tokens). Processing in ${chunks.length} chunks...`);
+  
+  const allBiomarkers: any[] = [];
+  const allConcerns: string[] = [];
+  const allRecommendations: string[] = [];
+  let documentDateExtracted: string | null = null;
+  let summary = "";
+  
+  for (let i = 0; i < chunks.length; i++) {
+    console.log(`  Processing chunk ${i + 1}/${chunks.length}...`);
+    const result = await analyzeSingleChunk(chunks[i], `${fileName} (Part ${i + 1}/${chunks.length})`, documentDate);
+    
+    if (result.biomarkers) {
+      allBiomarkers.push(...result.biomarkers);
+    }
+    if (result.concerns) {
+      allConcerns.push(...result.concerns);
+    }
+    if (result.recommendations) {
+      allRecommendations.push(...result.recommendations);
+    }
+    if (result.documentDate && !documentDateExtracted) {
+      documentDateExtracted = result.documentDate;
+    }
+    if (result.summary && i === 0) {
+      summary = result.summary;
+    }
+  }
+  
+  // Deduplicate biomarkers by type and date
+  const uniqueBiomarkers = Array.from(
+    new Map(allBiomarkers.map(b => [`${b.type}-${b.date}-${b.value}`, b])).values()
+  );
+  
+  console.log(`✅ Extracted ${uniqueBiomarkers.length} unique biomarkers from ${chunks.length} chunks`);
+  
+  return {
+    documentDate: documentDateExtracted,
+    biomarkers: uniqueBiomarkers,
+    summary: summary || `Analysis of ${fileName} (processed in ${chunks.length} parts)`,
+    concerns: Array.from(new Set(allConcerns)),
+    recommendations: Array.from(new Set(allRecommendations))
+  };
+}
+
+async function analyzeSingleChunk(documentText: string, fileName: string, documentDate?: Date) {
   const message = await anthropic.messages.create({
     model: "claude-sonnet-4-5",
     max_tokens: 4096,

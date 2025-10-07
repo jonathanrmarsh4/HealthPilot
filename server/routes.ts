@@ -187,7 +187,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(record);
     } catch (error: any) {
       console.error("Error uploading file:", error);
-      res.status(500).json({ error: error.message });
+      
+      // Handle specific error cases with user-friendly messages
+      if (error.message?.includes('prompt is too long')) {
+        return res.status(400).json({ 
+          error: "Document is too large to process. Please try splitting it into smaller files or upload a document under 3MB."
+        });
+      }
+      
+      if (error.status === 400 || error.error?.type === 'invalid_request_error') {
+        return res.status(400).json({ 
+          error: "Unable to process this document. The file may be too large or contain unsupported content. Please try a smaller file."
+        });
+      }
+      
+      res.status(500).json({ 
+        error: error.message || "Failed to analyze document. Please try again."
+      });
     }
   });
 
