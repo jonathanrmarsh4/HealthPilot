@@ -79,40 +79,6 @@ const upload = multer({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Temporary dev login endpoint
-  app.post("/api/dev-login", async (req, res) => {
-    try {
-      const { userId } = req.body;
-      if (!userId) {
-        return res.status(400).json({ error: "userId required" });
-      }
-      
-      const dbUser = await storage.getUser(userId);
-      if (!dbUser) {
-        return res.status(404).json({ error: "User not found" });
-      }
-
-      // Store user ID in session for dev access
-      (req.session as any).devUserId = userId;
-      res.json({ success: true, user: dbUser });
-    } catch (error: any) {
-      console.error("Dev login error:", error);
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  // Temporary dev logout endpoint
-  app.post("/api/dev-logout", async (req, res) => {
-    try {
-      // Clear dev session
-      delete (req.session as any).devUserId;
-      res.json({ success: true });
-    } catch (error: any) {
-      console.error("Dev logout error:", error);
-      res.status(500).json({ error: error.message });
-    }
-  });
-
   app.get("/api/auth/user", async (req, res) => {
     try {
       if (!req.isAuthenticated()) {

@@ -32,17 +32,24 @@ This is a full-stack application built with:
 ## Important Notes
 
 ### Authentication & Security
-**Current Status**: ✅ **Production-Ready Security Implementation**
+**Current Status**: ✅ **Production-Ready Security Implementation with Custom Domain**
 
-The application now uses **Replit Auth** (OpenID Connect) with comprehensive security features:
+The application uses **Replit Auth** (OpenID Connect) with comprehensive security features and is fully deployed at **healthpilot.pro**:
 
 **Authentication Features**:
-- **Login page for unauthenticated users** - New visitors see a branded login page instead of being auto-logged in
+- **Login page for unauthenticated users** - New visitors see a branded login page with "Sign in with Replit" button
+- **Custom domain support** - OAuth properly configured for healthpilot.pro via REPLIT_DOMAINS environment variable
 - Session-based authentication with automatic token refresh
-- Secure user registration and login via Replit Auth
+- Secure user registration and login via Replit Auth (SSO - auto-authenticates if logged into Replit)
 - Role-based access control (user/admin roles)
 - Admin control panel with user management
 - Protected API routes with `isAuthenticated` and `isAdmin` middleware
+
+**Custom Domain Setup**:
+- Domain: healthpilot.pro
+- REPLIT_DOMAINS must include both dev domain and custom domain (comma-separated)
+- OAuth callback: https://healthpilot.pro/api/callback
+- Login endpoint: https://healthpilot.pro/api/login
 
 **Security Protections**:
 - ✅ **IDOR Protection**: All storage methods enforce user ownership checks (filter by both id AND userId)
