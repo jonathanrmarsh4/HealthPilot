@@ -84,7 +84,7 @@ export default function Login() {
               size="lg"
               data-testid="button-login"
             >
-              Sign in with Replit
+              Sign In
             </Button>
             
             <p className="text-xs text-center text-muted-foreground">

@@ -17,18 +17,10 @@ export default function Logout() {
           </div>
           <CardTitle className="text-2xl">You've been logged out</CardTitle>
           <CardDescription>
-            Your session has been ended successfully
+            Thank you for using HealthPilot. Your session has ended successfully.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="text-center text-sm text-muted-foreground space-y-2">
-            <p>To see the login page as a new user:</p>
-            <ul className="list-disc list-inside text-left max-w-xs mx-auto">
-              <li>Open a private/incognito window</li>
-              <li>Or clear your browser cookies</li>
-            </ul>
-          </div>
-          
           <Button
             onClick={handleLogin}
             className="w-full"
