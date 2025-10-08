@@ -225,6 +225,85 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/profile", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    
+    try {
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Get latest weight from biomarkers
+      const biomarkers = await storage.getBiomarkers(userId, "weight");
+      const latestWeight = biomarkers.length > 0 
+        ? biomarkers.sort((a, b) => new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime())[0] 
+        : null;
+
+      res.json({
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        profileImageUrl: user.profileImageUrl,
+        role: user.role,
+        subscriptionTier: user.subscriptionTier,
+        subscriptionStatus: user.subscriptionStatus,
+        stripeCustomerId: user.stripeCustomerId,
+        timezone: user.timezone,
+        height: user.height,
+        dateOfBirth: user.dateOfBirth,
+        gender: user.gender,
+        bloodType: user.bloodType,
+        activityLevel: user.activityLevel,
+        location: user.location,
+        latestWeight: latestWeight ? { value: latestWeight.value, unit: latestWeight.unit } : null,
+      });
+    } catch (error: any) {
+      console.error("Error getting profile:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.patch("/api/profile", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    
+    try {
+      const profileSchema = z.object({
+        firstName: z.string().optional(),
+        lastName: z.string().optional(),
+        height: z.number().nullable().optional(),
+        dateOfBirth: z.string().transform(str => {
+          if (!str) return null;
+          const date = new Date(str);
+          if (isNaN(date.getTime())) {
+            throw new Error("Invalid date format");
+          }
+          return date;
+        }).nullable().optional(),
+        gender: z.string().nullable().optional(),
+        bloodType: z.string().nullable().optional(),
+        activityLevel: z.string().nullable().optional(),
+        location: z.string().nullable().optional(),
+      });
+
+      const validationResult = profileSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        return res.status(400).json({ 
+          error: "Invalid profile data", 
+          details: validationResult.error.format() 
+        });
+      }
+
+      const updates = validationResult.data;
+      const updatedUser = await storage.updateUserProfile(userId, updates as any);
+      res.json(updatedUser);
+    } catch (error: any) {
+      console.error("Error updating profile:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.get("/api/google-drive/files", isAuthenticated, async (req, res) => {
     try {
       const files = await listHealthDocuments();
