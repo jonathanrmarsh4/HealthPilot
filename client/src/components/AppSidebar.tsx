@@ -5,7 +5,6 @@ import {
   Utensils,
   Dumbbell,
   Sparkles,
-  Settings,
   Smartphone,
   MessageCircle,
   Moon,
@@ -132,14 +131,6 @@ export function AppSidebar() {
                   <Link href="/profile">
                     <User className="h-4 w-4" />
                     <span>Profile</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild data-testid="link-settings">
-                  <Link href="/settings">
-                    <Settings className="h-4 w-4" />
-                    <span>Settings</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

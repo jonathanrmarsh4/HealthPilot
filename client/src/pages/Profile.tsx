@@ -17,6 +17,26 @@ import { Loader2, User, Heart, CreditCard, Settings, MapPin } from "lucide-react
 import { format } from "date-fns";
 import { useLocale } from "@/contexts/LocaleContext";
 import { convertValue, unitConfigs } from "@/lib/unitConversions";
+import { useTimezone } from "@/contexts/TimezoneContext";
+import { Label } from "@/components/ui/label";
+
+const COMMON_TIMEZONES = [
+  { value: "Pacific/Auckland", label: "Auckland (GMT+12)" },
+  { value: "Australia/Sydney", label: "Sydney (GMT+10)" },
+  { value: "Australia/Brisbane", label: "Brisbane (GMT+10)" },
+  { value: "Australia/Perth", label: "Perth (GMT+8)" },
+  { value: "Asia/Tokyo", label: "Tokyo (GMT+9)" },
+  { value: "Asia/Singapore", label: "Singapore (GMT+8)" },
+  { value: "Asia/Dubai", label: "Dubai (GMT+4)" },
+  { value: "Europe/London", label: "London (GMT+0)" },
+  { value: "Europe/Paris", label: "Paris (GMT+1)" },
+  { value: "Europe/Berlin", label: "Berlin (GMT+1)" },
+  { value: "America/New_York", label: "New York (GMT-5)" },
+  { value: "America/Chicago", label: "Chicago (GMT-6)" },
+  { value: "America/Denver", label: "Denver (GMT-7)" },
+  { value: "America/Los_Angeles", label: "Los Angeles (GMT-8)" },
+  { value: "UTC", label: "UTC (GMT+0)" },
+];
 
 const profileFormSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
@@ -54,9 +74,15 @@ interface ProfileData {
 export default function Profile() {
   const { toast } = useToast();
   const { unitSystem } = useLocale();
+  const { timezone, setTimezone } = useTimezone();
   const [locationSearch, setLocationSearch] = useState("");
   const [locationSuggestions, setLocationSuggestions] = useState<Array<{ display_name: string }>>([]);
   const [locationOpen, setLocationOpen] = useState(false);
+  const [selectedTimezone, setSelectedTimezone] = useState(timezone);
+
+  useEffect(() => {
+    setSelectedTimezone(timezone);
+  }, [timezone]);
 
   const { data: profile, isLoading } = useQuery<ProfileData>({
     queryKey: ["/api/profile"],
@@ -117,6 +143,32 @@ export default function Profile() {
       });
     },
   });
+
+  const updateTimezoneMutation = useMutation({
+    mutationFn: async (tz: string) => {
+      return await apiRequest("PATCH", "/api/user/settings", { timezone: tz });
+    },
+    onSuccess: (_, tz) => {
+      setTimezone(tz);
+      queryClient.invalidateQueries({ queryKey: ["/api/user/settings"] });
+      toast({
+        title: "Timezone updated",
+        description: "Your timezone preference has been saved",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update timezone. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleTimezoneChange = (value: string) => {
+    setSelectedTimezone(value);
+    updateTimezoneMutation.mutate(value);
+  };
 
   const onSubmit = (data: ProfileFormValues) => {
     updateProfileMutation.mutate(data);
@@ -497,19 +549,32 @@ export default function Profile() {
         <TabsContent value="preferences" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Preferences</CardTitle>
+              <CardTitle>Regional Settings</CardTitle>
               <CardDescription>
-                Customize your app experience and notification settings
+                Configure how dates and times are displayed across the application
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div>
-                <h3 className="font-semibold mb-2">Timezone</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Current timezone: {profile?.timezone || "UTC"}
-                </p>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="timezone">Timezone</Label>
+                <Select
+                  value={selectedTimezone}
+                  onValueChange={handleTimezoneChange}
+                  disabled={updateTimezoneMutation.isPending}
+                >
+                  <SelectTrigger id="timezone" data-testid="select-timezone">
+                    <SelectValue placeholder="Select your timezone" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {COMMON_TIMEZONES.map((tz) => (
+                      <SelectItem key={tz.value} value={tz.value}>
+                        {tz.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <p className="text-sm text-muted-foreground">
-                  Timezone settings can be updated from the Settings page
+                  All timestamps in the application will be displayed in your selected timezone
                 </p>
               </div>
             </CardContent>
