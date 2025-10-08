@@ -13,6 +13,10 @@ interface HealthMetricCardProps {
   icon: LucideIcon;
   lastUpdated?: string;
   sparklineData?: number[];
+  referenceRange?: {
+    low: number;
+    high: number;
+  };
 }
 
 const statusConfig = {
@@ -38,6 +42,7 @@ export function HealthMetricCard({
   status,
   icon: Icon,
   lastUpdated,
+  referenceRange,
 }: HealthMetricCardProps) {
   const config = statusConfig[status];
   
@@ -60,6 +65,12 @@ export function HealthMetricCard({
             </span>
             <span className="text-lg text-muted-foreground">{unit}</span>
           </div>
+          
+          {referenceRange && (
+            <div className="text-xs text-muted-foreground" data-testid={`text-reference-range-${title.toLowerCase().replace(/\s/g, "-")}`}>
+              Reference: {referenceRange.low}-{referenceRange.high} {unit}
+            </div>
+          )}
           
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">

@@ -281,6 +281,17 @@ export default function Dashboard() {
         );
 
       case "health-metrics":
+        const glucoseConfig = biomarkerDisplayConfig["blood-glucose"];
+        const glucoseRefRange = glucoseConfig?.referenceRange;
+        
+        // Convert reference range from imperial (mg/dL) to current unit system
+        const convertedGlucoseRange = glucoseRefRange && unitSystem === "metric" 
+          ? {
+              low: convertValue(glucoseRefRange.low, "blood-glucose", "mg/dL", "mmol/L"),
+              high: convertValue(glucoseRefRange.high, "blood-glucose", "mg/dL", "mmol/L")
+            }
+          : glucoseRefRange;
+        
         return (
           <div key={widget} className="grid gap-6 md:grid-cols-3">
             <TrendLineWidget type="heart-rate" />
@@ -298,6 +309,7 @@ export default function Dashboard() {
               }
               icon={Droplet}
               lastUpdated={stats?.bloodGlucose.lastUpdated}
+              referenceRange={convertedGlucoseRange}
             />
             <TrendLineWidget type="weight" />
           </div>
