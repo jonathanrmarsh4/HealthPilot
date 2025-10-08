@@ -1091,6 +1091,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       for (const metric of data.metrics) {
         // Special handling for sleep analysis - create sleep sessions
         if (metric.name === "sleep_analysis" && metric.data && Array.isArray(metric.data)) {
+          console.log('[sleep webhook] sleep_analysis payload', { userId, count: metric.data?.length ?? 0, data: metric.data });
+          
           for (const dataPoint of metric.data) {
             if (dataPoint.sleepStart && dataPoint.sleepEnd && dataPoint.totalSleep) {
               const bedtime = new Date(dataPoint.sleepStart);
@@ -1100,6 +1102,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               const deepMinutes = Math.round((dataPoint.deep || 0) * 60);
               const remMinutes = Math.round((dataPoint.rem || 0) * 60);
               const coreMinutes = Math.round((dataPoint.core || 0) * 60);
+              
+              console.log('[sleep webhook] processing session', { userId, bedtime, waketime, totalMinutes, deepMinutes, remMinutes, coreMinutes, source: 'apple-health' });
               
               // Calculate sleep score (0-100) based on sleep quality
               let sleepScore = 70; // Base score
@@ -1140,7 +1144,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
               else if (sleepScore >= 60) quality = "Fair";
               else quality = "Poor";
               
-              await storage.createSleepSession({
+              console.log('[sleep webhook] calculated sleep score', { userId, sleepScore, quality, sleepHours, deepPercentage: (dataPoint.deep || 0) / sleepHours, remPercentage: (dataPoint.rem || 0) / sleepHours });
+              
+              await storage.upsertSleepSession({
                 userId,
                 bedtime,
                 waketime,

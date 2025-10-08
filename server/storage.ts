@@ -62,6 +62,7 @@ export interface IStorage {
   clearChatHistory(userId: string): Promise<void>;
   
   createSleepSession(session: InsertSleepSession): Promise<SleepSession>;
+  upsertSleepSession(session: InsertSleepSession): Promise<SleepSession>;
   getSleepSessions(userId: string, startDate?: Date, endDate?: Date): Promise<SleepSession[]>;
   getLatestSleepSession(userId: string): Promise<SleepSession | undefined>;
   
@@ -360,6 +361,34 @@ export class DbStorage implements IStorage {
   }
 
   async createSleepSession(session: InsertSleepSession): Promise<SleepSession> {
+    const result = await db.insert(sleepSessions).values(session).returning();
+    return result[0];
+  }
+
+  async upsertSleepSession(session: InsertSleepSession): Promise<SleepSession> {
+    // Check if a sleep session already exists for this user with the same bedtime and waketime
+    const existing = await db
+      .select()
+      .from(sleepSessions)
+      .where(
+        and(
+          eq(sleepSessions.userId, session.userId),
+          eq(sleepSessions.bedtime, session.bedtime),
+          eq(sleepSessions.waketime, session.waketime)
+        )
+      );
+
+    if (existing.length > 0) {
+      // Update existing session
+      const [updated] = await db
+        .update(sleepSessions)
+        .set(session)
+        .where(eq(sleepSessions.id, existing[0].id))
+        .returning();
+      return updated;
+    }
+
+    // Insert new session
     const result = await db.insert(sleepSessions).values(session).returning();
     return result[0];
   }
