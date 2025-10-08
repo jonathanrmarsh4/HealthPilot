@@ -115,28 +115,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/auth/user", async (req, res) => {
     try {
-      console.log("[AUTH DEBUG] isAuthenticated:", req.isAuthenticated());
-      console.log("[AUTH DEBUG] has session:", !!req.session);
-      console.log("[AUTH DEBUG] has user:", !!req.user);
-      
       if (!req.isAuthenticated()) {
-        console.log("[AUTH DEBUG] Not authenticated, returning null");
         return res.json(null);
       }
 
       const user = req.user as any;
       if (!user.claims?.sub) {
-        console.log("[AUTH DEBUG] No claims.sub, returning null");
         return res.json(null);
       }
 
       const dbUser = await storage.getUser(user.claims.sub);
       if (!dbUser) {
-        console.log("[AUTH DEBUG] User not found in DB, returning null");
         return res.json(null);
       }
 
-      console.log("[AUTH DEBUG] Returning user:", dbUser.email);
       res.json({
         id: dbUser.id,
         email: dbUser.email,

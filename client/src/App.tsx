@@ -86,14 +86,10 @@ function AppContent() {
     retry: false,
   });
 
-  console.log("[FRONTEND DEBUG] isLoading:", isLoading);
-  console.log("[FRONTEND DEBUG] user:", user);
-
   // Check if on logged-out page
   const isLoggedOutPage = window.location.pathname === "/logged-out";
 
   if (isLoading) {
-    console.log("[FRONTEND DEBUG] Showing loader");
     return (
       <div className="flex items-center justify-center h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -102,16 +98,13 @@ function AppContent() {
   }
 
   if (isLoggedOutPage) {
-    console.log("[FRONTEND DEBUG] Showing logout page");
     return <Logout />;
   }
 
   if (!user) {
-    console.log("[FRONTEND DEBUG] No user, showing login page");
     return <Login />;
   }
 
-  console.log("[FRONTEND DEBUG] Showing authenticated app");
   return <AuthenticatedApp />;
 }
 
