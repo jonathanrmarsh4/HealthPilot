@@ -106,7 +106,13 @@ The Google Drive integration is configured and functional for listing and analyz
 - Blood Pressure (Systolic/Diastolic)
 - Oxygen Saturation
 - Body Temperature
-- Sleep Analysis
+- Sleep Analysis (uses full "in bed" duration including awake time for accurate tracking)
+
+**Sleep Data Implementation**:
+- Uses `inBedStart` and `inBedEnd` timestamps for complete sleep session duration
+- Includes awake time within the session for accurate total sleep tracking
+- Smart deduplication prevents duplicate entries (matches sessions within ±6 hours)
+- Automatic cleanup of duplicate entries when new data arrives
 
 **Setup Instructions**: Available at `/apple-health` route in the app
 
