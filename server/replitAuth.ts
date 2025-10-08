@@ -38,8 +38,9 @@ export function getSession() {
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: true,
+      secure: process.env.NODE_ENV === "production",
       maxAge: sessionTtl,
+      sameSite: "lax",
     },
   });
 }
@@ -132,7 +133,15 @@ export async function setupAuth(app: Express) {
 export const isAuthenticated: RequestHandler = async (req, res, next) => {
   const user = req.user as any;
 
-  if (!req.isAuthenticated() || !user.expires_at) {
+  console.log("Auth check:", { 
+    isAuth: req.isAuthenticated(), 
+    hasUser: !!user,
+    hasExpiresAt: !!user?.expires_at,
+    hasClaims: !!user?.claims,
+    userId: user?.claims?.sub
+  });
+
+  if (!req.isAuthenticated() || !user?.expires_at) {
     return res.status(401).json({ message: "Unauthorized" });
   }
 
