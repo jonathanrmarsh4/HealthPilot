@@ -11,6 +11,7 @@ import {
   MessageCircle,
   Moon,
   Shield,
+  User,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import {
@@ -127,6 +128,14 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               )}
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={location === "/profile"} data-testid="link-profile">
+                  <Link href="/profile">
+                    <User className="h-4 w-4" />
+                    <span>Profile</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild data-testid="link-settings">
                   <Link href="/settings">
