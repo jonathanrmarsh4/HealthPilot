@@ -88,11 +88,26 @@ export class DbStorage implements IStorage {
   }
 
   async upsertUser(userData: UpsertUser): Promise<User> {
-    // First check if user exists by email
+    // First check if user exists by ID
+    const existingById = await db.select().from(users).where(eq(users.id, userData.id));
+    if (existingById.length > 0) {
+      // Update existing user by ID
+      const [user] = await db
+        .update(users)
+        .set({
+          ...userData,
+          updatedAt: new Date(),
+        })
+        .where(eq(users.id, userData.id))
+        .returning();
+      return user;
+    }
+    
+    // Check if user exists by email
     if (userData.email) {
-      const existing = await db.select().from(users).where(eq(users.email, userData.email));
-      if (existing.length > 0) {
-        // Update existing user
+      const existingByEmail = await db.select().from(users).where(eq(users.email, userData.email));
+      if (existingByEmail.length > 0) {
+        // Update existing user by email
         const [user] = await db
           .update(users)
           .set({
