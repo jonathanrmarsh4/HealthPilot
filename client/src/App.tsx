@@ -1,6 +1,6 @@
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
-import { QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
@@ -22,7 +22,9 @@ import Chat from "@/pages/Chat";
 import Profile from "@/pages/Profile";
 import Settings from "@/pages/Settings";
 import Admin from "@/pages/Admin";
+import Login from "@/pages/Login";
 import NotFound from "@/pages/not-found";
+import { Loader2 } from "lucide-react";
 
 function Router() {
   return (
@@ -44,79 +46,65 @@ function Router() {
   );
 }
 
-export default function App() {
+function AuthenticatedApp() {
   const style = {
     "--sidebar-width": "16rem",
     "--sidebar-width-icon": "3rem",
   };
 
   return (
+    <LocaleProvider>
+      <TimezoneProvider>
+        <SidebarProvider style={style as React.CSSProperties}>
+          <div className="flex h-screen w-full">
+            <AppSidebar />
+            <div className="flex flex-col flex-1 overflow-hidden">
+              <header className="flex items-center justify-between p-4 border-b border-border shrink-0">
+                <SidebarTrigger data-testid="button-sidebar-toggle" />
+                <div className="flex items-center gap-2">
+                  <LocaleSelector />
+                  <ThemeToggle />
+                </div>
+              </header>
+              <main className="flex-1 overflow-auto p-8">
+                <Router />
+              </main>
+            </div>
+          </div>
+        </SidebarProvider>
+        <Toaster />
+      </TimezoneProvider>
+    </LocaleProvider>
+  );
+}
+
+function AppContent() {
+  const { data: user, isLoading } = useQuery({
+    queryKey: ["/api/auth/user"],
+    retry: false,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Login />;
+  }
+
+  return <AuthenticatedApp />;
+}
+
+export default function App() {
+  return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <ThemeProvider>
-          <LocaleProvider>
-            <TimezoneProvider>
-              <SidebarProvider style={style as React.CSSProperties}>
-                <div className="flex h-screen w-full">
-                  <AppSidebar />
-                  <div className="flex flex-col flex-1 overflow-hidden">
-                    <header className="flex items-center justify-between p-4 border-b border-border shrink-0">
-                      <SidebarTrigger data-testid="button-sidebar-toggle" />
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={async () => {
-                            try {
-                              const res = await fetch('/api/dev-login', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ userId: 'user-9ebebacf-4e08-46b6-ad80-f84d667484d0' })
-                              });
-                              if (res.ok) {
-                                window.location.reload();
-                              } else {
-                                console.error('Login failed:', await res.text());
-                              }
-                            } catch (e) {
-                              console.error('Login error:', e);
-                            }
-                          }}
-                          className="px-3 py-1.5 text-sm bg-primary text-primary-foreground rounded-md hover-elevate"
-                        >
-                          Dev Login
-                        </button>
-                        <button
-                          onClick={async () => {
-                            try {
-                              const res = await fetch('/api/dev-logout', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' }
-                              });
-                              if (res.ok) {
-                                window.location.reload();
-                              } else {
-                                console.error('Logout failed:', await res.text());
-                              }
-                            } catch (e) {
-                              console.error('Logout error:', e);
-                            }
-                          }}
-                          className="px-3 py-1.5 text-sm bg-secondary text-secondary-foreground rounded-md hover-elevate"
-                        >
-                          Dev Logout
-                        </button>
-                        <LocaleSelector />
-                        <ThemeToggle />
-                      </div>
-                    </header>
-                    <main className="flex-1 overflow-auto p-8">
-                      <Router />
-                    </main>
-                  </div>
-                </div>
-              </SidebarProvider>
-              <Toaster />
-            </TimezoneProvider>
-          </LocaleProvider>
+          <AppContent />
         </ThemeProvider>
       </TooltipProvider>
     </QueryClientProvider>

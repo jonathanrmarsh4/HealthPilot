@@ -37,6 +37,7 @@ This is a full-stack application built with:
 The application now uses **Replit Auth** (OpenID Connect) with comprehensive security features:
 
 **Authentication Features**:
+- **Login page for unauthenticated users** - New visitors see a branded login page instead of being auto-logged in
 - Session-based authentication with automatic token refresh
 - Secure user registration and login via Replit Auth
 - Role-based access control (user/admin roles)
