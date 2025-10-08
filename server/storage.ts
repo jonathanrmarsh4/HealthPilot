@@ -32,6 +32,7 @@ export interface IStorage {
   upsertUser(user: UpsertUser): Promise<User>;
   getUserSettings(userId: string): Promise<{ timezone: string }>;
   updateUserSettings(userId: string, settings: { timezone: string }): Promise<void>;
+  updateUserProfile(userId: string, profileData: Partial<Pick<User, "firstName" | "lastName" | "height" | "dateOfBirth" | "gender" | "bloodType" | "activityLevel" | "location">>): Promise<User>;
   
   createHealthRecord(record: InsertHealthRecord): Promise<HealthRecord>;
   getHealthRecords(userId: string): Promise<HealthRecord[]>;
@@ -145,6 +146,23 @@ export class DbStorage implements IStorage {
     await db.execute(
       sql`UPDATE users SET timezone = ${settings.timezone} WHERE id = ${userId}`
     );
+  }
+
+  async updateUserProfile(userId: string, profileData: Partial<Pick<User, "firstName" | "lastName" | "height" | "dateOfBirth" | "gender" | "bloodType" | "activityLevel" | "location">>): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({
+        ...profileData,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    
+    if (!user) {
+      throw new Error("User not found");
+    }
+    
+    return user;
   }
 
   async createHealthRecord(record: InsertHealthRecord): Promise<HealthRecord> {
