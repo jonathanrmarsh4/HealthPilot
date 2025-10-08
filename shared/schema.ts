@@ -28,6 +28,13 @@ export const users = pgTable("users", {
   subscriptionTier: varchar("subscription_tier").notNull().default("free"), // 'free', 'premium', 'enterprise'
   subscriptionStatus: varchar("subscription_status").default("active"), // 'active', 'cancelled', 'past_due'
   stripeCustomerId: varchar("stripe_customer_id"),
+  // Health profile fields
+  height: real("height"), // in cm
+  dateOfBirth: timestamp("date_of_birth"),
+  gender: varchar("gender"), // 'male', 'female', 'other', 'prefer_not_to_say'
+  bloodType: varchar("blood_type"), // 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'
+  activityLevel: varchar("activity_level"), // 'sedentary', 'light', 'moderate', 'active', 'very_active'
+  location: varchar("location"), // City, Country
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
