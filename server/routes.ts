@@ -101,6 +101,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Temporary dev logout endpoint
+  app.post("/api/dev-logout", async (req, res) => {
+    try {
+      // Clear dev session
+      delete (req.session as any).devUserId;
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Dev logout error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.get("/api/auth/user", async (req, res) => {
     try {
       // Check for dev session first

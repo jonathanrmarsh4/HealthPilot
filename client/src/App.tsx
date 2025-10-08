@@ -82,6 +82,26 @@ export default function App() {
                         >
                           Dev Login
                         </button>
+                        <button
+                          onClick={async () => {
+                            try {
+                              const res = await fetch('/api/dev-logout', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' }
+                              });
+                              if (res.ok) {
+                                window.location.reload();
+                              } else {
+                                console.error('Logout failed:', await res.text());
+                              }
+                            } catch (e) {
+                              console.error('Logout error:', e);
+                            }
+                          }}
+                          className="px-3 py-1.5 text-sm bg-secondary text-secondary-foreground rounded-md hover-elevate"
+                        >
+                          Dev Logout
+                        </button>
                         <LocaleSelector />
                         <ThemeToggle />
                       </div>
