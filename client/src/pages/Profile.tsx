@@ -2,15 +2,18 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { Loader2, User, Heart, CreditCard, Settings } from "lucide-react";
+import { Loader2, User, Heart, CreditCard, Settings, MapPin } from "lucide-react";
 import { format } from "date-fns";
 
 const profileFormSchema = z.object({
@@ -48,6 +51,9 @@ interface ProfileData {
 
 export default function Profile() {
   const { toast } = useToast();
+  const [locationSearch, setLocationSearch] = useState("");
+  const [locationSuggestions, setLocationSuggestions] = useState<Array<{ display_name: string }>>([]);
+  const [locationOpen, setLocationOpen] = useState(false);
 
   const { data: profile, isLoading } = useQuery<ProfileData>({
     queryKey: ["/api/profile"],
@@ -66,6 +72,28 @@ export default function Profile() {
       location: profile.location || "",
     } : undefined,
   });
+
+  // Fetch location suggestions as user types
+  useEffect(() => {
+    if (locationSearch.length < 3) {
+      setLocationSuggestions([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(locationSearch)}&limit=5`
+        );
+        const data = await response.json();
+        setLocationSuggestions(data);
+      } catch (error) {
+        console.error("Error fetching location suggestions:", error);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [locationSearch]);
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: ProfileFormValues) => {
@@ -182,11 +210,63 @@ export default function Profile() {
                     control={form.control}
                     name="location"
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem className="flex flex-col">
                         <FormLabel>Location</FormLabel>
-                        <FormControl>
-                          <Input {...field} placeholder="City, Country" data-testid="input-location" />
-                        </FormControl>
+                        <Popover open={locationOpen} onOpenChange={setLocationOpen}>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant="outline"
+                                role="combobox"
+                                className="justify-between font-normal"
+                                data-testid="button-location"
+                              >
+                                {field.value || "Search for a city or location..."}
+                                <MapPin className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[400px] p-0" align="start">
+                            <Command>
+                              <CommandInput
+                                placeholder="Type to search locations..."
+                                value={locationSearch}
+                                onValueChange={setLocationSearch}
+                                data-testid="input-location-search"
+                              />
+                              <CommandList>
+                                {locationSearch.length < 3 && (
+                                  <CommandEmpty>Type at least 3 characters to search...</CommandEmpty>
+                                )}
+                                {locationSearch.length >= 3 && locationSuggestions.length === 0 && (
+                                  <CommandEmpty>No locations found.</CommandEmpty>
+                                )}
+                                {locationSuggestions.length > 0 && (
+                                  <CommandGroup>
+                                    {locationSuggestions.map((suggestion, index) => (
+                                      <CommandItem
+                                        key={index}
+                                        value={suggestion.display_name}
+                                        onSelect={() => {
+                                          field.onChange(suggestion.display_name);
+                                          setLocationOpen(false);
+                                          setLocationSearch("");
+                                        }}
+                                        data-testid={`option-location-${index}`}
+                                      >
+                                        <MapPin className="mr-2 h-4 w-4" />
+                                        {suggestion.display_name}
+                                      </CommandItem>
+                                    ))}
+                                  </CommandGroup>
+                                )}
+                              </CommandList>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
+                        <FormDescription>
+                          Search and select your city or location
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
