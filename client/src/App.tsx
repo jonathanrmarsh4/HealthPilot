@@ -61,6 +61,27 @@ export default function App() {
                     <header className="flex items-center justify-between p-4 border-b border-border shrink-0">
                       <SidebarTrigger data-testid="button-sidebar-toggle" />
                       <div className="flex items-center gap-2">
+                        <button
+                          onClick={async () => {
+                            try {
+                              const res = await fetch('/api/dev-login', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ userId: 'user-9ebebacf-4e08-46b6-ad80-f84d667484d0' })
+                              });
+                              if (res.ok) {
+                                window.location.reload();
+                              } else {
+                                console.error('Login failed:', await res.text());
+                              }
+                            } catch (e) {
+                              console.error('Login error:', e);
+                            }
+                          }}
+                          className="px-3 py-1.5 text-sm bg-primary text-primary-foreground rounded-md hover-elevate"
+                        >
+                          Dev Login
+                        </button>
                         <LocaleSelector />
                         <ThemeToggle />
                       </div>
