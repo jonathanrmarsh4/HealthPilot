@@ -131,15 +131,17 @@ export async function setupAuth(app: Express) {
 }
 
 export const isAuthenticated: RequestHandler = async (req, res, next) => {
-  const user = req.user as any;
+  // Check for dev session first (temporary bypass)
+  const devUserId = (req.session as any)?.devUserId;
+  if (devUserId) {
+    // Create a fake user object for routes that expect it
+    (req as any).user = {
+      claims: { sub: devUserId }
+    };
+    return next();
+  }
 
-  console.log("Auth check:", { 
-    isAuth: req.isAuthenticated(), 
-    hasUser: !!user,
-    hasExpiresAt: !!user?.expires_at,
-    hasClaims: !!user?.claims,
-    userId: user?.claims?.sub
-  });
+  const user = req.user as any;
 
   if (!req.isAuthenticated() || !user?.expires_at) {
     return res.status(401).json({ message: "Unauthorized" });
