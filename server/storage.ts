@@ -366,25 +366,47 @@ export class DbStorage implements IStorage {
   }
 
   async upsertSleepSession(session: InsertSleepSession): Promise<SleepSession> {
-    // Check if a sleep session already exists for this user with the same bedtime and waketime
+    // Better deduplication: check for any session on the same date (within 12 hours of bedtime)
+    // This handles cases where timestamps differ slightly or calculation methods change
+    const bedtimeStart = new Date(session.bedtime);
+    bedtimeStart.setHours(bedtimeStart.getHours() - 6); // 6 hours before bedtime
+    
+    const bedtimeEnd = new Date(session.bedtime);
+    bedtimeEnd.setHours(bedtimeEnd.getHours() + 6); // 6 hours after bedtime
+    
     const existing = await db
       .select()
       .from(sleepSessions)
       .where(
         and(
           eq(sleepSessions.userId, session.userId),
-          eq(sleepSessions.bedtime, session.bedtime),
-          eq(sleepSessions.waketime, session.waketime)
+          sql`${sleepSessions.bedtime} >= ${bedtimeStart.toISOString()}`,
+          sql`${sleepSessions.bedtime} <= ${bedtimeEnd.toISOString()}`
         )
-      );
+      )
+      .orderBy(desc(sleepSessions.createdAt))
+      .limit(1);
 
     if (existing.length > 0) {
-      // Update existing session
+      // Update existing session (keep the most recent one)
       const [updated] = await db
         .update(sleepSessions)
         .set(session)
         .where(eq(sleepSessions.id, existing[0].id))
         .returning();
+      
+      // Delete any other duplicates in the same time range
+      await db
+        .delete(sleepSessions)
+        .where(
+          and(
+            eq(sleepSessions.userId, session.userId),
+            sql`${sleepSessions.bedtime} >= ${bedtimeStart.toISOString()}`,
+            sql`${sleepSessions.bedtime} <= ${bedtimeEnd.toISOString()}`,
+            sql`${sleepSessions.id} != ${existing[0].id}`
+          )
+        );
+      
       return updated;
     }
 
