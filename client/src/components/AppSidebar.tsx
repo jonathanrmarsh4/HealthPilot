@@ -6,7 +6,6 @@ import {
   Dumbbell,
   Sparkles,
   Settings,
-  HeartPulse,
   Smartphone,
   MessageCircle,
   Moon,
@@ -26,6 +25,7 @@ import {
   SidebarHeader,
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/hooks/useAuth";
+import logoPath from "@assets/HealthPilot_1759903615894.png";
 
 const menuItems = [
   {
@@ -82,15 +82,14 @@ export function AppSidebar() {
   return (
     <Sidebar>
       <SidebarHeader className="p-4 border-b border-sidebar-border">
-        <div className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-md bg-primary text-primary-foreground">
-            <HeartPulse className="h-5 w-5" />
-          </div>
-          <div className="flex flex-col">
-            <span className="text-sm font-semibold">Health Insights</span>
-            <span className="text-xs text-muted-foreground">AI-Powered</span>
-          </div>
-        </div>
+        <Link href="/" className="flex items-center gap-3">
+          <img 
+            src={logoPath} 
+            alt="HealthPilot" 
+            className="h-10 w-10 object-contain"
+          />
+          <span className="text-lg font-semibold">HealthPilot</span>
+        </Link>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
