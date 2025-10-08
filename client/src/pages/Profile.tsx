@@ -15,6 +15,8 @@ import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Loader2, User, Heart, CreditCard, Settings, MapPin } from "lucide-react";
 import { format } from "date-fns";
+import { useLocale } from "@/contexts/LocaleContext";
+import { convertValue, unitConfigs } from "@/lib/unitConversions";
 
 const profileFormSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
@@ -51,6 +53,7 @@ interface ProfileData {
 
 export default function Profile() {
   const { toast } = useToast();
+  const { unitSystem } = useLocale();
   const [locationSearch, setLocationSearch] = useState("");
   const [locationSuggestions, setLocationSuggestions] = useState<Array<{ display_name: string }>>([]);
   const [locationOpen, setLocationOpen] = useState(false);
@@ -326,7 +329,12 @@ export default function Profile() {
                         <FormLabel>Current Weight</FormLabel>
                         <FormControl>
                           <Input 
-                            value={`${profile.latestWeight.value} ${profile.latestWeight.unit}`} 
+                            value={`${convertValue(
+                              profile.latestWeight.value,
+                              "weight",
+                              profile.latestWeight.unit,
+                              unitConfigs.weight[unitSystem].unit
+                            ).toFixed(1)} ${unitConfigs.weight[unitSystem].unit}`} 
                             disabled
                             data-testid="input-weight"
                           />
