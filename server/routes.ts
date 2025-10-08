@@ -115,24 +115,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/auth/user", async (req, res) => {
     try {
-      // Check for dev session first
-      const devUserId = (req.session as any)?.devUserId;
-      if (devUserId) {
-        const dbUser = await storage.getUser(devUserId);
-        if (dbUser) {
-          return res.json({
-            id: dbUser.id,
-            email: dbUser.email,
-            firstName: dbUser.firstName,
-            lastName: dbUser.lastName,
-            profileImageUrl: dbUser.profileImageUrl,
-            role: dbUser.role,
-            subscriptionTier: dbUser.subscriptionTier,
-            subscriptionStatus: dbUser.subscriptionStatus,
-          });
-        }
-      }
-
       if (!req.isAuthenticated()) {
         return res.json(null);
       }
