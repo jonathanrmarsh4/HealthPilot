@@ -25,7 +25,8 @@ import Admin from "@/pages/Admin";
 import Login from "@/pages/Login";
 import Logout from "@/pages/Logout";
 import NotFound from "@/pages/not-found";
-import { Loader2 } from "lucide-react";
+import { Loader2, LogOut } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 function Router() {
   return (
@@ -66,6 +67,14 @@ function AuthenticatedApp() {
                 <div className="flex items-center gap-2">
                   <LocaleSelector />
                   <ThemeToggle />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => window.location.href = "/api/logout"}
+                    data-testid="button-logout"
+                  >
+                    <LogOut className="h-5 w-5" />
+                  </Button>
                 </div>
               </header>
               <main className="flex-1 overflow-auto p-8">
