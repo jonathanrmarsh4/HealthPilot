@@ -1094,10 +1094,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log('[sleep webhook] sleep_analysis payload', { userId, count: metric.data?.length ?? 0, data: metric.data });
           
           for (const dataPoint of metric.data) {
-            if (dataPoint.sleepStart && dataPoint.sleepEnd && dataPoint.totalSleep) {
-              const bedtime = new Date(dataPoint.sleepStart);
-              const waketime = new Date(dataPoint.sleepEnd);
-              const totalMinutes = Math.round(dataPoint.totalSleep * 60);
+            // Use inBedStart/inBedEnd for full session duration (includes awake time)
+            if (dataPoint.inBedStart && dataPoint.inBedEnd) {
+              const bedtime = new Date(dataPoint.inBedStart);
+              const waketime = new Date(dataPoint.inBedEnd);
+              // Calculate total minutes from in-bed duration
+              const totalMinutes = Math.round((waketime.getTime() - bedtime.getTime()) / (1000 * 60));
               const awakeMinutes = Math.round((dataPoint.awake || 0) * 60);
               const deepMinutes = Math.round((dataPoint.deep || 0) * 60);
               const remMinutes = Math.round((dataPoint.rem || 0) * 60);
@@ -1107,7 +1109,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               
               // Calculate sleep score (0-100) based on sleep quality
               let sleepScore = 70; // Base score
-              const sleepHours = dataPoint.totalSleep;
+              const sleepHours = totalMinutes / 60; // Use calculated total duration
               
               // Adjust for total sleep duration (optimal 7-9 hours)
               if (sleepHours >= 7 && sleepHours <= 9) {
