@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
+import { PieChart, Pie, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { Info } from "lucide-react";
 import {
   HoverCard,
@@ -76,36 +76,32 @@ export function SleepStagesChart({
       <CardContent>
         <div className="h-[300px]">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={stages}>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-              <XAxis 
-                dataKey="name" 
-                className="text-xs text-muted-foreground"
-                tick={{ fill: "hsl(var(--muted-foreground))" }}
-              />
-              <YAxis 
-                className="text-xs text-muted-foreground"
-                tick={{ fill: "hsl(var(--muted-foreground))" }}
-                label={{ value: 'Minutes', angle: -90, position: 'insideLeft', fill: "hsl(var(--muted-foreground))" }}
-              />
+            <PieChart>
+              <Pie
+                data={stages}
+                cx="50%"
+                cy="50%"
+                innerRadius={60}
+                outerRadius={100}
+                paddingAngle={2}
+                dataKey="minutes"
+              >
+                {stages.map((stage, index) => (
+                  <Cell key={`cell-${index}`} fill={stage.color} />
+                ))}
+              </Pie>
               <Tooltip 
                 contentStyle={{
                   backgroundColor: "hsl(var(--popover))",
                   border: "1px solid hsl(var(--border))",
                   borderRadius: "var(--radius)",
                 }}
-                labelStyle={{ color: "hsl(var(--foreground))" }}
                 formatter={(value: number, name: string, props: any) => [
-                  `${formatTime(value)} (${props.payload.percentage.toFixed(0)}%)`,
+                  `${formatTime(value as number)} (${props.payload.percentage.toFixed(0)}%)`,
                   props.payload.name
                 ]}
               />
-              <Bar dataKey="minutes" radius={[8, 8, 0, 0]}>
-                {stages.map((stage, index) => (
-                  <Cell key={`cell-${index}`} fill={stage.color} />
-                ))}
-              </Bar>
-            </BarChart>
+            </PieChart>
           </ResponsiveContainer>
         </div>
 
