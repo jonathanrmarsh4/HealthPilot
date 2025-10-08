@@ -17,11 +17,13 @@ export const sessions = pgTable(
 // User storage table for Replit Auth
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  username: text("username").notNull().default(""),
+  password: text("password").notNull().default(""),
+  timezone: varchar("timezone").default("UTC"),
   email: varchar("email").unique(),
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
-  timezone: varchar("timezone").default("UTC"),
   role: varchar("role").notNull().default("user"), // 'user' or 'admin'
   subscriptionTier: varchar("subscription_tier").notNull().default("free"), // 'free', 'premium', 'enterprise'
   subscriptionStatus: varchar("subscription_status").default("active"), // 'active', 'cancelled', 'past_due'

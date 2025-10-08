@@ -59,6 +59,8 @@ async function upsertUser(
 ) {
   await storage.upsertUser({
     id: claims["sub"],
+    username: "", // OAuth users don't have usernames
+    password: "", // OAuth users don't have passwords
     email: claims["email"],
     firstName: claims["first_name"],
     lastName: claims["last_name"],
