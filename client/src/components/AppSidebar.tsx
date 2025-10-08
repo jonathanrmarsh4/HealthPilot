@@ -25,7 +25,7 @@ import {
   SidebarHeader,
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/hooks/useAuth";
-import logoPath from "@assets/HealthPilot_1759903615894.png";
+import logoPath from "@assets/HealthPilot_Logo_1759904141260.png";
 
 const menuItems = [
   {
