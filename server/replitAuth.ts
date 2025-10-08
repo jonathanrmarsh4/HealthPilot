@@ -111,7 +111,6 @@ export async function setupAuth(app: Express) {
       : `replitauth:${domains[0]}`;
     
     passport.authenticate(strategyName, {
-      prompt: "select_account",
       scope: ["openid", "email", "profile", "offline_access"],
     })(req, res, next);
   });
