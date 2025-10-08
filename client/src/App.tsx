@@ -23,6 +23,7 @@ import Profile from "@/pages/Profile";
 import Settings from "@/pages/Settings";
 import Admin from "@/pages/Admin";
 import Login from "@/pages/Login";
+import Logout from "@/pages/Logout";
 import NotFound from "@/pages/not-found";
 import { Loader2 } from "lucide-react";
 
@@ -41,6 +42,7 @@ function Router() {
       <Route path="/apple-health" component={AppleHealthSetup} />
       <Route path="/settings" component={Settings} />
       <Route path="/admin" component={Admin} />
+      <Route path="/logged-out" component={Logout} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -84,12 +86,19 @@ function AppContent() {
     retry: false,
   });
 
+  // Check if on logged-out page
+  const isLoggedOutPage = window.location.pathname === "/logged-out";
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
+  }
+
+  if (isLoggedOutPage) {
+    return <Logout />;
   }
 
   if (!user) {
