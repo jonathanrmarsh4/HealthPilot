@@ -69,6 +69,48 @@ async function upsertUser(
   });
 }
 
+// Helper function to check if a domain is a Replit domain
+function isReplitDomain(domain: string): boolean {
+  const replitPatterns = [
+    /\.repl\.co$/,           // workspace URLs
+    /\.replit\.dev$/,        // general replit dev URLs
+    /\.pike\.replit\.dev$/,  // pike dev URLs
+    /\.id\.replit\.dev$/,    // id dev URLs
+    /\.rcs\.replit\.dev$/,   // rcs dev URLs
+  ];
+  
+  return replitPatterns.some(pattern => pattern.test(domain));
+}
+
+// Track registered strategies to avoid duplicates
+const registeredStrategies = new Set<string>();
+
+// Helper to register a strategy for a domain
+async function registerStrategyForDomain(domain: string, verify: VerifyFunction) {
+  const strategyName = `replitauth:${domain}`;
+  
+  if (registeredStrategies.has(strategyName)) {
+    return strategyName;
+  }
+
+  const config = await getOidcConfig();
+  const strategy = new Strategy(
+    {
+      name: strategyName,
+      config,
+      scope: "openid email profile offline_access",
+      callbackURL: `https://${domain}/api/callback`,
+    },
+    verify,
+  );
+  
+  passport.use(strategy);
+  registeredStrategies.add(strategyName);
+  console.log(`✅ Registered new auth strategy for domain: ${domain}`);
+  
+  return strategyName;
+}
+
 export async function setupAuth(app: Express) {
   app.set("trust proxy", 1);
   app.use(getSession());
@@ -87,39 +129,43 @@ export async function setupAuth(app: Express) {
     verified(null, user);
   };
 
-  for (const domain of process.env
-    .REPLIT_DOMAINS!.split(",")) {
-    const strategy = new Strategy(
-      {
-        name: `replitauth:${domain}`,
-        config,
-        scope: "openid email profile offline_access",
-        callbackURL: `https://${domain}/api/callback`,
-      },
-      verify,
-    );
-    passport.use(strategy);
+  // Register strategies for all configured domains
+  const configuredDomains = process.env.REPLIT_DOMAINS!.split(",").map(d => d.trim());
+  for (const domain of configuredDomains) {
+    await registerStrategyForDomain(domain, verify);
   }
 
   passport.serializeUser((user: Express.User, cb) => cb(null, user));
   passport.deserializeUser((user: Express.User, cb) => cb(null, user));
 
-  app.get("/api/login", (req, res, next) => {
-    const domains = process.env.REPLIT_DOMAINS!.split(",");
+  app.get("/api/login", async (req, res, next) => {
+    const hostname = req.hostname;
+    const configuredDomains = process.env.REPLIT_DOMAINS!.split(",").map(d => d.trim());
+    
     console.log("🔐 Login attempt:", {
-      hostname: req.hostname,
-      headers: {
-        host: req.headers.host,
-        origin: req.headers.origin,
-        referer: req.headers.referer
-      },
-      configuredDomains: domains,
-      matchedDomain: domains.includes(req.hostname)
+      hostname,
+      host: req.headers.host,
+      isReplitDomain: isReplitDomain(hostname),
+      configuredDomains,
+      isConfigured: configuredDomains.includes(hostname)
     });
     
-    const strategyName = domains.includes(req.hostname) 
-      ? `replitauth:${req.hostname}` 
-      : `replitauth:${domains[0]}`;
+    let strategyName: string;
+    
+    // If hostname is in configured domains, use it
+    if (configuredDomains.includes(hostname)) {
+      strategyName = `replitauth:${hostname}`;
+    } 
+    // If it's a Replit domain but not configured, dynamically register it
+    else if (isReplitDomain(hostname)) {
+      console.log(`🔧 Dynamically registering strategy for Replit domain: ${hostname}`);
+      strategyName = await registerStrategyForDomain(hostname, verify);
+    }
+    // Otherwise fall back to first configured domain
+    else {
+      console.log(`⚠️ Unknown domain ${hostname}, using fallback: ${configuredDomains[0]}`);
+      strategyName = `replitauth:${configuredDomains[0]}`;
+    }
     
     console.log(`Using strategy: ${strategyName}`);
     
@@ -128,18 +174,38 @@ export async function setupAuth(app: Express) {
     })(req, res, next);
   });
 
-  app.get("/api/callback", (req, res, next) => {
-    const domains = process.env.REPLIT_DOMAINS!.split(",");
+  app.get("/api/callback", async (req, res, next) => {
+    const hostname = req.hostname;
+    const configuredDomains = process.env.REPLIT_DOMAINS!.split(",").map(d => d.trim());
+    
     console.log("🔄 OAuth callback:", {
-      hostname: req.hostname,
+      hostname,
       host: req.headers.host,
       queryParams: req.query,
-      configuredDomains: domains
+      isReplitDomain: isReplitDomain(hostname),
+      configuredDomains
     });
     
-    const strategyName = domains.includes(req.hostname) 
-      ? `replitauth:${req.hostname}` 
-      : `replitauth:${domains[0]}`;
+    let strategyName: string;
+    
+    // If hostname is in configured domains, use it
+    if (configuredDomains.includes(hostname)) {
+      strategyName = `replitauth:${hostname}`;
+    }
+    // If it's a Replit domain but not configured, it should already be registered from /api/login
+    else if (isReplitDomain(hostname)) {
+      strategyName = `replitauth:${hostname}`;
+      // Double-check it's registered (it should be from the login flow)
+      if (!registeredStrategies.has(strategyName)) {
+        console.log(`🔧 Callback received before login - registering strategy for: ${hostname}`);
+        strategyName = await registerStrategyForDomain(hostname, verify);
+      }
+    }
+    // Otherwise fall back to first configured domain
+    else {
+      console.log(`⚠️ Unknown domain ${hostname}, using fallback: ${configuredDomains[0]}`);
+      strategyName = `replitauth:${configuredDomains[0]}`;
+    }
     
     passport.authenticate(strategyName, {
       successReturnToOrRedirect: "/",
@@ -161,14 +227,6 @@ export async function setupAuth(app: Express) {
 
 export const isAuthenticated: RequestHandler = async (req, res, next) => {
   const user = req.user as any;
-
-  // Debug logging
-  console.log("isAuthenticated check:", {
-    isAuth: req.isAuthenticated(),
-    hasUser: !!user,
-    userKeys: user ? Object.keys(user) : [],
-    hasExpiresAt: !!user?.expires_at,
-  });
 
   if (!req.isAuthenticated() || !user?.expires_at) {
     return res.status(401).json({ message: "Unauthorized" });
