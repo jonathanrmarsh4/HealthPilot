@@ -19,7 +19,10 @@ export default function Chat() {
 
   const sendMessageMutation = useMutation({
     mutationFn: async (content: string) => {
-      const res = await apiRequest("POST", "/api/chat", { message: content });
+      const res = await apiRequest("POST", "/api/chat", { 
+        message: content,
+        currentPage: "Health Coach Chat"
+      });
       return res.json();
     },
     onSuccess: () => {

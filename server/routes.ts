@@ -795,7 +795,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const userId = (req.user as any).claims.sub;
 
     try {
-      const { message } = req.body;
+      const { message, currentPage } = req.body;
       
       if (!message || typeof message !== 'string') {
         return res.status(400).json({ error: "Message is required" });
@@ -814,7 +814,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         content: msg.content
       }));
 
-      const aiResponse = await chatWithHealthCoach(conversationHistory);
+      // Gather context for AI
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      const now = new Date();
+      
+      // Get all biomarkers from last 7 days and sort by newest first
+      const allBiomarkers = await storage.getBiomarkers(userId);
+      const recentBiomarkers = allBiomarkers
+        .filter(b => new Date(b.recordedAt) >= sevenDaysAgo)
+        .sort((a, b) => new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime())
+        .slice(0, 20);
+
+      const recentInsights = await storage.getInsights(userId, 5);
+      
+      const user = await storage.getUser(userId);
+
+      const context = {
+        recentBiomarkers,
+        recentInsights,
+        currentPage,
+        userTimezone: user?.timezone
+      };
+
+      const aiResponse = await chatWithHealthCoach(conversationHistory, context);
 
       const assistantMessage = await storage.createChatMessage({
         userId,

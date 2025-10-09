@@ -391,8 +391,44 @@ Provide 3-5 specific, actionable recommendations prioritized by importance and a
 }
 
 export async function chatWithHealthCoach(
-  conversationHistory: Array<{ role: "user" | "assistant"; content: string }>
+  conversationHistory: Array<{ role: "user" | "assistant"; content: string }>,
+  context?: {
+    recentBiomarkers?: any[];
+    recentInsights?: any[];
+    currentPage?: string;
+    userTimezone?: string;
+  }
 ) {
+  let contextSection = "";
+  
+  if (context) {
+    contextSection = `\n\n## USER'S CURRENT HEALTH CONTEXT:\n`;
+    
+    if (context.currentPage) {
+      contextSection += `- Currently viewing: ${context.currentPage}\n`;
+    }
+    
+    if (context.recentBiomarkers && context.recentBiomarkers.length > 0) {
+      contextSection += `\nRecent Health Metrics (last 7 days):\n`;
+      context.recentBiomarkers.forEach(b => {
+        contextSection += `- ${b.type}: ${b.value} ${b.unit || ''} (${new Date(b.recordedAt).toLocaleDateString()})\n`;
+      });
+    }
+    
+    if (context.recentInsights && context.recentInsights.length > 0) {
+      contextSection += `\nRecent AI Insights:\n`;
+      context.recentInsights.forEach(insight => {
+        contextSection += `- ${insight.title}: ${insight.description}\n`;
+      });
+    }
+    
+    if (context.userTimezone) {
+      contextSection += `- User timezone: ${context.userTimezone}\n`;
+    }
+    
+    contextSection += `\nUse this context to provide more personalized and relevant responses. Reference specific metrics or insights when appropriate.`;
+  }
+
   const systemPrompt = `You are a friendly and knowledgeable health and fitness coach AI. Your role is to:
 
 1. Ask thoughtful questions about the user's health and fitness goals
@@ -406,9 +442,9 @@ Your goal is to gather information that will help create personalized:
 - Training schedules appropriate for their fitness level
 - Health recommendations based on their specific situation
 
-Be conversational, empathetic, and encouraging. Ask one or two questions at a time. Keep responses concise and focused. Remember any information the user shares and reference it in future responses.
+Be conversational, empathetic, and encouraging. Ask one or two questions at a time. Keep responses concise and focused. Remember any information the user shares and reference it in future responses.${contextSection}
 
-Start by introducing yourself and asking about their primary health or fitness goal.`;
+If this is the first message, introduce yourself briefly and ask about their primary health or fitness goal.`;
 
   const messages = conversationHistory.map(msg => ({
     role: msg.role,
