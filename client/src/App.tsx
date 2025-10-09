@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -10,6 +10,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { LocaleProvider } from "@/contexts/LocaleContext";
 import { LocaleSelector } from "@/components/LocaleSelector";
 import { TimezoneProvider } from "@/contexts/TimezoneContext";
+import { FloatingChat, FloatingChatTrigger } from "@/components/FloatingChat";
 import Dashboard from "@/pages/Dashboard";
 import HealthRecords from "@/pages/HealthRecords";
 import Biomarkers from "@/pages/Biomarkers";
@@ -27,6 +28,7 @@ import Logout from "@/pages/Logout";
 import NotFound from "@/pages/not-found";
 import { Loader2, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useState } from "react";
 
 function Router() {
   return (
@@ -50,10 +52,30 @@ function Router() {
 }
 
 function AuthenticatedApp() {
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [location] = useLocation();
+  
   const style = {
     "--sidebar-width": "16rem",
     "--sidebar-width-icon": "3rem",
   };
+
+  const pageNames: Record<string, string> = {
+    "/": "Dashboard",
+    "/records": "Health Records",
+    "/biomarkers": "Biomarkers",
+    "/sleep": "Sleep Dashboard",
+    "/meals": "Meal Plans",
+    "/training": "Training",
+    "/insights": "AI Insights",
+    "/chat": "Health Coach",
+    "/profile": "Profile",
+    "/apple-health": "Apple Health Setup",
+    "/settings": "Settings",
+    "/admin": "Admin Panel"
+  };
+
+  const currentPage = pageNames[location] || "Unknown Page";
 
   return (
     <LocaleProvider>
@@ -82,6 +104,16 @@ function AuthenticatedApp() {
               </main>
             </div>
           </div>
+
+          {location !== "/chat" && !isChatOpen && (
+            <FloatingChatTrigger onClick={() => setIsChatOpen(true)} />
+          )}
+          
+          <FloatingChat 
+            isOpen={isChatOpen} 
+            onClose={() => setIsChatOpen(false)}
+            currentPage={currentPage}
+          />
         </SidebarProvider>
         <Toaster />
       </TimezoneProvider>
