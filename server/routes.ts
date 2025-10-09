@@ -1212,37 +1212,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
               const remMinutes = Math.round((dataPoint.rem || 0) * 60);
               const coreMinutes = Math.round((dataPoint.core || 0) * 60);
               
-              // Calculate sleep score (0-100) based on sleep quality
-              let sleepScore = 70; // Base score
-              const sleepHours = totalMinutes / 60; // Use calculated total duration
+              // Use Apple Health's sleep score if available, otherwise calculate our own
+              let sleepScore: number;
               
-              // Adjust for total sleep duration (optimal 7-9 hours)
-              if (sleepHours >= 7 && sleepHours <= 9) {
-                sleepScore += 10;
-              } else if (sleepHours >= 6 && sleepHours < 7) {
-                sleepScore += 5;
-              } else if (sleepHours < 6) {
-                sleepScore -= 10;
+              if (dataPoint.sleepScore !== undefined && dataPoint.sleepScore !== null) {
+                // Use Apple Health's actual sleep score
+                sleepScore = Math.round(dataPoint.sleepScore);
+                console.log(`✅ Using Apple Health sleep score: ${sleepScore}`);
+              } else if (dataPoint.quality !== undefined && dataPoint.quality !== null) {
+                // Some Health Auto Export versions send quality as a score
+                sleepScore = Math.round(dataPoint.quality);
+                console.log(`✅ Using Health Auto Export quality score: ${sleepScore}`);
+              } else {
+                // Calculate our own score (0-100) based on sleep quality
+                sleepScore = 70; // Base score
+                const sleepHours = totalMinutes / 60;
+                
+                // Adjust for total sleep duration (optimal 7-9 hours)
+                if (sleepHours >= 7 && sleepHours <= 9) {
+                  sleepScore += 10;
+                } else if (sleepHours >= 6 && sleepHours < 7) {
+                  sleepScore += 5;
+                } else if (sleepHours < 6) {
+                  sleepScore -= 10;
+                }
+                
+                // Adjust for deep sleep (should be ~20% of total)
+                const deepPercentage = (dataPoint.deep || 0) / sleepHours;
+                if (deepPercentage >= 0.15 && deepPercentage <= 0.25) {
+                  sleepScore += 10;
+                } else if (deepPercentage < 0.10) {
+                  sleepScore -= 5;
+                }
+                
+                // Adjust for REM sleep (should be ~20-25% of total)
+                const remPercentage = (dataPoint.rem || 0) / sleepHours;
+                if (remPercentage >= 0.18 && remPercentage <= 0.28) {
+                  sleepScore += 10;
+                } else if (remPercentage < 0.15) {
+                  sleepScore -= 5;
+                }
+                
+                // Ensure score is between 0 and 100
+                sleepScore = Math.max(0, Math.min(100, sleepScore));
+                console.log(`🧮 Calculated custom sleep score: ${sleepScore}`);
               }
-              
-              // Adjust for deep sleep (should be ~20% of total)
-              const deepPercentage = (dataPoint.deep || 0) / sleepHours;
-              if (deepPercentage >= 0.15 && deepPercentage <= 0.25) {
-                sleepScore += 10;
-              } else if (deepPercentage < 0.10) {
-                sleepScore -= 5;
-              }
-              
-              // Adjust for REM sleep (should be ~20-25% of total)
-              const remPercentage = (dataPoint.rem || 0) / sleepHours;
-              if (remPercentage >= 0.18 && remPercentage <= 0.28) {
-                sleepScore += 10;
-              } else if (remPercentage < 0.15) {
-                sleepScore -= 5;
-              }
-              
-              // Ensure score is between 0 and 100
-              sleepScore = Math.max(0, Math.min(100, sleepScore));
               
               // Determine quality
               let quality = "Fair";
