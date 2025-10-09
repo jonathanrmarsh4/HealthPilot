@@ -25,6 +25,7 @@ This is a full-stack application built with:
   - **Context-Aware Chat**: AI health coach knows current page, recent biomarkers, and user timezone
   - **Floating Chat Widget**: Accessible AI coach from all pages with minimize/close functionality
   - **Enhanced Recommendations**: Multi-metric pattern analysis identifying correlations and root causes
+  - **Alternative Therapy Suggestions**: AI recommends sauna, cold plunge, and other therapies when aligned with biomarkers and goals
 - AI-generated personalized meal plans
 - AI-generated training schedules
 - **Google Drive integration** - Manual analysis (click sparkle icon to analyze files with AI)
@@ -166,6 +167,37 @@ npm run db:push  # Syncs database schema
 ### Webhook Endpoints (requires webhook authentication)
 - `POST /api/health-auto-export/ingest` - Webhook for Apple Health data (requires X-Webhook-Secret and X-User-Id headers)
 
+## AI Alternative Therapy Recommendations
+
+The AI intelligently suggests alternative therapies as complementary interventions when they align with the user's specific biomarkers, health goals, and physiology:
+
+**Sauna Therapy** - Suggested for:
+- Cardiovascular health improvement (heart rate variability, resting heart rate optimization)
+- Detoxification support (elevated inflammatory markers like CRP)
+- Recovery enhancement (muscle soreness, post-workout recovery)
+- Stress reduction (elevated cortisol, poor sleep quality)
+- Longevity and general wellness optimization
+
+**Cold Plunge/Cryotherapy** - Suggested for:
+- Inflammation reduction (elevated CRP, ESR markers)
+- Metabolic enhancement (glucose control, metabolic syndrome indicators)
+- Recovery acceleration (intense training, elevated muscle markers)
+- Mental clarity and energy optimization
+- Immune system support
+
+**Other Alternative Therapies** (when relevant):
+- Red light therapy (skin health, wound healing, mitochondrial function)
+- Breathwork practices (stress markers, oxygen saturation, respiratory health)
+- Contrast therapy (circulation and recovery optimization)
+- Compression therapy (lymphatic health, circulation improvement)
+
+**Implementation**: Alternative therapy suggestions appear in:
+- AI Recommendations (category: "Alternative Therapy")
+- AI Insights Widget (when patterns indicate benefit)
+- Health Coach Chat (context-aware suggestions based on biomarkers)
+
+The AI only recommends these therapies when they would meaningfully support the user's specific data patterns, always explaining the physiological mechanism and expected benefits.
+
 ## Database Schema
 
 Tables:
@@ -179,7 +211,9 @@ Tables:
 - `sleep_sessions` - Sleep tracking data from Apple Health
 - `meal_plans` - AI-generated meal suggestions
 - `training_schedules` - AI-generated workout plans
-- `recommendations` - AI health recommendations
+- `recommendations` - AI health recommendations (categories: Nutrition, Exercise, Biomarker, Lifestyle, Alternative Therapy)
+- `insights` - AI-generated daily insights with pattern discovery
+- `chat_messages` - Conversation history with AI health coach
 
 ## Environment Variables Required
 

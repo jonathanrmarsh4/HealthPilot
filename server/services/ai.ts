@@ -429,12 +429,37 @@ Generate a JSON array of 3-5 recommendations with this structure:
   {
     "title": "Clear, specific recommendation title",
     "description": "Brief summary emphasizing the multi-metric benefit",
-    "category": "Nutrition" | "Exercise" | "Biomarker" | "Lifestyle",
+    "category": "Nutrition" | "Exercise" | "Biomarker" | "Lifestyle" | "Alternative Therapy",
     "priority": "high" | "medium" | "low",
     "details": "Detailed explanation including: (1) pattern/correlation identified, (2) why it matters, (3) expected multi-metric impact",
     "actionLabel": "Specific action button text"
   }
 ]
+
+## ALTERNATIVE THERAPY GUIDANCE:
+Consider suggesting alternative therapies when they align with specific biomarkers, goals, or physiology:
+
+**Sauna Therapy**: Suggest for:
+- Cardiovascular health improvement (when heart rate variability or resting heart rate could improve)
+- Detoxification support (elevated inflammatory markers like CRP)
+- Recovery enhancement (muscle soreness, post-workout recovery)
+- Stress reduction (elevated cortisol, poor sleep quality)
+- Longevity optimization (general wellness goals)
+
+**Cold Plunge/Cryotherapy**: Suggest for:
+- Inflammation reduction (elevated CRP, ESR markers)
+- Metabolic enhancement (glucose control, metabolic syndrome indicators)
+- Recovery acceleration (after intense training, elevated muscle markers)
+- Mental clarity and alertness (energy optimization goals)
+- Immune system support (general wellness)
+
+**Other Alternative Therapies** (when relevant):
+- Red light therapy (skin health, wound healing, mitochondrial function)
+- Breathwork practices (stress markers, oxygen saturation, respiratory health)
+- Contrast therapy (alternating hot/cold for circulation and recovery)
+- Compression therapy (lymphatic health, circulation markers)
+
+**When to suggest**: Only recommend alternative therapies as optional complementary interventions when they would meaningfully support the user's specific biomarker patterns, health goals, or training regimen. Always explain the physiological mechanism and expected benefits based on their data.
 
 ## QUALITY CRITERIA:
 - Each recommendation should reference specific data points and patterns
@@ -442,6 +467,7 @@ Generate a JSON array of 3-5 recommendations with this structure:
 - Provide clear, actionable steps
 - Explain the "why" behind each recommendation
 - Prioritize based on potential health impact and user goals
+- Include alternative therapies as optional enhancements when they make sense for the individual's physiology
 
 Generate insights that demonstrate deep understanding of how different health metrics interact and influence each other.`;
 
@@ -522,6 +548,15 @@ Your goal is to gather information that will help create personalized:
 - Meal plans tailored to their nutritional needs
 - Training schedules appropriate for their fitness level
 - Health recommendations based on their specific situation
+- Alternative therapy suggestions (sauna, cold plunge, red light therapy, breathwork, etc.) when they align with the user's biomarkers, goals, or recovery needs
+
+## Alternative Therapy Guidance:
+When appropriate based on user's data and goals, suggest alternative therapies as optional enhancements:
+- **Sauna**: For cardiovascular health, detoxification, recovery, stress reduction
+- **Cold Plunge/Cryotherapy**: For inflammation reduction, metabolic health, recovery, mental clarity
+- **Other therapies**: Red light therapy, breathwork, contrast therapy when relevant
+
+Only suggest these when they meaningfully support the user's specific health goals, biomarkers, or physiology. Explain the mechanism and expected benefits based on their data.
 
 Be conversational, empathetic, and encouraging. Ask one or two questions at a time. Keep responses concise and focused. Remember any information the user shares and reference it in future responses.${contextSection}
 
@@ -591,6 +626,14 @@ Generate a JSON array of daily health insights with this structure:
 4. **Trends**: Week/month changes (e.g., "Resting HR down 5 bpm this month")
 5. **Alerts**: Concerning changes or values outside optimal ranges
 
+## Alternative Therapy Recommendations:
+When biomarkers or patterns indicate benefit, suggest alternative therapies as optional enhancements:
+- **Sauna**: For cardiovascular health, detox, recovery, stress reduction (when relevant to user's data)
+- **Cold Plunge**: For inflammation, metabolic health, recovery, mental clarity (when supported by biomarkers)
+- **Other**: Red light therapy, breathwork, contrast therapy (when aligned with specific needs)
+
+Only suggest these when they meaningfully support the user's health goals and physiology based on their data.
+
 ## Guidelines:
 - Be specific with numbers and timeframes
 - Make insights actionable - tell user what to do
@@ -598,6 +641,7 @@ Generate a JSON array of daily health insights with this structure:
 - Reference user's timezone: ${data.timezone || 'UTC'}
 - Use conversational, motivating language
 - Celebrate wins and improvements
+- Include alternative therapy suggestions when they align with biomarkers and goals
 
 Generate 3-5 insights prioritized by importance. Focus on what matters most to the user's health today.`,
       },
