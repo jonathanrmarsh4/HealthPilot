@@ -1201,10 +1201,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Special handling for sleep analysis - create sleep sessions
         if (metric.name === "sleep_analysis" && metric.data && Array.isArray(metric.data)) {
           for (const dataPoint of metric.data) {
-            // Log all available fields in sleep data
-            console.log("🛏️ Sleep data point fields:", Object.keys(dataPoint));
-            console.log("🛏️ Sleep data values:", JSON.stringify(dataPoint, null, 2));
-            
             // Use inBedStart/inBedEnd for full session duration (includes awake time)
             if (dataPoint.inBedStart && dataPoint.inBedEnd) {
               const bedtime = new Date(dataPoint.inBedStart);

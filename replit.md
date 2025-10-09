@@ -125,8 +125,17 @@ The Google Drive integration is configured and functional for listing and analyz
 - Includes awake time within the session for accurate total sleep tracking
 - Smart deduplication prevents duplicate entries (matches sessions within ±6 hours)
 - Automatic cleanup of duplicate entries when new data arrives
+- **Sleep Score**: Health Auto Export does NOT export Apple's proprietary sleep score
+  - App calculates custom score based on sleep stages (deep, REM, light, awake)
+  - Custom algorithm may differ from Apple's native scoring
+  - For native Apple sleep scores, consider premium APIs (Terra, Vital, ROOK)
 
 **Setup Instructions**: Available at `/apple-health` route in the app
+
+**Known Limitations**:
+- Health Auto Export cannot export Apple's native sleep score (proprietary algorithm)
+- Sleep quality shown is calculated from sleep stage percentages
+- For more accurate sleep scoring matching Apple Health, upgrade to premium health data API
 
 **Technical Note**: Direct HealthKit API integration is not possible in web apps due to Apple's privacy restrictions. Health Auto Export bridges this gap by allowing users to export their own data to a REST API endpoint.
 
