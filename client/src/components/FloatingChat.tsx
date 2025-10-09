@@ -4,7 +4,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Send, X, MessageCircle, Loader2, Minimize2 } from "lucide-react";
+import { Send, X, MessageCircle, Loader2, Minimize2, Sparkles } from "lucide-react";
 import type { ChatMessage } from "@shared/schema";
 
 interface FloatingChatProps {
@@ -83,10 +83,10 @@ export function FloatingChat({ isOpen, onClose, currentPage }: FloatingChatProps
         isMinimized ? "max-h-[60px]" : "h-[min(max(10rem,calc(100dvh-2rem)),600px)]"
       }`}
     >
-      <Card className="flex flex-col h-full shadow-lg">
-        <div className="flex items-center justify-between gap-2 p-4 border-b bg-primary text-primary-foreground">
+      <Card className="flex flex-col h-full shadow-lg bg-background/90 border-purple-500/50">
+        <div className="flex items-center justify-between gap-2 p-4 border-b bg-gradient-to-r from-purple-600 to-purple-700 text-white">
           <div className="flex items-center gap-2">
-            <MessageCircle className="h-5 w-5" />
+            <Sparkles className="h-5 w-5" />
             <h3 className="font-semibold">Health Coach</h3>
           </div>
           <div className="flex items-center gap-1">
@@ -94,7 +94,7 @@ export function FloatingChat({ isOpen, onClose, currentPage }: FloatingChatProps
               size="icon"
               variant="ghost"
               onClick={() => setIsMinimized(!isMinimized)}
-              className="h-8 w-8 text-primary-foreground hover:bg-primary-foreground/20"
+              className="h-8 w-8 text-white hover:bg-white/20"
               data-testid="button-minimize-chat"
             >
               <Minimize2 className="h-4 w-4" />
@@ -103,7 +103,7 @@ export function FloatingChat({ isOpen, onClose, currentPage }: FloatingChatProps
               size="icon"
               variant="ghost"
               onClick={onClose}
-              className="h-8 w-8 text-primary-foreground hover:bg-primary-foreground/20"
+              className="h-8 w-8 text-white hover:bg-white/20"
               data-testid="button-close-chat"
             >
               <X className="h-4 w-4" />
@@ -194,11 +194,11 @@ export function FloatingChatTrigger({ onClick }: { onClick: () => void }) {
   return (
     <Button
       size="icon"
-      className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-40 h-12 w-12 sm:h-14 sm:w-14 rounded-full shadow-lg"
+      className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-40 h-10 w-10 rounded-full shadow-lg bg-gradient-to-br from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800 border-2 border-purple-400 hover:border-purple-300 animate-pulse hover:animate-none transition-all hover:scale-110"
       onClick={onClick}
       data-testid="button-open-floating-chat"
     >
-      <MessageCircle className="h-5 w-5 sm:h-6 sm:w-6" />
+      <Sparkles className="h-5 w-5 text-white" />
     </Button>
   );
 }
