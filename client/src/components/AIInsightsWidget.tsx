@@ -61,7 +61,7 @@ export function AIInsightsWidget() {
 
   const generateMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest('/api/insights/generate', { method: 'POST' });
+      const response = await apiRequest('POST', '/api/insights/generate');
       return response;
     },
     onSuccess: () => {
@@ -83,7 +83,7 @@ export function AIInsightsWidget() {
 
   const dismissMutation = useMutation({
     mutationFn: async (id: string) => {
-      const response = await apiRequest(`/api/insights/${id}/dismiss`, { method: 'PATCH' });
+      const response = await apiRequest('PATCH', `/api/insights/${id}/dismiss`);
       return response;
     },
     onSuccess: () => {

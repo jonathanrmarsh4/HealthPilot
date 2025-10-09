@@ -20,9 +20,13 @@ This is a full-stack application built with:
   - Compact trend line widgets with dynamic time periods
 - **Localization support** - Switch between imperial (lbs, mg/dL) and metric (kg, mmol/L) units
 - **Apple Health integration** via Health Auto Export app (iOS)
+- **AI Intelligence Layer** - Advanced AI-powered features:
+  - **AI Insights Widget**: Daily personalized intelligence with pattern discovery and correlations
+  - **Context-Aware Chat**: AI health coach knows current page, recent biomarkers, and user timezone
+  - **Floating Chat Widget**: Accessible AI coach from all pages with minimize/close functionality
+  - **Enhanced Recommendations**: Multi-metric pattern analysis identifying correlations and root causes
 - AI-generated personalized meal plans
 - AI-generated training schedules
-- Smart health recommendations based on biomarker analysis
 - **Google Drive integration** - Manual analysis (click sparkle icon to analyze files with AI)
 - **Analysis status tracking** - Real-time status for health record processing (pending/processing/completed/failed)
 - **Retry failed analyses** - One-click retry for failed AI analysis with exponential backoff
