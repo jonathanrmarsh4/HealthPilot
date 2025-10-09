@@ -671,8 +671,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const chatHistory = await storage.getChatMessages(userId);
       const chatContext = chatHistory.map(msg => `${msg.role}: ${msg.content}`).join('\n');
       
+      // Get recent sleep sessions (last 30 days)
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const sleepSessions = await storage.getSleepSessions(userId, thirtyDaysAgo, new Date());
+      
+      // Get recent AI insights for context
+      const recentInsights = await storage.getInsights(userId, 10);
+      
       const recommendations = await generateHealthRecommendations({
         biomarkers,
+        sleepSessions,
+        recentInsights,
         healthGoals: req.body.healthGoals || [],
         chatContext
       });

@@ -333,6 +333,8 @@ Make sure the schedule is safe, progressive, and aligned with the user's fitness
 
 export async function generateHealthRecommendations(data: {
   biomarkers: any[];
+  sleepSessions?: any[];
+  recentInsights?: any[];
   recentTrends?: any;
   healthGoals?: string[];
   chatContext?: string;
@@ -341,39 +343,118 @@ export async function generateHealthRecommendations(data: {
     ? `\n\n## Conversation History with User:\n${data.chatContext}\n\nUse insights from the conversation to provide recommendations that align with the user's goals, preferences, and lifestyle discussed in the chat.`
     : '';
 
-  const message = await anthropic.messages.create({
+  // Organize biomarkers by type for pattern analysis
+  const biomarkersByType: Record<string, any[]> = {};
+  data.biomarkers.forEach(b => {
+    if (!biomarkersByType[b.type]) {
+      biomarkersByType[b.type] = [];
+    }
+    biomarkersByType[b.type].push(b);
+  });
+
+  // Calculate trends for each biomarker type
+  const trends: Record<string, { direction: string; change: number; recent: any; oldest: any }> = {};
+  Object.entries(biomarkersByType).forEach(([type, values]) => {
+    if (values.length >= 2) {
+      const sorted = values.sort((a, b) => new Date(a.recordedAt).getTime() - new Date(b.recordedAt).getTime());
+      const oldest = sorted[0];
+      const recent = sorted[sorted.length - 1];
+      
+      // Handle division by zero and invalid baseline values
+      let change = 0;
+      let direction = 'stable';
+      
+      if (oldest.value === 0 || oldest.value === null || oldest.value === undefined) {
+        // If baseline is zero/null, use absolute difference instead
+        if (recent.value > 0) {
+          direction = 'increasing';
+          change = recent.value;
+        } else if (recent.value < 0) {
+          direction = 'decreasing';
+          change = Math.abs(recent.value);
+        }
+      } else {
+        // Normal percentage change calculation
+        const rawChange = ((recent.value - oldest.value) / oldest.value) * 100;
+        // Cap change at 1000% to avoid extreme outliers
+        change = Math.min(Math.abs(rawChange), 1000);
+        direction = rawChange > 0 ? 'increasing' : rawChange < 0 ? 'decreasing' : 'stable';
+      }
+      
+      trends[type] = {
+        direction,
+        change,
+        recent,
+        oldest
+      };
+    }
+  });
+
+  const analysisPrompt = `You are an advanced health insights AI with expertise in multi-metric pattern analysis. Analyze the user's comprehensive health data to identify patterns, correlations, and opportunities for improvement.
+
+## HEALTH DATA:
+${JSON.stringify({ 
+  biomarkersByType, 
+  trends,
+  sleepSessions: data.sleepSessions,
+  recentInsights: data.recentInsights,
+  healthGoals: data.healthGoals 
+}, null, 2)}${chatContextSection}
+
+## ANALYSIS FRAMEWORK:
+
+1. **Multi-Metric Correlations:**
+   - Identify relationships between different biomarkers (e.g., sleep quality vs. blood glucose, exercise vs. resting heart rate)
+   - Look for cascading effects (e.g., poor sleep → elevated glucose → low energy)
+   - Find synergistic opportunities (e.g., improving one metric may benefit others)
+
+2. **Trend Analysis:**
+   - Evaluate trajectory of each biomarker (improving, declining, stable)
+   - Identify concerning patterns or positive momentum
+   - Predict potential future issues based on current trends
+
+3. **Holistic Health Assessment:**
+   - Consider the full picture: biomarkers, sleep, activity, lifestyle
+   - Identify root causes, not just symptoms
+   - Look for lifestyle factors affecting multiple metrics
+
+4. **Personalized Priorities:**
+   - What needs immediate attention? (high priority)
+   - What's on track but could be optimized? (medium priority)
+   - What preventive measures should be taken? (low-medium priority)
+
+## OUTPUT FORMAT:
+Generate a JSON array of 3-5 recommendations with this structure:
+[
+  {
+    "title": "Clear, specific recommendation title",
+    "description": "Brief summary emphasizing the multi-metric benefit",
+    "category": "Nutrition" | "Exercise" | "Biomarker" | "Lifestyle",
+    "priority": "high" | "medium" | "low",
+    "details": "Detailed explanation including: (1) pattern/correlation identified, (2) why it matters, (3) expected multi-metric impact",
+    "actionLabel": "Specific action button text"
+  }
+]
+
+## QUALITY CRITERIA:
+- Each recommendation should reference specific data points and patterns
+- Highlight multi-metric benefits (e.g., "This will improve both sleep and glucose control")
+- Provide clear, actionable steps
+- Explain the "why" behind each recommendation
+- Prioritize based on potential health impact and user goals
+
+Generate insights that demonstrate deep understanding of how different health metrics interact and influence each other.`;
+
+  const message = await retryWithBackoff(() => anthropic.messages.create({
     model: "claude-3-haiku-20240307",
     max_tokens: 4096,
     messages: [
       {
         role: "user",
-        content: `You are a health insights AI. Analyze the following health data and provide actionable recommendations:
-
-${JSON.stringify(data, null, 2)}${chatContextSection}
-
-Generate a JSON array of recommendations with this structure:
-[
-  {
-    "title": "Recommendation title",
-    "description": "Brief description",
-    "category": "Nutrition" | "Exercise" | "Biomarker" | "Lifestyle",
-    "priority": "high" | "medium" | "low",
-    "details": "Detailed explanation and reasoning",
-    "actionLabel": "Action button text"
-  }
-]
-
-Focus on:
-1. Any biomarkers outside optimal ranges
-2. Concerning trends
-3. Opportunities for improvement
-4. Preventive health measures
-5. User's personal goals and preferences shared in the conversation
-
-Provide 3-5 specific, actionable recommendations prioritized by importance and aligned with what the user shared about their health journey.`,
+        content: analysisPrompt,
       },
     ],
-  });
+  }));
 
   const content = message.content[0];
   if (content.type === "text") {
