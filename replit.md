@@ -16,7 +16,7 @@ The application is a full-stack project utilizing React, TypeScript, Tailwind CS
 - Dark mode support
 - Responsive design
 - Biomarker trend visualization with color-coded badges and compact trend line widgets.
-- Floating AI Chat Widget with responsive mobile design.
+- Purple sparkly AI Chat Widget - small animated icon in bottom-right corner that opens to a semi-transparent chat window with purple gradient header and responsive mobile design.
 
 **Technical Implementations:**
 - **AI Intelligence Layer:** Provides daily personalized insights, context-aware chat, enhanced multi-metric recommendations, and alternative therapy suggestions.
