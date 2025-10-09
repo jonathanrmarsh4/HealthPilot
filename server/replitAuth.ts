@@ -146,49 +146,34 @@ export async function setupAuth(app: Express) {
   });
 
   app.get("/api/login", (req, res, next) => {
-    const oauthDomain = getOAuthDomain(req.hostname);
-    const strategyName = `replitauth:${oauthDomain}`;
-    
     console.log("🔐 Login request:", {
       requestHostname: req.hostname,
-      host: req.headers.host,
-      referer: req.headers.referer,
-      origin: req.headers.origin,
-      oauthDomain,
-      strategyName
+      strategyName: `replitauth:${req.hostname}`
     });
     
-    passport.authenticate(strategyName, {
+    passport.authenticate(`replitauth:${req.hostname}`, {
+      prompt: "login consent",
       scope: ["openid", "email", "profile", "offline_access"],
     })(req, res, next);
   });
 
   app.get("/api/callback", (req, res, next) => {
-    const oauthDomain = getOAuthDomain(req.hostname);
-    const strategyName = `replitauth:${oauthDomain}`;
-    
     console.log("🔄 OAuth callback:", {
       requestHostname: req.hostname,
-      host: req.headers.host,
-      referer: req.headers.referer,
-      oauthDomain,
-      strategyName,
+      strategyName: `replitauth:${req.hostname}`,
       hasCode: !!req.query.code,
-      hasError: !!req.query.error,
-      errorDescription: req.query.error_description,
-      queryParams: req.query
+      hasError: !!req.query.error
     });
     
     // If Replit returned an error, log it clearly
     if (req.query.error) {
       console.error("❌ OAuth Error from Replit:", {
         error: req.query.error,
-        description: req.query.error_description,
-        allParams: req.query
+        description: req.query.error_description
       });
     }
     
-    passport.authenticate(strategyName, {
+    passport.authenticate(`replitauth:${req.hostname}`, {
       successReturnToOrRedirect: "/",
       failureRedirect: "/api/login",
     })(req, res, next);
