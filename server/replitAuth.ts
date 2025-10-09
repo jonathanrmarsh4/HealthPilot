@@ -106,9 +106,22 @@ export async function setupAuth(app: Express) {
 
   app.get("/api/login", (req, res, next) => {
     const domains = process.env.REPLIT_DOMAINS!.split(",");
+    console.log("🔐 Login attempt:", {
+      hostname: req.hostname,
+      headers: {
+        host: req.headers.host,
+        origin: req.headers.origin,
+        referer: req.headers.referer
+      },
+      configuredDomains: domains,
+      matchedDomain: domains.includes(req.hostname)
+    });
+    
     const strategyName = domains.includes(req.hostname) 
       ? `replitauth:${req.hostname}` 
       : `replitauth:${domains[0]}`;
+    
+    console.log(`Using strategy: ${strategyName}`);
     
     passport.authenticate(strategyName, {
       scope: ["openid", "email", "profile", "offline_access"],
@@ -117,6 +130,13 @@ export async function setupAuth(app: Express) {
 
   app.get("/api/callback", (req, res, next) => {
     const domains = process.env.REPLIT_DOMAINS!.split(",");
+    console.log("🔄 OAuth callback:", {
+      hostname: req.hostname,
+      host: req.headers.host,
+      queryParams: req.query,
+      configuredDomains: domains
+    });
+    
     const strategyName = domains.includes(req.hostname) 
       ? `replitauth:${req.hostname}` 
       : `replitauth:${domains[0]}`;
