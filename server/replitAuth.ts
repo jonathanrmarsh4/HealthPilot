@@ -128,8 +128,22 @@ export async function setupAuth(app: Express) {
     console.log(`✅ Registered OAuth strategy for: ${domain}`);
   }
 
-  passport.serializeUser((user: Express.User, cb) => cb(null, user));
-  passport.deserializeUser((user: Express.User, cb) => cb(null, user));
+  passport.serializeUser((user: Express.User, cb) => {
+    console.log("📦 Serializing user:", { 
+      keys: Object.keys(user),
+      hasClaims: !!(user as any).claims,
+      hasExpiresAt: !!(user as any).expires_at
+    });
+    cb(null, user);
+  });
+  passport.deserializeUser((user: Express.User, cb) => {
+    console.log("📤 Deserializing user:", { 
+      keys: Object.keys(user),
+      hasClaims: !!(user as any).claims,
+      hasExpiresAt: !!(user as any).expires_at
+    });
+    cb(null, user);
+  });
 
   app.get("/api/login", (req, res, next) => {
     const oauthDomain = getOAuthDomain(req.hostname);
