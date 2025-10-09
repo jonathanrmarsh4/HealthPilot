@@ -1,269 +1,41 @@
 # Health Insights AI - AI-Powered Health Dashboard
 
-An AI-powered health insights platform that analyzes health records, tracks biomarkers, and provides personalized meal plans, training schedules, and health recommendations.
+## Overview
 
-## Project Overview
+Health Insights AI is an AI-powered health insights platform designed to analyze health records, track biomarkers, and deliver personalized health recommendations. It provides AI-generated meal plans, training schedules, and alternative therapy suggestions. The platform aims to empower users with personalized intelligence, pattern discovery, and correlations from their health data to optimize their well-being.
 
-This is a full-stack application built with:
-- **Frontend**: React + TypeScript + Tailwind CSS + shadcn/ui
-- **Backend**: Express.js + TypeScript
-- **Database**: PostgreSQL (via Drizzle ORM)
-- **AI**: Anthropic Claude 3 Haiku
-- **Integrations**: Google Drive, Apple Health (via Health Auto Export)
+## User Preferences
 
-## Key Features
+I prefer simple language and clear explanations. I want iterative development where I can provide feedback at each stage. Ask before making major changes to the project structure or core functionalities. Do not make changes to the `replit.nix` file.
 
-- Health record upload and AI analysis
-- **Biomarker tracking** with trend visualization organized into 10 clinical subsections
-  - Displays multiple data points over time (not just latest value)
-  - Shows reference range status (in range, above, below) with color-coded badges
-  - Compact trend line widgets with dynamic time periods
-- **Localization support** - Switch between imperial (lbs, mg/dL) and metric (kg, mmol/L) units
-- **Apple Health integration** via Health Auto Export app (iOS)
-- **AI Intelligence Layer** - Advanced AI-powered features:
-  - **AI Insights Widget**: Daily personalized intelligence with pattern discovery and correlations
-  - **Context-Aware Chat**: AI health coach knows current page, recent biomarkers, and user timezone
-  - **Floating Chat Widget**: Accessible AI coach from all pages with minimize/close functionality
-  - **Enhanced Recommendations**: Multi-metric pattern analysis identifying correlations and root causes
-  - **Alternative Therapy Suggestions**: AI recommends sauna, cold plunge, and other therapies when aligned with biomarkers and goals
-- AI-generated personalized meal plans
-- AI-generated training schedules
-- **Google Drive integration** - Manual analysis (click sparkle icon to analyze files with AI)
-- **Analysis status tracking** - Real-time status for health record processing (pending/processing/completed/failed)
-- **Retry failed analyses** - One-click retry for failed AI analysis with exponential backoff
+## System Architecture
+
+The application is a full-stack project utilizing React, TypeScript, Tailwind CSS, and shadcn/ui for the frontend, and Express.js with TypeScript for the backend. PostgreSQL, accessed via Drizzle ORM, serves as the primary database. AI capabilities are powered by Anthropic Claude 3 Haiku.
+
+**UI/UX Decisions:**
 - Dark mode support
 - Responsive design
+- Biomarker trend visualization with color-coded badges and compact trend line widgets.
+- Floating AI Chat Widget with responsive mobile design.
 
-## Important Notes
+**Technical Implementations:**
+- **AI Intelligence Layer:** Provides daily personalized insights, context-aware chat, enhanced multi-metric recommendations, and alternative therapy suggestions.
+- **Biomarker Tracking:** Displays multiple data points over time, shows reference range status, and supports localization for imperial/metric units.
+- **Authentication:** Production-ready security implementation using Replit Auth (OpenID Connect) with custom domain support and role-based access control.
+- **Security Protections:** Includes IDOR protection, privilege escalation prevention, data isolation, webhook authentication, and Zod schema validation.
+- **File Upload Security:** Validation for file size, types (PDF, DOC, DOCX, JPG, PNG, TXT), and mime types.
+- **Sleep Data Implementation:** Uses `inBedStart` and `inBedEnd` for sleep session duration, includes awake time, and performs smart deduplication. Custom sleep score calculation is implemented as Apple's native score is not exportable.
 
-### Authentication & Security
-**Current Status**: ✅ **Production-Ready Security Implementation with Custom Domain**
+**Feature Specifications:**
+- Health record upload and AI analysis with status tracking and retry functionality.
+- AI-generated personalized meal plans and training schedules.
+- AI-powered alternative therapy recommendations (sauna, cold plunge, red light therapy, etc.) based on biomarker analysis.
+- Admin control panel for user and subscription management.
 
-The application uses **Replit Auth** (OpenID Connect) with comprehensive security features and is fully deployed at **healthpilot.pro**:
+## External Dependencies
 
-**Authentication Features**:
-- **Login page for unauthenticated users** - New visitors see a branded login page with "Sign in with Replit" button
-- **Custom domain support** - OAuth properly configured for healthpilot.pro via REPLIT_DOMAINS environment variable
-- Session-based authentication with automatic token refresh
-- Secure user registration and login via Replit Auth (SSO - auto-authenticates if logged into Replit)
-- Role-based access control (user/admin roles)
-- Admin control panel with user management
-- Protected API routes with `isAuthenticated` and `isAdmin` middleware
-
-**Custom Domain Setup**:
-- Domain: healthpilot.pro
-- REPLIT_DOMAINS must include both dev domain and custom domain (comma-separated)
-- OAuth callback: https://healthpilot.pro/api/callback
-- Login endpoint: https://healthpilot.pro/api/login
-
-**Dev URL Handling** (Updated October 2025):
-- ✅ **Production authentication**: Works perfectly on all browsers and mobile devices at healthpilot.pro
-- ⚠️ **Dev authentication limitation**: OAuth login doesn't work in Replit iOS app's embedded browser due to cookie handling restrictions
-- **Recommended for dev testing**: Use desktop/laptop browser to access dev URLs
-- **Recommended for mobile testing**: Use production site (healthpilot.pro) which works on all devices
-- Production domain (healthpilot.pro) uses exact domain matching for OAuth
-
-**Security Protections**:
-- ✅ **IDOR Protection**: All storage methods enforce user ownership checks (filter by both id AND userId)
-- ✅ **Privilege Escalation Prevention**: Admin updates use dedicated `updateUserAdminFields` method with storage-layer whitelist
-- ✅ **Data Isolation**: Users can ONLY access their own health records, biomarkers, and other resources
-- ✅ **Webhook Authentication**: External services use X-Webhook-Secret header authentication
-- ✅ **Input Validation**: Zod schema validation on all admin endpoints
-
-**Admin Features**:
-- View all users with search and pagination
-- Update user roles (user/admin)
-- Manage subscription tiers (free/premium/enterprise)
-- Manage subscription status (active/inactive/cancelled/past_due)
-- Platform statistics dashboard
-
-### File Upload Security
-Current file upload validation includes:
-- Maximum file size: 10MB
-- Allowed types: PDF, DOC, DOCX, JPG, PNG, TXT
-- Mime type validation
-
-**Production Improvements Needed**:
-- Add virus/malware scanning for uploaded files
-- Implement rate limiting on upload endpoints
-- Add file content validation beyond mime types
-- Consider using cloud storage (S3, etc.) instead of memory storage
-
-### Google Drive Integration
-The Google Drive integration is configured and functional for listing and analyzing files. The connector handles OAuth automatically through Replit's integration system.
-
-### Apple Health Integration
-**Implementation**: Uses Health Auto Export iOS app (DIY budget solution)
-
-**How it works**:
-1. User installs "Health Auto Export - JSON+CSV" from App Store (~$5-10 for Premium with REST API)
-2. User configures REST API automation in the app to send data to webhook endpoint
-3. App automatically exports Apple Health data (heart rate, blood glucose, weight, steps, sleep, etc.)
-4. Data is received via webhook and stored in biomarkers table
-
-**Webhook Endpoint**: `POST /api/health-auto-export/ingest`
-
-**Webhook Authentication**:
-- Uses custom webhook authentication (not session-based)
-- Requires two headers:
-  - `X-Webhook-Secret`: Shared secret (configured via `WEBHOOK_SECRET` env var)
-  - `X-User-Id`: User ID to associate the data with
-- This allows external iOS clients to send data without browser sessions
-
-**Supported Metrics**:
-- Heart Rate (Resting & Active)
-- Blood Glucose
-- Weight
-- Steps & Active Energy (Calories)
-- Blood Pressure (Systolic/Diastolic)
-- Oxygen Saturation
-- Body Temperature
-- Sleep Analysis (uses full "in bed" duration including awake time for accurate tracking)
-
-**Sleep Data Implementation**:
-- Uses `inBedStart` and `inBedEnd` timestamps for complete sleep session duration
-- Includes awake time within the session for accurate total sleep tracking
-- Smart deduplication prevents duplicate entries (matches sessions within ±6 hours)
-- Automatic cleanup of duplicate entries when new data arrives
-- **Sleep Score**: Health Auto Export does NOT export Apple's proprietary sleep score
-  - App calculates custom score based on sleep stages (deep, REM, light, awake)
-  - Custom algorithm may differ from Apple's native scoring
-  - For native Apple sleep scores, consider premium APIs (Terra, Vital, ROOK)
-
-**Setup Instructions**: Available at `/apple-health` route in the app
-
-**Known Limitations**:
-- Health Auto Export cannot export Apple's native sleep score (proprietary algorithm)
-- Sleep quality shown is calculated from sleep stage percentages
-- For more accurate sleep scoring matching Apple Health, upgrade to premium health data API
-
-**Technical Note**: Direct HealthKit API integration is not possible in web apps due to Apple's privacy restrictions. Health Auto Export bridges this gap by allowing users to export their own data to a REST API endpoint.
-
-## Development
-
-```bash
-npm run dev  # Starts both frontend and backend
-npm run db:push  # Syncs database schema (development only)
-```
-
-**Database Sync Status** (October 2025):
-- ✅ **Development database**: Fully synced with all tables including AI Intelligence Layer
-- ✅ **Production database**: Fully synced with all tables (insights, chat_messages created manually via SQL)
-- **Note**: Dev and production use separate databases - schema changes must be applied to both environments
-
-## API Endpoints
-
-### Authentication Endpoints
-- `GET /api/login` - Initiate Replit Auth login flow
-- `GET /api/callback` - OAuth callback handler
-- `GET /api/logout` - Logout and clear session
-- `GET /api/auth/user` - Get current authenticated user
-
-### Admin Endpoints (requires admin role)
-- `GET /api/admin/users` - List all users with search/pagination
-- `GET /api/admin/users/:id` - Get user details
-- `PATCH /api/admin/users/:id` - Update user (role, subscription tier/status only)
-- `GET /api/admin/stats` - Platform statistics
-
-### User Endpoints (requires authentication)
-- `GET /api/dashboard/stats` - Dashboard statistics
-- `GET /api/health-records` - List health records
-- `POST /api/health-records/upload` - Upload health document
-- `DELETE /api/health-records/:id` - Delete health record
-- `POST /api/health-records/analyze/:fileId` - Analyze Google Drive file
-- `POST /api/health-records/:id/retry` - Retry failed AI analysis
-- `GET /api/google-drive/files` - List Google Drive files
-- `GET /api/biomarkers` - List biomarkers
-- `POST /api/biomarkers` - Create biomarker entry
-- `GET /api/biomarkers/chart/:type` - Get chart data for biomarker type
-- `GET /api/meal-plans` - List meal plans
-- `POST /api/meal-plans/generate` - Generate AI meal plan
-- `GET /api/training-schedules` - List training schedules  
-- `POST /api/training-schedules/generate` - Generate AI training schedule
-- `PATCH /api/training-schedules/:id/complete` - Toggle workout completion
-- `GET /api/recommendations` - List active recommendations
-- `POST /api/recommendations/generate` - Generate AI recommendations
-- `PATCH /api/recommendations/:id/dismiss` - Dismiss recommendation
-
-### Webhook Endpoints (requires webhook authentication)
-- `POST /api/health-auto-export/ingest` - Webhook for Apple Health data (requires X-Webhook-Secret and X-User-Id headers)
-
-## AI Alternative Therapy Recommendations
-
-The AI intelligently suggests alternative therapies as complementary interventions when they align with the user's specific biomarkers, health goals, and physiology:
-
-**Sauna Therapy** - Suggested for:
-- Cardiovascular health improvement (heart rate variability, resting heart rate optimization)
-- Detoxification support (elevated inflammatory markers like CRP)
-- Recovery enhancement (muscle soreness, post-workout recovery)
-- Stress reduction (elevated cortisol, poor sleep quality)
-- Longevity and general wellness optimization
-
-**Cold Plunge/Cryotherapy** - Suggested for:
-- Inflammation reduction (elevated CRP, ESR markers)
-- Metabolic enhancement (glucose control, metabolic syndrome indicators)
-- Recovery acceleration (intense training, elevated muscle markers)
-- Mental clarity and energy optimization
-- Immune system support
-
-**Other Alternative Therapies** (when relevant):
-- Red light therapy (skin health, wound healing, mitochondrial function)
-- Breathwork practices (stress markers, oxygen saturation, respiratory health)
-- Contrast therapy (circulation and recovery optimization)
-- Compression therapy (lymphatic health, circulation improvement)
-
-**Implementation**: Alternative therapy suggestions appear in:
-- AI Recommendations (category: "Alternative Therapy")
-- AI Insights Widget (when patterns indicate benefit)
-- Health Coach Chat (context-aware suggestions based on biomarkers)
-
-The AI only recommends these therapies when they would meaningfully support the user's specific data patterns, always explaining the physiological mechanism and expected benefits.
-
-## Database Schema
-
-Tables:
-- `users` - User accounts with role-based access control
-  - Roles: user, admin
-  - Subscription tiers: free, premium, enterprise
-  - Subscription status: active, inactive, cancelled, past_due
-- `sessions` - Session storage for Replit Auth
-- `health_records` - Uploaded health documents and AI analysis (status: pending/processing/completed/failed)
-- `biomarkers` - Health metrics (glucose, weight, heart rate, etc.)
-- `sleep_sessions` - Sleep tracking data from Apple Health
-- `meal_plans` - AI-generated meal suggestions
-- `training_schedules` - AI-generated workout plans
-- `recommendations` - AI health recommendations (categories: Nutrition, Exercise, Biomarker, Lifestyle, Alternative Therapy)
-- `insights` - AI-generated daily insights with pattern discovery
-- `chat_messages` - Conversation history with AI health coach
-
-## Environment Variables Required
-
-- `ANTHROPIC_API_KEY` - Anthropic Claude API key
-- `DATABASE_URL` - PostgreSQL connection string
-- `SESSION_SECRET` - Secret for session encryption
-- `REPL_ID` - Replit app ID (auto-provided)
-- `REPLIT_DOMAINS` - Comma-separated list of domains (auto-provided)
-- `ISSUER_URL` - OIDC issuer URL (default: https://replit.com/oidc)
-- `WEBHOOK_SECRET` - Shared secret for webhook authentication (optional, defaults to "dev-webhook-secret-12345")
-- Google Drive integration credentials (managed by Replit connector)
-
-## Security Best Practices
-
-For production deployment, consider:
-1. **Rotate Secrets**: Change `WEBHOOK_SECRET` and `SESSION_SECRET` regularly
-2. **Rate Limiting**: Add rate limiting to prevent abuse
-3. **Audit Logging**: Log admin actions for compliance
-4. **File Scanning**: Add virus/malware scanning for uploaded files
-5. **HTTPS Only**: Ensure all connections use HTTPS
-6. **Regular Updates**: Keep dependencies up to date
-7. **Monitoring**: Set up alerts for suspicious activity
-
-## Future Enhancements
-
-1. **Enhanced Apple Health Sync** - Consider premium APIs (Terra, Vital, ROOK) for automatic multi-platform sync
-2. **Stripe Integration** - Billing and subscription management
-3. **Advanced Analytics** - Predictive health insights and early warning systems
-4. **Export/Sharing** - Generate PDF reports for healthcare providers
-5. **Native Mobile App** - iOS/Android apps with direct HealthKit/Google Fit access
-6. **Additional Wearables** - Fitbit, Garmin, Whoop, Oura Ring integration
-7. **Email Notifications** - Health alerts and recommendations via email
+- **Database:** PostgreSQL (via Drizzle ORM)
+- **AI:** Anthropic Claude 3 Haiku
+- **Authentication:** Replit Auth (OpenID Connect)
+- **File Storage:** Google Drive (for manual analysis of files)
+- **Health Data Integration:** Apple Health (via Health Auto Export iOS app webhook to `POST /api/health-auto-export/ingest`)
