@@ -56,12 +56,12 @@ The application uses **Replit Auth** (OpenID Connect) with comprehensive securit
 - OAuth callback: https://healthpilot.pro/api/callback
 - Login endpoint: https://healthpilot.pro/api/login
 
-**Dev URL Handling** (Fixed October 2025):
-- ✅ **Automatic dev domain mapping**: Any Replit dev URL (workspace, webview, etc.) automatically maps to the configured REPLIT_DEV_DOMAIN for OAuth
-- Works with: workspace URLs, webview URLs, and any other Replit dev subdomain
-- No need to manually configure each dev URL - the system uses REPLIT_DEV_DOMAIN as the OAuth domain for all non-production requests
+**Dev URL Handling** (Updated October 2025):
+- ✅ **Production authentication**: Works perfectly on all browsers and mobile devices at healthpilot.pro
+- ⚠️ **Dev authentication limitation**: OAuth login doesn't work in Replit iOS app's embedded browser due to cookie handling restrictions
+- **Recommended for dev testing**: Use desktop/laptop browser to access dev URLs
+- **Recommended for mobile testing**: Use production site (healthpilot.pro) which works on all devices
 - Production domain (healthpilot.pro) uses exact domain matching for OAuth
-- This fixes "Invalid Authentication Request" errors when accessing from different Replit dev URLs
 
 **Security Protections**:
 - ✅ **IDOR Protection**: All storage methods enforce user ownership checks (filter by both id AND userId)
@@ -134,8 +134,13 @@ The Google Drive integration is configured and functional for listing and analyz
 
 ```bash
 npm run dev  # Starts both frontend and backend
-npm run db:push  # Syncs database schema
+npm run db:push  # Syncs database schema (development only)
 ```
+
+**Database Sync Status** (October 2025):
+- ✅ **Development database**: Fully synced with all tables including AI Intelligence Layer
+- ✅ **Production database**: Fully synced with all tables (insights, chat_messages created manually via SQL)
+- **Note**: Dev and production use separate databases - schema changes must be applied to both environments
 
 ## API Endpoints
 
