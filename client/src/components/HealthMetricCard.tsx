@@ -68,7 +68,7 @@ export function HealthMetricCard({
           
           {referenceRange && (
             <div className="text-xs text-muted-foreground" data-testid={`text-reference-range-${title.toLowerCase().replace(/\s/g, "-")}`}>
-              Reference: {referenceRange.low}-{referenceRange.high} {unit}
+              Reference: {referenceRange.low.toFixed(1)}-{referenceRange.high.toFixed(1)} {unit}
             </div>
           )}
           
