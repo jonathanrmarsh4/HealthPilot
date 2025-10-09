@@ -175,8 +175,18 @@ export async function setupAuth(app: Express) {
       strategyName,
       hasCode: !!req.query.code,
       hasError: !!req.query.error,
-      errorDescription: req.query.error_description
+      errorDescription: req.query.error_description,
+      queryParams: req.query
     });
+    
+    // If Replit returned an error, log it clearly
+    if (req.query.error) {
+      console.error("❌ OAuth Error from Replit:", {
+        error: req.query.error,
+        description: req.query.error_description,
+        allParams: req.query
+      });
+    }
     
     passport.authenticate(strategyName, {
       successReturnToOrRedirect: "/",
