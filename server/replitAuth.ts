@@ -69,46 +69,29 @@ async function upsertUser(
   });
 }
 
-// Helper function to check if a domain is a Replit domain
-function isReplitDomain(domain: string): boolean {
-  const replitPatterns = [
-    /\.repl\.co$/,           // workspace URLs
-    /\.replit\.dev$/,        // general replit dev URLs
-    /\.pike\.replit\.dev$/,  // pike dev URLs
-    /\.id\.replit\.dev$/,    // id dev URLs
-    /\.rcs\.replit\.dev$/,   // rcs dev URLs
-  ];
+// Helper to determine which OAuth strategy domain to use
+function getOAuthDomain(hostname: string): string {
+  const configuredDomains = process.env.REPLIT_DOMAINS!.split(",").map(d => d.trim());
   
-  return replitPatterns.some(pattern => pattern.test(domain));
-}
-
-// Track registered strategies to avoid duplicates
-const registeredStrategies = new Set<string>();
-
-// Helper to register a strategy for a domain
-async function registerStrategyForDomain(domain: string, verify: VerifyFunction) {
-  const strategyName = `replitauth:${domain}`;
-  
-  if (registeredStrategies.has(strategyName)) {
-    return strategyName;
+  // If hostname exactly matches a configured domain, use it
+  if (configuredDomains.includes(hostname)) {
+    return hostname;
   }
-
-  const config = await getOidcConfig();
-  const strategy = new Strategy(
-    {
-      name: strategyName,
-      config,
-      scope: "openid email profile offline_access",
-      callbackURL: `https://${domain}/api/callback`,
-    },
-    verify,
-  );
   
-  passport.use(strategy);
-  registeredStrategies.add(strategyName);
-  console.log(`✅ Registered new auth strategy for domain: ${domain}`);
+  // If REPLIT_DEV_DOMAIN exists and hostname is not a configured domain,
+  // assume it's a dev URL (workspace, webview, etc.) and map to dev domain
+  if (process.env.REPLIT_DEV_DOMAIN) {
+    const devDomain = process.env.REPLIT_DEV_DOMAIN;
+    // Check if dev domain is in configured domains
+    if (configuredDomains.includes(devDomain)) {
+      console.log(`📍 Mapping ${hostname} -> ${devDomain} (dev environment)`);
+      return devDomain;
+    }
+  }
   
-  return strategyName;
+  // Fallback to first configured domain
+  console.log(`⚠️ Unknown domain ${hostname}, using fallback: ${configuredDomains[0]}`);
+  return configuredDomains[0];
 }
 
 export async function setupAuth(app: Express) {
@@ -132,80 +115,47 @@ export async function setupAuth(app: Express) {
   // Register strategies for all configured domains
   const configuredDomains = process.env.REPLIT_DOMAINS!.split(",").map(d => d.trim());
   for (const domain of configuredDomains) {
-    await registerStrategyForDomain(domain, verify);
+    const strategy = new Strategy(
+      {
+        name: `replitauth:${domain}`,
+        config,
+        scope: "openid email profile offline_access",
+        callbackURL: `https://${domain}/api/callback`,
+      },
+      verify,
+    );
+    passport.use(strategy);
+    console.log(`✅ Registered OAuth strategy for: ${domain}`);
   }
 
   passport.serializeUser((user: Express.User, cb) => cb(null, user));
   passport.deserializeUser((user: Express.User, cb) => cb(null, user));
 
-  app.get("/api/login", async (req, res, next) => {
-    const hostname = req.hostname;
-    const configuredDomains = process.env.REPLIT_DOMAINS!.split(",").map(d => d.trim());
+  app.get("/api/login", (req, res, next) => {
+    const oauthDomain = getOAuthDomain(req.hostname);
+    const strategyName = `replitauth:${oauthDomain}`;
     
-    console.log("🔐 Login attempt:", {
-      hostname,
-      host: req.headers.host,
-      isReplitDomain: isReplitDomain(hostname),
-      configuredDomains,
-      isConfigured: configuredDomains.includes(hostname)
+    console.log("🔐 Login request:", {
+      requestHostname: req.hostname,
+      oauthDomain,
+      strategyName
     });
-    
-    let strategyName: string;
-    
-    // If hostname is in configured domains, use it
-    if (configuredDomains.includes(hostname)) {
-      strategyName = `replitauth:${hostname}`;
-    } 
-    // If it's a Replit domain but not configured, dynamically register it
-    else if (isReplitDomain(hostname)) {
-      console.log(`🔧 Dynamically registering strategy for Replit domain: ${hostname}`);
-      strategyName = await registerStrategyForDomain(hostname, verify);
-    }
-    // Otherwise fall back to first configured domain
-    else {
-      console.log(`⚠️ Unknown domain ${hostname}, using fallback: ${configuredDomains[0]}`);
-      strategyName = `replitauth:${configuredDomains[0]}`;
-    }
-    
-    console.log(`Using strategy: ${strategyName}`);
     
     passport.authenticate(strategyName, {
       scope: ["openid", "email", "profile", "offline_access"],
     })(req, res, next);
   });
 
-  app.get("/api/callback", async (req, res, next) => {
-    const hostname = req.hostname;
-    const configuredDomains = process.env.REPLIT_DOMAINS!.split(",").map(d => d.trim());
+  app.get("/api/callback", (req, res, next) => {
+    const oauthDomain = getOAuthDomain(req.hostname);
+    const strategyName = `replitauth:${oauthDomain}`;
     
     console.log("🔄 OAuth callback:", {
-      hostname,
-      host: req.headers.host,
-      queryParams: req.query,
-      isReplitDomain: isReplitDomain(hostname),
-      configuredDomains
+      requestHostname: req.hostname,
+      oauthDomain,
+      strategyName,
+      hasCode: !!req.query.code
     });
-    
-    let strategyName: string;
-    
-    // If hostname is in configured domains, use it
-    if (configuredDomains.includes(hostname)) {
-      strategyName = `replitauth:${hostname}`;
-    }
-    // If it's a Replit domain but not configured, it should already be registered from /api/login
-    else if (isReplitDomain(hostname)) {
-      strategyName = `replitauth:${hostname}`;
-      // Double-check it's registered (it should be from the login flow)
-      if (!registeredStrategies.has(strategyName)) {
-        console.log(`🔧 Callback received before login - registering strategy for: ${hostname}`);
-        strategyName = await registerStrategyForDomain(hostname, verify);
-      }
-    }
-    // Otherwise fall back to first configured domain
-    else {
-      console.log(`⚠️ Unknown domain ${hostname}, using fallback: ${configuredDomains[0]}`);
-      strategyName = `replitauth:${configuredDomains[0]}`;
-    }
     
     passport.authenticate(strategyName, {
       successReturnToOrRedirect: "/",
