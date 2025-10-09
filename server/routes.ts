@@ -5,7 +5,7 @@ import { db } from "./db";
 import multer from "multer";
 import { insertBiomarkerSchema, insertHealthRecordSchema, biomarkers, sleepSessions, healthRecords, mealPlans, trainingSchedules, recommendations } from "@shared/schema";
 import { listHealthDocuments, downloadFile, getFileMetadata } from "./services/googleDrive";
-import { analyzeHealthDocument, generateMealPlan, generateTrainingSchedule, generateHealthRecommendations, chatWithHealthCoach } from "./services/ai";
+import { analyzeHealthDocument, generateMealPlan, generateTrainingSchedule, generateHealthRecommendations, chatWithHealthCoach, generateDailyInsights } from "./services/ai";
 import { parseISO, isValid } from "date-fns";
 import { eq, and } from "drizzle-orm";
 import { isAuthenticated, isAdmin, webhookAuth } from "./replitAuth";
@@ -709,6 +709,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { id } = req.params;
       await storage.dismissRecommendation(id, userId);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/insights/generate", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+
+    try {
+      const userSettings = await storage.getUserSettings(userId);
+      const timezone = userSettings.timezone || 'UTC';
+      
+      // Get last 7 days of data
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - 7);
+      
+      const biomarkers = await storage.getBiomarkers(userId);
+      const sleepSessions = await storage.getSleepSessions(userId, startDate, endDate);
+      const chatHistory = await storage.getChatMessages(userId);
+      const chatContext = chatHistory.slice(-10).map(msg => `${msg.role}: ${msg.content}`).join('\n');
+      
+      const insights = await generateDailyInsights({
+        biomarkers: biomarkers.slice(0, 50), // Last 50 biomarkers
+        sleepSessions,
+        chatContext,
+        timezone
+      });
+      
+      const savedInsights = [];
+      for (const insight of insights) {
+        const saved = await storage.createInsight({
+          ...insight,
+          userId,
+          relevantDate: new Date(),
+        });
+        savedInsights.push(saved);
+      }
+      
+      res.json(savedInsights);
+    } catch (error: any) {
+      console.error("Error generating insights:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/insights/daily", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+
+    try {
+      const date = req.query.date ? new Date(req.query.date as string) : new Date();
+      const insights = await storage.getDailyInsights(userId, date);
+      res.json(insights);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/insights", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
+      const insights = await storage.getInsights(userId, limit);
+      res.json(insights);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.patch("/api/insights/:id/dismiss", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    try {
+      const { id } = req.params;
+      await storage.dismissInsight(id, userId);
       res.json({ success: true });
     } catch (error: any) {
       res.status(500).json({ error: error.message });

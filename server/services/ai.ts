@@ -429,3 +429,75 @@ Start by introducing yourself and asking about their primary health or fitness g
 
   return "I'm here to help with your health and fitness goals. How can I assist you today?";
 }
+
+export async function generateDailyInsights(data: {
+  biomarkers: any[];
+  sleepSessions: any[];
+  recentActivity?: any;
+  chatContext?: string;
+  timezone?: string;
+}) {
+  const message = await retryWithBackoff(() => anthropic.messages.create({
+    model: "claude-3-haiku-20240307",
+    max_tokens: 4096,
+    messages: [
+      {
+        role: "user",
+        content: `You are an intelligent health insights AI. Analyze the user's health data and generate personalized daily insights.
+
+## User's Health Data:
+${JSON.stringify(data, null, 2)}
+
+## Your Task:
+Generate a JSON array of daily health insights with this structure:
+[
+  {
+    "type": "daily_summary" | "pattern" | "correlation" | "trend" | "alert",
+    "title": "Short compelling title",
+    "description": "Brief actionable insight (1-2 sentences)",
+    "category": "sleep" | "activity" | "nutrition" | "biomarkers" | "overall",
+    "priority": "high" | "medium" | "low",
+    "insightData": {
+      "metrics": ["metric names"],
+      "values": ["current values"],
+      "comparison": "context or comparison",
+      "recommendation": "specific action to take"
+    },
+    "actionable": 1 or 0
+  }
+]
+
+## Focus Areas:
+1. **Daily Summary**: Overall health status for today based on all metrics
+2. **Patterns**: Recurring behaviors (e.g., "You sleep better after evening workouts")
+3. **Correlations**: Connections between metrics (e.g., "High protein days = better sleep")
+4. **Trends**: Week/month changes (e.g., "Resting HR down 5 bpm this month")
+5. **Alerts**: Concerning changes or values outside optimal ranges
+
+## Guidelines:
+- Be specific with numbers and timeframes
+- Make insights actionable - tell user what to do
+- Prioritize based on health impact (high = needs attention, low = informational)
+- Reference user's timezone: ${data.timezone || 'UTC'}
+- Use conversational, motivating language
+- Celebrate wins and improvements
+
+Generate 3-5 insights prioritized by importance. Focus on what matters most to the user's health today.`,
+      },
+    ],
+  }));
+
+  const content = message.content[0];
+  if (content.type === "text") {
+    try {
+      const jsonMatch = content.text.match(/\[[\s\S]*\]/);
+      if (jsonMatch) {
+        return JSON.parse(jsonMatch[0]);
+      }
+    } catch (e) {
+      console.error("Failed to parse insights:", e);
+    }
+  }
+
+  return [];
+}
