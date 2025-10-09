@@ -38,7 +38,7 @@ export function getSession() {
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: true, // Always use secure cookies
       maxAge: sessionTtl,
       sameSite: "lax",
     },
@@ -137,6 +137,9 @@ export async function setupAuth(app: Express) {
     
     console.log("🔐 Login request:", {
       requestHostname: req.hostname,
+      host: req.headers.host,
+      referer: req.headers.referer,
+      origin: req.headers.origin,
       oauthDomain,
       strategyName
     });
@@ -152,9 +155,13 @@ export async function setupAuth(app: Express) {
     
     console.log("🔄 OAuth callback:", {
       requestHostname: req.hostname,
+      host: req.headers.host,
+      referer: req.headers.referer,
       oauthDomain,
       strategyName,
-      hasCode: !!req.query.code
+      hasCode: !!req.query.code,
+      hasError: !!req.query.error,
+      errorDescription: req.query.error_description
     });
     
     passport.authenticate(strategyName, {
