@@ -16,6 +16,8 @@ import {
   type InsertChatMessage,
   type SleepSession,
   type InsertSleepSession,
+  type Insight,
+  type InsertInsight,
   users,
   healthRecords,
   biomarkers,
@@ -24,6 +26,7 @@ import {
   recommendations,
   chatMessages,
   sleepSessions,
+  insights,
 } from "@shared/schema";
 import { eq, desc, and, gte, lte, sql, or, like, count } from "drizzle-orm";
 
@@ -65,6 +68,11 @@ export interface IStorage {
   upsertSleepSession(session: InsertSleepSession): Promise<SleepSession>;
   getSleepSessions(userId: string, startDate?: Date, endDate?: Date): Promise<SleepSession[]>;
   getLatestSleepSession(userId: string): Promise<SleepSession | undefined>;
+  
+  createInsight(insight: InsertInsight): Promise<Insight>;
+  getInsights(userId: string, limit?: number): Promise<Insight[]>;
+  getDailyInsights(userId: string, date: Date): Promise<Insight[]>;
+  dismissInsight(id: string, userId: string): Promise<void>;
   
   getAllUsers(limit: number, offset: number, search?: string): Promise<{ users: User[], total: number }>;
   updateUser(id: string, updates: Partial<User>): Promise<User>;
@@ -526,6 +534,47 @@ export class DbStorage implements IStorage {
       totalRecords: totalRecordsResult[0]?.count || 0,
       totalBiomarkers: totalBiomarkersResult[0]?.count || 0
     };
+  }
+
+  async createInsight(insight: InsertInsight): Promise<Insight> {
+    const result = await db.insert(insights).values(insight).returning();
+    return result[0];
+  }
+
+  async getInsights(userId: string, limit: number = 10): Promise<Insight[]> {
+    return await db
+      .select()
+      .from(insights)
+      .where(and(eq(insights.userId, userId), eq(insights.dismissed, 0)))
+      .orderBy(desc(insights.createdAt))
+      .limit(limit);
+  }
+
+  async getDailyInsights(userId: string, date: Date): Promise<Insight[]> {
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    return await db
+      .select()
+      .from(insights)
+      .where(
+        and(
+          eq(insights.userId, userId),
+          eq(insights.dismissed, 0),
+          gte(insights.relevantDate, startOfDay),
+          lte(insights.relevantDate, endOfDay)
+        )
+      )
+      .orderBy(desc(insights.priority), desc(insights.createdAt));
+  }
+
+  async dismissInsight(id: string, userId: string): Promise<void> {
+    await db
+      .update(insights)
+      .set({ dismissed: 1 })
+      .where(and(eq(insights.id, id), eq(insights.userId, userId)));
   }
 }
 

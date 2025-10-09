@@ -131,6 +131,21 @@ export const sleepSessions = pgTable("sleep_sessions", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const insights = pgTable("insights", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  type: text("type").notNull(), // 'daily_summary', 'pattern', 'correlation', 'trend', 'alert'
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  category: text("category").notNull(), // 'sleep', 'activity', 'nutrition', 'biomarkers', 'overall'
+  priority: text("priority").notNull().default("medium"), // 'high', 'medium', 'low'
+  insightData: jsonb("insight_data"), // stores metrics, trends, correlations
+  actionable: integer("actionable").notNull().default(1), // 1 if has actionable advice
+  dismissed: integer("dismissed").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  relevantDate: timestamp("relevant_date").notNull().defaultNow(), // date this insight is relevant to
+});
+
 export const insertHealthRecordSchema = createInsertSchema(healthRecords).omit({
   id: true,
   uploadedAt: true,
@@ -166,6 +181,11 @@ export const insertSleepSessionSchema = createInsertSchema(sleepSessions).omit({
   createdAt: true,
 });
 
+export const insertInsightSchema = createInsertSchema(insights).omit({
+  id: true,
+  createdAt: true,
+});
+
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
 
@@ -189,3 +209,6 @@ export type ChatMessage = typeof chatMessages.$inferSelect;
 
 export type InsertSleepSession = z.infer<typeof insertSleepSessionSchema>;
 export type SleepSession = typeof sleepSessions.$inferSelect;
+
+export type InsertInsight = z.infer<typeof insertInsightSchema>;
+export type Insight = typeof insights.$inferSelect;
