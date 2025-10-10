@@ -12,6 +12,13 @@ export default function Chat() {
   const { toast } = useToast();
   const [message, setMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [clearedAtTimestamp, setClearedAtTimestamp] = useState<string | null>(() => {
+    // Persist cleared state in localStorage
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('chatClearedAt');
+    }
+    return null;
+  });
 
   const { data: messages, isLoading } = useQuery<ChatMessage[]>({
     queryKey: ["/api/chat/history"],
@@ -28,6 +35,7 @@ export default function Chat() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/chat/history"] });
       setMessage("");
+      // Don't reset cleared state - let new messages appear after the cleared timestamp
     },
     onError: (error: Error) => {
       toast({
@@ -38,26 +46,15 @@ export default function Chat() {
     },
   });
 
-  const clearHistoryMutation = useMutation({
-    mutationFn: async () => {
-      const res = await apiRequest("DELETE", "/api/chat/history");
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/chat/history"] });
-      toast({
-        title: "Success",
-        description: "Chat history cleared",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to clear history",
-        variant: "destructive",
-      });
-    },
-  });
+  const handleClearChat = () => {
+    const now = new Date().toISOString();
+    setClearedAtTimestamp(now);
+    localStorage.setItem('chatClearedAt', now);
+    toast({
+      title: "Chat cleared",
+      description: "Your conversation history is preserved for context",
+    });
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -93,8 +90,7 @@ export default function Chat() {
         {messages && messages.length > 0 && (
           <Button
             variant="outline"
-            onClick={() => clearHistoryMutation.mutate()}
-            disabled={clearHistoryMutation.isPending}
+            onClick={handleClearChat}
             data-testid="button-clear-history"
           >
             <Trash2 className="mr-2 h-4 w-4" />
@@ -113,40 +109,51 @@ export default function Chat() {
                 </div>
               ))}
             </div>
-          ) : messages && messages.length > 0 ? (
-            messages.map((msg, index) => (
-              <div
-                key={msg.id}
-                className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-                data-testid={`message-${msg.role}-${index}`}
-              >
+          ) : (() => {
+            // Filter messages to only show those at or after the cleared timestamp
+            const visibleMessages = messages && clearedAtTimestamp
+              ? messages.filter(msg => {
+                  if (!msg.createdAt) return false;
+                  const msgTime = typeof msg.createdAt === 'string' ? msg.createdAt : msg.createdAt.toISOString();
+                  return msgTime >= clearedAtTimestamp;
+                })
+              : messages || [];
+            
+            return visibleMessages.length > 0 ? (
+              visibleMessages.map((msg, index) => (
                 <div
-                  className={`max-w-[80%] rounded-lg p-4 ${
-                    msg.role === "user"
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted"
-                  }`}
+                  key={msg.id}
+                  className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                  data-testid={`message-${msg.role}-${index}`}
                 >
-                  <p className="whitespace-pre-wrap break-words">{msg.content}</p>
-                  <p className="text-xs mt-2 opacity-70">
-                    {new Date(msg.createdAt).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
+                  <div
+                    className={`max-w-[80%] rounded-lg p-4 ${
+                      msg.role === "user"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted"
+                    }`}
+                  >
+                    <p className="whitespace-pre-wrap break-words">{msg.content}</p>
+                    <p className="text-xs mt-2 opacity-70">
+                      {new Date(msg.createdAt).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </p>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="flex items-center justify-center h-full text-center text-muted-foreground">
+                <div>
+                  <p className="text-lg font-medium">Start a conversation</p>
+                  <p className="text-sm mt-2">
+                    Ask about your fitness goals, nutrition, or training plans
                   </p>
                 </div>
               </div>
-            ))
-          ) : (
-            <div className="flex items-center justify-center h-full text-center text-muted-foreground">
-              <div>
-                <p className="text-lg font-medium">Start a conversation</p>
-                <p className="text-sm mt-2">
-                  Ask about your fitness goals, nutrition, or training plans
-                </p>
-              </div>
-            </div>
-          )}
+            );
+          })()}
           
           {sendMessageMutation.isPending && (
             <div className="flex justify-start">

@@ -4,7 +4,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Send, X, MessageCircle, Loader2, Minimize2, Sparkles } from "lucide-react";
+import { Send, X, MessageCircle, Loader2, Minimize2, Sparkles, Trash2 } from "lucide-react";
 import type { ChatMessage } from "@shared/schema";
 
 interface FloatingChatProps {
@@ -18,12 +18,26 @@ export function FloatingChat({ isOpen, onClose, currentPage }: FloatingChatProps
   const [message, setMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isMinimized, setIsMinimized] = useState(false);
+  const [clearedAtTimestamp, setClearedAtTimestamp] = useState<string | null>(() => {
+    // Persist cleared state in localStorage
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('chatClearedAt');
+    }
+    return null;
+  });
 
   useEffect(() => {
     if (!isOpen) {
       setIsMinimized(false);
+    } else {
+      // Re-read cleared timestamp from localStorage when chat opens
+      // This ensures sync with Health Coach page clears
+      const stored = localStorage.getItem('chatClearedAt');
+      if (stored !== clearedAtTimestamp) {
+        setClearedAtTimestamp(stored);
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, clearedAtTimestamp]);
 
   const { data: messages, isLoading } = useQuery<ChatMessage[]>({
     queryKey: ["/api/chat/history"],
@@ -41,6 +55,7 @@ export function FloatingChat({ isOpen, onClose, currentPage }: FloatingChatProps
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/chat/history"] });
       setMessage("");
+      // Don't reset cleared state - let new messages appear after the cleared timestamp
     },
     onError: (error: Error) => {
       toast({
@@ -50,6 +65,16 @@ export function FloatingChat({ isOpen, onClose, currentPage }: FloatingChatProps
       });
     },
   });
+
+  const handleClearChat = () => {
+    const now = new Date().toISOString();
+    setClearedAtTimestamp(now);
+    localStorage.setItem('chatClearedAt', now);
+    toast({
+      title: "Chat cleared",
+      description: "Your conversation history is preserved for context",
+    });
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -91,6 +116,18 @@ export function FloatingChat({ isOpen, onClose, currentPage }: FloatingChatProps
             <h3 className="font-semibold">Health Coach</h3>
           </div>
           <div className="flex items-center gap-1">
+            {messages && messages.length > 0 && (
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={handleClearChat}
+                className="h-8 w-8 text-white hover:bg-white/20"
+                data-testid="button-clear-chat"
+                title="Clear chat (keeps history for context)"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
             <Button
               size="icon"
               variant="ghost"
@@ -119,34 +156,45 @@ export function FloatingChat({ isOpen, onClose, currentPage }: FloatingChatProps
                 <div className="flex items-center justify-center h-32">
                   <Loader2 className="h-6 w-6 animate-spin" />
                 </div>
-              ) : messages && messages.length > 0 ? (
-                messages.map((msg, index) => (
-                  <div
-                    key={msg.id}
-                    className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-                    data-testid={`floating-message-${msg.role}-${index}`}
-                  >
+              ) : (() => {
+                // Filter messages to only show those at or after the cleared timestamp
+                const visibleMessages = messages && clearedAtTimestamp
+                  ? messages.filter(msg => {
+                      if (!msg.createdAt) return false;
+                      const msgTime = typeof msg.createdAt === 'string' ? msg.createdAt : msg.createdAt.toISOString();
+                      return msgTime >= clearedAtTimestamp;
+                    })
+                  : messages || [];
+                
+                return visibleMessages.length > 0 ? (
+                  visibleMessages.map((msg, index) => (
                     <div
-                      className={`max-w-[85%] rounded-lg p-3 text-sm ${
-                        msg.role === "user"
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted"
-                      }`}
+                      key={msg.id}
+                      className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                      data-testid={`floating-message-${msg.role}-${index}`}
                     >
-                      <p className="whitespace-pre-wrap break-words">{msg.content}</p>
+                      <div
+                        className={`max-w-[85%] rounded-lg p-3 text-sm ${
+                          msg.role === "user"
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted"
+                        }`}
+                      >
+                        <p className="whitespace-pre-wrap break-words">{msg.content}</p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="flex items-center justify-center h-32 text-center text-muted-foreground text-sm">
+                    <div>
+                      <p className="font-medium">Start a conversation</p>
+                      <p className="text-xs mt-1">
+                        Ask about your health, fitness, or nutrition
+                      </p>
                     </div>
                   </div>
-                ))
-              ) : (
-                <div className="flex items-center justify-center h-32 text-center text-muted-foreground text-sm">
-                  <div>
-                    <p className="font-medium">Start a conversation</p>
-                    <p className="text-xs mt-1">
-                      Ask about your health, fitness, or nutrition
-                    </p>
-                  </div>
-                </div>
-              )}
+                );
+              })()}
               
               {sendMessageMutation.isPending && (
                 <div className="flex justify-start">
