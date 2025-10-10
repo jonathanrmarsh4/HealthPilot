@@ -32,9 +32,18 @@ export default function Chat() {
       });
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/chat/history"] });
       setMessage("");
+      
+      // Show success notification if training plan was saved
+      if (data.trainingPlanSaved) {
+        queryClient.invalidateQueries({ queryKey: ["/api/training-schedules"] });
+        toast({
+          title: "Training Plan Added! 🎉",
+          description: "Your personalized workout plan has been added to your Training page",
+        });
+      }
       // Don't reset cleared state - let new messages appear after the cleared timestamp
     },
     onError: (error: Error) => {

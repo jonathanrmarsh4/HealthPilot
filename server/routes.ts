@@ -867,9 +867,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
         content: aiResponse,
       });
 
+      // Check if AI response contains a training plan to save
+      let trainingPlanSaved = false;
+      const trainingPlanMatch = aiResponse.match(/<<<SAVE_TRAINING_PLAN>>>([\s\S]*?)<<<END_SAVE_TRAINING_PLAN>>>/);
+      
+      if (trainingPlanMatch) {
+        try {
+          const trainingPlanJson = trainingPlanMatch[1].trim();
+          const trainingPlans = JSON.parse(trainingPlanJson);
+          
+          // Save each workout from the plan
+          for (const plan of trainingPlans) {
+            await storage.createTrainingSchedule({
+              userId,
+              day: plan.day,
+              workoutType: plan.workoutType,
+              duration: plan.duration,
+              intensity: plan.intensity,
+              exercises: plan.exercises,
+              completed: 0,
+            });
+          }
+          
+          trainingPlanSaved = true;
+        } catch (e) {
+          console.error("Failed to parse and save training plan:", e);
+        }
+      }
+
       res.json({
         userMessage,
         assistantMessage,
+        trainingPlanSaved,
       });
     } catch (error: any) {
       console.error("Error in chat:", error);

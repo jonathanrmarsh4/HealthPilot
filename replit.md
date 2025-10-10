@@ -34,6 +34,7 @@ The application is a full-stack project utilizing React, TypeScript, Tailwind CS
 - AI-generated personalized meal plans and training schedules.
 - AI-powered alternative therapy recommendations (sauna, cold plunge, red light therapy, etc.) based on biomarker analysis.
 - Admin control panel for user and subscription management.
+- **Auto-Save Training Plans from Chat:** When the AI creates a training plan through conversation and the user confirms it, the plan is automatically saved to the database and appears on the Training page. The user receives a success notification with a link to view their new plan.
 
 ## External Dependencies
 
