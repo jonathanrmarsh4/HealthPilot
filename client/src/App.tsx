@@ -122,7 +122,7 @@ function AuthenticatedApp() {
 }
 
 function AppContent() {
-  const { data: user, isLoading } = useQuery({
+  const { data: user, isLoading, isError } = useQuery({
     queryKey: ["/api/auth/user"],
     retry: false,
   });
@@ -142,7 +142,8 @@ function AppContent() {
     return <Logout />;
   }
 
-  if (!user) {
+  // Treat auth errors same as not logged in (Safari caching issues)
+  if (!user || isError) {
     return <Login />;
   }
 
