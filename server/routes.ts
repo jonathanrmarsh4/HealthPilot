@@ -80,10 +80,12 @@ const upload = multer({
 
 export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/auth/user", async (req, res) => {
-    // Prevent caching of authentication state - especially important for Safari iOS
-    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    // Completely disable caching and ETags for Safari iOS
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private, max-age=0');
     res.set('Pragma', 'no-cache');
     res.set('Expires', '0');
+    // Disable ETag generation
+    req.app.set('etag', false);
     
     try {
       if (!req.isAuthenticated()) {
@@ -101,8 +103,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(200).send('null');
       }
 
-      // Send JSON manually to avoid ETag generation
-      const responseData = JSON.stringify({
+      // Send JSON with timestamp to prevent caching - Safari iOS is very aggressive
+      const responseData = {
         id: dbUser.id,
         email: dbUser.email,
         firstName: dbUser.firstName,
@@ -111,9 +113,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         role: dbUser.role,
         subscriptionTier: dbUser.subscriptionTier,
         subscriptionStatus: dbUser.subscriptionStatus,
-      });
+        _timestamp: Date.now(), // Force unique response to prevent 304
+      };
       res.set('Content-Type', 'application/json');
-      res.status(200).send(responseData);
+      res.status(200).send(JSON.stringify(responseData));
     } catch (error: any) {
       console.error("Error getting user:", error);
       res.status(500).json({ error: error.message });
