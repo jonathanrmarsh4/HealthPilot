@@ -70,7 +70,7 @@ const menuItems = [
   {
     title: "Health Coach",
     url: "/chat",
-    icon: MessageCircle,
+    icon: Sparkles,
   },
 ];
 
