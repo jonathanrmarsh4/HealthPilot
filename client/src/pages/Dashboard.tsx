@@ -4,6 +4,7 @@ import { BiomarkerChartWidget } from "@/components/BiomarkerChartWidget";
 import { RecommendationCard } from "@/components/RecommendationCard";
 import { QuickStats } from "@/components/QuickStats";
 import { TrendLineWidget } from "@/components/TrendLineWidget";
+import { AIInsightsWidget } from "@/components/AIInsightsWidget";
 import { Heart, Activity, Scale, Droplet, TrendingUp, Zap, Apple, AlertCircle, Dumbbell, Settings2, Eye, EyeOff, ChevronUp, ChevronDown } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -38,7 +39,7 @@ interface ChartDataPoint {
 
 const STORAGE_KEY = "dashboard-preferences";
 const STORAGE_VERSION_KEY = "dashboard-preferences-version";
-const CURRENT_VERSION = "2"; // Increment to force localStorage clear
+const CURRENT_VERSION = "3"; // Increment to force localStorage clear
 
 interface DashboardPreferences {
   visible: string[];
@@ -47,6 +48,7 @@ interface DashboardPreferences {
 
 const DEFAULT_WIDGETS = [
   "quick-stats",
+  "ai-insights",
   "health-metrics", 
   "blood-glucose-chart",
   "weight-chart",
@@ -55,6 +57,7 @@ const DEFAULT_WIDGETS = [
 
 const WIDGET_CONFIG: Record<string, { title: string; description: string }> = {
   "quick-stats": { title: "Quick Stats", description: "Daily steps, heart rate, active days, calories" },
+  "ai-insights": { title: "AI Insights", description: "Daily intelligence and pattern discoveries" },
   "health-metrics": { title: "Health Metrics", description: "Heart rate, blood glucose, weight cards" },
   "blood-glucose-chart": { title: "Blood Glucose Chart", description: "7-day glucose trend" },
   "weight-chart": { title: "Weight Chart", description: "12-month weight tracking" },
@@ -388,6 +391,9 @@ export default function Dashboard() {
             No stats available. Start tracking your health data.
           </div>
         );
+
+      case "ai-insights":
+        return <AIInsightsWidget key={widget} />;
 
       case "health-metrics":
         const glucoseConfig = biomarkerDisplayConfig["blood-glucose"];
