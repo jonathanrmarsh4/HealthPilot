@@ -81,6 +81,8 @@ export default function Dashboard() {
     return { visible: DEFAULT_WIDGETS, order: DEFAULT_WIDGETS };
   });
 
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+
   // Load preferences from API (null means no preferences saved yet)
   const { data: savedPreferences } = useQuery<DashboardPreferences | null>({
     queryKey: ["/api/user/dashboard-preferences"],
@@ -94,6 +96,7 @@ export default function Dashboard() {
       setPreferences(savedPreferences);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(savedPreferences));
     }
+    setIsInitialLoad(false);
   }, [savedPreferences]);
 
   // Save preferences mutation
@@ -102,20 +105,19 @@ export default function Dashboard() {
       const response = await apiRequest("PATCH", "/api/user/dashboard-preferences", prefs);
       return response.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/user/dashboard-preferences"] });
-    },
   });
 
-  // Save to both localStorage and API when preferences change
+  // Save to both localStorage and API when preferences change (but not on initial load)
   useEffect(() => {
+    if (isInitialLoad) return;
+    
     localStorage.setItem(STORAGE_KEY, JSON.stringify(preferences));
     // Debounce API call to avoid too many requests
     const timeoutId = setTimeout(() => {
       savePreferencesMutation.mutate(preferences);
     }, 500);
     return () => clearTimeout(timeoutId);
-  }, [preferences]);
+  }, [preferences, isInitialLoad]);
 
   const toggleVisibility = (widget: string) => {
     setPreferences(prev => ({
@@ -127,11 +129,19 @@ export default function Dashboard() {
   };
 
   const showAll = () => {
-    setPreferences(prev => ({ ...prev, visible: [...prev.order] }));
+    setPreferences(prev => ({ 
+      ...prev, 
+      order: allAvailableWidgets,
+      visible: allAvailableWidgets 
+    }));
   };
 
   const hideAll = () => {
-    setPreferences(prev => ({ ...prev, visible: [] }));
+    setPreferences(prev => ({ 
+      ...prev,
+      order: allAvailableWidgets,
+      visible: [] 
+    }));
   };
 
   const moveUp = (widget: string) => {
