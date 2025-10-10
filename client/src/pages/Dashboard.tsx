@@ -480,7 +480,12 @@ export default function Dashboard() {
         if (widget.startsWith('biomarker-')) {
           const type = widget.replace('biomarker-', '');
           const config = biomarkerDisplayConfig[type];
-          if (!config) return null;
+          
+          // Skip if no config exists for this biomarker type
+          if (!config) {
+            console.warn(`No config found for biomarker type: ${type}`);
+            return null;
+          }
 
           return (
             <BiomarkerChartWidget
@@ -491,6 +496,9 @@ export default function Dashboard() {
             />
           );
         }
+        
+        // Unknown widget type - skip silently
+        console.warn(`Unknown widget type: ${widget}`);
         return null;
     }
   };
