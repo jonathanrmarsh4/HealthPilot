@@ -1056,6 +1056,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/user/dashboard-preferences", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+
+    try {
+      const preferences = await storage.getDashboardPreferences(userId);
+      res.json(preferences || { visible: [], order: [] });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.patch("/api/user/dashboard-preferences", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+
+    try {
+      const { visible, order } = req.body;
+      if (!Array.isArray(visible) || !Array.isArray(order)) {
+        return res.status(400).json({ error: "visible and order must be arrays" });
+      }
+      await storage.saveDashboardPreferences(userId, { visible, order });
+      res.json({ success: true, visible, order });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.post("/api/biomarkers/cleanup-duplicates", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
 

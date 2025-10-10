@@ -35,6 +35,7 @@ export const users = pgTable("users", {
   bloodType: varchar("blood_type"), // 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'
   activityLevel: varchar("activity_level"), // 'sedentary', 'light', 'moderate', 'active', 'very_active'
   location: varchar("location"), // City, Country
+  dashboardPreferences: jsonb("dashboard_preferences"), // Widget visibility and order preferences
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

@@ -6,7 +6,7 @@ import { QuickStats } from "@/components/QuickStats";
 import { TrendLineWidget } from "@/components/TrendLineWidget";
 import { AIInsightsWidget } from "@/components/AIInsightsWidget";
 import { Heart, Activity, Scale, Droplet, TrendingUp, Zap, Apple, AlertCircle, Dumbbell, Settings2, Eye, EyeOff, ChevronUp, ChevronDown } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ import { useLocale } from "@/contexts/LocaleContext";
 import { unitConfigs, convertValue, formatValue } from "@/lib/unitConversions";
 import { useState, useEffect } from "react";
 import { biomarkerDisplayConfig } from "@/lib/biomarkerConfig";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 interface DashboardStats {
   dailySteps: number;
@@ -80,8 +81,40 @@ export default function Dashboard() {
     return { visible: DEFAULT_WIDGETS, order: DEFAULT_WIDGETS };
   });
 
+  // Load preferences from API (null means no preferences saved yet)
+  const { data: savedPreferences } = useQuery<DashboardPreferences | null>({
+    queryKey: ["/api/user/dashboard-preferences"],
+  });
+
+  // Sync saved preferences from API with local state
+  // null = no preferences saved yet (use defaults)
+  // empty visible array = user deliberately hid all widgets (respect that)
+  useEffect(() => {
+    if (savedPreferences !== undefined && savedPreferences !== null) {
+      setPreferences(savedPreferences);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(savedPreferences));
+    }
+  }, [savedPreferences]);
+
+  // Save preferences mutation
+  const savePreferencesMutation = useMutation({
+    mutationFn: async (prefs: DashboardPreferences) => {
+      const response = await apiRequest("PATCH", "/api/user/dashboard-preferences", prefs);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/user/dashboard-preferences"] });
+    },
+  });
+
+  // Save to both localStorage and API when preferences change
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(preferences));
+    // Debounce API call to avoid too many requests
+    const timeoutId = setTimeout(() => {
+      savePreferencesMutation.mutate(preferences);
+    }, 500);
+    return () => clearTimeout(timeoutId);
   }, [preferences]);
 
   const toggleVisibility = (widget: string) => {

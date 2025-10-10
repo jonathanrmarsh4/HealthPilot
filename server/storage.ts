@@ -35,6 +35,8 @@ export interface IStorage {
   upsertUser(user: UpsertUser): Promise<User>;
   getUserSettings(userId: string): Promise<{ timezone: string }>;
   updateUserSettings(userId: string, settings: { timezone: string }): Promise<void>;
+  getDashboardPreferences(userId: string): Promise<{ visible: string[], order: string[] } | null>;
+  saveDashboardPreferences(userId: string, preferences: { visible: string[], order: string[] }): Promise<void>;
   updateUserProfile(userId: string, profileData: Partial<Pick<User, "firstName" | "lastName" | "height" | "dateOfBirth" | "gender" | "bloodType" | "activityLevel" | "location">>): Promise<User>;
   
   createHealthRecord(record: InsertHealthRecord): Promise<HealthRecord>;
@@ -154,6 +156,23 @@ export class DbStorage implements IStorage {
     // Use raw SQL to avoid schema mismatch issues
     await db.execute(
       sql`UPDATE users SET timezone = ${settings.timezone} WHERE id = ${userId}`
+    );
+  }
+
+  async getDashboardPreferences(userId: string): Promise<{ visible: string[], order: string[] } | null> {
+    const result = await db.execute(
+      sql`SELECT dashboard_preferences FROM users WHERE id = ${userId}`
+    );
+    const rows: any[] = result.rows || [];
+    if (rows.length === 0 || !rows[0].dashboard_preferences) {
+      return null;
+    }
+    return rows[0].dashboard_preferences as { visible: string[], order: string[] };
+  }
+
+  async saveDashboardPreferences(userId: string, preferences: { visible: string[], order: string[] }): Promise<void> {
+    await db.execute(
+      sql`UPDATE users SET dashboard_preferences = ${JSON.stringify(preferences)}::jsonb WHERE id = ${userId}`
     );
   }
 
