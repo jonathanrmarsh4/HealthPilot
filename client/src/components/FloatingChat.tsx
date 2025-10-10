@@ -79,7 +79,8 @@ export function FloatingChat({ isOpen, onClose, currentPage }: FloatingChatProps
 
   return (
     <div 
-      className={`fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 flex flex-col w-[calc(100vw-2rem)] sm:w-80 md:w-96 max-w-md ${
+      style={{ position: 'fixed', bottom: '1rem', right: '1rem' }}
+      className={`z-50 flex flex-col w-[calc(100vw-2rem)] sm:w-80 md:w-96 max-w-md ${
         isMinimized ? "max-h-[60px]" : "h-[min(max(10rem,calc(100dvh-2rem)),600px)]"
       }`}
     >
@@ -194,7 +195,8 @@ export function FloatingChatTrigger({ onClick }: { onClick: () => void }) {
   return (
     <Button
       size="icon"
-      className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-40 h-10 w-10 rounded-full shadow-lg bg-gradient-to-br from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800 border-2 border-purple-400 hover:border-purple-300 animate-pulse hover:animate-none transition-all hover:scale-110"
+      style={{ position: 'fixed', bottom: '1rem', right: '1rem' }}
+      className="z-40 h-10 w-10 rounded-full shadow-lg bg-gradient-to-br from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800 border-2 border-purple-400 hover:border-purple-300 animate-pulse hover:animate-none transition-all hover:scale-110"
       onClick={onClick}
       data-testid="button-open-floating-chat"
     >
