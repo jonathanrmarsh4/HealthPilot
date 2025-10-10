@@ -35,6 +35,7 @@ The application is a full-stack project utilizing React, TypeScript, Tailwind CS
 - AI-powered alternative therapy recommendations (sauna, cold plunge, red light therapy, etc.) based on biomarker analysis.
 - Admin control panel for user and subscription management.
 - **Auto-Save Training Plans from Chat:** When the AI creates a training plan through conversation and the user confirms it, the plan is automatically saved to the database and appears on the Training page. The user receives a success notification with a link to view their new plan.
+- **AI-Guided Onboarding:** New users receive a structured 5-step guided onboarding experience that auto-launches on first login via the FloatingChat widget. The AI health coach walks users through: (1) Welcome introduction, (2) Apple Health integration setup, (3) Health records upload, (4) Personalized training plan creation, and (5) Meal plan generation. Features include visual progress tracking, ability to skip steps, auto-save of created plans, and persistent state that prevents auto-reopen after manual close. Step progression auto-advances during conversation and syncs seamlessly with existing features.
 
 ## External Dependencies
 
