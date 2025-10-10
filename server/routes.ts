@@ -80,26 +80,29 @@ const upload = multer({
 
 export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/auth/user", async (req, res) => {
-    // Prevent caching of authentication state
+    // Prevent caching of authentication state - especially important for Safari iOS
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
     res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
     
     try {
       if (!req.isAuthenticated()) {
-        return res.json(null);
+        // Send with explicit no-cache and without ETag
+        return res.status(200).send('null');
       }
 
       const user = req.user as any;
       if (!user.claims?.sub) {
-        return res.json(null);
+        return res.status(200).send('null');
       }
 
       const dbUser = await storage.getUser(user.claims.sub);
       if (!dbUser) {
-        return res.json(null);
+        return res.status(200).send('null');
       }
 
-      res.json({
+      // Send JSON manually to avoid ETag generation
+      const responseData = JSON.stringify({
         id: dbUser.id,
         email: dbUser.email,
         firstName: dbUser.firstName,
@@ -109,6 +112,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         subscriptionTier: dbUser.subscriptionTier,
         subscriptionStatus: dbUser.subscriptionStatus,
       });
+      res.set('Content-Type', 'application/json');
+      res.status(200).send(responseData);
     } catch (error: any) {
       console.error("Error getting user:", error);
       res.status(500).json({ error: error.message });
@@ -848,7 +853,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         recentBiomarkers,
         recentInsights,
         currentPage,
-        userTimezone: user?.timezone
+        userTimezone: user?.timezone || undefined
       };
 
       const aiResponse = await chatWithHealthCoach(conversationHistory, context);
