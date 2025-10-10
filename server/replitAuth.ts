@@ -223,8 +223,13 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
   });
 
   if (!req.isAuthenticated() || !user?.expires_at) {
-    console.log("❌ Auth failed - missing expires_at or not authenticated");
-    return res.status(401).json({ message: "Unauthorized" });
+    console.log("❌ Auth failed - missing expires_at or not authenticated - destroying session");
+    req.logout(() => {
+      req.session.destroy(() => {
+        res.status(401).json({ message: "Unauthorized" });
+      });
+    });
+    return;
   }
 
   const now = Math.floor(Date.now() / 1000);
@@ -241,8 +246,12 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
 
   const refreshToken = user.refresh_token;
   if (!refreshToken) {
-    console.log("❌ Token expired and no refresh_token available");
-    res.status(401).json({ message: "Unauthorized" });
+    console.log("❌ Token expired and no refresh_token available - destroying session");
+    req.logout(() => {
+      req.session.destroy(() => {
+        res.status(401).json({ message: "Unauthorized" });
+      });
+    });
     return;
   }
 
@@ -252,7 +261,12 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
     updateUserSession(user, tokenResponse);
     return next();
   } catch (error) {
-    res.status(401).json({ message: "Unauthorized" });
+    console.log("❌ Token refresh failed - destroying session");
+    req.logout(() => {
+      req.session.destroy(() => {
+        res.status(401).json({ message: "Unauthorized" });
+      });
+    });
     return;
   }
 };

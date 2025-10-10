@@ -80,6 +80,10 @@ const upload = multer({
 
 export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/auth/user", async (req, res) => {
+    // Prevent caching of authentication state
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    res.set('Pragma', 'no-cache');
+    
     try {
       if (!req.isAuthenticated()) {
         return res.json(null);
