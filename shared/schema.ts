@@ -36,6 +36,11 @@ export const users = pgTable("users", {
   activityLevel: varchar("activity_level"), // 'sedentary', 'light', 'moderate', 'active', 'very_active'
   location: varchar("location"), // City, Country
   dashboardPreferences: jsonb("dashboard_preferences"), // Widget visibility and order preferences
+  // Onboarding tracking
+  onboardingCompleted: integer("onboarding_completed").notNull().default(0), // 0 = false, 1 = true (for compatibility)
+  onboardingStep: varchar("onboarding_step"), // Current step: 'welcome', 'apple_health', 'health_records', 'training_plan', 'meal_plan'
+  onboardingStartedAt: timestamp("onboarding_started_at"),
+  onboardingCompletedAt: timestamp("onboarding_completed_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

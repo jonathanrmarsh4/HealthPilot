@@ -39,6 +39,12 @@ export interface IStorage {
   saveDashboardPreferences(userId: string, preferences: { visible: string[], order: string[] }): Promise<void>;
   updateUserProfile(userId: string, profileData: Partial<Pick<User, "firstName" | "lastName" | "height" | "dateOfBirth" | "gender" | "bloodType" | "activityLevel" | "location">>): Promise<User>;
   
+  // Onboarding methods
+  getOnboardingStatus(userId: string): Promise<{ completed: boolean; step: string | null; startedAt: Date | null; completedAt: Date | null } | null>;
+  updateOnboardingStep(userId: string, step: string): Promise<void>;
+  completeOnboarding(userId: string): Promise<void>;
+  skipOnboardingStep(userId: string, currentStep: string, nextStep: string): Promise<boolean>;
+  
   createHealthRecord(record: InsertHealthRecord): Promise<HealthRecord>;
   getHealthRecords(userId: string): Promise<HealthRecord[]>;
   getHealthRecord(id: string, userId: string): Promise<HealthRecord | undefined>;
@@ -191,6 +197,56 @@ export class DbStorage implements IStorage {
     }
     
     return user;
+  }
+
+  // Onboarding methods implementation
+  async getOnboardingStatus(userId: string): Promise<{ completed: boolean; step: string | null; startedAt: Date | null; completedAt: Date | null } | null> {
+    const result = await db.execute(
+      sql`SELECT onboarding_completed, onboarding_step, onboarding_started_at, onboarding_completed_at FROM users WHERE id = ${userId}`
+    );
+    const rows: any[] = result.rows || [];
+    if (rows.length === 0) {
+      return null;
+    }
+    const row = rows[0];
+    return {
+      completed: row.onboarding_completed === 1,
+      step: row.onboarding_step,
+      startedAt: row.onboarding_started_at,
+      completedAt: row.onboarding_completed_at
+    };
+  }
+
+  async updateOnboardingStep(userId: string, step: string): Promise<void> {
+    await db.execute(
+      sql`UPDATE users SET 
+        onboarding_step = ${step}, 
+        onboarding_started_at = COALESCE(onboarding_started_at, NOW()),
+        updated_at = NOW()
+      WHERE id = ${userId}`
+    );
+  }
+
+  async completeOnboarding(userId: string): Promise<void> {
+    await db.execute(
+      sql`UPDATE users SET 
+        onboarding_completed = 1,
+        onboarding_completed_at = NOW(),
+        onboarding_step = NULL,
+        updated_at = NOW()
+      WHERE id = ${userId}`
+    );
+  }
+
+  async skipOnboardingStep(userId: string, currentStep: string, nextStep: string): Promise<boolean> {
+    const result = await db.execute(
+      sql`UPDATE users SET 
+        onboarding_step = ${nextStep},
+        updated_at = NOW()
+      WHERE id = ${userId} AND onboarding_step = ${currentStep}`
+    );
+    // PostgreSQL returns rowCount for UPDATE queries
+    return (result.rowCount ?? 0) > 0;
   }
 
   async createHealthRecord(record: InsertHealthRecord): Promise<HealthRecord> {

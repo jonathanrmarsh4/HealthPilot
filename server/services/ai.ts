@@ -514,6 +514,8 @@ export async function chatWithHealthCoach(
     recentInsights?: any[];
     currentPage?: string;
     userTimezone?: string;
+    isOnboarding?: boolean;
+    onboardingStep?: string | null;
   }
 ) {
   let contextSection = "";
@@ -544,6 +546,52 @@ export async function chatWithHealthCoach(
     }
     
     contextSection += `\nUse this context to provide more personalized and relevant responses. Reference specific metrics or insights when appropriate.`;
+  }
+
+  // Onboarding mode handling
+  let onboardingSection = "";
+  if (context?.isOnboarding && context?.onboardingStep) {
+    onboardingSection = `\n\n## 🎯 ONBOARDING MODE ACTIVE\n`;
+    onboardingSection += `Current Step: ${context.onboardingStep}\n\n`;
+    
+    switch (context.onboardingStep) {
+      case "welcome":
+        onboardingSection += `**Your Goal**: Welcome the user warmly and ask if they use Apple Health to track their health data.\n`;
+        onboardingSection += `- Briefly explain you'll help them set up the platform\n`;
+        onboardingSection += `- Ask: "Do you use Apple Health to track your health data?"\n`;
+        onboardingSection += `- If they say yes → tell them you'll guide them to set it up next\n`;
+        onboardingSection += `- If they say no → tell them that's fine, we can proceed to upload health records\n`;
+        break;
+        
+      case "apple_health":
+        onboardingSection += `**Your Goal**: Guide them to set up Apple Health integration.\n`;
+        onboardingSection += `- Explain they need to go to Apple Health Setup page\n`;
+        onboardingSection += `- Let them know to use the Health Auto Export app\n`;
+        onboardingSection += `- Ask them to confirm when they've completed the setup or if they want to skip this step\n`;
+        break;
+        
+      case "health_records":
+        onboardingSection += `**Your Goal**: Ask if they have any health records to upload.\n`;
+        onboardingSection += `- Ask: "Do you have any recent health records (lab results, test reports) you'd like to upload?"\n`;
+        onboardingSection += `- If yes → guide them to upload files or connect Google Drive\n`;
+        onboardingSection += `- If no → that's fine, move to creating their training plan\n`;
+        break;
+        
+      case "training_plan":
+        onboardingSection += `**Your Goal**: Create a personalized training plan using the standard exercise framework.\n`;
+        onboardingSection += `- Follow the PERSONALIZED EXERCISE PLAN FRAMEWORK below\n`;
+        onboardingSection += `- Ask ONE question at a time to gather info (fitness level, goals, equipment, time)\n`;
+        onboardingSection += `- When you have enough info, create and present the plan\n`;
+        onboardingSection += `- When they confirm → output the JSON with save markers (see framework below)\n`;
+        break;
+        
+      case "meal_plan":
+        onboardingSection += `**Your Goal**: Create a personalized meal plan.\n`;
+        onboardingSection += `- Ask ONE question at a time: dietary preferences, restrictions, goals, meal frequency\n`;
+        onboardingSection += `- When you have enough info, generate a sample meal plan\n`;
+        onboardingSection += `- After presenting the meal plan, tell them setup is complete!\n`;
+        break;
+    }
   }
 
   const systemPrompt = `You are a friendly and knowledgeable health and fitness coach AI. 
@@ -686,7 +734,7 @@ When appropriate based on user's data and goals, suggest alternative therapies a
 
 Only suggest these when they meaningfully support the user's specific health goals, biomarkers, or physiology. Explain the mechanism and expected benefits based on their data.
 
-Be conversational, empathetic, and encouraging. **Ask ONE question at a time - never multiple questions in the same message.** Keep responses concise and focused. Remember any information the user shares and reference it in future responses.${contextSection}
+Be conversational, empathetic, and encouraging. **Ask ONE question at a time - never multiple questions in the same message.** Keep responses concise and focused. Remember any information the user shares and reference it in future responses.${onboardingSection}${contextSection}
 
 If this is the first message, introduce yourself briefly and ask about their primary health or fitness goal.`;
 
