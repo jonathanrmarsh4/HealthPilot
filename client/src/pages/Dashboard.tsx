@@ -71,11 +71,28 @@ export default function Dashboard() {
       try {
         const parsed = JSON.parse(stored);
         // Safety: Filter out any invalid widget IDs from corrupted cache
+        // Only allow widgets that exist in DEFAULT_WIDGETS or valid biomarker configs
         const validVisible = Array.isArray(parsed.visible) 
-          ? parsed.visible.filter((w: string) => DEFAULT_WIDGETS.includes(w) || w.startsWith('biomarker-'))
+          ? parsed.visible.filter((w: string) => {
+              if (DEFAULT_WIDGETS.includes(w)) return true;
+              // Allow biomarker widgets only if config exists
+              if (w.startsWith('biomarker-')) {
+                const type = w.replace('biomarker-', '');
+                return biomarkerDisplayConfig[type] !== undefined;
+              }
+              return false;
+            })
           : DEFAULT_WIDGETS;
         const validOrder = Array.isArray(parsed.order)
-          ? parsed.order.filter((w: string) => DEFAULT_WIDGETS.includes(w) || w.startsWith('biomarker-'))
+          ? parsed.order.filter((w: string) => {
+              if (DEFAULT_WIDGETS.includes(w)) return true;
+              // Allow biomarker widgets only if config exists
+              if (w.startsWith('biomarker-')) {
+                const type = w.replace('biomarker-', '');
+                return biomarkerDisplayConfig[type] !== undefined;
+              }
+              return false;
+            })
           : DEFAULT_WIDGETS;
         
         // If filtered arrays are empty, use defaults
@@ -105,10 +122,26 @@ export default function Dashboard() {
       // Safety: Validate preferences from API before using them
       const safePreferences = {
         visible: Array.isArray(savedPreferences.visible) 
-          ? savedPreferences.visible.filter((w: string) => DEFAULT_WIDGETS.includes(w) || w.startsWith('biomarker-'))
+          ? savedPreferences.visible.filter((w: string) => {
+              if (DEFAULT_WIDGETS.includes(w)) return true;
+              // Allow biomarker widgets only if config exists
+              if (w.startsWith('biomarker-')) {
+                const type = w.replace('biomarker-', '');
+                return biomarkerDisplayConfig[type] !== undefined;
+              }
+              return false;
+            })
           : DEFAULT_WIDGETS,
         order: Array.isArray(savedPreferences.order)
-          ? savedPreferences.order.filter((w: string) => DEFAULT_WIDGETS.includes(w) || w.startsWith('biomarker-'))
+          ? savedPreferences.order.filter((w: string) => {
+              if (DEFAULT_WIDGETS.includes(w)) return true;
+              // Allow biomarker widgets only if config exists
+              if (w.startsWith('biomarker-')) {
+                const type = w.replace('biomarker-', '');
+                return biomarkerDisplayConfig[type] !== undefined;
+              }
+              return false;
+            })
           : DEFAULT_WIDGETS
       };
       
