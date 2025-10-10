@@ -10,6 +10,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { LocaleProvider } from "@/contexts/LocaleContext";
 import { LocaleSelector } from "@/components/LocaleSelector";
 import { TimezoneProvider } from "@/contexts/TimezoneContext";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { FloatingChat, FloatingChatTrigger } from "@/components/FloatingChat";
 import Dashboard from "@/pages/Dashboard";
 import HealthRecords from "@/pages/HealthRecords";
@@ -100,7 +101,9 @@ function AuthenticatedApp() {
                 </div>
               </header>
               <main className="flex-1 overflow-auto p-8">
-                <Router />
+                <ErrorBoundary>
+                  <Router />
+                </ErrorBoundary>
               </main>
             </div>
           </div>
