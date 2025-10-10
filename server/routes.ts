@@ -855,7 +855,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get onboarding status
       const onboardingStatus = await storage.getOnboardingStatus(userId);
       const isOnboarding = onboardingStatus ? !onboardingStatus.completed : false;
-      const onboardingStep = onboardingStatus?.step || null;
+      let onboardingStep = onboardingStatus?.step || null;
+      
+      // Initialize onboarding if not completed and step is null
+      if (isOnboarding && !onboardingStep) {
+        await storage.updateOnboardingStep(userId, 'welcome');
+        onboardingStep = 'welcome';
+      }
 
       const context = {
         recentBiomarkers,
@@ -897,8 +903,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
           
           trainingPlanSaved = true;
+          
+          // Auto-advance onboarding step when training plan is saved
+          if (isOnboarding && onboardingStep === 'training_plan') {
+            await storage.updateOnboardingStep(userId, 'meal_plan');
+          }
         } catch (e) {
           console.error("Failed to parse and save training plan:", e);
+        }
+      }
+
+      // Auto-advance onboarding steps after AI responds (user has engaged with current step)
+      if (isOnboarding && onboardingStep && message.trim().length > 0) {
+        const STEP_PROGRESSION: Record<string, string> = {
+          'welcome': 'apple_health',
+          'apple_health': 'health_records',
+          'health_records': 'training_plan',
+          // training_plan -> meal_plan handled above when plan is saved
+          // meal_plan completion is handled by user clicking skip or completing onboarding
+        };
+
+        const nextStep = STEP_PROGRESSION[onboardingStep];
+        if (nextStep) {
+          // Advance to next step after user message (they've engaged with current step)
+          await storage.updateOnboardingStep(userId, nextStep);
         }
       }
 
@@ -1138,11 +1166,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       const status = await storage.getOnboardingStatus(userId);
-      // Default to 'welcome' step if onboarding not completed and no step set
+      // Initialize step to 'welcome' in database if onboarding not completed and no step set
       if (status && !status.completed && !status.step) {
+        await storage.updateOnboardingStep(userId, 'welcome');
         res.json({ ...status, step: 'welcome' });
+      } else if (!status) {
+        // No onboarding record at all, initialize it
+        await storage.updateOnboardingStep(userId, 'welcome');
+        res.json({ completed: false, step: 'welcome', startedAt: null, completedAt: null });
       } else {
-        res.json(status || { completed: false, step: 'welcome', startedAt: null, completedAt: null });
+        res.json(status);
       }
     } catch (error: any) {
       res.status(500).json({ error: error.message });

@@ -73,6 +73,8 @@ export function FloatingChat({ isOpen, onClose, currentPage }: FloatingChatProps
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/chat/history"] });
+      // Refetch onboarding status to update UI after chat interaction
+      queryClient.invalidateQueries({ queryKey: ["/api/onboarding/status"] });
       setMessage("");
       
       // Show success notification if training plan was saved
