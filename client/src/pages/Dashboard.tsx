@@ -39,7 +39,7 @@ interface ChartDataPoint {
 
 const STORAGE_KEY = "dashboard-preferences";
 const STORAGE_VERSION_KEY = "dashboard-preferences-version";
-const CURRENT_VERSION = "3"; // Increment to force localStorage clear
+const CURRENT_VERSION = "4"; // Increment to force localStorage clear
 
 interface DashboardPreferences {
   visible: string[];
@@ -48,7 +48,6 @@ interface DashboardPreferences {
 
 const DEFAULT_WIDGETS = [
   "quick-stats",
-  "ai-insights",
   "health-metrics", 
   "blood-glucose-chart",
   "weight-chart",
