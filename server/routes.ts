@@ -913,6 +913,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // Check if AI response contains a meal plan to save
+      let mealPlanSaved = false;
+      const mealPlanMatch = aiResponse.match(/<<<SAVE_MEAL_PLAN>>>([\s\S]*?)<<<END_SAVE_MEAL_PLAN>>>/);
+      
+      if (mealPlanMatch) {
+        console.log("🍽️ Meal plan markers found! Extracting JSON...");
+        try {
+          const mealPlanJson = mealPlanMatch[1].trim();
+          console.log("📋 Meal plan JSON:", mealPlanJson);
+          const mealPlans = JSON.parse(mealPlanJson);
+          console.log("✅ Parsed meal plans:", mealPlans.length, "meals");
+          
+          // Save each meal from the plan
+          for (const plan of mealPlans) {
+            // Use 'meal' or 'name' field for meal name (AI might use either)
+            const mealName = plan.name || plan.meal || "Meal Plan";
+            console.log("💾 Saving meal:", mealName);
+            await storage.createMealPlan({
+              userId,
+              name: mealName,
+              description: plan.description || null,
+              mealType: plan.mealType || "Meal",
+              calories: plan.calories || 0,
+              protein: plan.protein || 0,
+              carbs: plan.carbs || 0,
+              fat: plan.fat || 0,
+              prepTime: plan.prepTime || 30,
+              recipe: plan.recipe || JSON.stringify(plan.items || []),
+              tags: plan.tags || [],
+            });
+          }
+          
+          mealPlanSaved = true;
+          console.log("✨ Meal plan saved successfully!");
+          
+          // Auto-advance onboarding step when meal plan is saved (if on meal_plan step)
+          if (isOnboarding && onboardingStep === 'meal_plan') {
+            await storage.completeOnboarding(userId);
+          }
+        } catch (e) {
+          console.error("❌ Failed to parse and save meal plan:", e);
+        }
+      } else {
+        console.log("ℹ️ No meal plan markers found in AI response");
+      }
+
       // Auto-advance onboarding steps after AI responds (user has engaged with current step)
       if (isOnboarding && onboardingStep && message.trim().length > 0) {
         const STEP_PROGRESSION: Record<string, string> = {
@@ -934,6 +980,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userMessage,
         assistantMessage,
         trainingPlanSaved,
+        mealPlanSaved,
       });
     } catch (error: any) {
       console.error("Error in chat:", error);

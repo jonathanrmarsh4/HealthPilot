@@ -85,6 +85,15 @@ export function FloatingChat({ isOpen, onClose, currentPage }: FloatingChatProps
           description: "Your personalized workout plan has been added to your Training page",
         });
       }
+      
+      // Show success notification if meal plan was saved
+      if (data.mealPlanSaved) {
+        queryClient.invalidateQueries({ queryKey: ["/api/meal-plans"] });
+        toast({
+          title: "Meal Plan Added! 🍽️",
+          description: "Your personalized meal plan has been added to your Meal Plans page",
+        });
+      }
       // Don't reset cleared state - let new messages appear after the cleared timestamp
     },
     onError: (error: Error) => {

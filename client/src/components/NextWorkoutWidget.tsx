@@ -57,7 +57,7 @@ export function NextWorkoutWidget() {
           <p className="text-sm text-muted-foreground">
             No training schedule yet. Start your fitness journey with a personalized plan.
           </p>
-          <Link href="/health-coach">
+          <Link href="/chat">
             <Button variant="outline" size="sm" className="w-full" data-testid="button-create-training-plan">
               Create Training Plan →
             </Button>

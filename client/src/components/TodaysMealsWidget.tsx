@@ -56,7 +56,7 @@ export function TodaysMealsWidget() {
           <p className="text-sm text-muted-foreground">
             No meal plan yet. Get personalized nutrition recommendations.
           </p>
-          <Link href="/health-coach">
+          <Link href="/chat">
             <Button variant="outline" size="sm" className="w-full" data-testid="button-create-meal-plan">
               Create Meal Plan →
             </Button>
@@ -141,7 +141,7 @@ export function TodaysMealsWidget() {
           ))}
         </div>
 
-        <Link href="/meal-plans">
+        <Link href="/meals">
           <Button variant="outline" size="sm" className="w-full" data-testid="button-view-all-meals">
             View All Meals <ChevronRight className="h-4 w-4 ml-1" />
           </Button>
