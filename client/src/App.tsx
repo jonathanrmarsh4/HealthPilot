@@ -142,7 +142,7 @@ function AppContent() {
     return <Logout />;
   }
 
-  // Treat auth errors same as not logged in (Safari caching issues)
+  // Treat auth errors same as not logged in (Safari caching issues) 
   if (!user || isError) {
     return <Login />;
   }

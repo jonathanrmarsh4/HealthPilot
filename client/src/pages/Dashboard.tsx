@@ -70,9 +70,18 @@ export default function Dashboard() {
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
+        // Safety: Filter out any invalid widget IDs from corrupted cache
+        const validVisible = Array.isArray(parsed.visible) 
+          ? parsed.visible.filter((w: string) => DEFAULT_WIDGETS.includes(w) || w.startsWith('biomarker-'))
+          : DEFAULT_WIDGETS;
+        const validOrder = Array.isArray(parsed.order)
+          ? parsed.order.filter((w: string) => DEFAULT_WIDGETS.includes(w) || w.startsWith('biomarker-'))
+          : DEFAULT_WIDGETS;
+        
+        // If filtered arrays are empty, use defaults
         return {
-          visible: parsed.visible || DEFAULT_WIDGETS,
-          order: parsed.order || DEFAULT_WIDGETS
+          visible: validVisible.length > 0 ? validVisible : DEFAULT_WIDGETS,
+          order: validOrder.length > 0 ? validOrder : DEFAULT_WIDGETS
         };
       } catch {
         return { visible: DEFAULT_WIDGETS, order: DEFAULT_WIDGETS };
@@ -93,8 +102,21 @@ export default function Dashboard() {
   // empty visible array = user deliberately hid all widgets (respect that)
   useEffect(() => {
     if (savedPreferences !== undefined && savedPreferences !== null) {
-      setPreferences(savedPreferences);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(savedPreferences));
+      // Safety: Validate preferences from API before using them
+      const safePreferences = {
+        visible: Array.isArray(savedPreferences.visible) 
+          ? savedPreferences.visible.filter((w: string) => DEFAULT_WIDGETS.includes(w) || w.startsWith('biomarker-'))
+          : DEFAULT_WIDGETS,
+        order: Array.isArray(savedPreferences.order)
+          ? savedPreferences.order.filter((w: string) => DEFAULT_WIDGETS.includes(w) || w.startsWith('biomarker-'))
+          : DEFAULT_WIDGETS
+      };
+      
+      // Only update if we have valid preferences
+      if (safePreferences.visible.length > 0 && safePreferences.order.length > 0) {
+        setPreferences(safePreferences);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(safePreferences));
+      }
     }
     setIsInitialLoad(false);
   }, [savedPreferences]);
