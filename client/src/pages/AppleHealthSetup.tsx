@@ -2,24 +2,44 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Smartphone, Download, Settings, Zap, CheckCircle2, Copy, ExternalLink } from "lucide-react";
+import { Smartphone, Download, Settings, Zap, CheckCircle2, Copy, ExternalLink, Key, User } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery } from "@tanstack/react-query";
+import { Skeleton } from "@/components/ui/skeleton";
+
+interface WebhookCredentials {
+  userId: string;
+  webhookSecret: string;
+  webhookUrl: string;
+}
 
 export default function AppleHealthSetup() {
   const { toast } = useToast();
-  const [copied, setCopied] = useState(false);
+  const [copiedUrl, setCopiedUrl] = useState(false);
+  const [copiedUserId, setCopiedUserId] = useState(false);
+  const [copiedSecret, setCopiedSecret] = useState(false);
   
-  const webhookUrl = `${window.location.origin}/api/health-auto-export/ingest`;
+  const { data: credentials, isLoading } = useQuery<WebhookCredentials>({
+    queryKey: ["/api/user/webhook-credentials"],
+  });
 
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(webhookUrl);
-    setCopied(true);
-    toast({
-      title: "Copied!",
-      description: "Webhook URL copied to clipboard",
-    });
-    setTimeout(() => setCopied(false), 2000);
+  const copyToClipboard = (text: string, type: 'url' | 'userId' | 'secret') => {
+    navigator.clipboard.writeText(text);
+    
+    if (type === 'url') {
+      setCopiedUrl(true);
+      toast({ title: "Copied!", description: "Webhook URL copied to clipboard" });
+      setTimeout(() => setCopiedUrl(false), 2000);
+    } else if (type === 'userId') {
+      setCopiedUserId(true);
+      toast({ title: "Copied!", description: "User ID copied to clipboard" });
+      setTimeout(() => setCopiedUserId(false), 2000);
+    } else {
+      setCopiedSecret(true);
+      toast({ title: "Copied!", description: "Webhook Secret copied to clipboard" });
+      setTimeout(() => setCopiedSecret(false), 2000);
+    }
   };
 
   return (
@@ -146,19 +166,23 @@ export default function AppleHealthSetup() {
               <div className="ml-8 space-y-3">
                 <div className="space-y-1">
                   <p className="text-sm font-medium">Webhook URL:</p>
-                  <div className="flex items-center gap-2">
-                    <code className="flex-1 bg-muted px-3 py-2 rounded text-sm overflow-x-auto">
-                      {webhookUrl}
-                    </code>
-                    <Button
-                      size="icon"
-                      variant="outline"
-                      onClick={copyToClipboard}
-                      data-testid="button-copy-webhook"
-                    >
-                      {copied ? <CheckCircle2 className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                    </Button>
-                  </div>
+                  {isLoading ? (
+                    <Skeleton className="h-10 w-full" />
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <code className="flex-1 bg-muted px-3 py-2 rounded text-sm overflow-x-auto">
+                        {credentials?.webhookUrl}
+                      </code>
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        onClick={() => copyToClipboard(credentials?.webhookUrl || '', 'url')}
+                        data-testid="button-copy-webhook"
+                      >
+                        {copiedUrl ? <CheckCircle2 className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-1">
@@ -169,6 +193,52 @@ export default function AppleHealthSetup() {
                 <div className="space-y-1">
                   <p className="text-sm font-medium">Format:</p>
                   <code className="bg-muted px-3 py-1 rounded text-sm">JSON</code>
+                </div>
+
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">Custom Headers (Required for Authentication):</p>
+                  <div className="space-y-2 mt-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-mono text-muted-foreground min-w-[140px]">X-User-Id:</span>
+                      {isLoading ? (
+                        <Skeleton className="h-8 flex-1" />
+                      ) : (
+                        <>
+                          <code className="flex-1 bg-muted px-3 py-1 rounded text-sm overflow-x-auto">
+                            {credentials?.userId}
+                          </code>
+                          <Button
+                            size="icon"
+                            variant="outline"
+                            onClick={() => copyToClipboard(credentials?.userId || '', 'userId')}
+                            data-testid="button-copy-userid"
+                          >
+                            {copiedUserId ? <CheckCircle2 className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-mono text-muted-foreground min-w-[140px]">X-Webhook-Secret:</span>
+                      {isLoading ? (
+                        <Skeleton className="h-8 flex-1" />
+                      ) : (
+                        <>
+                          <code className="flex-1 bg-muted px-3 py-1 rounded text-sm overflow-x-auto">
+                            {credentials?.webhookSecret}
+                          </code>
+                          <Button
+                            size="icon"
+                            variant="outline"
+                            onClick={() => copyToClipboard(credentials?.webhookSecret || '', 'secret')}
+                            data-testid="button-copy-secret"
+                          >
+                            {copiedSecret ? <CheckCircle2 className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 <div className="space-y-1">

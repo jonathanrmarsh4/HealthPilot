@@ -1094,6 +1094,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/user/webhook-credentials", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+
+    try {
+      const webhookSecret = process.env.WEBHOOK_SECRET || "dev-webhook-secret-12345";
+      res.json({
+        userId,
+        webhookSecret,
+        webhookUrl: `${req.protocol}://${req.get('host')}/api/health-auto-export/ingest`
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.post("/api/biomarkers/cleanup-duplicates", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
 
