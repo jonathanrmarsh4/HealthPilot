@@ -3,8 +3,10 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Send, X, MessageCircle, Loader2, Minimize2, Sparkles, Trash2 } from "lucide-react";
+import { Send, X, MessageCircle, Loader2, Minimize2, Sparkles, Trash2, SkipForward, CheckCircle2 } from "lucide-react";
+import { useOnboarding } from "@/contexts/OnboardingContext";
 import type { ChatMessage } from "@shared/schema";
 
 interface FloatingChatProps {
@@ -13,11 +15,28 @@ interface FloatingChatProps {
   currentPage?: string;
 }
 
+const ONBOARDING_STEPS = [
+  { key: 'welcome', label: 'Welcome' },
+  { key: 'apple_health', label: 'Apple Health' },
+  { key: 'health_records', label: 'Health Records' },
+  { key: 'training_plan', label: 'Training Plan' },
+  { key: 'meal_plan', label: 'Meal Plan' },
+] as const;
+
+const STEP_NEXT_MAP = {
+  'welcome': 'apple_health',
+  'apple_health': 'health_records',
+  'health_records': 'training_plan',
+  'training_plan': 'meal_plan',
+  'meal_plan': 'complete',
+} as const;
+
 export function FloatingChat({ isOpen, onClose, currentPage }: FloatingChatProps) {
   const { toast } = useToast();
   const [message, setMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isMinimized, setIsMinimized] = useState(false);
+  const { status: onboardingStatus, skipStep, completeOnboarding } = useOnboarding();
   const [clearedAtTimestamp, setClearedAtTimestamp] = useState<string | null>(() => {
     // Persist cleared state in localStorage
     if (typeof window !== 'undefined') {
@@ -85,6 +104,44 @@ export function FloatingChat({ isOpen, onClose, currentPage }: FloatingChatProps
     });
   };
 
+  const [isSkipping, setIsSkipping] = useState(false);
+
+  const handleSkipOnboardingStep = async () => {
+    if (!onboardingStatus || !onboardingStatus.step || isSkipping) return;
+    
+    const currentStep = onboardingStatus.step as keyof typeof STEP_NEXT_MAP;
+    const nextStepKey = STEP_NEXT_MAP[currentStep];
+    
+    setIsSkipping(true);
+    try {
+      if (nextStepKey === 'complete') {
+        await completeOnboarding();
+        toast({
+          title: "Onboarding Complete!",
+          description: "You can always return to configure these features later.",
+        });
+        onClose();
+      } else {
+        await skipStep(currentStep, nextStepKey as any);
+        toast({
+          title: "Step Skipped",
+          description: `Moving to ${ONBOARDING_STEPS.find(s => s.key === nextStepKey)?.label}`,
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to skip step. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSkipping(false);
+    }
+  };
+
+  const isOnboarding = onboardingStatus && !onboardingStatus.completed;
+  const currentStepIndex = ONBOARDING_STEPS.findIndex(s => s.key === onboardingStatus?.step);
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -119,43 +176,81 @@ export function FloatingChat({ isOpen, onClose, currentPage }: FloatingChatProps
       }`}
     >
       <Card className="flex flex-col h-full shadow-lg bg-background/90 border-purple-500/50">
-        <div className="flex items-center justify-between gap-2 p-4 border-b bg-gradient-to-r from-purple-600 to-purple-700 text-white">
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5" />
-            <h3 className="font-semibold">Health Coach</h3>
-          </div>
-          <div className="flex items-center gap-1">
-            {messages && messages.length > 0 && (
+        <div className="border-b bg-gradient-to-r from-purple-600 to-purple-700 text-white">
+          <div className="flex items-center justify-between gap-2 p-4">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5" />
+              <h3 className="font-semibold">{isOnboarding ? "Getting Started" : "Health Coach"}</h3>
+            </div>
+            <div className="flex items-center gap-1">
+              {isOnboarding && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={handleSkipOnboardingStep}
+                  disabled={isSkipping}
+                  className="h-8 px-2 text-white hover:bg-white/20 gap-1 disabled:opacity-50"
+                  data-testid="button-skip-onboarding"
+                >
+                  {isSkipping ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <SkipForward className="h-3 w-3" />
+                  )}
+                  <span className="text-xs">{isSkipping ? "Skipping..." : "Skip"}</span>
+                </Button>
+              )}
+              {messages && messages.length > 0 && !isOnboarding && (
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={handleClearChat}
+                  className="h-8 w-8 text-white hover:bg-white/20"
+                  data-testid="button-clear-chat"
+                  title="Clear chat (keeps history for context)"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
               <Button
                 size="icon"
                 variant="ghost"
-                onClick={handleClearChat}
+                onClick={() => setIsMinimized(!isMinimized)}
                 className="h-8 w-8 text-white hover:bg-white/20"
-                data-testid="button-clear-chat"
-                title="Clear chat (keeps history for context)"
+                data-testid="button-minimize-chat"
               >
-                <Trash2 className="h-4 w-4" />
+                <Minimize2 className="h-4 w-4" />
               </Button>
-            )}
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={() => setIsMinimized(!isMinimized)}
-              className="h-8 w-8 text-white hover:bg-white/20"
-              data-testid="button-minimize-chat"
-            >
-              <Minimize2 className="h-4 w-4" />
-            </Button>
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={onClose}
-              className="h-8 w-8 text-white hover:bg-white/20"
-              data-testid="button-close-chat"
-            >
-              <X className="h-4 w-4" />
-            </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={onClose}
+                className="h-8 w-8 text-white hover:bg-white/20"
+                data-testid="button-close-chat"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
+          
+          {isOnboarding && currentStepIndex >= 0 && (
+            <div className="px-4 pb-3">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-xs text-white/80">
+                  Step {currentStepIndex + 1} of {ONBOARDING_STEPS.length}
+                </span>
+                <Badge variant="secondary" className="text-xs">
+                  {ONBOARDING_STEPS[currentStepIndex].label}
+                </Badge>
+              </div>
+              <div className="w-full bg-white/20 rounded-full h-1.5">
+                <div 
+                  className="bg-white rounded-full h-1.5 transition-all duration-300"
+                  style={{ width: `${((currentStepIndex + 1) / ONBOARDING_STEPS.length) * 100}%` }}
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         {!isMinimized && (

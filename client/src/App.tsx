@@ -10,6 +10,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { LocaleProvider } from "@/contexts/LocaleContext";
 import { LocaleSelector } from "@/components/LocaleSelector";
 import { TimezoneProvider } from "@/contexts/TimezoneContext";
+import { OnboardingProvider, useOnboarding } from "@/contexts/OnboardingContext";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { FloatingChat, FloatingChatTrigger } from "@/components/FloatingChat";
 import Dashboard from "@/pages/Dashboard";
@@ -29,7 +30,7 @@ import Logout from "@/pages/Logout";
 import NotFound from "@/pages/not-found";
 import { Loader2, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 function Router() {
   return (
@@ -52,9 +53,11 @@ function Router() {
   );
 }
 
-function AuthenticatedApp() {
+function AppLayout() {
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [hasAutoOpened, setHasAutoOpened] = useState(false);
   const [location] = useLocation();
+  const { shouldShowOnboarding, isLoading: onboardingLoading } = useOnboarding();
   
   const style = {
     "--sidebar-width": "16rem",
@@ -78,46 +81,69 @@ function AuthenticatedApp() {
 
   const currentPage = pageNames[location] || "Unknown Page";
 
+  // Auto-open floating chat once on first login if onboarding not completed
+  useEffect(() => {
+    if (!onboardingLoading && shouldShowOnboarding && location !== "/chat" && !hasAutoOpened) {
+      setIsChatOpen(true);
+      setHasAutoOpened(true);
+    }
+  }, [onboardingLoading, shouldShowOnboarding, location, hasAutoOpened]);
+
+  // Reset auto-open flag when onboarding is completed
+  useEffect(() => {
+    if (!shouldShowOnboarding) {
+      setHasAutoOpened(false);
+    }
+  }, [shouldShowOnboarding]);
+
+  return (
+    <SidebarProvider style={style as React.CSSProperties}>
+      <div className="flex h-screen w-full">
+        <AppSidebar />
+        <div className="flex flex-col flex-1 overflow-hidden">
+          <header className="flex items-center justify-between p-4 border-b border-border shrink-0">
+            <SidebarTrigger data-testid="button-sidebar-toggle" />
+            <div className="flex items-center gap-2">
+              <LocaleSelector />
+              <ThemeToggle />
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => window.location.href = "/api/logout"}
+                data-testid="button-logout"
+              >
+                <LogOut className="h-5 w-5" />
+              </Button>
+            </div>
+          </header>
+          <main className="flex-1 overflow-auto p-8">
+            <ErrorBoundary>
+              <Router />
+            </ErrorBoundary>
+          </main>
+        </div>
+      </div>
+
+      {location !== "/chat" && !isChatOpen && (
+        <FloatingChatTrigger onClick={() => setIsChatOpen(true)} />
+      )}
+      
+      <FloatingChat 
+        isOpen={isChatOpen} 
+        onClose={() => setIsChatOpen(false)}
+        currentPage={currentPage}
+      />
+    </SidebarProvider>
+  );
+}
+
+function AuthenticatedApp() {
   return (
     <LocaleProvider>
       <TimezoneProvider>
-        <SidebarProvider style={style as React.CSSProperties}>
-          <div className="flex h-screen w-full">
-            <AppSidebar />
-            <div className="flex flex-col flex-1 overflow-hidden">
-              <header className="flex items-center justify-between p-4 border-b border-border shrink-0">
-                <SidebarTrigger data-testid="button-sidebar-toggle" />
-                <div className="flex items-center gap-2">
-                  <LocaleSelector />
-                  <ThemeToggle />
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => window.location.href = "/api/logout"}
-                    data-testid="button-logout"
-                  >
-                    <LogOut className="h-5 w-5" />
-                  </Button>
-                </div>
-              </header>
-              <main className="flex-1 overflow-auto p-8">
-                <ErrorBoundary>
-                  <Router />
-                </ErrorBoundary>
-              </main>
-            </div>
-          </div>
-
-          {location !== "/chat" && !isChatOpen && (
-            <FloatingChatTrigger onClick={() => setIsChatOpen(true)} />
-          )}
-          
-          <FloatingChat 
-            isOpen={isChatOpen} 
-            onClose={() => setIsChatOpen(false)}
-            currentPage={currentPage}
-          />
-        </SidebarProvider>
+        <OnboardingProvider>
+          <AppLayout />
+        </OnboardingProvider>
         <Toaster />
       </TimezoneProvider>
     </LocaleProvider>
