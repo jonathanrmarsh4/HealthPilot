@@ -20,7 +20,8 @@ The application is a full-stack project utilizing React, TypeScript, Tailwind CS
 
 **Technical Implementations:**
 - **AI Intelligence Layer:** Provides daily personalized insights, context-aware chat, enhanced multi-metric recommendations, and alternative therapy suggestions.
-- **Biomarker Tracking:** Displays multiple data points over time, shows reference range status, and supports localization for imperial/metric units.
+  - **Weight Assessment Safeguards:** AI will NOT suggest weight loss based solely on raw weight numbers. It requires body fat percentage data (>25% men, >32% women), clear health markers (elevated glucose/cholesterol/BP), or explicit user request before making weight-related recommendations. Respects that athletic/fit individuals often have "high" weight due to muscle mass.
+- **Biomarker Tracking:** Displays multiple data points over time, shows reference range status, and supports localization for imperial/metric units. Supports body fat percentage tracking.
 - **Authentication:** Production-ready security implementation using Replit Auth (OpenID Connect) with custom domain support and role-based access control.
 - **Security Protections:** Includes IDOR protection, privilege escalation prevention, data isolation, webhook authentication, and Zod schema validation.
 - **File Upload Security:** Validation for file size, types (PDF, DOC, DOCX, JPG, PNG, TXT), and mime types.
