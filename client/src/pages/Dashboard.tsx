@@ -5,6 +5,8 @@ import { RecommendationCard } from "@/components/RecommendationCard";
 import { QuickStats } from "@/components/QuickStats";
 import { TrendLineWidget } from "@/components/TrendLineWidget";
 import { AIInsightsWidget } from "@/components/AIInsightsWidget";
+import { NextWorkoutWidget } from "@/components/NextWorkoutWidget";
+import { TodaysMealsWidget } from "@/components/TodaysMealsWidget";
 import { Heart, Activity, Scale, Droplet, TrendingUp, Zap, Apple, AlertCircle, Dumbbell, Settings2, Eye, EyeOff, ChevronUp, ChevronDown } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -48,6 +50,8 @@ interface DashboardPreferences {
 
 const DEFAULT_WIDGETS = [
   "quick-stats",
+  "next-workout",
+  "todays-meals",
   "health-metrics", 
   "blood-glucose-chart",
   "weight-chart",
@@ -56,6 +60,8 @@ const DEFAULT_WIDGETS = [
 
 const WIDGET_CONFIG: Record<string, { title: string; description: string }> = {
   "quick-stats": { title: "Quick Stats", description: "Daily steps, heart rate, active days, calories" },
+  "next-workout": { title: "Next Workout", description: "Upcoming training session" },
+  "todays-meals": { title: "Today's Meals", description: "Daily meal plan overview" },
   "ai-insights": { title: "AI Insights", description: "Daily intelligence and pattern discoveries" },
   "health-metrics": { title: "Health Metrics", description: "Heart rate, blood glucose, weight cards" },
   "blood-glucose-chart": { title: "Blood Glucose Chart", description: "7-day glucose trend" },
@@ -393,6 +399,12 @@ export default function Dashboard() {
 
       case "ai-insights":
         return <AIInsightsWidget key={widget} />;
+
+      case "next-workout":
+        return <NextWorkoutWidget key={widget} />;
+
+      case "todays-meals":
+        return <TodaysMealsWidget key={widget} />;
 
       case "health-metrics":
         const glucoseConfig = biomarkerDisplayConfig["blood-glucose"];
