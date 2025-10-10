@@ -106,8 +106,18 @@ export async function setupAuth(app: Express) {
     tokens: client.TokenEndpointResponse & client.TokenEndpointResponseHelpers,
     verified: passport.AuthenticateCallback
   ) => {
+    console.log("🎫 Received tokens from OAuth:", {
+      hasAccessToken: !!tokens.access_token,
+      hasRefreshToken: !!tokens.refresh_token,
+      tokenKeys: Object.keys(tokens),
+      expiresIn: tokens.expires_in
+    });
     const user = {};
     updateUserSession(user, tokens);
+    console.log("👤 User object after updateUserSession:", {
+      keys: Object.keys(user),
+      hasRefreshToken: !!(user as any).refresh_token
+    });
     await upsertUser(tokens.claims());
     verified(null, user);
   };
@@ -180,13 +190,21 @@ export async function setupAuth(app: Express) {
   });
 
   app.get("/api/logout", (req, res) => {
+    console.log("🚪 Logout request - destroying session");
     req.logout(() => {
-      res.redirect(
-        client.buildEndSessionUrl(config, {
-          client_id: process.env.REPL_ID!,
-          post_logout_redirect_uri: `${req.protocol}://${req.hostname}/logged-out`,
-        }).href
-      );
+      req.session.destroy((err) => {
+        if (err) {
+          console.error("❌ Error destroying session:", err);
+        } else {
+          console.log("✅ Session destroyed successfully");
+        }
+        res.redirect(
+          client.buildEndSessionUrl(config, {
+            client_id: process.env.REPL_ID!,
+            post_logout_redirect_uri: `${req.protocol}://${req.hostname}/logged-out`,
+          }).href
+        );
+      });
     });
   });
 }
@@ -210,12 +228,20 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
   }
 
   const now = Math.floor(Date.now() / 1000);
+  console.log("⏰ Token expiration check:", {
+    currentTime: now,
+    expiresAt: user.expires_at,
+    isExpired: now > user.expires_at,
+    hasRefreshToken: !!user.refresh_token
+  });
+  
   if (now <= user.expires_at) {
     return next();
   }
 
   const refreshToken = user.refresh_token;
   if (!refreshToken) {
+    console.log("❌ Token expired and no refresh_token available");
     res.status(401).json({ message: "Unauthorized" });
     return;
   }
