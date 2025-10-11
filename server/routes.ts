@@ -700,6 +700,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Training Analytics Endpoints
+  app.get("/api/analytics/training-load", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    try {
+      const { days = '30' } = req.query;
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - parseInt(days as string));
+      
+      const trainingLoad = await storage.getTrainingLoad(userId, startDate, endDate);
+      res.json(trainingLoad);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/analytics/workout-stats", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    try {
+      const { days = '30' } = req.query;
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - parseInt(days as string));
+      
+      const stats = await storage.getWorkoutStats(userId, startDate, endDate);
+      res.json(stats);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/analytics/correlations", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    try {
+      const { days = '30' } = req.query;
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - parseInt(days as string));
+      
+      const correlations = await storage.getWorkoutBiomarkerCorrelations(userId, startDate, endDate);
+      res.json(correlations);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.post("/api/recommendations/generate", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
 

@@ -97,6 +97,23 @@ export interface IStorage {
   createExerciseLog(log: InsertExerciseLog): Promise<ExerciseLog>;
   getExerciseLogs(workoutSessionId: string): Promise<ExerciseLog[]>;
   
+  getTrainingLoad(userId: string, startDate: Date, endDate: Date): Promise<{
+    totalLoad: number;
+    weeklyLoads: Array<{ week: string; load: number }>;
+    byType: Array<{ type: string; load: number }>;
+  }>;
+  getWorkoutStats(userId: string, startDate: Date, endDate: Date): Promise<{
+    totalWorkouts: number;
+    totalDuration: number;
+    totalCalories: number;
+    avgHeartRate: number;
+    byType: Array<{ type: string; count: number; duration: number }>;
+  }>;
+  getWorkoutBiomarkerCorrelations(userId: string, startDate: Date, endDate: Date): Promise<{
+    sleepQuality: { workoutDays: number; nonWorkoutDays: number; improvement: number };
+    restingHR: { workoutDays: number; nonWorkoutDays: number; improvement: number };
+  }>;
+  
   getAllUsers(limit: number, offset: number, search?: string): Promise<{ users: User[], total: number }>;
   updateUser(id: string, updates: Partial<User>): Promise<User>;
   updateUserAdminFields(id: string, updates: { 
@@ -767,6 +784,180 @@ export class DbStorage implements IStorage {
       .from(exerciseLogs)
       .where(eq(exerciseLogs.workoutSessionId, workoutSessionId))
       .orderBy(exerciseLogs.createdAt);
+  }
+
+  async getTrainingLoad(userId: string, startDate: Date, endDate: Date): Promise<{
+    totalLoad: number;
+    weeklyLoads: Array<{ week: string; load: number }>;
+    byType: Array<{ type: string; load: number }>;
+  }> {
+    const workouts = await this.getWorkoutSessions(userId, startDate, endDate);
+    
+    // Calculate intensity factor based on heart rate if available, otherwise use duration
+    const calculateLoad = (workout: WorkoutSession) => {
+      const baseLoad = workout.duration;
+      const intensityFactor = workout.avgHeartRate 
+        ? (workout.avgHeartRate / 140) // Normalize to average training HR
+        : 1;
+      return baseLoad * intensityFactor;
+    };
+    
+    // Calculate total load
+    const totalLoad = workouts.reduce((sum, w) => sum + calculateLoad(w), 0);
+    
+    // Calculate weekly loads
+    const weeklyMap = new Map<string, number>();
+    workouts.forEach(workout => {
+      const weekKey = this.getWeekKey(workout.startTime);
+      weeklyMap.set(weekKey, (weeklyMap.get(weekKey) || 0) + calculateLoad(workout));
+    });
+    const weeklyLoads = Array.from(weeklyMap.entries())
+      .map(([week, load]) => ({ week, load: Math.round(load) }))
+      .sort((a, b) => a.week.localeCompare(b.week));
+    
+    // Calculate load by type
+    const typeMap = new Map<string, number>();
+    workouts.forEach(workout => {
+      typeMap.set(workout.workoutType, (typeMap.get(workout.workoutType) || 0) + calculateLoad(workout));
+    });
+    const byType = Array.from(typeMap.entries())
+      .map(([type, load]) => ({ type, load: Math.round(load) }))
+      .sort((a, b) => b.load - a.load);
+    
+    return {
+      totalLoad: Math.round(totalLoad),
+      weeklyLoads,
+      byType
+    };
+  }
+
+  async getWorkoutStats(userId: string, startDate: Date, endDate: Date): Promise<{
+    totalWorkouts: number;
+    totalDuration: number;
+    totalCalories: number;
+    avgHeartRate: number;
+    byType: Array<{ type: string; count: number; duration: number }>;
+  }> {
+    const workouts = await this.getWorkoutSessions(userId, startDate, endDate);
+    
+    const totalWorkouts = workouts.length;
+    const totalDuration = workouts.reduce((sum, w) => sum + w.duration, 0);
+    const totalCalories = workouts.reduce((sum, w) => sum + (w.calories || 0), 0);
+    const hrWorkouts = workouts.filter(w => w.avgHeartRate);
+    const avgHeartRate = hrWorkouts.length > 0
+      ? Math.round(hrWorkouts.reduce((sum, w) => sum + (w.avgHeartRate || 0), 0) / hrWorkouts.length)
+      : 0;
+    
+    // Group by type
+    const typeMap = new Map<string, { count: number; duration: number }>();
+    workouts.forEach(workout => {
+      const current = typeMap.get(workout.workoutType) || { count: 0, duration: 0 };
+      typeMap.set(workout.workoutType, {
+        count: current.count + 1,
+        duration: current.duration + workout.duration
+      });
+    });
+    const byType = Array.from(typeMap.entries())
+      .map(([type, stats]) => ({ type, ...stats }))
+      .sort((a, b) => b.count - a.count);
+    
+    return {
+      totalWorkouts,
+      totalDuration,
+      totalCalories,
+      avgHeartRate,
+      byType
+    };
+  }
+
+  async getWorkoutBiomarkerCorrelations(userId: string, startDate: Date, endDate: Date): Promise<{
+    sleepQuality: { workoutDays: number; nonWorkoutDays: number; improvement: number };
+    restingHR: { workoutDays: number; nonWorkoutDays: number; improvement: number };
+  }> {
+    const workouts = await this.getWorkoutSessions(userId, startDate, endDate);
+    const sleepSessions = await this.getSleepSessions(userId, startDate, endDate);
+    
+    // Create set of workout dates (date only, no time)
+    const workoutDates = new Set(
+      workouts.map(w => w.startTime.toISOString().split('T')[0])
+    );
+    
+    // Analyze sleep quality on workout days vs non-workout days
+    const sleepOnWorkoutDays: number[] = [];
+    const sleepOnNonWorkoutDays: number[] = [];
+    
+    sleepSessions.forEach(session => {
+      const sessionDate = session.bedtime.toISOString().split('T')[0];
+      if (workoutDates.has(sessionDate)) {
+        if (session.sleepScore) sleepOnWorkoutDays.push(session.sleepScore);
+      } else {
+        if (session.sleepScore) sleepOnNonWorkoutDays.push(session.sleepScore);
+      }
+    });
+    
+    const avgSleepWorkout = sleepOnWorkoutDays.length > 0
+      ? Math.round(sleepOnWorkoutDays.reduce((a, b) => a + b, 0) / sleepOnWorkoutDays.length)
+      : 0;
+    const avgSleepNonWorkout = sleepOnNonWorkoutDays.length > 0
+      ? Math.round(sleepOnNonWorkoutDays.reduce((a, b) => a + b, 0) / sleepOnNonWorkoutDays.length)
+      : 0;
+    const sleepImprovement = avgSleepWorkout - avgSleepNonWorkout;
+    
+    // Analyze resting heart rate (using morning heart rate from biomarkers)
+    const heartRateData = await db
+      .select()
+      .from(biomarkers)
+      .where(
+        and(
+          eq(biomarkers.userId, userId),
+          eq(biomarkers.type, 'heart-rate'),
+          gte(biomarkers.recordedAt, startDate),
+          lte(biomarkers.recordedAt, endDate)
+        )
+      );
+    
+    const hrOnWorkoutDays: number[] = [];
+    const hrOnNonWorkoutDays: number[] = [];
+    
+    heartRateData.forEach(bm => {
+      const bmDate = bm.recordedAt.toISOString().split('T')[0];
+      if (workoutDates.has(bmDate)) {
+        hrOnWorkoutDays.push(bm.value);
+      } else {
+        hrOnNonWorkoutDays.push(bm.value);
+      }
+    });
+    
+    const avgHRWorkout = hrOnWorkoutDays.length > 0
+      ? Math.round(hrOnWorkoutDays.reduce((a, b) => a + b, 0) / hrOnWorkoutDays.length)
+      : 0;
+    const avgHRNonWorkout = hrOnNonWorkoutDays.length > 0
+      ? Math.round(hrOnNonWorkoutDays.reduce((a, b) => a + b, 0) / hrOnNonWorkoutDays.length)
+      : 0;
+    const hrImprovement = avgHRNonWorkout - avgHRWorkout; // Lower HR is better
+    
+    return {
+      sleepQuality: {
+        workoutDays: avgSleepWorkout,
+        nonWorkoutDays: avgSleepNonWorkout,
+        improvement: sleepImprovement
+      },
+      restingHR: {
+        workoutDays: avgHRWorkout,
+        nonWorkoutDays: avgHRNonWorkout,
+        improvement: hrImprovement
+      }
+    };
+  }
+
+  private getWeekKey(date: Date): string {
+    // Get ISO week number
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() + 4 - (d.getDay() || 7));
+    const yearStart = new Date(d.getFullYear(), 0, 1);
+    const weekNo = Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+    return `${d.getFullYear()}-W${weekNo.toString().padStart(2, '0')}`;
   }
 }
 
