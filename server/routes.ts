@@ -1632,9 +1632,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let workoutSessionsCount = 0;
 
       for (const metric of metrics) {
+        // Check if this metric object IS a workout (no .data field, but has workout fields)
+        const isWorkoutObject = metric.start || metric.startDate || metric.duration || metric.activeEnergyBurned || metric.totalEnergyBurned;
+        
+        // If metric IS a workout object, wrap it in a data array
+        if (isWorkoutObject && !metric.data) {
+          metric.data = [metric]; // Wrap the workout object in an array
+          console.log(`🔧 Wrapped workout object in data array for: "${metric.name}"`);
+        }
+        
         // Special handling for workout sessions - check multiple possible field names
         const metricName = (metric.name || metric.type || "").toLowerCase();
-        const nameBasedWorkout = metricName === "workout" || metricName === "workouts" || metricName.includes("workout");
+        const nameBasedWorkout = metricName === "workout" || metricName === "workouts" || metricName.includes("workout") || metricName.includes("cycling") || metricName.includes("running");
         
         // Debug: Log metric structure
         console.log(`🔬 Analyzing metric: "${metric.name}"`, {
