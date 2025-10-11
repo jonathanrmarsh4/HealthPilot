@@ -657,6 +657,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ...schedule,
           userId,
           completed: 0,
+          exercises: schedule.exercises || [], // Ensure exercises is never null
         });
         savedSchedules.push(saved);
       }
