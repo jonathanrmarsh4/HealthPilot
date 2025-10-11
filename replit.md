@@ -8,6 +8,8 @@ Health Insights AI is an AI-powered health insights platform designed to analyze
 
 I prefer simple language and clear explanations. I want iterative development where I can provide feedback at each stage. Ask before making major changes to the project structure or core functionalities. Do not make changes to the `replit.nix` file.
 
+**Primary Devices:** I primarily use iPad and iPhone for my work. All features must be fully functional and properly responsive on mobile/tablet devices. Test on smaller screens and ensure UI elements don't overflow or become hidden.
+
 ## System Architecture
 
 The application is a full-stack project utilizing React, TypeScript, Tailwind CSS, and shadcn/ui for the frontend, and Express.js with TypeScript for the backend. PostgreSQL, accessed via Drizzle ORM, serves as the primary database. AI capabilities are powered by Anthropic Claude 3 Haiku.

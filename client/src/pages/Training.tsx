@@ -164,17 +164,17 @@ export default function Training() {
       </div>
 
       <Tabs defaultValue="schedule" className="space-y-6">
-        <div className="overflow-x-auto">
-          <TabsList data-testid="tabs-training" className="w-full justify-start">
-            <TabsTrigger value="schedule" data-testid="tab-schedule">
+        <div className="overflow-x-auto pb-2">
+          <TabsList data-testid="tabs-training" className="flex w-full md:inline-flex md:w-auto">
+            <TabsTrigger value="schedule" data-testid="tab-schedule" className="flex-1 md:flex-none">
               <Calendar className="h-4 w-4 mr-2" />
               Schedule
             </TabsTrigger>
-            <TabsTrigger value="workouts" data-testid="tab-workouts">
+            <TabsTrigger value="workouts" data-testid="tab-workouts" className="flex-1 md:flex-none">
               <Dumbbell className="h-4 w-4 mr-2" />
               Workouts
             </TabsTrigger>
-            <TabsTrigger value="analytics" data-testid="tab-analytics">
+            <TabsTrigger value="analytics" data-testid="tab-analytics" className="flex-1 md:flex-none">
               <BarChart3 className="h-4 w-4 mr-2" />
               Analytics
             </TabsTrigger>
