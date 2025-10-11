@@ -1,12 +1,13 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Shield, Users, TrendingUp, FileText, Activity, Search } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Shield, Users, TrendingUp, FileText, Activity, Search, Trash2 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { User } from "@shared/schema";
@@ -28,6 +29,9 @@ interface UsersResponse {
 export default function Admin() {
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(0);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
+  const [emailConfirmation, setEmailConfirmation] = useState("");
   const limit = 20;
   const { toast } = useToast();
 
@@ -84,6 +88,43 @@ export default function Admin() {
         description: error.message,
         variant: "destructive",
       });
+    }
+  };
+
+  const deleteMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const res = await apiRequest("DELETE", `/api/admin/users/${userId}`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] });
+      setDeleteDialogOpen(false);
+      setUserToDelete(null);
+      setEmailConfirmation("");
+      toast({
+        title: "User Deleted",
+        description: "User and all associated data have been permanently removed",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const openDeleteDialog = (user: User) => {
+    setUserToDelete(user);
+    setEmailConfirmation("");
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteUser = () => {
+    if (userToDelete && emailConfirmation === userToDelete.email) {
+      deleteMutation.mutate(userToDelete.id);
     }
   };
 
@@ -288,13 +329,24 @@ export default function Admin() {
                           </Badge>
                         </TableCell>
                         <TableCell data-testid={`cell-user-actions-${user.id}`}>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            data-testid={`button-view-user-${user.id}`}
-                          >
-                            View Details
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              data-testid={`button-view-user-${user.id}`}
+                            >
+                              View Details
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => openDeleteDialog(user)}
+                              className="text-destructive hover:text-destructive"
+                              data-testid={`button-delete-user-${user.id}`}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -334,6 +386,53 @@ export default function Admin() {
           )}
         </CardContent>
       </Card>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent data-testid="dialog-delete-user">
+          <AlertDialogHeader>
+            <AlertDialogTitle data-testid="text-dialog-title">
+              Delete User Account
+            </AlertDialogTitle>
+            <AlertDialogDescription data-testid="text-dialog-description">
+              This action cannot be undone. This will permanently delete the user account and remove all associated data including:
+              <ul className="list-disc list-inside mt-2 space-y-1">
+                <li>Health records and uploaded documents</li>
+                <li>Biomarker data and tracking history</li>
+                <li>Meal plans and training schedules</li>
+                <li>Chat history and AI conversations</li>
+                <li>All personal information</li>
+              </ul>
+              <div className="mt-4 space-y-2">
+                <p className="font-semibold">
+                  To confirm, please type the user's email address:
+                </p>
+                <p className="text-sm font-mono bg-muted px-2 py-1 rounded">
+                  {userToDelete?.email}
+                </p>
+                <Input
+                  placeholder="Enter email to confirm"
+                  value={emailConfirmation}
+                  onChange={(e) => setEmailConfirmation(e.target.value)}
+                  data-testid="input-delete-confirmation"
+                />
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-delete">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteUser}
+              disabled={emailConfirmation !== userToDelete?.email || deleteMutation.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-testid="button-confirm-delete"
+            >
+              {deleteMutation.isPending ? "Deleting..." : "Delete User"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
