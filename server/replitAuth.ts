@@ -156,21 +156,25 @@ export async function setupAuth(app: Express) {
   });
 
   app.get("/api/login", (req, res, next) => {
+    const domain = getOAuthDomain(req.hostname);
     console.log("🔐 Login request:", {
       requestHostname: req.hostname,
-      strategyName: `replitauth:${req.hostname}`
+      mappedDomain: domain,
+      strategyName: `replitauth:${domain}`
     });
     
-    passport.authenticate(`replitauth:${req.hostname}`, {
+    passport.authenticate(`replitauth:${domain}`, {
       prompt: "login consent",
       scope: ["openid", "email", "profile", "offline_access"],
     })(req, res, next);
   });
 
   app.get("/api/callback", (req, res, next) => {
+    const domain = getOAuthDomain(req.hostname);
     console.log("🔄 OAuth callback:", {
       requestHostname: req.hostname,
-      strategyName: `replitauth:${req.hostname}`,
+      mappedDomain: domain,
+      strategyName: `replitauth:${domain}`,
       hasCode: !!req.query.code,
       hasError: !!req.query.error
     });
@@ -183,7 +187,7 @@ export async function setupAuth(app: Express) {
       });
     }
     
-    passport.authenticate(`replitauth:${req.hostname}`, {
+    passport.authenticate(`replitauth:${domain}`, {
       successReturnToOrRedirect: "/",
       failureRedirect: "/api/login",
     })(req, res, next);
