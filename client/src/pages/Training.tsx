@@ -8,8 +8,9 @@ import { Sparkles, Loader2, TrendingUp, BarChart3, Activity, Heart, Moon, Zap, C
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import type { TrainingSchedule } from "@shared/schema";
+import type { TrainingSchedule, WorkoutSession } from "@shared/schema";
 import { useState } from "react";
+import { format } from "date-fns";
 
 interface TrainingLoad {
   weeklyLoad: number;
@@ -61,6 +62,10 @@ export default function Training() {
   
   const { data: workouts, isLoading } = useQuery<TrainingSchedule[]>({
     queryKey: ["/api/training-schedules"],
+  });
+
+  const { data: workoutSessions, isLoading: sessionsLoading } = useQuery<WorkoutSession[]>({
+    queryKey: [`/api/workout-sessions?days=${analyticsTimeframe}`],
   });
 
   const { data: trainingLoad, isLoading: loadLoading } = useQuery<TrainingLoad>({
@@ -164,6 +169,10 @@ export default function Training() {
             <Calendar className="h-4 w-4 mr-2" />
             Schedule
           </TabsTrigger>
+          <TabsTrigger value="workouts" data-testid="tab-workouts">
+            <Dumbbell className="h-4 w-4 mr-2" />
+            Workouts
+          </TabsTrigger>
           <TabsTrigger value="analytics" data-testid="tab-analytics">
             <BarChart3 className="h-4 w-4 mr-2" />
             Analytics
@@ -201,6 +210,102 @@ export default function Training() {
             <Card>
               <CardContent className="p-12 text-center text-muted-foreground">
                 No training schedule available. Click "Generate New Schedule" to create a personalized workout plan.
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="workouts" className="space-y-6">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Timeframe:</span>
+            <div className="flex gap-1">
+              {(['7', '30', '90'] as const).map((days) => (
+                <Button
+                  key={days}
+                  variant={analyticsTimeframe === days ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setAnalyticsTimeframe(days)}
+                  data-testid={`button-timeframe-${days}`}
+                >
+                  {days === '7' ? '7 Days' : days === '30' ? '30 Days' : '90 Days'}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          {sessionsLoading ? (
+            <div className="grid gap-4">
+              {[...Array(3)].map((_, i) => (
+                <Card key={i}>
+                  <CardContent className="p-6">
+                    <Skeleton className="h-20 w-full" />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : workoutSessions && workoutSessions.length > 0 ? (
+            <div className="grid gap-4">
+              {workoutSessions.map((session) => (
+                <Card key={session.id} data-testid={`workout-session-${session.id}`}>
+                  <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-primary/10">
+                        <Activity className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-lg capitalize" data-testid={`workout-type-${session.id}`}>
+                          {session.workoutType}
+                        </CardTitle>
+                        <CardDescription data-testid={`workout-date-${session.id}`}>
+                          {format(new Date(session.startTime), "MMM dd, yyyy 'at' h:mm a")}
+                        </CardDescription>
+                      </div>
+                    </div>
+                    <Badge variant="outline" data-testid={`workout-source-${session.id}`}>
+                      {session.sourceType === 'apple_health' ? 'Apple Health' : session.sourceType}
+                    </Badge>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div>
+                        <div className="text-sm text-muted-foreground">Duration</div>
+                        <div className="text-lg font-semibold" data-testid={`workout-duration-${session.id}`}>
+                          {formatDuration(session.duration)}
+                        </div>
+                      </div>
+                      {session.distance && (
+                        <div>
+                          <div className="text-sm text-muted-foreground">Distance</div>
+                          <div className="text-lg font-semibold" data-testid={`workout-distance-${session.id}`}>
+                            {(session.distance / 1000).toFixed(2)} km
+                          </div>
+                        </div>
+                      )}
+                      {session.calories && (
+                        <div>
+                          <div className="text-sm text-muted-foreground">Calories</div>
+                          <div className="text-lg font-semibold" data-testid={`workout-calories-${session.id}`}>
+                            {session.calories} kcal
+                          </div>
+                        </div>
+                      )}
+                      {session.avgHeartRate && (
+                        <div>
+                          <div className="text-sm text-muted-foreground">Avg HR</div>
+                          <div className="text-lg font-semibold" data-testid={`workout-heart-rate-${session.id}`}>
+                            {session.avgHeartRate} bpm
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <Card>
+              <CardContent className="p-12 text-center text-muted-foreground">
+                No workouts recorded yet. Connect your Apple Health to automatically import workouts.
               </CardContent>
             </Card>
           )}

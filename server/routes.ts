@@ -700,6 +700,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Workout Sessions Endpoint
+  app.get("/api/workout-sessions", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    try {
+      const { days = '30' } = req.query;
+      const endDate = new Date();
+      const startDate = days === 'all' ? undefined : new Date();
+      if (startDate) {
+        startDate.setDate(startDate.getDate() - parseInt(days as string));
+      }
+      
+      const sessions = await storage.getWorkoutSessions(userId, startDate, endDate);
+      res.json(sessions);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Training Analytics Endpoints
   app.get("/api/analytics/training-load", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
