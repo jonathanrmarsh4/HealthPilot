@@ -164,20 +164,22 @@ export default function Training() {
       </div>
 
       <Tabs defaultValue="schedule" className="space-y-6">
-        <TabsList data-testid="tabs-training">
-          <TabsTrigger value="schedule" data-testid="tab-schedule">
-            <Calendar className="h-4 w-4 mr-2" />
-            Schedule
-          </TabsTrigger>
-          <TabsTrigger value="workouts" data-testid="tab-workouts">
-            <Dumbbell className="h-4 w-4 mr-2" />
-            Workouts
-          </TabsTrigger>
-          <TabsTrigger value="analytics" data-testid="tab-analytics">
-            <BarChart3 className="h-4 w-4 mr-2" />
-            Analytics
-          </TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto">
+          <TabsList data-testid="tabs-training" className="w-full justify-start">
+            <TabsTrigger value="schedule" data-testid="tab-schedule">
+              <Calendar className="h-4 w-4 mr-2" />
+              Schedule
+            </TabsTrigger>
+            <TabsTrigger value="workouts" data-testid="tab-workouts">
+              <Dumbbell className="h-4 w-4 mr-2" />
+              Workouts
+            </TabsTrigger>
+            <TabsTrigger value="analytics" data-testid="tab-analytics">
+              <BarChart3 className="h-4 w-4 mr-2" />
+              Analytics
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="schedule" className="space-y-6">
           {isLoading ? (
