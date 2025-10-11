@@ -1639,6 +1639,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (isWorkout && metric.data && Array.isArray(metric.data)) {
           console.log(`🏋️ Processing ${metric.data.length} workout(s)`);
           
+          // Batch process workout sessions in parallel
+          const workoutPromises = [];
+          
           for (const workout of metric.data) {
             console.log("📋 Workout data:", JSON.stringify(workout, null, 2));
             
@@ -1671,29 +1674,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
               
               const workoutType = workoutTypeMap[workout.workoutType] || "other";
               
-              // Create workout session
-              const session = await storage.createWorkoutSession({
-                userId,
-                workoutType,
-                startTime,
-                endTime,
-                duration,
-                distance: workout.distance ? Math.round(workout.distance) : null, // meters
-                calories: workout.totalEnergyBurned ? Math.round(workout.totalEnergyBurned) : null,
-                avgHeartRate: workout.avgHeartRate ? Math.round(workout.avgHeartRate) : null,
-                maxHeartRate: workout.maxHeartRate ? Math.round(workout.maxHeartRate) : null,
-                sourceType: "apple_health",
-                sourceId: workout.id || null,
-              });
-              
-              // Try to match to training schedule and mark as completed
-              const matchingSchedule = await storage.findMatchingSchedule(userId, workoutType, startTime);
-              if (matchingSchedule) {
-                await storage.matchWorkoutToSchedule(session.id, matchingSchedule.id, userId);
-                console.log(`✅ Matched workout to training schedule: ${matchingSchedule.workoutType} on ${matchingSchedule.day}`);
-              }
-              
-              workoutSessionsCount++;
+              // Create workout session and match to schedule in parallel
+              workoutPromises.push(
+                (async () => {
+                  const session = await storage.createWorkoutSession({
+                    userId,
+                    workoutType,
+                    startTime,
+                    endTime,
+                    duration,
+                    distance: workout.distance ? Math.round(workout.distance) : null, // meters
+                    calories: workout.totalEnergyBurned ? Math.round(workout.totalEnergyBurned) : null,
+                    avgHeartRate: workout.avgHeartRate ? Math.round(workout.avgHeartRate) : null,
+                    maxHeartRate: workout.maxHeartRate ? Math.round(workout.maxHeartRate) : null,
+                    sourceType: "apple_health",
+                    sourceId: workout.id || null,
+                  });
+                  
+                  // Try to match to training schedule and mark as completed
+                  const matchingSchedule = await storage.findMatchingSchedule(userId, workoutType, startTime);
+                  if (matchingSchedule) {
+                    await storage.matchWorkoutToSchedule(session.id, matchingSchedule.id, userId);
+                    console.log(`✅ Matched workout to training schedule: ${matchingSchedule.workoutType} on ${matchingSchedule.day}`);
+                  }
+                })()
+              );
             } else {
               console.log("⚠️  Missing start/end date for workout:", {
                 hasStartDate: !!startDate,
@@ -1703,6 +1708,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
               continue;
             }
           }
+          
+          await Promise.all(workoutPromises);
+          workoutSessionsCount += workoutPromises.length;
           continue; // Skip the normal biomarker processing for workouts
         }
         
@@ -1710,6 +1718,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const isSleep = metricName === "sleep_analysis" || metricName === "sleep analysis" || metricName.includes("sleep");
         
         if (isSleep && metric.data && Array.isArray(metric.data)) {
+          // Batch process sleep sessions in parallel
+          const sleepPromises = [];
+          
           for (const dataPoint of metric.data) {
             // Use inBedStart/inBedEnd for full session duration (includes awake time)
             if (dataPoint.inBedStart && dataPoint.inBedEnd) {
@@ -1775,23 +1786,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
               else if (sleepScore >= 60) quality = "Fair";
               else quality = "Poor";
               
-              await storage.upsertSleepSession({
-                userId,
-                bedtime,
-                waketime,
-                totalMinutes,
-                awakeMinutes,
-                lightMinutes: coreMinutes, // Core sleep maps to light
-                deepMinutes,
-                remMinutes,
-                sleepScore,
-                quality,
-                source: "apple-health",
-              });
-              
-              sleepSessionsCount++;
+              sleepPromises.push(
+                storage.upsertSleepSession({
+                  userId,
+                  bedtime,
+                  waketime,
+                  totalMinutes,
+                  awakeMinutes,
+                  lightMinutes: coreMinutes, // Core sleep maps to light
+                  deepMinutes,
+                  remMinutes,
+                  sleepScore,
+                  quality,
+                  source: "apple-health",
+                })
+              );
             }
           }
+          
+          await Promise.all(sleepPromises);
+          sleepSessionsCount += sleepPromises.length;
           continue; // Skip the normal biomarker processing for sleep
         }
         
@@ -1802,31 +1816,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         if (metric.name === "Blood Pressure" && metric.data) {
+          // Batch process blood pressure data in parallel
+          const bpPromises = [];
           for (const dataPoint of metric.data) {
             if (dataPoint.systolic) {
-              await storage.upsertBiomarker({
-                userId,
-                type: "blood-pressure-systolic",
-                value: dataPoint.systolic,
-                unit: "mmHg",
-                source: "health-auto-export",
-                recordedAt: new Date(dataPoint.date),
-              });
-              insertedCount++;
+              bpPromises.push(
+                storage.upsertBiomarker({
+                  userId,
+                  type: "blood-pressure-systolic",
+                  value: dataPoint.systolic,
+                  unit: "mmHg",
+                  source: "health-auto-export",
+                  recordedAt: new Date(dataPoint.date),
+                })
+              );
             }
             if (dataPoint.diastolic) {
-              await storage.upsertBiomarker({
-                userId,
-                type: "blood-pressure-diastolic",
-                value: dataPoint.diastolic,
-                unit: "mmHg",
-                source: "health-auto-export",
-                recordedAt: new Date(dataPoint.date),
-              });
-              insertedCount++;
+              bpPromises.push(
+                storage.upsertBiomarker({
+                  userId,
+                  type: "blood-pressure-diastolic",
+                  value: dataPoint.diastolic,
+                  unit: "mmHg",
+                  source: "health-auto-export",
+                  recordedAt: new Date(dataPoint.date),
+                })
+              );
             }
           }
+          await Promise.all(bpPromises);
+          insertedCount += bpPromises.length;
         } else if (metric.data && Array.isArray(metric.data)) {
+          // Batch process other biomarkers in parallel
+          const biomarkerPromises = [];
           for (const dataPoint of metric.data) {
             let value = dataPoint.qty;
             
@@ -1842,20 +1864,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
               // Convert to standardized storage units
               const converted = convertToStorageUnit(value, metric.units, biomarkerType);
               
-              await storage.upsertBiomarker({
-                userId,
-                type: biomarkerType,
-                value: converted.value,
-                unit: converted.unit,
-                source: "health-auto-export",
-                recordedAt: new Date(dataPoint.date),
-              });
-              insertedCount++;
+              biomarkerPromises.push(
+                storage.upsertBiomarker({
+                  userId,
+                  type: biomarkerType,
+                  value: converted.value,
+                  unit: converted.unit,
+                  source: "health-auto-export",
+                  recordedAt: new Date(dataPoint.date),
+                })
+              );
             }
           }
+          await Promise.all(biomarkerPromises);
+          insertedCount += biomarkerPromises.length;
         }
       }
 
+      // Return success response immediately to avoid timeout
       res.json({ 
         success: true, 
         message: `Successfully imported ${insertedCount} biomarkers, ${sleepSessionsCount} sleep sessions, and ${workoutSessionsCount} workout sessions`,
@@ -1865,7 +1891,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       console.error("Error processing Health Auto Export data:", error);
-      res.status(500).json({ error: error.message });
+      // Only send error if response hasn't been sent yet
+      if (!res.headersSent) {
+        res.status(500).json({ error: error.message });
+      }
     }
   });
 
