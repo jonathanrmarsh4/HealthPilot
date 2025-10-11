@@ -1495,24 +1495,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
         metrics = [req.body];
         console.log("✅ Using format 5: single metric object");
       }
+      // Format 6: Try to extract arrays from ANY top-level property
       else {
-        console.log("❌ Unrecognized data format");
-        console.log("📊 Body structure:", {
-          hasData: !!req.body.data,
-          dataType: typeof req.body.data,
-          hasMetrics: !!req.body.metrics,
-          metricsType: typeof req.body.metrics,
-          bodyKeys: Object.keys(req.body),
-          isArray: Array.isArray(req.body)
-        });
-        return res.status(400).json({ 
-          error: "Invalid data format",
-          details: "Expected formats: {data: {metrics: [...]}}, {metrics: [...]}, [...], {data: [...]}, or single metric object",
-          received: {
-            keys: Object.keys(req.body),
-            structure: typeof req.body
+        console.log("⚠️ Trying flexible extraction...");
+        const bodyKeys = Object.keys(req.body || {});
+        console.log("🔍 Available keys:", bodyKeys);
+        
+        // Try to find ANY array in the payload
+        for (const key of bodyKeys) {
+          const value = req.body[key];
+          if (Array.isArray(value) && value.length > 0) {
+            metrics = value;
+            console.log(`✅ Using format 6: extracted array from '${key}' property`);
+            break;
           }
-        });
+          // Check nested objects for arrays
+          if (value && typeof value === 'object' && !Array.isArray(value)) {
+            const nestedKeys = Object.keys(value);
+            for (const nestedKey of nestedKeys) {
+              if (Array.isArray(value[nestedKey]) && value[nestedKey].length > 0) {
+                metrics = value[nestedKey];
+                console.log(`✅ Using format 6: extracted array from '${key}.${nestedKey}' property`);
+                break;
+              }
+            }
+            if (metrics.length > 0) break;
+          }
+        }
+        
+        // If still no metrics found, return detailed error
+        if (metrics.length === 0) {
+          console.log("❌ No array data found in payload");
+          console.log("📊 Body structure:", {
+            hasData: !!req.body.data,
+            dataType: typeof req.body.data,
+            hasMetrics: !!req.body.metrics,
+            metricsType: typeof req.body.metrics,
+            bodyKeys: Object.keys(req.body || {}),
+            isArray: Array.isArray(req.body)
+          });
+          return res.status(400).json({ 
+            error: "Invalid data format",
+            details: "Expected formats: {data: {metrics: [...]}}, {metrics: [...]}, [...], {data: [...]}, or single metric object",
+            received: {
+              keys: Object.keys(req.body || {}),
+              structure: typeof req.body,
+              fullPayload: JSON.stringify(req.body).substring(0, 500) // First 500 chars for debugging
+            }
+          });
+        }
       }
 
       if (metrics.length === 0) {
