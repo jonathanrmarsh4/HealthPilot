@@ -175,6 +175,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.delete("/api/admin/users/:id", isAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const currentUserId = (req.user as any).claims.sub;
+      
+      // Prevent admins from deleting themselves
+      if (id === currentUserId) {
+        return res.status(400).json({ error: "Cannot delete your own account" });
+      }
+      
+      // Check if user exists
+      const user = await storage.getUser(id);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      // Delete user and all associated data
+      await storage.deleteUser(id);
+      console.log(`Admin ${currentUserId} deleted user ${id} (${user.email})`);
+      
+      res.json({ success: true, message: "User deleted successfully" });
+    } catch (error: any) {
+      console.error("Error deleting user:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.get("/api/admin/stats", isAdmin, async (req, res) => {
     try {
       const stats = await storage.getAdminStats();
