@@ -59,6 +59,68 @@ export default function AppleHealthSetup() {
         </AlertDescription>
       </Alert>
 
+      <Card className="border-primary/50 bg-primary/5">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Key className="h-5 w-5 text-primary" />
+            Your Production Environment Settings
+          </CardTitle>
+          <CardDescription>
+            Your unique webhook credentials are automatically generated for your account
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="space-y-2">
+            <p className="text-sm font-medium">Production Webhook URL:</p>
+            {isLoading ? (
+              <Skeleton className="h-10 w-full" />
+            ) : (
+              <div className="bg-background rounded-md p-3 border">
+                <code className="text-sm break-all">{credentials?.webhookUrl}</code>
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">
+              This URL automatically uses your production domain (healthpilot.pro) and is secured with HTTPS.
+            </p>
+          </div>
+          
+          <div className="space-y-2">
+            <p className="text-sm font-medium">Your User ID:</p>
+            {isLoading ? (
+              <Skeleton className="h-10 w-full" />
+            ) : (
+              <div className="bg-background rounded-md p-3 border">
+                <code className="text-sm">{credentials?.userId}</code>
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">
+              This identifies your account and ensures your health data is sent to the correct user.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-sm font-medium">Webhook Secret (Authentication Key):</p>
+            {isLoading ? (
+              <Skeleton className="h-10 w-full" />
+            ) : (
+              <div className="bg-background rounded-md p-3 border">
+                <code className="text-sm break-all">{credentials?.webhookSecret}</code>
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">
+              This secret authenticates requests from Health Auto Export and prevents unauthorized data submissions.
+            </p>
+          </div>
+
+          <Alert className="mt-4">
+            <AlertDescription className="text-xs">
+              <strong>Security:</strong> These credentials are unique to your account and should be entered exactly as shown in the Health Auto Export app. 
+              All data is transmitted over HTTPS encryption directly from your iPhone to your production dashboard at healthpilot.pro.
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+
       <div className="grid gap-6 md:grid-cols-3">
         <Card>
           <CardHeader>
