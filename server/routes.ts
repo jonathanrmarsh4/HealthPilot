@@ -1636,6 +1636,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const metricName = (metric.name || metric.type || "").toLowerCase();
         const nameBasedWorkout = metricName === "workout" || metricName === "workouts" || metricName.includes("workout");
         
+        // Debug: Log metric structure
+        console.log(`🔬 Analyzing metric: "${metric.name}"`, {
+          hasData: !!metric.data,
+          isArray: Array.isArray(metric.data),
+          dataLength: metric.data?.length,
+          firstItemKeys: metric.data?.[0] ? Object.keys(metric.data[0]) : []
+        });
+        
         // Also detect workouts by checking if data has workout-specific fields
         const hasWorkoutFields = metric.data && Array.isArray(metric.data) && metric.data.length > 0 && 
           metric.data[0] && (
@@ -1648,6 +1656,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           );
         
         const isWorkout = nameBasedWorkout || hasWorkoutFields;
+        console.log(`🎯 Workout detection for "${metric.name}": ${isWorkout} (nameBasedWorkout: ${nameBasedWorkout}, hasWorkoutFields: ${hasWorkoutFields})`);
         
         if (isWorkout && metric.data && Array.isArray(metric.data)) {
           console.log(`🏋️ Processing ${metric.data.length} workout(s)`);
