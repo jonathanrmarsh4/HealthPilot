@@ -100,6 +100,39 @@ export const trainingSchedules = pgTable("training_schedules", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const workoutSessions = pgTable("workout_sessions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  workoutType: text("workout_type").notNull(), // running, cycling, strength, hiit, yoga, swimming, etc.
+  startTime: timestamp("start_time").notNull(),
+  endTime: timestamp("end_time").notNull(),
+  duration: integer("duration").notNull(), // in minutes
+  distance: real("distance"), // in meters (for cardio)
+  calories: integer("calories"),
+  avgHeartRate: integer("avg_heart_rate"),
+  maxHeartRate: integer("max_heart_rate"),
+  sourceType: text("source_type").notNull().default("manual"), // apple_health, manual, strava, etc.
+  sourceId: text("source_id"), // external ID from source system
+  trainingScheduleId: varchar("training_schedule_id"), // FK to training_schedules if matched
+  notes: text("notes"),
+  perceivedEffort: integer("perceived_effort"), // RPE scale 1-10
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const exerciseLogs = pgTable("exercise_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  workoutSessionId: varchar("workout_session_id").notNull(),
+  userId: varchar("user_id").notNull(),
+  exerciseName: text("exercise_name").notNull(),
+  sets: integer("sets"),
+  reps: integer("reps"),
+  weight: real("weight"), // in kg
+  restTime: integer("rest_time"), // in seconds
+  personalRecord: integer("personal_record").notNull().default(0), // 1 if this is a PR
+  notes: text("notes"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const recommendations = pgTable("recommendations", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull(),
@@ -192,6 +225,16 @@ export const insertInsightSchema = createInsertSchema(insights).omit({
   createdAt: true,
 });
 
+export const insertWorkoutSessionSchema = createInsertSchema(workoutSessions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertExerciseLogSchema = createInsertSchema(exerciseLogs).omit({
+  id: true,
+  createdAt: true,
+});
+
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
 
@@ -218,3 +261,9 @@ export type SleepSession = typeof sleepSessions.$inferSelect;
 
 export type InsertInsight = z.infer<typeof insertInsightSchema>;
 export type Insight = typeof insights.$inferSelect;
+
+export type InsertWorkoutSession = z.infer<typeof insertWorkoutSessionSchema>;
+export type WorkoutSession = typeof workoutSessions.$inferSelect;
+
+export type InsertExerciseLog = z.infer<typeof insertExerciseLogSchema>;
+export type ExerciseLog = typeof exerciseLogs.$inferSelect;

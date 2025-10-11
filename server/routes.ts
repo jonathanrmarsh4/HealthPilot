@@ -1462,8 +1462,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       let insertedCount = 0;
       let sleepSessionsCount = 0;
+      let workoutSessionsCount = 0;
 
       for (const metric of data.metrics) {
+        // Special handling for workout sessions
+        if (metric.name === "workout" && metric.data && Array.isArray(metric.data)) {
+          for (const workout of metric.data) {
+            if (workout.startDate && workout.endDate) {
+              const startTime = new Date(workout.startDate);
+              const endTime = new Date(workout.endDate);
+              const duration = Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60)); // minutes
+              
+              // Map Apple Health workout types to our standard types
+              const workoutTypeMap: Record<string, string> = {
+                "HKWorkoutActivityTypeRunning": "running",
+                "HKWorkoutActivityTypeCycling": "cycling",
+                "HKWorkoutActivityTypeWalking": "walking",
+                "HKWorkoutActivityTypeHiking": "hiking",
+                "HKWorkoutActivityTypeSwimming": "swimming",
+                "HKWorkoutActivityTypeYoga": "yoga",
+                "HKWorkoutActivityTypeTraditionalStrengthTraining": "strength",
+                "HKWorkoutActivityTypeFunctionalStrengthTraining": "strength",
+                "HKWorkoutActivityTypeHighIntensityIntervalTraining": "hiit",
+                "HKWorkoutActivityTypeElliptical": "cardio",
+                "HKWorkoutActivityTypeRowing": "cardio",
+                "HKWorkoutActivityTypeCrossTraining": "crossfit",
+              };
+              
+              const workoutType = workoutTypeMap[workout.workoutType] || "other";
+              
+              // Create workout session
+              const session = await storage.createWorkoutSession({
+                userId,
+                workoutType,
+                startTime,
+                endTime,
+                duration,
+                distance: workout.distance ? Math.round(workout.distance) : null, // meters
+                calories: workout.totalEnergyBurned ? Math.round(workout.totalEnergyBurned) : null,
+                avgHeartRate: workout.avgHeartRate ? Math.round(workout.avgHeartRate) : null,
+                maxHeartRate: workout.maxHeartRate ? Math.round(workout.maxHeartRate) : null,
+                sourceType: "apple_health",
+                sourceId: workout.id || null,
+              });
+              
+              // Try to match to training schedule and mark as completed
+              const matchingSchedule = await storage.findMatchingSchedule(userId, workoutType, startTime);
+              if (matchingSchedule) {
+                await storage.matchWorkoutToSchedule(session.id, matchingSchedule.id, userId);
+                console.log(`✅ Matched workout to training schedule: ${matchingSchedule.workoutType} on ${matchingSchedule.day}`);
+              }
+              
+              workoutSessionsCount++;
+            }
+          }
+          continue; // Skip the normal biomarker processing for workouts
+        }
+        
         // Special handling for sleep analysis - create sleep sessions
         if (metric.name === "sleep_analysis" && metric.data && Array.isArray(metric.data)) {
           for (const dataPoint of metric.data) {
@@ -1614,9 +1669,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({ 
         success: true, 
-        message: `Successfully imported ${insertedCount} biomarkers and ${sleepSessionsCount} sleep sessions`,
+        message: `Successfully imported ${insertedCount} biomarkers, ${sleepSessionsCount} sleep sessions, and ${workoutSessionsCount} workout sessions`,
         biomarkersCount: insertedCount,
-        sleepSessionsCount: sleepSessionsCount
+        sleepSessionsCount: sleepSessionsCount,
+        workoutSessionsCount: workoutSessionsCount
       });
     } catch (error: any) {
       console.error("Error processing Health Auto Export data:", error);

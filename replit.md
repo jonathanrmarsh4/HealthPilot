@@ -28,6 +28,7 @@ The application is a full-stack project utilizing React, TypeScript, Tailwind CS
 - **Security Protections:** Includes IDOR protection, privilege escalation prevention, data isolation, webhook authentication, and Zod schema validation.
 - **File Upload Security:** Validation for file size, types (PDF, DOC, DOCX, JPG, PNG, TXT), and mime types.
 - **Sleep Data Implementation:** Uses `inBedStart` and `inBedEnd` for sleep session duration, includes awake time, and performs smart deduplication. Custom sleep score calculation is implemented as Apple's native score is not exportable.
+- **Workout Tracking:** Comprehensive exercise data import from Apple Health via webhook. Automatically creates workout sessions with duration, calories, heart rate, and distance. Smart matching algorithm links completed workouts to training schedules by day and type, marking schedules as completed. Supports strength training exercise logs with sets, reps, and weight tracking.
 
 **Feature Specifications:**
 - Health record upload and AI analysis with status tracking and retry functionality.

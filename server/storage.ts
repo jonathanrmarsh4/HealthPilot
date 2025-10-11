@@ -18,6 +18,10 @@ import {
   type InsertSleepSession,
   type Insight,
   type InsertInsight,
+  type WorkoutSession,
+  type InsertWorkoutSession,
+  type ExerciseLog,
+  type InsertExerciseLog,
   users,
   healthRecords,
   biomarkers,
@@ -27,6 +31,8 @@ import {
   chatMessages,
   sleepSessions,
   insights,
+  workoutSessions,
+  exerciseLogs,
 } from "@shared/schema";
 import { eq, desc, and, gte, lte, sql, or, like, count } from "drizzle-orm";
 
@@ -81,6 +87,15 @@ export interface IStorage {
   getInsights(userId: string, limit?: number): Promise<Insight[]>;
   getDailyInsights(userId: string, date: Date): Promise<Insight[]>;
   dismissInsight(id: string, userId: string): Promise<void>;
+  
+  createWorkoutSession(session: InsertWorkoutSession): Promise<WorkoutSession>;
+  getWorkoutSessions(userId: string, startDate?: Date, endDate?: Date): Promise<WorkoutSession[]>;
+  getWorkoutSession(id: string, userId: string): Promise<WorkoutSession | undefined>;
+  matchWorkoutToSchedule(sessionId: string, scheduleId: string, userId: string): Promise<void>;
+  findMatchingSchedule(userId: string, workoutType: string, startTime: Date): Promise<TrainingSchedule | undefined>;
+  
+  createExerciseLog(log: InsertExerciseLog): Promise<ExerciseLog>;
+  getExerciseLogs(workoutSessionId: string): Promise<ExerciseLog[]>;
   
   getAllUsers(limit: number, offset: number, search?: string): Promise<{ users: User[], total: number }>;
   updateUser(id: string, updates: Partial<User>): Promise<User>;
@@ -589,6 +604,8 @@ export class DbStorage implements IStorage {
       db.delete(chatMessages).where(eq(chatMessages.userId, id)),
       db.delete(sleepSessions).where(eq(sleepSessions.userId, id)),
       db.delete(insights).where(eq(insights.userId, id)),
+      db.delete(exerciseLogs).where(eq(exerciseLogs.userId, id)),
+      db.delete(workoutSessions).where(eq(workoutSessions.userId, id)),
     ]);
 
     // Finally delete the user
@@ -668,6 +685,88 @@ export class DbStorage implements IStorage {
       .update(insights)
       .set({ dismissed: 1 })
       .where(and(eq(insights.id, id), eq(insights.userId, userId)));
+  }
+
+  async createWorkoutSession(session: InsertWorkoutSession): Promise<WorkoutSession> {
+    const result = await db.insert(workoutSessions).values(session).returning();
+    return result[0];
+  }
+
+  async getWorkoutSessions(userId: string, startDate?: Date, endDate?: Date): Promise<WorkoutSession[]> {
+    if (startDate && endDate) {
+      return await db
+        .select()
+        .from(workoutSessions)
+        .where(
+          and(
+            eq(workoutSessions.userId, userId),
+            gte(workoutSessions.startTime, startDate),
+            lte(workoutSessions.startTime, endDate)
+          )
+        )
+        .orderBy(desc(workoutSessions.startTime));
+    }
+    
+    return await db
+      .select()
+      .from(workoutSessions)
+      .where(eq(workoutSessions.userId, userId))
+      .orderBy(desc(workoutSessions.startTime));
+  }
+
+  async getWorkoutSession(id: string, userId: string): Promise<WorkoutSession | undefined> {
+    const result = await db
+      .select()
+      .from(workoutSessions)
+      .where(and(eq(workoutSessions.id, id), eq(workoutSessions.userId, userId)));
+    return result[0];
+  }
+
+  async matchWorkoutToSchedule(sessionId: string, scheduleId: string, userId: string): Promise<void> {
+    // Update workout session with training schedule ID
+    await db
+      .update(workoutSessions)
+      .set({ trainingScheduleId: scheduleId })
+      .where(and(eq(workoutSessions.id, sessionId), eq(workoutSessions.userId, userId)));
+    
+    // Mark training schedule as completed
+    await db
+      .update(trainingSchedules)
+      .set({ completed: 1, completedAt: new Date() })
+      .where(and(eq(trainingSchedules.id, scheduleId), eq(trainingSchedules.userId, userId)));
+  }
+
+  async findMatchingSchedule(userId: string, workoutType: string, startTime: Date): Promise<TrainingSchedule | undefined> {
+    const dayOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][startTime.getDay()];
+    
+    // Find incomplete training schedule for this day and workout type
+    const result = await db
+      .select()
+      .from(trainingSchedules)
+      .where(
+        and(
+          eq(trainingSchedules.userId, userId),
+          eq(trainingSchedules.day, dayOfWeek),
+          eq(trainingSchedules.workoutType, workoutType.toLowerCase()),
+          eq(trainingSchedules.completed, 0)
+        )
+      )
+      .limit(1);
+    
+    return result[0];
+  }
+
+  async createExerciseLog(log: InsertExerciseLog): Promise<ExerciseLog> {
+    const result = await db.insert(exerciseLogs).values(log).returning();
+    return result[0];
+  }
+
+  async getExerciseLogs(workoutSessionId: string): Promise<ExerciseLog[]> {
+    return await db
+      .select()
+      .from(exerciseLogs)
+      .where(eq(exerciseLogs.workoutSessionId, workoutSessionId))
+      .orderBy(exerciseLogs.createdAt);
   }
 }
 
