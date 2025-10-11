@@ -258,8 +258,9 @@ export function GoogleDriveFiles() {
             ))}
           </div>
         ) : (
-          <div className="text-center py-12 text-muted-foreground">
-            No files found in Google Drive. Make sure your Google Drive is connected and contains health documents.
+          <div className="text-center py-12 text-muted-foreground space-y-2">
+            <p className="font-medium">Google Drive file browsing is temporarily disabled for security.</p>
+            <p className="text-sm">Please upload your health documents using the file upload feature above.</p>
           </div>
         )}
       </CardContent>

@@ -292,13 +292,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.get("/api/google-drive/files", isAuthenticated, async (req, res) => {
-    try {
-      const files = await listHealthDocuments();
-      res.json(files);
-    } catch (error: any) {
-      console.error("Error listing Google Drive files:", error);
-      res.status(500).json({ error: error.message });
-    }
+    // SECURITY: Google Drive uses workspace-level connection (shared across all users)
+    // To prevent users from seeing other users' files, we disable file browsing
+    // Users can still upload files locally via the file upload feature
+    // TODO: Implement per-user Google Drive OAuth for secure file browsing
+    
+    res.json([]);
   });
 
   app.post("/api/health-records/analyze/:fileId", isAuthenticated, async (req, res) => {

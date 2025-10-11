@@ -42,5 +42,7 @@ The application is a full-stack project utilizing React, TypeScript, Tailwind CS
 - **Database:** PostgreSQL (via Drizzle ORM)
 - **AI:** Anthropic Claude 3 Haiku
 - **Authentication:** Replit Auth (OpenID Connect)
-- **File Storage:** Google Drive (for manual analysis of files)
+- **File Storage:** 
+  - Local file upload with secure validation (PDF, DOC, DOCX, JPG, PNG, TXT)
+  - **Google Drive:** Currently uses workspace-level connection (shared). File browsing is disabled for security to prevent cross-user file visibility. Users can upload files locally. Future: Implement per-user Google Drive OAuth.
 - **Health Data Integration:** Apple Health (via Health Auto Export iOS app webhook to `POST /api/health-auto-export/ingest`)
