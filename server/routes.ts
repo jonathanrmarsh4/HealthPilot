@@ -1634,7 +1634,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       for (const metric of metrics) {
         // Special handling for workout sessions - check multiple possible field names
         const metricName = (metric.name || metric.type || "").toLowerCase();
-        const isWorkout = metricName === "workout" || metricName === "workouts" || metricName.includes("workout");
+        const nameBasedWorkout = metricName === "workout" || metricName === "workouts" || metricName.includes("workout");
+        
+        // Also detect workouts by checking if data has workout-specific fields
+        const hasWorkoutFields = metric.data && Array.isArray(metric.data) && metric.data.length > 0 && 
+          metric.data[0] && (
+            metric.data[0].workoutType || 
+            metric.data[0].workout_type ||
+            (metric.data[0].startDate && metric.data[0].totalEnergyBurned) ||
+            (metric.data[0].start_date && metric.data[0].total_energy_burned)
+          );
+        
+        const isWorkout = nameBasedWorkout || hasWorkoutFields;
         
         if (isWorkout && metric.data && Array.isArray(metric.data)) {
           console.log(`🏋️ Processing ${metric.data.length} workout(s)`);
