@@ -123,7 +123,11 @@ export default function AppleHealthSetup() {
               </div>
               <div className="flex items-center gap-2 text-sm">
                 <CheckCircle2 className="h-4 w-4 text-chart-4" />
-                <span>Sleep & more</span>
+                <span>Sleep Analysis</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <CheckCircle2 className="h-4 w-4 text-chart-4" />
+                <span>Workouts</span>
               </div>
             </div>
           </CardContent>
@@ -255,7 +259,7 @@ export default function AppleHealthSetup() {
                   <p className="text-sm font-medium">Metrics to Export:</p>
                   <p className="text-sm text-muted-foreground">
                     Select: Heart Rate, Blood Glucose, Weight, Steps, Active Energy, Blood Pressure, 
-                    Oxygen Saturation, Body Temperature, Sleep Analysis
+                    Oxygen Saturation, Body Temperature, Sleep Analysis, <strong>Workout</strong>
                   </p>
                 </div>
               </div>
@@ -309,7 +313,8 @@ export default function AppleHealthSetup() {
               "Blood Pressure",
               "Oxygen Saturation",
               "Body Temperature",
-              "Sleep Hours"
+              "Sleep Hours",
+              "Workout Sessions"
             ].map((metric) => (
               <div key={metric} className="flex items-center gap-2 p-2 rounded-md bg-muted/50">
                 <CheckCircle2 className="h-4 w-4 text-chart-4 shrink-0" />
