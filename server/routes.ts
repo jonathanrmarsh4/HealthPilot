@@ -1642,7 +1642,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             metric.data[0].workoutType || 
             metric.data[0].workout_type ||
             (metric.data[0].startDate && metric.data[0].totalEnergyBurned) ||
-            (metric.data[0].start_date && metric.data[0].total_energy_burned)
+            (metric.data[0].start_date && metric.data[0].total_energy_burned) ||
+            (metric.data[0].start && metric.data[0].duration) ||
+            (metric.data[0].start && metric.data[0].activeEnergyBurned)
           );
         
         const isWorkout = nameBasedWorkout || hasWorkoutFields;
@@ -1654,11 +1656,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const workoutPromises = [];
           
           for (const workout of metric.data) {
-            console.log("📋 Workout data:", JSON.stringify(workout, null, 2));
+            console.log("📋 Workout data keys:", Object.keys(workout));
             
             // Support multiple field name variations for dates
             const startDate = workout.startDate || workout.start_date || workout.startTime || workout.start;
             const endDate = workout.endDate || workout.end_date || workout.endTime || workout.end;
+            
+            console.log("🔍 Extracted dates:", { startDate, endDate });
             
             if (startDate && endDate) {
               const startTime = new Date(startDate);
@@ -1683,7 +1687,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 "HKWorkoutActivityTypeCrossTraining": "crossfit",
               };
               
-              const workoutType = workoutTypeMap[workout.workoutType] || "other";
+              // Get workout type from metric name or workout.workoutType field
+              const workoutType = workoutTypeMap[workout.workoutType] || 
+                (metric.name?.toLowerCase().includes("cycling") ? "cycling" : 
+                 metric.name?.toLowerCase().includes("running") ? "running" :
+                 metric.name?.toLowerCase().includes("walking") ? "walking" : "other");
+              
+              // Handle nested qty/units structure for distance and energy
+              const distance = workout.distance?.qty ? Math.round(workout.distance.qty * 1000) : // km to meters
+                              workout.distance ? Math.round(workout.distance) : null;
+              const calories = workout.activeEnergyBurned?.qty ? Math.round(workout.activeEnergyBurned.qty) : // kJ
+                              workout.totalEnergyBurned ? Math.round(workout.totalEnergyBurned) : null;
+              
+              console.log("💪 Creating workout:", { workoutType, duration, distance, calories });
               
               // Create workout session and match to schedule in parallel
               workoutPromises.push(
@@ -1694,8 +1710,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     startTime,
                     endTime,
                     duration,
-                    distance: workout.distance ? Math.round(workout.distance) : null, // meters
-                    calories: workout.totalEnergyBurned ? Math.round(workout.totalEnergyBurned) : null,
+                    distance,
+                    calories,
                     avgHeartRate: workout.avgHeartRate ? Math.round(workout.avgHeartRate) : null,
                     maxHeartRate: workout.maxHeartRate ? Math.round(workout.maxHeartRate) : null,
                     sourceType: "apple_health",
