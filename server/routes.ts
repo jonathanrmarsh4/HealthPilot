@@ -5,7 +5,7 @@ import { db } from "./db";
 import multer from "multer";
 import { insertBiomarkerSchema, insertHealthRecordSchema, biomarkers, sleepSessions, healthRecords, mealPlans, trainingSchedules, recommendations } from "@shared/schema";
 import { listHealthDocuments, downloadFile, getFileMetadata } from "./services/googleDrive";
-import { analyzeHealthDocument, generateMealPlan, generateTrainingSchedule, generateHealthRecommendations, chatWithHealthCoach, generateDailyInsights } from "./services/ai";
+import { analyzeHealthDocument, generateMealPlan, generateTrainingSchedule, generateHealthRecommendations, chatWithHealthCoach, generateDailyInsights, generateRecoveryInsights } from "./services/ai";
 import { parseISO, isValid } from "date-fns";
 import { eq, and } from "drizzle-orm";
 import { isAuthenticated, isAdmin, webhookAuth } from "./replitAuth";
@@ -742,6 +742,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const correlations = await storage.getWorkoutBiomarkerCorrelations(userId, startDate, endDate);
       res.json(correlations);
     } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/analytics/recovery-insights", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    try {
+      const { days = '30' } = req.query;
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - parseInt(days as string));
+      
+      const [trainingLoad, workoutStats, correlations] = await Promise.all([
+        storage.getTrainingLoad(userId, startDate, endDate),
+        storage.getWorkoutStats(userId, startDate, endDate),
+        storage.getWorkoutBiomarkerCorrelations(userId, startDate, endDate)
+      ]);
+      
+      // Provide safe defaults if storage returns null/undefined
+      const safeTrainingLoad = trainingLoad || { weeklyLoad: 0, monthlyLoad: 0, weeklyHours: 0 };
+      const safeWorkoutStats = workoutStats || { totalWorkouts: 0, totalDuration: 0, totalCalories: 0, byType: [] };
+      const safeCorrelations = correlations || {
+        sleepQuality: { workoutDays: 0, nonWorkoutDays: 0, improvement: 0 },
+        restingHR: { workoutDays: 0, nonWorkoutDays: 0, improvement: 0 }
+      };
+      
+      const insights = await generateRecoveryInsights({
+        trainingLoad: safeTrainingLoad,
+        workoutStats: safeWorkoutStats,
+        correlations: safeCorrelations,
+        timeframeDays: parseInt(days as string)
+      });
+      
+      res.json(insights);
+    } catch (error: any) {
+      console.error("Error generating recovery insights:", error);
       res.status(500).json({ error: error.message });
     }
   });

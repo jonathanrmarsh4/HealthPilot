@@ -42,6 +42,19 @@ interface Correlations {
   };
 }
 
+interface RecoveryInsight {
+  category: 'recovery_status' | 'training_load' | 'workout_balance' | 'biomarker_response' | 'alternative_therapy';
+  severity: 'excellent' | 'good' | 'caution' | 'warning';
+  title: string;
+  description: string;
+  recommendation: string;
+  metrics: {
+    primary: string;
+    value: string;
+    context: string;
+  };
+}
+
 export default function Training() {
   const { toast } = useToast();
   const [analyticsTimeframe, setAnalyticsTimeframe] = useState<'7' | '30' | '90'>('30');
@@ -60,6 +73,10 @@ export default function Training() {
 
   const { data: correlations, isLoading: correlationsLoading } = useQuery<Correlations>({
     queryKey: [`/api/analytics/correlations?days=${analyticsTimeframe}`],
+  });
+
+  const { data: recoveryInsights, isLoading: insightsLoading } = useQuery<RecoveryInsight[]>({
+    queryKey: [`/api/analytics/recovery-insights?days=${analyticsTimeframe}`],
   });
 
   const generateMutation = useMutation({
@@ -391,6 +408,80 @@ export default function Training() {
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
                   No correlation data available
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* AI-Powered Recovery Insights */}
+          <Card data-testid="card-recovery-insights">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-primary" />
+                AI Recovery Insights
+              </CardTitle>
+              <CardDescription>
+                Personalized recovery recommendations based on your training analytics
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {insightsLoading ? (
+                <div className="space-y-4">
+                  <Skeleton className="h-24 w-full" />
+                  <Skeleton className="h-24 w-full" />
+                  <Skeleton className="h-24 w-full" />
+                </div>
+              ) : recoveryInsights && recoveryInsights.length > 0 ? (
+                <div className="space-y-4">
+                  {recoveryInsights.map((insight, index) => {
+                    const severityColors = {
+                      excellent: 'border-green-500/50 bg-green-50/50 dark:bg-green-950/20',
+                      good: 'border-blue-500/50 bg-blue-50/50 dark:bg-blue-950/20',
+                      caution: 'border-yellow-500/50 bg-yellow-50/50 dark:bg-yellow-950/20',
+                      warning: 'border-red-500/50 bg-red-50/50 dark:bg-red-950/20'
+                    };
+                    
+                    const severityBadgeVariants = {
+                      excellent: 'default',
+                      good: 'secondary',
+                      caution: 'outline',
+                      warning: 'destructive'
+                    };
+
+                    return (
+                      <div 
+                        key={index} 
+                        className={`p-4 rounded-lg border-l-4 ${severityColors[insight.severity]}`}
+                        data-testid={`insight-${index}`}
+                      >
+                        <div className="flex items-start justify-between gap-4 mb-2">
+                          <h4 className="font-semibold text-base">{insight.title}</h4>
+                          <Badge variant={severityBadgeVariants[insight.severity] as any} className="shrink-0">
+                            {insight.severity}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground mb-3">{insight.description}</p>
+                        <div className="bg-background/50 p-3 rounded-md space-y-2">
+                          <div className="text-sm">
+                            <span className="font-medium">Recommendation: </span>
+                            <span className="text-muted-foreground">{insight.recommendation}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <Badge variant="outline" className="text-xs">
+                              {insight.metrics.primary}: {insight.metrics.value}
+                            </Badge>
+                            <span>• {insight.metrics.context}</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Sparkles className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                  <p>No recovery insights available.</p>
+                  <p className="text-sm mt-1">Complete some workouts to get AI-powered recovery recommendations.</p>
                 </div>
               )}
             </CardContent>

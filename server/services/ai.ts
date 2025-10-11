@@ -838,3 +838,131 @@ Generate 3-5 insights prioritized by importance. Focus on what matters most to t
 
   return [];
 }
+
+export async function generateRecoveryInsights(data: {
+  trainingLoad: { weeklyLoad: number; monthlyLoad: number; weeklyHours: number };
+  workoutStats: {
+    totalWorkouts: number;
+    totalDuration: number;
+    totalCalories: number;
+    byType: Array<{ type: string; count: number; duration: number; calories: number }>;
+  };
+  correlations: {
+    sleepQuality: { workoutDays: number; nonWorkoutDays: number; improvement: number };
+    restingHR: { workoutDays: number; nonWorkoutDays: number; improvement: number };
+  };
+  timeframeDays: number;
+}) {
+  const message = await retryWithBackoff(() => anthropic.messages.create({
+    model: "claude-3-haiku-20240307",
+    max_tokens: 3072,
+    messages: [
+      {
+        role: "user",
+        content: `You are an expert sports science and recovery coach AI. Analyze the user's training analytics and provide personalized recovery insights.
+
+## Training Analytics Data (Last ${data.timeframeDays} days):
+
+### Training Load:
+- Weekly Training Load: ${data.trainingLoad.weeklyLoad ?? 0} intensity units
+- Monthly Training Load: ${data.trainingLoad.monthlyLoad ?? 0} intensity units
+- Weekly Training Hours: ${(data.trainingLoad.weeklyHours ?? 0).toFixed(1)} hours
+
+### Workout Statistics:
+- Total Workouts: ${data.workoutStats.totalWorkouts}
+- Total Duration: ${Math.floor(data.workoutStats.totalDuration)} minutes
+- Total Calories: ${data.workoutStats.totalCalories} kcal
+
+Breakdown by Type:
+${data.workoutStats.byType.map(stat => `- ${stat.type}: ${stat.count} workouts, ${Math.floor(stat.duration)} min, ${stat.calories} kcal`).join('\n')}
+
+### Training Impact on Biomarkers:
+- Sleep Quality: ${(data.correlations.sleepQuality.workoutDays ?? 0).toFixed(1)}% on workout days vs ${(data.correlations.sleepQuality.nonWorkoutDays ?? 0).toFixed(1)}% on rest days (${(data.correlations.sleepQuality.improvement ?? 0) >= 0 ? '+' : ''}${(data.correlations.sleepQuality.improvement ?? 0).toFixed(1)}% improvement)
+- Resting Heart Rate: ${(data.correlations.restingHR.workoutDays ?? 0).toFixed(1)} bpm on workout days vs ${(data.correlations.restingHR.nonWorkoutDays ?? 0).toFixed(1)} bpm on rest days (${(data.correlations.restingHR.improvement ?? 0) >= 0 ? '+' : ''}${(data.correlations.restingHR.improvement ?? 0).toFixed(1)} bpm change)
+
+## Your Task:
+Generate a JSON array of recovery insights and recommendations:
+[
+  {
+    "category": "recovery_status" | "training_load" | "workout_balance" | "biomarker_response" | "alternative_therapy",
+    "severity": "excellent" | "good" | "caution" | "warning",
+    "title": "Short compelling title (max 60 chars)",
+    "description": "Detailed insight with specific numbers and actionable advice (2-3 sentences)",
+    "recommendation": "Specific action to take",
+    "metrics": {
+      "primary": "main metric discussed",
+      "value": "current value",
+      "context": "comparison or benchmark"
+    }
+  }
+]
+
+## Analysis Guidelines:
+
+### Training Load Assessment:
+- **Excellent (>0.8 load ratio)**: Consistent, well-structured training
+- **Good (0.5-0.8)**: Solid training with room for optimization
+- **Caution (0.3-0.5)**: Light training, consider increasing gradually
+- **Warning (<0.3 or >1.2)**: Either insufficient or potentially excessive training
+
+### Workout Balance:
+- Assess variety across workout types (Cardio, Strength, Flexibility, etc.)
+- Identify gaps or overemphasis on specific types
+- Recommend optimal weekly balance based on patterns
+
+### Biomarker Response Analysis:
+- **Sleep Quality**: Positive correlation with training is excellent; negative may indicate overtraining
+- **Resting HR**: Lower HR on workout days suggests good cardiovascular adaptation
+- Look for recovery indicators in the biomarker patterns
+
+### Alternative Therapy Recommendations:
+When data indicates benefit, suggest evidence-based recovery modalities:
+- **Sauna (post-workout)**: For cardiovascular adaptation, recovery, inflammation reduction
+  - Particularly effective when: high training load, endurance-focused, or elevated resting HR
+- **Cold Plunge/Cryotherapy**: For muscle recovery, inflammation, metabolic boost
+  - Particularly effective when: strength training, high volume, or poor sleep quality
+- **Contrast Therapy**: Alternating hot/cold for enhanced circulation and recovery
+  - Particularly effective when: mixed training types, moderate-high load
+- **Other modalities**: Compression therapy, massage, float tanks when specifically relevant
+
+Only recommend alternative therapies when they align with:
+1. The user's specific training patterns (type, volume, intensity)
+2. Biomarker responses showing need for enhanced recovery
+3. Scientific evidence supporting the intervention for their situation
+
+## Key Focus Areas:
+1. **Recovery Status**: Overall assessment based on training load and biomarker response
+2. **Training Load Management**: Is the load appropriate, too high, or too low?
+3. **Workout Balance**: Are they training all necessary systems?
+4. **Biomarker Insights**: What do sleep and HR tell us about adaptation and recovery?
+5. **Recovery Optimization**: Specific strategies including alternative therapies when beneficial
+
+## Rules:
+- Be specific with numbers from the data
+- Prioritize insights by severity (warnings first)
+- Make recommendations actionable and measurable
+- Reference scientific principles when relevant
+- Include alternative therapies ONLY when they meaningfully address specific recovery needs shown in the data
+- Explain the mechanism: why a particular therapy helps their specific situation
+- Celebrate positive adaptations (improved sleep, lower HR)
+- Warn about potential overtraining or undertraining
+
+Generate 3-5 insights, ordered by importance. Focus on actionable recovery strategies that optimize the user's training response.`,
+      },
+    ],
+  }));
+
+  const content = message.content[0];
+  if (content.type === "text") {
+    try {
+      const jsonMatch = content.text.match(/\[[\s\S]*\]/);
+      if (jsonMatch) {
+        return JSON.parse(jsonMatch[0]);
+      }
+    } catch (e) {
+      console.error("Failed to parse recovery insights:", e);
+    }
+  }
+
+  return [];
+}
