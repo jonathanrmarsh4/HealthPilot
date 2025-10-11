@@ -98,16 +98,15 @@ export interface IStorage {
   getExerciseLogs(workoutSessionId: string): Promise<ExerciseLog[]>;
   
   getTrainingLoad(userId: string, startDate: Date, endDate: Date): Promise<{
-    totalLoad: number;
-    weeklyLoads: Array<{ week: string; load: number }>;
-    byType: Array<{ type: string; load: number }>;
+    weeklyLoad: number;
+    monthlyLoad: number;
+    weeklyHours: number;
   }>;
   getWorkoutStats(userId: string, startDate: Date, endDate: Date): Promise<{
     totalWorkouts: number;
     totalDuration: number;
     totalCalories: number;
-    avgHeartRate: number;
-    byType: Array<{ type: string; count: number; duration: number }>;
+    byType: Array<{ type: string; count: number; duration: number; calories: number }>;
   }>;
   getWorkoutBiomarkerCorrelations(userId: string, startDate: Date, endDate: Date): Promise<{
     sleepQuality: { workoutDays: number; nonWorkoutDays: number; improvement: number };
@@ -787,9 +786,9 @@ export class DbStorage implements IStorage {
   }
 
   async getTrainingLoad(userId: string, startDate: Date, endDate: Date): Promise<{
-    totalLoad: number;
-    weeklyLoads: Array<{ week: string; load: number }>;
-    byType: Array<{ type: string; load: number }>;
+    weeklyLoad: number;
+    monthlyLoad: number;
+    weeklyHours: number;
   }> {
     const workouts = await this.getWorkoutSessions(userId, startDate, endDate);
     
@@ -802,32 +801,29 @@ export class DbStorage implements IStorage {
       return baseLoad * intensityFactor;
     };
     
-    // Calculate total load
-    const totalLoad = workouts.reduce((sum, w) => sum + calculateLoad(w), 0);
+    // Get current date info
+    const now = new Date();
+    const sevenDaysAgo = new Date(now);
+    sevenDaysAgo.setDate(now.getDate() - 7);
+    const thirtyDaysAgo = new Date(now);
+    thirtyDaysAgo.setDate(now.getDate() - 30);
     
-    // Calculate weekly loads
-    const weeklyMap = new Map<string, number>();
-    workouts.forEach(workout => {
-      const weekKey = this.getWeekKey(workout.startTime);
-      weeklyMap.set(weekKey, (weeklyMap.get(weekKey) || 0) + calculateLoad(workout));
-    });
-    const weeklyLoads = Array.from(weeklyMap.entries())
-      .map(([week, load]) => ({ week, load: Math.round(load) }))
-      .sort((a, b) => a.week.localeCompare(b.week));
+    // Calculate weekly load (last 7 days)
+    const weeklyWorkouts = workouts.filter(w => w.startTime >= sevenDaysAgo);
+    const weeklyLoad = Math.round(weeklyWorkouts.reduce((sum, w) => sum + calculateLoad(w), 0));
     
-    // Calculate load by type
-    const typeMap = new Map<string, number>();
-    workouts.forEach(workout => {
-      typeMap.set(workout.workoutType, (typeMap.get(workout.workoutType) || 0) + calculateLoad(workout));
-    });
-    const byType = Array.from(typeMap.entries())
-      .map(([type, load]) => ({ type, load: Math.round(load) }))
-      .sort((a, b) => b.load - a.load);
+    // Calculate monthly load (last 30 days)
+    const monthlyWorkouts = workouts.filter(w => w.startTime >= thirtyDaysAgo);
+    const monthlyLoad = Math.round(monthlyWorkouts.reduce((sum, w) => sum + calculateLoad(w), 0));
+    
+    // Calculate weekly hours (last 7 days, in hours not minutes)
+    const weeklyMinutes = weeklyWorkouts.reduce((sum, w) => sum + w.duration, 0);
+    const weeklyHours = Math.round((weeklyMinutes / 60) * 10) / 10; // Round to 1 decimal
     
     return {
-      totalLoad: Math.round(totalLoad),
-      weeklyLoads,
-      byType
+      weeklyLoad,
+      monthlyLoad,
+      weeklyHours
     };
   }
 
@@ -835,26 +831,22 @@ export class DbStorage implements IStorage {
     totalWorkouts: number;
     totalDuration: number;
     totalCalories: number;
-    avgHeartRate: number;
-    byType: Array<{ type: string; count: number; duration: number }>;
+    byType: Array<{ type: string; count: number; duration: number; calories: number }>;
   }> {
     const workouts = await this.getWorkoutSessions(userId, startDate, endDate);
     
     const totalWorkouts = workouts.length;
     const totalDuration = workouts.reduce((sum, w) => sum + w.duration, 0);
     const totalCalories = workouts.reduce((sum, w) => sum + (w.calories || 0), 0);
-    const hrWorkouts = workouts.filter(w => w.avgHeartRate);
-    const avgHeartRate = hrWorkouts.length > 0
-      ? Math.round(hrWorkouts.reduce((sum, w) => sum + (w.avgHeartRate || 0), 0) / hrWorkouts.length)
-      : 0;
     
     // Group by type
-    const typeMap = new Map<string, { count: number; duration: number }>();
+    const typeMap = new Map<string, { count: number; duration: number; calories: number }>();
     workouts.forEach(workout => {
-      const current = typeMap.get(workout.workoutType) || { count: 0, duration: 0 };
+      const current = typeMap.get(workout.workoutType) || { count: 0, duration: 0, calories: 0 };
       typeMap.set(workout.workoutType, {
         count: current.count + 1,
-        duration: current.duration + workout.duration
+        duration: current.duration + workout.duration,
+        calories: current.calories + (workout.calories || 0)
       });
     });
     const byType = Array.from(typeMap.entries())
@@ -865,7 +857,6 @@ export class DbStorage implements IStorage {
       totalWorkouts,
       totalDuration,
       totalCalories,
-      avgHeartRate,
       byType
     };
   }

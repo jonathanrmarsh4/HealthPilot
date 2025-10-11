@@ -82,6 +82,8 @@ export default function Training() {
 
   const { data: recoveryInsights, isLoading: insightsLoading } = useQuery<RecoveryInsight[]>({
     queryKey: [`/api/analytics/recovery-insights?days=${analyticsTimeframe}`],
+    staleTime: 5 * 60 * 1000, // 5 minutes - insights refresh every 5 min
+    refetchInterval: 5 * 60 * 1000, // Auto-refetch every 5 minutes
   });
 
   const generateMutation = useMutation({
