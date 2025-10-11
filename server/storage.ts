@@ -89,6 +89,7 @@ export interface IStorage {
     subscriptionTier?: "free" | "premium" | "enterprise";
     subscriptionStatus?: "active" | "inactive" | "cancelled" | "past_due";
   }): Promise<User>;
+  deleteUser(id: string): Promise<void>;
   getAdminStats(): Promise<{
     totalUsers: number;
     activeUsers: number;
@@ -575,6 +576,23 @@ export class DbStorage implements IStorage {
       .where(eq(users.id, id))
       .returning();
     return result[0];
+  }
+
+  async deleteUser(id: string): Promise<void> {
+    // Delete all user data with cascading deletes
+    await Promise.all([
+      db.delete(healthRecords).where(eq(healthRecords.userId, id)),
+      db.delete(biomarkers).where(eq(biomarkers.userId, id)),
+      db.delete(mealPlans).where(eq(mealPlans.userId, id)),
+      db.delete(trainingSchedules).where(eq(trainingSchedules.userId, id)),
+      db.delete(recommendations).where(eq(recommendations.userId, id)),
+      db.delete(chatMessages).where(eq(chatMessages.userId, id)),
+      db.delete(sleepSessions).where(eq(sleepSessions.userId, id)),
+      db.delete(insights).where(eq(insights.userId, id)),
+    ]);
+
+    // Finally delete the user
+    await db.delete(users).where(eq(users.id, id));
   }
 
   async getAdminStats(): Promise<{
