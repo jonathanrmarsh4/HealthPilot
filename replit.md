@@ -33,6 +33,7 @@ The application is a full-stack project utilizing React, TypeScript, Tailwind CS
   - **Training Load Calculation:** Weekly and monthly training load tracking using duration and heart rate intensity (when available). Calculates total training hours per week.
   - **Workout Statistics:** Aggregates workout data by type (e.g., Cardio, Strength, Yoga) with total duration, calories burned, and workout counts.
   - **Workout-Biomarker Correlations:** Analyzes impact of exercise on sleep quality and resting heart rate, comparing workout days vs. non-workout days to measure improvements.
+  - **AI-Powered Recovery Insights:** Claude AI analyzes training load, workout statistics, and biomarker correlations to generate personalized recovery recommendations. Features severity-based insights (excellent/good/caution/warning) with specific actionable recommendations. Defensive null handling ensures stable AI prompts even with empty datasets.
 
 **Feature Specifications:**
 - Health record upload and AI analysis with status tracking and retry functionality.
