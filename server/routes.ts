@@ -1463,14 +1463,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const userId = (req.user as any).claims.sub;
 
     try {
-      console.log("📥 Received Health Auto Export data:", JSON.stringify(req.body, null, 2));
+      console.log("📥 Received Health Auto Export webhook");
+      console.log("📋 Full payload structure:", JSON.stringify(req.body, null, 2));
+      console.log("🔑 Payload keys:", Object.keys(req.body));
       
-      const { data } = req.body;
+      // Support multiple payload formats from Health Auto Export
+      let metrics: any[] = [];
       
-      if (!data || !data.metrics) {
-        console.log("❌ Invalid data format - missing data.metrics");
-        return res.status(400).json({ error: "Invalid data format" });
+      // Format 1: { data: { metrics: [...] } } - Standard format
+      if (req.body.data && req.body.data.metrics && Array.isArray(req.body.data.metrics)) {
+        metrics = req.body.data.metrics;
+        console.log("✅ Using format 1: data.metrics array");
       }
+      // Format 2: { metrics: [...] } - Direct metrics array
+      else if (req.body.metrics && Array.isArray(req.body.metrics)) {
+        metrics = req.body.metrics;
+        console.log("✅ Using format 2: direct metrics array");
+      }
+      // Format 3: Direct array at root - [...]
+      else if (Array.isArray(req.body)) {
+        metrics = req.body;
+        console.log("✅ Using format 3: root array");
+      }
+      // Format 4: { data: [...] } - Data as direct array
+      else if (req.body.data && Array.isArray(req.body.data)) {
+        metrics = req.body.data;
+        console.log("✅ Using format 4: data array");
+      }
+      // Format 5: Single metric object - wrap it in array
+      else if (req.body.name || req.body.type) {
+        metrics = [req.body];
+        console.log("✅ Using format 5: single metric object");
+      }
+      else {
+        console.log("❌ Unrecognized data format");
+        console.log("📊 Body structure:", {
+          hasData: !!req.body.data,
+          dataType: typeof req.body.data,
+          hasMetrics: !!req.body.metrics,
+          metricsType: typeof req.body.metrics,
+          bodyKeys: Object.keys(req.body),
+          isArray: Array.isArray(req.body)
+        });
+        return res.status(400).json({ 
+          error: "Invalid data format",
+          details: "Expected formats: {data: {metrics: [...]}}, {metrics: [...]}, [...], {data: [...]}, or single metric object",
+          received: {
+            keys: Object.keys(req.body),
+            structure: typeof req.body
+          }
+        });
+      }
+
+      if (metrics.length === 0) {
+        console.log("⚠️ No metrics found in payload");
+        return res.status(400).json({ 
+          error: "No metrics found",
+          details: "Payload contained no metric data to process"
+        });
+      }
+
+      console.log(`📊 Processing ${metrics.length} metric(s)`);
+      metrics.forEach((m, i) => console.log(`  ${i + 1}. ${m.name || m.type || 'unknown'}: ${Array.isArray(m.data) ? m.data.length : 1} data point(s)`));
 
       // Helper function to convert incoming units to standardized storage units
       const convertToStorageUnit = (value: number, incomingUnit: string, biomarkerType: string): { value: number; unit: string } => {
@@ -1546,14 +1600,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let sleepSessionsCount = 0;
       let workoutSessionsCount = 0;
 
-      for (const metric of data.metrics) {
-        // Special handling for workout sessions
-        if (metric.name === "workout" && metric.data && Array.isArray(metric.data)) {
+      for (const metric of metrics) {
+        // Special handling for workout sessions - check multiple possible field names
+        const metricName = (metric.name || metric.type || "").toLowerCase();
+        const isWorkout = metricName === "workout" || metricName === "workouts" || metricName.includes("workout");
+        
+        if (isWorkout && metric.data && Array.isArray(metric.data)) {
+          console.log(`🏋️ Processing ${metric.data.length} workout(s)`);
+          
           for (const workout of metric.data) {
-            if (workout.startDate && workout.endDate) {
-              const startTime = new Date(workout.startDate);
-              const endTime = new Date(workout.endDate);
+            console.log("📋 Workout data:", JSON.stringify(workout, null, 2));
+            
+            // Support multiple field name variations for dates
+            const startDate = workout.startDate || workout.start_date || workout.startTime || workout.start;
+            const endDate = workout.endDate || workout.end_date || workout.endTime || workout.end;
+            
+            if (startDate && endDate) {
+              const startTime = new Date(startDate);
+              const endTime = new Date(endDate);
               const duration = Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60)); // minutes
+              
+              console.log(`⏱️  Duration: ${duration} minutes (${startTime.toISOString()} → ${endTime.toISOString()})`);
               
               // Map Apple Health workout types to our standard types
               const workoutTypeMap: Record<string, string> = {
@@ -1596,13 +1663,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
               }
               
               workoutSessionsCount++;
+            } else {
+              console.log("⚠️  Missing start/end date for workout:", {
+                hasStartDate: !!startDate,
+                hasEndDate: !!endDate,
+                workoutKeys: Object.keys(workout)
+              });
+              continue;
             }
           }
           continue; // Skip the normal biomarker processing for workouts
         }
         
         // Special handling for sleep analysis - create sleep sessions
-        if (metric.name === "sleep_analysis" && metric.data && Array.isArray(metric.data)) {
+        const isSleep = metricName === "sleep_analysis" || metricName === "sleep analysis" || metricName.includes("sleep");
+        
+        if (isSleep && metric.data && Array.isArray(metric.data)) {
           for (const dataPoint of metric.data) {
             // Use inBedStart/inBedEnd for full session duration (includes awake time)
             if (dataPoint.inBedStart && dataPoint.inBedEnd) {
