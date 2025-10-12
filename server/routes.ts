@@ -2442,6 +2442,177 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Junction (Vital) webhook endpoint with Svix signature verification
+  app.post("/api/junction/webhook", async (req, res) => {
+    try {
+      console.log("📥 Received Junction webhook");
+      
+      // Verify Svix webhook signature
+      const svixId = req.headers['svix-id'] as string;
+      const svixTimestamp = req.headers['svix-timestamp'] as string;
+      const svixSignature = req.headers['svix-signature'] as string;
+      
+      if (!svixId || !svixTimestamp || !svixSignature) {
+        console.error("❌ Missing Svix headers");
+        return res.status(401).json({ error: "Missing webhook signature headers" });
+      }
+      
+      // TODO: Implement Svix signature verification using webhook secret from Junction dashboard
+      // For now, require the headers to be present (basic validation)
+      // In production, use Svix SDK: new Webhook(secret).verify(payload, headers)
+      console.log("✅ Svix headers present:", { svixId, svixTimestamp });
+      
+      console.log("🔑 Event type:", req.body.event_type);
+      console.log("📋 Full payload:", JSON.stringify(req.body, null, 2));
+
+      const eventType = req.body.event_type;
+      const data = req.body.data;
+
+      // Verify required fields
+      if (!eventType || !data) {
+        return res.status(400).json({ error: "Missing event_type or data" });
+      }
+
+      // Handle different event types
+      if (eventType === "provider.connection.created") {
+        // User connected a provider
+        console.log(`✅ Provider connected: ${data.provider?.name} for user ${req.body.user_id}`);
+        return res.json({ success: true, message: "Provider connection acknowledged" });
+      }
+
+      if (eventType.startsWith("historical.data.")) {
+        // Historical data backfill completed - notification only
+        const resource = eventType.replace("historical.data.", "").replace(".created", "");
+        console.log(`📚 Historical backfill complete for ${resource}: ${data.start_date} to ${data.end_date}`);
+        return res.json({ success: true, message: "Historical backfill acknowledged" });
+      }
+
+      if (eventType.startsWith("daily.data.")) {
+        // Incremental data update - contains actual health data
+        const resource = eventType.replace("daily.data.", "").replace(".created", "").replace(".updated", "");
+        console.log(`📊 Processing ${resource} data for user ${data.user_id}`);
+
+        // Map user_id to HealthPilot user (you'll need to maintain this mapping)
+        // For now, using client_user_id which should match your user ID
+        const userId = req.body.client_user_id || data.user_id;
+
+        let insertedCount = 0;
+
+        // Handle different resource types
+        if (resource === "workouts") {
+          // Create workout session
+          const workout = await storage.createWorkoutSession({
+            userId,
+            sourceType: `junction-${data.source?.provider || 'unknown'}`,
+            sourceId: data.id || data.provider_id,
+            workoutType: data.sport?.name || "Unknown",
+            startTime: new Date(data.time_start),
+            endTime: new Date(data.time_end),
+            duration: Math.round((data.moving_time || 0) / 60), // Convert seconds to minutes
+            calories: data.calories || 0,
+            distance: data.distance || 0,
+            avgHeartRate: data.average_hr || null,
+            maxHeartRate: data.max_hr || null,
+          });
+          insertedCount++;
+          console.log(`✅ Created workout session: ${workout.id}`);
+        } else if (resource === "sleep") {
+          // Create sleep session
+          const totalMinutes = Math.round((data.total || data.duration || 0) / 60); // Convert seconds to minutes
+          const sleep = await storage.createSleepSession({
+            userId,
+            source: `junction-${data.source?.provider || 'unknown'}`,
+            bedtime: new Date(data.bedtime_start),
+            waketime: new Date(data.bedtime_stop),
+            totalMinutes,
+            awakeMinutes: Math.round((data.awake || 0) / 60),
+            lightMinutes: Math.round((data.light || 0) / 60),
+            deepMinutes: Math.round((data.deep || 0) / 60),
+            remMinutes: Math.round((data.rem || 0) / 60),
+            sleepScore: data.score || null,
+          });
+          insertedCount++;
+          console.log(`✅ Created sleep session: ${sleep.id}`);
+        } else if (resource === "heartrate") {
+          // Store heart rate as biomarker
+          await storage.upsertBiomarker({
+            userId,
+            type: "heart-rate",
+            value: data.value || data.hr_average,
+            unit: "bpm",
+            source: `junction-${data.source?.provider || 'unknown'}`,
+            recordedAt: new Date(data.timestamp || data.calendar_date),
+          });
+          insertedCount++;
+        } else if (resource === "weight" || resource === "body") {
+          // Store weight as biomarker
+          if (data.weight) {
+            await storage.upsertBiomarker({
+              userId,
+              type: "weight",
+              value: data.weight,
+              unit: "kg",
+              source: `junction-${data.source?.provider || 'unknown'}`,
+              recordedAt: new Date(data.timestamp || data.calendar_date),
+            });
+            insertedCount++;
+          }
+        } else if (resource === "glucose") {
+          // Store glucose as biomarker
+          await storage.upsertBiomarker({
+            userId,
+            type: "blood-glucose",
+            value: data.value || data.glucose,
+            unit: "mg/dL",
+            source: `junction-${data.source?.provider || 'unknown'}`,
+            recordedAt: new Date(data.timestamp || data.calendar_date),
+          });
+          insertedCount++;
+        } else if (resource === "blood_pressure") {
+          // Store blood pressure as biomarkers
+          if (data.systolic) {
+            await storage.upsertBiomarker({
+              userId,
+              type: "blood-pressure-systolic",
+              value: data.systolic,
+              unit: "mmHg",
+              source: `junction-${data.source?.provider || 'unknown'}`,
+              recordedAt: new Date(data.timestamp || data.calendar_date),
+            });
+            insertedCount++;
+          }
+          if (data.diastolic) {
+            await storage.upsertBiomarker({
+              userId,
+              type: "blood-pressure-diastolic",
+              value: data.diastolic,
+              unit: "mmHg",
+              source: `junction-${data.source?.provider || 'unknown'}`,
+              recordedAt: new Date(data.timestamp || data.calendar_date),
+            });
+            insertedCount++;
+          }
+        }
+
+        return res.json({ 
+          success: true, 
+          message: `Processed ${resource} data`,
+          insertedCount 
+        });
+      }
+
+      // Unknown event type
+      console.log(`⚠️ Unknown event type: ${eventType}`);
+      return res.json({ success: true, message: "Event acknowledged" });
+
+    } catch (error: any) {
+      console.error("Error processing Junction webhook:", error);
+      if (!res.headersSent) {
+        res.status(500).json({ error: error.message });
+      }
+    }
+  });
+
   // Cleanup endpoint to remove old test data
   app.post("/api/cleanup-test-data", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
