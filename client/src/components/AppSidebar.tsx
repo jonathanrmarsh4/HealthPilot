@@ -12,6 +12,7 @@ import {
   User,
   BarChart3,
   Target,
+  Dna,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import {
@@ -78,6 +79,11 @@ const menuItems = [
     title: "Goals",
     url: "/goals",
     icon: Target,
+  },
+  {
+    title: "Biological Age",
+    url: "/biological-age",
+    icon: Dna,
   },
   {
     title: "Health Coach",

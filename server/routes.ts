@@ -6,6 +6,7 @@ import multer from "multer";
 import { insertBiomarkerSchema, insertHealthRecordSchema, biomarkers, sleepSessions, healthRecords, mealPlans, trainingSchedules, recommendations } from "@shared/schema";
 import { listHealthDocuments, downloadFile, getFileMetadata } from "./services/googleDrive";
 import { analyzeHealthDocument, generateMealPlan, generateTrainingSchedule, generateHealthRecommendations, chatWithHealthCoach, generateDailyInsights, generateRecoveryInsights, generateTrendPredictions, generatePeriodComparison } from "./services/ai";
+import { calculatePhenoAge, getBiomarkerDisplayName, getBiomarkerUnit, getBiomarkerSource } from "./services/phenoAge";
 import { parseISO, isValid } from "date-fns";
 import { eq, and } from "drizzle-orm";
 import { isAuthenticated, isAdmin, webhookAuth } from "./replitAuth";
@@ -609,6 +610,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(latestBiomarker);
     } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/biological-age", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+
+    try {
+      // Get user's date of birth to calculate chronological age
+      const user = await storage.getUser(userId);
+      if (!user || !user.dateOfBirth) {
+        return res.status(400).json({ error: "Date of birth not set. Please update your profile." });
+      }
+
+      const today = new Date();
+      const birthDate = new Date(user.dateOfBirth);
+      let chronologicalAge = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        chronologicalAge--;
+      }
+
+      // Fetch latest values for all PhenoAge biomarkers
+      const biomarkerTypes = {
+        albumin: 'albumin',
+        creatinine: 'creatinine',
+        glucose: 'blood-glucose', // Maps to blood-glucose type
+        crp: 'crp',
+        lymphocytePercent: 'lymphocytes', // % format
+        mcv: 'mcv',
+        rdw: 'rdw',
+        alp: 'alp',
+        wbc: 'wbc'
+      };
+
+      const biomarkerValues: any = {};
+      
+      for (const [key, type] of Object.entries(biomarkerTypes)) {
+        const latest = await storage.getLatestBiomarkerByType(userId, type);
+        if (latest) {
+          biomarkerValues[key] = latest.value;
+        }
+      }
+
+      // Calculate PhenoAge
+      const result = calculatePhenoAge(biomarkerValues, chronologicalAge);
+      
+      if (!result) {
+        return res.status(500).json({ error: "Failed to calculate biological age" });
+      }
+
+      // Add user-friendly biomarker info to missing/available lists
+      const missingWithInfo = result.missingBiomarkers.map(key => ({
+        key,
+        name: getBiomarkerDisplayName(key),
+        unit: getBiomarkerUnit(key),
+        source: getBiomarkerSource(key)
+      }));
+
+      const availableWithInfo = result.availableBiomarkers.map(key => ({
+        key,
+        name: getBiomarkerDisplayName(key),
+        unit: getBiomarkerUnit(key),
+        value: biomarkerValues[key]
+      }));
+
+      res.json({
+        ...result,
+        missingBiomarkers: missingWithInfo,
+        availableBiomarkers: availableWithInfo,
+        canCalculate: result.missingBiomarkers.length === 0
+      });
+    } catch (error: any) {
+      console.error("Error calculating biological age:", error);
       res.status(500).json({ error: error.message });
     }
   });
