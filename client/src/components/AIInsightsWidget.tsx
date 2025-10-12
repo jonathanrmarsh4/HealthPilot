@@ -64,7 +64,7 @@ export function AIInsightsWidget() {
   const generateMutation = useMutation({
     mutationFn: async () => {
       const response = await apiRequest('POST', '/api/insights/generate');
-      return response;
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/insights/daily'] });
@@ -86,7 +86,7 @@ export function AIInsightsWidget() {
   const dismissMutation = useMutation({
     mutationFn: async (id: string) => {
       const response = await apiRequest('PATCH', `/api/insights/${id}/dismiss`);
-      return response;
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/insights/daily'] });
@@ -105,7 +105,7 @@ export function AIInsightsWidget() {
             </CardTitle>
             <CardDescription>Personalized intelligence from your health data</CardDescription>
           </div>
-          <Skeleton className="h-9 w-32" />
+          <Skeleton className="h-8 w-8 rounded-md" />
         </CardHeader>
         <CardContent className="space-y-4">
           <Skeleton className="h-24 w-full" />
@@ -131,11 +131,12 @@ export function AIInsightsWidget() {
         <Button
           onClick={() => generateMutation.mutate()}
           disabled={generateMutation.isPending}
-          size="sm"
+          size="icon"
+          variant="ghost"
+          className="h-8 w-8 text-muted-foreground hover:text-foreground"
           data-testid="button-generate-insights"
         >
-          <RefreshCw className={`h-4 w-4 mr-2 ${generateMutation.isPending ? 'animate-spin' : ''}`} />
-          {generateMutation.isPending ? 'Analyzing...' : 'Refresh'}
+          <RefreshCw className={`h-4 w-4 ${generateMutation.isPending ? 'animate-spin' : ''}`} />
         </Button>
       </CardHeader>
       <CardContent>
