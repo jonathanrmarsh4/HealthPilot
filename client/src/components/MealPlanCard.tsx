@@ -13,6 +13,8 @@ interface MealPlanCardProps {
   fat: number;
   prepTime: number;
   tags?: string[];
+  imageUrl?: string | null;
+  onClick?: () => void;
 }
 
 export function MealPlanCard({
@@ -25,9 +27,27 @@ export function MealPlanCard({
   fat,
   prepTime,
   tags = [],
+  imageUrl,
+  onClick,
 }: MealPlanCardProps) {
   return (
-    <Card data-testid={`card-meal-${mealType.toLowerCase()}`}>
+    <Card 
+      data-testid={`card-meal-${mealType.toLowerCase()}`}
+      className="overflow-hidden hover-elevate cursor-pointer"
+      onClick={onClick}
+    >
+      {/* Meal Photo */}
+      {imageUrl && (
+        <div className="w-full h-40 overflow-hidden">
+          <img 
+            src={imageUrl} 
+            alt={name}
+            className="w-full h-full object-cover"
+            data-testid="img-meal-card-photo"
+          />
+        </div>
+      )}
+      
       <CardHeader>
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1 flex-1">
@@ -40,7 +60,7 @@ export function MealPlanCard({
               ))}
             </div>
             <CardTitle className="text-lg">{name}</CardTitle>
-            <p className="text-sm text-muted-foreground">{description}</p>
+            <p className="text-sm text-muted-foreground line-clamp-2">{description}</p>
           </div>
         </div>
       </CardHeader>

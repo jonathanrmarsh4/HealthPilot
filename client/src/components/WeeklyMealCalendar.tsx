@@ -91,24 +91,20 @@ export function WeeklyMealCalendar({ meals, onMealClick }: WeeklyMealCalendarPro
             <CardContent>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 {meals.map((meal) => (
-                  <div
+                  <MealPlanCard
                     key={meal.id}
-                    className={onMealClick ? "cursor-pointer" : ""}
+                    mealType={meal.mealType as "Breakfast" | "Lunch" | "Dinner" | "Snack"}
+                    name={meal.name}
+                    description={meal.description || ""}
+                    calories={meal.calories}
+                    protein={meal.protein}
+                    carbs={meal.carbs}
+                    fat={meal.fat}
+                    prepTime={meal.prepTime}
+                    tags={meal.tags || []}
+                    imageUrl={meal.imageUrl}
                     onClick={() => onMealClick?.(meal)}
-                    data-testid={`meal-card-${meal.id}`}
-                  >
-                    <MealPlanCard
-                      mealType={meal.mealType as "Breakfast" | "Lunch" | "Dinner" | "Snack"}
-                      name={meal.name}
-                      description={meal.description || ""}
-                      calories={meal.calories}
-                      protein={meal.protein}
-                      carbs={meal.carbs}
-                      fat={meal.fat}
-                      prepTime={meal.prepTime}
-                      tags={meal.tags || []}
-                    />
-                  </div>
+                  />
                 ))}
               </div>
             </CardContent>
