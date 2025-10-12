@@ -86,6 +86,7 @@ export const mealPlans = pgTable("meal_plans", {
   detailedRecipe: text("detailed_recipe"), // Step-by-step cooking instructions
   ingredients: text("ingredients").array(), // List of ingredients with measurements
   servings: integer("servings").default(1), // Number of servings
+  imageUrl: varchar("image_url"), // URL to meal photo
   scheduledDate: timestamp("scheduled_date"), // The date this meal is scheduled for
   tags: text("tags").array(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
