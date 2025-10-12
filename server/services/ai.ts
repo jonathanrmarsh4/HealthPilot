@@ -966,3 +966,112 @@ Generate 3-5 insights, ordered by importance. Focus on actionable recovery strat
 
   return [];
 }
+
+export async function generateTrendPredictions(data: {
+  biomarkerType: string;
+  historicalData: Array<{ value: number; date: Date }>;
+  timeframeWeeks: number;
+}) {
+  const message = await retryWithBackoff(() => anthropic.messages.create({
+    model: "claude-3-haiku-20240307",
+    max_tokens: 2048,
+    messages: [
+      {
+        role: "user",
+        content: `You are a health data analyst AI. Analyze the following biomarker trend and predict future values.
+
+## Biomarker: ${data.biomarkerType}
+## Historical Data (${data.historicalData.length} data points):
+${JSON.stringify(data.historicalData.map(d => ({ value: d.value, date: d.date.toISOString().split('T')[0] })), null, 2)}
+
+## Prediction Timeframe: ${data.timeframeWeeks} weeks
+
+Analyze the trend pattern and generate a prediction with this JSON structure:
+{
+  "trend": "increasing" | "decreasing" | "stable" | "fluctuating",
+  "trendStrength": "strong" | "moderate" | "weak",
+  "predictedValue": number,
+  "predictedRange": { "min": number, "max": number },
+  "confidence": "high" | "medium" | "low",
+  "insight": "Brief explanation of the trend and prediction",
+  "recommendation": "Actionable advice based on the prediction"
+}
+
+Focus on identifying clear patterns. Be conservative with predictions - if data is insufficient or highly variable, indicate low confidence.`,
+      },
+    ],
+  }));
+
+  const content = message.content[0];
+  if (content.type === "text") {
+    try {
+      const jsonMatch = content.text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        return JSON.parse(jsonMatch[0]);
+      }
+    } catch (e) {
+      console.error("Failed to parse trend prediction:", e);
+    }
+  }
+
+  return null;
+}
+
+export async function generatePeriodComparison(data: {
+  metricType: string;
+  period1: { start: Date; end: Date; data: any[] };
+  period2: { start: Date; end: Date; data: any[] };
+}) {
+  const message = await retryWithBackoff(() => anthropic.messages.create({
+    model: "claude-3-haiku-20240307",
+    max_tokens: 2048,
+    messages: [
+      {
+        role: "user",
+        content: `You are a health data analyst AI. Compare two time periods for the following health metric.
+
+## Metric: ${data.metricType}
+
+## Period 1: ${data.period1.start.toISOString().split('T')[0]} to ${data.period1.end.toISOString().split('T')[0]}
+Data points: ${data.period1.data.length}
+${JSON.stringify(data.period1.data.slice(0, 10), null, 2)}${data.period1.data.length > 10 ? '\n... and more' : ''}
+
+## Period 2: ${data.period2.start.toISOString().split('T')[0]} to ${data.period2.end.toISOString().split('T')[0]}
+Data points: ${data.period2.data.length}
+${JSON.stringify(data.period2.data.slice(0, 10), null, 2)}${data.period2.data.length > 10 ? '\n... and more' : ''}
+
+Generate a comparison analysis with this JSON structure:
+{
+  "period1Summary": { "average": number, "min": number, "max": number, "trend": string },
+  "period2Summary": { "average": number, "min": number, "max": number, "trend": string },
+  "change": {
+    "absolute": number,
+    "percentage": number,
+    "direction": "improved" | "declined" | "stable"
+  },
+  "insights": [
+    "Key observation 1",
+    "Key observation 2"
+  ],
+  "recommendation": "Actionable advice based on the comparison"
+}
+
+Be specific with numbers and provide meaningful context about what the changes mean for health.`,
+      },
+    ],
+  }));
+
+  const content = message.content[0];
+  if (content.type === "text") {
+    try {
+      const jsonMatch = content.text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        return JSON.parse(jsonMatch[0]);
+      }
+    } catch (e) {
+      console.error("Failed to parse period comparison:", e);
+    }
+  }
+
+  return null;
+}

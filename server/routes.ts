@@ -5,7 +5,7 @@ import { db } from "./db";
 import multer from "multer";
 import { insertBiomarkerSchema, insertHealthRecordSchema, biomarkers, sleepSessions, healthRecords, mealPlans, trainingSchedules, recommendations } from "@shared/schema";
 import { listHealthDocuments, downloadFile, getFileMetadata } from "./services/googleDrive";
-import { analyzeHealthDocument, generateMealPlan, generateTrainingSchedule, generateHealthRecommendations, chatWithHealthCoach, generateDailyInsights, generateRecoveryInsights } from "./services/ai";
+import { analyzeHealthDocument, generateMealPlan, generateTrainingSchedule, generateHealthRecommendations, chatWithHealthCoach, generateDailyInsights, generateRecoveryInsights, generateTrendPredictions, generatePeriodComparison } from "./services/ai";
 import { parseISO, isValid } from "date-fns";
 import { eq, and } from "drizzle-orm";
 import { isAuthenticated, isAdmin, webhookAuth } from "./replitAuth";
@@ -877,6 +877,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.deleteGoal(id, userId);
       res.json({ success: true });
     } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Insights API endpoints
+  app.post("/api/insights/trend-predictions", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    try {
+      const { biomarkerType, timeframeWeeks = 4 } = req.body;
+      
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - 90); // Last 90 days of data
+      
+      const historicalData = await storage.getBiomarkersByTimeRange(userId, biomarkerType, startDate, endDate);
+      
+      if (historicalData.length < 3) {
+        return res.status(400).json({ error: "Insufficient data for prediction. Need at least 3 data points." });
+      }
+      
+      const prediction = await generateTrendPredictions({
+        biomarkerType,
+        historicalData: historicalData.map(b => ({ value: b.value, date: b.recordedAt })),
+        timeframeWeeks,
+      });
+      
+      res.json(prediction);
+    } catch (error: any) {
+      console.error("Error generating trend prediction:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/insights/period-comparison", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    try {
+      const { metricType, period1Start, period1End, period2Start, period2End } = req.body;
+      
+      const p1Start = new Date(period1Start);
+      const p1End = new Date(period1End);
+      const p2Start = new Date(period2Start);
+      const p2End = new Date(period2End);
+      
+      const [period1Data, period2Data] = await Promise.all([
+        storage.getBiomarkersByTimeRange(userId, metricType, p1Start, p1End),
+        storage.getBiomarkersByTimeRange(userId, metricType, p2Start, p2End),
+      ]);
+      
+      if (period1Data.length === 0 || period2Data.length === 0) {
+        return res.status(400).json({ error: "Insufficient data in one or both periods." });
+      }
+      
+      const comparison = await generatePeriodComparison({
+        metricType,
+        period1: { start: p1Start, end: p1End, data: period1Data },
+        period2: { start: p2Start, end: p2End, data: period2Data },
+      });
+      
+      res.json(comparison);
+    } catch (error: any) {
+      console.error("Error generating period comparison:", error);
       res.status(500).json({ error: error.message });
     }
   });
