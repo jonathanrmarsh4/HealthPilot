@@ -45,7 +45,14 @@ The application is a full-stack project utilizing React, TypeScript, Tailwind CS
 
 **Feature Specifications:**
 - Health record upload and AI analysis with status tracking and retry functionality.
-- AI-generated personalized meal plans and training schedules.
+- **Weekly Meal Planning System:** AI-generated personalized meal plans with 4-day rolling window. Features include:
+  - **Automatic Date Assignment:** Each meal assigned a specific scheduledDate from today/tomorrow forward for 4 days (16 meals total: breakfast, lunch, dinner, snack per day)
+  - **Smart Cleanup Logic:** Automatically deletes past meals (scheduledDate < today) and enforces 4-day cap using deletePastMealPlans() and deleteFutureMealsBeyondDate()
+  - **Weekly Calendar View:** Groups meals by date, sorts chronologically, displays "Today" indicator, responsive grid layout (4 cols desktop → 2 tablet → 1 mobile)
+  - **Recipe Detail Modal:** Mobile-first drawer component shows meal details (name, description, macros with icons, prep time, servings, tags, simple recipe instructions)
+  - **Goal-Aligned Generation:** AI incorporates active health goals into meal planning with explicit descriptions of how each meal supports user's targets
+  - **Simplified Format:** Due to Claude Haiku 4096 token limit, meals use streamlined schema (basic recipe text instead of detailed ingredients array/step-by-step). Future enhancement: 7-day batch generation.
+  - **Mobile-Optimized:** Fully responsive on iPad/iPhone with touch-friendly interactions
 - AI-powered alternative therapy recommendations (sauna, cold plunge, red light therapy, etc.) based on biomarker analysis.
 - Admin control panel for user and subscription management.
 - **Auto-Save Training Plans from Chat:** When the AI creates a training plan through conversation and the user confirms it, the plan is automatically saved to the database and appears on the Training page. The user receives a success notification with a link to view their new plan.
