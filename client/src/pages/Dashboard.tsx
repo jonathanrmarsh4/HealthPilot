@@ -11,7 +11,8 @@ import { HealthScoreWidget } from "@/components/HealthScoreWidget";
 import { SleepScoreDonutWidget } from "@/components/SleepScoreDonutWidget";
 import { GoalsSummaryWidget } from "@/components/GoalsSummaryWidget";
 import { DataInsightsWidget } from "@/components/DataInsightsWidget";
-import { Heart, Activity, Scale, Droplet, TrendingUp, Zap, Apple, AlertCircle, Dumbbell, Settings2, Eye, EyeOff, ChevronUp, ChevronDown } from "lucide-react";
+import { BiologicalAgeWidget } from "@/components/BiologicalAgeWidget";
+import { Heart, Activity, Scale, Droplet, TrendingUp, Zap, Apple, AlertCircle, Dumbbell, Settings2, Eye, EyeOff, ChevronUp, ChevronDown, Dna, TrendingDown, Upload } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -70,6 +71,7 @@ const WIDGET_CONFIG: Record<string, { title: string; description: string }> = {
   "health-metrics": { title: "Health Metrics", description: "Heart rate, blood glucose, weight cards" },
   "blood-glucose-chart": { title: "Blood Glucose Chart", description: "7-day glucose trend" },
   "weight-chart": { title: "Weight Chart", description: "12-month weight tracking" },
+  "biological-age": { title: "Biological Age", description: "PhenoAge longevity biomarker" },
   "recommendations": { title: "AI Recommendations", description: "Personalized health insights" }
 };
 
@@ -493,6 +495,9 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         );
+
+      case "biological-age":
+        return <BiologicalAgeWidget key={widget} />;
 
       case "recommendations":
         return recommendationsLoading ? (

@@ -70,7 +70,7 @@ export function calculatePhenoAge(
   // All biomarkers present - calculate PhenoAge
   const { albumin, creatinine, glucose, crp, lymphocytePercent, mcv, rdw, alp, wbc } = biomarkers as PhenoAgeBiomarkers;
   
-  // Step 1: Calculate Phenotypic Age (xb)
+  // Step 1: Calculate linear predictor (xb)
   // Using published coefficients from Levine et al. 2018
   const xb = 
     -19.907 + 
@@ -81,12 +81,17 @@ export function calculatePhenoAge(
     (-0.012 * lymphocytePercent) +
     (0.0268 * mcv) +
     (0.3306 * rdw) +
-    (-0.00188 * alp) +
+    (0.00188 * alp) + // FIXED: Changed from negative to positive
     (0.0554 * wbc) +
     (0.0804 * chronologicalAge);
   
-  // Step 2: Calculate Phenotypic Age
-  const phenotypicAge = 141.50225 + (Math.log(-0.00553 * Math.log(1 - Math.exp(xb))) / 0.090165);
+  // Step 2: Calculate mortality risk
+  // mortality = 1 - 0.988^(exp(xb))
+  const mortality = 1 - Math.pow(0.988, Math.exp(xb));
+  
+  // Step 3: Calculate Phenotypic Age
+  // phenotypicAge = 141.5 + ln(-0.00553 * ln(1 - mortality)) / 0.090165
+  const phenotypicAge = 141.50225 + (Math.log(-0.00553 * Math.log(1 - mortality)) / 0.090165);
   
   // Step 3: Calculate DNAm PhenoAge (biological age)
   // This is the mortality risk score
