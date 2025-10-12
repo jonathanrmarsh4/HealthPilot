@@ -247,11 +247,11 @@ export async function generateMealPlan(userProfile: {
     messages: [
       {
         role: "user",
-        content: `You are a nutritionist AI with a mission to help users achieve their health goals through personalized nutrition. Create a 7-day weekly meal plan based on the following user profile:
+        content: `You are a nutritionist AI. Create a detailed 4-day meal plan based on this profile:
 
 ${JSON.stringify(userProfile, null, 2)}${goalsSection}${chatContextSection}
 
-Generate a valid JSON array of 16 meals (4 days × 4 meals: breakfast, lunch, dinner, snack). Return ONLY the JSON array:
+Generate 16 meals (4 days × breakfast, lunch, dinner, snack). Return ONLY the JSON array:
 [
   {
     "dayNumber": 1,
@@ -264,18 +264,19 @@ Generate a valid JSON array of 16 meals (4 days × 4 meals: breakfast, lunch, di
     "fat": 15,
     "prepTime": 15,
     "servings": 1,
-    "recipe": "Brief instructions",
-    "tags": ["High Protein"]
+    "ingredients": ["1 cup oats", "1 banana", "1 tbsp honey", "200ml almond milk"],
+    "detailedRecipe": "1. Heat almond milk in pot. 2. Add oats, simmer 5 mins. 3. Top with sliced banana and honey. 4. Serve warm.",
+    "tags": ["High Protein", "Quick"]
   }
 ]
 
 Rules:
-- Keep ALL strings SHORT
-- dayNumber: 1-4 (4 days only)
-- Return ONLY the JSON array
-- Vary meals
+- ingredients: Array of strings with measurements (e.g., "1 cup rice", "200g chicken")
+- detailedRecipe: Step-by-step numbered instructions (concise but clear)
+- dayNumber: 1-4
+- Return ONLY valid JSON array
 
-CRITICAL: Return ONLY a valid JSON array. No markdown, no explanations, just the array.`,
+CRITICAL: Return ONLY the JSON array. No markdown, no explanations.`,
       },
     ],
   });
