@@ -37,7 +37,7 @@ import {
   exerciseLogs,
   goals,
 } from "@shared/schema";
-import { eq, desc, and, gte, lte, sql, or, like, count } from "drizzle-orm";
+import { eq, desc, and, gte, lte, lt, sql, or, like, count, isNull } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -69,6 +69,8 @@ export interface IStorage {
   
   createMealPlan(mealPlan: InsertMealPlan): Promise<MealPlan>;
   getMealPlans(userId: string): Promise<MealPlan[]>;
+  deletePastMealPlans(userId: string): Promise<number>; // Returns count of deleted meals
+  deleteFutureMealsBeyondDate(userId: string, maxDate: Date): Promise<number>; // Delete meals scheduled after maxDate
   
   createTrainingSchedule(schedule: InsertTrainingSchedule): Promise<TrainingSchedule>;
   getTrainingSchedules(userId: string): Promise<TrainingSchedule[]>;
@@ -431,11 +433,58 @@ export class DbStorage implements IStorage {
   }
 
   async getMealPlans(userId: string): Promise<MealPlan[]> {
+    // Get current date at start of day (midnight)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
     return await db
       .select()
       .from(mealPlans)
-      .where(eq(mealPlans.userId, userId))
-      .orderBy(desc(mealPlans.createdAt));
+      .where(
+        and(
+          eq(mealPlans.userId, userId),
+          // Only return meals scheduled for today or future
+          // If scheduledDate is null, include it (for backward compatibility)
+          or(
+            gte(mealPlans.scheduledDate, today),
+            isNull(mealPlans.scheduledDate)
+          )
+        )
+      )
+      .orderBy(mealPlans.scheduledDate, mealPlans.mealType);
+  }
+
+  async deletePastMealPlans(userId: string): Promise<number> {
+    // Delete meals scheduled before today
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const result = await db
+      .delete(mealPlans)
+      .where(
+        and(
+          eq(mealPlans.userId, userId),
+          lt(mealPlans.scheduledDate, today)
+        )
+      )
+      .returning({ id: mealPlans.id });
+    
+    return result.length;
+  }
+
+  async deleteFutureMealsBeyondDate(userId: string, maxDate: Date): Promise<number> {
+    // Delete meals scheduled after the maxDate to enforce 7-day cap
+    const result = await db
+      .delete(mealPlans)
+      .where(
+        and(
+          eq(mealPlans.userId, userId),
+          gte(mealPlans.scheduledDate, maxDate)
+        )
+      )
+      .returning({ id: mealPlans.id });
+    
+    return result.length;
   }
 
   async createTrainingSchedule(schedule: InsertTrainingSchedule): Promise<TrainingSchedule> {

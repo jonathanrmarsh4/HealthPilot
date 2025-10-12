@@ -694,6 +694,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userProfile = req.body;
       
+      // Step 1: Delete past meals to keep only current/future meals
+      const deletedCount = await storage.deletePastMealPlans(userId);
+      console.log(`🗑️ Deleted ${deletedCount} past meal(s) for user ${userId}`);
+      
+      // Step 2: Check existing meals to determine start date
+      const existingMeals = await storage.getMealPlans(userId);
+      let startDate = new Date();
+      startDate.setHours(0, 0, 0, 0);
+      
+      // If there are existing future meals, start from tomorrow
+      // Otherwise, start from today
+      if (existingMeals.length > 0) {
+        startDate.setDate(startDate.getDate() + 1);
+      }
+      
       const chatHistory = await storage.getChatMessages(userId);
       const chatContext = chatHistory.map(msg => `${msg.role}: ${msg.content}`).join('\n');
       
@@ -701,21 +716,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const allGoals = await storage.getGoals(userId);
       const activeGoals = allGoals.filter(goal => goal.status === 'active');
       
+      // Step 3: Generate 7 days of meals (28 total)
       const mealPlans = await generateMealPlan({
         ...userProfile,
         chatContext,
         activeGoals
       });
       
+      // Step 4: Assign dates to meals and save them
       const savedPlans = [];
       for (const plan of mealPlans) {
+        // Calculate scheduled date based on dayNumber (1-7)
+        const dayNumber = (plan as any).dayNumber || 1;
+        const scheduledDate = new Date(startDate);
+        scheduledDate.setDate(startDate.getDate() + (dayNumber - 1));
+        
         const saved = await storage.createMealPlan({
           ...plan,
           userId,
+          scheduledDate,
         });
         savedPlans.push(saved);
       }
       
+      // Step 5: Enforce 7-day maximum - delete any meals beyond 7 days from today
+      const maxDate = new Date();
+      maxDate.setHours(0, 0, 0, 0);
+      maxDate.setDate(maxDate.getDate() + 7); // 7 days from today
+      
+      const cappedCount = await storage.deleteFutureMealsBeyondDate(userId, maxDate);
+      if (cappedCount > 0) {
+        console.log(`🔒 Enforced 7-day cap: deleted ${cappedCount} meal(s) beyond ${maxDate.toISOString().split('T')[0]}`);
+      }
+      
+      console.log(`✅ Generated ${savedPlans.length} meals for 7 days starting ${startDate.toISOString().split('T')[0]}`);
       res.json(savedPlans);
     } catch (error: any) {
       console.error("Error generating meal plan:", error);
