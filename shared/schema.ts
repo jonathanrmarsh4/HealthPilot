@@ -197,6 +197,7 @@ export const goals = pgTable("goals", {
   deadline: timestamp("deadline").notNull(),
   status: text("status").notNull().default("active"), // active, achieved, missed, abandoned
   notes: text("notes"),
+  createdByAI: integer("created_by_ai").notNull().default(0), // 1 if created by AI, 0 if manual
   createdAt: timestamp("created_at").notNull().defaultNow(),
   achievedAt: timestamp("achieved_at"),
 });

@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Target, Plus, Trash2, Calendar, Edit2, CheckCircle2, AlertCircle, Clock, Loader2 } from "lucide-react";
+import { Target, Plus, Trash2, Calendar, Edit2, CheckCircle2, AlertCircle, Clock, Loader2, MessageCircle, Sparkles } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -16,6 +16,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Link } from "wouter";
 
 const goalFormSchema = z.object({
   metricType: z.string().min(1, "Metric type is required"),
@@ -36,6 +37,7 @@ interface Goal {
   startValue: number | null;
   deadline: string;
   status: "active" | "completed" | "overdue";
+  createdByAI: number;
   createdAt: string;
 }
 
@@ -299,17 +301,24 @@ export default function Goals() {
         <div>
           <h1 className="text-4xl font-bold tracking-tight">Health Goals</h1>
           <p className="text-muted-foreground mt-2">
-            Set and track your health and fitness goals
+            Let AI help you set personalized health goals, or create them manually
           </p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={handleDialogClose}>
-          <DialogTrigger asChild>
-            <Button data-testid="button-create-goal">
-              <Plus className="mr-2 h-4 w-4" />
-              New Goal
+        <div className="flex gap-3 flex-wrap">
+          <Link href="/chat">
+            <Button className="bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600 no-default-hover-elevate" data-testid="button-chat-ai">
+              <Sparkles className="mr-2 h-4 w-4" />
+              Chat with AI
             </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
+          </Link>
+          <Dialog open={isDialogOpen} onOpenChange={handleDialogClose}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm" data-testid="button-create-goal">
+                <Plus className="mr-2 h-4 w-4" />
+                Manual Entry
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>{editingGoal ? "Edit Goal" : "Create New Goal"}</DialogTitle>
               <DialogDescription>
@@ -451,6 +460,7 @@ export default function Goals() {
             </Form>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-3">
@@ -516,7 +526,15 @@ export default function Goals() {
                       <div className="flex-1 space-y-3">
                         <div className="flex items-start justify-between gap-4 flex-wrap">
                           <div>
-                            <h3 className="text-lg font-semibold">{getMetricLabel(goal.metricType)}</h3>
+                            <div className="flex items-center gap-2 mb-1">
+                              <h3 className="text-lg font-semibold">{getMetricLabel(goal.metricType)}</h3>
+                              {goal.createdByAI === 1 && (
+                                <Badge className="bg-gradient-to-r from-purple-600 to-purple-500 text-white border-0" data-testid={`badge-ai-${goal.id}`}>
+                                  <Sparkles className="h-3 w-3 mr-1" />
+                                  AI
+                                </Badge>
+                              )}
+                            </div>
                             <p className="text-sm text-muted-foreground">
                               Target: {goal.targetValue} {getMetricUnit(goal.metricType)}
                               {goal.startValue !== null && ` (from ${goal.startValue} ${getMetricUnit(goal.metricType)})`}

@@ -1346,6 +1346,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               startValue,
               currentValue,
               deadline: goalData.deadline,
+              createdByAI: 1, // Mark as AI-created
             });
             
             goalSaved = true;
