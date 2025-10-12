@@ -1,4 +1,5 @@
 import { WeeklyMealCalendar } from "@/components/WeeklyMealCalendar";
+import { RecipeDetailModal } from "@/components/RecipeDetailModal";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Loader2 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -13,6 +14,7 @@ import { format, min, max, parseISO } from "date-fns";
 export default function MealPlans() {
   const { toast } = useToast();
   const [selectedMeal, setSelectedMeal] = useState<MealPlan | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
   
   const { data: meals, isLoading } = useQuery<MealPlan[]>({
     queryKey: ["/api/meal-plans"],
@@ -70,12 +72,12 @@ export default function MealPlans() {
           {generateMutation.isPending ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Generating 7 Days...
+              Generating Meal Plan...
             </>
           ) : (
             <>
               <Sparkles className="mr-2 h-4 w-4" />
-              Generate 7-Day Plan
+              Generate Meal Plan
             </>
           )}
         </Button>
@@ -94,22 +96,25 @@ export default function MealPlans() {
       ) : meals && meals.length > 0 ? (
         <WeeklyMealCalendar 
           meals={meals} 
-          onMealClick={setSelectedMeal}
+          onMealClick={(meal) => {
+            setSelectedMeal(meal);
+            setModalOpen(true);
+          }}
         />
       ) : (
         <Card>
           <CardContent className="p-12 text-center text-muted-foreground">
-            No meal plans available. Click "Generate 7-Day Plan" to create AI-powered weekly meal suggestions.
+            No meal plans available. Click "Generate Meal Plan" to create AI-powered meal suggestions.
           </CardContent>
         </Card>
       )}
 
-      {/* TODO: Add RecipeDetailModal component in task 6 */}
-      {selectedMeal && (
-        <div data-testid="recipe-modal-placeholder">
-          {/* RecipeDetailModal will be added in the next task */}
-        </div>
-      )}
+      {/* Recipe Detail Modal */}
+      <RecipeDetailModal 
+        meal={selectedMeal}
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+      />
     </div>
   );
 }

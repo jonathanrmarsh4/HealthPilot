@@ -251,29 +251,29 @@ export async function generateMealPlan(userProfile: {
 
 ${JSON.stringify(userProfile, null, 2)}${goalsSection}${chatContextSection}
 
-Generate a valid JSON array of 28 meals (7 days × 4 meals: breakfast, lunch, dinner, snack). Return ONLY the JSON array:
+Generate a valid JSON array of 16 meals (4 days × 4 meals: breakfast, lunch, dinner, snack). Return ONLY the JSON array:
 [
   {
     "dayNumber": 1,
     "mealType": "Breakfast",
     "name": "Meal name",
-    "description": "How this supports their goals",
+    "description": "How this supports goals",
     "calories": 500,
     "protein": 30,
     "carbs": 50,
     "fat": 15,
     "prepTime": 15,
     "servings": 1,
-    "recipe": "Simple cooking instructions",
+    "recipe": "Brief instructions",
     "tags": ["High Protein"]
   }
 ]
 
 Rules:
-- Keep ALL strings concise
-- dayNumber: 1-7 (7 full days)
+- Keep ALL strings SHORT
+- dayNumber: 1-4 (4 days only)
 - Return ONLY the JSON array
-- Vary meals across the week
+- Vary meals
 
 CRITICAL: Return ONLY a valid JSON array. No markdown, no explanations, just the array.`,
       },
