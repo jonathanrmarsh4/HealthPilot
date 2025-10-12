@@ -770,11 +770,14 @@ Listen for phrases like:
 - "My goal is to reduce X to Y"
 
 ### Goal Setting Process:
-1. **Confirm the Goal**: When user expresses a specific target, confirm details:
-   - "So you want to reach [target value] [metric]? That's a great goal!"
-   - Ask about timeline if not mentioned: "When would you like to achieve this by?"
 
-2. **When User Confirms**, save the goal using this format:
+**IMPORTANT**: If the user states BOTH a specific target AND a timeline (e.g., "I want to lose 5kg by end of year"), create the goal IMMEDIATELY - that statement IS their confirmation. Do not ask for additional confirmation.
+
+1. **If user provides BOTH target AND timeline**: Create goal immediately
+2. **If missing timeline**: Ask "When would you like to achieve this by?" then create goal when they respond
+3. **If missing target**: Ask "What's your target [metric]?" then create goal when they respond
+
+**When creating a goal**, use this format:
 
 <<<SAVE_GOAL>>>
 {
@@ -795,7 +798,8 @@ Listen for phrases like:
 - "sleep-hours" (for sleep hours)
 
 **Important Rules**:
-- Only output the goal JSON when user confirms/agrees
+- Output the goal JSON IMMEDIATELY when user provides both target AND timeline (e.g., "lose 5kg by end of year")
+- Only ask for confirmation if target OR timeline is missing
 - Deadline must be in YYYY-MM-DD format
 - Target value must be a number (no units in the value)
 - After saving, tell user: "I've added this goal to your Goals page! You can track your progress there."

@@ -1338,6 +1338,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
               console.log("⚠️ Could not fetch latest biomarker, using AI-provided or null values");
             }
             
+            // Convert deadline string to Date object
+            const deadline = typeof goalData.deadline === 'string' 
+              ? new Date(goalData.deadline) 
+              : goalData.deadline;
+            
+            // Auto-derive unit from metricType
+            const unit = getMetricUnit(goalData.metricType);
+            
             // Create the goal with auto-populated values
             await storage.createGoal({
               userId,
@@ -1345,7 +1353,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               targetValue: goalData.targetValue,
               startValue,
               currentValue,
-              deadline: goalData.deadline,
+              deadline,
+              unit,
               createdByAI: 1, // Mark as AI-created
             });
             
