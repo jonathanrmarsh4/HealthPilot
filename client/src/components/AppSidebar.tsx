@@ -10,6 +10,7 @@ import {
   Moon,
   Shield,
   User,
+  BarChart3,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import {
@@ -66,6 +67,11 @@ const menuItems = [
     title: "AI Insights",
     url: "/insights",
     icon: Sparkles,
+  },
+  {
+    title: "Data Insights",
+    url: "/data-insights",
+    icon: BarChart3,
   },
   {
     title: "Health Coach",
