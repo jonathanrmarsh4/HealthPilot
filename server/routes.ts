@@ -716,7 +716,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const allGoals = await storage.getGoals(userId);
       const activeGoals = allGoals.filter(goal => goal.status === 'active');
       
-      // Step 3: Generate 7 days of meals (28 total)
+      // Step 3: Generate 7 days of meals (28 total) - simplified format
       const mealPlans = await generateMealPlan({
         ...userProfile,
         chatContext,

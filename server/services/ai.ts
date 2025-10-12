@@ -243,7 +243,7 @@ export async function generateMealPlan(userProfile: {
 
   const message = await anthropic.messages.create({
     model: "claude-3-haiku-20240307",
-    max_tokens: 16000,
+    max_tokens: 4096, // Haiku's maximum limit
     messages: [
       {
         role: "user",
@@ -251,46 +251,31 @@ export async function generateMealPlan(userProfile: {
 
 ${JSON.stringify(userProfile, null, 2)}${goalsSection}${chatContextSection}
 
-Generate a JSON array of 28 meals (7 days × 4 meals per day: breakfast, lunch, dinner, snack) with this structure:
+Generate a valid JSON array of 28 meals (7 days × 4 meals: breakfast, lunch, dinner, snack). Return ONLY the JSON array:
 [
   {
-    "dayNumber": 1-7 (1=Day 1, 2=Day 2, etc.),
-    "mealType": "Breakfast" | "Lunch" | "Dinner" | "Snack",
+    "dayNumber": 1,
+    "mealType": "Breakfast",
     "name": "Meal name",
-    "description": "Brief description that EXPLICITLY mentions how this meal supports their active goals",
-    "calories": number,
-    "protein": number (grams),
-    "carbs": number (grams),
-    "fat": number (grams),
-    "prepTime": number (minutes),
-    "servings": number (default 1),
-    "ingredients": [
-      "Exact measurement + ingredient (e.g., '200g chicken breast, diced')",
-      "Exact measurement + ingredient (e.g., '1 cup quinoa, uncooked')",
-      "Exact measurement + ingredient (e.g., '2 tbsp olive oil')"
-    ],
-    "detailedRecipe": "PREPARATION:\n1. [Specific prep step with timing, e.g., 'Dice 200g chicken breast into 2cm cubes (2 mins)']\n2. [Next prep step]\n\nCOOKING:\n3. [Specific cooking step with temperature and timing, e.g., 'Heat 2 tbsp olive oil in pan over medium-high heat (350°F) for 1 minute']\n4. [Next cooking step with exact timing]\n5. [Continue with precise steps]\n\nFINISHING:\n6. [Final plating/serving instructions]",
-    "recipe": "Brief cooking summary (1-2 sentences)",
-    "tags": ["High Protein", "Heart Healthy", "Goal: Weight Loss", etc - include goal-specific tags]
+    "description": "How this supports their goals",
+    "calories": 500,
+    "protein": 30,
+    "carbs": 50,
+    "fat": 15,
+    "prepTime": 15,
+    "servings": 1,
+    "recipe": "Simple cooking instructions",
+    "tags": ["High Protein"]
   }
 ]
 
-CRITICAL REQUIREMENTS FOR detailedRecipe:
-- Use PREPARATION, COOKING, and FINISHING section headers
-- Number every single step sequentially (1, 2, 3, etc.)
-- Include EXACT timings for each step (e.g., "sauté for 5 minutes", "bake at 375°F for 25 minutes")
-- Specify temperatures where applicable (e.g., "medium-high heat (350°F)", "preheat oven to 400°F")
-- Break down complex actions into simple substeps
-- Make instructions foolproof - assume the user is a beginner cook
-- Include resting/cooling times where relevant
+Rules:
+- Keep ALL strings concise
+- dayNumber: 1-7 (7 full days)
+- Return ONLY the JSON array
+- Vary meals across the week
 
-ADDITIONAL INSTRUCTIONS:
-- Generate 28 total meals covering 7 full days
-- For each day, include: 1 Breakfast, 1 Lunch, 1 Dinner, 1 Snack
-- Vary the meals across the week to prevent repetition and boredom
-- List ingredients with EXACT measurements (use metric where possible: grams, ml, etc.)
-- If the user has active goals, ensure EVERY meal supports those targets with appropriate portions and macros
-- Make the plan practical for weekly meal prep and grocery shopping`,
+CRITICAL: Return ONLY a valid JSON array. No markdown, no explanations, just the array.`,
       },
     ],
   });
@@ -300,10 +285,16 @@ ADDITIONAL INSTRUCTIONS:
     try {
       const jsonMatch = content.text.match(/\[[\s\S]*\]/);
       if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]);
+        const parsed = JSON.parse(jsonMatch[0]);
+        console.log(`✅ Successfully parsed ${parsed.length} meals from AI response`);
+        return parsed;
+      } else {
+        console.error("No JSON array found in AI response");
+        console.error("AI response preview:", content.text.substring(0, 500));
       }
     } catch (e) {
       console.error("Failed to parse meal plan:", e);
+      console.error("Matched JSON preview:", content.text.substring(0, 1000));
     }
   }
 
