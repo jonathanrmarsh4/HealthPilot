@@ -605,9 +605,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const chatHistory = await storage.getChatMessages(userId);
       const chatContext = chatHistory.map(msg => `${msg.role}: ${msg.content}`).join('\n');
       
+      // Fetch active goals to incorporate into meal planning
+      const allGoals = await storage.getGoals(userId);
+      const activeGoals = allGoals.filter(goal => goal.status === 'active');
+      
       const mealPlans = await generateMealPlan({
         ...userProfile,
-        chatContext
+        chatContext,
+        activeGoals
       });
       
       const savedPlans = [];
@@ -646,9 +651,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const chatHistory = await storage.getChatMessages(userId);
       const chatContext = chatHistory.map(msg => `${msg.role}: ${msg.content}`).join('\n');
       
+      // Fetch active goals to incorporate into training planning
+      const allGoals = await storage.getGoals(userId);
+      const activeGoals = allGoals.filter(goal => goal.status === 'active');
+      
       const schedules = await generateTrainingSchedule({
         ...userProfile,
-        chatContext
+        chatContext,
+        activeGoals
       });
       
       const savedSchedules = [];
@@ -1060,11 +1070,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const chatHistory = await storage.getChatMessages(userId);
       const chatContext = chatHistory.slice(-10).map(msg => `${msg.role}: ${msg.content}`).join('\n');
       
+      // Fetch active goals to provide goal-driven insights
+      const allGoals = await storage.getGoals(userId);
+      const activeGoals = allGoals.filter(goal => goal.status === 'active');
+      
       const insights = await generateDailyInsights({
         biomarkers: biomarkers.slice(0, 50), // Last 50 biomarkers
         sleepSessions,
         chatContext,
-        timezone
+        timezone,
+        activeGoals
       });
       
       const savedInsights = [];
@@ -1168,6 +1183,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.updateOnboardingStep(userId, 'welcome');
         onboardingStep = 'welcome';
       }
+      
+      // Fetch active goals to provide goal-driven recommendations
+      const allGoals = await storage.getGoals(userId);
+      const activeGoals = allGoals.filter(goal => goal.status === 'active');
 
       const context = {
         recentBiomarkers,
@@ -1175,7 +1194,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         currentPage,
         userTimezone: user?.timezone || undefined,
         isOnboarding,
-        onboardingStep
+        onboardingStep,
+        activeGoals
       };
 
       const aiResponse = await chatWithHealthCoach(conversationHistory, context);

@@ -220,9 +220,14 @@ export async function generateMealPlan(userProfile: {
   healthGoals?: string[];
   recentBiomarkers?: any[];
   chatContext?: string;
+  activeGoals?: any[];
 }) {
   const chatContextSection = userProfile.chatContext 
     ? `\n\n## Conversation History with User:\n${userProfile.chatContext}\n\nUse insights from the conversation to personalize the meal plan based on the user's preferences, goals, and lifestyle discussed in the chat.`
+    : '';
+
+  const goalsSection = userProfile.activeGoals && userProfile.activeGoals.length > 0
+    ? `\n\n## ACTIVE HEALTH GOALS - CRITICAL FOR MEAL PLANNING:\n${JSON.stringify(userProfile.activeGoals, null, 2)}\n\n🎯 IMPORTANT: These are the user's specific, measurable goals. Your meal plan MUST actively support achieving these goals:\n- For weight goals: Calculate appropriate calorie targets and macronutrient ratios\n- For body fat goals: Focus on high protein, moderate carbs, healthy fats\n- For heart health goals: Emphasize heart-healthy foods (omega-3s, fiber, low sodium)\n- For blood sugar goals: Focus on low glycemic index foods, balanced meals\n- For cholesterol goals: Include foods that lower LDL (oats, nuts, fatty fish)\n\nFor each meal, explain in the description HOW it supports their specific goals (e.g., "High protein to support your weight loss goal of 70kg" or "Low GI carbs to help lower blood glucose to 90 mg/dL").`
     : '';
 
   const message = await anthropic.messages.create({
@@ -231,27 +236,27 @@ export async function generateMealPlan(userProfile: {
     messages: [
       {
         role: "user",
-        content: `You are a nutritionist AI. Create a personalized daily meal plan based on the following user profile:
+        content: `You are a nutritionist AI with a mission to help users achieve their health goals through personalized nutrition. Create a daily meal plan based on the following user profile:
 
-${JSON.stringify(userProfile, null, 2)}${chatContextSection}
+${JSON.stringify(userProfile, null, 2)}${goalsSection}${chatContextSection}
 
 Generate a JSON array of 4 meals (breakfast, lunch, dinner, snack) with this structure:
 [
   {
     "mealType": "Breakfast" | "Lunch" | "Dinner" | "Snack",
     "name": "Meal name",
-    "description": "Brief description",
+    "description": "Brief description that EXPLICITLY mentions how this meal supports their active goals",
     "calories": number,
     "protein": number (grams),
     "carbs": number (grams),
     "fat": number (grams),
     "prepTime": number (minutes),
     "recipe": "Detailed cooking instructions",
-    "tags": ["High Protein", "Heart Healthy", etc]
+    "tags": ["High Protein", "Heart Healthy", "Goal: Weight Loss", etc - include goal-specific tags]
   }
 ]
 
-Make sure the meals are balanced, nutritious, and aligned with the user's health goals and preferences shared in the conversation.`,
+CRITICAL: If the user has active goals, ensure the meal plan is specifically designed to help them reach those targets. Calculate appropriate portions and macros based on their goal values.`,
       },
     ],
   });
@@ -278,9 +283,14 @@ export async function generateTrainingSchedule(userProfile: {
   healthConstraints?: string[];
   recentBiomarkers?: any[];
   chatContext?: string;
+  activeGoals?: any[];
 }) {
   const chatContextSection = userProfile.chatContext 
     ? `\n\n## Conversation History with User:\n${userProfile.chatContext}\n\nUse insights from the conversation to personalize the training schedule based on the user's fitness goals, preferences, and any discussed limitations or interests.`
+    : '';
+
+  const goalsSection = userProfile.activeGoals && userProfile.activeGoals.length > 0
+    ? `\n\n## ACTIVE HEALTH GOALS - CRITICAL FOR TRAINING PLANNING:\n${JSON.stringify(userProfile.activeGoals, null, 2)}\n\n🎯 IMPORTANT: These are the user's specific, measurable goals. Your training plan MUST actively help achieve these goals:\n- For weight loss goals: Include cardio for calorie burn + strength training to preserve muscle\n- For body fat goals: High-intensity interval training (HIIT) combined with resistance training\n- For heart health goals: Focus on cardiovascular endurance and heart rate training zones\n- For step goals: Incorporate walking, hiking, or active recovery days\n- For sleep improvement: Avoid high-intensity late workouts, include stress-reducing activities\n\nFor each workout, explain HOW it contributes to their specific goals (e.g., "HIIT session burns 400+ calories supporting your 70kg weight goal" or "Zone 2 cardio improves heart health toward your resting HR goal of 60 bpm").`
     : '';
 
   const message = await anthropic.messages.create({
@@ -289,17 +299,18 @@ export async function generateTrainingSchedule(userProfile: {
     messages: [
       {
         role: "user",
-        content: `You are a fitness coach AI. Create a personalized weekly training schedule based on the following user profile:
+        content: `You are a fitness coach AI with a mission to help users achieve their health goals through personalized training. Create a weekly training schedule based on the following user profile:
 
-${JSON.stringify(userProfile, null, 2)}${chatContextSection}
+${JSON.stringify(userProfile, null, 2)}${goalsSection}${chatContextSection}
 
 Generate a JSON array of workouts for the week with this structure:
 [
   {
     "day": "Monday" | "Tuesday" | etc,
-    "workoutType": "Workout name",
+    "workoutType": "Workout name that relates to their goals",
     "duration": number (minutes),
     "intensity": "Low" | "Moderate" | "High",
+    "description": "Brief explanation of HOW this workout supports their active goals",
     "exercises": [
       {
         "name": "Exercise name",
@@ -311,7 +322,7 @@ Generate a JSON array of workouts for the week with this structure:
   }
 ]
 
-Make sure the schedule is safe, progressive, and aligned with the user's fitness level, health constraints, and goals discussed in the conversation.`,
+CRITICAL: If the user has active goals, design workouts specifically to help them reach those targets. Include intensity levels and durations that align with their goal progress.`,
       },
     ],
   });
@@ -516,6 +527,7 @@ export async function chatWithHealthCoach(
     userTimezone?: string;
     isOnboarding?: boolean;
     onboardingStep?: string | null;
+    activeGoals?: any[];
   }
 ) {
   let contextSection = "";
@@ -539,6 +551,18 @@ export async function chatWithHealthCoach(
       context.recentInsights.forEach(insight => {
         contextSection += `- ${insight.title}: ${insight.description}\n`;
       });
+    }
+    
+    if (context.activeGoals && context.activeGoals.length > 0) {
+      contextSection += `\n🎯 ACTIVE HEALTH GOALS:\n`;
+      context.activeGoals.forEach(goal => {
+        const progress = goal.startValue && goal.currentValue !== null && goal.startValue !== goal.targetValue
+          ? Math.round((Math.abs(goal.currentValue - goal.startValue) / Math.abs(goal.targetValue - goal.startValue)) * 100)
+          : 0;
+        const daysUntilDeadline = Math.ceil((new Date(goal.deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+        contextSection += `- ${goal.metricType}: Target ${goal.targetValue} ${goal.unit} (Current: ${goal.currentValue || 'not set'} ${goal.unit}, ${progress}% progress, ${daysUntilDeadline} days left)\n`;
+      });
+      contextSection += `\n**IMPORTANT**: When creating training or meal plans, ACTIVELY help the user achieve these goals. Suggest specific exercises, workouts, or nutrition strategies that directly support their targets. Proactively recommend plan adjustments if their current progress suggests changes are needed.\n`;
     }
     
     if (context.userTimezone) {
@@ -764,7 +788,23 @@ export async function generateDailyInsights(data: {
   recentActivity?: any;
   chatContext?: string;
   timezone?: string;
+  activeGoals?: any[];
 }) {
+  let goalsSection = "";
+  if (data.activeGoals && data.activeGoals.length > 0) {
+    goalsSection = `\n## 🎯 Active Health Goals:\n`;
+    data.activeGoals.forEach(goal => {
+      const progress = goal.startValue && goal.currentValue !== null && goal.startValue !== goal.targetValue
+        ? Math.round((Math.abs(goal.currentValue - goal.startValue) / Math.abs(goal.targetValue - goal.startValue)) * 100)
+        : 0;
+      const daysUntilDeadline = Math.ceil((new Date(goal.deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+      goalsSection += `- ${goal.metricType}: Target ${goal.targetValue} ${goal.unit} (Current: ${goal.currentValue || 'not set'} ${goal.unit}, ${progress}% progress, ${daysUntilDeadline} days left)\n`;
+      if (goal.notes) {
+        goalsSection += `  Note: ${goal.notes}\n`;
+      }
+    });
+  }
+
   const message = await retryWithBackoff(() => anthropic.messages.create({
     model: "claude-3-haiku-20240307",
     max_tokens: 4096,
@@ -775,15 +815,16 @@ export async function generateDailyInsights(data: {
 
 ## User's Health Data:
 ${JSON.stringify(data, null, 2)}
+${goalsSection}
 
 ## Your Task:
 Generate a JSON array of daily health insights with this structure:
 [
   {
-    "type": "daily_summary" | "pattern" | "correlation" | "trend" | "alert",
+    "type": "daily_summary" | "pattern" | "correlation" | "trend" | "alert" | "goal_progress",
     "title": "Short compelling title",
     "description": "Brief actionable insight (1-2 sentences)",
-    "category": "sleep" | "activity" | "nutrition" | "biomarkers" | "overall",
+    "category": "sleep" | "activity" | "nutrition" | "biomarkers" | "overall" | "goals",
     "priority": "high" | "medium" | "low",
     "insightData": {
       "metrics": ["metric names"],
@@ -801,6 +842,17 @@ Generate a JSON array of daily health insights with this structure:
 3. **Correlations**: Connections between metrics (e.g., "High protein days = better sleep")
 4. **Trends**: Week/month changes (e.g., "Resting HR down 5 bpm this month")
 5. **Alerts**: Concerning changes or values outside optimal ranges
+6. **Goal Progress**: Track progress toward active goals and provide specific next steps to achieve them
+
+## Goal-Driven Insights:
+${data.activeGoals && data.activeGoals.length > 0 ? `
+- PRIORITY: Create at least one "goal_progress" insight for active goals
+- Track whether current biomarker trends support goal achievement
+- Provide SPECIFIC actionable next steps (e.g., "Add 2 strength sessions this week to build muscle for your weight goal")
+- Alert if progress is too slow/fast relative to deadline
+- Suggest plan adjustments (training intensity, meal timing, etc.) to accelerate progress
+- Celebrate milestones and keep user motivated
+` : ''}
 
 ## Alternative Therapy Recommendations:
 When biomarkers or patterns indicate benefit, suggest alternative therapies as optional enhancements:
@@ -818,6 +870,7 @@ Only suggest these when they meaningfully support the user's health goals and ph
 - Use conversational, motivating language
 - Celebrate wins and improvements
 - Include alternative therapy suggestions when they align with biomarkers and goals
+- For goal insights, provide clear next steps to help user achieve their targets
 
 Generate 3-5 insights prioritized by importance. Focus on what matters most to the user's health today.`,
       },

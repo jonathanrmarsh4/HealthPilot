@@ -94,6 +94,7 @@ export const trainingSchedules = pgTable("training_schedules", {
   workoutType: text("workout_type").notNull(),
   duration: integer("duration").notNull(),
   intensity: text("intensity").notNull(),
+  description: text("description"), // How this workout supports user's active goals
   exercises: jsonb("exercises").notNull(),
   completed: integer("completed").notNull().default(0),
   completedAt: timestamp("completed_at"),
