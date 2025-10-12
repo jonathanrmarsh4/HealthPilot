@@ -20,6 +20,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 const goalFormSchema = z.object({
   metricType: z.string().min(1, "Metric type is required"),
   targetValue: z.coerce.number().gt(0, "Target value must be greater than 0"),
+  startValue: z.coerce.number().min(0, "Start value must be 0 or greater").optional(),
+  currentValue: z.coerce.number().min(0, "Current value must be 0 or greater").optional(),
   deadline: z.string().min(1, "Deadline is required"),
 });
 
@@ -62,6 +64,8 @@ export default function Goals() {
     defaultValues: {
       metricType: "",
       targetValue: 0,
+      startValue: undefined,
+      currentValue: undefined,
       deadline: "",
     },
   });
@@ -72,12 +76,16 @@ export default function Goals() {
       form.reset({
         metricType: editingGoal.metricType,
         targetValue: editingGoal.targetValue,
+        startValue: editingGoal.startValue ?? undefined,
+        currentValue: editingGoal.currentValue ?? undefined,
         deadline: format(new Date(editingGoal.deadline), "yyyy-MM-dd"),
       });
     } else {
       form.reset({
         metricType: "",
         targetValue: 0,
+        startValue: undefined,
+        currentValue: undefined,
         deadline: "",
       });
     }
@@ -88,6 +96,8 @@ export default function Goals() {
       const res = await apiRequest("POST", "/api/goals", {
         metricType: data.metricType,
         targetValue: data.targetValue,
+        startValue: data.startValue,
+        currentValue: data.currentValue,
         deadline: data.deadline,
       });
       return res.json();
@@ -116,6 +126,8 @@ export default function Goals() {
       const res = await apiRequest("PATCH", `/api/goals/${data.id}`, {
         metricType: data.metricType,
         targetValue: data.targetValue,
+        startValue: data.startValue,
+        currentValue: data.currentValue,
         deadline: data.deadline,
       });
       return res.json();
@@ -309,7 +321,49 @@ export default function Goals() {
                           step="0.1"
                           placeholder="Enter target value"
                           {...field}
-                          data-testid="input-target-value"
+                          data-testid="input-target"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="startValue"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Start Value (Optional)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          step="0.1"
+                          placeholder="Enter starting baseline"
+                          {...field}
+                          value={field.value ?? ""}
+                          data-testid="input-start"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="currentValue"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Current Value (Optional)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          step="0.1"
+                          placeholder="Enter current value"
+                          {...field}
+                          value={field.value ?? ""}
+                          data-testid="input-current"
                         />
                       </FormControl>
                       <FormMessage />

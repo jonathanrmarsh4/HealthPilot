@@ -801,11 +801,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Helper function to get unit from metric type
+  const getMetricUnit = (metricType: string): string => {
+    const metricUnits: Record<string, string> = {
+      "weight": "kg",
+      "body-fat": "%",
+      "heart-rate": "bpm",
+      "blood-pressure": "mmHg",
+      "blood-glucose": "mg/dL",
+      "cholesterol": "mg/dL",
+      "steps": "steps",
+      "sleep-hours": "hours",
+    };
+    return metricUnits[metricType] || "unit";
+  };
+
   // Goals API endpoints
   app.post("/api/goals", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
     try {
       const goalData = req.body;
+      
+      // Convert deadline string to Date object if present
+      if (goalData.deadline) {
+        goalData.deadline = new Date(goalData.deadline);
+      }
+      
+      // Auto-derive unit from metricType if not provided
+      if (!goalData.unit && goalData.metricType) {
+        goalData.unit = getMetricUnit(goalData.metricType);
+      }
+      
       const goal = await storage.createGoal({
         ...goalData,
         userId,
@@ -845,7 +871,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const userId = (req.user as any).claims.sub;
     const { id } = req.params;
     try {
-      const goal = await storage.updateGoal(id, userId, req.body);
+      const updateData = req.body;
+      
+      // Convert deadline string to Date object if present
+      if (updateData.deadline) {
+        updateData.deadline = new Date(updateData.deadline);
+      }
+      
+      // Auto-derive unit from metricType if not provided
+      if (!updateData.unit && updateData.metricType) {
+        updateData.unit = getMetricUnit(updateData.metricType);
+      }
+      
+      const goal = await storage.updateGoal(id, userId, updateData);
       if (!goal) {
         return res.status(404).json({ error: "Goal not found" });
       }
