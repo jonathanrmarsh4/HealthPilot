@@ -142,10 +142,21 @@ ${documentText}
 
 Extract EVERY biomarker value found in the document. Common biomarker types include:
 
+**PhenoAge Biomarkers (PRIORITY - Required for biological age calculation)**:
+- albumin (g/dL) - from Liver Function or CMP
+- creatinine (mg/dL) - from Kidney Function or CMP
+- blood-glucose (mg/dL) - from Diabetes panel or CMP
+- crp (mg/L) - from Inflammation markers
+- lymphocytes (% or absolute count - if absolute, calculate percentage from total WBC) - from CBC differential
+- mcv (fL) - Mean Cell Volume from CBC
+- rdw (%) - Red Cell Distribution Width from CBC
+- alp (U/L) - Alkaline Phosphatase from Liver Function or CMP
+- wbc (1000 cells/μL or K/μL) - White Blood Cell Count from CBC
+
 **Lipid Panel**: ldl-cholesterol, hdl-cholesterol, total-cholesterol, triglycerides, vldl-cholesterol
 **Liver Function**: alt, ast, alp, bilirubin, albumin, ggt
 **Kidney Function**: creatinine, bun, egfr, urea
-**Blood Counts**: rbc, wbc, hemoglobin, hematocrit, platelets, mcv, mch, mchc
+**Blood Counts**: rbc, wbc, hemoglobin, hematocrit, platelets, mcv, mch, mchc, rdw, lymphocytes, neutrophils, monocytes, eosinophils, basophils
 **Thyroid**: tsh, t3, t4, free-t3, free-t4
 **Diabetes**: hba1c, blood-glucose, fasting-glucose, insulin
 **Vitamins/Minerals**: vitamin-d, vitamin-b12, iron, ferritin, calcium, magnesium, folate
