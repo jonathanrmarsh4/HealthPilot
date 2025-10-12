@@ -241,17 +241,19 @@ export async function generateMealPlan(userProfile: {
     ? `\n\n## ACTIVE HEALTH GOALS - CRITICAL FOR MEAL PLANNING:\n${JSON.stringify(userProfile.activeGoals, null, 2)}\n\n🎯 IMPORTANT: These are the user's specific, measurable goals. Your meal plan MUST actively support achieving these goals:\n- For weight goals: Calculate appropriate calorie targets and macronutrient ratios\n- For body fat goals: Focus on high protein, moderate carbs, healthy fats\n- For heart health goals: Emphasize heart-healthy foods (omega-3s, fiber, low sodium)\n- For blood sugar goals: Focus on low glycemic index foods, balanced meals\n- For cholesterol goals: Include foods that lower LDL (oats, nuts, fatty fish)\n\nFor each meal, explain in the description HOW it supports their specific goals (e.g., "High protein to support your weight loss goal of 70kg" or "Low GI carbs to help lower blood glucose to 90 mg/dL").`
     : '';
 
-  const message = await anthropic.messages.create({
+  // Generate meals in batches to avoid token limit (4096 for Haiku)
+  // Batch 1: Days 1-2 (8 meals)
+  const batch1Message = await anthropic.messages.create({
     model: "claude-3-haiku-20240307",
-    max_tokens: 4096, // Haiku's maximum limit
+    max_tokens: 4096,
     messages: [
       {
         role: "user",
-        content: `You are a nutritionist AI. Create a detailed 4-day meal plan based on this profile:
+        content: `You are a nutritionist AI. Create detailed meals for DAYS 1-2 (8 meals total) based on this profile:
 
 ${JSON.stringify(userProfile, null, 2)}${goalsSection}${chatContextSection}
 
-Generate 16 meals (4 days × breakfast, lunch, dinner, snack). Return ONLY the JSON array:
+Generate 8 meals (days 1-2 × breakfast, lunch, dinner, snack). Return ONLY the JSON array:
 [
   {
     "dayNumber": 1,
@@ -264,16 +266,16 @@ Generate 16 meals (4 days × breakfast, lunch, dinner, snack). Return ONLY the J
     "fat": 15,
     "prepTime": 15,
     "servings": 1,
-    "ingredients": ["1 cup oats", "1 banana", "1 tbsp honey", "200ml almond milk"],
-    "detailedRecipe": "1. Heat almond milk in pot. 2. Add oats, simmer 5 mins. 3. Top with sliced banana and honey. 4. Serve warm.",
-    "tags": ["High Protein", "Quick"]
+    "ingredients": ["1 cup oats", "1 banana", "1 tbsp honey"],
+    "detailedRecipe": "1. Heat milk. 2. Add oats, simmer 5 min. 3. Top with banana.",
+    "tags": ["High Protein"]
   }
 ]
 
 Rules:
-- ingredients: Array of strings with measurements (e.g., "1 cup rice", "200g chicken")
-- detailedRecipe: Step-by-step numbered instructions (concise but clear)
-- dayNumber: 1-4
+- ingredients: Array of 3-6 key items with measurements
+- detailedRecipe: 3-5 numbered steps (concise)
+- dayNumber: 1-2 only
 - Return ONLY valid JSON array
 
 CRITICAL: Return ONLY the JSON array. No markdown, no explanations.`,
@@ -281,25 +283,85 @@ CRITICAL: Return ONLY the JSON array. No markdown, no explanations.`,
     ],
   });
 
-  const content = message.content[0];
-  if (content.type === "text") {
+  // Batch 2: Days 3-4 (8 meals)
+  const batch2Message = await anthropic.messages.create({
+    model: "claude-3-haiku-20240307",
+    max_tokens: 4096,
+    messages: [
+      {
+        role: "user",
+        content: `You are a nutritionist AI. Create detailed meals for DAYS 3-4 (8 meals total) based on this profile:
+
+${JSON.stringify(userProfile, null, 2)}${goalsSection}${chatContextSection}
+
+Generate 8 meals (days 3-4 × breakfast, lunch, dinner, snack). Return ONLY the JSON array:
+[
+  {
+    "dayNumber": 3,
+    "mealType": "Breakfast",
+    "name": "Meal name",
+    "description": "How this supports goals",
+    "calories": 500,
+    "protein": 30,
+    "carbs": 50,
+    "fat": 15,
+    "prepTime": 15,
+    "servings": 1,
+    "ingredients": ["200g yogurt", "50g granola", "1 apple"],
+    "detailedRecipe": "1. Layer yogurt in bowl. 2. Add granola. 3. Top with diced apple.",
+    "tags": ["Quick"]
+  }
+]
+
+Rules:
+- ingredients: Array of 3-6 key items with measurements
+- detailedRecipe: 3-5 numbered steps (concise)
+- dayNumber: 3-4 only
+- Return ONLY valid JSON array
+
+CRITICAL: Return ONLY the JSON array. No markdown, no explanations.`,
+      },
+    ],
+  });
+
+  // Parse batch 1
+  const batch1Content = batch1Message.content[0];
+  let batch1Meals: any[] = [];
+  if (batch1Content.type === "text") {
     try {
-      const jsonMatch = content.text.match(/\[[\s\S]*\]/);
+      const jsonMatch = batch1Content.text.match(/\[[\s\S]*\]/);
       if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
-        console.log(`✅ Successfully parsed ${parsed.length} meals from AI response`);
-        return parsed;
+        batch1Meals = JSON.parse(jsonMatch[0]);
+        console.log(`✅ Batch 1: Successfully parsed ${batch1Meals.length} meals`);
       } else {
-        console.error("No JSON array found in AI response");
-        console.error("AI response preview:", content.text.substring(0, 500));
+        console.error("Batch 1: No JSON array found");
       }
     } catch (e) {
-      console.error("Failed to parse meal plan:", e);
-      console.error("Matched JSON preview:", content.text.substring(0, 1000));
+      console.error("Batch 1: Failed to parse meal plan:", e);
     }
   }
 
-  return [];
+  // Parse batch 2
+  const batch2Content = batch2Message.content[0];
+  let batch2Meals: any[] = [];
+  if (batch2Content.type === "text") {
+    try {
+      const jsonMatch = batch2Content.text.match(/\[[\s\S]*\]/);
+      if (jsonMatch) {
+        batch2Meals = JSON.parse(jsonMatch[0]);
+        console.log(`✅ Batch 2: Successfully parsed ${batch2Meals.length} meals`);
+      } else {
+        console.error("Batch 2: No JSON array found");
+      }
+    } catch (e) {
+      console.error("Batch 2: Failed to parse meal plan:", e);
+    }
+  }
+
+  // Combine batches
+  const allMeals = [...batch1Meals, ...batch2Meals];
+  console.log(`✅ Total meals generated: ${allMeals.length}`);
+  return allMeals;
 }
 
 export async function generateTrainingSchedule(userProfile: {
