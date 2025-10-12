@@ -36,6 +36,7 @@ The application is a full-stack project utilizing React, TypeScript, Tailwind CS
   - **Workout Statistics:** Aggregates workout data by type (e.g., Cardio, Strength, Yoga) with total duration, calories burned, and workout counts.
   - **Workout-Biomarker Correlations:** Analyzes impact of exercise on sleep quality and resting heart rate, comparing workout days vs. non-workout days to measure improvements.
   - **AI-Powered Recovery Insights:** Claude AI analyzes training load, workout statistics, and biomarker correlations to generate personalized recovery recommendations. Features severity-based insights (excellent/good/caution/warning) with specific actionable recommendations. Defensive null handling ensures stable AI prompts even with empty datasets.
+- **PWA Configuration:** Progressive Web App support for iOS home screen installation with custom icon. Manifest.json located at client/public/ with app metadata (name: "Health Insights AI", short_name: "HealthPilot"). iOS-specific meta tags in index.html enable standalone app mode with custom icon matching the HealthPilot logo. Theme color set to purple (#9333ea) for brand consistency.
 
 **Feature Specifications:**
 - Health record upload and AI analysis with status tracking and retry functionality.
