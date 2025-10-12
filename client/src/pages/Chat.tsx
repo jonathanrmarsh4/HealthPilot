@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
+import { ToastAction } from "@/components/ui/toast";
+import { Link } from "wouter";
 import { Send, Trash2, Loader2 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import type { ChatMessage } from "@shared/schema";
@@ -42,6 +44,29 @@ export default function Chat() {
         toast({
           title: "Training Plan Added! 🎉",
           description: "Your personalized workout plan has been added to your Training page",
+        });
+      }
+      
+      // Show success notification if meal plan was saved
+      if (data.mealPlanSaved) {
+        queryClient.invalidateQueries({ queryKey: ["/api/meal-plans"] });
+        toast({
+          title: "Meal Plan Added! 🍽️",
+          description: "Your personalized meal plan has been added to your Meal Plans page",
+        });
+      }
+      
+      // Show success notification if goal was saved
+      if (data.goalSaved) {
+        queryClient.invalidateQueries({ queryKey: ["/api/goals"] });
+        toast({
+          title: "Goal Added! 🎯",
+          description: "Your health goal has been added to your Goals page.",
+          action: (
+            <ToastAction altText="View Goals" asChild>
+              <Link href="/goals">View Goals</Link>
+            </ToastAction>
+          ),
         });
       }
       // Don't reset cleared state - let new messages appear after the cleared timestamp

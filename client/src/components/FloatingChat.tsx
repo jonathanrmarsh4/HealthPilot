@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { ToastAction } from "@/components/ui/toast";
+import { Link } from "wouter";
 import { Send, X, MessageCircle, Loader2, Minimize2, Sparkles, Trash2, SkipForward, CheckCircle2 } from "lucide-react";
 import { useOnboarding } from "@/contexts/OnboardingContext";
 import type { ChatMessage } from "@shared/schema";
@@ -92,6 +94,20 @@ export function FloatingChat({ isOpen, onClose, currentPage }: FloatingChatProps
         toast({
           title: "Meal Plan Added! 🍽️",
           description: "Your personalized meal plan has been added to your Meal Plans page",
+        });
+      }
+      
+      // Show success notification if goal was saved
+      if (data.goalSaved) {
+        queryClient.invalidateQueries({ queryKey: ["/api/goals"] });
+        toast({
+          title: "Goal Added! 🎯",
+          description: "Your health goal has been added to your Goals page.",
+          action: (
+            <ToastAction altText="View Goals" asChild>
+              <Link href="/goals">View Goals</Link>
+            </ToastAction>
+          ),
         });
       }
       // Don't reset cleared state - let new messages appear after the cleared timestamp
