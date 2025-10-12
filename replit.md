@@ -49,9 +49,15 @@ The application is a full-stack project utilizing React, TypeScript, Tailwind CS
   - **Automatic Date Assignment:** Each meal assigned a specific scheduledDate from today/tomorrow forward for 4 days (16 meals total: breakfast, lunch, dinner, snack per day)
   - **Smart Cleanup Logic:** Automatically deletes past meals (scheduledDate < today) and enforces 4-day cap using deletePastMealPlans() and deleteFutureMealsBeyondDate()
   - **Weekly Calendar View:** Groups meals by date, sorts chronologically, displays "Today" indicator, responsive grid layout (4 cols desktop → 2 tablet → 1 mobile)
-  - **Recipe Detail Modal:** Mobile-first drawer component shows meal details (name, description, macros with icons, prep time, servings, tags, simple recipe instructions)
+  - **Detailed Recipe Modal:** Mobile-first drawer component shows:
+    - **Meal Photos:** High-quality food images fetched from Foodish API (free food image service)
+    - **Ingredients List:** Bulleted list with measurements (e.g., "1 cup oats", "200g chicken")
+    - **Step-by-Step Instructions:** Detailed recipe with numbered cooking steps
+    - **Macros & Info:** Calories, protein, carbs, fat, prep time, servings, dietary tags
+  - **Meal Card Photos:** Each meal card displays thumbnail photo with hover effects for visual appeal
+  - **Batch AI Generation:** Splits meal generation into 2 batches (Days 1-2, Days 3-4) to stay within Claude Haiku's 4096 token output limit, preventing JSON truncation errors
   - **Goal-Aligned Generation:** AI incorporates active health goals into meal planning with explicit descriptions of how each meal supports user's targets
-  - **Simplified Format:** Due to Claude Haiku 4096 token limit, meals use streamlined schema (basic recipe text instead of detailed ingredients array/step-by-step). Future enhancement: 7-day batch generation.
+  - **Schema Enhancement:** Added `imageUrl` (varchar), `ingredients` (text array), `detailedRecipe` (text) fields to meal_plans table
   - **Mobile-Optimized:** Fully responsive on iPad/iPhone with touch-friendly interactions
 - AI-powered alternative therapy recommendations (sauna, cold plunge, red light therapy, etc.) based on biomarker analysis.
 - Admin control panel for user and subscription management.
