@@ -801,6 +801,86 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Goals API endpoints
+  app.post("/api/goals", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    try {
+      const goalData = req.body;
+      const goal = await storage.createGoal({
+        ...goalData,
+        userId,
+      });
+      res.json(goal);
+    } catch (error: any) {
+      console.error("Error creating goal:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/goals", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    try {
+      const goals = await storage.getGoals(userId);
+      res.json(goals);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/goals/:id", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { id } = req.params;
+    try {
+      const goal = await storage.getGoal(id, userId);
+      if (!goal) {
+        return res.status(404).json({ error: "Goal not found" });
+      }
+      res.json(goal);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.patch("/api/goals/:id", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { id } = req.params;
+    try {
+      const goal = await storage.updateGoal(id, userId, req.body);
+      if (!goal) {
+        return res.status(404).json({ error: "Goal not found" });
+      }
+      res.json(goal);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.patch("/api/goals/:id/progress", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { id } = req.params;
+    const { currentValue } = req.body;
+    try {
+      const goal = await storage.updateGoalProgress(id, userId, currentValue);
+      if (!goal) {
+        return res.status(404).json({ error: "Goal not found" });
+      }
+      res.json(goal);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/goals/:id", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { id } = req.params;
+    try {
+      await storage.deleteGoal(id, userId);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.post("/api/recommendations/generate", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
 

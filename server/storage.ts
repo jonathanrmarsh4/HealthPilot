@@ -22,6 +22,8 @@ import {
   type InsertWorkoutSession,
   type ExerciseLog,
   type InsertExerciseLog,
+  type Goal,
+  type InsertGoal,
   users,
   healthRecords,
   biomarkers,
@@ -33,6 +35,7 @@ import {
   insights,
   workoutSessions,
   exerciseLogs,
+  goals,
 } from "@shared/schema";
 import { eq, desc, and, gte, lte, sql, or, like, count } from "drizzle-orm";
 
@@ -129,6 +132,13 @@ export interface IStorage {
     totalRecords: number;
     totalBiomarkers: number;
   }>;
+  
+  createGoal(goal: InsertGoal): Promise<Goal>;
+  getGoals(userId: string): Promise<Goal[]>;
+  getGoal(id: string, userId: string): Promise<Goal | undefined>;
+  updateGoal(id: string, userId: string, data: Partial<Goal>): Promise<Goal | undefined>;
+  updateGoalProgress(goalId: string, userId: string, currentValue: number): Promise<Goal | undefined>;
+  deleteGoal(id: string, userId: string): Promise<void>;
 }
 
 export class DbStorage implements IStorage {
@@ -939,6 +949,63 @@ export class DbStorage implements IStorage {
         improvement: hrImprovement
       }
     };
+  }
+
+  async createGoal(goal: InsertGoal): Promise<Goal> {
+    const result = await db.insert(goals).values(goal).returning();
+    return result[0];
+  }
+
+  async getGoals(userId: string): Promise<Goal[]> {
+    return await db
+      .select()
+      .from(goals)
+      .where(eq(goals.userId, userId))
+      .orderBy(desc(goals.createdAt));
+  }
+
+  async getGoal(id: string, userId: string): Promise<Goal | undefined> {
+    const result = await db
+      .select()
+      .from(goals)
+      .where(and(eq(goals.id, id), eq(goals.userId, userId)));
+    return result[0];
+  }
+
+  async updateGoal(id: string, userId: string, data: Partial<Goal>): Promise<Goal | undefined> {
+    const result = await db
+      .update(goals)
+      .set(data)
+      .where(and(eq(goals.id, id), eq(goals.userId, userId)))
+      .returning();
+    return result[0];
+  }
+
+  async updateGoalProgress(goalId: string, userId: string, currentValue: number): Promise<Goal | undefined> {
+    const goal = await this.getGoal(goalId, userId);
+    if (!goal) return undefined;
+
+    const updateData: Partial<Goal> = {
+      currentValue,
+    };
+
+    // Check if goal is achieved
+    const isAchieved = currentValue >= goal.targetValue;
+    if (isAchieved && goal.status !== 'achieved') {
+      updateData.status = 'achieved';
+      updateData.achievedAt = new Date();
+    }
+
+    const result = await db
+      .update(goals)
+      .set(updateData)
+      .where(and(eq(goals.id, goalId), eq(goals.userId, userId)))
+      .returning();
+    return result[0];
+  }
+
+  async deleteGoal(id: string, userId: string): Promise<void> {
+    await db.delete(goals).where(and(eq(goals.id, id), eq(goals.userId, userId)));
   }
 
   private getWeekKey(date: Date): string {

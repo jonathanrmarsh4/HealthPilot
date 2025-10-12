@@ -185,6 +185,21 @@ export const insights = pgTable("insights", {
   relevantDate: timestamp("relevant_date").notNull().defaultNow(), // date this insight is relevant to
 });
 
+export const goals = pgTable("goals", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  metricType: text("metric_type").notNull(), // weight, body_fat, resting_hr, sleep_score, etc.
+  targetValue: real("target_value").notNull(),
+  currentValue: real("current_value"),
+  startValue: real("start_value"), // baseline when goal was created
+  unit: text("unit").notNull(), // kg, %, bpm, etc.
+  deadline: timestamp("deadline").notNull(),
+  status: text("status").notNull().default("active"), // active, achieved, missed, abandoned
+  notes: text("notes"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  achievedAt: timestamp("achieved_at"),
+});
+
 export const insertHealthRecordSchema = createInsertSchema(healthRecords).omit({
   id: true,
   uploadedAt: true,
@@ -235,6 +250,12 @@ export const insertExerciseLogSchema = createInsertSchema(exerciseLogs).omit({
   createdAt: true,
 });
 
+export const insertGoalSchema = createInsertSchema(goals).omit({
+  id: true,
+  createdAt: true,
+  achievedAt: true,
+});
+
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
 
@@ -267,3 +288,6 @@ export type WorkoutSession = typeof workoutSessions.$inferSelect;
 
 export type InsertExerciseLog = z.infer<typeof insertExerciseLogSchema>;
 export type ExerciseLog = typeof exerciseLogs.$inferSelect;
+
+export type InsertGoal = z.infer<typeof insertGoalSchema>;
+export type Goal = typeof goals.$inferSelect;
