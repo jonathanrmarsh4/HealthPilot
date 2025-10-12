@@ -7,6 +7,10 @@ import { TrendLineWidget } from "@/components/TrendLineWidget";
 import { AIInsightsWidget } from "@/components/AIInsightsWidget";
 import { NextWorkoutWidget } from "@/components/NextWorkoutWidget";
 import { TodaysMealsWidget } from "@/components/TodaysMealsWidget";
+import { HealthScoreWidget } from "@/components/HealthScoreWidget";
+import { SleepScoreDonutWidget } from "@/components/SleepScoreDonutWidget";
+import { GoalsSummaryWidget } from "@/components/GoalsSummaryWidget";
+import { DataInsightsWidget } from "@/components/DataInsightsWidget";
 import { Heart, Activity, Scale, Droplet, TrendingUp, Zap, Apple, AlertCircle, Dumbbell, Settings2, Eye, EyeOff, ChevronUp, ChevronDown } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -558,6 +562,10 @@ export default function Dashboard() {
     }
   };
 
+  // Filter out priority widgets from optional widgets
+  const PRIORITY_WIDGETS = ['health-score', 'sleep-score', 'goals-summary', 'ai-insights', 'data-insights'];
+  const optionalWidgets = allWidgets.filter(w => !PRIORITY_WIDGETS.includes(w));
+
   return (
     <div className="space-y-8">
       <div className="flex items-start justify-between gap-4">
@@ -572,14 +580,14 @@ export default function Dashboard() {
           <SheetTrigger asChild>
             <Button variant="outline" size="default" data-testid="button-manage-dashboard">
               <Settings2 className="h-4 w-4 mr-2" />
-              Manage Dashboard
+              Manage Widgets
             </Button>
           </SheetTrigger>
           <SheetContent className="w-[400px] sm:w-[540px]">
             <SheetHeader>
-              <SheetTitle>Manage Dashboard</SheetTitle>
+              <SheetTitle>Manage Dashboard Widgets</SheetTitle>
               <SheetDescription>
-                Show or hide dashboard widgets and charts
+                Show or hide optional widgets. Priority widgets are always visible.
               </SheetDescription>
             </SheetHeader>
             
@@ -606,7 +614,7 @@ export default function Dashboard() {
               </div>
 
               <div className="space-y-2 overflow-y-auto flex-1 pr-2">
-                {allWidgets
+                {optionalWidgets
                   .sort((a, b) => {
                     const aVisible = isVisible(a);
                     const bVisible = isVisible(b);
@@ -616,9 +624,9 @@ export default function Dashboard() {
                   .map((widget, index, sortedArray) => {
                   const config = allWidgetConfigs[widget];
                   const visible = isVisible(widget);
-                  const originalIndex = allWidgets.indexOf(widget);
+                  const originalIndex = optionalWidgets.indexOf(widget);
                   const isFirst = originalIndex === 0;
-                  const isLast = originalIndex === allWidgets.length - 1;
+                  const isLast = originalIndex === optionalWidgets.length - 1;
                   
                   return (
                     <div
@@ -675,11 +683,36 @@ export default function Dashboard() {
         </Sheet>
       </div>
 
-      {allWidgets.filter(w => w === 'quick-stats' || w === 'health-metrics').map(widget => renderWidget(widget))}
-      
-      <div className="grid gap-6 lg:grid-cols-3">
-        {allWidgets.filter(w => w !== 'quick-stats' && w !== 'health-metrics').map(widget => renderWidget(widget))}
+      {/* Priority Section - Always Visible */}
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-xl font-semibold mb-4">Health Overview</h2>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <HealthScoreWidget />
+            <SleepScoreDonutWidget />
+            <GoalsSummaryWidget />
+          </div>
+        </div>
+
+        <div className="grid gap-6 md:grid-cols-2">
+          <AIInsightsWidget />
+          <DataInsightsWidget />
+        </div>
       </div>
+
+      {/* Optional Section - Toggleable */}
+      {optionalWidgets.some(w => isVisible(w)) && (
+        <div className="space-y-6 pt-4 border-t">
+          <h2 className="text-xl font-semibold">Additional Metrics</h2>
+          <div className="space-y-6">
+            {optionalWidgets.filter(w => w === 'quick-stats' || w === 'health-metrics').map(widget => renderWidget(widget))}
+            
+            <div className="grid gap-6 lg:grid-cols-2">
+              {optionalWidgets.filter(w => w !== 'quick-stats' && w !== 'health-metrics').map(widget => renderWidget(widget))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

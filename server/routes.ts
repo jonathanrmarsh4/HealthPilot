@@ -1479,6 +1479,202 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Health Score endpoint
+  app.get("/api/dashboard/health-score", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+
+    try {
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - 7); // Last 7 days
+
+      // Get sleep data (30% of score)
+      const sleepSessions = await storage.getSleepSessions(userId, startDate, endDate);
+      const avgSleepScore = sleepSessions.length > 0
+        ? sleepSessions.reduce((sum, s) => sum + (s.sleepScore || 0), 0) / sleepSessions.length
+        : 0;
+      const sleepComponent = (avgSleepScore / 100) * 30;
+
+      // Get activity data (25% of score)
+      const biomarkers = await storage.getBiomarkers(userId);
+      const recentSteps = biomarkers
+        .filter(b => b.type === 'steps' && new Date(b.recordedAt) >= startDate)
+        .map(b => b.value);
+      const avgSteps = recentSteps.length > 0
+        ? recentSteps.reduce((sum, val) => sum + val, 0) / recentSteps.length
+        : 0;
+      
+      const workouts = await storage.getWorkoutSessions(userId, startDate, endDate);
+      const workoutDays = new Set(workouts.map(w => w.startTime.toISOString().split('T')[0])).size;
+      
+      // Activity score: 10k steps = 50%, 5+ workout days = 50%
+      const stepsScore = Math.min((avgSteps / 10000) * 50, 50);
+      const workoutScore = Math.min((workoutDays / 5) * 50, 50);
+      const activityComponent = ((stepsScore + workoutScore) / 100) * 25;
+
+      // Get biomarker health (45% of score)
+      const latestByType: Record<string, any> = {};
+      biomarkers.forEach(b => {
+        if (!latestByType[b.type] || new Date(b.recordedAt) > new Date(latestByType[b.type].recordedAt)) {
+          latestByType[b.type] = b;
+        }
+      });
+
+      let biomarkerScore = 0;
+      let biomarkerCount = 0;
+
+      // Heart rate: 60-100 bpm is optimal
+      const hr = latestByType['heart-rate'];
+      if (hr) {
+        if (hr.value >= 60 && hr.value <= 80) biomarkerScore += 100;
+        else if (hr.value > 80 && hr.value <= 100) biomarkerScore += 70;
+        else biomarkerScore += 40;
+        biomarkerCount++;
+      }
+
+      // Blood glucose: <100 mg/dL is optimal
+      const glucose = latestByType['blood-glucose'];
+      if (glucose) {
+        if (glucose.value < 100) biomarkerScore += 100;
+        else if (glucose.value < 126) biomarkerScore += 70;
+        else biomarkerScore += 40;
+        biomarkerCount++;
+      }
+
+      // Weight trend: stable or improving
+      const weight = latestByType['weight'];
+      if (weight) {
+        const oldWeights = biomarkers
+          .filter(b => b.type === 'weight' && new Date(b.recordedAt) < new Date(weight.recordedAt))
+          .sort((a, b) => new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime())
+          .slice(0, 5);
+        
+        if (oldWeights.length > 0) {
+          const avgOldWeight = oldWeights.reduce((sum, w) => sum + w.value, 0) / oldWeights.length;
+          const change = Math.abs(weight.value - avgOldWeight);
+          if (change < 2) biomarkerScore += 100; // Stable
+          else if (change < 5) biomarkerScore += 80;
+          else biomarkerScore += 60;
+          biomarkerCount++;
+        }
+      }
+
+      const biomarkerComponent = biomarkerCount > 0
+        ? ((biomarkerScore / biomarkerCount) / 100) * 45
+        : 0;
+
+      // Calculate final score - ensure we don't return NaN
+      const totalScore = Math.round(sleepComponent + activityComponent + biomarkerComponent) || 0;
+      
+      // Determine quality label
+      let quality = 'Poor';
+      if (totalScore >= 80) quality = 'Excellent';
+      else if (totalScore >= 60) quality = 'Good';
+      else if (totalScore >= 40) quality = 'Fair';
+
+      res.json({
+        score: totalScore,
+        quality,
+        components: {
+          sleep: Math.round(sleepComponent),
+          activity: Math.round(activityComponent),
+          biomarkers: Math.round(biomarkerComponent),
+        },
+        details: {
+          avgSleepScore: Math.round(avgSleepScore),
+          avgDailySteps: Math.round(avgSteps),
+          workoutDays,
+          biomarkerCount,
+        }
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Data Insights endpoint
+  app.get("/api/dashboard/data-insights", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+
+    try {
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - 30); // Last 30 days
+
+      const biomarkers = await storage.getBiomarkers(userId);
+      const correlations = await storage.getWorkoutBiomarkerCorrelations(userId, startDate, endDate);
+      
+      const insights = [];
+
+      // Analyze biomarker trends
+      const analyzeMetric = (type: string, label: string, lowerIsBetter: boolean = false) => {
+        const metricData = biomarkers
+          .filter(b => b.type === type && new Date(b.recordedAt) >= startDate)
+          .sort((a, b) => new Date(a.recordedAt).getTime() - new Date(b.recordedAt).getTime());
+        
+        if (metricData.length >= 3) {
+          const recent = metricData.slice(-3).reduce((sum, b) => sum + b.value, 0) / 3;
+          const older = metricData.slice(0, 3).reduce((sum, b) => sum + b.value, 0) / 3;
+          const change = older !== 0 ? ((recent - older) / older) * 100 : 0;
+          
+          if (Math.abs(change) > 5) {
+            const improving = lowerIsBetter ? change < 0 : change > 0;
+            insights.push({
+              type: improving ? 'positive' : 'negative',
+              title: `${label} ${improving ? 'Improving' : 'Declining'}`,
+              description: `${Math.abs(change).toFixed(1)}% ${change > 0 ? 'increase' : 'decrease'} over the last 30 days`,
+              metric: type,
+            });
+          }
+        }
+      };
+
+      analyzeMetric('heart-rate', 'Resting Heart Rate', true);
+      analyzeMetric('blood-glucose', 'Blood Glucose', true);
+      analyzeMetric('weight', 'Weight');
+      analyzeMetric('steps', 'Daily Steps');
+
+      // Add workout-biomarker correlations
+      if (correlations.sleepQuality.improvement !== 0) {
+        insights.push({
+          type: correlations.sleepQuality.improvement > 0 ? 'positive' : 'neutral',
+          title: 'Exercise & Sleep Quality',
+          description: `Exercise ${correlations.sleepQuality.improvement > 0 ? 'improves' : 'impacts'} sleep quality by ${Math.abs(correlations.sleepQuality.improvement)} points`,
+          metric: 'sleep-workout-correlation',
+        });
+      }
+
+      if (correlations.restingHR.improvement !== 0) {
+        insights.push({
+          type: correlations.restingHR.improvement > 0 ? 'positive' : 'neutral',
+          title: 'Exercise & Heart Rate',
+          description: `Workout days show ${Math.abs(correlations.restingHR.improvement)} bpm ${correlations.restingHR.improvement > 0 ? 'improvement' : 'difference'} in resting heart rate`,
+          metric: 'hr-workout-correlation',
+        });
+      }
+
+      // 7-day activity summary
+      const last7Days = new Date();
+      last7Days.setDate(last7Days.getDate() - 7);
+      const workouts = await storage.getWorkoutSessions(userId, last7Days, endDate);
+      const totalWorkouts = workouts.length;
+      const totalDuration = workouts.reduce((sum, w) => sum + (w.duration || 0), 0);
+      
+      if (totalWorkouts > 0) {
+        insights.push({
+          type: 'info',
+          title: '7-Day Activity Summary',
+          description: `${totalWorkouts} workout${totalWorkouts > 1 ? 's' : ''} completed, ${Math.round(totalDuration / 60)} hours total training time`,
+          metric: 'activity-summary',
+        });
+      }
+
+      res.json({ insights });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.get("/api/user/settings", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
 
