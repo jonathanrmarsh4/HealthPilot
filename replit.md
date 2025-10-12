@@ -25,6 +25,11 @@ The application is a full-stack project utilizing React, TypeScript, Tailwind CS
 **Technical Implementations:**
 - **AI Intelligence Layer:** Provides daily personalized insights, context-aware chat, enhanced multi-metric recommendations, and alternative therapy suggestions.
   - **Weight Assessment Safeguards:** AI will NOT suggest weight loss based solely on raw weight numbers. It requires body fat percentage data (>25% men, >32% women), clear health markers (elevated glucose/cholesterol/BP), or explicit user request before making weight-related recommendations. Respects that athletic/fit individuals often have "high" weight due to muscle mass.
+  - **Goal-Driven AI Assistance:** AI actively helps users achieve their health goals by integrating active goals into all AI-powered features:
+    - **Training Plans:** AI creates goal-aligned workouts with specific exercises that support target achievement. Each training schedule includes a description explaining how it supports user goals.
+    - **Meal Plans:** AI generates nutrition plans designed to help reach specific targets (weight loss, muscle gain, etc.) based on active goals.
+    - **AI Chat:** Proactively suggests plan adjustments and provides goal-specific recommendations when progress indicates changes are needed.
+    - **Daily Insights:** Generates goal progress tracking insights with actionable next steps. Includes "goal_progress" insight type that monitors trends and provides specific actions to accelerate progress.
 - **Biomarker Tracking:** Displays multiple data points over time, shows reference range status, and supports localization for imperial/metric units. Supports body fat percentage tracking.
 - **Authentication:** Production-ready security implementation using Replit Auth (OpenID Connect) with custom domain support and role-based access control.
 - **Security Protections:** Includes IDOR protection, privilege escalation prevention, data isolation, webhook authentication, and Zod schema validation.
