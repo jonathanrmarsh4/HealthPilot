@@ -596,6 +596,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/biomarkers/latest/:type", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+
+    try {
+      const { type } = req.params;
+      const latestBiomarker = await storage.getLatestBiomarkerByType(userId, type);
+      
+      if (!latestBiomarker) {
+        return res.status(404).json({ error: "No biomarker found for this type" });
+      }
+      
+      res.json(latestBiomarker);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.post("/api/meal-plans/generate", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
 

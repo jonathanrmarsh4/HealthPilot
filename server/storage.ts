@@ -65,6 +65,7 @@ export interface IStorage {
   upsertBiomarker(biomarker: InsertBiomarker): Promise<Biomarker>;
   getBiomarkers(userId: string, type?: string): Promise<Biomarker[]>;
   getBiomarkersByTimeRange(userId: string, type: string, startDate: Date, endDate: Date): Promise<Biomarker[]>;
+  getLatestBiomarkerByType(userId: string, type: string): Promise<Biomarker | undefined>;
   
   createMealPlan(mealPlan: InsertMealPlan): Promise<MealPlan>;
   getMealPlans(userId: string): Promise<MealPlan[]>;
@@ -411,6 +412,17 @@ export class DbStorage implements IStorage {
     return result.filter(
       b => b.recordedAt >= startDate && b.recordedAt <= endDate
     );
+  }
+
+  async getLatestBiomarkerByType(userId: string, type: string): Promise<Biomarker | undefined> {
+    const result = await db
+      .select()
+      .from(biomarkers)
+      .where(and(eq(biomarkers.userId, userId), eq(biomarkers.type, type)))
+      .orderBy(desc(biomarkers.recordedAt))
+      .limit(1);
+    
+    return result[0];
   }
 
   async createMealPlan(mealPlan: InsertMealPlan): Promise<MealPlan> {
