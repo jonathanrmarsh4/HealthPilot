@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Activity, Heart, Moon, TrendingUp } from "lucide-react";
+import { useEffect, useState } from "react";
 
 interface HealthScoreData {
   score: number;
@@ -24,6 +25,25 @@ export function HealthScoreWidget() {
   const { data: healthScore, isLoading } = useQuery<HealthScoreData>({
     queryKey: ["/api/dashboard/health-score"],
   });
+  
+  const [animatedWidths, setAnimatedWidths] = useState<number[]>([0, 0, 0]);
+
+  // Trigger animations when data loads
+  useEffect(() => {
+    if (healthScore) {
+      // Small delay to ensure DOM is ready
+      setTimeout(() => {
+        const sleep = (healthScore.components.sleep / 30) * 100;
+        const activity = (healthScore.components.activity / 25) * 100;
+        const vitals = (healthScore.components.biomarkers / 45) * 100;
+        setAnimatedWidths([
+          Math.max(sleep, sleep === 0 ? 10 : 0),
+          Math.max(activity, activity === 0 ? 10 : 0),
+          Math.max(vitals, vitals === 0 ? 10 : 0)
+        ]);
+      }, 50);
+    }
+  }, [healthScore]);
 
   if (isLoading) {
     return (
@@ -77,6 +97,33 @@ export function HealthScoreWidget() {
     }
   };
 
+  const componentData = [
+    {
+      label: 'Sleep Quality',
+      value: healthScore.components.sleep,
+      max: 30,
+      icon: Moon,
+      color: 'bg-blue-500',
+      textColor: 'text-blue-600 dark:text-blue-400'
+    },
+    {
+      label: 'Activity Level',
+      value: healthScore.components.activity,
+      max: 25,
+      icon: Activity,
+      color: 'bg-green-500',
+      textColor: 'text-green-600 dark:text-green-400'
+    },
+    {
+      label: 'Vital Signs',
+      value: healthScore.components.biomarkers,
+      max: 45,
+      icon: Heart,
+      color: 'bg-purple-500',
+      textColor: 'text-purple-600 dark:text-purple-400'
+    }
+  ];
+
   return (
     <Card data-testid="card-health-score">
       <CardHeader>
@@ -87,7 +134,7 @@ export function HealthScoreWidget() {
           </Badge>
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-6">
         <div className="flex items-center justify-center">
           <div className="relative">
             <div className={`w-32 h-32 rounded-full ${getScoreColor(healthScore.quality)} flex items-center justify-center`}>
@@ -99,25 +146,39 @@ export function HealthScoreWidget() {
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-3 pt-2">
-          <div className="flex flex-col items-center gap-1 p-2 rounded-md bg-muted/50">
-            <Moon className="h-4 w-4 text-muted-foreground" />
-            <div className="text-xs text-muted-foreground">Sleep</div>
-            <div className="text-sm font-semibold" data-testid="text-sleep-component">{healthScore.components.sleep}</div>
-          </div>
-          <div className="flex flex-col items-center gap-1 p-2 rounded-md bg-muted/50">
-            <Activity className="h-4 w-4 text-muted-foreground" />
-            <div className="text-xs text-muted-foreground">Activity</div>
-            <div className="text-sm font-semibold" data-testid="text-activity-component">{healthScore.components.activity}</div>
-          </div>
-          <div className="flex flex-col items-center gap-1 p-2 rounded-md bg-muted/50">
-            <Heart className="h-4 w-4 text-muted-foreground" />
-            <div className="text-xs text-muted-foreground">Vitals</div>
-            <div className="text-sm font-semibold" data-testid="text-biomarkers-component">{healthScore.components.biomarkers}</div>
-          </div>
+        <div className="space-y-4">
+          {componentData.map((component, index) => {
+            const percentage = (component.value / component.max) * 100;
+            const Icon = component.icon;
+            const isZero = percentage === 0;
+            
+            return (
+              <div key={component.label} className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-2">
+                    <Icon className={`h-4 w-4 ${component.textColor}`} />
+                    <span className="font-medium">{component.label}</span>
+                  </div>
+                  <span className={`font-semibold ${component.textColor}`} data-testid={`text-${component.label.toLowerCase().replace(' ', '-')}-value`}>
+                    {component.value}/{component.max}
+                  </span>
+                </div>
+                <div className="relative h-2 bg-muted rounded-full overflow-hidden">
+                  <div
+                    className={`h-full ${component.color} rounded-full transition-all duration-1000 ease-out ${isZero ? 'opacity-20' : 'opacity-100'}`}
+                    style={{
+                      width: `${animatedWidths[index]}%`,
+                      transitionDelay: `${index * 150}ms`
+                    }}
+                    data-testid={`bar-${component.label.toLowerCase().replace(' ', '-')}`}
+                  />
+                </div>
+              </div>
+            );
+          })}
         </div>
 
-        <div className="flex items-center gap-2 text-xs text-muted-foreground pt-2">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground pt-2 border-t">
           <TrendingUp className="h-3 w-3" />
           <span>
             Based on {healthScore.details.workoutDays} workout days, {healthScore.details.avgDailySteps.toLocaleString()} avg steps

@@ -1,14 +1,14 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Sparkles, TrendingUp, Activity, Brain, AlertTriangle, X, RefreshCw } from "lucide-react";
+import { Sparkles, TrendingUp, Activity, Brain, AlertTriangle, X, RefreshCw, Target } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 
-type InsightType = "daily_summary" | "pattern" | "correlation" | "trend" | "alert";
-type InsightCategory = "sleep" | "activity" | "nutrition" | "biomarkers" | "overall";
+type InsightType = "daily_summary" | "pattern" | "correlation" | "trend" | "alert" | "goal_progress";
+type InsightCategory = "sleep" | "activity" | "nutrition" | "biomarkers" | "overall" | "goals";
 type InsightPriority = "high" | "medium" | "low";
 
 interface Insight {
@@ -36,6 +36,7 @@ const insightIcons = {
   correlation: TrendingUp,
   trend: TrendingUp,
   alert: AlertTriangle,
+  goal_progress: Target,
 };
 
 const priorityColors = {
@@ -50,6 +51,7 @@ const categoryColors = {
   nutrition: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
   biomarkers: "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300",
   overall: "bg-chart-4 text-white",
+  goals: "bg-pink-100 text-pink-700 dark:bg-pink-900 dark:text-pink-300",
 };
 
 export function AIInsightsWidget() {
