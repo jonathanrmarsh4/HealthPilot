@@ -70,6 +70,40 @@ export default function Goals() {
     },
   });
 
+  // Watch for metric type changes to auto-populate values
+  const selectedMetricType = form.watch("metricType");
+  
+  useEffect(() => {
+    // Only auto-populate when creating a new goal (not editing)
+    if (!editingGoal && selectedMetricType) {
+      // Fetch latest biomarker value for this metric type
+      fetch(`/api/biomarkers/latest/${selectedMetricType}`)
+        .then(res => {
+          if (!res.ok) {
+            // No biomarker data available, clear fields for manual entry
+            form.setValue("startValue", undefined);
+            form.setValue("currentValue", undefined);
+            return null;
+          }
+          return res.json();
+        })
+        .then(data => {
+          if (data?.value !== undefined) {
+            // Auto-populate both start and current values with latest biomarker
+            form.setValue("startValue", data.value);
+            form.setValue("currentValue", data.value);
+          } else if (data === null) {
+            // Already cleared above, no action needed
+          }
+        })
+        .catch(() => {
+          // Handle errors - clear fields for manual entry
+          form.setValue("startValue", undefined);
+          form.setValue("currentValue", undefined);
+        });
+    }
+  }, [selectedMetricType, editingGoal, form]);
+
   // Reset form when editing goal changes
   useEffect(() => {
     if (editingGoal) {
