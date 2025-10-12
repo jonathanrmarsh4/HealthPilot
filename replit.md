@@ -63,4 +63,7 @@ The application is a full-stack project utilizing React, TypeScript, Tailwind CS
 - **File Storage:** 
   - Local file upload with secure validation (PDF, DOC, DOCX, JPG, PNG, TXT)
   - **Google Drive:** Currently uses workspace-level connection (shared). File browsing is disabled for security to prevent cross-user file visibility. Users can upload files locally. Future: Implement per-user Google Drive OAuth.
-- **Health Data Integration:** Apple Health (via Health Auto Export iOS app webhook to `POST /api/health-auto-export/ingest`)
+- **Health Data Integration:** 
+  - **Current (Development):** Apple Health via Health Auto Export iOS app webhook to `POST /api/health-auto-export/ingest`
+  - **Future (Production):** Plan to migrate to enterprise data aggregator like Journey for multi-device support and reliability
+  - **Exploration Complete:** Junction.com (Vital) evaluated as alternative - supports 300+ devices but requires paid service. Documentation available in JUNCTION_COMPARISON.md for future reference.
