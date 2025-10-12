@@ -83,6 +83,10 @@ export const mealPlans = pgTable("meal_plans", {
   fat: real("fat").notNull(),
   prepTime: integer("prep_time").notNull(),
   recipe: text("recipe"),
+  detailedRecipe: text("detailed_recipe"), // Step-by-step cooking instructions
+  ingredients: text("ingredients").array(), // List of ingredients with measurements
+  servings: integer("servings").default(1), // Number of servings
+  scheduledDate: timestamp("scheduled_date"), // The date this meal is scheduled for
   tags: text("tags").array(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
