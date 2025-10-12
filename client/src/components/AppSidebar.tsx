@@ -11,6 +11,7 @@ import {
   Shield,
   User,
   BarChart3,
+  Target,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import {
@@ -72,6 +73,11 @@ const menuItems = [
     title: "Data Insights",
     url: "/data-insights",
     icon: BarChart3,
+  },
+  {
+    title: "Goals",
+    url: "/goals",
+    icon: Target,
   },
   {
     title: "Health Coach",

@@ -21,6 +21,7 @@ import MealPlans from "@/pages/MealPlans";
 import Training from "@/pages/Training";
 import AIInsights from "@/pages/AIInsights";
 import Insights from "@/pages/Insights";
+import Goals from "@/pages/Goals";
 import AppleHealthSetup from "@/pages/AppleHealthSetup";
 import Chat from "@/pages/Chat";
 import Profile from "@/pages/Profile";
@@ -44,6 +45,7 @@ function Router() {
       <Route path="/training" component={Training} />
       <Route path="/insights" component={AIInsights} />
       <Route path="/data-insights" component={Insights} />
+      <Route path="/goals" component={Goals} />
       <Route path="/chat" component={Chat} />
       <Route path="/profile" component={Profile} />
       <Route path="/apple-health" component={AppleHealthSetup} />
@@ -75,6 +77,7 @@ function AppLayout() {
     "/training": "Training",
     "/insights": "AI Insights",
     "/data-insights": "Data Insights",
+    "/goals": "Health Goals",
     "/chat": "Health Coach",
     "/profile": "Profile",
     "/apple-health": "Apple Health Setup",
