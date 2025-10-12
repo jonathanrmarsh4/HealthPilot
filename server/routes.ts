@@ -1302,6 +1302,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log("ℹ️ No meal plan markers found in AI response");
       }
 
+      // Check if AI response contains a goal to save
+      let goalSaved = false;
+      const goalMatch = aiResponse.match(/<<<SAVE_GOAL>>>([\s\S]*?)<<<END_SAVE_GOAL>>>/);
+      
+      if (goalMatch) {
+        console.log("🎯 Goal markers found! Extracting JSON...");
+        try {
+          const goalJson = goalMatch[1].trim();
+          console.log("📋 Goal JSON:", goalJson);
+          const parsedData = JSON.parse(goalJson);
+          
+          // Normalize to array (AI might send single object or array)
+          const goalDataArray = Array.isArray(parsedData) ? parsedData : [parsedData];
+          console.log("✅ Parsed goals:", goalDataArray.length);
+          
+          // Process each goal
+          for (const goalData of goalDataArray) {
+            console.log("💾 Processing goal:", goalData.metricType);
+            
+            // Fetch latest biomarker value to auto-populate start and current values
+            // If biomarker lookup fails, use AI-provided values or null
+            let startValue = goalData.startValue ?? null;
+            let currentValue = goalData.currentValue ?? null;
+            
+            try {
+              const latestBiomarker = await storage.getLatestBiomarkerByType(userId, goalData.metricType);
+              if (latestBiomarker) {
+                // Override with latest biomarker data (more current than AI-provided values)
+                startValue = latestBiomarker.value;
+                currentValue = latestBiomarker.value;
+                console.log(`📊 Auto-populated from latest ${goalData.metricType}: ${latestBiomarker.value}`);
+              }
+            } catch (e) {
+              console.log("⚠️ Could not fetch latest biomarker, using AI-provided or null values");
+            }
+            
+            // Create the goal with auto-populated values
+            await storage.createGoal({
+              userId,
+              metricType: goalData.metricType,
+              targetValue: goalData.targetValue,
+              startValue,
+              currentValue,
+              deadline: goalData.deadline,
+            });
+            
+            goalSaved = true;
+          }
+          
+          console.log("✨ Goal(s) saved successfully!");
+        } catch (e) {
+          console.error("❌ Failed to parse and save goal:", e);
+        }
+      } else {
+        console.log("ℹ️ No goal markers found in AI response");
+      }
+
       // Auto-advance onboarding steps after AI responds (user has engaged with current step)
       if (isOnboarding && onboardingStep && message.trim().length > 0) {
         const STEP_PROGRESSION: Record<string, string> = {
@@ -1324,6 +1381,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         assistantMessage,
         trainingPlanSaved,
         mealPlanSaved,
+        goalSaved,
       });
     } catch (error: any) {
       console.error("Error in chat:", error);
