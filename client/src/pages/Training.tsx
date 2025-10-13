@@ -4,7 +4,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, Loader2, TrendingUp, BarChart3, Activity, Heart, Moon, Zap, Calendar, Dumbbell } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Sparkles, Loader2, TrendingUp, BarChart3, Activity, Heart, Moon, Zap, Calendar, Dumbbell, Plus, Flame, Snowflake } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -59,6 +64,10 @@ interface RecoveryInsight {
 export default function Training() {
   const { toast } = useToast();
   const [analyticsTimeframe, setAnalyticsTimeframe] = useState<'7' | '30' | '90'>('30');
+  const [showLogRecovery, setShowLogRecovery] = useState(false);
+  const [recoveryType, setRecoveryType] = useState<'sauna' | 'cold_plunge'>('sauna');
+  const [recoveryDuration, setRecoveryDuration] = useState(20);
+  const [recoveryNotes, setRecoveryNotes] = useState('');
   
   const { data: workouts, isLoading } = useQuery<TrainingSchedule[]>({
     queryKey: ["/api/training-schedules"],
@@ -124,8 +133,58 @@ export default function Training() {
     },
   });
 
+  const scheduleMutation = useMutation({
+    mutationFn: async ({ id, scheduledFor }: { id: string; scheduledFor: Date }) => {
+      const res = await apiRequest("PATCH", `/api/training-schedules/${id}/schedule`, { scheduledFor: scheduledFor.toISOString() });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/training-schedules"] });
+      toast({
+        title: "Scheduled",
+        description: "Recovery session scheduled successfully!",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to schedule session",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const logRecoveryMutation = useMutation({
+    mutationFn: async ({ sessionType, duration, notes }: { sessionType: string; duration: number; notes?: string }) => {
+      const res = await apiRequest("POST", "/api/workout-sessions/recovery", { sessionType, duration, notes });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/workout-sessions"], refetchType: 'all' });
+      toast({
+        title: "Logged",
+        description: "Recovery session logged successfully!",
+      });
+      setShowLogRecovery(false);
+      setRecoveryType("sauna");
+      setRecoveryDuration(20);
+      setRecoveryNotes("");
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to log recovery session",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleToggleComplete = (id: string, currentCompleted: boolean) => {
     toggleCompleteMutation.mutate({ id, completed: !currentCompleted });
+  };
+
+  const handleSchedule = (id: string, date: Date) => {
+    scheduleMutation.mutate({ id, scheduledFor: date });
   };
 
   const formatDuration = (minutes: number) => {
@@ -146,23 +205,102 @@ export default function Training() {
             Track your workout schedule and analyze your training progress
           </p>
         </div>
-        <Button 
-          onClick={() => generateMutation.mutate()} 
-          disabled={generateMutation.isPending}
-          data-testid="button-generate-training"
-        >
-          {generateMutation.isPending ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Generating...
-            </>
-          ) : (
-            <>
-              <Sparkles className="mr-2 h-4 w-4" />
-              Generate New Schedule
-            </>
-          )}
-        </Button>
+        <div className="flex gap-2">
+          <Dialog open={showLogRecovery} onOpenChange={setShowLogRecovery}>
+            <DialogTrigger asChild>
+              <Button variant="outline" data-testid="button-log-recovery">
+                <Plus className="mr-2 h-4 w-4" />
+                Log Recovery Session
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Log Recovery Session</DialogTitle>
+                <DialogDescription>
+                  Record a sauna or cold plunge session that wasn't in your plan
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label>Session Type</Label>
+                  <RadioGroup value={recoveryType} onValueChange={(v) => setRecoveryType(v as 'sauna' | 'cold_plunge')}>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="sauna" id="sauna" />
+                      <Label htmlFor="sauna" className="flex items-center gap-2 cursor-pointer">
+                        <Flame className="h-4 w-4 text-orange-500" />
+                        Sauna
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="cold_plunge" id="cold_plunge" />
+                      <Label htmlFor="cold_plunge" className="flex items-center gap-2 cursor-pointer">
+                        <Snowflake className="h-4 w-4 text-blue-500" />
+                        Cold Plunge
+                      </Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="duration">Duration (minutes)</Label>
+                  <Input
+                    id="duration"
+                    type="number"
+                    value={recoveryDuration}
+                    onChange={(e) => setRecoveryDuration(parseInt(e.target.value) || 0)}
+                    min={1}
+                    max={60}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="notes">Notes (optional)</Label>
+                  <Textarea
+                    id="notes"
+                    value={recoveryNotes}
+                    onChange={(e) => setRecoveryNotes(e.target.value)}
+                    placeholder="How did you feel? Any observations..."
+                    rows={3}
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setShowLogRecovery(false)}>
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={() => logRecoveryMutation.mutate({ sessionType: recoveryType, duration: recoveryDuration, notes: recoveryNotes })}
+                  disabled={logRecoveryMutation.isPending}
+                  data-testid="button-save-recovery"
+                >
+                  {logRecoveryMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    'Save Session'
+                  )}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+          <Button 
+            onClick={() => generateMutation.mutate()} 
+            disabled={generateMutation.isPending}
+            data-testid="button-generate-training"
+          >
+            {generateMutation.isPending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Generating...
+              </>
+            ) : (
+              <>
+                <Sparkles className="mr-2 h-4 w-4" />
+                Generate New Schedule
+              </>
+            )}
+          </Button>
+        </div>
       </div>
 
       <Tabs defaultValue="schedule" className="space-y-6">
@@ -202,11 +340,15 @@ export default function Training() {
                   id={workout.id}
                   day={workout.day}
                   workoutType={workout.workoutType}
+                  sessionType={workout.sessionType}
                   duration={workout.duration}
                   intensity={workout.intensity as "Low" | "Moderate" | "High"}
                   exercises={workout.exercises as any[]}
+                  isOptional={workout.isOptional === 1}
+                  scheduledFor={workout.scheduledFor}
                   completed={workout.completed === 1}
                   onToggleComplete={handleToggleComplete}
+                  onSchedule={handleSchedule}
                 />
               ))}
             </div>

@@ -36,6 +36,11 @@ The application is a full-stack project utilizing React, TypeScript, Tailwind CS
 - **File Upload Security:** Validation for file size, types (PDF, DOC, DOCX, JPG, PNG, TXT), and mime types.
 - **Sleep Data Implementation:** Uses `inBedStart` and `inBedEnd` for sleep session duration, includes awake time, and performs smart deduplication. Custom sleep score calculation is implemented as Apple's native score is not exportable.
 - **Workout Tracking:** Comprehensive exercise data import from Apple Health via webhook. Automatically creates workout sessions with duration, calories, heart rate, and distance. Smart matching algorithm links completed workouts to training schedules by day and type, marking schedules as completed. Supports strength training exercise logs with sets, reps, and weight tracking.
+- **Recovery Session Integration:** Optional sauna and cold plunge sessions (3-4x/week) included in AI-generated training plans with smart post-workout scheduling recommendations. Features include:
+  - **AI Training Plan Enhancement:** Claude generates recovery sessions alongside workouts, marked as optional with appropriate session types (sauna/cold_plunge)
+  - **Day Scheduling:** Users can schedule optional recovery sessions for specific days with visual calendar badges
+  - **Ad-Hoc Logging:** Quick-log dialog for recording sauna/cold plunge sessions not in the plan, with duration and notes tracking
+  - **Visual Distinctions:** Recovery sessions display with dashed borders, fire/snowflake icons, and purple "Recovery" badges for easy identification
 - **Training Analytics:** Phase 3 backend implementation provides:
   - **Training Load Calculation:** Weekly and monthly training load tracking using duration and heart rate intensity (when available). Calculates total training hours per week.
   - **Workout Statistics:** Aggregates workout data by type (e.g., Cardio, Strength, Yoga) with total duration, calories burned, and workout counts.
