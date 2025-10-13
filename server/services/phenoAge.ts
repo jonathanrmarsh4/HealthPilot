@@ -49,17 +49,19 @@ export function calculatePhenoAge(
   const available: string[] = [];
   
   REQUIRED_BIOMARKERS.forEach(key => {
-    if (biomarkers[key] === undefined || biomarkers[key] === null) {
+    const value = biomarkers[key];
+    // Check if value is truly present and is a valid number
+    if (value === undefined || value === null || typeof value !== 'number' || isNaN(value)) {
       missing.push(key);
     } else {
       available.push(key);
     }
   });
   
-  // If any biomarkers are missing, return partial result
+  // If any biomarkers are missing, return partial result with null phenoAge
   if (missing.length > 0) {
     return {
-      phenoAge: 0,
+      phenoAge: null as any, // null indicates calculation not possible
       chronologicalAge,
       ageDifference: 0,
       missingBiomarkers: missing,

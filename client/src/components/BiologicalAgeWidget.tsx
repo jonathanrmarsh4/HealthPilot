@@ -6,7 +6,7 @@ import { Dna, TrendingDown, TrendingUp, Upload, ArrowRight } from "lucide-react"
 import { Link } from "wouter";
 
 interface BiologicalAgeData {
-  phenoAge: number;
+  phenoAge: number | null;
   chronologicalAge: number;
   ageDifference: number;
   canCalculate: boolean;

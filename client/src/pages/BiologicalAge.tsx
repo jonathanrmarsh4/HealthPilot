@@ -8,7 +8,7 @@ import { CheckCircle2, XCircle, Upload, TrendingDown, TrendingUp, Activity } fro
 import { Link } from "wouter";
 
 interface BiologicalAgeData {
-  phenoAge: number;
+  phenoAge: number | null;
   chronologicalAge: number;
   ageDifference: number;
   missingBiomarkers: Array<{
