@@ -587,7 +587,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (analysis.biomarkers && Array.isArray(analysis.biomarkers)) {
         console.log(`✅ Extracted ${analysis.biomarkers.length} biomarkers from ${req.file.originalname}`);
+        
+        let savedCount = 0;
+        let skippedCount = 0;
+        
         for (const biomarker of analysis.biomarkers) {
+          // Skip biomarkers without required fields
+          if (!biomarker.type || biomarker.value === null || biomarker.value === undefined || !biomarker.unit) {
+            console.warn(`⚠️ Skipping biomarker with missing data:`, { 
+              type: biomarker.type, 
+              value: biomarker.value, 
+              unit: biomarker.unit 
+            });
+            skippedCount++;
+            continue;
+          }
+          
           await storage.createBiomarker({
             userId,
             type: biomarker.type,
@@ -597,7 +612,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             recordId: record.id,
             recordedAt: parseBiomarkerDate(biomarker.date, analysis.documentDate, undefined),
           });
+          savedCount++;
         }
+        
+        console.log(`💾 Saved ${savedCount} biomarkers, skipped ${skippedCount} incomplete ones`);
       } else {
         console.warn(`⚠️ No biomarkers extracted from ${req.file.originalname}. Analysis may have failed.`);
       }
