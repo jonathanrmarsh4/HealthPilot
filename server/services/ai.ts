@@ -387,17 +387,19 @@ export async function generateTrainingSchedule(userProfile: {
     messages: [
       {
         role: "user",
-        content: `You are a fitness coach AI with a mission to help users achieve their health goals through personalized training. Create a weekly training schedule based on the following user profile:
+        content: `You are a fitness coach AI with a mission to help users achieve their health goals through personalized training and recovery. Create a weekly training schedule based on the following user profile:
 
 ${JSON.stringify(userProfile, null, 2)}${goalsSection}${chatContextSection}
 
-Generate a JSON array of workouts for the week with this structure:
+Generate a JSON array containing BOTH workouts AND optional recovery sessions (sauna/cold plunge 3-4x per week) with this structure:
 [
   {
     "day": "Monday" | "Tuesday" | etc,
     "workoutType": "Workout name that relates to their goals",
+    "sessionType": "workout",
     "duration": number (minutes),
     "intensity": "Low" | "Moderate" | "High",
+    "isOptional": 0,
     "description": "Brief explanation of HOW this workout supports their active goals",
     "exercises": [
       {
@@ -407,8 +409,27 @@ Generate a JSON array of workouts for the week with this structure:
         "duration": "20 min" (optional)
       }
     ]
+  },
+  {
+    "day": "Monday" | "Tuesday" | etc,
+    "workoutType": "Post-Workout Sauna" | "Post-Workout Cold Plunge",
+    "sessionType": "sauna" | "cold_plunge",
+    "duration": 15-30 (minutes),
+    "intensity": "Low",
+    "isOptional": 1,
+    "description": "Brief explanation of recovery benefits (e.g., 'Enhances muscle recovery and cardiovascular adaptation')",
+    "exercises": []
   }
 ]
+
+🔥 RECOVERY SESSION GUIDELINES:
+- Include 3-4 OPTIONAL recovery sessions (sauna/cold plunge) throughout the week
+- Suggest these on days that have moderate-high intensity workouts for optimal recovery
+- Sauna: 15-25 min, ideal post-workout for cardiovascular health, recovery, inflammation reduction
+- Cold Plunge: 5-10 min, ideal for muscle recovery, metabolic boost, mental clarity
+- Mark recovery sessions with "isOptional": 1 and appropriate "sessionType" ("sauna" or "cold_plunge")
+- Recovery sessions should have empty exercises array: "exercises": []
+- User will schedule these for specific days based on their preference
 
 CRITICAL: If the user has active goals, design workouts specifically to help them reach those targets. Include intensity levels and durations that align with their goal progress.`,
       },
