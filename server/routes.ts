@@ -355,6 +355,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         if (record && analysis.biomarkers && Array.isArray(analysis.biomarkers)) {
           for (const biomarker of analysis.biomarkers) {
+            // Special handling for blood pressure values in "X/Y" format
+            if (biomarker.type === 'blood-pressure' && typeof biomarker.value === 'string' && biomarker.value.includes('/')) {
+              const parts = biomarker.value.split('/');
+              const systolic = parseFloat(parts[0]);
+              const diastolic = parseFloat(parts[1]);
+              
+              if (!isNaN(systolic) && !isNaN(diastolic)) {
+                // Create separate biomarkers for systolic and diastolic
+                await storage.createBiomarker({
+                  userId,
+                  type: 'blood-pressure-systolic',
+                  value: systolic,
+                  unit: biomarker.unit || 'mmHg',
+                  source: 'ai-extracted',
+                  recordId: record.id,
+                  recordedAt: parseBiomarkerDate(biomarker.date, analysis.documentDate, fileCreatedDate),
+                });
+                
+                await storage.createBiomarker({
+                  userId,
+                  type: 'blood-pressure-diastolic',
+                  value: diastolic,
+                  unit: biomarker.unit || 'mmHg',
+                  source: 'ai-extracted',
+                  recordId: record.id,
+                  recordedAt: parseBiomarkerDate(biomarker.date, analysis.documentDate, fileCreatedDate),
+                });
+              }
+              continue; // Skip the regular insert for this biomarker
+            }
+            
+            // Skip invalid values
+            if (typeof biomarker.value !== 'number' || isNaN(biomarker.value)) {
+              console.warn(`Skipping invalid biomarker value: ${biomarker.type} = ${biomarker.value}`);
+              continue;
+            }
+            
             await storage.createBiomarker({
               userId,
               type: biomarker.type,
@@ -430,6 +467,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         if (updatedRecord && analysis.biomarkers && Array.isArray(analysis.biomarkers)) {
           for (const biomarker of analysis.biomarkers) {
+            // Special handling for blood pressure values in "X/Y" format
+            if (biomarker.type === 'blood-pressure' && typeof biomarker.value === 'string' && biomarker.value.includes('/')) {
+              const parts = biomarker.value.split('/');
+              const systolic = parseFloat(parts[0]);
+              const diastolic = parseFloat(parts[1]);
+              
+              if (!isNaN(systolic) && !isNaN(diastolic)) {
+                // Create separate biomarkers for systolic and diastolic
+                await storage.createBiomarker({
+                  userId,
+                  type: 'blood-pressure-systolic',
+                  value: systolic,
+                  unit: biomarker.unit || 'mmHg',
+                  source: 'ai-extracted',
+                  recordId: updatedRecord.id,
+                  recordedAt: parseBiomarkerDate(biomarker.date, analysis.documentDate, fileCreatedDate),
+                });
+                
+                await storage.createBiomarker({
+                  userId,
+                  type: 'blood-pressure-diastolic',
+                  value: diastolic,
+                  unit: biomarker.unit || 'mmHg',
+                  source: 'ai-extracted',
+                  recordId: updatedRecord.id,
+                  recordedAt: parseBiomarkerDate(biomarker.date, analysis.documentDate, fileCreatedDate),
+                });
+              }
+              continue; // Skip the regular insert for this biomarker
+            }
+            
+            // Skip invalid values
+            if (typeof biomarker.value !== 'number' || isNaN(biomarker.value)) {
+              console.warn(`Skipping invalid biomarker value: ${biomarker.type} = ${biomarker.value}`);
+              continue;
+            }
+            
             await storage.createBiomarker({
               userId,
               type: biomarker.type,
