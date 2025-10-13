@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { LineChart, Line, ResponsiveContainer, YAxis } from "recharts";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,6 +10,7 @@ import { unitConfigs, convertValue } from "@/lib/unitConversions";
 import { biomarkerDisplayConfig } from "@/lib/biomarkerConfig";
 import { ArrowUp, ArrowDown, Minus } from "lucide-react";
 import { formatDate } from "@/lib/timezone";
+import { BiomarkerDetailModal } from "./BiomarkerDetailModal";
 
 interface ChartDataPoint {
   date: string;
@@ -23,6 +25,7 @@ interface TrendLineWidgetProps {
 export function TrendLineWidget({ type }: TrendLineWidgetProps) {
   const { unitSystem } = useLocale();
   const { timezone } = useTimezone();
+  const [modalOpen, setModalOpen] = useState(false);
   
   const config = biomarkerDisplayConfig[type] || {
     title: type.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
@@ -129,8 +132,13 @@ export function TrendLineWidget({ type }: TrendLineWidgetProps) {
   }
 
   return (
-    <Card className="hover-elevate" data-testid={`trend-widget-${type}`}>
-      <CardContent className="p-4">
+    <>
+      <Card 
+        className="hover-elevate cursor-pointer" 
+        data-testid={`trend-widget-${type}`}
+        onClick={() => setModalOpen(true)}
+      >
+        <CardContent className="p-4">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
             <h3 className="font-medium text-sm truncate" data-testid={`trend-title-${type}`}>
@@ -208,6 +216,14 @@ export function TrendLineWidget({ type }: TrendLineWidgetProps) {
           </div>
         </div>
       </CardContent>
-    </Card>
+      </Card>
+
+      <BiomarkerDetailModal
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        type={type}
+        config={config}
+      />
+    </>
   );
 }
