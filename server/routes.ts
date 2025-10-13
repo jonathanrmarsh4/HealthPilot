@@ -534,12 +534,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/health-records/upload", isAuthenticated, upload.single('file'), async (req, res) => {
     const userId = (req.user as any).claims.sub;
     
+    console.log(`🔥 UPLOAD REQUEST RECEIVED! User: ${userId}, Has file: ${!!req.file}`);
+    
     // Increase timeout for this specific route to handle large file processing
     req.setTimeout(300000); // 5 minutes
     res.setTimeout(300000); // 5 minutes
     
     try {
       if (!req.file) {
+        console.log(`❌ No file in request for user ${userId}`);
         return res.status(400).json({ error: "No file uploaded" });
       }
 
