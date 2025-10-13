@@ -40,8 +40,7 @@ function estimateTokens(text: string): number {
 }
 
 // Split text into chunks that fit within token limit
-// Use smaller chunks to respect Anthropic's acceleration limits
-// (API won't allow sudden jumps from 0 to high token usage)
+// Use smaller chunks for better processing and to avoid token limits
 function chunkText(text: string, maxTokens: number = 10000): string[] {
   const estimatedTokens = estimateTokens(text);
   
@@ -98,14 +97,11 @@ export async function analyzeHealthDocument(documentText: string, fileName: stri
       summary = result.summary;
     }
     
-    // Add delay between chunks to respect Anthropic's acceleration limits
-    // Gradual scaling: wait longer for each successive chunk
+    // Add delay between chunks to avoid rate limits
     if (i < chunks.length - 1) {
-      // Progressive delays: 15s, 20s, 25s, 30s... to allow gradual token usage increase
-      const baseDelay = 15000; // 15 seconds base
-      const progressiveDelay = i * 5000; // Add 5s per chunk
-      const delayMs = baseDelay + progressiveDelay;
-      console.log(`  ⏳ Waiting ${Math.ceil(delayMs / 1000)}s before chunk ${i + 2} (gradual scaling for API acceleration limits)...`);
+      // Small delay between chunks to respect API rate limits
+      const delayMs = 2000; // 2 seconds between chunks
+      console.log(`  ⏳ Waiting ${Math.ceil(delayMs / 1000)}s before chunk ${i + 2}...`);
       await new Promise(resolve => setTimeout(resolve, delayMs));
     }
   }
