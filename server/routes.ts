@@ -799,17 +799,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (latest) {
           let value = latest.value;
           const unit = latest.unit;
+          const originalValue = value;
           
-          // Convert units to match PhenoAge requirements
-          if (key === 'glucose') {
-            // Convert glucose to mg/dL if needed
-            if (unit === 'mmol/L') {
-              value = value * 18.016; // mmol/L to mg/dL
+          // Convert units to match PhenoAge requirements (METRIC units!)
+          // PhenoAge expects: g/L (albumin), µmol/L (creatinine), mmol/L (glucose)
+          if (key === 'albumin') {
+            // Convert albumin to g/L if needed
+            if (unit === 'g/dL') {
+              value = value * 10; // g/dL to g/L
+              console.log(`🔄 Converted albumin: ${originalValue} ${unit} → ${value} g/L`);
+            }
+          } else if (key === 'glucose') {
+            // Convert glucose to mmol/L if needed
+            if (unit === 'mg/dL') {
+              value = value / 18.016; // mg/dL to mmol/L
+              console.log(`🔄 Converted glucose: ${originalValue} ${unit} → ${value} mmol/L`);
             }
           } else if (key === 'creatinine') {
-            // Convert creatinine to mg/dL if needed
-            if (unit === 'μmol/L') {
-              value = value / 88.4; // μmol/L to mg/dL
+            // Convert creatinine to µmol/L if needed
+            if (unit === 'mg/dL') {
+              value = value * 88.4; // mg/dL to µmol/L
+              console.log(`🔄 Converted creatinine: ${originalValue} ${unit} → ${value} µmol/L`);
             }
           } else if (key === 'lymphocytePercent') {
             // Convert lymphocyte absolute count to percentage if needed
@@ -820,10 +830,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 // Lymphocyte % = (Lymphocyte absolute / WBC) * 100
                 // If lymph is in x10⁹/L and WBC is in K/μL, they're the same unit
                 value = (value / wbcBiomarker.value) * 100;
+                console.log(`🔄 Converted lymphocytes: ${originalValue} ${unit} → ${value}% (WBC: ${wbcBiomarker.value})`);
               }
             }
           }
           
+          console.log(`📌 ${key}: ${value} (original: ${originalValue} ${unit})`);
           biomarkerValues[key] = value;
         }
       }

@@ -87,12 +87,14 @@ export function calculatePhenoAge(
     (0.0554 * wbc) +
     (0.0804 * chronologicalAge);
   
-  // Step 2: Calculate mortality risk
-  // mortality = 1 - 0.988^(exp(xb))
-  const mortality = 1 - Math.pow(0.988, Math.exp(xb));
+  // Step 2: Calculate mortality risk using Gompertz hazard model
+  // Based on NHANES III 10-year mortality (120 months)
+  const tmonths = 120; // 10 years
+  const gamma = 0.0076927; // Gompertz gamma parameter
+  const mortality = 1 - Math.exp(-Math.exp(xb) * (Math.exp(gamma * tmonths) - 1) / gamma);
   
   // Step 3: Calculate Phenotypic Age
-  // phenotypicAge = 141.5 + ln(-0.00553 * ln(1 - mortality)) / 0.090165
+  // phenotypicAge = 141.50225 + ln(-0.00553 * ln(1 - mortality)) / 0.090165
   const phenotypicAge = 141.50225 + (Math.log(-0.00553 * Math.log(1 - mortality)) / 0.090165);
   
   // Step 3: Calculate DNAm PhenoAge (biological age)
