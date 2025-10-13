@@ -1,7 +1,8 @@
-import Anthropic from "@anthropic-ai/sdk";
+import OpenAI from "openai";
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
+const openai = new OpenAI({
+  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
 });
 
 // Retry helper with exponential backoff for rate limit errors
@@ -127,13 +128,18 @@ export async function analyzeHealthDocument(documentText: string, fileName: stri
 
 async function analyzeSingleChunk(documentText: string, fileName: string, documentDate?: Date) {
   return await retryWithBackoff(async () => {
-    const message = await anthropic.messages.create({
-    model: "claude-3-haiku-20240307",
+    const completion = await openai.chat.completions.create({
+    model: "gpt-4o",
     max_tokens: 4096,
+    response_format: { type: "json_object" },
     messages: [
       {
+        role: "system",
+        content: "You are a health data extraction specialist. You analyze health documents and extract biomarkers, test results, and health metrics. Always respond with valid JSON."
+      },
+      {
         role: "user",
-        content: `You are a health data extraction specialist. Analyze the following health document and extract ALL relevant biomarkers, test results, and health metrics.
+        content: `Analyze the following health document and extract ALL relevant biomarkers, test results, and health metrics.
 
 Document Name: ${fileName}
 
@@ -201,15 +207,22 @@ OTHER REQUIREMENTS:
     ],
   });
 
-  const content = message.content[0];
-  if (content.type === "text") {
+  const content = completion.choices[0].message.content;
+  if (content) {
     try {
-      const jsonMatch = content.text.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]);
-      }
+      // OpenAI with response_format: json_object returns pure JSON
+      return JSON.parse(content);
     } catch (e) {
       console.error("Failed to parse AI response:", e);
+      // Fallback: try to extract JSON from markdown or text
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        try {
+          return JSON.parse(jsonMatch[0]);
+        } catch (e2) {
+          console.error("Failed to parse extracted JSON:", e2);
+        }
+      }
     }
   }
 
@@ -241,118 +254,120 @@ export async function generateMealPlan(userProfile: {
     ? `\n\n## ACTIVE HEALTH GOALS - CRITICAL FOR MEAL PLANNING:\n${JSON.stringify(userProfile.activeGoals, null, 2)}\n\n🎯 IMPORTANT: These are the user's specific, measurable goals. Your meal plan MUST actively support achieving these goals:\n- For weight goals: Calculate appropriate calorie targets and macronutrient ratios\n- For body fat goals: Focus on high protein, moderate carbs, healthy fats\n- For heart health goals: Emphasize heart-healthy foods (omega-3s, fiber, low sodium)\n- For blood sugar goals: Focus on low glycemic index foods, balanced meals\n- For cholesterol goals: Include foods that lower LDL (oats, nuts, fatty fish)\n\nFor each meal, explain in the description HOW it supports their specific goals (e.g., "High protein to support your weight loss goal of 70kg" or "Low GI carbs to help lower blood glucose to 90 mg/dL").`
     : '';
 
-  // Generate meals in batches to avoid token limit (4096 for Haiku)
+  // Generate meals in batches to avoid token limit
   // Batch 1: Days 1-2 (8 meals)
-  const batch1Message = await anthropic.messages.create({
-    model: "claude-3-haiku-20240307",
+  const batch1Completion = await openai.chat.completions.create({
+    model: "gpt-4o",
     max_tokens: 4096,
+    response_format: { type: "json_object" },
     messages: [
       {
+        role: "system",
+        content: "You are a nutritionist AI. You create detailed meal plans with recipes. Always respond with valid JSON."
+      },
+      {
         role: "user",
-        content: `You are a nutritionist AI. Create detailed meals for DAYS 1-2 (8 meals total) based on this profile:
+        content: `Create detailed meals for DAYS 1-2 (8 meals total) based on this profile:
 
 ${JSON.stringify(userProfile, null, 2)}${goalsSection}${chatContextSection}
 
-Generate 8 meals (days 1-2 × breakfast, lunch, dinner, snack). Return ONLY the JSON array:
-[
-  {
-    "dayNumber": 1,
-    "mealType": "Breakfast",
-    "name": "Meal name",
-    "description": "How this supports goals",
-    "calories": 500,
-    "protein": 30,
-    "carbs": 50,
-    "fat": 15,
-    "prepTime": 15,
-    "servings": 1,
-    "ingredients": ["1 cup oats", "1 banana", "1 tbsp honey"],
-    "detailedRecipe": "1. Heat milk. 2. Add oats, simmer 5 min. 3. Top with banana.",
-    "tags": ["High Protein"]
-  }
-]
+Generate 8 meals (days 1-2 × breakfast, lunch, dinner, snack). Return as a JSON object with a "meals" array:
+{
+  "meals": [
+    {
+      "dayNumber": 1,
+      "mealType": "Breakfast",
+      "name": "Meal name",
+      "description": "How this supports goals",
+      "calories": 500,
+      "protein": 30,
+      "carbs": 50,
+      "fat": 15,
+      "prepTime": 15,
+      "servings": 1,
+      "ingredients": ["1 cup oats", "1 banana", "1 tbsp honey"],
+      "detailedRecipe": "1. Heat milk. 2. Add oats, simmer 5 min. 3. Top with banana.",
+      "tags": ["High Protein"]
+    }
+  ]
+}
 
 Rules:
 - ingredients: Array of 3-6 key items with measurements
 - detailedRecipe: 3-5 numbered steps (concise)
 - dayNumber: 1-2 only
-- Return ONLY valid JSON array
-
-CRITICAL: Return ONLY the JSON array. No markdown, no explanations.`,
+- Return ONLY valid JSON object with "meals" array`,
       },
     ],
   });
 
   // Batch 2: Days 3-4 (8 meals)
-  const batch2Message = await anthropic.messages.create({
-    model: "claude-3-haiku-20240307",
+  const batch2Completion = await openai.chat.completions.create({
+    model: "gpt-4o",
     max_tokens: 4096,
+    response_format: { type: "json_object" },
     messages: [
       {
+        role: "system",
+        content: "You are a nutritionist AI. You create detailed meal plans with recipes. Always respond with valid JSON."
+      },
+      {
         role: "user",
-        content: `You are a nutritionist AI. Create detailed meals for DAYS 3-4 (8 meals total) based on this profile:
+        content: `Create detailed meals for DAYS 3-4 (8 meals total) based on this profile:
 
 ${JSON.stringify(userProfile, null, 2)}${goalsSection}${chatContextSection}
 
-Generate 8 meals (days 3-4 × breakfast, lunch, dinner, snack). Return ONLY the JSON array:
-[
-  {
-    "dayNumber": 3,
-    "mealType": "Breakfast",
-    "name": "Meal name",
-    "description": "How this supports goals",
-    "calories": 500,
-    "protein": 30,
-    "carbs": 50,
-    "fat": 15,
-    "prepTime": 15,
-    "servings": 1,
-    "ingredients": ["200g yogurt", "50g granola", "1 apple"],
-    "detailedRecipe": "1. Layer yogurt in bowl. 2. Add granola. 3. Top with diced apple.",
-    "tags": ["Quick"]
-  }
-]
+Generate 8 meals (days 3-4 × breakfast, lunch, dinner, snack). Return as a JSON object with a "meals" array:
+{
+  "meals": [
+    {
+      "dayNumber": 3,
+      "mealType": "Breakfast",
+      "name": "Meal name",
+      "description": "How this supports goals",
+      "calories": 500,
+      "protein": 30,
+      "carbs": 50,
+      "fat": 15,
+      "prepTime": 15,
+      "servings": 1,
+      "ingredients": ["200g yogurt", "50g granola", "1 apple"],
+      "detailedRecipe": "1. Layer yogurt in bowl. 2. Add granola. 3. Top with diced apple.",
+      "tags": ["Quick"]
+    }
+  ]
+}
 
 Rules:
 - ingredients: Array of 3-6 key items with measurements
 - detailedRecipe: 3-5 numbered steps (concise)
 - dayNumber: 3-4 only
-- Return ONLY valid JSON array
-
-CRITICAL: Return ONLY the JSON array. No markdown, no explanations.`,
+- Return ONLY valid JSON object with "meals" array`,
       },
     ],
   });
 
   // Parse batch 1
-  const batch1Content = batch1Message.content[0];
   let batch1Meals: any[] = [];
-  if (batch1Content.type === "text") {
+  const batch1Content = batch1Completion.choices[0].message.content;
+  if (batch1Content) {
     try {
-      const jsonMatch = batch1Content.text.match(/\[[\s\S]*\]/);
-      if (jsonMatch) {
-        batch1Meals = JSON.parse(jsonMatch[0]);
-        console.log(`✅ Batch 1: Successfully parsed ${batch1Meals.length} meals`);
-      } else {
-        console.error("Batch 1: No JSON array found");
-      }
+      const data = JSON.parse(batch1Content);
+      batch1Meals = data.meals || [];
+      console.log(`✅ Batch 1: Successfully parsed ${batch1Meals.length} meals`);
     } catch (e) {
       console.error("Batch 1: Failed to parse meal plan:", e);
     }
   }
 
   // Parse batch 2
-  const batch2Content = batch2Message.content[0];
   let batch2Meals: any[] = [];
-  if (batch2Content.type === "text") {
+  const batch2Content = batch2Completion.choices[0].message.content;
+  if (batch2Content) {
     try {
-      const jsonMatch = batch2Content.text.match(/\[[\s\S]*\]/);
-      if (jsonMatch) {
-        batch2Meals = JSON.parse(jsonMatch[0]);
-        console.log(`✅ Batch 2: Successfully parsed ${batch2Meals.length} meals`);
-      } else {
-        console.error("Batch 2: No JSON array found");
-      }
+      const data = JSON.parse(batch2Content);
+      batch2Meals = data.meals || [];
+      console.log(`✅ Batch 2: Successfully parsed ${batch2Meals.length} meals`);
     } catch (e) {
       console.error("Batch 2: Failed to parse meal plan:", e);
     }
@@ -381,46 +396,53 @@ export async function generateTrainingSchedule(userProfile: {
     ? `\n\n## ACTIVE HEALTH GOALS - CRITICAL FOR TRAINING PLANNING:\n${JSON.stringify(userProfile.activeGoals, null, 2)}\n\n🎯 IMPORTANT: These are the user's specific, measurable goals. Your training plan MUST actively help achieve these goals:\n- For weight loss goals: Include cardio for calorie burn + strength training to preserve muscle\n- For body fat goals: High-intensity interval training (HIIT) combined with resistance training\n- For heart health goals: Focus on cardiovascular endurance and heart rate training zones\n- For step goals: Incorporate walking, hiking, or active recovery days\n- For sleep improvement: Avoid high-intensity late workouts, include stress-reducing activities\n\nFor each workout, explain HOW it contributes to their specific goals (e.g., "HIIT session burns 400+ calories supporting your 70kg weight goal" or "Zone 2 cardio improves heart health toward your resting HR goal of 60 bpm").`
     : '';
 
-  const message = await anthropic.messages.create({
-    model: "claude-3-haiku-20240307",
+  const completion = await openai.chat.completions.create({
+    model: "gpt-4o",
     max_tokens: 4096,
+    response_format: { type: "json_object" },
     messages: [
       {
+        role: "system",
+        content: "You are a fitness coach AI. You create personalized training schedules. Always respond with valid JSON."
+      },
+      {
         role: "user",
-        content: `You are a fitness coach AI with a mission to help users achieve their health goals through personalized training and recovery. Create a weekly training schedule based on the following user profile:
+        content: `Create a weekly training schedule based on the following user profile:
 
 ${JSON.stringify(userProfile, null, 2)}${goalsSection}${chatContextSection}
 
-Generate a JSON array containing BOTH workouts AND optional recovery sessions (sauna/cold plunge 3-4x per week) with this structure:
-[
-  {
-    "day": "Monday" | "Tuesday" | etc,
-    "workoutType": "Workout name that relates to their goals",
-    "sessionType": "workout",
-    "duration": number (minutes),
-    "intensity": "Low" | "Moderate" | "High",
-    "isOptional": 0,
-    "description": "Brief explanation of HOW this workout supports their active goals",
-    "exercises": [
-      {
-        "name": "Exercise name",
-        "sets": number (optional),
-        "reps": "8-10" (optional),
-        "duration": "20 min" (optional)
-      }
-    ]
-  },
-  {
-    "day": "Monday" | "Tuesday" | etc,
-    "workoutType": "Post-Workout Sauna" | "Post-Workout Cold Plunge",
-    "sessionType": "sauna" | "cold_plunge",
-    "duration": 15-30 (minutes),
-    "intensity": "Low",
-    "isOptional": 1,
-    "description": "Brief explanation of recovery benefits (e.g., 'Enhances muscle recovery and cardiovascular adaptation')",
-    "exercises": []
-  }
-]
+Generate a JSON object with a "schedule" array containing BOTH workouts AND optional recovery sessions (sauna/cold plunge 3-4x per week) with this structure:
+{
+  "schedule": [
+    {
+      "day": "Monday" | "Tuesday" | etc,
+      "workoutType": "Workout name that relates to their goals",
+      "sessionType": "workout",
+      "duration": number (minutes),
+      "intensity": "Low" | "Moderate" | "High",
+      "isOptional": 0,
+      "description": "Brief explanation of HOW this workout supports their active goals",
+      "exercises": [
+        {
+          "name": "Exercise name",
+          "sets": number (optional),
+          "reps": "8-10" (optional),
+          "duration": "20 min" (optional)
+        }
+      ]
+    },
+    {
+      "day": "Monday" | "Tuesday" | etc,
+      "workoutType": "Post-Workout Sauna" | "Post-Workout Cold Plunge",
+      "sessionType": "sauna" | "cold_plunge",
+      "duration": 15-30 (minutes),
+      "intensity": "Low",
+      "isOptional": 1,
+      "description": "Brief explanation of recovery benefits (e.g., 'Enhances muscle recovery and cardiovascular adaptation')",
+      "exercises": []
+    }
+  ]
+}
 
 🔥 RECOVERY SESSION GUIDELINES:
 - Include 3-4 OPTIONAL recovery sessions (sauna/cold plunge) throughout the week
@@ -436,13 +458,11 @@ CRITICAL: If the user has active goals, design workouts specifically to help the
     ],
   });
 
-  const content = message.content[0];
-  if (content.type === "text") {
+  const content = completion.choices[0].message.content;
+  if (content) {
     try {
-      const jsonMatch = content.text.match(/\[[\s\S]*\]/);
-      if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]);
-      }
+      const data = JSON.parse(content);
+      return data.schedule || [];
     } catch (e) {
       console.error("Failed to parse training schedule:", e);
     }
@@ -690,10 +710,15 @@ Consider suggesting alternative therapies when they align with specific biomarke
 
 Generate insights that demonstrate deep understanding of how different health metrics interact and influence each other.`;
 
-  const message = await retryWithBackoff(() => anthropic.messages.create({
-    model: "claude-3-haiku-20240307",
+  const completion = await retryWithBackoff(() => openai.chat.completions.create({
+    model: "gpt-4o",
     max_tokens: 4096,
+    response_format: { type: "json_object" },
     messages: [
+      {
+        role: "system",
+        content: "You are an advanced health insights AI with expertise in multi-metric pattern analysis. Always respond with valid JSON."
+      },
       {
         role: "user",
         content: analysisPrompt,
@@ -701,13 +726,11 @@ Generate insights that demonstrate deep understanding of how different health me
     ],
   }));
 
-  const content = message.content[0];
-  if (content.type === "text") {
+  const content = completion.choices[0].message.content;
+  if (content) {
     try {
-      const jsonMatch = content.text.match(/\[[\s\S]*\]/);
-      if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]);
-      }
+      const data = JSON.parse(content);
+      return data.recommendations || [];
     } catch (e) {
       console.error("Failed to parse recommendations:", e);
     }
@@ -1022,21 +1045,23 @@ Be conversational, empathetic, and encouraging. **Ask ONE question at a time - n
 
 If this is the first message, introduce yourself briefly and ask about their primary health or fitness goal.`;
 
-  const messages = conversationHistory.map(msg => ({
-    role: msg.role,
-    content: msg.content
-  }));
+  const messages = [
+    { role: "system" as const, content: systemPrompt },
+    ...conversationHistory.map(msg => ({
+      role: msg.role as "user" | "assistant",
+      content: msg.content
+    }))
+  ];
 
-  const message = await anthropic.messages.create({
-    model: "claude-3-haiku-20240307",
+  const completion = await openai.chat.completions.create({
+    model: "gpt-4o",
     max_tokens: 2048,
-    system: systemPrompt,
-    messages: messages as any,
+    messages: messages,
   });
 
-  const content = message.content[0];
-  if (content.type === "text") {
-    return content.text;
+  const content = completion.choices[0].message.content;
+  if (content) {
+    return content;
   }
 
   return "I'm here to help with your health and fitness goals. How can I assist you today?";
@@ -1065,36 +1090,43 @@ export async function generateDailyInsights(data: {
     });
   }
 
-  const message = await retryWithBackoff(() => anthropic.messages.create({
-    model: "claude-3-haiku-20240307",
+  const completion = await retryWithBackoff(() => openai.chat.completions.create({
+    model: "gpt-4o",
     max_tokens: 4096,
+    response_format: { type: "json_object" },
     messages: [
       {
+        role: "system",
+        content: "You are an intelligent health insights AI. You analyze health data and generate personalized daily insights. Always respond with valid JSON."
+      },
+      {
         role: "user",
-        content: `You are an intelligent health insights AI. Analyze the user's health data and generate personalized daily insights.
+        content: `Analyze the user's health data and generate personalized daily insights.
 
 ## User's Health Data:
 ${JSON.stringify(data, null, 2)}
 ${goalsSection}
 
 ## Your Task:
-Generate a JSON array of daily health insights with this structure:
-[
-  {
-    "type": "daily_summary" | "pattern" | "correlation" | "trend" | "alert" | "goal_progress",
-    "title": "Short compelling title",
-    "description": "Brief actionable insight (1-2 sentences)",
-    "category": "sleep" | "activity" | "nutrition" | "biomarkers" | "overall" | "goals",
-    "priority": "high" | "medium" | "low",
-    "insightData": {
-      "metrics": ["metric names"],
-      "values": ["current values"],
-      "comparison": "context or comparison",
-      "recommendation": "specific action to take"
-    },
-    "actionable": 1 or 0
-  }
-]
+Generate a JSON object with an "insights" array of daily health insights with this structure:
+{
+  "insights": [
+    {
+      "type": "daily_summary" | "pattern" | "correlation" | "trend" | "alert" | "goal_progress",
+      "title": "Short compelling title",
+      "description": "Brief actionable insight (1-2 sentences)",
+      "category": "sleep" | "activity" | "nutrition" | "biomarkers" | "overall" | "goals",
+      "priority": "high" | "medium" | "low",
+      "insightData": {
+        "metrics": ["metric names"],
+        "values": ["current values"],
+        "comparison": "context or comparison",
+        "recommendation": "specific action to take"
+      },
+      "actionable": 1 or 0
+    }
+  ]
+}
 
 ## Focus Areas:
 1. **Daily Summary**: Overall health status for today based on all metrics
@@ -1137,13 +1169,11 @@ Generate 3-5 insights prioritized by importance. Focus on what matters most to t
     ],
   }));
 
-  const content = message.content[0];
-  if (content.type === "text") {
+  const content = completion.choices[0].message.content;
+  if (content) {
     try {
-      const jsonMatch = content.text.match(/\[[\s\S]*\]/);
-      if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]);
-      }
+      const data = JSON.parse(content);
+      return data.insights || [];
     } catch (e) {
       console.error("Failed to parse insights:", e);
     }
@@ -1166,13 +1196,18 @@ export async function generateRecoveryInsights(data: {
   };
   timeframeDays: number;
 }) {
-  const message = await retryWithBackoff(() => anthropic.messages.create({
-    model: "claude-3-haiku-20240307",
+  const completion = await retryWithBackoff(() => openai.chat.completions.create({
+    model: "gpt-4o",
     max_tokens: 3072,
+    response_format: { type: "json_object" },
     messages: [
       {
+        role: "system",
+        content: "You are an expert sports science and recovery coach AI. You analyze training data and provide personalized recovery insights. Always respond with valid JSON."
+      },
+      {
         role: "user",
-        content: `You are an expert sports science and recovery coach AI. Analyze the user's training analytics and provide personalized recovery insights.
+        content: `Analyze the user's training analytics and provide personalized recovery insights.
 
 ## Training Analytics Data (Last ${data.timeframeDays} days):
 
@@ -1194,21 +1229,23 @@ ${data.workoutStats.byType.map(stat => `- ${stat.type}: ${stat.count} workouts, 
 - Resting Heart Rate: ${(data.correlations.restingHR.workoutDays ?? 0).toFixed(1)} bpm on workout days vs ${(data.correlations.restingHR.nonWorkoutDays ?? 0).toFixed(1)} bpm on rest days (${(data.correlations.restingHR.improvement ?? 0) >= 0 ? '+' : ''}${(data.correlations.restingHR.improvement ?? 0).toFixed(1)} bpm change)
 
 ## Your Task:
-Generate a JSON array of recovery insights and recommendations:
-[
-  {
-    "category": "recovery_status" | "training_load" | "workout_balance" | "biomarker_response" | "alternative_therapy",
-    "severity": "excellent" | "good" | "caution" | "warning",
-    "title": "Short compelling title (max 60 chars)",
-    "description": "Detailed insight with specific numbers and actionable advice (2-3 sentences)",
-    "recommendation": "Specific action to take",
-    "metrics": {
-      "primary": "main metric discussed",
-      "value": "current value",
-      "context": "comparison or benchmark"
+Generate a JSON object with an "insights" array of recovery insights and recommendations:
+{
+  "insights": [
+    {
+      "category": "recovery_status" | "training_load" | "workout_balance" | "biomarker_response" | "alternative_therapy",
+      "severity": "excellent" | "good" | "caution" | "warning",
+      "title": "Short compelling title (max 60 chars)",
+      "description": "Detailed insight with specific numbers and actionable advice (2-3 sentences)",
+      "recommendation": "Specific action to take",
+      "metrics": {
+        "primary": "main metric discussed",
+        "value": "current value",
+        "context": "comparison or benchmark"
+      }
     }
-  }
-]
+  ]
+}
 
 ## Analysis Guidelines:
 
@@ -1265,13 +1302,11 @@ Generate 3-5 insights, ordered by importance. Focus on actionable recovery strat
     ],
   }));
 
-  const content = message.content[0];
-  if (content.type === "text") {
+  const content = completion.choices[0].message.content;
+  if (content) {
     try {
-      const jsonMatch = content.text.match(/\[[\s\S]*\]/);
-      if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]);
-      }
+      const data = JSON.parse(content);
+      return data.insights || [];
     } catch (e) {
       console.error("Failed to parse recovery insights:", e);
     }
@@ -1285,13 +1320,18 @@ export async function generateTrendPredictions(data: {
   historicalData: Array<{ value: number; date: Date }>;
   timeframeWeeks: number;
 }) {
-  const message = await retryWithBackoff(() => anthropic.messages.create({
-    model: "claude-3-haiku-20240307",
+  const completion = await retryWithBackoff(() => openai.chat.completions.create({
+    model: "gpt-4o",
     max_tokens: 2048,
+    response_format: { type: "json_object" },
     messages: [
       {
+        role: "system",
+        content: "You are a health data analyst AI. You analyze biomarker trends and predict future values. Always respond with valid JSON."
+      },
+      {
         role: "user",
-        content: `You are a health data analyst AI. Analyze the following biomarker trend and predict future values.
+        content: `Analyze the following biomarker trend and predict future values.
 
 ## Biomarker: ${data.biomarkerType}
 ## Historical Data (${data.historicalData.length} data points):
@@ -1315,13 +1355,10 @@ Focus on identifying clear patterns. Be conservative with predictions - if data 
     ],
   }));
 
-  const content = message.content[0];
-  if (content.type === "text") {
+  const content = completion.choices[0].message.content;
+  if (content) {
     try {
-      const jsonMatch = content.text.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]);
-      }
+      return JSON.parse(content);
     } catch (e) {
       console.error("Failed to parse trend prediction:", e);
     }
@@ -1335,13 +1372,18 @@ export async function generatePeriodComparison(data: {
   period1: { start: Date; end: Date; data: any[] };
   period2: { start: Date; end: Date; data: any[] };
 }) {
-  const message = await retryWithBackoff(() => anthropic.messages.create({
-    model: "claude-3-haiku-20240307",
+  const completion = await retryWithBackoff(() => openai.chat.completions.create({
+    model: "gpt-4o",
     max_tokens: 2048,
+    response_format: { type: "json_object" },
     messages: [
       {
+        role: "system",
+        content: "You are a health data analyst AI. You compare time periods for health metrics. Always respond with valid JSON."
+      },
+      {
         role: "user",
-        content: `You are a health data analyst AI. Compare two time periods for the following health metric.
+        content: `Compare two time periods for the following health metric.
 
 ## Metric: ${data.metricType}
 
@@ -1374,13 +1416,10 @@ Be specific with numbers and provide meaningful context about what the changes m
     ],
   }));
 
-  const content = message.content[0];
-  if (content.type === "text") {
+  const content = completion.choices[0].message.content;
+  if (content) {
     try {
-      const jsonMatch = content.text.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]);
-      }
+      return JSON.parse(content);
     } catch (e) {
       console.error("Failed to parse period comparison:", e);
     }
