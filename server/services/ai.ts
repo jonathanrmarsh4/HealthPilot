@@ -1095,18 +1095,19 @@ export async function generateDailyInsights(data: {
     });
   }
 
-  const completion = await retryWithBackoff(() => openai.chat.completions.create({
-    model: "gpt-4o",
-    max_tokens: 4096,
-    response_format: { type: "json_object" },
-    messages: [
-      {
-        role: "system",
-        content: "You are an intelligent health insights AI. You analyze health data and generate personalized daily insights. Always respond with valid JSON."
-      },
-      {
-        role: "user",
-        content: `Analyze the user's health data and generate personalized daily insights.
+  try {
+    const completion = await retryWithBackoff(() => openai.chat.completions.create({
+      model: "gpt-4o",
+      max_tokens: 4096,
+      response_format: { type: "json_object" },
+      messages: [
+        {
+          role: "system",
+          content: "You are an intelligent health insights AI. You analyze health data and generate personalized daily insights. Always respond with valid JSON."
+        },
+        {
+          role: "user",
+          content: `Analyze the user's health data and generate personalized daily insights.
 
 ## User's Health Data:
 ${JSON.stringify(data, null, 2)}
@@ -1170,21 +1171,28 @@ Only suggest these when they meaningfully support the user's health goals and ph
 - For goal insights, provide clear next steps to help user achieve their targets
 
 Generate 3-5 insights prioritized by importance. Focus on what matters most to the user's health today.`,
-      },
-    ],
-  }));
+        },
+      ],
+    }));
 
-  const content = completion.choices[0].message.content;
-  if (content) {
-    try {
-      const data = JSON.parse(content);
-      return data.insights || [];
-    } catch (e) {
-      console.error("Failed to parse insights:", e);
+    const content = completion?.choices?.[0]?.message?.content;
+    if (content) {
+      try {
+        const parsedData = JSON.parse(content);
+        return parsedData.insights || [];
+      } catch (e) {
+        console.error("Failed to parse insights JSON:", e);
+        console.error("Raw content:", content);
+        return [];
+      }
     }
-  }
 
-  return [];
+    console.warn("No content in AI response for daily insights");
+    return [];
+  } catch (error: any) {
+    console.error("Error generating daily insights:", error);
+    throw error;
+  }
 }
 
 export async function generateRecoveryInsights(data: {

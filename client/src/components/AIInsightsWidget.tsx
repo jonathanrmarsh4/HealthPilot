@@ -160,7 +160,7 @@ export function AIInsightsWidget() {
         ) : (
           <div className="space-y-3">
             {insights.map((insight) => {
-              const Icon = insightIcons[insight.type];
+              const Icon = insightIcons[insight.type] || Brain;
               return (
                 <div
                   key={insight.id}
@@ -186,7 +186,7 @@ export function AIInsightsWidget() {
                         <h3 className="font-semibold text-sm" data-testid={`text-insight-title-${insight.id}`}>
                           {insight.title}
                         </h3>
-                        <Badge className={categoryColors[insight.category]} data-testid={`badge-category-${insight.id}`}>
+                        <Badge className={categoryColors[insight.category] || categoryColors.overall} data-testid={`badge-category-${insight.id}`}>
                           {insight.category}
                         </Badge>
                         {insight.priority === 'high' && (
