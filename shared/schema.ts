@@ -97,10 +97,13 @@ export const trainingSchedules = pgTable("training_schedules", {
   userId: varchar("user_id").notNull(),
   day: text("day").notNull(),
   workoutType: text("workout_type").notNull(),
+  sessionType: text("session_type").notNull().default("workout"), // "workout", "sauna", "cold_plunge"
   duration: integer("duration").notNull(),
   intensity: text("intensity").notNull(),
   description: text("description"), // How this workout supports user's active goals
   exercises: jsonb("exercises").notNull(),
+  isOptional: integer("is_optional").notNull().default(0), // 1 if optional recovery session
+  scheduledFor: timestamp("scheduled_for"), // Specific date/time when user schedules recovery session
   completed: integer("completed").notNull().default(0),
   completedAt: timestamp("completed_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -109,7 +112,8 @@ export const trainingSchedules = pgTable("training_schedules", {
 export const workoutSessions = pgTable("workout_sessions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull(),
-  workoutType: text("workout_type").notNull(), // running, cycling, strength, hiit, yoga, swimming, etc.
+  workoutType: text("workout_type").notNull(), // running, cycling, strength, hiit, yoga, swimming, sauna, cold_plunge, etc.
+  sessionType: text("session_type").notNull().default("workout"), // "workout", "sauna", "cold_plunge"
   startTime: timestamp("start_time").notNull(),
   endTime: timestamp("end_time").notNull(),
   duration: integer("duration").notNull(), // in minutes
