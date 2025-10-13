@@ -1,4 +1,4 @@
-export type MetricType = "weight" | "blood-glucose" | "blood-pressure" | "heart-rate" | "cholesterol" | "sleep" | "steps" | "exercise" | "height" | "temperature";
+export type MetricType = "weight" | "blood-glucose" | "blood-pressure" | "heart-rate" | "cholesterol" | "ldl-cholesterol" | "hdl-cholesterol" | "total-cholesterol" | "triglycerides" | "vldl-cholesterol" | "sleep" | "steps" | "exercise" | "height" | "temperature";
 
 export interface UnitConfig {
   imperial: {
@@ -36,6 +36,26 @@ export const unitConfigs: Record<MetricType, UnitConfig> = {
     imperial: { unit: "mg/dL", label: "Cholesterol (mg/dL)" },
     metric: { unit: "mmol/L", label: "Cholesterol (mmol/L)" },
   },
+  "ldl-cholesterol": {
+    imperial: { unit: "mg/dL", label: "LDL Cholesterol (mg/dL)" },
+    metric: { unit: "mmol/L", label: "LDL Cholesterol (mmol/L)" },
+  },
+  "hdl-cholesterol": {
+    imperial: { unit: "mg/dL", label: "HDL Cholesterol (mg/dL)" },
+    metric: { unit: "mmol/L", label: "HDL Cholesterol (mmol/L)" },
+  },
+  "total-cholesterol": {
+    imperial: { unit: "mg/dL", label: "Total Cholesterol (mg/dL)" },
+    metric: { unit: "mmol/L", label: "Total Cholesterol (mmol/L)" },
+  },
+  triglycerides: {
+    imperial: { unit: "mg/dL", label: "Triglycerides (mg/dL)" },
+    metric: { unit: "mmol/L", label: "Triglycerides (mmol/L)" },
+  },
+  "vldl-cholesterol": {
+    imperial: { unit: "mg/dL", label: "VLDL Cholesterol (mg/dL)" },
+    metric: { unit: "mmol/L", label: "VLDL Cholesterol (mmol/L)" },
+  },
   sleep: {
     imperial: { unit: "hours", label: "Sleep Duration (hours)" },
     metric: { unit: "hours", label: "Sleep Duration (hours)" },
@@ -69,7 +89,13 @@ export function convertToMetric(value: number, type: MetricType, fromUnit: strin
     case "blood-glucose":
       return fromUnit === "mg/dL" ? value / 18.018 : value;
     case "cholesterol":
+    case "ldl-cholesterol":
+    case "hdl-cholesterol":
+    case "total-cholesterol":
+    case "vldl-cholesterol":
       return fromUnit === "mg/dL" ? value / 38.67 : value;
+    case "triglycerides":
+      return fromUnit === "mg/dL" ? value / 88.57 : value;
     case "temperature":
       return fromUnit === "°F" ? (value - 32) * 5/9 : value;
     default:
@@ -92,7 +118,13 @@ export function convertFromMetric(value: number, type: MetricType, toUnit: strin
     case "blood-glucose":
       return toUnit === "mg/dL" ? value * 18.018 : value;
     case "cholesterol":
+    case "ldl-cholesterol":
+    case "hdl-cholesterol":
+    case "total-cholesterol":
+    case "vldl-cholesterol":
       return toUnit === "mg/dL" ? value * 38.67 : value;
+    case "triglycerides":
+      return toUnit === "mg/dL" ? value * 88.57 : value;
     case "temperature":
       return toUnit === "°F" ? (value * 9/5) + 32 : value;
     default:
@@ -121,6 +153,11 @@ export function formatValue(value: number, type: MetricType): string {
       return value.toFixed(1);
     case "blood-glucose":
     case "cholesterol":
+    case "ldl-cholesterol":
+    case "hdl-cholesterol":
+    case "total-cholesterol":
+    case "triglycerides":
+    case "vldl-cholesterol":
       return value.toFixed(1);
     case "temperature":
       return value.toFixed(1);
