@@ -124,7 +124,7 @@ export default function BiologicalAge() {
               ) : (
                 <div className="p-4 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-900" data-testid="message-equal">
                   <p className="text-blue-800 dark:text-blue-200 font-medium">
-                    Your biological age matches your chronological age
+                    Your biological age is {phenoAge} years, matching your chronological age
                   </p>
                   <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
                     You're aging at a normal rate. Optimize your health to reduce biological age.
@@ -155,7 +155,7 @@ export default function BiologicalAge() {
             <p className="text-sm text-muted-foreground mb-4">
               We need {missingBiomarkers.length} more biomarker{missingBiomarkers.length !== 1 ? 's' : ''} to calculate your biological age.
             </p>
-            <Link href="/health-records">
+            <Link href="/records">
               <Button size="lg" data-testid="button-upload-records">
                 <Upload className="w-4 h-4 mr-2" />
                 Upload Blood Work

@@ -15,30 +15,48 @@ export function HealthRecordUpload() {
       const formData = new FormData();
       formData.append("file", file);
 
-      const res = await fetch("/api/health-records/upload", {
-        method: "POST",
-        body: formData,
-        credentials: "include",
-      });
+      // Create AbortController with 5-minute timeout for large files
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minutes
 
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || "Upload failed");
+      try {
+        const res = await fetch("/api/health-records/upload", {
+          method: "POST",
+          body: formData,
+          credentials: "include",
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(text || "Upload failed");
+        }
+
+        return res.json();
+      } catch (error: any) {
+        clearTimeout(timeoutId);
+        
+        if (error.name === 'AbortError') {
+          throw new Error("Upload timed out. Large files may take several minutes to process. Please try a smaller file or wait and try again.");
+        }
+        throw error;
       }
-
-      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/health-records"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/biomarkers"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
       setSelectedFile(null);
       toast({
         title: "Success",
-        description: "Health record uploaded successfully!",
+        description: "Health record uploaded and analyzed successfully!",
       });
     },
     onError: (error: Error) => {
       toast({
-        title: "Error",
+        title: "Upload Error",
         description: error.message || "Failed to upload file",
         variant: "destructive",
       });
@@ -100,34 +118,43 @@ export function HealthRecordUpload() {
         </div>
 
         {selectedFile && (
-          <div className="flex items-center justify-between rounded-md bg-muted/50 p-4">
-            <div className="flex items-center gap-3">
-              <FileText className="h-5 w-5 text-primary" />
-              <div>
-                <p className="text-sm font-medium">{selectedFile.name}</p>
-                <p className="text-xs text-muted-foreground">
-                  {(selectedFile.size / 1024).toFixed(1)} KB
-                </p>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between rounded-md bg-muted/50 p-4">
+              <div className="flex items-center gap-3">
+                <FileText className="h-5 w-5 text-primary" />
+                <div>
+                  <p className="text-sm font-medium">{selectedFile.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {(selectedFile.size / 1024).toFixed(1)} KB
+                  </p>
+                </div>
               </div>
+              <Button
+                onClick={handleUpload}
+                disabled={uploadMutation.isPending}
+                size="sm"
+                data-testid="button-upload"
+              >
+                {uploadMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Analyzing...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Upload
+                  </>
+                )}
+              </Button>
             </div>
-            <Button
-              onClick={handleUpload}
-              disabled={uploadMutation.isPending}
-              size="sm"
-              data-testid="button-upload"
-            >
-              {uploadMutation.isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Uploading...
-                </>
-              ) : (
-                <>
-                  <Upload className="mr-2 h-4 w-4" />
-                  Upload
-                </>
-              )}
-            </Button>
+            
+            {uploadMutation.isPending && (
+              <div className="text-xs text-muted-foreground bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-md p-3">
+                <p className="font-medium mb-1">Processing your health record...</p>
+                <p>Large files may take 2-3 minutes to analyze. Please don't close this page.</p>
+              </div>
+            )}
           </div>
         )}
 

@@ -459,10 +459,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/health-records/upload", isAuthenticated, upload.single('file'), async (req, res) => {
     const userId = (req.user as any).claims.sub;
+    
+    // Increase timeout for this specific route to handle large file processing
+    req.setTimeout(300000); // 5 minutes
+    res.setTimeout(300000); // 5 minutes
+    
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No file uploaded" });
       }
+
+      const fileSizeKB = (req.file.size / 1024).toFixed(1);
+      console.log(`📄 Processing health record: ${req.file.originalname} (${fileSizeKB} KB) for user ${userId}`);
 
       const fileText = req.file.buffer.toString('utf-8');
       const analysis = await analyzeHealthDocument(fileText, req.file.originalname);
@@ -478,6 +486,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       if (analysis.biomarkers && Array.isArray(analysis.biomarkers)) {
+        console.log(`✅ Extracted ${analysis.biomarkers.length} biomarkers from ${req.file.originalname}`);
         for (const biomarker of analysis.biomarkers) {
           await storage.createBiomarker({
             userId,
@@ -493,7 +502,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json(record);
     } catch (error: any) {
-      console.error("Error uploading file:", error);
+      console.error("❌ Error uploading file:", error.message || error);
       
       // Handle specific error cases with user-friendly messages
       if (error.message?.includes('prompt is too long')) {
@@ -505,6 +514,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (error.status === 400 || error.error?.type === 'invalid_request_error') {
         return res.status(400).json({ 
           error: "Unable to process this document. The file may be too large or contain unsupported content. Please try a smaller file."
+        });
+      }
+
+      if (error.message?.includes('timeout') || error.code === 'ECONNABORTED') {
+        return res.status(408).json({ 
+          error: "Processing timed out. Large documents may require splitting into smaller files. Please try again with a smaller file."
         });
       }
       

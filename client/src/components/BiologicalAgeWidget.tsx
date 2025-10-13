@@ -69,7 +69,7 @@ export function BiologicalAgeWidget() {
                 </>
               ) : (
                 <span className="text-blue-600 dark:text-blue-400 font-medium" data-testid="message-equal-widget">
-                  Matches chronological age
+                  {phenoAge} years (matches age)
                 </span>
               )}
             </div>

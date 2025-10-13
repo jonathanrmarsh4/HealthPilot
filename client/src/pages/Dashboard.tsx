@@ -263,6 +263,10 @@ export default function Dashboard() {
     queryKey: ["/api/recommendations"],
   });
 
+  const { data: biologicalAgeData } = useQuery<{ canCalculate: boolean }>({
+    queryKey: ["/api/biological-age"],
+  });
+
   const { data: allBiomarkers } = useQuery<Array<{ type: string }>>({
     queryKey: ["/api/biomarkers"],
   });
@@ -695,6 +699,7 @@ export default function Dashboard() {
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             <HealthScoreWidget />
             <SleepScoreDonutWidget />
+            {biologicalAgeData?.canCalculate && <BiologicalAgeWidget />}
             <GoalsSummaryWidget />
           </div>
         </div>
