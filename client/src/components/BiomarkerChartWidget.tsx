@@ -43,20 +43,52 @@ export function BiomarkerChartWidget({ type, config, unitSystem }: BiomarkerChar
     return point;
   });
 
-  // Convert reference range if needed
-  let convertedReferenceRange = config.referenceRange;
-  if (config.referenceRange && unitConfig && unitConfig.imperial && unitConfig.metric) {
-    const imperialUnit = unitConfig.imperial.unit;
-    const targetUnitForRange = unitConfig[unitSystem].unit;
-    
-    // Reference ranges are defined in imperial units
-    if (imperialUnit !== targetUnitForRange) {
-      convertedReferenceRange = {
-        low: convertValue(config.referenceRange.low, type as keyof typeof unitConfigs, imperialUnit, targetUnitForRange),
-        high: convertValue(config.referenceRange.high, type as keyof typeof unitConfigs, imperialUnit, targetUnitForRange),
-      };
+  // Get reference range based on display unit
+  const getConvertedReferenceRange = () => {
+    // Use new unit-aware reference ranges if available
+    if (config.referenceRanges) {
+      // If biomarker has unit configs, match by unit
+      if (unitConfig && unitConfig[unitSystem]) {
+        const targetUnitForRange = unitConfig[unitSystem].unit;
+        
+        // Try to match reference range by unit
+        if (config.referenceRanges.metric?.unit === targetUnitForRange) {
+          return { low: config.referenceRanges.metric.low, high: config.referenceRanges.metric.high };
+        }
+        if (config.referenceRanges.imperial?.unit === targetUnitForRange) {
+          return { low: config.referenceRanges.imperial.low, high: config.referenceRanges.imperial.high };
+        }
+        
+        // Default to metric if using metric system, imperial otherwise
+        if (unitSystem === 'metric' && config.referenceRanges.metric) {
+          return { low: config.referenceRanges.metric.low, high: config.referenceRanges.metric.high };
+        }
+        if (unitSystem === 'imperial' && config.referenceRanges.imperial) {
+          return { low: config.referenceRanges.imperial.low, high: config.referenceRanges.imperial.high };
+        }
+      }
     }
-  }
+    
+    // Legacy: Fall back to old referenceRange
+    if (!config.referenceRange) return undefined;
+    
+    if (unitConfig && unitConfig.imperial && unitConfig.metric) {
+      const imperialUnit = unitConfig.imperial.unit;
+      const targetUnitForRange = unitConfig[unitSystem].unit;
+      
+      // Convert reference ranges from imperial to display unit
+      if (imperialUnit !== targetUnitForRange) {
+        return {
+          low: convertValue(config.referenceRange.low, type as keyof typeof unitConfigs, imperialUnit, targetUnitForRange),
+          high: convertValue(config.referenceRange.high, type as keyof typeof unitConfigs, imperialUnit, targetUnitForRange),
+        };
+      }
+    }
+    
+    return config.referenceRange;
+  };
+
+  const convertedReferenceRange = getConvertedReferenceRange();
 
   if (isLoading) {
     return (
