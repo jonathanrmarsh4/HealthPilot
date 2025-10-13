@@ -29,8 +29,9 @@ export function RecipeDetailModal({ meal, open, onOpenChange }: RecipeDetailModa
 
   // Function to scale ingredient quantities
   const scaleIngredient = (ingredient: string): string => {
-    // Match patterns like "1 cup", "200g", "2 tbsp", "1/2 tsp", etc.
-    const quantityPattern = /^(\d+(?:\/\d+)?(?:\.\d+)?)\s*([a-zA-Z]*)\s+(.+)$/;
+    // Match patterns like "1 cup oats", "200g chicken", "2 tbsp oil", "1/2 tsp salt"
+    // Pattern: number (with optional fraction/decimal) + space + optional unit + space + rest
+    const quantityPattern = /^(\d+(?:\/\d+)?(?:\.\d+)?)\s+([a-zA-Z]+)?\s*(.+)$/;
     const match = ingredient.match(quantityPattern);
     
     if (match) {
@@ -52,14 +53,17 @@ export function RecipeDetailModal({ meal, open, onOpenChange }: RecipeDetailModa
       if (scaledValue % 1 === 0) {
         formattedValue = scaledValue.toString();
       } else if (scaledValue < 1) {
-        // Convert to fraction if less than 1
-        const fraction = scaledValue.toFixed(2);
-        formattedValue = fraction;
+        formattedValue = scaledValue.toFixed(2);
       } else {
         formattedValue = scaledValue.toFixed(1);
       }
       
-      return `${formattedValue}${unit ? ' ' + unit : ''} ${rest}`;
+      // Reconstruct the ingredient with scaled quantity
+      if (unit) {
+        return `${formattedValue} ${unit} ${rest}`;
+      } else {
+        return `${formattedValue} ${rest}`;
+      }
     }
     
     // If no quantity match, return original
