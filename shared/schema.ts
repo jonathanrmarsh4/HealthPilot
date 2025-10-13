@@ -218,6 +218,8 @@ export const insertHealthRecordSchema = createInsertSchema(healthRecords).omit({
 
 export const insertBiomarkerSchema = createInsertSchema(biomarkers).omit({
   id: true,
+}).extend({
+  recordedAt: z.coerce.date().optional().default(() => new Date()),
 });
 
 export const insertMealPlanSchema = createInsertSchema(mealPlans).omit({

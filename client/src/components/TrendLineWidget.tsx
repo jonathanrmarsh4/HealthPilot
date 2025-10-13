@@ -184,13 +184,7 @@ export function TrendLineWidget({ type }: TrendLineWidgetProps) {
               {rangeStatus && (
                 <Badge 
                   variant={rangeStatus.status === "normal" ? "default" : "destructive"}
-                  className={`text-xs ${
-                    rangeStatus.status === "normal" 
-                      ? "bg-green-500 hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700" 
-                      : rangeStatus.status === "above"
-                      ? "bg-red-500 hover:bg-red-600"
-                      : "bg-orange-500 hover:bg-orange-600 dark:bg-orange-600 dark:hover:bg-orange-700"
-                  }`}
+                  className="text-xs"
                   data-testid={`range-status-${type}`}
                 >
                   {rangeStatus.label}

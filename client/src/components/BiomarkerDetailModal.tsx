@@ -50,6 +50,29 @@ export function BiomarkerDetailModal({ open, onOpenChange, type, config }: Bioma
 
   const displayUnit = unitConfigs[type as keyof typeof unitConfigs]?.[unitSystem]?.unit || chartData?.[0]?.unit || "";
 
+  // Convert reference range to display units
+  const getConvertedReferenceRange = () => {
+    if (!config.referenceRange) return null;
+    
+    const biomarkerConfig = unitConfigs[type as keyof typeof unitConfigs];
+    if (biomarkerConfig && biomarkerConfig.imperial && biomarkerConfig.metric) {
+      const imperialUnit = biomarkerConfig.imperial.unit;
+      const targetUnit = biomarkerConfig[unitSystem].unit;
+      
+      // Convert reference ranges from imperial to display unit if needed
+      if (imperialUnit !== targetUnit) {
+        return {
+          low: convertValue(config.referenceRange.low, type as any, imperialUnit, targetUnit),
+          high: convertValue(config.referenceRange.high, type as any, imperialUnit, targetUnit),
+        };
+      }
+    }
+    
+    return config.referenceRange;
+  };
+
+  const convertedReferenceRange = getConvertedReferenceRange();
+
   // Format chart data for Recharts
   const formattedData = convertedData?.map(point => ({
     date: new Date(point.date).getTime(),
@@ -126,10 +149,10 @@ export function BiomarkerDetailModal({ open, onOpenChange, type, config }: Bioma
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                   
                   {/* Reference Range Area */}
-                  {config.referenceRange && (
+                  {convertedReferenceRange && (
                     <ReferenceArea
-                      y1={config.referenceRange.low}
-                      y2={config.referenceRange.high}
+                      y1={convertedReferenceRange.low}
+                      y2={convertedReferenceRange.high}
                       fill="hsl(var(--chart-2))"
                       fillOpacity={0.1}
                       strokeOpacity={0.3}
@@ -138,16 +161,16 @@ export function BiomarkerDetailModal({ open, onOpenChange, type, config }: Bioma
                   )}
 
                   {/* Reference Range Lines */}
-                  {config.referenceRange && (
+                  {convertedReferenceRange && (
                     <>
                       <ReferenceLine
-                        y={config.referenceRange.high}
+                        y={convertedReferenceRange.high}
                         stroke="hsl(var(--chart-2))"
                         strokeDasharray="3 3"
                         label={{ value: 'High', position: 'right', fill: 'hsl(var(--muted-foreground))' }}
                       />
                       <ReferenceLine
-                        y={config.referenceRange.low}
+                        y={convertedReferenceRange.low}
                         stroke="hsl(var(--chart-2))"
                         strokeDasharray="3 3"
                         label={{ value: 'Low', position: 'right', fill: 'hsl(var(--muted-foreground))' }}
@@ -213,11 +236,11 @@ export function BiomarkerDetailModal({ open, onOpenChange, type, config }: Bioma
               </div>
             </div>
 
-            {config.referenceRange && (
+            {convertedReferenceRange && (
               <div className="bg-muted/30 rounded-lg p-4">
                 <p className="text-sm font-semibold mb-2">Reference Range</p>
                 <p className="text-sm text-muted-foreground" data-testid="text-reference-range">
-                  {config.referenceRange.low} - {config.referenceRange.high} {displayUnit}
+                  {convertedReferenceRange.low.toFixed(config.decimals || 1)} - {convertedReferenceRange.high.toFixed(config.decimals || 1)} {displayUnit}
                 </p>
               </div>
             )}
