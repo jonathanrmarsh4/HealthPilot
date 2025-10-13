@@ -41,6 +41,7 @@ The application is a full-stack project utilizing React, TypeScript, Tailwind CS
   - **Day Scheduling:** Users can schedule optional recovery sessions for specific days with visual calendar badges
   - **Ad-Hoc Logging:** Quick-log dialog for recording sauna/cold plunge sessions not in the plan, with duration and notes tracking
   - **Visual Distinctions:** Recovery sessions display with dashed borders, fire/snowflake icons, and purple "Recovery" badges for easy identification
+  - **Session Detail View:** Clickable workout cards in Workouts tab open detail dialog showing complete session information including notes, duration, calories, heart rate, and source - fully mobile-responsive
 - **Training Analytics:** Phase 3 backend implementation provides:
   - **Training Load Calculation:** Weekly and monthly training load tracking using duration and heart rate intensity (when available). Calculates total training hours per week.
   - **Workout Statistics:** Aggregates workout data by type (e.g., Cardio, Strength, Yoga) with total duration, calories burned, and workout counts.
