@@ -8,6 +8,12 @@ export interface BiomarkerConfig {
   referenceRange?: {
     low: number;
     high: number;
+    unit?: string; // Optional: specify which unit this range applies to
+  };
+  // Unit-aware reference ranges (preferred approach)
+  referenceRanges?: {
+    imperial?: { low: number; high: number; unit: string };
+    metric?: { low: number; high: number; unit: string };
   };
 }
 
@@ -60,48 +66,66 @@ export const subsections: Record<string, SubsectionConfig> = {
 };
 
 export const biomarkerDisplayConfig: Record<string, BiomarkerConfig> = {
-  // Lipid Panel (values in mg/dL)
+  // Lipid Panel - Unit-aware reference ranges
   "ldl-cholesterol": {
     title: "LDL Cholesterol",
     description: "6-month trend",
     days: 730,
     color: "hsl(var(--chart-1))",
-    referenceRange: { low: 0, high: 100 } // Optimal < 100 mg/dL
+    referenceRanges: {
+      imperial: { low: 0, high: 100, unit: "mg/dL" }, // Optimal < 100 mg/dL
+      metric: { low: 0, high: 2.6, unit: "mmol/L" }   // Optimal < 2.6 mmol/L
+    }
   },
   "hdl-cholesterol": {
     title: "HDL Cholesterol",
     description: "6-month trend",
     days: 730,
     color: "hsl(var(--chart-2))",
-    referenceRange: { low: 40, high: 200 } // > 40 mg/dL for men, > 50 for women
+    referenceRanges: {
+      imperial: { low: 40, high: 60, unit: "mg/dL" }, // 40-60 mg/dL normal
+      metric: { low: 1.0, high: 1.55, unit: "mmol/L" } // 1.0-1.55 mmol/L normal
+    }
   },
   "total-cholesterol": {
     title: "Total Cholesterol",
     description: "6-month trend",
     days: 730,
     color: "hsl(var(--chart-3))",
-    referenceRange: { low: 0, high: 200 } // < 200 mg/dL desirable
+    referenceRanges: {
+      imperial: { low: 0, high: 200, unit: "mg/dL" }, // < 200 mg/dL desirable
+      metric: { low: 0, high: 5.2, unit: "mmol/L" }   // < 5.2 mmol/L desirable
+    }
   },
   "cholesterol": {
     title: "Total Cholesterol",
     description: "6-month trend",
     days: 730,
     color: "hsl(var(--chart-3))",
-    referenceRange: { low: 0, high: 200 }
+    referenceRanges: {
+      imperial: { low: 0, high: 200, unit: "mg/dL" },
+      metric: { low: 0, high: 5.2, unit: "mmol/L" }
+    }
   },
   "triglycerides": {
     title: "Triglycerides",
     description: "6-month trend",
     days: 730,
     color: "hsl(var(--chart-4))",
-    referenceRange: { low: 0, high: 150 } // < 150 mg/dL normal
+    referenceRanges: {
+      imperial: { low: 0, high: 150, unit: "mg/dL" }, // < 150 mg/dL normal
+      metric: { low: 0, high: 1.7, unit: "mmol/L" }   // < 1.7 mmol/L normal
+    }
   },
   "vldl-cholesterol": {
     title: "VLDL Cholesterol",
     description: "6-month trend",
     days: 730,
     color: "hsl(var(--chart-5))",
-    referenceRange: { low: 2, high: 30 } // 2-30 mg/dL
+    referenceRanges: {
+      imperial: { low: 2, high: 30, unit: "mg/dL" },
+      metric: { low: 0.05, high: 0.78, unit: "mmol/L" }
+    }
   },
   
   // Liver Function

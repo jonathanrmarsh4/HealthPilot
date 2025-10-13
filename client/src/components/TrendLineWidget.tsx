@@ -86,30 +86,65 @@ export function TrendLineWidget({ type }: TrendLineWidgetProps) {
     }
   };
 
-  // Check reference range status
-  const getRangeStatus = () => {
-    if (!config.referenceRange || latestValue === undefined) return null;
+  // Get reference range based on display unit
+  const getConvertedReferenceRange = () => {
+    // Use new unit-aware reference ranges if available
+    if (config.referenceRanges) {
+      const biomarkerConfig = unitConfigs[type as keyof typeof unitConfigs];
+      
+      // If biomarker has unit configs, match by unit
+      if (biomarkerConfig && biomarkerConfig[unitSystem]) {
+        const targetUnit = biomarkerConfig[unitSystem].unit;
+        
+        // Try to match reference range by unit
+        if (config.referenceRanges.metric?.unit === targetUnit) {
+          return { low: config.referenceRanges.metric.low, high: config.referenceRanges.metric.high };
+        }
+        if (config.referenceRanges.imperial?.unit === targetUnit) {
+          return { low: config.referenceRanges.imperial.low, high: config.referenceRanges.imperial.high };
+        }
+        
+        // Default to metric if using metric system, imperial otherwise
+        if (unitSystem === 'metric' && config.referenceRanges.metric) {
+          return { low: config.referenceRanges.metric.low, high: config.referenceRanges.metric.high };
+        }
+        if (unitSystem === 'imperial' && config.referenceRanges.imperial) {
+          return { low: config.referenceRanges.imperial.low, high: config.referenceRanges.imperial.high };
+        }
+      }
+    }
+    
+    // Legacy: Fall back to old referenceRange
+    if (!config.referenceRange) return null;
     
     const biomarkerConfig = unitConfigs[type as keyof typeof unitConfigs];
-    
-    // Reference ranges are defined in imperial units (see biomarkerConfig comments)
-    // Convert them to the display unit for comparison with the displayed value
-    let lowThreshold = config.referenceRange.low;
-    let highThreshold = config.referenceRange.high;
-    
     if (biomarkerConfig && biomarkerConfig.imperial && biomarkerConfig.metric) {
       const imperialUnit = biomarkerConfig.imperial.unit;
       const targetUnit = biomarkerConfig[unitSystem].unit;
       
       // Convert reference ranges from imperial to display unit
       if (imperialUnit !== targetUnit) {
-        lowThreshold = convertValue(config.referenceRange.low, type as any, imperialUnit, targetUnit);
-        highThreshold = convertValue(config.referenceRange.high, type as any, imperialUnit, targetUnit);
+        return {
+          low: convertValue(config.referenceRange.low, type as any, imperialUnit, targetUnit),
+          high: convertValue(config.referenceRange.high, type as any, imperialUnit, targetUnit),
+        };
       }
     }
     
-    // Compare the converted display value with the converted thresholds
-    // Both are now in the same unit (display unit)
+    return config.referenceRange;
+  };
+
+  // Check reference range status
+  const getRangeStatus = () => {
+    if (latestValue === undefined) return null;
+    
+    const refRange = getConvertedReferenceRange();
+    if (!refRange) return null;
+    
+    const lowThreshold = refRange.low;
+    const highThreshold = refRange.high;
+    
+    // Compare the value with the thresholds
     if (latestValue < lowThreshold) return { status: "below", label: "Below Range" };
     if (latestValue > highThreshold) return { status: "above", label: "Above Range" };
     return { status: "normal", label: "In Range" };

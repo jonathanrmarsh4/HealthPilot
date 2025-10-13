@@ -50,8 +50,43 @@ export function BiomarkerDetailModal({ open, onOpenChange, type, config }: Bioma
 
   const displayUnit = unitConfigs[type as keyof typeof unitConfigs]?.[unitSystem]?.unit || chartData?.[0]?.unit || "";
 
-  // Convert reference range to display units
+  // Get reference range based on display unit
   const getConvertedReferenceRange = () => {
+    // Use new unit-aware reference ranges if available
+    if (config.referenceRanges) {
+      const biomarkerConfig = unitConfigs[type as keyof typeof unitConfigs];
+      
+      // If biomarker has unit configs, use the appropriate reference range
+      if (biomarkerConfig && biomarkerConfig[unitSystem]) {
+        const targetUnit = biomarkerConfig[unitSystem].unit;
+        
+        // Try to match reference range by unit
+        if (config.referenceRanges.metric?.unit === targetUnit) {
+          return { low: config.referenceRanges.metric.low, high: config.referenceRanges.metric.high };
+        }
+        if (config.referenceRanges.imperial?.unit === targetUnit) {
+          return { low: config.referenceRanges.imperial.low, high: config.referenceRanges.imperial.high };
+        }
+        
+        // Default to metric if using metric system, imperial otherwise
+        if (unitSystem === 'metric' && config.referenceRanges.metric) {
+          return { low: config.referenceRanges.metric.low, high: config.referenceRanges.metric.high };
+        }
+        if (unitSystem === 'imperial' && config.referenceRanges.imperial) {
+          return { low: config.referenceRanges.imperial.low, high: config.referenceRanges.imperial.high };
+        }
+      }
+      
+      // Fallback: use metric or imperial based on system setting
+      if (unitSystem === 'metric' && config.referenceRanges.metric) {
+        return { low: config.referenceRanges.metric.low, high: config.referenceRanges.metric.high };
+      }
+      if (unitSystem === 'imperial' && config.referenceRanges.imperial) {
+        return { low: config.referenceRanges.imperial.low, high: config.referenceRanges.imperial.high };
+      }
+    }
+    
+    // Legacy: Fall back to old referenceRange if no unit-aware ranges
     if (!config.referenceRange) return null;
     
     const biomarkerConfig = unitConfigs[type as keyof typeof unitConfigs];
