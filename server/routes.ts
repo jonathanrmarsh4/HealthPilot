@@ -859,6 +859,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.patch("/api/training-schedules/:id/schedule", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    try {
+      const { id } = req.params;
+      const { scheduledFor } = req.body;
+      
+      const updated = await storage.updateTrainingSchedule(id, userId, {
+        scheduledFor: scheduledFor ? new Date(scheduledFor) : null,
+      });
+      
+      if (!updated) {
+        return res.status(404).json({ error: 'Training schedule not found' });
+      }
+      
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/workout-sessions/recovery", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    try {
+      const { sessionType, duration, notes } = req.body;
+      
+      if (!sessionType || !['sauna', 'cold_plunge'].includes(sessionType)) {
+        return res.status(400).json({ error: 'Invalid session type. Must be "sauna" or "cold_plunge"' });
+      }
+      
+      const now = new Date();
+      const workoutType = sessionType === 'sauna' ? 'Sauna Session' : 'Cold Plunge Session';
+      
+      const session = await storage.createWorkoutSession({
+        userId,
+        workoutType,
+        sessionType,
+        startTime: now,
+        endTime: new Date(now.getTime() + (duration || 20) * 60000),
+        duration: duration || 20,
+        sourceType: 'manual',
+        notes: notes || '',
+      });
+      
+      res.json(session);
+    } catch (error: any) {
+      console.error("Error logging recovery session:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Workout Sessions Endpoint
   app.get("/api/workout-sessions", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
