@@ -726,35 +726,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Step 4: Assign dates to meals, generate images, and save them
       const savedPlans = [];
       
-      // Helper to get relevant food image URL based on meal content
-      const getFoodImageUrl = async (mealName: string, mealType: string): Promise<string | null> => {
-        try {
-          // Create search query from meal name and type
-          const searchTerms = mealName.toLowerCase()
-            .replace(/[^\w\s]/g, '') // Remove special chars
-            .split(' ')
-            .filter(word => word.length > 3) // Only meaningful words
-            .slice(0, 3) // Max 3 words
-            .join(' ');
-          
-          // Use Unsplash Source API (free, no auth, no rate limits for basic use)
-          // Returns actual images matching the search term
-          const query = searchTerms || mealType.toLowerCase();
-          const imageUrl = `https://source.unsplash.com/800x600/?${encodeURIComponent(query)},food`;
-          
-          // Test if URL is accessible
-          const response = await fetch(imageUrl, { method: 'HEAD' });
-          if (response.ok) {
-            return imageUrl;
-          }
-          
-          // Fallback to meal type
-          return `https://source.unsplash.com/800x600/?${encodeURIComponent(mealType.toLowerCase())},food`;
-        } catch (error) {
-          console.log(`⚠️ Could not fetch image for "${mealName}":`, error);
-          // Ultimate fallback
-          return `https://source.unsplash.com/800x600/?healthy,food`;
-        }
+      // Helper to get food image URL with curated food images
+      const getFoodImageUrl = (mealName: string, mealType: string): string => {
+        // Create a unique seed from meal name for consistent images
+        const seed = mealName.toLowerCase().replace(/[^a-z0-9]/g, '');
+        
+        // Map meal types to appropriate food category IDs (Lorem Picsum)
+        const mealTypeImages: Record<string, string> = {
+          'Breakfast': `https://picsum.photos/seed/${seed}-breakfast/800/600`,
+          'Lunch': `https://picsum.photos/seed/${seed}-lunch/800/600`,
+          'Dinner': `https://picsum.photos/seed/${seed}-dinner/800/600`,
+          'Snack': `https://picsum.photos/seed/${seed}-snack/800/600`,
+        };
+        
+        // Return meal-specific image with seed for consistency
+        return mealTypeImages[mealType] || `https://picsum.photos/seed/${seed}/800/600`;
       };
       
       for (const plan of mealPlans) {
@@ -764,7 +750,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         scheduledDate.setDate(startDate.getDate() + (dayNumber - 1));
         
         // Get a food image URL that matches the meal
-        const imageUrl = await getFoodImageUrl((plan as any).name, (plan as any).mealType);
+        const imageUrl = getFoodImageUrl((plan as any).name, (plan as any).mealType);
         
         const saved = await storage.createMealPlan({
           ...plan,
