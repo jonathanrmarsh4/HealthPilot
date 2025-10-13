@@ -12,7 +12,7 @@ I prefer simple language and clear explanations. I want iterative development wh
 
 ## System Architecture
 
-The application is a full-stack project utilizing React, TypeScript, Tailwind CSS, and shadcn/ui for the frontend, and Express.js with TypeScript for the backend. PostgreSQL, accessed via Drizzle ORM, serves as the primary database. AI capabilities are powered by Anthropic Claude 3 Haiku.
+The application is a full-stack project utilizing React, TypeScript, Tailwind CSS, and shadcn/ui for the frontend, and Express.js with TypeScript for the backend. PostgreSQL, accessed via Drizzle ORM, serves as the primary database. AI capabilities are powered by OpenAI GPT-4o via Replit AI Integrations.
 
 **UI/UX Decisions:**
 - Dark mode support
@@ -37,7 +37,7 @@ The application is a full-stack project utilizing React, TypeScript, Tailwind CS
 - **Sleep Data Implementation:** Uses `inBedStart` and `inBedEnd` for sleep session duration, includes awake time, and performs smart deduplication. Custom sleep score calculation is implemented as Apple's native score is not exportable.
 - **Workout Tracking:** Comprehensive exercise data import from Apple Health via webhook. Automatically creates workout sessions with duration, calories, heart rate, and distance. Smart matching algorithm links completed workouts to training schedules by day and type, marking schedules as completed. Supports strength training exercise logs with sets, reps, and weight tracking.
 - **Recovery Session Integration:** Optional sauna and cold plunge sessions (3-4x/week) included in AI-generated training plans with smart post-workout scheduling recommendations. Features include:
-  - **AI Training Plan Enhancement:** Claude generates recovery sessions alongside workouts, marked as optional with appropriate session types (sauna/cold_plunge)
+  - **AI Training Plan Enhancement:** AI generates recovery sessions alongside workouts, marked as optional with appropriate session types (sauna/cold_plunge)
   - **Day Scheduling:** Users can schedule optional recovery sessions for specific days with visual calendar badges
   - **Ad-Hoc Logging:** Quick-log dialog for recording sauna/cold plunge sessions not in the plan, with duration and notes tracking
   - **Visual Distinctions:** Recovery sessions display with dashed borders, fire/snowflake icons, and purple "Recovery" badges for easy identification
@@ -46,7 +46,7 @@ The application is a full-stack project utilizing React, TypeScript, Tailwind CS
   - **Training Load Calculation:** Weekly and monthly training load tracking using duration and heart rate intensity (when available). Calculates total training hours per week.
   - **Workout Statistics:** Aggregates workout data by type (e.g., Cardio, Strength, Yoga) with total duration, calories burned, and workout counts.
   - **Workout-Biomarker Correlations:** Analyzes impact of exercise on sleep quality and resting heart rate, comparing workout days vs. non-workout days to measure improvements.
-  - **AI-Powered Recovery Insights:** Claude AI analyzes training load, workout statistics, and biomarker correlations to generate personalized recovery recommendations. Features severity-based insights (excellent/good/caution/warning) with specific actionable recommendations. Defensive null handling ensures stable AI prompts even with empty datasets.
+  - **AI-Powered Recovery Insights:** AI analyzes training load, workout statistics, and biomarker correlations to generate personalized recovery recommendations. Features severity-based insights (excellent/good/caution/warning) with specific actionable recommendations. Defensive null handling ensures stable AI prompts even with empty datasets.
 - **PWA Configuration:** Progressive Web App support for iOS home screen installation with custom icon. Manifest.json located at client/public/ with app metadata (name: "Health Insights AI", short_name: "HealthPilot"). iOS-specific meta tags in index.html enable standalone app mode with custom icon matching the HealthPilot logo. Theme color set to purple (#9333ea) for brand consistency.
 
 **Feature Specifications:**
@@ -61,7 +61,7 @@ The application is a full-stack project utilizing React, TypeScript, Tailwind CS
     - **Step-by-Step Instructions:** Detailed recipe with numbered cooking steps
     - **Macros & Info:** Calories, protein, carbs, fat, prep time, servings, dietary tags
   - **Meal Card Photos:** Each meal card displays thumbnail photo with hover effects for visual appeal
-  - **Batch AI Generation:** Splits meal generation into 2 batches (Days 1-2, Days 3-4) to stay within Claude Haiku's 4096 token output limit, preventing JSON truncation errors
+  - **Batch AI Generation:** Splits meal generation into 2 batches (Days 1-2, Days 3-4) to stay within GPT-4o's output limits, preventing JSON truncation errors
   - **Goal-Aligned Generation:** AI incorporates active health goals into meal planning with explicit descriptions of how each meal supports user's targets
   - **Schema Enhancement:** Added `imageUrl` (varchar), `ingredients` (text array), `detailedRecipe` (text) fields to meal_plans table
   - **Mobile-Optimized:** Fully responsive on iPad/iPhone with touch-friendly interactions
@@ -70,7 +70,7 @@ The application is a full-stack project utilizing React, TypeScript, Tailwind CS
 - **Auto-Save Training Plans from Chat:** When the AI creates a training plan through conversation and the user confirms it, the plan is automatically saved to the database and appears on the Training page. The user receives a success notification with a link to view their new plan.
 - **AI-Guided Onboarding:** New users receive a structured 5-step guided onboarding experience that auto-launches on first login via the FloatingChat widget. The AI health coach walks users through: (1) Welcome introduction, (2) Apple Health integration setup, (3) Health records upload, (4) Personalized training plan creation, and (5) Meal plan generation. Features include visual progress tracking, ability to skip steps, auto-save of created plans, and persistent state that prevents auto-reopen after manual close. Step progression auto-advances during conversation and syncs seamlessly with existing features.
 - **Data & Insights Dashboard:**
-  - **AI Trend Predictions:** Claude AI analyzes biomarker patterns and time-series data to forecast future health metrics. Provides predictions for weight, heart rate, sleep quality, and other biomarkers based on historical trends. Shows confidence levels and actionable insights.
+  - **AI Trend Predictions:** AI analyzes biomarker patterns and time-series data to forecast future health metrics. Provides predictions for weight, heart rate, sleep quality, and other biomarkers based on historical trends. Shows confidence levels and actionable insights.
   - **Period Comparison:** Side-by-side comparison of health metrics across different time periods. Users can compare any two timeframes (e.g., "Last 30 Days" vs "Previous 30 Days") to identify improvements or declines. Shows percentage changes and visual indicators for quick assessment.
   - **Goal Setting & Tracking:** Comprehensive goal management system for health metrics. Supports both increase goals (steps, sleep hours) and decrease goals (weight loss, cholesterol reduction). Features smart progress calculation that handles zero baselines, automatic unit derivation from metric types, and visual progress bars with percentage tracking. Goals display status badges (active, achieved, overdue), deadline tracking, and edit/delete functionality. Progress formula automatically adjusts for goal type: increase goals use (current-start)/(target-start), decrease goals use (start-current)/(start-target). Edge case handled for startValue equals targetValue (returns 100% progress).
 - **Biological Age (Premium Feature):** Science-based biological age calculation using the PhenoAge algorithm (Levine et al. 2018). Requires 9 blood biomarkers: albumin, creatinine, glucose, CRP, lymphocyte%, MCV, RDW, ALP, WBC from standard CBC and CMP panels. Features dedicated `/biological-age` page with biomarker checklist showing collected/missing markers, visual age comparison (biological vs chronological), and dashboard widget displaying age difference with trend indicators. AI extraction enhanced to prioritize PhenoAge biomarkers from uploaded health records. Calculation uses corrected mortality formula (1 - 0.988^(exp(xb))) with accurate coefficient signs (+0.00188 for ALP). Future monetization as Stripe paid feature planned.
@@ -78,7 +78,7 @@ The application is a full-stack project utilizing React, TypeScript, Tailwind CS
 ## External Dependencies
 
 - **Database:** PostgreSQL (via Drizzle ORM)
-- **AI:** Anthropic Claude 3 Haiku
+- **AI:** OpenAI GPT-4o (via Replit AI Integrations - no API key management required, billed to Replit credits)
 - **Authentication:** Replit Auth (OpenID Connect)
 - **File Storage:** 
   - Local file upload with secure validation (PDF, DOC, DOCX, JPG, PNG, TXT)
