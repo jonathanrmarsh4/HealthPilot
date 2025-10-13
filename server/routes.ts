@@ -919,19 +919,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Helper to get food image URL with curated food images
       const getFoodImageUrl = (mealName: string, mealType: string): string => {
-        // Create a unique seed from meal name for consistent images
-        const seed = mealName.toLowerCase().replace(/[^a-z0-9]/g, '');
+        // Use Unsplash Source API to get real food photos based on meal name
+        // This provides actual food images that match the meal content
+        const searchTerm = mealName
+          .toLowerCase()
+          .replace(/[^a-z0-9\s]/g, '') // Remove special chars
+          .replace(/\s+/g, ','); // Convert spaces to commas for multi-term search
         
-        // Map meal types to appropriate food category IDs (Lorem Picsum)
-        const mealTypeImages: Record<string, string> = {
-          'Breakfast': `https://picsum.photos/seed/${seed}-breakfast/800/600`,
-          'Lunch': `https://picsum.photos/seed/${seed}-lunch/800/600`,
-          'Dinner': `https://picsum.photos/seed/${seed}-dinner/800/600`,
-          'Snack': `https://picsum.photos/seed/${seed}-snack/800/600`,
-        };
-        
-        // Return meal-specific image with seed for consistency
-        return mealTypeImages[mealType] || `https://picsum.photos/seed/${seed}/800/600`;
+        // Add 'food' keyword to ensure food-related images
+        return `https://source.unsplash.com/800x600/?food,${searchTerm}`;
       };
       
       for (const plan of mealPlans) {
