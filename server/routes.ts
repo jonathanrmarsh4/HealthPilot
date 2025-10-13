@@ -797,7 +797,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       for (const [key, type] of Object.entries(biomarkerTypes)) {
         const latest = await storage.getLatestBiomarkerByType(userId, type);
         if (latest) {
-          biomarkerValues[key] = latest.value;
+          let value = latest.value;
+          const unit = latest.unit;
+          
+          // Convert units to match PhenoAge requirements
+          if (key === 'glucose') {
+            // Convert glucose to mg/dL if needed
+            if (unit === 'mmol/L') {
+              value = value * 18.016; // mmol/L to mg/dL
+            }
+          } else if (key === 'creatinine') {
+            // Convert creatinine to mg/dL if needed
+            if (unit === 'μmol/L') {
+              value = value / 88.4; // μmol/L to mg/dL
+            }
+          } else if (key === 'lymphocytePercent') {
+            // Convert lymphocyte absolute count to percentage if needed
+            if (unit === 'x10⁹/L' || unit === 'K/μL') {
+              // Need WBC to calculate percentage - fetch it first
+              const wbcBiomarker = await storage.getLatestBiomarkerByType(userId, 'wbc');
+              if (wbcBiomarker) {
+                // Lymphocyte % = (Lymphocyte absolute / WBC) * 100
+                // If lymph is in x10⁹/L and WBC is in K/μL, they're the same unit
+                value = (value / wbcBiomarker.value) * 100;
+              }
+            }
+          }
+          
+          biomarkerValues[key] = value;
         }
       }
 
