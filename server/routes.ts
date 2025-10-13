@@ -550,7 +550,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`📄 Processing health record: ${req.file.originalname} (${fileSizeKB} KB) for user ${userId}`);
 
       const fileText = req.file.buffer.toString('utf-8');
+      console.log(`📝 Document text length: ${fileText.length} characters`);
+      
       const analysis = await analyzeHealthDocument(fileText, req.file.originalname);
+      
+      console.log(`🔍 AI Analysis Results:`, {
+        hasBiomarkers: !!analysis.biomarkers,
+        biomarkerCount: analysis.biomarkers?.length || 0,
+        documentDate: analysis.documentDate,
+        summary: analysis.summary?.substring(0, 100) + '...',
+      });
 
       const record = await storage.createHealthRecord({
         userId,
@@ -575,6 +584,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             recordedAt: parseBiomarkerDate(biomarker.date, analysis.documentDate, undefined),
           });
         }
+      } else {
+        console.warn(`⚠️ No biomarkers extracted from ${req.file.originalname}. Analysis may have failed.`);
       }
 
       res.json(record);
