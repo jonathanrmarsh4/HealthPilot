@@ -726,15 +726,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Step 4: Assign dates to meals, generate images, and save them
       const savedPlans = [];
       
-      // Helper to get food image URL from Foodish API (free, no auth)
-      const getFoodImageUrl = async (mealName: string): Promise<string | null> => {
+      // Helper to get relevant food image URL based on meal content
+      const getFoodImageUrl = async (mealName: string, mealType: string): Promise<string | null> => {
         try {
-          const response = await fetch('https://foodish-api.com/api/');
-          const data = await response.json();
-          return data.image || null;
+          // Create search query from meal name and type
+          const searchTerms = mealName.toLowerCase()
+            .replace(/[^\w\s]/g, '') // Remove special chars
+            .split(' ')
+            .filter(word => word.length > 3) // Only meaningful words
+            .slice(0, 3) // Max 3 words
+            .join(' ');
+          
+          // Use Unsplash Source API (free, no auth, no rate limits for basic use)
+          // Returns actual images matching the search term
+          const query = searchTerms || mealType.toLowerCase();
+          const imageUrl = `https://source.unsplash.com/800x600/?${encodeURIComponent(query)},food`;
+          
+          // Test if URL is accessible
+          const response = await fetch(imageUrl, { method: 'HEAD' });
+          if (response.ok) {
+            return imageUrl;
+          }
+          
+          // Fallback to meal type
+          return `https://source.unsplash.com/800x600/?${encodeURIComponent(mealType.toLowerCase())},food`;
         } catch (error) {
           console.log(`⚠️ Could not fetch image for "${mealName}":`, error);
-          return null;
+          // Ultimate fallback
+          return `https://source.unsplash.com/800x600/?healthy,food`;
         }
       };
       
@@ -744,8 +763,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const scheduledDate = new Date(startDate);
         scheduledDate.setDate(startDate.getDate() + (dayNumber - 1));
         
-        // Get a food image URL
-        const imageUrl = await getFoodImageUrl((plan as any).name);
+        // Get a food image URL that matches the meal
+        const imageUrl = await getFoodImageUrl((plan as any).name, (plan as any).mealType);
         
         const saved = await storage.createMealPlan({
           ...plan,
