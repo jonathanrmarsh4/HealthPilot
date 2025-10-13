@@ -29,9 +29,35 @@ export function RecipeDetailModal({ meal, open, onOpenChange }: RecipeDetailModa
 
   // Function to scale ingredient quantities
   const scaleIngredient = (ingredient: string): string => {
-    // Match patterns like "1 cup oats", "200g chicken", "2 tbsp oil", "1/2 tsp salt"
-    // Pattern: number (with optional fraction/decimal) + space + optional unit + space + rest
-    const quantityPattern = /^(\d+(?:\/\d+)?(?:\.\d+)?)\s+([a-zA-Z]+)?\s*(.+)$/;
+    // Skip scaling for range quantities like "1-2 cloves" or "2-3 pieces"
+    if (/^\d+\s*-\s*\d+/.test(ingredient)) {
+      return ingredient;
+    }
+    
+    // Match patterns including:
+    // - "1 cup oats", "200g chicken" (with/without space before unit)
+    // - "1/2 tsp salt", "0.5 tbsp oil" (fractions and decimals)
+    // - "1 1/2 cups flour" (mixed fractions)
+    
+    // Try mixed fraction pattern first: "1 1/2 cups flour"
+    const mixedPattern = /^(\d+)\s+(\d+)\/(\d+)\s*([a-zA-Z]+)?\s*(.+)$/;
+    const mixedMatch = ingredient.match(mixedPattern);
+    
+    if (mixedMatch) {
+      const [, whole, numerator, denominator, unit, rest] = mixedMatch;
+      const numericValue = parseInt(whole) + (parseInt(numerator) / parseInt(denominator));
+      const scaledValue = numericValue * scaleFactor;
+      const formattedValue = formatScaledValue(scaledValue);
+      
+      if (unit) {
+        return `${formattedValue} ${unit} ${rest}`;
+      } else {
+        return `${formattedValue} ${rest}`;
+      }
+    }
+    
+    // Standard pattern: number (fraction or decimal) + optional space + optional unit + rest
+    const quantityPattern = /^(\d+(?:\.\d+)?(?:\/\d+)?)\s*([a-zA-Z]+)?\s*(.+)$/;
     const match = ingredient.match(quantityPattern);
     
     if (match) {
@@ -47,20 +73,11 @@ export function RecipeDetailModal({ meal, open, onOpenChange }: RecipeDetailModa
       }
       
       const scaledValue = numericValue * scaleFactor;
-      
-      // Format the scaled value nicely
-      let formattedValue: string;
-      if (scaledValue % 1 === 0) {
-        formattedValue = scaledValue.toString();
-      } else if (scaledValue < 1) {
-        formattedValue = scaledValue.toFixed(2);
-      } else {
-        formattedValue = scaledValue.toFixed(1);
-      }
+      const formattedValue = formatScaledValue(scaledValue);
       
       // Reconstruct the ingredient with scaled quantity
       if (unit) {
-        return `${formattedValue} ${unit} ${rest}`;
+        return `${formattedValue}${unit.match(/^[a-zA-Z]+$/) ? ' ' + unit : unit} ${rest}`;
       } else {
         return `${formattedValue} ${rest}`;
       }
@@ -68,6 +85,35 @@ export function RecipeDetailModal({ meal, open, onOpenChange }: RecipeDetailModa
     
     // If no quantity match, return original
     return ingredient;
+  };
+  
+  // Format scaled values with better precision
+  const formatScaledValue = (value: number): string => {
+    // Whole numbers - no decimal
+    if (value % 1 === 0) {
+      return value.toString();
+    }
+    
+    // Values less than 1 - try to represent as fraction
+    if (value < 1) {
+      // Common fractions
+      const fractions: [number, string][] = [
+        [1/4, '1/4'], [1/3, '1/3'], [1/2, '1/2'], 
+        [2/3, '2/3'], [3/4, '3/4']
+      ];
+      
+      for (const [frac, str] of fractions) {
+        if (Math.abs(value - frac) < 0.01) {
+          return str;
+        }
+      }
+      
+      // Otherwise use 2 decimal precision
+      return value.toFixed(2);
+    }
+    
+    // Values >= 1 - use 2 decimal precision to preserve accuracy
+    return value.toFixed(2);
   };
 
   const handleServingsDecrease = () => {
