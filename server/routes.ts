@@ -670,7 +670,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Calculate PhenoAge
+      console.log("📊 Biomarker values for PhenoAge calculation:", biomarkerValues);
+      console.log("📅 Chronological age:", chronologicalAge);
+      
       const result = calculatePhenoAge(biomarkerValues, chronologicalAge);
+      
+      console.log("🧬 PhenoAge calculation result:", result);
       
       if (!result) {
         return res.status(500).json({ error: "Failed to calculate biological age" });
