@@ -5,15 +5,15 @@
  */
 
 export interface PhenoAgeBiomarkers {
-  albumin: number; // g/dL
-  creatinine: number; // mg/dL
-  glucose: number; // mg/dL
-  crp: number; // mg/L (C-Reactive Protein)
+  albumin: number; // g/L (METRIC - converted from g/dL if needed)
+  creatinine: number; // µmol/L (METRIC - converted from mg/dL if needed)
+  glucose: number; // mmol/L (METRIC - converted from mg/dL if needed)
+  crp: number; // mg/L (C-Reactive Protein) - must be > 0
   lymphocytePercent: number; // %
   mcv: number; // fL (Mean Cell Volume)
   rdw: number; // % (Red Cell Distribution Width)
   alp: number; // U/L (Alkaline Phosphatase)
-  wbc: number; // 1000 cells/μL (White Blood Cell Count)
+  wbc: number; // x10⁹/L (White Blood Cell Count)
 }
 
 export interface PhenoAgeResult {
@@ -72,8 +72,14 @@ export function calculatePhenoAge(
   // All biomarkers present - calculate PhenoAge
   const { albumin, creatinine, glucose, crp, lymphocytePercent, mcv, rdw, alp, wbc } = biomarkers as PhenoAgeBiomarkers;
   
+  // Guard against invalid CRP values (must be > 0 for log calculation)
+  if (crp <= 0) {
+    throw new Error('CRP must be greater than 0 for PhenoAge calculation');
+  }
+  
   // Step 1: Calculate linear predictor (xb)
   // Using published coefficients from Levine et al. 2018
+  // IMPORTANT: Expects METRIC units - g/L (albumin), µmol/L (creatinine), mmol/L (glucose)
   const xb = 
     -19.907 + 
     (-0.0336 * albumin) +
