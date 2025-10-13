@@ -603,10 +603,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
             continue;
           }
           
+          // Parse value to number, skip if invalid (e.g., "<100", ">50")
+          const numericValue = typeof biomarker.value === 'number' ? biomarker.value : parseFloat(biomarker.value);
+          if (isNaN(numericValue)) {
+            console.warn(`⚠️ Skipping biomarker with non-numeric value:`, { 
+              type: biomarker.type, 
+              value: biomarker.value, 
+              unit: biomarker.unit 
+            });
+            skippedCount++;
+            continue;
+          }
+          
           await storage.createBiomarker({
             userId,
             type: biomarker.type,
-            value: biomarker.value,
+            value: numericValue,
             unit: biomarker.unit,
             source: 'ai-extracted',
             recordId: record.id,
