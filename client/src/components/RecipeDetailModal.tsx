@@ -1,6 +1,8 @@
+import { useState, useEffect } from "react";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from "@/components/ui/drawer";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Flame, Beef, Wheat, Droplet, ChefHat, List } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Clock, Flame, Beef, Wheat, Droplet, ChefHat, List, Minus, Plus, Users } from "lucide-react";
 import type { MealPlan } from "@shared/schema";
 
 interface RecipeDetailModalProps {
@@ -10,7 +12,71 @@ interface RecipeDetailModalProps {
 }
 
 export function RecipeDetailModal({ meal, open, onOpenChange }: RecipeDetailModalProps) {
+  const [servings, setServings] = useState(1);
+
+  // Reset servings when meal changes
+  useEffect(() => {
+    if (meal) {
+      setServings(meal.servings || 1);
+    }
+  }, [meal]);
+
   if (!meal) return null;
+
+  // Calculate scaling factor for ingredients
+  const originalServings = meal.servings || 1;
+  const scaleFactor = servings / originalServings;
+
+  // Function to scale ingredient quantities
+  const scaleIngredient = (ingredient: string): string => {
+    // Match patterns like "1 cup", "200g", "2 tbsp", "1/2 tsp", etc.
+    const quantityPattern = /^(\d+(?:\/\d+)?(?:\.\d+)?)\s*([a-zA-Z]*)\s+(.+)$/;
+    const match = ingredient.match(quantityPattern);
+    
+    if (match) {
+      const [, quantity, unit, rest] = match;
+      
+      // Handle fractions (e.g., "1/2")
+      let numericValue: number;
+      if (quantity.includes('/')) {
+        const [numerator, denominator] = quantity.split('/').map(Number);
+        numericValue = numerator / denominator;
+      } else {
+        numericValue = parseFloat(quantity);
+      }
+      
+      const scaledValue = numericValue * scaleFactor;
+      
+      // Format the scaled value nicely
+      let formattedValue: string;
+      if (scaledValue % 1 === 0) {
+        formattedValue = scaledValue.toString();
+      } else if (scaledValue < 1) {
+        // Convert to fraction if less than 1
+        const fraction = scaledValue.toFixed(2);
+        formattedValue = fraction;
+      } else {
+        formattedValue = scaledValue.toFixed(1);
+      }
+      
+      return `${formattedValue}${unit ? ' ' + unit : ''} ${rest}`;
+    }
+    
+    // If no quantity match, return original
+    return ingredient;
+  };
+
+  const handleServingsDecrease = () => {
+    if (servings > 1) {
+      setServings(servings - 1);
+    }
+  };
+
+  const handleServingsIncrease = () => {
+    if (servings < 20) { // Max 20 servings
+      setServings(servings + 1);
+    }
+  };
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
@@ -77,18 +143,45 @@ export function RecipeDetailModal({ meal, open, onOpenChange }: RecipeDetailModa
             </div>
 
             {/* Prep Time & Servings */}
-            <div className="flex flex-wrap gap-4">
+            <div className="flex flex-wrap items-center gap-4">
               <div className="flex items-center gap-2">
                 <Clock className="w-4 h-4 text-muted-foreground" />
                 <span className="text-sm" data-testid="text-prep-time">
                   {meal.prepTime} minutes
                 </span>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">Servings:</span>
-                <span className="text-sm font-medium" data-testid="text-servings">
-                  {meal.servings}
-                </span>
+              
+              {/* Servings Selector */}
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <Users className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">Servings:</span>
+                </div>
+                <div className="flex items-center gap-2 bg-muted/50 rounded-lg p-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={handleServingsDecrease}
+                    disabled={servings <= 1}
+                    data-testid="button-decrease-servings"
+                  >
+                    <Minus className="h-3 w-3" />
+                  </Button>
+                  <span className="text-sm font-medium min-w-[2rem] text-center" data-testid="text-current-servings">
+                    {servings}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={handleServingsIncrease}
+                    disabled={servings >= 20}
+                    data-testid="button-increase-servings"
+                  >
+                    <Plus className="h-3 w-3" />
+                  </Button>
+                </div>
               </div>
             </div>
 
@@ -116,6 +209,11 @@ export function RecipeDetailModal({ meal, open, onOpenChange }: RecipeDetailModa
                 <div className="flex items-center gap-2 mb-3">
                   <List className="w-5 h-5 text-primary" />
                   <h3 className="text-lg font-semibold">Ingredients</h3>
+                  {servings !== originalServings && (
+                    <Badge variant="secondary" className="text-xs">
+                      Scaled for {servings} {servings === 1 ? 'serving' : 'servings'}
+                    </Badge>
+                  )}
                 </div>
                 <ul className="space-y-2 bg-muted/30 p-4 rounded-lg" data-testid="list-ingredients">
                   {meal.ingredients.map((ingredient, index) => (
@@ -125,7 +223,7 @@ export function RecipeDetailModal({ meal, open, onOpenChange }: RecipeDetailModa
                       data-testid={`text-ingredient-${index}`}
                     >
                       <span className="text-primary mt-1">•</span>
-                      <span>{ingredient}</span>
+                      <span>{scaleIngredient(ingredient)}</span>
                     </li>
                   ))}
                 </ul>
