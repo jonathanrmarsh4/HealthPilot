@@ -68,6 +68,7 @@ export default function Training() {
   const [recoveryType, setRecoveryType] = useState<'sauna' | 'cold_plunge'>('sauna');
   const [recoveryDuration, setRecoveryDuration] = useState(20);
   const [recoveryNotes, setRecoveryNotes] = useState('');
+  const [selectedSession, setSelectedSession] = useState<WorkoutSession | null>(null);
   
   const { data: workouts, isLoading } = useQuery<TrainingSchedule[]>({
     queryKey: ["/api/training-schedules"],
@@ -392,7 +393,12 @@ export default function Training() {
           ) : workoutSessions && workoutSessions.length > 0 ? (
             <div className="grid gap-4">
               {workoutSessions.map((session) => (
-                <Card key={session.id} data-testid={`workout-session-${session.id}`}>
+                <Card 
+                  key={session.id} 
+                  data-testid={`workout-session-${session.id}`}
+                  className="hover-elevate cursor-pointer"
+                  onClick={() => setSelectedSession(session)}
+                >
                   <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-4">
                     <div className="flex items-center gap-3">
                       <div className="p-2 rounded-lg bg-primary/10">
@@ -739,6 +745,68 @@ export default function Training() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Workout Session Detail Dialog */}
+      <Dialog open={!!selectedSession} onOpenChange={(open) => !open && setSelectedSession(null)}>
+        <DialogContent className="max-w-2xl" data-testid="workout-detail">
+          {selectedSession && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2 capitalize">
+                  <Activity className="h-5 w-5 text-primary" />
+                  {selectedSession.workoutType}
+                </DialogTitle>
+                <DialogDescription>
+                  {format(new Date(selectedSession.startTime), "EEEE, MMM dd, yyyy 'at' h:mm a")}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-6 py-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div>
+                    <div className="text-sm text-muted-foreground mb-1">Duration</div>
+                    <div className="text-lg font-semibold">{formatDuration(selectedSession.duration)}</div>
+                  </div>
+                  {selectedSession.distance && (
+                    <div>
+                      <div className="text-sm text-muted-foreground mb-1">Distance</div>
+                      <div className="text-lg font-semibold">{(selectedSession.distance / 1000).toFixed(2)} km</div>
+                    </div>
+                  )}
+                  {selectedSession.calories && (
+                    <div>
+                      <div className="text-sm text-muted-foreground mb-1">Calories</div>
+                      <div className="text-lg font-semibold">{selectedSession.calories} kcal</div>
+                    </div>
+                  )}
+                  {selectedSession.avgHeartRate && (
+                    <div>
+                      <div className="text-sm text-muted-foreground mb-1">Avg HR</div>
+                      <div className="text-lg font-semibold">{selectedSession.avgHeartRate} bpm</div>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline">
+                    {selectedSession.sourceType === 'apple_health' ? 'Apple Health' : 
+                     selectedSession.sourceType === 'manual' ? 'Manual Entry' : 
+                     selectedSession.sourceType}
+                  </Badge>
+                </div>
+
+                {selectedSession.notes && (
+                  <div className="bg-muted/50 p-4 rounded-lg">
+                    <div className="text-sm font-medium mb-2">Notes</div>
+                    <p className="text-sm text-muted-foreground" data-testid="workout-notes">
+                      {selectedSession.notes}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
