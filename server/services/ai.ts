@@ -8,8 +8,8 @@ const openai = new OpenAI({
 // Retry helper with exponential backoff for rate limit errors
 async function retryWithBackoff<T>(
   fn: () => Promise<T>,
-  maxRetries: number = 3,
-  initialDelay: number = 1000
+  maxRetries: number = 5,
+  initialDelay: number = 3000
 ): Promise<T> {
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
@@ -18,12 +18,21 @@ async function retryWithBackoff<T>(
       const isRateLimit = error.status === 429 || error.error?.type === 'rate_limit_error';
       const isTransient = error.status === 500 || error.status === 502 || error.status === 503;
       
+      // Log detailed error information
+      console.error(`❌ OpenAI API Error (attempt ${attempt + 1}/${maxRetries + 1}):`, {
+        status: error.status,
+        message: error.message,
+        type: error.error?.type,
+        code: error.error?.code
+      });
+      
       if (!isRateLimit && !isTransient) {
         throw error;
       }
       
       if (attempt === maxRetries) {
-        throw error;
+        console.error(`🚫 Max retries (${maxRetries}) exceeded. Giving up.`);
+        throw new Error(`OpenAI API rate limit exceeded after ${maxRetries} retries. Please try again in a few moments.`);
       }
       
       const delay = initialDelay * Math.pow(2, attempt);
@@ -99,8 +108,8 @@ export async function analyzeHealthDocument(documentText: string, fileName: stri
     
     // Add delay between chunks to avoid rate limits
     if (i < chunks.length - 1) {
-      // Small delay between chunks to respect API rate limits
-      const delayMs = 2000; // 2 seconds between chunks
+      // Longer delay between chunks to respect OpenAI rate limits
+      const delayMs = 5000; // 5 seconds between chunks
       console.log(`  ⏳ Waiting ${Math.ceil(delayMs / 1000)}s before chunk ${i + 2}...`);
       await new Promise(resolve => setTimeout(resolve, delayMs));
     }
