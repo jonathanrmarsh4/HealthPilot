@@ -549,8 +549,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const fileSizeKB = (req.file.size / 1024).toFixed(1);
       console.log(`📄 Processing health record: ${req.file.originalname} (${fileSizeKB} KB) for user ${userId}`);
 
-      const fileText = req.file.buffer.toString('utf-8');
-      console.log(`📝 Document text length: ${fileText.length} characters`);
+      // Extract text based on file type
+      let fileText: string;
+      const fileExtension = req.file.originalname.toLowerCase().split('.').pop();
+      
+      if (fileExtension === 'pdf') {
+        // Use pdf-parse for PDF files
+        const { PDFParse } = await import('pdf-parse');
+        const parser = new PDFParse({ data: req.file.buffer });
+        const textResult = await parser.getText();
+        fileText = textResult.text;
+        console.log(`📝 Extracted ${fileText.length} characters from PDF (${textResult.pages.length} pages)`);
+      } else {
+        // For text-based files, use simple string conversion
+        fileText = req.file.buffer.toString('utf-8');
+        console.log(`📝 Document text length: ${fileText.length} characters`);
+      }
       
       const analysis = await analyzeHealthDocument(fileText, req.file.originalname);
       
