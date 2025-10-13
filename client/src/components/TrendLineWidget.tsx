@@ -27,7 +27,7 @@ export function TrendLineWidget({ type }: TrendLineWidgetProps) {
   const config = biomarkerDisplayConfig[type] || {
     title: type.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
     description: "Recent trend",
-    days: 30,
+    days: 730, // 2 years to show historical data from PDFs
     color: "hsl(var(--chart-2))"
   };
 
