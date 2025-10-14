@@ -566,13 +566,18 @@ export class DbStorage implements IStorage {
   }
 
   async upsertSleepSession(session: InsertSleepSession): Promise<SleepSession> {
-    // Better deduplication: check for any session on the same date (within 12 hours of bedtime)
-    // This handles cases where timestamps differ slightly or calculation methods change
-    const bedtimeStart = new Date(session.bedtime);
-    bedtimeStart.setHours(bedtimeStart.getHours() - 6); // 6 hours before bedtime
+    // Smart deduplication: find sessions for the same night
+    // A night is defined by the wake date - sessions that wake on the same day are the same night
+    // This handles cases where broken sessions have different bedtimes (e.g., 5:12 AM vs 10:42 PM)
+    const wakeDate = new Date(session.waketime);
+    const wakeDateOnly = new Date(wakeDate.getFullYear(), wakeDate.getMonth(), wakeDate.getDate());
     
-    const bedtimeEnd = new Date(session.bedtime);
-    bedtimeEnd.setHours(bedtimeEnd.getHours() + 6); // 6 hours after bedtime
+    // Find all sessions for this user that wake on the same date (or within 12 hours)
+    const wakeStart = new Date(wakeDateOnly);
+    wakeStart.setHours(wakeStart.getHours() - 12); // 12 hours before wake date
+    
+    const wakeEnd = new Date(wakeDateOnly);
+    wakeEnd.setHours(wakeEnd.getHours() + 36); // 36 hours after wake date (covers next day too)
     
     const existing = await db
       .select()
@@ -580,32 +585,33 @@ export class DbStorage implements IStorage {
       .where(
         and(
           eq(sleepSessions.userId, session.userId),
-          sql`${sleepSessions.bedtime} >= ${bedtimeStart.toISOString()}`,
-          sql`${sleepSessions.bedtime} <= ${bedtimeEnd.toISOString()}`
+          sql`${sleepSessions.waketime} >= ${wakeStart.toISOString()}`,
+          sql`${sleepSessions.waketime} <= ${wakeEnd.toISOString()}`
         )
       )
-      .orderBy(desc(sleepSessions.createdAt))
-      .limit(1);
+      .orderBy(desc(sleepSessions.createdAt));
 
     if (existing.length > 0) {
-      // Update existing session (keep the most recent one)
+      // Update the most recent one and delete all others
       const [updated] = await db
         .update(sleepSessions)
         .set(session)
         .where(eq(sleepSessions.id, existing[0].id))
         .returning();
       
-      // Delete any other duplicates in the same time range
-      await db
-        .delete(sleepSessions)
-        .where(
-          and(
-            eq(sleepSessions.userId, session.userId),
-            sql`${sleepSessions.bedtime} >= ${bedtimeStart.toISOString()}`,
-            sql`${sleepSessions.bedtime} <= ${bedtimeEnd.toISOString()}`,
-            sql`${sleepSessions.id} != ${existing[0].id}`
-          )
-        );
+      // Delete ALL other sessions in this wake time range (clean up all duplicates)
+      if (existing.length > 1) {
+        await db
+          .delete(sleepSessions)
+          .where(
+            and(
+              eq(sleepSessions.userId, session.userId),
+              sql`${sleepSessions.waketime} >= ${wakeStart.toISOString()}`,
+              sql`${sleepSessions.waketime} <= ${wakeEnd.toISOString()}`,
+              sql`${sleepSessions.id} != ${existing[0].id}`
+            )
+          );
+      }
       
       return updated;
     }
