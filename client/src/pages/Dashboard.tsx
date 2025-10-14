@@ -12,6 +12,7 @@ import { SleepScoreDonutWidget } from "@/components/SleepScoreDonutWidget";
 import { GoalsSummaryWidget } from "@/components/GoalsSummaryWidget";
 import { DataInsightsWidget } from "@/components/DataInsightsWidget";
 import { BiologicalAgeWidget } from "@/components/BiologicalAgeWidget";
+import { ReadinessScoreWidget } from "@/components/ReadinessScoreWidget";
 import { Heart, Activity, Scale, Droplet, TrendingUp, Zap, Apple, AlertCircle, Dumbbell, Settings2, Eye, EyeOff, ChevronUp, ChevronDown, Dna, TrendingDown, Upload } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -697,6 +698,7 @@ export default function Dashboard() {
         <div>
           <h2 className="text-xl font-semibold mb-4">Health Overview</h2>
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <ReadinessScoreWidget />
             <HealthScoreWidget />
             <SleepScoreDonutWidget />
             {biologicalAgeData?.canCalculate && <BiologicalAgeWidget />}
