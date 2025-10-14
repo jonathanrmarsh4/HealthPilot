@@ -79,6 +79,15 @@ The application is a full-stack project utilizing React, TypeScript, Tailwind CS
 - **AI-Guided Onboarding:** A 5-step guided onboarding experience via the FloatingChat widget for new users, covering welcome, Apple Health integration, health records upload, training plan creation, and meal plan generation.
 - **Data & Insights Dashboard:** Includes AI trend predictions, period comparison of health metrics, and a comprehensive goal setting & tracking system.
 - **Biological Age (Premium Feature):** Science-based biological age calculation using the PhenoAge algorithm, requiring 9 blood biomarkers, with a dedicated page and dashboard widget.
+- **AI Insights Scheduling System (Oct 14, 2025):** Interactive recommendation scheduling with feedback loop:
+  - **Thumbs Up/Down Feedback:** Replaced simple dismiss with dual feedback system - thumbs up opens scheduling dialog, thumbs down dismisses with optional reason
+  - **Schedule to Training Plan:** Blue action button opens dialog with date picker and two scheduling modes: (1) Add as Supplementary - includes workout alongside existing plan, (2) Replace Optional Workout - swaps with recovery/optional sessions only
+  - **Core Workout Protection:** Safety validation prevents replacing core training programs (coreProgram flag), only allows replacing isOptional or non-core workouts
+  - **Auto-Hide Logic:** Scheduled or dismissed recommendations automatically disappear from list (dismissed=1 flag)
+  - **AI Learning:** User feedback (positive/negative) captured in database for future AI personalization
+  - **Baseline Recommendations:** New users with no health data receive 3 starter recommendations to guide onboarding (Track Health Data, Establish Sleep, Set Goals)
+  - **Database Schema:** recommendations table includes scheduledAt, trainingScheduleId, dismissReason, userFeedback fields; training_schedules has coreProgram flag
+  - **API Endpoints:** POST /api/recommendations/:id/schedule (with add/replace validation), POST /api/recommendations/:id/feedback (captures user preferences)
 
 ## External Dependencies
 
