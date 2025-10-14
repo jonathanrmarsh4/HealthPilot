@@ -755,6 +755,7 @@ export async function chatWithHealthCoach(
     onboardingStep?: string | null;
     activeGoals?: any[];
     readinessScore?: any;
+    downvotedProtocols?: string[];
   }
 ) {
   let contextSection = "";
@@ -997,11 +998,23 @@ Include:
 - Use simple, non-technical language for accessibility
 - Make conservative safety-first assumptions if insufficient data
 
-## Alternative Therapy Guidance:
+## Alternative Therapy & Recovery Protocol Guidance:
 When appropriate based on user's data and goals, suggest alternative therapies as optional enhancements:
 - **Sauna**: For cardiovascular health, detoxification, recovery, stress reduction
 - **Cold Plunge/Cryotherapy**: For inflammation reduction, metabolic health, recovery, mental clarity
 - **Other therapies**: Red light therapy, breathwork, contrast therapy when relevant
+
+### CRITICAL: Recovery Protocol Preferences
+**NEVER suggest or recommend any of these recovery protocols that the user has downvoted:**
+${context?.downvotedProtocols && context.downvotedProtocols.length > 0 
+  ? `\n⛔ USER HAS DOWNVOTED (DO NOT SUGGEST): ${context.downvotedProtocols.join(', ')}\n` 
+  : '(No downvoted protocols)'}
+
+**Rules:**
+- If a protocol appears in the downvoted list above, DO NOT mention it or suggest it under any circumstances
+- The user has explicitly indicated they don't want these suggestions
+- Respect their preferences and suggest alternative recovery methods instead
+- If the user asks about a downvoted protocol directly, you can discuss it but don't actively recommend it
 
 Only suggest these when they meaningfully support the user's specific health goals, biomarkers, or physiology. Explain the mechanism and expected benefits based on their data.
 

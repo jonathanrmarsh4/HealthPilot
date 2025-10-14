@@ -1225,6 +1225,124 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Recovery Protocol Endpoints
+  
+  // Get all recovery protocols or filter by category
+  app.get("/api/recovery-protocols", isAuthenticated, async (req, res) => {
+    try {
+      const category = req.query.category as string | undefined;
+      const protocols = await storage.getRecoveryProtocols(category);
+      res.json(protocols);
+    } catch (error: any) {
+      console.error("Error fetching recovery protocols:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get recommended recovery protocols based on readiness score
+  app.get("/api/recovery-protocols/recommendations", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    try {
+      // Get today's readiness score
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const readinessScore = await calculateReadinessScore(userId, storage, today);
+      
+      // Get downvoted protocols to exclude
+      const downvotedProtocols = await storage.getDownvotedProtocols(userId);
+      
+      // Determine which factors are low and need attention
+      const lowFactors: string[] = [];
+      if (readinessScore.factors.sleep.score < 60) lowFactors.push('sleep');
+      if (readinessScore.factors.hrv.score < 60) lowFactors.push('hrv');
+      if (readinessScore.factors.restingHR.score < 60) lowFactors.push('resting_hr');
+      if (readinessScore.factors.workloadRecovery.score < 60) lowFactors.push('workload');
+      
+      // Get protocols that target the low factors
+      const allRecommendations: any[] = [];
+      
+      for (const factor of lowFactors) {
+        const protocols = await storage.getProtocolsByTargetFactor(factor);
+        allRecommendations.push(...protocols);
+      }
+      
+      // Filter out downvoted protocols
+      const filteredRecommendations = allRecommendations.filter(
+        p => !downvotedProtocols.includes(p.id)
+      );
+      
+      // Remove duplicates and limit to top 3
+      const uniqueRecommendations = Array.from(
+        new Map(filteredRecommendations.map(p => [p.id, p])).values()
+      ).slice(0, 3);
+      
+      // Get user preferences for these protocols
+      const preferences = await storage.getUserProtocolPreferences(userId);
+      const preferencesMap = new Map(preferences.map(p => [p.protocolId, p.preference]));
+      
+      const response = {
+        readinessScore: readinessScore.score,
+        lowFactors,
+        recommendations: uniqueRecommendations.map(p => ({
+          ...p,
+          userPreference: preferencesMap.get(p.id) || 'neutral'
+        }))
+      };
+      
+      res.json(response);
+    } catch (error: any) {
+      console.error("Error generating recovery recommendations:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Vote on a recovery protocol (upvote/downvote)
+  app.post("/api/recovery-protocols/:protocolId/vote", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { protocolId } = req.params;
+    const { preference } = req.body; // 'upvote', 'downvote', or 'neutral'
+    
+    try {
+      if (!['upvote', 'downvote', 'neutral'].includes(preference)) {
+        return res.status(400).json({ error: "Invalid preference. Must be 'upvote', 'downvote', or 'neutral'" });
+      }
+      
+      // Get current readiness score for context
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const readinessScore = await calculateReadinessScore(userId, storage, today);
+      
+      const result = await storage.upsertUserProtocolPreference({
+        userId,
+        protocolId,
+        preference,
+        context: {
+          readinessScore: readinessScore.score,
+          factors: readinessScore.factors,
+          votedAt: new Date().toISOString(),
+        },
+      });
+      
+      res.json(result);
+    } catch (error: any) {
+      console.error("Error voting on protocol:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get user's protocol preferences
+  app.get("/api/recovery-protocols/preferences", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    try {
+      const preferences = await storage.getUserProtocolPreferences(userId);
+      res.json(preferences);
+    } catch (error: any) {
+      console.error("Error fetching protocol preferences:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Daily Training Recommendation Endpoint (AI-powered, safety-first)
   app.get("/api/training/daily-recommendation", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
@@ -1863,6 +1981,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const today = new Date();
       const readinessScore = await storage.getReadinessScoreForDate(userId, today);
 
+      // Fetch downvoted recovery protocols to avoid suggesting them
+      const downvotedProtocolIds = await storage.getDownvotedProtocols(userId);
+      const downvotedProtocols: string[] = [];
+      
+      if (downvotedProtocolIds.length > 0) {
+        for (const protocolId of downvotedProtocolIds) {
+          const protocol = await storage.getRecoveryProtocol(protocolId);
+          if (protocol) {
+            downvotedProtocols.push(protocol.name);
+          }
+        }
+      }
+
       const context = {
         recentBiomarkers,
         recentInsights,
@@ -1872,6 +2003,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         onboardingStep,
         activeGoals,
         readinessScore: readinessScore || undefined,
+        downvotedProtocols: downvotedProtocols.length > 0 ? downvotedProtocols : undefined,
       };
 
       const aiResponse = await chatWithHealthCoach(conversationHistory, context);

@@ -11,6 +11,7 @@ import { useState, useMemo } from "react";
 import { format, addDays } from "date-fns";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import { useLocation } from "wouter";
+import { RecoveryProtocols } from "@/components/RecoveryProtocols";
 
 interface ReadinessScore {
   score: number;
@@ -374,6 +375,9 @@ export default function Training() {
           )}
         </CardContent>
       </Card>
+
+      {/* Recovery Protocols */}
+      <RecoveryProtocols />
 
       {/* AI Coach Recommendation */}
       <Card data-testid="card-ai-recommendation">

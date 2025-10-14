@@ -1211,6 +1211,112 @@ export class DbStorage implements IStorage {
     return await query;
   }
 
+  // Recovery Protocol methods
+  async createRecoveryProtocol(protocol: InsertRecoveryProtocol): Promise<RecoveryProtocol> {
+    const result = await db.insert(recoveryProtocols).values(protocol).returning();
+    return result[0];
+  }
+
+  async getRecoveryProtocols(category?: string): Promise<RecoveryProtocol[]> {
+    if (category) {
+      return await db
+        .select()
+        .from(recoveryProtocols)
+        .where(eq(recoveryProtocols.category, category))
+        .orderBy(desc(recoveryProtocols.createdAt));
+    }
+    return await db
+      .select()
+      .from(recoveryProtocols)
+      .orderBy(desc(recoveryProtocols.createdAt));
+  }
+
+  async getRecoveryProtocol(id: string): Promise<RecoveryProtocol | undefined> {
+    const result = await db
+      .select()
+      .from(recoveryProtocols)
+      .where(eq(recoveryProtocols.id, id));
+    return result[0];
+  }
+
+  async getProtocolsByTargetFactor(targetFactor: string): Promise<RecoveryProtocol[]> {
+    return await db
+      .select()
+      .from(recoveryProtocols)
+      .where(sql`${targetFactor} = ANY(${recoveryProtocols.targetFactors})`)
+      .orderBy(desc(recoveryProtocols.createdAt));
+  }
+
+  // User Protocol Preference methods
+  async upsertUserProtocolPreference(preference: InsertUserProtocolPreference): Promise<UserProtocolPreference> {
+    // Check if preference exists
+    const existing = await db
+      .select()
+      .from(userProtocolPreferences)
+      .where(
+        and(
+          eq(userProtocolPreferences.userId, preference.userId),
+          eq(userProtocolPreferences.protocolId, preference.protocolId)
+        )
+      );
+
+    if (existing.length > 0) {
+      // Update existing
+      const result = await db
+        .update(userProtocolPreferences)
+        .set({
+          ...preference,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(userProtocolPreferences.userId, preference.userId),
+            eq(userProtocolPreferences.protocolId, preference.protocolId)
+          )
+        )
+        .returning();
+      return result[0];
+    }
+
+    // Insert new
+    const result = await db.insert(userProtocolPreferences).values(preference).returning();
+    return result[0];
+  }
+
+  async getUserProtocolPreferences(userId: string): Promise<UserProtocolPreference[]> {
+    return await db
+      .select()
+      .from(userProtocolPreferences)
+      .where(eq(userProtocolPreferences.userId, userId))
+      .orderBy(desc(userProtocolPreferences.updatedAt));
+  }
+
+  async getUserProtocolPreference(userId: string, protocolId: string): Promise<UserProtocolPreference | undefined> {
+    const result = await db
+      .select()
+      .from(userProtocolPreferences)
+      .where(
+        and(
+          eq(userProtocolPreferences.userId, userId),
+          eq(userProtocolPreferences.protocolId, protocolId)
+        )
+      );
+    return result[0];
+  }
+
+  async getDownvotedProtocols(userId: string): Promise<string[]> {
+    const result = await db
+      .select({ protocolId: userProtocolPreferences.protocolId })
+      .from(userProtocolPreferences)
+      .where(
+        and(
+          eq(userProtocolPreferences.userId, userId),
+          eq(userProtocolPreferences.preference, 'downvote')
+        )
+      );
+    return result.map(r => r.protocolId);
+  }
+
   private getWeekKey(date: Date): string {
     // Get ISO week number
     const d = new Date(date);
