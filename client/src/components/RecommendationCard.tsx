@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ChevronRight, LucideIcon, X } from "lucide-react";
+import { ChevronRight, LucideIcon, ThumbsUp, ThumbsDown } from "lucide-react";
 import { useState } from "react";
 
 type Priority = "high" | "medium" | "low";
@@ -15,7 +15,7 @@ interface RecommendationCardProps {
   details?: string;
   actionLabel?: string;
   onAction?: () => void;
-  onDismiss?: () => void;
+  onFeedback?: (feedback: "positive" | "negative") => void;
 }
 
 const priorityConfig = {
@@ -40,9 +40,9 @@ export function RecommendationCard({
   priority,
   icon: Icon,
   details,
-  actionLabel = "View Details",
+  actionLabel = "Schedule Workout",
   onAction,
-  onDismiss,
+  onFeedback,
 }: RecommendationCardProps) {
   const [expanded, setExpanded] = useState(false);
   const config = priorityConfig[priority];
@@ -75,16 +75,27 @@ export function RecommendationCard({
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <Badge className={config.badge}>{config.label}</Badge>
-            {onDismiss && (
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-6 w-6"
-                onClick={onDismiss}
-                data-testid="button-dismiss"
-              >
-                <X className="h-4 w-4" />
-              </Button>
+            {onFeedback && (
+              <div className="flex items-center gap-1">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-7 w-7"
+                  onClick={() => onFeedback("positive")}
+                  data-testid="button-feedback-positive"
+                >
+                  <ThumbsUp className="h-4 w-4" />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-7 w-7"
+                  onClick={() => onFeedback("negative")}
+                  data-testid="button-feedback-negative"
+                >
+                  <ThumbsDown className="h-4 w-4" />
+                </Button>
+              </div>
             )}
           </div>
         </div>
