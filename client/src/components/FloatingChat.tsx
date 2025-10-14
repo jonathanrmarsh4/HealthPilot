@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import { Link } from "wouter";
-import { Send, X, MessageCircle, Loader2, Minimize2, Sparkles, Trash2, SkipForward, CheckCircle2 } from "lucide-react";
+import { Send, X, MessageCircle, Loader2, Minimize2, Sparkles, Trash2, SkipForward, CheckCircle2, Mic, MicOff, Volume2, VolumeX } from "lucide-react";
 import { useOnboarding } from "@/contexts/OnboardingContext";
 import type { ChatMessage } from "@shared/schema";
 
@@ -47,6 +47,91 @@ export function FloatingChat({ isOpen, onClose, currentPage }: FloatingChatProps
     return null;
   });
 
+  // Voice recognition state
+  const [isListening, setIsListening] = useState(false);
+  const [voiceEnabled, setVoiceEnabled] = useState(false);
+  const recognitionRef = useRef<any>(null);
+  const [speechRecognitionSupported, setSpeechRecognitionSupported] = useState(false);
+  const [speechSynthesisSupported, setSpeechSynthesisSupported] = useState(false);
+
+  // Check for Web Speech API support
+  useEffect(() => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    setSpeechRecognitionSupported(!!SpeechRecognition);
+    setSpeechSynthesisSupported('speechSynthesis' in window);
+    
+    if (SpeechRecognition) {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = 'en-US';
+      
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        setMessage(prev => prev + (prev ? ' ' : '') + transcript);
+      };
+      
+      recognition.onerror = (event: any) => {
+        console.error('Speech recognition error:', event.error);
+        setIsListening(false);
+        if (event.error !== 'no-speech' && event.error !== 'aborted') {
+          toast({
+            title: "Voice Input Error",
+            description: "Could not understand speech. Please try again.",
+            variant: "destructive",
+          });
+        }
+      };
+      
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+      
+      recognitionRef.current = recognition;
+    }
+    
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+    };
+  }, [toast]);
+
+  const toggleVoiceInput = () => {
+    if (!recognitionRef.current) return;
+    
+    if (isListening) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    } else {
+      try {
+        recognitionRef.current.start();
+        setIsListening(true);
+      } catch (error) {
+        console.error('Error starting speech recognition:', error);
+        toast({
+          title: "Error",
+          description: "Could not start voice input",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
+  const speakResponse = (text: string) => {
+    if (!voiceEnabled || !('speechSynthesis' in window)) return;
+    
+    // Cancel any ongoing speech
+    window.speechSynthesis.cancel();
+    
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 0.9;
+    utterance.pitch = 1;
+    utterance.volume = 1;
+    
+    window.speechSynthesis.speak(utterance);
+  };
+
   useEffect(() => {
     if (!isOpen) {
       setIsMinimized(false);
@@ -78,6 +163,11 @@ export function FloatingChat({ isOpen, onClose, currentPage }: FloatingChatProps
       // Refetch onboarding status to update UI after chat interaction
       queryClient.invalidateQueries({ queryKey: ["/api/onboarding/status"] });
       setMessage("");
+      
+      // Speak AI response if voice output is enabled
+      if (data.reply && voiceEnabled) {
+        speakResponse(data.reply);
+      }
       
       // Show success notification if training plan was saved
       if (data.trainingPlanSaved) {
@@ -227,6 +317,18 @@ export function FloatingChat({ isOpen, onClose, currentPage }: FloatingChatProps
                   <span className="text-xs">{isSkipping ? "Skipping..." : "Skip"}</span>
                 </Button>
               )}
+              {speechSynthesisSupported && !isOnboarding && (
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => setVoiceEnabled(!voiceEnabled)}
+                  className="h-8 w-8 text-white hover:bg-white/20"
+                  data-testid="button-toggle-voice-output"
+                  title={voiceEnabled ? "Disable voice output" : "Enable voice output"}
+                >
+                  {voiceEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+                </Button>
+              )}
               {messages && messages.length > 0 && !isOnboarding && (
                 <Button
                   size="icon"
@@ -347,20 +449,37 @@ export function FloatingChat({ isOpen, onClose, currentPage }: FloatingChatProps
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   onKeyPress={handleKeyPress}
-                  placeholder="Ask your health coach..."
-                  className="flex-1 resize-none rounded-md border bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  placeholder={isListening ? "Listening..." : "Ask your health coach..."}
+                  className={`flex-1 resize-none rounded-md border bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${
+                    isListening ? 'ring-2 ring-purple-500 animate-pulse' : ''
+                  }`}
                   rows={2}
                   disabled={sendMessageMutation.isPending}
                   data-testid="input-floating-chat-message"
                 />
-                <Button
-                  type="submit"
-                  size="icon"
-                  disabled={!message.trim() || sendMessageMutation.isPending}
-                  data-testid="button-send-floating-message"
-                >
-                  <Send className="h-4 w-4" />
-                </Button>
+                <div className="flex flex-col gap-2">
+                  {speechRecognitionSupported && (
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant={isListening ? "default" : "outline"}
+                      onClick={toggleVoiceInput}
+                      disabled={sendMessageMutation.isPending}
+                      data-testid="button-voice-input"
+                      title={isListening ? "Stop listening" : "Start voice input"}
+                    >
+                      {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                    </Button>
+                  )}
+                  <Button
+                    type="submit"
+                    size="icon"
+                    disabled={!message.trim() || sendMessageMutation.isPending}
+                    data-testid="button-send-floating-message"
+                  >
+                    <Send className="h-4 w-4" />
+                  </Button>
+                </div>
               </form>
             </div>
           </>
