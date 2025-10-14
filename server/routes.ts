@@ -1878,6 +1878,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/recommendations/:id/schedule", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    try {
+      const { id } = req.params;
+      const { date, action } = req.body;
+
+      if (!date || !action || !['add', 'replace'].includes(action)) {
+        return res.status(400).json({ error: "Invalid request. Provide date and action (add/replace)" });
+      }
+
+      const targetDate = new Date(date);
+      const dayOfWeek = targetDate.toLocaleDateString('en-US', { weekday: 'long' });
+      
+      let trainingScheduleId: string | null = null;
+
+      if (action === 'replace') {
+        // Find optional/recovery workout for that day to replace
+        const schedules = await storage.getTrainingSchedules(userId);
+        const replaceableWorkout = schedules.find(s => 
+          s.day === dayOfWeek && 
+          (s.isOptional === 1 || s.coreProgram === 0)
+        );
+
+        if (replaceableWorkout) {
+          // Delete the optional workout to make room for recommendation
+          await storage.updateTrainingSchedule(replaceableWorkout.id, userId, { 
+            completed: 1, 
+            completedAt: new Date() 
+          });
+          trainingScheduleId = replaceableWorkout.id;
+        } else {
+          return res.status(400).json({ 
+            error: "No optional or recovery workout found for that day. Core workouts cannot be replaced." 
+          });
+        }
+      }
+
+      // Mark recommendation as scheduled
+      await storage.scheduleRecommendation(id, userId, targetDate, trainingScheduleId);
+      
+      res.json({ 
+        success: true, 
+        action,
+        scheduledFor: targetDate,
+        replacedWorkoutId: trainingScheduleId 
+      });
+    } catch (error: any) {
+      console.error("Error scheduling recommendation:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/recommendations/:id/feedback", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    try {
+      const { id } = req.params;
+      const { feedback, reason } = req.body;
+
+      if (!feedback || !['positive', 'negative'].includes(feedback)) {
+        return res.status(400).json({ error: "Invalid feedback. Must be 'positive' or 'negative'" });
+      }
+
+      await storage.recordRecommendationFeedback(id, userId, feedback, reason);
+      
+      res.json({ success: true, feedback });
+    } catch (error: any) {
+      console.error("Error recording recommendation feedback:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.post("/api/insights/generate", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
 
