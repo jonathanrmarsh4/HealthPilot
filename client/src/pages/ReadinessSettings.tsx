@@ -97,13 +97,24 @@ export default function ReadinessSettings() {
       return await response.json();
     },
     onSuccess: (data) => {
-      if (data.personalHrvBaseline) setPersonalHrvBaseline(data.personalHrvBaseline);
-      if (data.personalRestingHrBaseline) setPersonalRestingHrBaseline(data.personalRestingHrBaseline);
-      if (data.personalSleepHoursBaseline) setPersonalSleepHoursBaseline(data.personalSleepHoursBaseline);
+      const totalDataPoints = data.dataPoints.hrv + data.dataPoints.restingHR + data.dataPoints.sleep;
+      
+      if (totalDataPoints === 0) {
+        toast({
+          title: "Insufficient data",
+          description: "No health data found in the last 30 days. Try syncing your health data or manually enter baselines.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (data.personalHrvBaseline != null) setPersonalHrvBaseline(data.personalHrvBaseline);
+      if (data.personalRestingHrBaseline != null) setPersonalRestingHrBaseline(data.personalRestingHrBaseline);
+      if (data.personalSleepHoursBaseline != null) setPersonalSleepHoursBaseline(data.personalSleepHoursBaseline);
       
       toast({
         title: "Baselines calculated",
-        description: `Based on ${data.dataPoints.hrv + data.dataPoints.restingHR + data.dataPoints.sleep} data points from the last 30 days`,
+        description: `Based on ${totalDataPoints} data points from the last 30 days`,
       });
       setHasChanges(true);
     },

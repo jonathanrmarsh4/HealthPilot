@@ -8,7 +8,7 @@ import { listHealthDocuments, downloadFile, getFileMetadata } from "./services/g
 import { analyzeHealthDocument, generateMealPlan, generateTrainingSchedule, generateHealthRecommendations, chatWithHealthCoach, generateDailyInsights, generateRecoveryInsights, generateTrendPredictions, generatePeriodComparison, generateDailyTrainingRecommendation } from "./services/ai";
 import { calculatePhenoAge, getBiomarkerDisplayName, getBiomarkerUnit, getBiomarkerSource } from "./services/phenoAge";
 import { calculateReadinessScore } from "./services/readiness";
-import { parseISO, isValid } from "date-fns";
+import { parseISO, isValid, subDays } from "date-fns";
 import { eq, and, gte } from "drizzle-orm";
 import { isAuthenticated, isAdmin, webhookAuth } from "./replitAuth";
 import { z } from "zod";
