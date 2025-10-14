@@ -1196,6 +1196,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           workloadWeight: 0.15,
           alertThreshold: 50,
           alertsEnabled: 1,
+          usePersonalBaselines: 0,
+          personalHrvBaseline: null,
+          personalRestingHrBaseline: null,
+          personalSleepHoursBaseline: null,
           createdAt: new Date(),
           updatedAt: new Date(),
         };
@@ -1212,7 +1216,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/training/readiness/settings", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
     try {
-      const { sleepWeight, hrvWeight, restingHRWeight, workloadWeight, alertThreshold, alertsEnabled } = req.body;
+      const { 
+        sleepWeight, 
+        hrvWeight, 
+        restingHRWeight, 
+        workloadWeight, 
+        alertThreshold, 
+        alertsEnabled,
+        usePersonalBaselines,
+        personalHrvBaseline,
+        personalRestingHrBaseline,
+        personalSleepHoursBaseline
+      } = req.body;
       
       // Validate weights sum to 1.0
       const totalWeight = sleepWeight + hrvWeight + restingHRWeight + workloadWeight;
@@ -1228,6 +1243,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         workloadWeight,
         alertThreshold,
         alertsEnabled,
+        usePersonalBaselines: usePersonalBaselines ?? 0,
+        personalHrvBaseline: personalHrvBaseline ?? null,
+        personalRestingHrBaseline: personalRestingHrBaseline ?? null,
+        personalSleepHoursBaseline: personalSleepHoursBaseline ?? null,
       });
       
       // Clear cached readiness scores to force recalculation with new weights
@@ -1243,6 +1262,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(settings);
     } catch (error: any) {
       console.error("Error updating readiness settings:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Auto-calculate personal baselines from 30-day historical data
+  app.get("/api/training/readiness/auto-calculate-baselines", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    try {
+      const thirtyDaysAgo = subDays(new Date(), 30);
+      
+      // Get HRV data from last 30 days
+      const biomarkers = await storage.getBiomarkers(userId);
+      const hrvData = biomarkers
+        .filter(b => b.type === 'hrv' && new Date(b.recordedAt) >= thirtyDaysAgo)
+        .map(b => b.value);
+      
+      // Get Resting HR data from last 30 days
+      const rhrData = biomarkers
+        .filter(b => b.type === 'heart-rate' && new Date(b.recordedAt) >= thirtyDaysAgo)
+        .map(b => b.value);
+      
+      // Get Sleep data from last 30 days
+      const sleepSessions = await storage.getSleepSessions(userId);
+      const sleepData = sleepSessions
+        .filter(s => new Date(s.bedtime) >= thirtyDaysAgo && s.totalMinutes)
+        .map(s => s.totalMinutes / 60); // Convert to hours
+      
+      // Calculate averages (or return null if no data)
+      const calculateAverage = (data: number[]) => {
+        if (data.length === 0) return null;
+        return Math.round((data.reduce((sum, val) => sum + val, 0) / data.length) * 10) / 10; // Round to 1 decimal
+      };
+      
+      const baselines = {
+        personalHrvBaseline: calculateAverage(hrvData),
+        personalRestingHrBaseline: calculateAverage(rhrData),
+        personalSleepHoursBaseline: calculateAverage(sleepData),
+        dataPoints: {
+          hrv: hrvData.length,
+          restingHR: rhrData.length,
+          sleep: sleepData.length
+        }
+      };
+      
+      res.json(baselines);
+    } catch (error: any) {
+      console.error("Error auto-calculating baselines:", error);
       res.status(500).json({ error: error.message });
     }
   });
