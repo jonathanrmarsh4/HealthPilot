@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { cn } from "@/lib/utils";
 
 interface ScheduledRecommendation {
-  id: number;
+  id: string | number;
   title: string;
   scheduledAt: string;
 }
@@ -16,7 +16,7 @@ interface ScheduledRecommendation {
 interface RecommendationCalendarProps {
   recommendations: ScheduledRecommendation[];
   onDateClick?: (date: Date) => void;
-  onReschedule?: (recommendationId: number, newDate: Date) => void;
+  onReschedule?: (recommendationId: string | number, newDate: Date) => void;
 }
 
 export function RecommendationCalendar({ recommendations, onDateClick, onReschedule }: RecommendationCalendarProps) {

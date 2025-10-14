@@ -237,7 +237,16 @@ export default function AIInsights() {
                   setSelectedRecommendation(rec);
                   setScheduleDialogOpen(true);
                 }}
-                onFeedback={(feedback) => feedbackMutation.mutate({ id: rec.id, feedback })}
+                onFeedback={(feedback) => {
+                  if (feedback === "positive") {
+                    // Thumbs up: Open schedule dialog
+                    setSelectedRecommendation(rec);
+                    setScheduleDialogOpen(true);
+                  } else {
+                    // Thumbs down: Record negative feedback and dismiss
+                    feedbackMutation.mutate({ id: rec.id, feedback });
+                  }
+                }}
               />
             ))}
           </div>

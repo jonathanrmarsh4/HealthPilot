@@ -150,7 +150,7 @@ export default function Training() {
   });
 
   const rescheduleRecommendationMutation = useMutation({
-    mutationFn: async ({ recommendationId, newDate }: { recommendationId: number; newDate: Date }) => {
+    mutationFn: async ({ recommendationId, newDate }: { recommendationId: string | number; newDate: Date }) => {
       return apiRequest(`/api/recommendations/${recommendationId}/reschedule`, {
         method: "PATCH",
         body: JSON.stringify({ date: newDate.toISOString() }),

@@ -45,7 +45,7 @@ export function RecommendationCard({
   onFeedback,
 }: RecommendationCardProps) {
   const [expanded, setExpanded] = useState(false);
-  const config = priorityConfig[priority];
+  const config = priorityConfig[priority] || priorityConfig.medium; // Fallback to medium if invalid
 
   const handleAction = () => {
     if (onAction) {
