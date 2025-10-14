@@ -3,13 +3,13 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
 import multer from "multer";
-import { insertBiomarkerSchema, insertHealthRecordSchema, biomarkers, sleepSessions, healthRecords, mealPlans, trainingSchedules, recommendations } from "@shared/schema";
+import { insertBiomarkerSchema, insertHealthRecordSchema, biomarkers, sleepSessions, healthRecords, mealPlans, trainingSchedules, recommendations, readinessScores } from "@shared/schema";
 import { listHealthDocuments, downloadFile, getFileMetadata } from "./services/googleDrive";
 import { analyzeHealthDocument, generateMealPlan, generateTrainingSchedule, generateHealthRecommendations, chatWithHealthCoach, generateDailyInsights, generateRecoveryInsights, generateTrendPredictions, generatePeriodComparison, generateDailyTrainingRecommendation } from "./services/ai";
 import { calculatePhenoAge, getBiomarkerDisplayName, getBiomarkerUnit, getBiomarkerSource } from "./services/phenoAge";
 import { calculateReadinessScore } from "./services/readiness";
 import { parseISO, isValid } from "date-fns";
-import { eq, and } from "drizzle-orm";
+import { eq, and, gte } from "drizzle-orm";
 import { isAuthenticated, isAdmin, webhookAuth } from "./replitAuth";
 import { z } from "zod";
 
@@ -1131,6 +1131,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(readinessScore);
     } catch (error: any) {
       console.error("Error calculating readiness score:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Force recalculation of readiness score (deletes cached score)
+  app.delete("/api/training/readiness/recalculate", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      // Delete today's cached readiness score
+      await db.delete(readinessScores).where(
+        and(
+          eq(readinessScores.userId, userId),
+          gte(readinessScores.date, today)
+        )
+      );
+      
+      res.json({ success: true, message: "Readiness score cache cleared. Refresh to recalculate." });
+    } catch (error: any) {
+      console.error("Error clearing readiness cache:", error);
       res.status(500).json({ error: error.message });
     }
   });
@@ -2981,6 +3003,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           await Promise.all(sleepPromises);
           sleepSessionsCount += sleepPromises.length;
+          
+          // Clear cached readiness scores since sleep data changed
+          // This forces recalculation with the new sleep data
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          await db.delete(readinessScores).where(
+            and(
+              eq(readinessScores.userId, userId),
+              gte(readinessScores.date, today)
+            )
+          );
+          console.log('🔄 Cleared readiness score cache due to new sleep data');
+          
           continue; // Skip the normal biomarker processing for sleep
         }
         
