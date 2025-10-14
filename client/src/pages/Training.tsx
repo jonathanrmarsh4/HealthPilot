@@ -3,16 +3,17 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Sparkles, Loader2, Activity, Heart, RefreshCw, ThumbsUp, ThumbsDown, Dumbbell, Calendar, Zap, Moon, TrendingUp, Settings, Info, AlertTriangle } from "lucide-react";
+import { Sparkles, Loader2, Activity, Heart, RefreshCw, ThumbsUp, ThumbsDown, Dumbbell, Zap, Moon, Settings, Info, AlertTriangle, ChevronDown, ChevronUp, History } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useMemo } from "react";
-import { format, addDays } from "date-fns";
+import { format, isToday, startOfDay, endOfDay, subDays } from "date-fns";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import { useLocation } from "wouter";
 import { RecoveryProtocols } from "@/components/RecoveryProtocols";
 import { TrainingScheduleCard } from "@/components/TrainingScheduleCard";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface TrainingSchedule {
   id: string;
@@ -27,6 +28,22 @@ interface TrainingSchedule {
   }>;
   completed: number;
   sessionType?: string;
+  createdAt?: string;
+}
+
+interface ReadinessSettings {
+  sleepWeight: number;
+  hrvWeight: number;
+  restingHRWeight: number;
+  workloadWeight: number;
+  alertThreshold: number;
+  alertsEnabled: boolean;
+}
+
+interface RecoveryEstimate {
+  daysUntilReady: number;
+  trend: "improving" | "declining" | "stable";
+  confidence: "high" | "medium" | "low";
 }
 
 interface ReadinessScore {
@@ -40,6 +57,7 @@ interface ReadinessScore {
     restingHR: { score: number; weight: number; value?: number };
     workloadRecovery: { score: number; weight: number };
   };
+  recoveryEstimate?: RecoveryEstimate;
 }
 
 interface Exercise {
@@ -59,6 +77,13 @@ interface WorkoutPlan {
   calorieEstimate: number;
 }
 
+interface AdjustmentsMade {
+  intensityReduced: boolean;
+  durationReduced: boolean;
+  exercisesModified: boolean;
+  reason: string;
+}
+
 interface DailyRecommendation {
   readinessScore: number;
   readinessRecommendation: "ready" | "caution" | "rest";
@@ -73,7 +98,17 @@ interface DailyRecommendation {
     };
     aiReasoning: string;
     safetyNote?: string;
+    adjustmentsMade?: AdjustmentsMade;
   };
+}
+
+interface CompletedWorkout {
+  id: number;
+  date: string;
+  workoutType: string;
+  duration: number;
+  caloriesEstimate: number;
+  intensity: "Low" | "Moderate" | "High";
 }
 
 export default function Training() {
@@ -81,12 +116,13 @@ export default function Training() {
   const [, setLocation] = useLocation();
   const [selectedPlan, setSelectedPlan] = useState<'primary' | 'alternate' | 'rest'>('primary');
   const [exerciseFeedback, setExerciseFeedback] = useState<Record<string, 'up' | 'down'>>({});
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const { data: readinessScore, isLoading: readinessLoading } = useQuery<ReadinessScore>({
     queryKey: ["/api/training/readiness"],
   });
 
-  const { data: readinessSettings } = useQuery({
+  const { data: readinessSettings } = useQuery<ReadinessSettings>({
     queryKey: ["/api/training/readiness/settings"],
   });
 
@@ -99,12 +135,37 @@ export default function Training() {
     queryKey: ["/api/training-schedules"],
   });
 
+  const { data: completedWorkouts, isLoading: workoutsLoading } = useQuery<CompletedWorkout[]>({
+    queryKey: ["/api/workouts/completed"],
+  });
+
   // Check if readiness alert should be shown
   const showAlert = useMemo(() => {
     if (!readinessScore || !readinessSettings) return false;
     if (!readinessSettings.alertsEnabled) return false;
     return readinessScore.score < readinessSettings.alertThreshold;
   }, [readinessScore, readinessSettings]);
+
+  // Filter training schedules for today only
+  const todaysCustomWorkout = useMemo(() => {
+    if (!trainingSchedules || trainingSchedules.length === 0) return null;
+    
+    const today = format(new Date(), 'EEEE');
+    return trainingSchedules.find(schedule => 
+      schedule.day === today && schedule.completed === 0
+    );
+  }, [trainingSchedules]);
+
+  // Filter completed workouts for last 7 days
+  const recentWorkouts = useMemo(() => {
+    if (!completedWorkouts) return [];
+    
+    const sevenDaysAgo = subDays(new Date(), 7);
+    return completedWorkouts.filter(workout => {
+      const workoutDate = new Date(workout.date);
+      return workoutDate >= sevenDaysAgo;
+    }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [completedWorkouts]);
 
   const refreshPlanMutation = useMutation({
     mutationFn: async () => {
@@ -117,8 +178,8 @@ export default function Training() {
         title: "Plan Refreshed",
         description: "Your training recommendation has been updated based on current readiness",
       });
-      setSelectedPlan('primary'); // Reset to primary plan
-      setExerciseFeedback({}); // Clear feedback state for new recommendations
+      setSelectedPlan('primary');
+      setExerciseFeedback({});
     },
     onError: (error: Error) => {
       toast({
@@ -129,47 +190,32 @@ export default function Training() {
     },
   });
 
-  const feedbackMutation = useMutation({
-    mutationFn: async ({ exerciseName, feedback, context }: { exerciseName: string; feedback: 'up' | 'down'; context: any }) => {
-      const res = await apiRequest("POST", "/api/exercise-feedback", { exerciseName, feedback, context });
-      return res.json();
-    },
-    onSuccess: (data, variables) => {
-      toast({
-        title: variables.feedback === 'up' ? "Great!" : "Noted",
-        description: variables.feedback === 'up' 
-          ? "We'll include more exercises like this" 
-          : "We'll adjust future recommendations",
+  const exerciseFeedbackMutation = useMutation({
+    mutationFn: async ({ exerciseName, feedback }: { exerciseName: string; feedback: 'up' | 'down' }) => {
+      return apiRequest('/api/training/exercise-feedback', {
+        method: 'POST',
+        body: JSON.stringify({ exerciseName, feedback }),
+        headers: { 'Content-Type': 'application/json' }
       });
     },
-    onError: (error: Error) => {
+    onSuccess: (_, variables) => {
       toast({
-        title: "Error",
-        description: "Failed to save feedback",
-        variant: "destructive",
+        title: "Feedback Recorded",
+        description: `Your preference for ${variables.exerciseName} has been saved`,
       });
     },
   });
 
   const handleExerciseFeedback = (exerciseName: string, feedback: 'up' | 'down') => {
-    const isTogglingOff = exerciseFeedback[exerciseName] === feedback;
+    const currentFeedback = exerciseFeedback[exerciseName];
     
-    setExerciseFeedback(prev => ({
-      ...prev,
-      [exerciseName]: isTogglingOff ? undefined : feedback as any,
-    }));
-
-    if (!isTogglingOff) {
-      // Save feedback to database with context
-      feedbackMutation.mutate({
-        exerciseName,
-        feedback,
-        context: {
-          readinessScore: dailyRec?.readinessScore,
-          planType: selectedPlan,
-          date: new Date().toISOString(),
-        },
-      });
+    if (currentFeedback === feedback) {
+      const { [exerciseName]: _, ...rest } = exerciseFeedback;
+      setExerciseFeedback(rest);
+      exerciseFeedbackMutation.mutate({ exerciseName, feedback: 'up' });
+    } else {
+      setExerciseFeedback({ ...exerciseFeedback, [exerciseName]: feedback });
+      exerciseFeedbackMutation.mutate({ exerciseName, feedback });
     }
   };
 
@@ -184,12 +230,6 @@ export default function Training() {
       { name: 'Remaining', value: 100 - score, color: 'hsl(var(--muted))' }
     ];
   }, [readinessScore]);
-
-  const getRecommendationColor = (rec: string) => {
-    if (rec === 'ready') return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400';
-    if (rec === 'caution') return 'bg-amber-500/10 text-amber-600 dark:text-amber-400';
-    return 'bg-red-500/10 text-red-600 dark:text-red-400';
-  };
 
   const getRecommendationBadgeVariant = (rec: string) => {
     if (rec === 'ready') return 'default';
@@ -399,13 +439,16 @@ export default function Training() {
       {/* Recovery Protocols */}
       <RecoveryProtocols />
 
-      {/* AI Coach Recommendation */}
-      <Card data-testid="card-ai-recommendation">
+      {/* Today's Recommended Workout */}
+      <Card data-testid="card-todays-workout">
         <CardHeader>
           <div className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
-            <CardTitle>AI Coach Recommendation</CardTitle>
+            <CardTitle>Today's Recommended Workout</CardTitle>
           </div>
+          <CardDescription>
+            Personalized workout based on your current readiness level
+          </CardDescription>
           {dailyRec?.recommendation.safetyNote && (
             <div className="mt-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
               <p className="text-sm text-amber-600 dark:text-amber-400" data-testid="text-safety-note">
@@ -468,7 +511,7 @@ export default function Training() {
                   }}
                   data-testid="button-plan-alternate"
                 >
-                  <TrendingUp className="mr-2 h-4 w-4" />
+                  <Activity className="mr-2 h-4 w-4" />
                   Lighter Alternative
                 </Button>
                 <Button
@@ -595,105 +638,110 @@ export default function Training() {
         </CardContent>
       </Card>
 
-      {/* Weekly Overview */}
-      <Card data-testid="card-weekly-overview">
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Calendar className="h-5 w-5 text-primary" />
-            <CardTitle>This Week's Training</CardTitle>
-          </div>
-          <CardDescription>Your upcoming workout schedule</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-3">
-            {[0, 1, 2, 3, 4, 5, 6].map((day) => {
-              const date = addDays(new Date(), day);
-              const dayName = format(date, 'EEEE');
-              const isToday = day === 0;
-              
-              return (
-                <div 
-                  key={day} 
-                  className={`flex items-center justify-between p-3 rounded-lg border ${isToday ? 'bg-primary/5 border-primary/20' : ''}`}
-                  data-testid={`day-overview-${day}`}
-                >
-                  <div>
-                    <div className="font-medium">
-                      {dayName}
-                      {isToday && <Badge variant="default" className="ml-2 text-xs">Today</Badge>}
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      {format(date, 'MMM d')}
-                    </div>
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    {isToday && dailyRec?.recommendation ? (
-                      <span className="text-primary font-medium">
-                        {selectedPlan === 'rest' ? 'Rest Day' : currentPlan?.title}
-                      </span>
-                    ) : (
-                      <span>No plan yet</span>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
+      {/* Your Custom Workout (if exists for today) */}
+      {todaysCustomWorkout && (
+        <Card data-testid="card-custom-workout">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Dumbbell className="h-5 w-5 text-primary" />
+                <CardTitle>Your Custom Workout for Today</CardTitle>
+              </div>
+              <Badge variant="outline" className="text-xs">
+                Created in AI Chat
+              </Badge>
+            </div>
+            <CardDescription>
+              This workout plan was created for you through the AI Coach chat
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <TrainingScheduleCard
+              id={todaysCustomWorkout.id}
+              day={todaysCustomWorkout.day}
+              workoutType={todaysCustomWorkout.workoutType}
+              duration={todaysCustomWorkout.duration}
+              intensity={todaysCustomWorkout.intensity}
+              exercises={todaysCustomWorkout.exercises}
+              completed={todaysCustomWorkout.completed === 1}
+              sessionType={todaysCustomWorkout.sessionType}
+            />
+            <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
+              <Info className="h-4 w-4" />
+              <span>You can switch between this custom plan and the AI recommendation above</span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
-      {/* Saved Training Schedules */}
-      <Card data-testid="card-training-schedules">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Dumbbell className="h-5 w-5 text-primary" />
-              <CardTitle>Your Training Schedule</CardTitle>
-            </div>
-          </div>
-          <CardDescription>
-            Workout plans created through AI chat or imported from your library
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {schedulesLoading ? (
-            <div className="space-y-3">
-              <Skeleton className="h-32 w-full" />
-              <Skeleton className="h-32 w-full" />
-            </div>
-          ) : trainingSchedules && trainingSchedules.length > 0 ? (
-            <div className="grid gap-4">
-              {trainingSchedules.map((schedule) => (
-                <TrainingScheduleCard
-                  key={schedule.id}
-                  id={schedule.id}
-                  day={schedule.day}
-                  workoutType={schedule.workoutType}
-                  duration={schedule.duration}
-                  intensity={schedule.intensity}
-                  exercises={schedule.exercises}
-                  completed={schedule.completed === 1}
-                  sessionType={schedule.sessionType}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8 space-y-4">
-              <p className="text-muted-foreground">
-                No training schedules yet. Create a personalized workout plan through the AI chat.
-              </p>
-              <Button
-                variant="outline"
-                onClick={() => setLocation('/chat')}
-                data-testid="button-create-plan-chat"
-              >
-                <Sparkles className="mr-2 h-4 w-4" />
-                Chat with AI Coach
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* Workout History (Collapsible) */}
+      <Collapsible open={historyOpen} onOpenChange={setHistoryOpen}>
+        <Card data-testid="card-workout-history">
+          <CollapsibleTrigger asChild>
+            <CardHeader className="cursor-pointer hover-elevate">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <History className="h-5 w-5 text-primary" />
+                  <CardTitle>Workout History</CardTitle>
+                </div>
+                <div className="flex items-center gap-2">
+                  {recentWorkouts.length > 0 && (
+                    <Badge variant="secondary">{recentWorkouts.length} recent</Badge>
+                  )}
+                  {historyOpen ? (
+                    <ChevronUp className="h-4 w-4" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4" />
+                  )}
+                </div>
+              </div>
+              <CardDescription>
+                Your completed workouts from the last 7 days
+              </CardDescription>
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent>
+              {workoutsLoading ? (
+                <div className="space-y-3">
+                  <Skeleton className="h-20 w-full" />
+                  <Skeleton className="h-20 w-full" />
+                </div>
+              ) : recentWorkouts.length > 0 ? (
+                <div className="space-y-3">
+                  {recentWorkouts.map((workout) => (
+                    <div
+                      key={workout.id}
+                      className="flex items-center justify-between p-4 rounded-lg border bg-card"
+                      data-testid={`workout-history-${workout.id}`}
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="font-medium">{workout.workoutType}</h4>
+                          <Badge variant="outline" className="text-xs">
+                            {workout.intensity}
+                          </Badge>
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {format(new Date(workout.date), 'EEEE, MMM d')}
+                        </div>
+                      </div>
+                      <div className="text-right text-sm">
+                        <div className="font-medium">{workout.duration} min</div>
+                        <div className="text-muted-foreground">~{workout.caloriesEstimate} kcal</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-center text-muted-foreground py-8">
+                  No completed workouts in the last 7 days
+                </p>
+              )}
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
     </div>
   );
 }
