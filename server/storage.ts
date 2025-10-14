@@ -30,6 +30,10 @@ import {
   type InsertGoal,
   type ExerciseFeedback,
   type InsertExerciseFeedback,
+  type RecoveryProtocol,
+  type InsertRecoveryProtocol,
+  type UserProtocolPreference,
+  type InsertUserProtocolPreference,
   users,
   healthRecords,
   biomarkers,
@@ -45,6 +49,8 @@ import {
   exerciseLogs,
   goals,
   exerciseFeedback,
+  recoveryProtocols,
+  userProtocolPreferences,
 } from "@shared/schema";
 import { eq, desc, and, gte, lte, lt, sql, or, like, count, isNull } from "drizzle-orm";
 
@@ -162,6 +168,18 @@ export interface IStorage {
   
   createExerciseFeedback(feedback: InsertExerciseFeedback): Promise<ExerciseFeedback>;
   getExerciseFeedback(userId: string, limit?: number): Promise<ExerciseFeedback[]>;
+  
+  // Recovery Protocol methods
+  createRecoveryProtocol(protocol: InsertRecoveryProtocol): Promise<RecoveryProtocol>;
+  getRecoveryProtocols(category?: string): Promise<RecoveryProtocol[]>;
+  getRecoveryProtocol(id: string): Promise<RecoveryProtocol | undefined>;
+  getProtocolsByTargetFactor(targetFactor: string): Promise<RecoveryProtocol[]>;
+  
+  // User Protocol Preference methods
+  upsertUserProtocolPreference(preference: InsertUserProtocolPreference): Promise<UserProtocolPreference>;
+  getUserProtocolPreferences(userId: string): Promise<UserProtocolPreference[]>;
+  getUserProtocolPreference(userId: string, protocolId: string): Promise<UserProtocolPreference | undefined>;
+  getDownvotedProtocols(userId: string): Promise<string[]>; // Returns array of protocol IDs
 }
 
 export class DbStorage implements IStorage {
