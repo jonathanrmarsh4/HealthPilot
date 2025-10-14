@@ -23,6 +23,7 @@ import ReadinessSettings from "@/pages/ReadinessSettings";
 import AIInsights from "@/pages/AIInsights";
 import Insights from "@/pages/Insights";
 import Goals from "@/pages/Goals";
+import Supplements from "@/pages/Supplements";
 import BiologicalAge from "@/pages/BiologicalAge";
 import AppleHealthSetup from "@/pages/AppleHealthSetup";
 import Chat from "@/pages/Chat";
@@ -46,6 +47,7 @@ function Router() {
       <Route path="/meals" component={MealPlans} />
       <Route path="/training" component={Training} />
       <Route path="/training/readiness-settings" component={ReadinessSettings} />
+      <Route path="/supplements" component={Supplements} />
       <Route path="/insights" component={AIInsights} />
       <Route path="/data-insights" component={Insights} />
       <Route path="/goals" component={Goals} />
@@ -79,6 +81,7 @@ function AppLayout() {
     "/sleep": "Sleep Dashboard",
     "/meals": "Meal Plans",
     "/training": "Training",
+    "/supplements": "Supplement Stack",
     "/insights": "AI Insights",
     "/data-insights": "Data Insights",
     "/goals": "Health Goals",

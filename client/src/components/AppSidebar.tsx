@@ -13,6 +13,7 @@ import {
   BarChart3,
   Target,
   Dna,
+  Pill,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import {
@@ -64,6 +65,11 @@ const menuItems = [
     title: "Training",
     url: "/training",
     icon: Dumbbell,
+  },
+  {
+    title: "Supplements",
+    url: "/supplements",
+    icon: Pill,
   },
   {
     title: "AI Insights",
