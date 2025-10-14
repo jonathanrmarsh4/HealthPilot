@@ -35,13 +35,19 @@ The application is a full-stack project utilizing React, TypeScript, Tailwind CS
 - **Workout Tracking:** Comprehensive exercise data import from Apple Health via webhook, automatic creation of workout sessions, and smart matching algorithm for training schedules. Supports strength training logs.
 - **Recovery Session Integration:** Optional sauna and cold plunge sessions included in AI-generated training plans with smart post-workout scheduling.
 - **Training Analytics:** Provides training load calculation, workout statistics by type, workout-biomarker correlations, and AI-powered recovery insights with severity-based recommendations.
-- **Readiness Score System (Phase 1 - October 2025):** Daily readiness calculation using multi-factor analysis:
-  - **Algorithm:** Weighted scoring system - Sleep Quality (40%), HRV (30%), Resting Heart Rate (15%), Workout Load Recovery (15%)
+- **Readiness Score System (October 2025):** Daily readiness calculation using multi-factor analysis:
+  - **Phase 1 - Core Algorithm:** Weighted scoring system - Sleep Quality (40%), HRV (30%), Resting Heart Rate (15%), Workout Load Recovery (15%)
   - **Safety-First Logic:** Automatic rest recommendations when critical recovery markers are low (poor sleep <40, very low HRV <30, elevated RHR)
   - **Smart Caching:** Daily scores stored in database to avoid recalculation, with historical tracking
   - **Dashboard Widget:** Fuel gauge visualization with semicircle chart showing readiness score (0-100), color-coded recommendation badges (green=ready, yellow=caution, red=rest), quality labels (excellent/good/fair/poor), and component breakdown (Sleep, HRV, Resting HR, Recovery)
   - **Workout Load Analysis:** Considers both acute (24h) and chronic (7d) training load with intensity estimation from heart rate data when available
   - **Timezone Fix (Oct 14, 2025):** Extended date filter to `addDays(targetDate, 1)` to properly handle sleep sessions crossing midnight in positive UTC offset timezones (e.g., Australia/Perth UTC+8). Previously, timezone conversion caused sessions to be excluded from readiness calculation, defaulting sleep score to 50/100.
+  - **Phase 2 - Customization (Oct 14, 2025):** User-configurable readiness factors with personalized insights:
+    - **Custom Factor Weights:** Interactive settings page with sliders to adjust Sleep/HRV/RestingHR/Workload weights (auto-redistributes to maintain 100% total), real-time preview of score impact
+    - **Training Intensity Auto-Adjustment:** AI automatically reduces workout intensity/duration when readiness is caution/rest, displays visible explanation of what was adjusted and why
+    - **Recovery Time Prediction:** 3-day trend analysis using linear regression to estimate days until readiness ≥65, shows trend direction (improving/declining/stable) and confidence level (high/medium/low)
+    - **Readiness Alerts:** Configurable threshold-based alerts with visual warning banner on Training page when score drops below user's threshold, toggle to enable/disable alerts
+    - **Backend Storage:** user_readiness_settings table stores custom weights (default 40/30/15/15), alert threshold (default 50), alerts enabled flag, persists via POST /api/training/readiness/settings with cache invalidation
 
 **Feature Specifications:**
 - Health record upload and AI analysis with status tracking.
