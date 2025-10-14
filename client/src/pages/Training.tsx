@@ -12,6 +12,22 @@ import { format, addDays } from "date-fns";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import { useLocation } from "wouter";
 import { RecoveryProtocols } from "@/components/RecoveryProtocols";
+import { TrainingScheduleCard } from "@/components/TrainingScheduleCard";
+
+interface TrainingSchedule {
+  id: string;
+  day: string;
+  workoutType: string;
+  duration: number;
+  intensity: string;
+  exercises: Array<{
+    name: string;
+    sets: number;
+    reps: string;
+  }>;
+  completed: number;
+  sessionType?: string;
+}
 
 interface ReadinessScore {
   score: number;
@@ -77,6 +93,10 @@ export default function Training() {
   const { data: dailyRec, isLoading: recLoading, refetch: refetchRec } = useQuery<DailyRecommendation>({
     queryKey: ["/api/training/daily-recommendation"],
     staleTime: 5 * 60 * 1000,
+  });
+
+  const { data: trainingSchedules, isLoading: schedulesLoading } = useQuery<TrainingSchedule[]>({
+    queryKey: ["/api/training-schedules"],
   });
 
   // Check if readiness alert should be shown
@@ -619,6 +639,59 @@ export default function Training() {
               );
             })}
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Saved Training Schedules */}
+      <Card data-testid="card-training-schedules">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Dumbbell className="h-5 w-5 text-primary" />
+              <CardTitle>Your Training Schedule</CardTitle>
+            </div>
+          </div>
+          <CardDescription>
+            Workout plans created through AI chat or imported from your library
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {schedulesLoading ? (
+            <div className="space-y-3">
+              <Skeleton className="h-32 w-full" />
+              <Skeleton className="h-32 w-full" />
+            </div>
+          ) : trainingSchedules && trainingSchedules.length > 0 ? (
+            <div className="grid gap-4">
+              {trainingSchedules.map((schedule) => (
+                <TrainingScheduleCard
+                  key={schedule.id}
+                  id={schedule.id}
+                  day={schedule.day}
+                  workoutType={schedule.workoutType}
+                  duration={schedule.duration}
+                  intensity={schedule.intensity}
+                  exercises={schedule.exercises}
+                  completed={schedule.completed === 1}
+                  sessionType={schedule.sessionType}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 space-y-4">
+              <p className="text-muted-foreground">
+                No training schedules yet. Create a personalized workout plan through the AI chat.
+              </p>
+              <Button
+                variant="outline"
+                onClick={() => setLocation('/chat')}
+                data-testid="button-create-plan-chat"
+              >
+                <Sparkles className="mr-2 h-4 w-4" />
+                Chat with AI Coach
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
