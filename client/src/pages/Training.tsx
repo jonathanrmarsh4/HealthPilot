@@ -192,11 +192,7 @@ export default function Training() {
 
   const exerciseFeedbackMutation = useMutation({
     mutationFn: async ({ exerciseName, feedback }: { exerciseName: string; feedback: 'up' | 'down' }) => {
-      return apiRequest('/api/training/exercise-feedback', {
-        method: 'POST',
-        body: JSON.stringify({ exerciseName, feedback }),
-        headers: { 'Content-Type': 'application/json' }
-      });
+      return apiRequest('POST', '/api/training/exercise-feedback', { exerciseName, feedback });
     },
     onSuccess: (_, variables) => {
       toast({
@@ -280,7 +276,7 @@ export default function Training() {
                 Readiness Alert: Score Below Threshold
               </p>
               <p className="text-sm text-red-600/80 dark:text-red-400/80 mt-1">
-                Your readiness score ({readinessScore?.score}) is below your alert threshold ({readinessSettings.alertThreshold}). 
+                Your readiness score ({readinessScore?.score}) is below your alert threshold ({readinessSettings?.alertThreshold}). 
                 Consider taking rest or reducing training intensity.
               </p>
             </div>
@@ -661,7 +657,7 @@ export default function Training() {
               day={todaysCustomWorkout.day}
               workoutType={todaysCustomWorkout.workoutType}
               duration={todaysCustomWorkout.duration}
-              intensity={todaysCustomWorkout.intensity}
+              intensity={todaysCustomWorkout.intensity as "Low" | "Moderate" | "High"}
               exercises={todaysCustomWorkout.exercises}
               completed={todaysCustomWorkout.completed === 1}
               sessionType={todaysCustomWorkout.sessionType}
