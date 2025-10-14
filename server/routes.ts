@@ -5,7 +5,7 @@ import { db } from "./db";
 import multer from "multer";
 import { insertBiomarkerSchema, insertHealthRecordSchema, biomarkers, sleepSessions, healthRecords, mealPlans, trainingSchedules, recommendations } from "@shared/schema";
 import { listHealthDocuments, downloadFile, getFileMetadata } from "./services/googleDrive";
-import { analyzeHealthDocument, generateMealPlan, generateTrainingSchedule, generateHealthRecommendations, chatWithHealthCoach, generateDailyInsights, generateRecoveryInsights, generateTrendPredictions, generatePeriodComparison } from "./services/ai";
+import { analyzeHealthDocument, generateMealPlan, generateTrainingSchedule, generateHealthRecommendations, chatWithHealthCoach, generateDailyInsights, generateRecoveryInsights, generateTrendPredictions, generatePeriodComparison, generateDailyTrainingRecommendation } from "./services/ai";
 import { calculatePhenoAge, getBiomarkerDisplayName, getBiomarkerUnit, getBiomarkerSource } from "./services/phenoAge";
 import { calculateReadinessScore } from "./services/readiness";
 import { parseISO, isValid } from "date-fns";
@@ -1135,6 +1135,123 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Daily Training Recommendation Endpoint (AI-powered, safety-first)
+  app.get("/api/training/daily-recommendation", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      // 1. Get readiness score (use cached if available)
+      let readinessData = await storage.getReadinessScoreForDate(userId, today);
+      
+      if (!readinessData) {
+        // Calculate fresh readiness score if not cached
+        const readinessScore = await calculateReadinessScore(userId, storage, today);
+        
+        // Save it for caching
+        await storage.createReadinessScore({
+          userId,
+          date: today,
+          score: readinessScore.score,
+          quality: readinessScore.quality,
+          recommendation: readinessScore.recommendation,
+          reasoning: readinessScore.reasoning,
+          sleepScore: readinessScore.factors.sleep.score,
+          sleepValue: readinessScore.factors.sleep.value || null,
+          hrvScore: readinessScore.factors.hrv.score,
+          hrvValue: readinessScore.factors.hrv.value || null,
+          restingHRScore: readinessScore.factors.restingHR.score,
+          restingHRValue: readinessScore.factors.restingHR.value || null,
+          workloadScore: readinessScore.factors.workloadRecovery.score,
+        });
+        
+        readinessData = {
+          score: readinessScore.score,
+          recommendation: readinessScore.recommendation,
+          sleepScore: readinessScore.factors.sleep.score,
+          sleepValue: readinessScore.factors.sleep.value || null,
+          hrvScore: readinessScore.factors.hrv.score,
+          hrvValue: readinessScore.factors.hrv.value || null,
+          restingHRScore: readinessScore.factors.restingHR.score,
+          restingHRValue: readinessScore.factors.restingHR.value || null,
+          workloadScore: readinessScore.factors.workloadRecovery.score,
+        };
+      }
+      
+      // 2. Get user's training plan
+      const trainingPlans = await storage.getTrainingPlans(userId);
+      const activePlan = trainingPlans.find(p => p.status === 'active');
+      
+      // 3. Get today's scheduled workout (if exists)
+      let scheduledWorkout = undefined;
+      if (activePlan) {
+        const dayOfWeek = today.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+        const weeklySchedule = activePlan.weeklySchedule as any;
+        
+        if (weeklySchedule && weeklySchedule[dayOfWeek]) {
+          const dayPlan = weeklySchedule[dayOfWeek];
+          scheduledWorkout = {
+            type: dayPlan.type || 'Workout',
+            duration: dayPlan.duration || 45,
+            intensity: dayPlan.intensity,
+            description: dayPlan.description || dayPlan.exercises?.map((e: any) => e.name).join(', '),
+          };
+        }
+      }
+      
+      // 4. Get recent workout history (last 7 days)
+      const workoutSessions = await storage.getWorkoutSessions(userId);
+      const sevenDaysAgo = new Date(today);
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      const recentWorkouts = workoutSessions
+        .filter(w => new Date(w.startTime) >= sevenDaysAgo && new Date(w.startTime) < today)
+        .map(w => ({
+          type: w.workoutType,
+          duration: w.duration || 0,
+          startTime: new Date(w.startTime),
+        }));
+      
+      // 5. Generate AI recommendation with safety-first logic
+      const aiRecommendation = await generateDailyTrainingRecommendation({
+        readinessScore: readinessData.score,
+        readinessRecommendation: readinessData.recommendation as "ready" | "caution" | "rest",
+        readinessFactors: {
+          sleep: { 
+            score: readinessData.sleepScore || 50, 
+            value: readinessData.sleepValue || undefined 
+          },
+          hrv: { 
+            score: readinessData.hrvScore || 50, 
+            value: readinessData.hrvValue || undefined 
+          },
+          restingHR: { 
+            score: readinessData.restingHRScore || 50, 
+            value: readinessData.restingHRValue || undefined 
+          },
+          workloadRecovery: { 
+            score: readinessData.workloadScore || 50 
+          },
+        },
+        scheduledWorkout,
+        trainingPlan: activePlan ? {
+          goal: activePlan.goal,
+          weeklySchedule: activePlan.weeklySchedule,
+        } : undefined,
+        recentWorkouts,
+      });
+      
+      res.json({
+        readinessScore: readinessData.score,
+        readinessRecommendation: readinessData.recommendation,
+        recommendation: aiRecommendation,
+      });
+    } catch (error: any) {
+      console.error("Error generating daily training recommendation:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.post("/api/workout-sessions/recovery", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
     try {
@@ -1379,6 +1496,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.deleteGoal(id, userId);
       res.json({ success: true });
     } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Exercise Feedback API
+  app.post("/api/exercise-feedback", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    try {
+      const { exerciseName, feedback, context } = req.body;
+      
+      if (!exerciseName || !feedback || !['up', 'down'].includes(feedback)) {
+        return res.status(400).json({ error: "Invalid request. exerciseName and feedback ('up' or 'down') are required." });
+      }
+      
+      const result = await storage.createExerciseFeedback({
+        userId,
+        exerciseName,
+        feedback,
+        context: context || null,
+      });
+      
+      res.json(result);
+    } catch (error: any) {
+      console.error("Error saving exercise feedback:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/exercise-feedback", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    try {
+      const { limit = '50' } = req.query;
+      const feedback = await storage.getExerciseFeedback(userId, parseInt(limit as string));
+      res.json(feedback);
+    } catch (error: any) {
+      console.error("Error fetching exercise feedback:", error);
       res.status(500).json({ error: error.message });
     }
   });

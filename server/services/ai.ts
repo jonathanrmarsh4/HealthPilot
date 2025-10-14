@@ -1440,3 +1440,133 @@ Be specific with numbers and provide meaningful context about what the changes m
 
   return null;
 }
+
+/**
+ * Generate daily training recommendation based on readiness score and training plan
+ * Safety-first AI logic: respects recovery signals and prioritizes user health
+ */
+export async function generateDailyTrainingRecommendation(data: {
+  readinessScore: number;
+  readinessRecommendation: "ready" | "caution" | "rest";
+  readinessFactors: {
+    sleep: { score: number; value?: number };
+    hrv: { score: number; value?: number };
+    restingHR: { score: number; value?: number };
+    workloadRecovery: { score: number };
+  };
+  scheduledWorkout?: {
+    type: string;
+    duration: number;
+    intensity?: string;
+    description?: string;
+  };
+  trainingPlan?: {
+    goal: string;
+    weeklySchedule?: any;
+  };
+  recentWorkouts?: Array<{
+    type: string;
+    duration: number;
+    startTime: Date;
+  }>;
+}) {
+  const completion = await retryWithBackoff(() => openai.chat.completions.create({
+    model: "gpt-4o",
+    max_tokens: 2048,
+    response_format: { type: "json_object" },
+    messages: [
+      {
+        role: "system",
+        content: `You are an AI fitness coach specializing in safety-first training recommendations. Your primary responsibility is user health and recovery. 
+
+CRITICAL SAFETY RULES:
+1. NEVER recommend high-intensity workouts when readiness is "rest" or critical markers are low
+2. When sleep score < 40, HRV < 30, or resting HR is elevated: recommend active recovery or rest
+3. Always provide 3 options: primary plan (respects readiness), alternate lighter option, and rest/recovery day
+4. Be honest about recovery needs - it's better to undertrain than overtrain
+5. Consider cumulative fatigue from recent workouts
+
+Your recommendations should be:
+- Specific and actionable (exact exercises, sets, reps, duration)
+- Adaptive to current recovery state
+- Encouraging but realistic
+- Include clear reasoning based on recovery data`
+      },
+      {
+        role: "user",
+        content: `Generate today's training recommendation based on current recovery state and training plan.
+
+## Recovery Status
+- Readiness Score: ${data.readinessScore}/100 (${data.readinessRecommendation})
+- Sleep Quality: ${data.readinessFactors.sleep.score}/100${data.readinessFactors.sleep.value ? ` (${data.readinessFactors.sleep.value.toFixed(1)} hours)` : ''}
+- HRV: ${data.readinessFactors.hrv.score}/100${data.readinessFactors.hrv.value ? ` (${data.readinessFactors.hrv.value.toFixed(0)} ms)` : ''}
+- Resting Heart Rate: ${data.readinessFactors.restingHR.score}/100${data.readinessFactors.restingHR.value ? ` (${data.readinessFactors.restingHR.value.toFixed(0)} bpm)` : ''}
+- Workout Recovery: ${data.readinessFactors.workloadRecovery.score}/100
+
+## Today's Scheduled Workout
+${data.scheduledWorkout ? `
+- Type: ${data.scheduledWorkout.type}
+- Duration: ${data.scheduledWorkout.duration} minutes
+- Intensity: ${data.scheduledWorkout.intensity || 'Not specified'}
+- Description: ${data.scheduledWorkout.description || 'Not specified'}
+` : 'No workout scheduled'}
+
+## Training Plan Goal
+${data.trainingPlan?.goal || 'No specific goal set'}
+
+## Recent Workout History (last 7 days)
+${data.recentWorkouts && data.recentWorkouts.length > 0 ? 
+  data.recentWorkouts.map(w => `- ${w.type}: ${w.duration} min (${new Date(w.startTime).toLocaleDateString()})`).join('\n') 
+  : 'No recent workouts'}
+
+Generate a recommendation with this JSON structure:
+{
+  "primaryPlan": {
+    "title": "Today's Recommended Workout",
+    "exercises": [
+      {
+        "name": "Exercise name",
+        "sets": number or null,
+        "reps": "reps description" or null,
+        "duration": "duration in minutes" or null,
+        "intensity": "light/moderate/high",
+        "notes": "specific tips or form cues"
+      }
+    ],
+    "totalDuration": number (minutes),
+    "intensity": "light/moderate/high",
+    "calorieEstimate": number
+  },
+  "alternatePlan": {
+    "title": "Lighter Alternative",
+    "exercises": [same structure as primaryPlan],
+    "totalDuration": number,
+    "intensity": "light/moderate",
+    "calorieEstimate": number
+  },
+  "restDayOption": {
+    "title": "Active Recovery / Rest",
+    "activities": ["Gentle stretching", "Light walk", "Meditation"],
+    "duration": number (minutes),
+    "benefits": "Why rest might be better today"
+  },
+  "aiReasoning": "Clear explanation of why these recommendations make sense based on readiness score and recovery markers. Be specific about which factors influenced the decision.",
+  "safetyNote": "Any important warnings or cautions (only if readiness is concerning)"
+}
+
+Be specific, actionable, and prioritize safety over performance.`,
+      },
+    ],
+  }));
+
+  const content = completion.choices[0].message.content;
+  if (content) {
+    try {
+      return JSON.parse(content);
+    } catch (e) {
+      console.error("Failed to parse daily training recommendation:", e);
+    }
+  }
+
+  return null;
+}

@@ -198,6 +198,15 @@ export const readinessScores = pgTable("readiness_scores", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const exerciseFeedback = pgTable("exercise_feedback", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  exerciseName: text("exercise_name").notNull(),
+  feedback: text("feedback").notNull(), // 'up' or 'down'
+  context: jsonb("context"), // stores readiness score, workout plan type, date, etc.
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const insights = pgTable("insights", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull(),
@@ -292,6 +301,11 @@ export const insertGoalSchema = createInsertSchema(goals).omit({
   achievedAt: true,
 });
 
+export const insertExerciseFeedbackSchema = createInsertSchema(exerciseFeedback).omit({
+  id: true,
+  createdAt: true,
+});
+
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
 
@@ -330,3 +344,6 @@ export type ExerciseLog = typeof exerciseLogs.$inferSelect;
 
 export type InsertGoal = z.infer<typeof insertGoalSchema>;
 export type Goal = typeof goals.$inferSelect;
+
+export type InsertExerciseFeedback = z.infer<typeof insertExerciseFeedbackSchema>;
+export type ExerciseFeedback = typeof exerciseFeedback.$inferSelect;

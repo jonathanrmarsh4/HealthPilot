@@ -26,6 +26,8 @@ import {
   type InsertExerciseLog,
   type Goal,
   type InsertGoal,
+  type ExerciseFeedback,
+  type InsertExerciseFeedback,
   users,
   healthRecords,
   biomarkers,
@@ -39,6 +41,7 @@ import {
   workoutSessions,
   exerciseLogs,
   goals,
+  exerciseFeedback,
 } from "@shared/schema";
 import { eq, desc, and, gte, lte, lt, sql, or, like, count, isNull } from "drizzle-orm";
 
@@ -150,6 +153,9 @@ export interface IStorage {
   updateGoal(id: string, userId: string, data: Partial<Goal>): Promise<Goal | undefined>;
   updateGoalProgress(goalId: string, userId: string, currentValue: number): Promise<Goal | undefined>;
   deleteGoal(id: string, userId: string): Promise<void>;
+  
+  createExerciseFeedback(feedback: InsertExerciseFeedback): Promise<ExerciseFeedback>;
+  getExerciseFeedback(userId: string, limit?: number): Promise<ExerciseFeedback[]>;
 }
 
 export class DbStorage implements IStorage {
@@ -1129,6 +1135,25 @@ export class DbStorage implements IStorage {
 
   async deleteGoal(id: string, userId: string): Promise<void> {
     await db.delete(goals).where(and(eq(goals.id, id), eq(goals.userId, userId)));
+  }
+
+  async createExerciseFeedback(feedback: InsertExerciseFeedback): Promise<ExerciseFeedback> {
+    const result = await db.insert(exerciseFeedback).values(feedback).returning();
+    return result[0];
+  }
+
+  async getExerciseFeedback(userId: string, limit?: number): Promise<ExerciseFeedback[]> {
+    let query = db
+      .select()
+      .from(exerciseFeedback)
+      .where(eq(exerciseFeedback.userId, userId))
+      .orderBy(desc(exerciseFeedback.createdAt));
+    
+    if (limit) {
+      query = query.limit(limit) as any;
+    }
+    
+    return await query;
   }
 
   private getWeekKey(date: Date): string {
