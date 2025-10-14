@@ -24,9 +24,7 @@ export function ScheduledRecommendationsCard({ recommendations }: ScheduledRecom
 
   const completeMutation = useMutation({
     mutationFn: async (recommendationId: number) => {
-      return apiRequest(`/api/recommendations/${recommendationId}/dismiss`, {
-        method: "PATCH"
-      });
+      return apiRequest("PATCH", `/api/recommendations/${recommendationId}/dismiss`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/recommendations/today"] });

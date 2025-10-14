@@ -152,10 +152,8 @@ export default function Training() {
 
   const rescheduleRecommendationMutation = useMutation({
     mutationFn: async ({ recommendationId, newDate }: { recommendationId: string | number; newDate: Date }) => {
-      return apiRequest(`/api/recommendations/${recommendationId}/reschedule`, {
-        method: "PATCH",
-        body: JSON.stringify({ date: newDate.toISOString() }),
-        headers: { "Content-Type": "application/json" },
+      return apiRequest("PATCH", `/api/recommendations/${recommendationId}/reschedule`, { 
+        date: newDate.toISOString() 
       });
     },
     onSuccess: () => {

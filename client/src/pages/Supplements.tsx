@@ -48,7 +48,7 @@ export default function Supplements() {
 
   const addMutation = useMutation({
     mutationFn: async (data: z.infer<typeof supplementFormSchema>) => {
-      return await apiRequest("/api/supplements", "POST", data);
+      return await apiRequest("POST", "/api/supplements", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/supplements"] });
@@ -67,7 +67,7 @@ export default function Supplements() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      return await apiRequest(`/api/supplements/${id}`, "DELETE");
+      return await apiRequest("DELETE", `/api/supplements/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/supplements"] });
@@ -77,7 +77,7 @@ export default function Supplements() {
 
   const acceptRecommendationMutation = useMutation({
     mutationFn: async (id: string) => {
-      return await apiRequest(`/api/supplement-recommendations/${id}/accept`, "POST");
+      return await apiRequest("POST", `/api/supplement-recommendations/${id}/accept`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/supplements"] });
@@ -89,7 +89,7 @@ export default function Supplements() {
 
   const declineRecommendationMutation = useMutation({
     mutationFn: async (id: string) => {
-      return await apiRequest(`/api/supplement-recommendations/${id}/decline`, "POST");
+      return await apiRequest("POST", `/api/supplement-recommendations/${id}/decline`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/supplement-recommendations"] });
