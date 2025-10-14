@@ -184,17 +184,17 @@ export const readinessScores = pgTable("readiness_scores", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull(),
   date: timestamp("date").notNull(), // Date this score is for
-  score: integer("score").notNull(), // 0-100
+  score: real("score").notNull(), // 0-100 (allows decimal precision)
   quality: text("quality").notNull(), // 'excellent', 'good', 'fair', 'poor'
   recommendation: text("recommendation").notNull(), // 'ready', 'caution', 'rest'
   reasoning: text("reasoning").notNull(),
-  sleepScore: integer("sleep_score"),
+  sleepScore: real("sleep_score"), // Allows decimal precision
   sleepValue: real("sleep_value"), // hours
-  hrvScore: integer("hrv_score"),
+  hrvScore: real("hrv_score"), // Allows decimal precision
   hrvValue: real("hrv_value"), // ms
-  restingHRScore: integer("resting_hr_score"),
+  restingHRScore: real("resting_hr_score"), // Allows decimal precision
   restingHRValue: real("resting_hr_value"), // bpm
-  workloadScore: integer("workload_score"),
+  workloadScore: real("workload_score"), // Allows decimal precision
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
