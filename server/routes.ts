@@ -1379,8 +1379,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Calculate fresh readiness score if not cached
         const readinessScore = await calculateReadinessScore(userId, storage, today);
         
-        // Save it for caching
-        await storage.createReadinessScore({
+        // Save it for caching and retrieve the saved record with all fields
+        readinessData = await storage.createReadinessScore({
           userId,
           date: today,
           score: readinessScore.score,
@@ -1395,18 +1395,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           restingHRValue: readinessScore.factors.restingHR.value || null,
           workloadScore: readinessScore.factors.workloadRecovery.score,
         });
-        
-        readinessData = {
-          score: readinessScore.score,
-          recommendation: readinessScore.recommendation,
-          sleepScore: readinessScore.factors.sleep.score,
-          sleepValue: readinessScore.factors.sleep.value || null,
-          hrvScore: readinessScore.factors.hrv.score,
-          hrvValue: readinessScore.factors.hrv.value || null,
-          restingHRScore: readinessScore.factors.restingHR.score,
-          restingHRValue: readinessScore.factors.restingHR.value || null,
-          workloadScore: readinessScore.factors.workloadRecovery.score,
-        };
       }
       
       // 2. Get recent workout history (last 7 days)
@@ -1423,31 +1411,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // 3. Generate AI recommendation with safety-first logic
       const aiRecommendation = await generateDailyTrainingRecommendation({
-        readinessScore: readinessData.score,
-        readinessRecommendation: readinessData.recommendation as "ready" | "caution" | "rest",
+        readinessScore: readinessData!.score,
+        readinessRecommendation: readinessData!.recommendation as "ready" | "caution" | "rest",
         readinessFactors: {
           sleep: { 
-            score: readinessData.sleepScore || 50, 
-            value: readinessData.sleepValue || undefined 
+            score: readinessData!.sleepScore || 50, 
+            value: readinessData!.sleepValue || undefined 
           },
           hrv: { 
-            score: readinessData.hrvScore || 50, 
-            value: readinessData.hrvValue || undefined 
+            score: readinessData!.hrvScore || 50, 
+            value: readinessData!.hrvValue || undefined 
           },
           restingHR: { 
-            score: readinessData.restingHRScore || 50, 
-            value: readinessData.restingHRValue || undefined 
+            score: readinessData!.restingHRScore || 50, 
+            value: readinessData!.restingHRValue || undefined 
           },
           workloadRecovery: { 
-            score: readinessData.workloadScore || 50 
+            score: readinessData!.workloadScore || 50 
           },
         },
         recentWorkouts,
       });
       
       res.json({
-        readinessScore: readinessData.score,
-        readinessRecommendation: readinessData.recommendation,
+        readinessScore: readinessData!.score,
+        readinessRecommendation: readinessData!.recommendation,
         recommendation: aiRecommendation,
       });
     } catch (error: any) {
