@@ -1365,6 +1365,210 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Supplement Endpoints
+  
+  // Get all supplements for the current user
+  app.get("/api/supplements", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    try {
+      const supplements = await storage.getSupplements(userId);
+      res.json(supplements);
+    } catch (error: any) {
+      console.error("Error fetching supplements:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Create a new supplement
+  app.post("/api/supplements", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    try {
+      const supplement = await storage.createSupplement({
+        userId,
+        ...req.body
+      });
+      res.json(supplement);
+    } catch (error: any) {
+      console.error("Error creating supplement:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Update a supplement
+  app.patch("/api/supplements/:id", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { id } = req.params;
+    try {
+      const supplement = await storage.updateSupplement(id, userId, req.body);
+      if (!supplement) {
+        return res.status(404).json({ error: "Supplement not found" });
+      }
+      res.json(supplement);
+    } catch (error: any) {
+      console.error("Error updating supplement:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Delete a supplement (soft delete)
+  app.delete("/api/supplements/:id", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { id } = req.params;
+    try {
+      await storage.deleteSupplement(id, userId);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error deleting supplement:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Daily Reminder Endpoints
+  
+  // Get all daily reminders for the current user
+  app.get("/api/daily-reminders", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    try {
+      const reminders = await storage.getDailyReminders(userId);
+      res.json(reminders);
+    } catch (error: any) {
+      console.error("Error fetching daily reminders:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get active reminders for today
+  app.get("/api/daily-reminders/today", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    try {
+      const reminders = await storage.getActiveRemindersForToday(userId);
+      
+      // Get today's completions
+      const today = new Date().toISOString().split('T')[0];
+      const completions = await storage.getReminderCompletions(userId, today);
+      const completedIds = new Set(completions.map(c => c.reminderId));
+      
+      // Add streak info and completion status
+      const remindersWithInfo = await Promise.all(
+        reminders.map(async (reminder) => {
+          const streak = await storage.getReminderStreak(reminder.id, userId);
+          return {
+            ...reminder,
+            streak,
+            completedToday: completedIds.has(reminder.id)
+          };
+        })
+      );
+      
+      res.json(remindersWithInfo);
+    } catch (error: any) {
+      console.error("Error fetching today's reminders:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Create a new daily reminder
+  app.post("/api/daily-reminders", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    try {
+      const reminder = await storage.createDailyReminder({
+        userId,
+        ...req.body
+      });
+      res.json(reminder);
+    } catch (error: any) {
+      console.error("Error creating daily reminder:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Mark a reminder as complete for today
+  app.post("/api/daily-reminders/:id/complete", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { id } = req.params;
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const completion = await storage.markReminderComplete(id, userId, today);
+      res.json(completion);
+    } catch (error: any) {
+      console.error("Error marking reminder complete:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Supplement Recommendation Endpoints
+  
+  // Get all supplement recommendations
+  app.get("/api/supplement-recommendations", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const status = req.query.status as string | undefined;
+    try {
+      const recommendations = await storage.getSupplementRecommendations(userId, status);
+      res.json(recommendations);
+    } catch (error: any) {
+      console.error("Error fetching supplement recommendations:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Accept a supplement recommendation (adds to user's stack)
+  app.post("/api/supplement-recommendations/:id/accept", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { id } = req.params;
+    try {
+      // Get the recommendation
+      const recommendations = await storage.getSupplementRecommendations(userId);
+      const recommendation = recommendations.find(r => r.id === id);
+      
+      if (!recommendation) {
+        return res.status(404).json({ error: "Recommendation not found" });
+      }
+
+      // Add to supplement stack
+      const supplement = await storage.createSupplement({
+        userId,
+        name: recommendation.supplementName,
+        dosage: recommendation.dosage,
+        timing: 'morning', // Default timing
+        purpose: recommendation.reason,
+        active: 1
+      });
+
+      // Create daily reminder
+      await storage.createDailyReminder({
+        userId,
+        type: 'supplement',
+        title: `Take ${recommendation.supplementName}`,
+        description: `${recommendation.dosage} - ${recommendation.reason}`,
+        frequency: 'daily',
+        timeOfDay: 'morning',
+        linkedRecordId: supplement.id,
+        active: 1
+      });
+
+      // Update recommendation status
+      await storage.updateSupplementRecommendationStatus(id, userId, 'accepted');
+
+      res.json({ supplement, accepted: true });
+    } catch (error: any) {
+      console.error("Error accepting supplement recommendation:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Decline a supplement recommendation
+  app.post("/api/supplement-recommendations/:id/decline", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { id } = req.params;
+    try {
+      await storage.updateSupplementRecommendationStatus(id, userId, 'declined');
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error declining supplement recommendation:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Daily Training Recommendation Endpoint (AI-powered, safety-first)
   app.get("/api/training/daily-recommendation", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
