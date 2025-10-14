@@ -103,6 +103,7 @@ export const trainingSchedules = pgTable("training_schedules", {
   description: text("description"), // How this workout supports user's active goals
   exercises: jsonb("exercises").notNull(),
   isOptional: integer("is_optional").notNull().default(0), // 1 if optional recovery session
+  coreProgram: integer("core_program").notNull().default(0), // 1 if this is essential to user's goals
   scheduledFor: timestamp("scheduled_for"), // Specific date/time when user schedules recovery session
   completed: integer("completed").notNull().default(0),
   completedAt: timestamp("completed_at"),
@@ -154,6 +155,10 @@ export const recommendations = pgTable("recommendations", {
   actionLabel: text("action_label"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   dismissed: integer("dismissed").notNull().default(0),
+  scheduledAt: timestamp("scheduled_at"),
+  trainingScheduleId: varchar("training_schedule_id"),
+  userFeedback: text("user_feedback"),
+  dismissReason: text("dismiss_reason"),
 });
 
 export const chatMessages = pgTable("chat_messages", {
