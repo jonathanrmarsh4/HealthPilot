@@ -94,6 +94,8 @@ export interface IStorage {
   createRecommendation(recommendation: InsertRecommendation): Promise<Recommendation>;
   getRecommendations(userId: string): Promise<Recommendation[]>;
   dismissRecommendation(id: string, userId: string): Promise<void>;
+  scheduleRecommendation(id: string, userId: string, scheduledAt: Date, trainingScheduleId: string | null): Promise<void>;
+  recordRecommendationFeedback(id: string, userId: string, feedback: "positive" | "negative", reason?: string): Promise<void>;
   
   createChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
   getChatMessages(userId: string): Promise<ChatMessage[]>;
@@ -564,6 +566,28 @@ export class DbStorage implements IStorage {
     await db
       .update(recommendations)
       .set({ dismissed: 1 })
+      .where(and(eq(recommendations.id, id), eq(recommendations.userId, userId)));
+  }
+
+  async scheduleRecommendation(id: string, userId: string, scheduledAt: Date, trainingScheduleId: string | null): Promise<void> {
+    await db
+      .update(recommendations)
+      .set({ 
+        scheduledAt, 
+        trainingScheduleId,
+        dismissed: 1 // Hide from recommendation list once scheduled
+      })
+      .where(and(eq(recommendations.id, id), eq(recommendations.userId, userId)));
+  }
+
+  async recordRecommendationFeedback(id: string, userId: string, feedback: "positive" | "negative", reason?: string): Promise<void> {
+    await db
+      .update(recommendations)
+      .set({ 
+        userFeedback: feedback,
+        dismissReason: reason || null,
+        dismissed: feedback === "negative" ? 1 : 0 // Dismiss if negative feedback
+      })
       .where(and(eq(recommendations.id, id), eq(recommendations.userId, userId)));
   }
 
