@@ -1,5 +1,5 @@
 import type { IStorage } from "../storage";
-import { subDays } from "date-fns";
+import { subDays, addDays, startOfDay, endOfDay } from "date-fns";
 
 export interface ReadinessScore {
   score: number; // 0-100
@@ -45,7 +45,9 @@ export async function calculateReadinessScore(
   const recentSleep = sleepSessions
     .filter(s => {
       const sessionDate = new Date(s.bedtime);
-      return sessionDate >= subDays(yesterday, 1) && sessionDate <= targetDate;
+      // Allow sessions up to 1 day after target to handle timezone offsets
+      // This ensures cross-midnight sessions in positive UTC offsets are included
+      return sessionDate >= subDays(yesterday, 1) && sessionDate <= addDays(targetDate, 1);
     })
     .sort((a, b) => new Date(b.bedtime).getTime() - new Date(a.bedtime).getTime())[0];
 
@@ -60,7 +62,8 @@ export async function calculateReadinessScore(
     .filter(b => b.type === 'hrv')
     .filter(b => {
       const bioDate = new Date(b.recordedAt);
-      return bioDate >= subDays(targetDate, 2) && bioDate <= targetDate;
+      // Allow timezone buffer
+      return bioDate >= subDays(targetDate, 2) && bioDate <= addDays(targetDate, 1);
     })
     .sort((a, b) => new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime())[0];
 
@@ -86,7 +89,8 @@ export async function calculateReadinessScore(
     .filter(b => b.type === 'heart-rate')
     .filter(b => {
       const bioDate = new Date(b.recordedAt);
-      return bioDate >= subDays(targetDate, 2) && bioDate <= targetDate;
+      // Allow timezone buffer
+      return bioDate >= subDays(targetDate, 2) && bioDate <= addDays(targetDate, 1);
     })
     .sort((a, b) => new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime())[0];
 
