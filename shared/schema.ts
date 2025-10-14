@@ -325,6 +325,41 @@ export const insertExerciseFeedbackSchema = createInsertSchema(exerciseFeedback)
   createdAt: true,
 });
 
+export const recoveryProtocols = pgTable("recovery_protocols", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  category: text("category").notNull(), // 'mobility', 'mindfulness', 'nutrition', 'cold_therapy', 'heat_therapy', 'breathing', 'sleep_hygiene'
+  description: text("description").notNull(),
+  duration: integer("duration"), // in minutes
+  difficulty: text("difficulty").notNull(), // 'beginner', 'intermediate', 'advanced'
+  benefits: text("benefits").array(), // List of benefits
+  instructions: text("instructions"), // How to do it
+  targetFactors: text("target_factors").array(), // Which readiness factors this helps: 'sleep', 'hrv', 'resting_hr', 'workload'
+  tags: text("tags").array(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const userProtocolPreferences = pgTable("user_protocol_preferences", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  protocolId: varchar("protocol_id").notNull(),
+  preference: text("preference").notNull(), // 'upvote', 'downvote', 'neutral'
+  context: jsonb("context"), // Stores readiness score, factors, etc when voted
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertRecoveryProtocolSchema = createInsertSchema(recoveryProtocols).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertUserProtocolPreferenceSchema = createInsertSchema(userProtocolPreferences).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
 
@@ -369,3 +404,9 @@ export type Goal = typeof goals.$inferSelect;
 
 export type InsertExerciseFeedback = z.infer<typeof insertExerciseFeedbackSchema>;
 export type ExerciseFeedback = typeof exerciseFeedback.$inferSelect;
+
+export type InsertRecoveryProtocol = z.infer<typeof insertRecoveryProtocolSchema>;
+export type RecoveryProtocol = typeof recoveryProtocols.$inferSelect;
+
+export type InsertUserProtocolPreference = z.infer<typeof insertUserProtocolPreferenceSchema>;
+export type UserProtocolPreference = typeof userProtocolPreferences.$inferSelect;
