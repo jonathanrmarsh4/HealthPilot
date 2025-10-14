@@ -48,6 +48,13 @@ The application is a full-stack project utilizing React, TypeScript, Tailwind CS
     - **Recovery Time Prediction:** 3-day trend analysis using linear regression to estimate days until readiness ≥65, shows trend direction (improving/declining/stable) and confidence level (high/medium/low)
     - **Readiness Alerts:** Configurable threshold-based alerts with visual warning banner on Training page when score drops below user's threshold, toggle to enable/disable alerts
     - **Backend Storage:** user_readiness_settings table stores custom weights (default 40/30/15/15), alert threshold (default 50), alerts enabled flag, persists via POST /api/training/readiness/settings with cache invalidation
+  - **Phase 3 - Advanced Recovery Protocols (Oct 14, 2025):** AI-powered recovery protocol library with user preference learning:
+    - **Protocol Library:** 13 pre-seeded recovery protocols across 6 categories (mobility, mindfulness, nutrition, cold_therapy, heat_therapy, breathing) with detailed benefits, instructions, and target factors
+    - **Smart Recommendations:** Personalized protocol suggestions based on low readiness factors (sleep, HRV, resting HR, workload), filtered by user preferences, limited to top 3
+    - **Voting System:** Users can upvote/downvote protocols; clicking active vote again resets to neutral state for flexible preference management
+    - **AI Integration:** Chat service respects user preferences—downvoted protocols are permanently excluded from all AI suggestions across the platform
+    - **Database Schema:** recovery_protocols table (protocol metadata), user_protocol_preferences table (user votes), with API endpoints for recommendations and voting
+    - **UI Component:** Training page displays protocol cards with expandable details, category badges, and voting buttons with visual feedback (default variant for upvote, destructive for downvote, outline for neutral)
 
 **Feature Specifications:**
 - Health record upload and AI analysis with status tracking.
