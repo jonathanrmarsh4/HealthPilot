@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
 import multer from "multer";
-import { insertBiomarkerSchema, insertHealthRecordSchema, biomarkers, sleepSessions, healthRecords, mealPlans, trainingSchedules, recommendations, readinessScores } from "@shared/schema";
+import { insertBiomarkerSchema, insertHealthRecordSchema, insertScheduledExerciseRecommendationSchema, biomarkers, sleepSessions, healthRecords, mealPlans, trainingSchedules, recommendations, readinessScores } from "@shared/schema";
 import { listHealthDocuments, downloadFile, getFileMetadata } from "./services/googleDrive";
 import { analyzeHealthDocument, generateMealPlan, generateTrainingSchedule, generateHealthRecommendations, chatWithHealthCoach, generateDailyInsights, generateRecoveryInsights, generateTrendPredictions, generatePeriodComparison, generateDailyTrainingRecommendation } from "./services/ai";
 import { calculatePhenoAge, getBiomarkerDisplayName, getBiomarkerUnit, getBiomarkerSource } from "./services/phenoAge";
@@ -76,6 +76,45 @@ function estimateIntensity(avgHeartRate?: number | null, perceivedEffort?: numbe
   
   // Default to moderate if no data
   return "Moderate";
+}
+
+// Helper function to calculate scheduled dates based on frequency (timezone-safe)
+function calculateScheduledDates(frequency: string): string[] {
+  const dates: string[] = [];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  // Helper to format date as YYYY-MM-DD in local timezone
+  const formatLocalDate = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+  
+  // Parse frequency (e.g., "3x_week", "5x_week", "daily", "specific_day")
+  if (frequency === "daily") {
+    // Schedule for next 7 days
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(today);
+      date.setDate(today.getDate() + i);
+      dates.push(formatLocalDate(date));
+    }
+  } else if (frequency.includes("x_week")) {
+    const timesPerWeek = parseInt(frequency.split("x")[0]);
+    // Distribute evenly across the week
+    const interval = Math.floor(7 / timesPerWeek);
+    for (let i = 0; i < timesPerWeek; i++) {
+      const date = new Date(today);
+      date.setDate(today.getDate() + (i * interval));
+      dates.push(formatLocalDate(date));
+    }
+  } else if (frequency === "specific_day") {
+    // Will be handled by manual scheduling
+    return [];
+  }
+  
+  return dates;
 }
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -1635,6 +1674,176 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Scheduled Exercise Recommendation Endpoints
+  
+  // Create a new exercise recommendation (from AI)
+  app.post("/api/exercise-recommendations", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    try {
+      // Validate request body
+      const validatedData = insertScheduledExerciseRecommendationSchema.parse({
+        ...req.body,
+        userId
+      });
+      
+      const recommendation = await storage.createScheduledExerciseRecommendation(validatedData);
+      res.json(recommendation);
+    } catch (error: any) {
+      console.error("Error creating exercise recommendation:", error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ error: "Invalid recommendation data", details: error.errors });
+      }
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get all exercise recommendations
+  app.get("/api/exercise-recommendations", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const status = req.query.status as string | undefined;
+    try {
+      const recommendations = await storage.getScheduledExerciseRecommendations(userId, status);
+      res.json(recommendations);
+    } catch (error: any) {
+      console.error("Error fetching exercise recommendations:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Auto-schedule an exercise recommendation at AI-recommended frequency
+  app.post("/api/exercise-recommendations/:id/auto-schedule", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { id } = req.params;
+    
+    try {
+      const recommendations = await storage.getScheduledExerciseRecommendations(userId);
+      const recommendation = recommendations.find(r => r.id === id);
+      
+      if (!recommendation) {
+        return res.status(404).json({ error: "Recommendation not found" });
+      }
+
+      // Parse frequency and calculate scheduled dates
+      const scheduledDates = calculateScheduledDates(recommendation.frequency);
+      
+      // Update recommendation with scheduled dates
+      await storage.updateScheduledExerciseRecommendation(id, userId, {
+        status: 'scheduled',
+        scheduledDates,
+        scheduledAt: new Date(),
+        userFeedback: 'accepted_auto'
+      });
+
+      res.json({ success: true, scheduledDates });
+    } catch (error: any) {
+      console.error("Error auto-scheduling exercise:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Schedule exercise on specific day(s)
+  app.post("/api/exercise-recommendations/:id/schedule-manual", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { id } = req.params;
+    const { dates } = req.body; // Array of ISO date strings
+    
+    try {
+      await storage.updateScheduledExerciseRecommendation(id, userId, {
+        status: 'scheduled',
+        scheduledDates: dates,
+        scheduledAt: new Date(),
+        userFeedback: 'accepted_manual'
+      });
+
+      res.json({ success: true, scheduledDates: dates });
+    } catch (error: any) {
+      console.error("Error manually scheduling exercise:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Decline an exercise recommendation
+  app.post("/api/exercise-recommendations/:id/decline", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { id } = req.params;
+    const { reason } = req.body;
+    
+    try {
+      await storage.updateScheduledExerciseRecommendation(id, userId, {
+        status: 'declined',
+        userFeedback: 'declined',
+        declineReason: reason || null
+      });
+
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error declining exercise recommendation:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get scheduled activities for calendar view (workouts, exercises, recovery)
+  app.get("/api/schedule/calendar", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { startDate, endDate } = req.query;
+    
+    try {
+      const start = new Date(startDate as string);
+      const end = new Date(endDate as string);
+
+      // Get all scheduled items for the date range
+      const [exercises, workouts, supplements] = await Promise.all([
+        storage.getScheduledExercisesForDateRange(userId, start, end),
+        storage.getTrainingSchedules(userId),
+        storage.getSupplements(userId)
+      ]);
+
+      // Filter workouts for date range
+      const filteredWorkouts = workouts.filter(wo => {
+        if (!wo.scheduledFor) return false;
+        const woDate = new Date(wo.scheduledFor);
+        return woDate >= start && woDate <= end;
+      });
+
+      // Format response with counts per day
+      const calendar: Record<string, { exercises: number; workouts: number; supplements: number }> = {};
+      
+      // Count exercises per day
+      exercises.forEach((ex: any) => {
+        if (ex.scheduledDates) {
+          ex.scheduledDates.forEach((date: string) => {
+            const dateKey = new Date(date).toISOString().split('T')[0];
+            if (!calendar[dateKey]) calendar[dateKey] = { exercises: 0, workouts: 0, supplements: 0 };
+            calendar[dateKey].exercises++;
+          });
+        }
+      });
+
+      // Count workouts per day
+      filteredWorkouts.forEach((wo: any) => {
+        if (wo.scheduledFor) {
+          const dateKey = new Date(wo.scheduledFor).toISOString().split('T')[0];
+          if (!calendar[dateKey]) calendar[dateKey] = { exercises: 0, workouts: 0, supplements: 0 };
+          calendar[dateKey].workouts++;
+        }
+      });
+
+      // Supplements are daily, so add to all days in range
+      const currentDate = new Date(start);
+      while (currentDate <= end) {
+        const dateKey = currentDate.toISOString().split('T')[0];
+        if (!calendar[dateKey]) calendar[dateKey] = { exercises: 0, workouts: 0, supplements: 0 };
+        calendar[dateKey].supplements = supplements.filter((s: any) => s.active === 1).length;
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+
+      res.json({ calendar, exercises, workouts: filteredWorkouts });
+    } catch (error: any) {
+      console.error("Error fetching calendar data:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Daily Training Recommendation Endpoint (AI-powered, safety-first)
   app.get("/api/training/daily-recommendation", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
@@ -2619,6 +2828,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log("ℹ️ No supplement markers found in AI response");
       }
 
+      // Check if AI response contains exercise recommendations to save
+      let exerciseSaved = false;
+      const exerciseMatch = aiResponse.match(/<<<SAVE_EXERCISE>>>([\s\S]*?)<<<END_SAVE_EXERCISE>>>/);
+      
+      if (exerciseMatch) {
+        console.log("🏃 Exercise markers found! Extracting JSON...");
+        try {
+          const exerciseJson = exerciseMatch[1].trim();
+          console.log("📋 Exercise JSON:", exerciseJson);
+          const exercise = JSON.parse(exerciseJson);
+          
+          console.log("💾 Saving exercise recommendation:", exercise.exerciseName);
+          
+          await storage.createScheduledExerciseRecommendation({
+            userId,
+            exerciseName: exercise.exerciseName,
+            exerciseType: exercise.exerciseType,
+            description: exercise.description,
+            duration: exercise.duration || null,
+            frequency: exercise.frequency,
+            recommendedBy: 'ai',
+            reason: exercise.reason,
+            isSupplementary: 1, // Always supplementary from AI
+            status: 'pending',
+            scheduledDates: null,
+            userFeedback: null,
+            declineReason: null,
+          });
+          
+          exerciseSaved = true;
+          console.log("✨ Exercise recommendation saved successfully!");
+        } catch (e) {
+          console.error("❌ Failed to parse and save exercise recommendation:", e);
+        }
+      } else {
+        console.log("ℹ️ No exercise markers found in AI response");
+      }
+
       // Auto-advance onboarding steps after AI responds (user has engaged with current step)
       if (isOnboarding && onboardingStep && message.trim().length > 0) {
         const STEP_PROGRESSION: Record<string, string> = {
@@ -2643,6 +2890,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         mealPlanSaved,
         goalSaved,
         supplementSaved,
+        exerciseSaved,
       });
     } catch (error: any) {
       console.error("Error in chat:", error);

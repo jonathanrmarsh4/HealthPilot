@@ -42,6 +42,8 @@ import {
   type InsertReminderCompletion,
   type SupplementRecommendation,
   type InsertSupplementRecommendation,
+  type ScheduledExerciseRecommendation,
+  type InsertScheduledExerciseRecommendation,
   users,
   healthRecords,
   biomarkers,
@@ -63,6 +65,7 @@ import {
   dailyReminders,
   reminderCompletions,
   supplementRecommendations,
+  scheduledExerciseRecommendations,
 } from "@shared/schema";
 import { eq, desc, and, gte, lte, lt, sql, or, like, count, isNull } from "drizzle-orm";
 
@@ -221,6 +224,12 @@ export interface IStorage {
   createSupplementRecommendation(recommendation: InsertSupplementRecommendation): Promise<SupplementRecommendation>;
   getSupplementRecommendations(userId: string, status?: string): Promise<SupplementRecommendation[]>;
   updateSupplementRecommendationStatus(id: string, userId: string, status: string): Promise<void>;
+
+  // Scheduled Exercise Recommendation methods
+  createScheduledExerciseRecommendation(recommendation: InsertScheduledExerciseRecommendation): Promise<ScheduledExerciseRecommendation>;
+  getScheduledExerciseRecommendations(userId: string, status?: string): Promise<ScheduledExerciseRecommendation[]>;
+  updateScheduledExerciseRecommendation(id: string, userId: string, updates: Partial<ScheduledExerciseRecommendation>): Promise<void>;
+  getScheduledExercisesForDateRange(userId: string, startDate: Date, endDate: Date): Promise<ScheduledExerciseRecommendation[]>;
 }
 
 export class DbStorage implements IStorage {
@@ -1618,6 +1627,69 @@ export class DbStorage implements IStorage {
           eq(supplementRecommendations.userId, userId)
         )
       );
+  }
+
+  // Scheduled Exercise Recommendation methods
+  async createScheduledExerciseRecommendation(recommendation: InsertScheduledExerciseRecommendation): Promise<ScheduledExerciseRecommendation> {
+    const result = await db.insert(scheduledExerciseRecommendations).values(recommendation).returning();
+    return result[0];
+  }
+
+  async getScheduledExerciseRecommendations(userId: string, status?: string): Promise<ScheduledExerciseRecommendation[]> {
+    if (status) {
+      return await db
+        .select()
+        .from(scheduledExerciseRecommendations)
+        .where(
+          and(
+            eq(scheduledExerciseRecommendations.userId, userId),
+            eq(scheduledExerciseRecommendations.status, status)
+          )
+        )
+        .orderBy(desc(scheduledExerciseRecommendations.recommendedAt));
+    }
+    return await db
+      .select()
+      .from(scheduledExerciseRecommendations)
+      .where(eq(scheduledExerciseRecommendations.userId, userId))
+      .orderBy(desc(scheduledExerciseRecommendations.recommendedAt));
+  }
+
+  async updateScheduledExerciseRecommendation(id: string, userId: string, updates: Partial<ScheduledExerciseRecommendation>): Promise<void> {
+    await db
+      .update(scheduledExerciseRecommendations)
+      .set(updates)
+      .where(
+        and(
+          eq(scheduledExerciseRecommendations.id, id),
+          eq(scheduledExerciseRecommendations.userId, userId)
+        )
+      );
+  }
+
+  async getScheduledExercisesForDateRange(userId: string, startDate: Date, endDate: Date): Promise<ScheduledExerciseRecommendation[]> {
+    // Get all scheduled exercises for user
+    const exercises = await db
+      .select()
+      .from(scheduledExerciseRecommendations)
+      .where(
+        and(
+          eq(scheduledExerciseRecommendations.userId, userId),
+          eq(scheduledExerciseRecommendations.status, 'scheduled')
+        )
+      );
+
+    // Filter by date range in application logic (since we're storing dates as array)
+    const startStr = startDate.toISOString().split('T')[0];
+    const endStr = endDate.toISOString().split('T')[0];
+    
+    return exercises.filter(ex => {
+      if (!ex.scheduledDates || ex.scheduledDates.length === 0) return false;
+      return ex.scheduledDates.some(date => {
+        const dateStr = new Date(date).toISOString().split('T')[0];
+        return dateStr >= startStr && dateStr <= endStr;
+      });
+    });
   }
 
   private getWeekKey(date: Date): string {

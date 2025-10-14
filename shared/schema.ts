@@ -417,6 +417,27 @@ export const supplementRecommendations = pgTable("supplement_recommendations", {
   recommendedAt: timestamp("recommended_at").notNull().defaultNow(),
 });
 
+// Scheduled Exercise Recommendations - AI-suggested exercises with smart scheduling
+export const scheduledExerciseRecommendations = pgTable("scheduled_exercise_recommendations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  exerciseName: text("exercise_name").notNull(),
+  exerciseType: text("exercise_type").notNull(), // 'mobility', 'stretching', 'core', 'cardio', 'recovery', etc.
+  description: text("description").notNull(),
+  duration: integer("duration"), // in minutes
+  frequency: text("frequency").notNull(), // 'daily', '3x_week', '5x_week', 'specific_day'
+  recommendedBy: text("recommended_by").notNull().default("ai"), // 'ai' or 'user'
+  reason: text("reason").notNull(), // AI explanation for why this exercise was recommended
+  isSupplementary: integer("is_supplementary").notNull().default(1), // 1 = supplementary (won't override core workouts), 0 = can be core
+  status: text("status").notNull().default("pending"), // 'pending', 'scheduled', 'declined', 'completed'
+  scheduledDates: text("scheduled_dates").array(), // Array of ISO date strings when this is scheduled
+  userFeedback: text("user_feedback"), // 'accepted_auto', 'accepted_manual', 'declined'
+  declineReason: text("decline_reason"),
+  recommendedAt: timestamp("recommended_at").notNull().defaultNow(),
+  scheduledAt: timestamp("scheduled_at"),
+  completedAt: timestamp("completed_at"),
+});
+
 export const insertSupplementSchema = createInsertSchema(supplements).omit({
   id: true,
   createdAt: true,
@@ -435,6 +456,13 @@ export const insertReminderCompletionSchema = createInsertSchema(reminderComplet
 export const insertSupplementRecommendationSchema = createInsertSchema(supplementRecommendations).omit({
   id: true,
   recommendedAt: true,
+});
+
+export const insertScheduledExerciseRecommendationSchema = createInsertSchema(scheduledExerciseRecommendations).omit({
+  id: true,
+  recommendedAt: true,
+  scheduledAt: true,
+  completedAt: true,
 });
 
 export type UpsertUser = typeof users.$inferInsert;
@@ -499,3 +527,6 @@ export type ReminderCompletion = typeof reminderCompletions.$inferSelect;
 
 export type InsertSupplementRecommendation = z.infer<typeof insertSupplementRecommendationSchema>;
 export type SupplementRecommendation = typeof supplementRecommendations.$inferSelect;
+
+export type InsertScheduledExerciseRecommendation = z.infer<typeof insertScheduledExerciseRecommendationSchema>;
+export type ScheduledExerciseRecommendation = typeof scheduledExerciseRecommendations.$inferSelect;
