@@ -107,11 +107,11 @@ export default function Supplements() {
     return acc;
   }, {} as Record<string, Supplement[]>);
 
-  const timingOrder = ['morning', 'pre-workout', 'post-workout', 'evening'];
+  const timingOrder = ['morning', 'pre_workout', 'post_workout', 'evening'];
   const timingLabels = {
     'morning': 'Morning',
-    'pre-workout': 'Pre-Workout',
-    'post-workout': 'Post-Workout',
+    'pre_workout': 'Pre-Workout',
+    'post_workout': 'Post-Workout',
     'evening': 'Evening'
   };
 
@@ -208,8 +208,8 @@ export default function Supplements() {
                               </FormControl>
                               <SelectContent>
                                 <SelectItem value="morning">Morning</SelectItem>
-                                <SelectItem value="pre-workout">Pre-Workout</SelectItem>
-                                <SelectItem value="post-workout">Post-Workout</SelectItem>
+                                <SelectItem value="pre_workout">Pre-Workout</SelectItem>
+                                <SelectItem value="post_workout">Post-Workout</SelectItem>
                                 <SelectItem value="evening">Evening</SelectItem>
                               </SelectContent>
                             </Select>
