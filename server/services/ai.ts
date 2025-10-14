@@ -484,6 +484,36 @@ export async function generateHealthRecommendations(data: {
   healthGoals?: string[];
   chatContext?: string;
 }) {
+  // If no data at all, return baseline recommendations
+  if (!data.biomarkers.length && (!data.sleepSessions || data.sleepSessions.length === 0)) {
+    return [
+      {
+        title: "Start Tracking Your Health Data",
+        description: "Upload health records or connect Apple Health to receive personalized insights",
+        category: "Biomarker",
+        priority: "high",
+        details: "To provide accurate AI-powered recommendations, we need your health data. Upload recent blood work, connect Apple Health, or manually add biomarkers to get started.",
+        actionLabel: "Add Health Data"
+      },
+      {
+        title: "Establish Sleep Tracking",
+        description: "Quality sleep is foundational to all health metrics",
+        category: "Lifestyle",
+        priority: "medium",
+        details: "Connect Apple Health or manually log your sleep to track patterns and receive sleep optimization recommendations.",
+        actionLabel: "Track Sleep"
+      },
+      {
+        title: "Set Your Health Goals",
+        description: "Define clear objectives for personalized guidance",
+        category: "Lifestyle",
+        priority: "medium",
+        details: "Navigate to Goals and set specific, measurable health objectives. This allows our AI to tailor recommendations to your unique targets.",
+        actionLabel: "Set Goals"
+      }
+    ];
+  }
+
   const chatContextSection = data.chatContext 
     ? `\n\n## Conversation History with User:\n${data.chatContext}\n\nUse insights from the conversation to provide recommendations that align with the user's goals, preferences, and lifestyle discussed in the chat.`
     : '';
