@@ -14,6 +14,8 @@ import { useLocation } from "wouter";
 import { RecoveryProtocols } from "@/components/RecoveryProtocols";
 import { TrainingScheduleCard } from "@/components/TrainingScheduleCard";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { RecommendationCalendar } from "@/components/RecommendationCalendar";
+import { ScheduledRecommendationsCard } from "@/components/ScheduledRecommendationsCard";
 
 interface TrainingSchedule {
   id: string;
@@ -137,6 +139,39 @@ export default function Training() {
 
   const { data: completedWorkouts, isLoading: workoutsLoading } = useQuery<CompletedWorkout[]>({
     queryKey: ["/api/workouts/completed"],
+  });
+
+  const { data: scheduledRecommendations = [] } = useQuery<any[]>({
+    queryKey: ["/api/recommendations/scheduled"],
+  });
+
+  const { data: todayScheduledRecommendations = [] } = useQuery<any[]>({
+    queryKey: ["/api/recommendations/today"],
+  });
+
+  const rescheduleRecommendationMutation = useMutation({
+    mutationFn: async ({ recommendationId, newDate }: { recommendationId: number; newDate: Date }) => {
+      return apiRequest(`/api/recommendations/${recommendationId}/reschedule`, {
+        method: "PATCH",
+        body: JSON.stringify({ date: newDate.toISOString() }),
+        headers: { "Content-Type": "application/json" },
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/recommendations/scheduled"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/recommendations/today"] });
+      toast({
+        title: "Recommendation Rescheduled",
+        description: "Your workout has been moved to the new date",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
   });
 
   // Check if readiness alert should be shown
@@ -434,6 +469,21 @@ export default function Training() {
 
       {/* Recovery Protocols */}
       <RecoveryProtocols />
+
+      {/* Calendar View for Scheduled Recommendations */}
+      <RecommendationCalendar
+        recommendations={scheduledRecommendations.map((rec) => ({
+          id: rec.id,
+          title: rec.title,
+          scheduledAt: rec.scheduledAt,
+        }))}
+        onReschedule={(recommendationId, newDate) => {
+          rescheduleRecommendationMutation.mutate({ recommendationId, newDate });
+        }}
+      />
+
+      {/* Today's Scheduled Recommendations */}
+      <ScheduledRecommendationsCard recommendations={todayScheduledRecommendations} />
 
       {/* Today's Recommended Workout */}
       <Card data-testid="card-todays-workout">

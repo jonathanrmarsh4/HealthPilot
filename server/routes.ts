@@ -1949,6 +1949,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/recommendations/scheduled", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    try {
+      const recommendations = await storage.getScheduledRecommendations(userId);
+      res.json(recommendations);
+    } catch (error: any) {
+      console.error("Error fetching scheduled recommendations:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/recommendations/today", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    try {
+      const today = new Date();
+      const recommendations = await storage.getTodayScheduledRecommendations(userId, today);
+      res.json(recommendations);
+    } catch (error: any) {
+      console.error("Error fetching today's scheduled recommendations:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.patch("/api/recommendations/:id/reschedule", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    try {
+      const { id } = req.params;
+      const { date } = req.body;
+
+      if (!date) {
+        return res.status(400).json({ error: "Date is required" });
+      }
+
+      const newDate = new Date(date);
+      await storage.rescheduleRecommendation(id, userId, newDate);
+      
+      res.json({ success: true, scheduledFor: newDate });
+    } catch (error: any) {
+      console.error("Error rescheduling recommendation:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.post("/api/insights/generate", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
 

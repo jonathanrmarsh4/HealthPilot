@@ -93,8 +93,11 @@ export interface IStorage {
   
   createRecommendation(recommendation: InsertRecommendation): Promise<Recommendation>;
   getRecommendations(userId: string): Promise<Recommendation[]>;
+  getScheduledRecommendations(userId: string): Promise<Recommendation[]>;
+  getTodayScheduledRecommendations(userId: string, date: Date): Promise<Recommendation[]>;
   dismissRecommendation(id: string, userId: string): Promise<void>;
   scheduleRecommendation(id: string, userId: string, scheduledAt: Date, trainingScheduleId: string | null): Promise<void>;
+  rescheduleRecommendation(id: string, userId: string, newDate: Date): Promise<void>;
   recordRecommendationFeedback(id: string, userId: string, feedback: "positive" | "negative", reason?: string): Promise<void>;
   
   createChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
@@ -588,6 +591,63 @@ export class DbStorage implements IStorage {
         dismissReason: reason || null,
         dismissed: feedback === "negative" ? 1 : 0 // Dismiss if negative feedback
       })
+      .where(and(eq(recommendations.id, id), eq(recommendations.userId, userId)));
+  }
+
+  async getScheduledRecommendations(userId: string): Promise<Recommendation[]> {
+    // Fetch all recommendations with scheduledAt set
+    const allScheduled = await db
+      .select()
+      .from(recommendations)
+      .where(
+        and(
+          eq(recommendations.userId, userId),
+          sql`${recommendations.scheduledAt} IS NOT NULL`
+        )
+      )
+      .orderBy(recommendations.scheduledAt);
+    
+    // Filter in JS to ensure proper timezone handling
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    return allScheduled.filter(rec => {
+      if (!rec.scheduledAt) return false;
+      const scheduledDate = new Date(rec.scheduledAt);
+      return scheduledDate >= today;
+    });
+  }
+
+  async getTodayScheduledRecommendations(userId: string, date: Date): Promise<Recommendation[]> {
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+    
+    // Fetch all scheduled recommendations and filter in JS
+    const allScheduled = await db
+      .select()
+      .from(recommendations)
+      .where(
+        and(
+          eq(recommendations.userId, userId),
+          sql`${recommendations.scheduledAt} IS NOT NULL`
+        )
+      )
+      .orderBy(recommendations.createdAt);
+    
+    return allScheduled.filter(rec => {
+      if (!rec.scheduledAt) return false;
+      const scheduledDate = new Date(rec.scheduledAt);
+      return scheduledDate >= startOfDay && scheduledDate <= endOfDay;
+    });
+  }
+
+  async rescheduleRecommendation(id: string, userId: string, newDate: Date): Promise<void> {
+    await db
+      .update(recommendations)
+      .set({ scheduledAt: newDate.toISOString() })
       .where(and(eq(recommendations.id, id), eq(recommendations.userId, userId)));
   }
 
