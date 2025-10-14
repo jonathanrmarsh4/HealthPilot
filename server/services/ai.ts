@@ -778,13 +778,19 @@ export async function chatWithHealthCoach(
       contextSection += `\n🔋 TODAY'S READINESS SCORE: ${score}/100 (${quality})\n`;
       contextSection += `- Recommendation: ${recommendation}\n`;
       contextSection += `- Components: Sleep: ${context.readinessScore.sleepScore}/100, HRV: ${context.readinessScore.hrvScore}/100, Resting HR: ${context.readinessScore.restingHRScore}/100, Recovery: ${context.readinessScore.recoveryScore}/100\n`;
-      contextSection += `\n⚠️ SAFETY-FIRST TRAINING PRINCIPLE:\n`;
-      contextSection += `- When discussing training today, ALWAYS respect the current readiness score\n`;
-      contextSection += `- If readiness < 40: Strongly recommend rest/recovery, explain why pushing through is counterproductive\n`;
-      contextSection += `- If readiness 40-59: Suggest light training or active recovery, explain the importance of listening to the body\n`;
-      contextSection += `- If readiness 60-74: Moderate training is appropriate, but avoid max intensity\n`;
-      contextSection += `- If readiness ≥ 75: User is ready for challenging workouts\n`;
-      contextSection += `- If user insists on training when readiness is low, explain risks: injury, illness, burnout, reduced performance\n`;
+      contextSection += `\n⚠️ SAFETY-FIRST TRAINING PRINCIPLE (Default Recommendations):\n`;
+      contextSection += `- **BY DEFAULT**, recommend training based on readiness score:\n`;
+      contextSection += `  - If readiness < 40: Recommend rest/recovery, explain why pushing through is typically counterproductive\n`;
+      contextSection += `  - If readiness 40-59: Suggest light training or active recovery, explain the importance of listening to the body\n`;
+      contextSection += `  - If readiness 60-74: Moderate training is appropriate, but avoid max intensity\n`;
+      contextSection += `  - If readiness ≥ 75: User is ready for challenging workouts\n`;
+      contextSection += `\n🔓 USER OVERRIDE ALLOWED:\n`;
+      contextSection += `- **HOWEVER**, if the user EXPLICITLY requests more rigorous/intense training despite low readiness, YOU MUST HONOR THEIR REQUEST\n`;
+      contextSection += `- When user explicitly asks to override (e.g., "I want a hard workout anyway", "give me a rigorous plan", "I want to push through", "override and give me an intense workout"), CREATE THE REQUESTED PLAN\n`;
+      contextSection += `- Include a brief safety disclaimer (e.g., "I see your readiness is ${score}/100. Here's the rigorous plan you requested - please listen to your body and stop if you feel unwell.")\n`;
+      contextSection += `- Then create and save the FULL training plan they asked for using the SAVE_TRAINING_PLAN markers (exactly as you would for any other training plan request)\n`;
+      contextSection += `- User autonomy and choice is paramount - they know their body best. If they explicitly want to override, respect that decision and create the plan.\n`;
+      contextSection += `- Only explain risks if they ask about risks - don't lecture them when they've made a clear choice to override\n`;
     }
     
     if (context.recentBiomarkers && context.recentBiomarkers.length > 0) {
