@@ -2864,8 +2864,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
               const bedtime = new Date(dataPoint.inBedStart);
               const waketime = new Date(dataPoint.inBedEnd);
               
-              // Use the bedtime date as the night key (format: YYYY-MM-DD)
-              const nightKey = bedtime.toISOString().split('T')[0];
+              // Smart night key: if bedtime is after 3pm, use that date; otherwise it's a morning nap
+              // This handles sleep that crosses midnight (e.g., 10pm Oct 13 to 6am Oct 14 = Oct 13 night)
+              const bedHour = bedtime.getHours();
+              const nightDate = bedHour >= 15 ? bedtime : new Date(bedtime.getTime() - 12 * 60 * 60 * 1000);
+              const nightKey = nightDate.toISOString().split('T')[0];
               
               const existing = sleepNights.get(nightKey);
               
