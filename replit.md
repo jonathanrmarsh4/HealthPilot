@@ -19,6 +19,11 @@ The application is a full-stack project utilizing React, TypeScript, Tailwind CS
 - User-customizable dashboard with widget visibility and order preferences that persist.
 - Clear Chat Feature with timestamp-based UI clearing, preserving full conversation history in the database.
 - PWA support for iOS home screen installation with custom icon and theme.
+- **Enhanced Dashboard Widgets (October 2025):**
+  - Health Score Widget: Three-segment recharts donut chart (Sleep blue, Activity green, Vitals purple) with centered score, quality badge, and animated progress bars below
+  - Biological Age Widget: Improved title sizing and "View Full Analysis" button spacing for better visual balance
+  - Goals Summary Widget: Animated progress bars with complementary colors (emerald, cyan, violet), fixed decrease goal calculation logic using useMemo to prevent infinite loops
+  - Data Insights Widget: Top 4 insights display with expandable "Show More" button, fills vertical space with h-full and flex-1
 
 **Technical Implementations:**
 - **AI Intelligence Layer:** Provides daily personalized insights, context-aware chat, multi-metric recommendations, and alternative therapy suggestions. Includes safeguards for weight assessment (requires body fat percentage or health markers) and goal-driven assistance for training plans, meal plans, chat, and daily insights.
