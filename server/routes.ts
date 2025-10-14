@@ -2455,6 +2455,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Default units for other types
         const defaultUnits: Record<string, string> = {
           "heart-rate": "bpm",
+          "hrv": "ms",
           "steps": "steps",
           "calories": "kcal",
           "blood-pressure-systolic": "mmHg",
@@ -2471,6 +2472,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         "heart_rate": "heart-rate",
         "Resting Heart Rate": "heart-rate",
         "resting_heart_rate": "heart-rate",
+        "Heart Rate Variability SDNN": "hrv",
+        "heart_rate_variability_sdnn": "hrv",
+        "Heart Rate Variability": "hrv",
+        "heart_rate_variability": "hrv",
+        "HRV": "hrv",
+        "hrv": "hrv",
         "Blood Glucose": "blood-glucose",
         "blood_glucose": "blood-glucose",
         "Weight": "weight",

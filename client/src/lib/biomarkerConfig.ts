@@ -61,7 +61,7 @@ export const subsections: Record<string, SubsectionConfig> = {
   },
   "other": {
     title: "Other",
-    biomarkers: ["blood-glucose", "fasting-glucose", "hba1c", "insulin", "vitamin-d", "vitamin-b12", "folate", "weight", "height", "bmi", "blood-pressure", "heart-rate", "steps", "calories", "temperature", "oxygen-saturation", "psa"]
+    biomarkers: ["blood-glucose", "fasting-glucose", "hba1c", "insulin", "vitamin-d", "vitamin-b12", "folate", "weight", "height", "bmi", "blood-pressure", "heart-rate", "hrv", "steps", "calories", "temperature", "oxygen-saturation", "psa"]
   }
 };
 
@@ -490,6 +490,14 @@ export const biomarkerDisplayConfig: Record<string, BiomarkerConfig> = {
     color: "hsl(var(--chart-4))",
     decimals: 0,
     referenceRange: { low: 60, high: 100 } // 60-100 bpm normal resting
+  },
+  "hrv": {
+    title: "HRV (Heart Rate Variability)",
+    description: "Recovery & nervous system health",
+    days: 730,
+    color: "hsl(var(--chart-1))",
+    decimals: 0,
+    referenceRange: { low: 40, high: 100 } // 40-100 ms (SDNN), higher is better
   },
   "temperature": {
     title: "Body Temperature",
