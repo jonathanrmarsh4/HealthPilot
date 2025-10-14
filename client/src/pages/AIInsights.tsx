@@ -1,4 +1,5 @@
 import { RecommendationCard } from "@/components/RecommendationCard";
+import { ScheduleRecommendationDialog } from "@/components/ScheduleRecommendationDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -8,9 +9,12 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import type { Recommendation, HealthRecord, Biomarker } from "@shared/schema";
+import { useState } from "react";
 
 export default function AIInsights() {
   const { toast } = useToast();
+  const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
+  const [selectedRecommendation, setSelectedRecommendation] = useState<Recommendation | null>(null);
 
   const { data: recommendations, isLoading: recommendationsLoading } = useQuery<Recommendation[]>({
     queryKey: ["/api/recommendations"],
@@ -45,18 +49,45 @@ export default function AIInsights() {
     },
   });
 
-  const dismissMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const res = await apiRequest("PATCH", `/api/recommendations/${id}/dismiss`);
+  const scheduleMutation = useMutation({
+    mutationFn: async ({ id, date, action }: { id: string; date: Date; action: "add" | "replace" }) => {
+      const res = await apiRequest("POST", `/api/recommendations/${id}/schedule`, { date, action });
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/recommendations"] });
+      toast({
+        title: "Success",
+        description: "Recommendation scheduled to your training plan!",
+      });
     },
     onError: (error: Error) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to dismiss recommendation",
+        description: error.message || "Failed to schedule recommendation",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const feedbackMutation = useMutation({
+    mutationFn: async ({ id, feedback }: { id: string; feedback: "positive" | "negative" }) => {
+      const res = await apiRequest("POST", `/api/recommendations/${id}/feedback`, { feedback });
+      return res.json();
+    },
+    onSuccess: (_: any, variables: { id: string; feedback: "positive" | "negative" }) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/recommendations"] });
+      toast({
+        title: variables.feedback === "positive" ? "Thanks for your feedback!" : "Noted",
+        description: variables.feedback === "positive" 
+          ? "We'll show you more recommendations like this" 
+          : "This recommendation has been dismissed",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to record feedback",
         variant: "destructive",
       });
     },
@@ -79,9 +110,9 @@ export default function AIInsights() {
     }
   };
 
-  const analyzedRecords = healthRecords?.filter(r => r.analyzedAt).length || 0;
+  const analyzedRecords = healthRecords?.filter((r: HealthRecord) => r.analyzedAt).length || 0;
   const trackedBiomarkers = biomarkers?.length || 0;
-  const activeRecommendations = recommendations?.filter(r => r.dismissed === 0).length || 0;
+  const activeRecommendations = recommendations?.filter((r: Recommendation) => r.dismissed === 0).length || 0;
 
   const healthScore = Math.min(100, Math.max(0, 
     50 + (analyzedRecords * 5) + (Math.min(trackedBiomarkers, 10) * 3) - (activeRecommendations * 2)
@@ -190,9 +221,9 @@ export default function AIInsights() {
               </Card>
             ))}
           </div>
-        ) : recommendations && recommendations.filter(r => r.dismissed === 0).length > 0 ? (
+        ) : recommendations && recommendations.filter((r: Recommendation) => r.dismissed === 0).length > 0 ? (
           <div className="grid gap-6">
-            {recommendations.filter(r => r.dismissed === 0).map((rec) => (
+            {recommendations.filter((r: Recommendation) => r.dismissed === 0).map((rec: Recommendation) => (
               <RecommendationCard
                 key={rec.id}
                 title={rec.title}
@@ -201,8 +232,12 @@ export default function AIInsights() {
                 priority={rec.priority as "high" | "medium" | "low"}
                 icon={getCategoryIcon(rec.category)}
                 details={rec.details || ""}
-                actionLabel={rec.actionLabel || "View Details"}
-                onDismiss={() => dismissMutation.mutate(rec.id)}
+                actionLabel={rec.actionLabel || "Schedule Workout"}
+                onAction={() => {
+                  setSelectedRecommendation(rec);
+                  setScheduleDialogOpen(true);
+                }}
+                onFeedback={(feedback) => feedbackMutation.mutate({ id: rec.id, feedback })}
               />
             ))}
           </div>
@@ -214,6 +249,21 @@ export default function AIInsights() {
           </Card>
         )}
       </div>
+
+      {selectedRecommendation && (
+        <ScheduleRecommendationDialog
+          open={scheduleDialogOpen}
+          onOpenChange={setScheduleDialogOpen}
+          recommendationTitle={selectedRecommendation.title}
+          onSchedule={async (date, action) => {
+            await scheduleMutation.mutateAsync({ 
+              id: selectedRecommendation.id, 
+              date, 
+              action 
+            });
+          }}
+        />
+      )}
     </div>
   );
 }
