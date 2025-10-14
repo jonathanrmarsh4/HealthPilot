@@ -55,6 +55,11 @@ The application is a full-stack project utilizing React, TypeScript, Tailwind CS
     - **AI Integration:** Chat service respects user preferences—downvoted protocols are permanently excluded from all AI suggestions across the platform
     - **Database Schema:** recovery_protocols table (protocol metadata), user_protocol_preferences table (user votes), with API endpoints for recommendations and voting
     - **UI Component:** Training page displays protocol cards with expandable details, category badges, and voting buttons with visual feedback (default variant for upvote, destructive for downvote, outline for neutral)
+  - **User Override & Training Schedule Display (Oct 14, 2025):** Enhanced user autonomy and visibility:
+    - **AI Override Capability:** Users can explicitly request rigorous/intense training plans despite low readiness scores. AI respects user autonomy when they use phrases like "override", "I want a hard workout anyway", or "give me a rigorous plan"
+    - **Training Schedule Section:** Added "Your Training Schedule" card to Training page displaying all saved workout plans from AI chat using TrainingScheduleCard component
+    - **Complete Visibility:** Training plans created via chat (including override plans) now properly appear on Training page, fixing previous issue where plans were saved but not visible
+    - **Data Flow:** Chat saves plans via SAVE_TRAINING_PLAN markers → backend stores in training_schedules table → Training page fetches and displays via `/api/training-schedules` endpoint
 
 **Feature Specifications:**
 - Health record upload and AI analysis with status tracking.
