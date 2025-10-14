@@ -16,6 +16,7 @@ import { TrainingScheduleCard } from "@/components/TrainingScheduleCard";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { RecommendationCalendar } from "@/components/RecommendationCalendar";
 import { ScheduledRecommendationsCard } from "@/components/ScheduledRecommendationsCard";
+import { DailyRemindersCard } from "@/components/DailyRemindersCard";
 
 interface TrainingSchedule {
   id: string;
@@ -484,6 +485,9 @@ export default function Training() {
 
       {/* Today's Scheduled Recommendations */}
       <ScheduledRecommendationsCard recommendations={todayScheduledRecommendations} />
+
+      {/* Daily Reminders */}
+      <DailyRemindersCard />
 
       {/* Today's Recommended Workout */}
       <Card data-testid="card-todays-workout">
