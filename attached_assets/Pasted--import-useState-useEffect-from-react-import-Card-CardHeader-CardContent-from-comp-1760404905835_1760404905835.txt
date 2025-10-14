@@ -1,0 +1,148 @@
+
+
+import { useState, useEffect } from "react";
+import { Card, CardHeader, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { Calendar, Activity, Brain, Flame, MessageCircle, ChevronDown, ThumbsUp, ThumbsDown, RefreshCw } from "lucide-react";
+import { motion } from "framer-motion";
+
+export default function HealthPilotMobileUX() {
+  const [selectedDay, setSelectedDay] = useState(null);
+  const [feedback, setFeedback] = useState({});
+  const [plan, setPlan] = useState([]);
+  const [readiness, setReadiness] = useState(82);
+
+  const basePlan = [
+    { day: "Mon", type: "Strength", done: true, exercises: ["Deadlift 4x6", "Bench Press 4x8", "Plank 3x60s"] },
+    { day: "Tue", type: "Cardio", done: false, exercises: ["5km Run", "Rowing 10min", "Stretch 10min"] },
+    { day: "Wed", type: "Recovery", done: false, exercises: ["Yoga Flow 30min", "Foam Rolling 15min"] },
+    { day: "Thu", type: "Mobility", done: false, exercises: ["Dynamic Warmup 20min", "Shoulder Mobility 15min"] },
+    { day: "Fri", type: "HIIT", done: false, exercises: ["Sprint Intervals 6x200m", "Burpees 3x15"] },
+  ];
+
+  useEffect(() => {
+    // Simulate AI personalization adapting the plan based on feedback
+    const adjustedPlan = basePlan.map((day) => {
+      const adjustedExercises = day.exercises.map((ex) => {
+        if (feedback[ex] === false) {
+          return ex + " (replaced next time)";
+        } else if (feedback[ex] === true) {
+          return ex + " (favourite ✅)";
+        }
+        return ex;
+      });
+      return { ...day, exercises: adjustedExercises };
+    });
+    setPlan(adjustedPlan);
+  }, [feedback]);
+
+  const toggleDay = (day) => {
+    setSelectedDay(selectedDay === day ? null : day);
+  };
+
+  const handleFeedback = (exercise, liked) => {
+    setFeedback({ ...feedback, [exercise]: liked });
+  };
+
+  const refreshPlan = () => {
+    // Simulate dynamic readiness and AI adaptation
+    const newReadiness = Math.floor(Math.random() * (95 - 70 + 1)) + 70;
+    setReadiness(newReadiness);
+  };
+
+  return (
+    <div className="p-4 flex flex-col gap-4 max-w-md mx-auto">
+      {/* Live Adaptive Daily Card */}
+      <Card className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-lg rounded-2xl">
+        <CardHeader className="flex justify-between items-center">
+          <div>
+            <h2 className="text-xl font-bold">Good Morning, Jon</h2>
+            <p className="text-sm opacity-80">Plan auto-adjusts as your metrics change</p>
+          </div>
+          <button onClick={refreshPlan}>
+            <RefreshCw className="w-6 h-6 opacity-80 hover:rotate-180 transition-transform" />
+          </button>
+        </CardHeader>
+        <CardContent>
+          <motion.div
+            key={readiness}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+          >
+            <h3 className="text-lg font-semibold mb-1">Today’s Plan: AI Adaptive Mode</h3>
+            <p className="text-sm mb-3">HRV {readiness} | Plan optimized for current recovery 💪</p>
+            <Progress value={readiness} className="mb-2 bg-white/20 h-2" />
+            <p className="text-xs opacity-90">Readiness: {readiness}%</p>
+          </motion.div>
+          <div className="flex gap-2 mt-3">
+            <Button variant="secondary" className="text-blue-600 bg-white text-sm font-bold flex-1">Start</Button>
+            <Button variant="outline" className="border-white text-white text-sm flex-1 hover:bg-white/10">Alternate</Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Live Weekly Plan */}
+      <Card className="bg-white shadow-sm rounded-2xl">
+        <CardHeader className="flex items-center justify-between p-3">
+          <h3 className="text-base font-semibold">Weekly Overview</h3>
+          <Calendar className="w-4 h-4 text-blue-600" />
+        </CardHeader>
+        <CardContent className="grid gap-2">
+          {plan.map((s, i) => (
+            <motion.div key={i} className="rounded-xl overflow-hidden bg-gray-50">
+              <div
+                className={`flex justify-between items-center p-3 ${s.done ? "bg-green-100" : "bg-gray-100"}`}
+                onClick={() => toggleDay(s.day)}
+              >
+                <span className="font-medium text-sm">{s.day}</span>
+                <span className="text-xs text-gray-600">{s.type}</span>
+                <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${selectedDay === s.day ? "rotate-180" : ""}`} />
+              </div>
+              {selectedDay === s.day && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  transition={{ duration: 0.3 }}
+                  className="bg-white p-3 border-t border-gray-200"
+                >
+                  <h4 className="text-sm font-semibold mb-2">Recommended Exercises</h4>
+                  <ul className="space-y-2">
+                    {s.exercises.map((ex, j) => (
+                      <li key={j} className="flex justify-between items-center text-sm">
+                        <span>{ex}</span>
+                        <div className="flex gap-1">
+                          <ThumbsUp
+                            className={`w-4 h-4 cursor-pointer ${feedback[ex] === true ? "text-green-600" : "text-gray-400"}`}
+                            onClick={() => handleFeedback(ex, true)}
+                          />
+                          <ThumbsDown
+                            className={`w-4 h-4 cursor-pointer ${feedback[ex] === false ? "text-red-600" : "text-gray-400"}`}
+                            onClick={() => handleFeedback(ex, false)}
+                          />
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </motion.div>
+              )}
+            </motion.div>
+          ))}
+        </CardContent>
+      </Card>
+
+      {/* AI Coach Chat */}
+      <Card className="bg-gradient-to-br from-purple-500 to-fuchsia-600 text-white shadow-lg rounded-2xl">
+        <CardHeader className="flex items-center justify-between p-3">
+          <h3 className="text-base font-semibold">AI Coach</h3>
+          <MessageCircle className="w-4 h-4 opacity-80" />
+        </CardHeader>
+        <CardContent className="p-3">
+          <p className="italic opacity-90 mb-3 text-sm">“Jon, your preferences are shaping your next plan — Strength days will now prioritize your favourite lifts.”</p>
+          <Button variant="secondary" className="bg-white text-purple-700 font-semibold text-sm w-full">Ask Coach</Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
