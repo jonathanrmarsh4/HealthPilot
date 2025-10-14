@@ -43,6 +43,48 @@ export async function calculateReadinessScore(
     workload: 0.15    // 15% - Training load impact
   };
 
+  // Personal baseline settings
+  const usePersonalBaselines = settings?.usePersonalBaselines === 1;
+  const personalBaselines = {
+    hrv: settings?.personalHrvBaseline,
+    restingHR: settings?.personalRestingHrBaseline,
+    sleepHours: settings?.personalSleepHoursBaseline
+  };
+
+  /**
+   * Calculate score based on % deviation from personal baseline
+   * @param value - Current measured value
+   * @param baseline - User's personal baseline
+   * @param higherIsBetter - true for HRV/Sleep, false for Resting HR
+   */
+  const calculateBaselineScore = (value: number, baseline: number, higherIsBetter: boolean): number => {
+    const percentDeviation = ((value - baseline) / baseline) * 100;
+    
+    if (higherIsBetter) {
+      // For HRV and Sleep: higher is better
+      // At baseline = 100, above baseline = bonus, below = penalty
+      if (percentDeviation >= 0) {
+        // Above baseline: 100 + bonus (capped at 100)
+        return Math.min(100, 100 + percentDeviation);
+      } else {
+        // Below baseline: reduce score proportionally
+        // -10% = 90 score, -20% = 80 score, etc.
+        return Math.max(0, 100 + percentDeviation);
+      }
+    } else {
+      // For Resting HR: lower is better
+      // At baseline = 100, below baseline = bonus, above = penalty
+      if (percentDeviation <= 0) {
+        // Below baseline (lower HR): 100 + bonus (capped at 100)
+        return Math.min(100, 100 - percentDeviation);
+      } else {
+        // Above baseline (higher HR): reduce score proportionally
+        // +10% = 90 score, +20% = 80 score, etc.
+        return Math.max(0, 100 - percentDeviation);
+      }
+    }
+  };
+
   const factors = {
     sleep: { score: 50, weight: WEIGHTS.sleep, value: undefined as number | undefined },
     hrv: { score: 50, weight: WEIGHTS.hrv, value: undefined as number | undefined },
@@ -63,8 +105,17 @@ export async function calculateReadinessScore(
     .sort((a, b) => new Date(b.bedtime).getTime() - new Date(a.bedtime).getTime())[0];
 
   if (recentSleep && recentSleep.sleepScore) {
-    factors.sleep.score = recentSleep.sleepScore;
-    factors.sleep.value = recentSleep.totalMinutes / 60; // hours
+    const sleepHours = recentSleep.totalMinutes / 60;
+    factors.sleep.value = sleepHours;
+    
+    // Use personal baseline if enabled and available
+    if (usePersonalBaselines && personalBaselines.sleepHours) {
+      // Personal baseline scoring for sleep hours
+      factors.sleep.score = calculateBaselineScore(sleepHours, personalBaselines.sleepHours, true);
+    } else {
+      // Standard scoring uses Apple Health sleep score
+      factors.sleep.score = recentSleep.sleepScore;
+    }
   }
 
   // 2. HRV Score (0-100) - Higher HRV = Better recovery
@@ -82,16 +133,21 @@ export async function calculateReadinessScore(
     const hrvValue = recentHRV.value;
     factors.hrv.value = hrvValue;
     
-    // HRV scoring: 40-100ms range (SDNN for active individuals)
-    // <40ms = poor (0-40), 40-60ms = fair/good (40-75), 60-80ms = good (75-90), >80ms = excellent (90-100)
-    if (hrvValue < 40) {
-      factors.hrv.score = Math.max(0, (hrvValue / 40) * 40);
-    } else if (hrvValue < 60) {
-      factors.hrv.score = 40 + ((hrvValue - 40) / 20) * 35;
-    } else if (hrvValue < 80) {
-      factors.hrv.score = 75 + ((hrvValue - 60) / 20) * 15;
+    // Use personal baseline if enabled and available
+    if (usePersonalBaselines && personalBaselines.hrv) {
+      factors.hrv.score = calculateBaselineScore(hrvValue, personalBaselines.hrv, true);
     } else {
-      factors.hrv.score = Math.min(100, 90 + ((hrvValue - 80) / 40) * 10);
+      // Standard HRV scoring: 40-100ms range (SDNN for active individuals)
+      // <40ms = poor (0-40), 40-60ms = fair/good (40-75), 60-80ms = good (75-90), >80ms = excellent (90-100)
+      if (hrvValue < 40) {
+        factors.hrv.score = Math.max(0, (hrvValue / 40) * 40);
+      } else if (hrvValue < 60) {
+        factors.hrv.score = 40 + ((hrvValue - 40) / 20) * 35;
+      } else if (hrvValue < 80) {
+        factors.hrv.score = 75 + ((hrvValue - 60) / 20) * 15;
+      } else {
+        factors.hrv.score = Math.min(100, 90 + ((hrvValue - 80) / 40) * 10);
+      }
     }
   }
 
@@ -109,18 +165,23 @@ export async function calculateReadinessScore(
     const rhr = recentRHR.value;
     factors.restingHR.value = rhr;
     
-    // RHR scoring: Lower is better for athletes
-    // <50 = excellent (90-100), 50-60 = good (70-90), 60-70 = fair (50-70), 70-80 = poor (30-50), >80 = very poor (0-30)
-    if (rhr < 50) {
-      factors.restingHR.score = Math.min(100, 90 + ((50 - rhr) / 10) * 10);
-    } else if (rhr < 60) {
-      factors.restingHR.score = 70 + ((60 - rhr) / 10) * 20;
-    } else if (rhr < 70) {
-      factors.restingHR.score = 50 + ((70 - rhr) / 10) * 20;
-    } else if (rhr < 80) {
-      factors.restingHR.score = 30 + ((80 - rhr) / 10) * 20;
+    // Use personal baseline if enabled and available
+    if (usePersonalBaselines && personalBaselines.restingHR) {
+      factors.restingHR.score = calculateBaselineScore(rhr, personalBaselines.restingHR, false);
     } else {
-      factors.restingHR.score = Math.max(0, 30 - ((rhr - 80) / 10) * 10);
+      // Standard RHR scoring: Lower is better for athletes
+      // <50 = excellent (90-100), 50-60 = good (70-90), 60-70 = fair (50-70), 70-80 = poor (30-50), >80 = very poor (0-30)
+      if (rhr < 50) {
+        factors.restingHR.score = Math.min(100, 90 + ((50 - rhr) / 10) * 10);
+      } else if (rhr < 60) {
+        factors.restingHR.score = 70 + ((60 - rhr) / 10) * 20;
+      } else if (rhr < 70) {
+        factors.restingHR.score = 50 + ((70 - rhr) / 10) * 20;
+      } else if (rhr < 80) {
+        factors.restingHR.score = 30 + ((80 - rhr) / 10) * 20;
+      } else {
+        factors.restingHR.score = Math.max(0, 30 - ((rhr - 80) / 10) * 10);
+      }
     }
   }
 
