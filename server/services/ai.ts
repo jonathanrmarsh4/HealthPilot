@@ -1572,7 +1572,13 @@ Generate a recommendation with this JSON structure:
     "benefits": "Why rest might be better today"
   },
   "aiReasoning": "Clear explanation of why these recommendations make sense based on readiness score and recovery markers. Be specific about which factors influenced the decision.",
-  "safetyNote": "Any important warnings or cautions (only if readiness is concerning)"
+  "safetyNote": "Any important warnings or cautions (only if readiness is concerning)",
+  "adjustmentsMade": {
+    "intensityReduced": boolean (true if intensity was lowered from scheduled/planned workout),
+    "durationReduced": boolean (true if duration was reduced),
+    "exercisesModified": boolean (true if exercises were swapped for easier alternatives),
+    "reason": "Brief explanation of what was adjusted and why based on readiness"
+  }
 }
 
 Be specific, actionable, and prioritize safety over performance.`,

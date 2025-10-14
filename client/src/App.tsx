@@ -19,6 +19,7 @@ import Biomarkers from "@/pages/Biomarkers";
 import Sleep from "@/pages/Sleep";
 import MealPlans from "@/pages/MealPlans";
 import Training from "@/pages/Training";
+import ReadinessSettings from "@/pages/ReadinessSettings";
 import AIInsights from "@/pages/AIInsights";
 import Insights from "@/pages/Insights";
 import Goals from "@/pages/Goals";
@@ -44,6 +45,7 @@ function Router() {
       <Route path="/sleep" component={Sleep} />
       <Route path="/meals" component={MealPlans} />
       <Route path="/training" component={Training} />
+      <Route path="/training/readiness-settings" component={ReadinessSettings} />
       <Route path="/insights" component={AIInsights} />
       <Route path="/data-insights" component={Insights} />
       <Route path="/goals" component={Goals} />

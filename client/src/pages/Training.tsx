@@ -3,13 +3,14 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Sparkles, Loader2, Activity, Heart, RefreshCw, ThumbsUp, ThumbsDown, Dumbbell, Calendar, Zap, Moon, TrendingUp } from "lucide-react";
+import { Sparkles, Loader2, Activity, Heart, RefreshCw, ThumbsUp, ThumbsDown, Dumbbell, Calendar, Zap, Moon, TrendingUp, Settings, Info, AlertTriangle } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useMemo } from "react";
 import { format, addDays } from "date-fns";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
+import { useLocation } from "wouter";
 
 interface ReadinessScore {
   score: number;
@@ -60,6 +61,7 @@ interface DailyRecommendation {
 
 export default function Training() {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [selectedPlan, setSelectedPlan] = useState<'primary' | 'alternate' | 'rest'>('primary');
   const [exerciseFeedback, setExerciseFeedback] = useState<Record<string, 'up' | 'down'>>({});
 
@@ -67,10 +69,21 @@ export default function Training() {
     queryKey: ["/api/training/readiness"],
   });
 
+  const { data: readinessSettings } = useQuery({
+    queryKey: ["/api/training/readiness/settings"],
+  });
+
   const { data: dailyRec, isLoading: recLoading, refetch: refetchRec } = useQuery<DailyRecommendation>({
     queryKey: ["/api/training/daily-recommendation"],
     staleTime: 5 * 60 * 1000,
   });
+
+  // Check if readiness alert should be shown
+  const showAlert = useMemo(() => {
+    if (!readinessScore || !readinessSettings) return false;
+    if (!readinessSettings.alertsEnabled) return false;
+    return readinessScore.score < readinessSettings.alertThreshold;
+  }, [readinessScore, readinessSettings]);
 
   const refreshPlanMutation = useMutation({
     mutationFn: async () => {
@@ -196,6 +209,24 @@ export default function Training() {
         </Button>
       </div>
 
+      {/* Alert Banner */}
+      {showAlert && (
+        <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4" data-testid="alert-readiness-warning">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-red-600 dark:text-red-400">
+                Readiness Alert: Score Below Threshold
+              </p>
+              <p className="text-sm text-red-600/80 dark:text-red-400/80 mt-1">
+                Your readiness score ({readinessScore?.score}) is below your alert threshold ({readinessSettings.alertThreshold}). 
+                Consider taking rest or reducing training intensity.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Hero Readiness Card */}
       <Card className="relative overflow-hidden" data-testid="card-readiness-hero">
         <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-primary/20 to-transparent rounded-full blur-3xl -z-10" />
@@ -207,15 +238,25 @@ export default function Training() {
                 {format(new Date(), "EEEE, MMMM d")}
               </CardDescription>
             </div>
-            {readinessScore && (
-              <Badge 
-                variant={getRecommendationBadgeVariant(readinessScore.recommendation)}
-                className="text-sm px-3 py-1"
-                data-testid="badge-readiness-status"
+            <div className="flex items-center gap-2">
+              {readinessScore && (
+                <Badge 
+                  variant={getRecommendationBadgeVariant(readinessScore.recommendation)}
+                  className="text-sm px-3 py-1"
+                  data-testid="badge-readiness-status"
+                >
+                  {readinessScore.recommendation.toUpperCase()}
+                </Badge>
+              )}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setLocation("/training/readiness-settings")}
+                data-testid="button-readiness-settings"
               >
-                {readinessScore.recommendation.toUpperCase()}
-              </Badge>
-            )}
+                <Settings className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -296,6 +337,34 @@ export default function Training() {
                   <span className="font-medium">{readinessScore.factors.workloadRecovery.score}/100</span>
                 </div>
                 <Progress value={readinessScore.factors.workloadRecovery.score} className="h-2" />
+
+                {/* Recovery Estimate */}
+                {readinessScore.recoveryEstimate && readinessScore.recoveryEstimate.daysUntilReady > 0 && (
+                  <div className="mt-4 pt-4 border-t">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Recovery Estimate</span>
+                      <Badge variant="outline" data-testid="badge-recovery-estimate">
+                        {readinessScore.recoveryEstimate.daysUntilReady === 1 
+                          ? "1 day" 
+                          : `${readinessScore.recoveryEstimate.daysUntilReady} days`}
+                      </Badge>
+                    </div>
+                    <div className="mt-2 flex items-center gap-2">
+                      <div className="flex-1">
+                        <div className="text-xs text-muted-foreground">
+                          Trend: <span className={
+                            readinessScore.recoveryEstimate.trend === "improving" ? "text-green-600 dark:text-green-400" :
+                            readinessScore.recoveryEstimate.trend === "declining" ? "text-red-600 dark:text-red-400" :
+                            "text-yellow-600 dark:text-yellow-400"
+                          }>{readinessScore.recoveryEstimate.trend}</span>
+                        </div>
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {readinessScore.recoveryEstimate.confidence} confidence
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           ) : (
@@ -332,6 +401,27 @@ export default function Training() {
                   {dailyRec.recommendation.aiReasoning}
                 </p>
               </div>
+
+              {/* Adjustments Made (if any) */}
+              {dailyRec.recommendation.adjustmentsMade && (
+                dailyRec.recommendation.adjustmentsMade.intensityReduced || 
+                dailyRec.recommendation.adjustmentsMade.durationReduced || 
+                dailyRec.recommendation.adjustmentsMade.exercisesModified
+              ) && (
+                <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                  <div className="flex items-start gap-3">
+                    <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-blue-600 dark:text-blue-400 mb-1">
+                        Workout Auto-Adjusted Based on Recovery
+                      </p>
+                      <p className="text-sm text-blue-600/80 dark:text-blue-400/80" data-testid="text-adjustments-made">
+                        {dailyRec.recommendation.adjustmentsMade.reason}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Plan Selection */}
               <div className="flex gap-2 flex-wrap">

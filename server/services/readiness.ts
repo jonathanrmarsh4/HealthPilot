@@ -12,6 +12,11 @@ export interface ReadinessScore {
   };
   recommendation: "ready" | "caution" | "rest";
   reasoning: string;
+  recoveryEstimate?: {
+    daysUntilReady: number;
+    trend: "improving" | "declining" | "stable";
+    confidence: "high" | "medium" | "low";
+  };
 }
 
 /**
@@ -24,8 +29,14 @@ export async function calculateReadinessScore(
   targetDate: Date = new Date()
 ): Promise<ReadinessScore> {
   
-  // Weights for each factor (must sum to 1.0)
-  const WEIGHTS = {
+  // Fetch user's custom weights or use defaults
+  const settings = await storage.getReadinessSettings(userId);
+  const WEIGHTS = settings ? {
+    sleep: settings.sleepWeight,
+    hrv: settings.hrvWeight,
+    restingHR: settings.restingHRWeight,
+    workload: settings.workloadWeight
+  } : {
     sleep: 0.40,      // 40% - Most important for recovery
     hrv: 0.30,        // 30% - Key nervous system indicator
     restingHR: 0.15,  // 15% - Secondary vital sign
@@ -224,12 +235,72 @@ export async function calculateReadinessScore(
     reasoning = "Elevated resting heart rate suggests incomplete recovery. Light activity only.";
   }
 
+  // Calculate recovery estimate based on recent trend (last 3 days)
+  let recoveryEstimate: ReadinessScore["recoveryEstimate"] | undefined;
+  try {
+    const recentScores = await storage.getReadinessScores(userId, subDays(targetDate, 3), targetDate);
+    
+    if (recentScores.length >= 2) {
+      // Sort by date ascending to get trend
+      const sortedScores = recentScores.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      const scores = sortedScores.map(s => s.score);
+      
+      // Calculate trend using linear regression slope
+      const n = scores.length;
+      const xMean = (n - 1) / 2;
+      const yMean = scores.reduce((sum, val) => sum + val, 0) / n;
+      
+      let numerator = 0;
+      let denominator = 0;
+      for (let i = 0; i < n; i++) {
+        numerator += (i - xMean) * (scores[i] - yMean);
+        denominator += (i - xMean) ** 2;
+      }
+      
+      const slope = denominator !== 0 ? numerator / denominator : 0;
+      
+      // Determine trend
+      let trend: "improving" | "declining" | "stable";
+      if (slope > 2) trend = "improving";
+      else if (slope < -2) trend = "declining";
+      else trend = "stable";
+      
+      // Estimate days until ready (score >= 65)
+      let daysUntilReady = 0;
+      const currentScore = totalScore;
+      const targetScore = 65;
+      
+      if (currentScore < targetScore && slope > 0) {
+        // Improving trend - estimate based on slope
+        daysUntilReady = Math.ceil((targetScore - currentScore) / slope);
+        daysUntilReady = Math.min(daysUntilReady, 7); // Cap at 7 days
+      } else if (currentScore < targetScore) {
+        // Declining or stable - be conservative
+        daysUntilReady = trend === "declining" ? 3 : 2;
+      }
+      
+      // Confidence based on data consistency
+      const variance = scores.reduce((sum, val) => sum + (val - yMean) ** 2, 0) / n;
+      const confidence: "high" | "medium" | "low" = 
+        variance < 50 ? "high" : variance < 150 ? "medium" : "low";
+      
+      recoveryEstimate = {
+        daysUntilReady,
+        trend,
+        confidence
+      };
+    }
+  } catch (error) {
+    console.error("Error calculating recovery estimate:", error);
+  }
+
   return {
     score: totalScore,
     quality,
     factors,
     recommendation,
-    reasoning
+    reasoning,
+    recoveryEstimate
   };
 }
 

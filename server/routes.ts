@@ -1157,6 +1157,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get readiness settings
+  app.get("/api/training/readiness/settings", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    try {
+      let settings = await storage.getReadinessSettings(userId);
+      
+      // Return defaults if no settings exist
+      if (!settings) {
+        settings = {
+          id: '',
+          userId,
+          sleepWeight: 0.40,
+          hrvWeight: 0.30,
+          restingHRWeight: 0.15,
+          workloadWeight: 0.15,
+          alertThreshold: 50,
+          alertsEnabled: 1,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+      }
+      
+      res.json(settings);
+    } catch (error: any) {
+      console.error("Error fetching readiness settings:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Update readiness settings
+  app.post("/api/training/readiness/settings", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    try {
+      const { sleepWeight, hrvWeight, restingHRWeight, workloadWeight, alertThreshold, alertsEnabled } = req.body;
+      
+      // Validate weights sum to 1.0
+      const totalWeight = sleepWeight + hrvWeight + restingHRWeight + workloadWeight;
+      if (Math.abs(totalWeight - 1.0) > 0.01) {
+        return res.status(400).json({ error: "Weights must sum to 100%" });
+      }
+      
+      const settings = await storage.upsertReadinessSettings({
+        userId,
+        sleepWeight,
+        hrvWeight,
+        restingHRWeight,
+        workloadWeight,
+        alertThreshold,
+        alertsEnabled,
+      });
+      
+      // Clear cached readiness scores to force recalculation with new weights
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      await db.delete(readinessScores).where(
+        and(
+          eq(readinessScores.userId, userId),
+          gte(readinessScores.date, today)
+        )
+      );
+      
+      res.json(settings);
+    } catch (error: any) {
+      console.error("Error updating readiness settings:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Daily Training Recommendation Endpoint (AI-powered, safety-first)
   app.get("/api/training/daily-recommendation", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
