@@ -5,15 +5,29 @@ import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Target, Plus, TrendingUp, TrendingDown } from "lucide-react";
 import { Link } from "wouter";
-import { Progress } from "@/components/ui/progress";
 import type { Goal } from "@shared/schema";
+import { useEffect, useState, useMemo } from "react";
 
 export function GoalsSummaryWidget() {
   const { data: goals, isLoading } = useQuery<Goal[]>({
     queryKey: ["/api/goals"],
   });
 
-  const activeGoals = goals?.filter(g => g.status === 'active') || [];
+  const activeGoals = useMemo(() => goals?.filter(g => g.status === 'active') || [], [goals]);
+  const [animatedWidths, setAnimatedWidths] = useState<number[]>([]);
+
+  // Trigger animations when data loads or changes
+  useEffect(() => {
+    if (activeGoals.length > 0) {
+      // Small delay to ensure DOM is ready
+      const timeout = setTimeout(() => {
+        const progressValues = activeGoals.slice(0, 3).map(goal => calculateProgress(goal));
+        setAnimatedWidths(progressValues);
+      }, 50);
+      
+      return () => clearTimeout(timeout);
+    }
+  }, [activeGoals]);
 
   if (isLoading) {
     return (
@@ -35,27 +49,37 @@ export function GoalsSummaryWidget() {
 
     if (start === target) return 100;
 
-    if (goal.metricType.toLowerCase().includes('weight') || 
-        goal.metricType.toLowerCase().includes('cholesterol') ||
-        goal.metricType.toLowerCase().includes('glucose') ||
-        goal.metricType.toLowerCase().includes('body fat')) {
-      // Decrease goals
-      if (current <= target) return 100;
-      if (current >= start) return 0;
+    // Determine if this is a decrease goal (want to go DOWN)
+    const isDecreaseGoal = goal.metricType.toLowerCase().includes('weight') || 
+                          goal.metricType.toLowerCase().includes('cholesterol') ||
+                          goal.metricType.toLowerCase().includes('glucose') ||
+                          goal.metricType.toLowerCase().includes('body fat');
+
+    if (isDecreaseGoal) {
+      // Decrease goals: start > target (e.g., weight 80kg -> 73kg)
+      // Progress is based on how much we've decreased from start toward target
+      if (current <= target) return 100; // Reached or exceeded target
+      if (current >= start) return 0;     // No progress yet
       return Math.round(((start - current) / (start - target)) * 100);
     } else {
-      // Increase goals
-      if (current >= target) return 100;
-      if (current <= start) return 0;
+      // Increase goals: start < target (e.g., steps 5000 -> 10000)
+      // Progress is based on how much we've increased from start toward target
+      if (current >= target) return 100; // Reached or exceeded target
+      if (current <= start) return 0;     // No progress yet
       return Math.round(((current - start) / (target - start)) * 100);
     }
   };
 
-  const getProgressColor = (progress: number) => {
-    if (progress >= 75) return 'bg-green-500';
-    if (progress >= 50) return 'bg-blue-500';
-    if (progress >= 25) return 'bg-yellow-500';
-    return 'bg-red-500';
+  // Complementary colors for different goal types
+  const getGoalColor = (index: number, metricType: string) => {
+    // Different color for each goal based on position and type
+    const colorSets = [
+      { bg: 'bg-emerald-500', text: 'text-emerald-600 dark:text-emerald-400' },
+      { bg: 'bg-cyan-500', text: 'text-cyan-600 dark:text-cyan-400' },
+      { bg: 'bg-violet-500', text: 'text-violet-600 dark:text-violet-400' },
+    ];
+    
+    return colorSets[index % colorSets.length];
   };
 
   const isDecrease = (metricType: string) => {
@@ -104,27 +128,38 @@ export function GoalsSummaryWidget() {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="space-y-3">
-          {activeGoals.slice(0, 3).map((goal) => {
+        <div className="space-y-4">
+          {activeGoals.slice(0, 3).map((goal, index) => {
             const progress = calculateProgress(goal);
             const isDecreaseGoal = isDecrease(goal.metricType);
+            const colors = getGoalColor(index, goal.metricType);
+            const animatedWidth = animatedWidths[index] ?? 0;
             
             return (
               <div key={goal.id} className="space-y-2" data-testid={`goal-item-${goal.id}`}>
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between text-sm">
                   <div className="flex items-center gap-2">
                     {isDecreaseGoal ? (
-                      <TrendingDown className="h-3 w-3 text-muted-foreground" />
+                      <TrendingDown className={`h-4 w-4 ${colors.text}`} />
                     ) : (
-                      <TrendingUp className="h-3 w-3 text-muted-foreground" />
+                      <TrendingUp className={`h-4 w-4 ${colors.text}`} />
                     )}
-                    <span className="text-sm font-medium">{goal.metricType}</span>
+                    <span className="font-medium">{goal.metricType}</span>
                   </div>
-                  <span className="text-xs text-muted-foreground" data-testid={`text-progress-${goal.id}`}>
+                  <span className={`text-xs font-semibold ${colors.text}`} data-testid={`text-progress-${goal.id}`}>
                     {progress}%
                   </span>
                 </div>
-                <Progress value={progress} className="h-2" />
+                <div className="relative h-2 bg-muted rounded-full overflow-hidden">
+                  <div
+                    className={`h-full ${colors.bg} rounded-full transition-all duration-1000 ease-out`}
+                    style={{
+                      width: `${animatedWidth}%`,
+                      transitionDelay: `${index * 150}ms`
+                    }}
+                    data-testid={`bar-progress-${goal.id}`}
+                  />
+                </div>
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
                   <span>Current: {goal.currentValue} {goal.unit}</span>
                   <span>Target: {goal.targetValue} {goal.unit}</span>

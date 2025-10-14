@@ -40,7 +40,7 @@ export function BiologicalAgeWidget() {
   return (
     <Card data-testid="widget-biological-age" className="overflow-hidden">
       <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-3">
-        <CardTitle className="text-sm font-medium">Biological Age</CardTitle>
+        <CardTitle>Biological Age</CardTitle>
         <Badge variant="secondary" className="text-xs">
           <Sparkles className="h-3 w-3 mr-1" />
           Premium
@@ -113,13 +113,15 @@ export function BiologicalAgeWidget() {
               )}
             </div>
 
-            {/* Action Button */}
-            <Link href="/biological-age">
-              <Button variant="outline" size="sm" className="w-full" data-testid="button-view-biological-age">
-                View Full Analysis
-                <ArrowRight className="w-3 h-3 ml-2" />
-              </Button>
-            </Link>
+            {/* Action Button - Moved down for better balance */}
+            <div className="pt-2">
+              <Link href="/biological-age">
+                <Button variant="outline" size="sm" className="w-full" data-testid="button-view-biological-age">
+                  View Full Analysis
+                  <ArrowRight className="w-3 h-3 ml-2" />
+                </Button>
+              </Link>
+            </div>
           </>
         ) : (
           <div className="space-y-4">

@@ -1,8 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
-import { TrendingUp, TrendingDown, Info, AlertTriangle, CheckCircle } from "lucide-react";
+import { TrendingUp, TrendingDown, Info, AlertTriangle, CheckCircle, ChevronDown, ChevronUp } from "lucide-react";
+import { useState } from "react";
 
 interface DataInsight {
   type: 'positive' | 'negative' | 'neutral' | 'info';
@@ -16,13 +18,15 @@ interface DataInsightsResponse {
 }
 
 export function DataInsightsWidget() {
+  const [showAll, setShowAll] = useState(false);
+  
   const { data: insightsData, isLoading } = useQuery<DataInsightsResponse>({
     queryKey: ["/api/dashboard/data-insights"],
   });
 
   if (isLoading) {
     return (
-      <Card data-testid="card-data-insights">
+      <Card data-testid="card-data-insights" className="h-full">
         <CardHeader>
           <CardTitle>Data Insights</CardTitle>
         </CardHeader>
@@ -37,7 +41,7 @@ export function DataInsightsWidget() {
 
   if (insights.length === 0) {
     return (
-      <Card data-testid="card-data-insights">
+      <Card data-testid="card-data-insights" className="h-full">
         <CardHeader>
           <CardTitle>Data Insights</CardTitle>
         </CardHeader>
@@ -74,8 +78,18 @@ export function DataInsightsWidget() {
     }
   };
 
+  // Sort insights by type priority (negative > positive > neutral > info)
+  const sortedInsights = [...insights].sort((a, b) => {
+    const priority = { negative: 0, positive: 1, neutral: 2, info: 3 };
+    return priority[a.type as keyof typeof priority] - priority[b.type as keyof typeof priority];
+  });
+
+  // Show only top 4 most relevant unless expanded
+  const displayedInsights = showAll ? sortedInsights : sortedInsights.slice(0, 4);
+  const hasMore = insights.length > 4;
+
   return (
-    <Card data-testid="card-data-insights">
+    <Card data-testid="card-data-insights" className="h-full flex flex-col">
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           <span>Data Insights</span>
@@ -84,33 +98,49 @@ export function DataInsightsWidget() {
           </Badge>
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3">
-        {insights.slice(0, 4).map((insight, index) => (
-          <div
-            key={index}
-            className="flex items-start gap-3 p-3 rounded-md bg-muted/30 hover-elevate"
-            data-testid={`insight-item-${index}`}
-          >
-            <div className="mt-0.5">{getIcon(insight.type)}</div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <h4 className="text-sm font-medium" data-testid={`text-insight-title-${index}`}>
-                  {insight.title}
-                </h4>
+      <CardContent className="flex-1 flex flex-col space-y-3">
+        <div className="space-y-3 flex-1">
+          {displayedInsights.map((insight, index) => (
+            <div
+              key={index}
+              className="flex items-start gap-3 p-3 rounded-md bg-muted/30 hover-elevate"
+              data-testid={`insight-item-${index}`}
+            >
+              <div className="mt-0.5">{getIcon(insight.type)}</div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <h4 className="text-sm font-medium" data-testid={`text-insight-title-${index}`}>
+                    {insight.title}
+                  </h4>
+                </div>
+                <p className="text-xs text-muted-foreground" data-testid={`text-insight-desc-${index}`}>
+                  {insight.description}
+                </p>
               </div>
-              <p className="text-xs text-muted-foreground" data-testid={`text-insight-desc-${index}`}>
-                {insight.description}
-              </p>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
         
-        {insights.length > 4 && (
-          <div className="text-center pt-2">
-            <span className="text-xs text-muted-foreground">
-              +{insights.length - 4} more insights available
-            </span>
-          </div>
+        {hasMore && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full"
+            onClick={() => setShowAll(!showAll)}
+            data-testid="button-show-more-insights"
+          >
+            {showAll ? (
+              <>
+                <ChevronUp className="h-4 w-4 mr-2" />
+                Show Less
+              </>
+            ) : (
+              <>
+                <ChevronDown className="h-4 w-4 mr-2" />
+                Show {insights.length - 4} More
+              </>
+            )}
+          </Button>
         )}
       </CardContent>
     </Card>

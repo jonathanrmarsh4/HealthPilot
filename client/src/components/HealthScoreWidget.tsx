@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Activity, Heart, Moon, TrendingUp } from "lucide-react";
 import { useEffect, useState } from "react";
+import { PieChart, Pie, Cell, ResponsiveContainer, Label } from "recharts";
 
 interface HealthScoreData {
   score: number;
@@ -71,19 +72,6 @@ export function HealthScoreWidget() {
     );
   }
 
-  const getScoreColor = (quality: string) => {
-    switch (quality) {
-      case 'Excellent':
-        return 'bg-green-500 dark:bg-green-600';
-      case 'Good':
-        return 'bg-blue-500 dark:bg-blue-600';
-      case 'Fair':
-        return 'bg-yellow-500 dark:bg-yellow-600';
-      default:
-        return 'bg-red-500 dark:bg-red-600';
-    }
-  };
-
   const getBadgeVariant = (quality: string) => {
     switch (quality) {
       case 'Excellent':
@@ -104,6 +92,7 @@ export function HealthScoreWidget() {
       max: 30,
       icon: Moon,
       color: 'bg-blue-500',
+      donutColor: '#3b82f6',
       textColor: 'text-blue-600 dark:text-blue-400'
     },
     {
@@ -112,6 +101,7 @@ export function HealthScoreWidget() {
       max: 25,
       icon: Activity,
       color: 'bg-green-500',
+      donutColor: '#22c55e',
       textColor: 'text-green-600 dark:text-green-400'
     },
     {
@@ -120,9 +110,18 @@ export function HealthScoreWidget() {
       max: 45,
       icon: Heart,
       color: 'bg-purple-500',
+      donutColor: '#a855f7',
       textColor: 'text-purple-600 dark:text-purple-400'
     }
   ];
+
+  // Prepare donut chart data
+  const donutData = componentData.map(component => ({
+    name: component.label,
+    value: component.value > 0 ? component.value : 0.1, // Minimum value for visibility
+    displayValue: component.value,
+    color: component.donutColor,
+  }));
 
   return (
     <Card data-testid="card-health-score">
@@ -135,17 +134,41 @@ export function HealthScoreWidget() {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Donut Chart */}
         <div className="flex items-center justify-center">
-          <div className="relative">
-            <div className={`w-32 h-32 rounded-full ${getScoreColor(healthScore.quality)} flex items-center justify-center`}>
-              <div className="text-center text-white">
-                <div className="text-4xl font-bold" data-testid="text-health-score">{healthScore.score}</div>
-                <div className="text-sm opacity-90">out of 100</div>
+          <div className="relative w-48 h-48">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={donutData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={55}
+                  outerRadius={75}
+                  paddingAngle={2}
+                  dataKey="value"
+                >
+                  {donutData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                  <Label
+                    value={healthScore.score}
+                    position="center"
+                    className="text-4xl font-bold"
+                    fill="hsl(var(--foreground))"
+                  />
+                </Pie>
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="text-center mt-12">
+                <div className="text-xs text-muted-foreground">out of 100</div>
               </div>
             </div>
           </div>
         </div>
 
+        {/* Animated Bars */}
         <div className="space-y-4">
           {componentData.map((component, index) => {
             const percentage = (component.value / component.max) * 100;
