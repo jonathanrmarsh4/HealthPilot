@@ -198,6 +198,19 @@ export const readinessScores = pgTable("readiness_scores", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const readinessSettings = pgTable("readiness_settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().unique(), // One setting per user
+  sleepWeight: real("sleep_weight").notNull().default(0.40), // Default 40%
+  hrvWeight: real("hrv_weight").notNull().default(0.30), // Default 30%
+  restingHRWeight: real("resting_hr_weight").notNull().default(0.15), // Default 15%
+  workloadWeight: real("workload_weight").notNull().default(0.15), // Default 15%
+  alertThreshold: real("alert_threshold").notNull().default(50), // Alert when score < threshold
+  alertsEnabled: integer("alerts_enabled").notNull().default(1), // 1 = enabled, 0 = disabled
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 export const exerciseFeedback = pgTable("exercise_feedback", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull(),
@@ -280,6 +293,12 @@ export const insertReadinessScoreSchema = createInsertSchema(readinessScores).om
   createdAt: true,
 });
 
+export const insertReadinessSettingsSchema = createInsertSchema(readinessSettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const insertInsightSchema = createInsertSchema(insights).omit({
   id: true,
   createdAt: true,
@@ -332,6 +351,9 @@ export type SleepSession = typeof sleepSessions.$inferSelect;
 
 export type InsertReadinessScore = z.infer<typeof insertReadinessScoreSchema>;
 export type ReadinessScore = typeof readinessScores.$inferSelect;
+
+export type InsertReadinessSettings = z.infer<typeof insertReadinessSettingsSchema>;
+export type ReadinessSettings = typeof readinessSettings.$inferSelect;
 
 export type InsertInsight = z.infer<typeof insertInsightSchema>;
 export type Insight = typeof insights.$inferSelect;
