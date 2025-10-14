@@ -20,6 +20,7 @@ The application is a full-stack project utilizing React, TypeScript, Tailwind CS
 - Clear Chat Feature with timestamp-based UI clearing, preserving full conversation history in the database.
 - PWA support for iOS home screen installation with custom icon and theme.
 - **Enhanced Dashboard Widgets (October 2025):**
+  - Readiness Score Widget (Oct 14, 2025): Position 1 in Health Overview, compact semicircle gauge showing daily readiness (0-100), quality badge, 2-column factor breakdown (Sleep/HRV/RestingHR/Recovery scores), settings button for customization navigation
   - Health Score Widget: Three-segment recharts donut chart (Sleep blue, Activity green, Vitals purple) with centered score, quality badge, and animated progress bars below
   - Biological Age Widget: Improved title sizing and "View Full Analysis" button spacing for better visual balance
   - Goals Summary Widget: Animated progress bars with complementary colors (emerald, cyan, violet), fixed decrease goal calculation logic using useMemo to prevent infinite loops
