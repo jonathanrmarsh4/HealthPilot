@@ -41,6 +41,7 @@ The application is a full-stack project utilizing React, TypeScript, Tailwind CS
   - **Smart Caching:** Daily scores stored in database to avoid recalculation, with historical tracking
   - **Dashboard Widget:** Fuel gauge visualization with semicircle chart showing readiness score (0-100), color-coded recommendation badges (green=ready, yellow=caution, red=rest), quality labels (excellent/good/fair/poor), and component breakdown (Sleep, HRV, Resting HR, Recovery)
   - **Workout Load Analysis:** Considers both acute (24h) and chronic (7d) training load with intensity estimation from heart rate data when available
+  - **Timezone Fix (Oct 14, 2025):** Extended date filter to `addDays(targetDate, 1)` to properly handle sleep sessions crossing midnight in positive UTC offset timezones (e.g., Australia/Perth UTC+8). Previously, timezone conversion caused sessions to be excluded from readiness calculation, defaulting sleep score to 50/100.
 
 **Feature Specifications:**
 - Health record upload and AI analysis with status tracking.
