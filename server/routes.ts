@@ -2844,90 +2844,136 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const isSleep = metricName === "sleep_analysis" || metricName === "sleep analysis" || metricName.includes("sleep");
         
         if (isSleep && metric.data && Array.isArray(metric.data)) {
-          // Batch process sleep sessions in parallel
-          const sleepPromises = [];
+          console.log(`🛌 Processing ${metric.data.length} sleep data point(s)`);
+          
+          // Group sleep segments by date (same night)
+          // Apple Health sends multiple segments for one night (REM, Core, Deep, etc.)
+          // We need to combine them into ONE session per night
+          const sleepNights = new Map<string, {
+            bedtime: Date;
+            waketime: Date;
+            awakeMinutes: number;
+            deepMinutes: number;
+            remMinutes: number;
+            coreMinutes: number;
+            sleepScore?: number;
+          }>();
           
           for (const dataPoint of metric.data) {
-            // Use inBedStart/inBedEnd for full session duration (includes awake time)
             if (dataPoint.inBedStart && dataPoint.inBedEnd) {
               const bedtime = new Date(dataPoint.inBedStart);
               const waketime = new Date(dataPoint.inBedEnd);
-              // Calculate total minutes from in-bed duration
-              const totalMinutes = Math.round((waketime.getTime() - bedtime.getTime()) / (1000 * 60));
-              const awakeMinutes = Math.round((dataPoint.awake || 0) * 60);
-              const deepMinutes = Math.round((dataPoint.deep || 0) * 60);
-              const remMinutes = Math.round((dataPoint.rem || 0) * 60);
-              const coreMinutes = Math.round((dataPoint.core || 0) * 60);
               
-              // Use Apple Health's sleep score if available, otherwise calculate our own
-              let sleepScore: number;
+              // Use the bedtime date as the night key (format: YYYY-MM-DD)
+              const nightKey = bedtime.toISOString().split('T')[0];
               
-              if (dataPoint.sleepScore !== undefined && dataPoint.sleepScore !== null) {
-                // Use Apple Health's actual sleep score
-                sleepScore = Math.round(dataPoint.sleepScore);
-                console.log(`✅ Using Apple Health sleep score: ${sleepScore}`);
-              } else if (dataPoint.quality !== undefined && dataPoint.quality !== null) {
-                // Some Health Auto Export versions send quality as a score
-                sleepScore = Math.round(dataPoint.quality);
-                console.log(`✅ Using Health Auto Export quality score: ${sleepScore}`);
+              const existing = sleepNights.get(nightKey);
+              
+              if (existing) {
+                // Merge with existing night - extend the time range and accumulate minutes
+                console.log(`🔗 Merging sleep segment for night ${nightKey}`);
+                existing.bedtime = new Date(Math.min(existing.bedtime.getTime(), bedtime.getTime()));
+                existing.waketime = new Date(Math.max(existing.waketime.getTime(), waketime.getTime()));
+                existing.awakeMinutes += Math.round((dataPoint.awake || 0) * 60);
+                existing.deepMinutes += Math.round((dataPoint.deep || 0) * 60);
+                existing.remMinutes += Math.round((dataPoint.rem || 0) * 60);
+                existing.coreMinutes += Math.round((dataPoint.core || 0) * 60);
+                
+                // Use the highest sleep score if multiple segments have scores
+                if (dataPoint.sleepScore !== undefined && dataPoint.sleepScore !== null) {
+                  existing.sleepScore = Math.max(existing.sleepScore || 0, Math.round(dataPoint.sleepScore));
+                }
               } else {
-                // Calculate our own score (0-100) based on sleep quality
-                sleepScore = 70; // Base score
-                const sleepHours = totalMinutes / 60;
-                
-                // Adjust for total sleep duration (optimal 7-9 hours)
-                if (sleepHours >= 7 && sleepHours <= 9) {
-                  sleepScore += 10;
-                } else if (sleepHours >= 6 && sleepHours < 7) {
-                  sleepScore += 5;
-                } else if (sleepHours < 6) {
-                  sleepScore -= 10;
-                }
-                
-                // Adjust for deep sleep (should be ~20% of total)
-                const deepPercentage = (dataPoint.deep || 0) / sleepHours;
-                if (deepPercentage >= 0.15 && deepPercentage <= 0.25) {
-                  sleepScore += 10;
-                } else if (deepPercentage < 0.10) {
-                  sleepScore -= 5;
-                }
-                
-                // Adjust for REM sleep (should be ~20-25% of total)
-                const remPercentage = (dataPoint.rem || 0) / sleepHours;
-                if (remPercentage >= 0.18 && remPercentage <= 0.28) {
-                  sleepScore += 10;
-                } else if (remPercentage < 0.15) {
-                  sleepScore -= 5;
-                }
-                
-                // Ensure score is between 0 and 100
-                sleepScore = Math.max(0, Math.min(100, sleepScore));
-                console.log(`🧮 Calculated custom sleep score: ${sleepScore}`);
-              }
-              
-              // Determine quality
-              let quality = "Fair";
-              if (sleepScore >= 85) quality = "Excellent";
-              else if (sleepScore >= 75) quality = "Good";
-              else if (sleepScore >= 60) quality = "Fair";
-              else quality = "Poor";
-              
-              sleepPromises.push(
-                storage.upsertSleepSession({
-                  userId,
+                // First segment for this night
+                console.log(`🆕 New sleep night detected: ${nightKey}`);
+                sleepNights.set(nightKey, {
                   bedtime,
                   waketime,
-                  totalMinutes,
-                  awakeMinutes,
-                  lightMinutes: coreMinutes, // Core sleep maps to light
-                  deepMinutes,
-                  remMinutes,
-                  sleepScore,
-                  quality,
-                  source: "apple-health",
-                })
-              );
+                  awakeMinutes: Math.round((dataPoint.awake || 0) * 60),
+                  deepMinutes: Math.round((dataPoint.deep || 0) * 60),
+                  remMinutes: Math.round((dataPoint.rem || 0) * 60),
+                  coreMinutes: Math.round((dataPoint.core || 0) * 60),
+                  sleepScore: dataPoint.sleepScore !== undefined ? Math.round(dataPoint.sleepScore) : undefined,
+                });
+              }
             }
+          }
+          
+          console.log(`📊 Grouped into ${sleepNights.size} night(s) of sleep`);
+          
+          // Now create one sleep session per night
+          const sleepPromises = [];
+          
+          for (const [nightKey, night] of Array.from(sleepNights.entries())) {
+            const totalMinutes = Math.round((night.waketime.getTime() - night.bedtime.getTime()) / (1000 * 60));
+            
+            // Use Apple Health's sleep score if available, otherwise calculate our own
+            let sleepScore: number;
+            
+            if (night.sleepScore !== undefined && night.sleepScore !== null) {
+              sleepScore = night.sleepScore;
+              console.log(`✅ Using Apple Health sleep score for ${nightKey}: ${sleepScore}`);
+            } else {
+              // Calculate our own score (0-100) based on sleep quality
+              sleepScore = 70; // Base score
+              const sleepHours = totalMinutes / 60;
+              
+              // Adjust for total sleep duration (optimal 7-9 hours)
+              if (sleepHours >= 7 && sleepHours <= 9) {
+                sleepScore += 10;
+              } else if (sleepHours >= 6 && sleepHours < 7) {
+                sleepScore += 5;
+              } else if (sleepHours < 6) {
+                sleepScore -= 10;
+              }
+              
+              // Adjust for deep sleep (should be ~20% of total)
+              const deepHours = night.deepMinutes / 60;
+              const deepPercentage = deepHours / sleepHours;
+              if (deepPercentage >= 0.15 && deepPercentage <= 0.25) {
+                sleepScore += 10;
+              } else if (deepPercentage < 0.10) {
+                sleepScore -= 5;
+              }
+              
+              // Adjust for REM sleep (should be ~20-25% of total)
+              const remHours = night.remMinutes / 60;
+              const remPercentage = remHours / sleepHours;
+              if (remPercentage >= 0.18 && remPercentage <= 0.28) {
+                sleepScore += 10;
+              } else if (remPercentage < 0.15) {
+                sleepScore -= 5;
+              }
+              
+              // Ensure score is between 0 and 100
+              sleepScore = Math.max(0, Math.min(100, sleepScore));
+              console.log(`🧮 Calculated custom sleep score for ${nightKey}: ${sleepScore}`);
+            }
+            
+            // Determine quality
+            let quality = "Fair";
+            if (sleepScore >= 85) quality = "Excellent";
+            else if (sleepScore >= 75) quality = "Good";
+            else if (sleepScore >= 60) quality = "Fair";
+            else quality = "Poor";
+            
+            console.log(`💾 Creating sleep session for ${nightKey}: ${night.bedtime.toISOString()} to ${night.waketime.toISOString()} (${totalMinutes} mins, score: ${sleepScore})`);
+            
+            sleepPromises.push(
+              storage.upsertSleepSession({
+                userId,
+                bedtime: night.bedtime,
+                waketime: night.waketime,
+                totalMinutes,
+                awakeMinutes: night.awakeMinutes,
+                lightMinutes: night.coreMinutes, // Core sleep maps to light
+                deepMinutes: night.deepMinutes,
+                remMinutes: night.remMinutes,
+                sleepScore,
+                quality,
+                source: "apple-health",
+              })
+            );
           }
           
           await Promise.all(sleepPromises);
