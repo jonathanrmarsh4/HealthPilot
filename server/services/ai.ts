@@ -754,6 +754,7 @@ export async function chatWithHealthCoach(
     isOnboarding?: boolean;
     onboardingStep?: string | null;
     activeGoals?: any[];
+    readinessScore?: any;
   }
 ) {
   let contextSection = "";
@@ -763,6 +764,26 @@ export async function chatWithHealthCoach(
     
     if (context.currentPage) {
       contextSection += `- Currently viewing: ${context.currentPage}\n`;
+    }
+    
+    if (context.readinessScore) {
+      const score = context.readinessScore.score;
+      const quality = score >= 75 ? 'Excellent' : score >= 60 ? 'Good' : score >= 40 ? 'Fair' : 'Poor';
+      const recommendation = score >= 75 ? 'Ready for high-intensity training' : 
+                            score >= 60 ? 'Ready for moderate training' : 
+                            score >= 40 ? 'Light training or active recovery recommended' : 
+                            'Rest day strongly recommended';
+      
+      contextSection += `\n🔋 TODAY'S READINESS SCORE: ${score}/100 (${quality})\n`;
+      contextSection += `- Recommendation: ${recommendation}\n`;
+      contextSection += `- Components: Sleep: ${context.readinessScore.sleepScore}/100, HRV: ${context.readinessScore.hrvScore}/100, Resting HR: ${context.readinessScore.restingHRScore}/100, Recovery: ${context.readinessScore.recoveryScore}/100\n`;
+      contextSection += `\n⚠️ SAFETY-FIRST TRAINING PRINCIPLE:\n`;
+      contextSection += `- When discussing training today, ALWAYS respect the current readiness score\n`;
+      contextSection += `- If readiness < 40: Strongly recommend rest/recovery, explain why pushing through is counterproductive\n`;
+      contextSection += `- If readiness 40-59: Suggest light training or active recovery, explain the importance of listening to the body\n`;
+      contextSection += `- If readiness 60-74: Moderate training is appropriate, but avoid max intensity\n`;
+      contextSection += `- If readiness ≥ 75: User is ready for challenging workouts\n`;
+      contextSection += `- If user insists on training when readiness is low, explain risks: injury, illness, burnout, reduced performance\n`;
     }
     
     if (context.recentBiomarkers && context.recentBiomarkers.length > 0) {

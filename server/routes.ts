@@ -1795,6 +1795,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const allGoals = await storage.getGoals(userId);
       const activeGoals = allGoals.filter(goal => goal.status === 'active');
 
+      // Fetch latest readiness score for training context
+      const today = new Date();
+      const readinessScore = await storage.getReadinessScore(userId, today);
+
       const context = {
         recentBiomarkers,
         recentInsights,
@@ -1802,7 +1806,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userTimezone: user?.timezone || undefined,
         isOnboarding,
         onboardingStep,
-        activeGoals
+        activeGoals,
+        readinessScore: readinessScore || undefined,
       };
 
       const aiResponse = await chatWithHealthCoach(conversationHistory, context);
