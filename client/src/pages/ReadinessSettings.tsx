@@ -6,7 +6,8 @@ import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { Loader2, Save, RotateCcw, AlertCircle, Info } from "lucide-react";
+import { Loader2, Save, RotateCcw, AlertCircle, Info, Sparkles } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +28,10 @@ export default function ReadinessSettings() {
   const [workloadWeight, setWorkloadWeight] = useState(15);
   const [alertThreshold, setAlertThreshold] = useState(50);
   const [alertsEnabled, setAlertsEnabled] = useState(true);
+  const [usePersonalBaselines, setUsePersonalBaselines] = useState(false);
+  const [personalHrvBaseline, setPersonalHrvBaseline] = useState<number | null>(null);
+  const [personalRestingHrBaseline, setPersonalRestingHrBaseline] = useState<number | null>(null);
+  const [personalSleepHoursBaseline, setPersonalSleepHoursBaseline] = useState<number | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
 
   // Initialize local state when settings load
@@ -38,6 +43,10 @@ export default function ReadinessSettings() {
       setWorkloadWeight(Math.round(settings.workloadWeight * 100));
       setAlertThreshold(settings.alertThreshold);
       setAlertsEnabled(settings.alertsEnabled === 1);
+      setUsePersonalBaselines(settings.usePersonalBaselines === 1);
+      setPersonalHrvBaseline(settings.personalHrvBaseline);
+      setPersonalRestingHrBaseline(settings.personalRestingHrBaseline);
+      setPersonalSleepHoursBaseline(settings.personalSleepHoursBaseline);
     }
   }, [settings]);
 
@@ -55,6 +64,10 @@ export default function ReadinessSettings() {
         workloadWeight: workloadWeight / 100,
         alertThreshold,
         alertsEnabled: alertsEnabled ? 1 : 0,
+        usePersonalBaselines: usePersonalBaselines ? 1 : 0,
+        personalHrvBaseline,
+        personalRestingHrBaseline,
+        personalSleepHoursBaseline,
       });
     },
     onSuccess: () => {
@@ -76,6 +89,33 @@ export default function ReadinessSettings() {
     },
   });
 
+  // Auto-calculate baselines mutation
+  const autoCalculateMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch("/api/training/readiness/auto-calculate-baselines");
+      if (!response.ok) throw new Error("Failed to calculate baselines");
+      return await response.json();
+    },
+    onSuccess: (data) => {
+      if (data.personalHrvBaseline) setPersonalHrvBaseline(data.personalHrvBaseline);
+      if (data.personalRestingHrBaseline) setPersonalRestingHrBaseline(data.personalRestingHrBaseline);
+      if (data.personalSleepHoursBaseline) setPersonalSleepHoursBaseline(data.personalSleepHoursBaseline);
+      
+      toast({
+        title: "Baselines calculated",
+        description: `Based on ${data.dataPoints.hrv + data.dataPoints.restingHR + data.dataPoints.sleep} data points from the last 30 days`,
+      });
+      setHasChanges(true);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to calculate baselines",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   // Reset to defaults
   const resetToDefaults = () => {
     setSleepWeight(40);
@@ -84,6 +124,10 @@ export default function ReadinessSettings() {
     setWorkloadWeight(15);
     setAlertThreshold(50);
     setAlertsEnabled(true);
+    setUsePersonalBaselines(false);
+    setPersonalHrvBaseline(null);
+    setPersonalRestingHrBaseline(null);
+    setPersonalSleepHoursBaseline(null);
     setHasChanges(true);
   };
 
@@ -96,10 +140,14 @@ export default function ReadinessSettings() {
         restingHRWeight !== Math.round(settings.restingHRWeight * 100) ||
         workloadWeight !== Math.round(settings.workloadWeight * 100) ||
         alertThreshold !== settings.alertThreshold ||
-        alertsEnabled !== (settings.alertsEnabled === 1);
+        alertsEnabled !== (settings.alertsEnabled === 1) ||
+        usePersonalBaselines !== (settings.usePersonalBaselines === 1) ||
+        personalHrvBaseline !== settings.personalHrvBaseline ||
+        personalRestingHrBaseline !== settings.personalRestingHrBaseline ||
+        personalSleepHoursBaseline !== settings.personalSleepHoursBaseline;
       setHasChanges(changed);
     }
-  }, [sleepWeight, hrvWeight, restingHRWeight, workloadWeight, alertThreshold, alertsEnabled, settings]);
+  }, [sleepWeight, hrvWeight, restingHRWeight, workloadWeight, alertThreshold, alertsEnabled, usePersonalBaselines, personalHrvBaseline, personalRestingHrBaseline, personalSleepHoursBaseline, settings]);
 
   // Auto-adjust weights to maintain 100% total
   const handleWeightChange = (factor: string, value: number) => {
@@ -315,6 +363,121 @@ export default function ReadinessSettings() {
                 <p className="text-xs text-muted-foreground">
                   Alert when readiness score falls below this value
                 </p>
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Sparkles className="w-5 h-5" />
+            Personal Baselines
+          </CardTitle>
+          <CardDescription>
+            Score based on YOUR normal values instead of population averages. Perfect if you have naturally low HRV or high heart rate.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label htmlFor="use-personal-baselines" className="text-base">Enable Personal Baselines</Label>
+              <p className="text-sm text-muted-foreground">
+                Score relative to your typical values when well-rested
+              </p>
+            </div>
+            <Switch
+              id="use-personal-baselines"
+              checked={usePersonalBaselines}
+              onCheckedChange={setUsePersonalBaselines}
+              data-testid="switch-use-personal-baselines"
+            />
+          </div>
+
+          {usePersonalBaselines && (
+            <>
+              <Separator />
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => autoCalculateMutation.mutate()}
+                    disabled={autoCalculateMutation.isPending}
+                    data-testid="button-auto-calculate"
+                  >
+                    {autoCalculateMutation.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                        Calculating...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="mr-2 h-3 w-3" />
+                        Auto-Calculate from Last 30 Days
+                      </>
+                    )}
+                  </Button>
+                  <p className="text-xs text-muted-foreground">
+                    Sets baselines to your 30-day averages
+                  </p>
+                </div>
+
+                <div className="grid gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="hrv-baseline">Your Typical HRV (ms)</Label>
+                    <Input
+                      id="hrv-baseline"
+                      type="number"
+                      placeholder="e.g., 30"
+                      value={personalHrvBaseline ?? ""}
+                      onChange={(e) => setPersonalHrvBaseline(e.target.value ? parseFloat(e.target.value) : null)}
+                      data-testid="input-hrv-baseline"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Your HRV when well-rested (even if "low" by population standards)
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="resting-hr-baseline">Your Typical Resting HR (bpm)</Label>
+                    <Input
+                      id="resting-hr-baseline"
+                      type="number"
+                      placeholder="e.g., 75"
+                      value={personalRestingHrBaseline ?? ""}
+                      onChange={(e) => setPersonalRestingHrBaseline(e.target.value ? parseFloat(e.target.value) : null)}
+                      data-testid="input-resting-hr-baseline"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Your resting HR when well-rested (even if "high" by population standards)
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="sleep-baseline">Your Typical Sleep Hours</Label>
+                    <Input
+                      id="sleep-baseline"
+                      type="number"
+                      step="0.5"
+                      placeholder="e.g., 7.5"
+                      value={personalSleepHoursBaseline ?? ""}
+                      onChange={(e) => setPersonalSleepHoursBaseline(e.target.value ? parseFloat(e.target.value) : null)}
+                      data-testid="input-sleep-baseline"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Your ideal sleep duration when well-rested
+                    </p>
+                  </div>
+                </div>
+
+                <Alert>
+                  <Info className="h-4 w-4" />
+                  <AlertDescription>
+                    When enabled, you'll score 100% when at YOUR baseline. Below baseline = lower score. Above baseline (for HRV) = bonus!
+                  </AlertDescription>
+                </Alert>
               </div>
             </>
           )}
