@@ -365,6 +365,73 @@ export const insertUserProtocolPreferenceSchema = createInsertSchema(userProtoco
   updatedAt: true,
 });
 
+// Supplements table - user's current supplement stack
+export const supplements = pgTable("supplements", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  name: text("name").notNull(),
+  dosage: text("dosage").notNull(), // e.g., "5000 IU", "500mg"
+  timing: text("timing").notNull(), // 'morning', 'pre_workout', 'post_workout', 'evening', 'with_meal'
+  purpose: text("purpose"), // Why they're taking it
+  active: integer("active").notNull().default(1), // 1 if currently taking, 0 if discontinued
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Daily reminders table - recurring health reminders
+export const dailyReminders = pgTable("daily_reminders", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  type: text("type").notNull(), // 'supplement', 'nutrition', 'biomarker', 'recovery', 'hydration'
+  title: text("title").notNull(),
+  description: text("description"),
+  frequency: text("frequency").notNull().default("daily"), // 'daily', 'weekly', 'after_workout'
+  timeOfDay: text("time_of_day"), // 'morning', 'afternoon', 'evening', 'any'
+  linkedRecordId: varchar("linked_record_id"), // ID of related supplement/biomarker/etc
+  active: integer("active").notNull().default(1),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Reminder completions table - tracks adherence
+export const reminderCompletions = pgTable("reminder_completions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  reminderId: varchar("reminder_id").notNull(),
+  userId: varchar("user_id").notNull(),
+  completedAt: timestamp("completed_at").notNull().defaultNow(),
+  date: text("date").notNull(), // YYYY-MM-DD format for daily tracking
+});
+
+// Supplement recommendations table - AI-suggested supplements
+export const supplementRecommendations = pgTable("supplement_recommendations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  supplementName: text("supplement_name").notNull(),
+  dosage: text("dosage").notNull(),
+  reason: text("reason").notNull(), // AI explanation
+  biomarkerLinked: text("biomarker_linked"), // Which biomarker triggered this
+  status: text("status").notNull().default("pending"), // 'pending', 'accepted', 'declined'
+  recommendedAt: timestamp("recommended_at").notNull().defaultNow(),
+});
+
+export const insertSupplementSchema = createInsertSchema(supplements).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertDailyReminderSchema = createInsertSchema(dailyReminders).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertReminderCompletionSchema = createInsertSchema(reminderCompletions).omit({
+  id: true,
+  completedAt: true,
+});
+
+export const insertSupplementRecommendationSchema = createInsertSchema(supplementRecommendations).omit({
+  id: true,
+  recommendedAt: true,
+});
+
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
 
@@ -415,3 +482,15 @@ export type RecoveryProtocol = typeof recoveryProtocols.$inferSelect;
 
 export type InsertUserProtocolPreference = z.infer<typeof insertUserProtocolPreferenceSchema>;
 export type UserProtocolPreference = typeof userProtocolPreferences.$inferSelect;
+
+export type InsertSupplement = z.infer<typeof insertSupplementSchema>;
+export type Supplement = typeof supplements.$inferSelect;
+
+export type InsertDailyReminder = z.infer<typeof insertDailyReminderSchema>;
+export type DailyReminder = typeof dailyReminders.$inferSelect;
+
+export type InsertReminderCompletion = z.infer<typeof insertReminderCompletionSchema>;
+export type ReminderCompletion = typeof reminderCompletions.$inferSelect;
+
+export type InsertSupplementRecommendation = z.infer<typeof insertSupplementRecommendationSchema>;
+export type SupplementRecommendation = typeof supplementRecommendations.$inferSelect;
