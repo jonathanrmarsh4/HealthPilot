@@ -1179,28 +1179,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
       }
       
-      // 2. Get user's training plan
-      const trainingPlans = await storage.getTrainingPlans(userId);
-      const activePlan = trainingPlans.find(p => p.status === 'active');
-      
-      // 3. Get today's scheduled workout (if exists)
-      let scheduledWorkout = undefined;
-      if (activePlan) {
-        const dayOfWeek = today.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
-        const weeklySchedule = activePlan.weeklySchedule as any;
-        
-        if (weeklySchedule && weeklySchedule[dayOfWeek]) {
-          const dayPlan = weeklySchedule[dayOfWeek];
-          scheduledWorkout = {
-            type: dayPlan.type || 'Workout',
-            duration: dayPlan.duration || 45,
-            intensity: dayPlan.intensity,
-            description: dayPlan.description || dayPlan.exercises?.map((e: any) => e.name).join(', '),
-          };
-        }
-      }
-      
-      // 4. Get recent workout history (last 7 days)
+      // 2. Get recent workout history (last 7 days)
       const workoutSessions = await storage.getWorkoutSessions(userId);
       const sevenDaysAgo = new Date(today);
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
@@ -1212,7 +1191,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           startTime: new Date(w.startTime),
         }));
       
-      // 5. Generate AI recommendation with safety-first logic
+      // 3. Generate AI recommendation with safety-first logic
       const aiRecommendation = await generateDailyTrainingRecommendation({
         readinessScore: readinessData.score,
         readinessRecommendation: readinessData.recommendation as "ready" | "caution" | "rest",
@@ -1233,11 +1212,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             score: readinessData.workloadScore || 50 
           },
         },
-        scheduledWorkout,
-        trainingPlan: activePlan ? {
-          goal: activePlan.goal,
-          weeklySchedule: activePlan.weeklySchedule,
-        } : undefined,
         recentWorkouts,
       });
       
@@ -1797,7 +1771,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Fetch latest readiness score for training context
       const today = new Date();
-      const readinessScore = await storage.getReadinessScore(userId, today);
+      const readinessScore = await storage.getReadinessScoreForDate(userId, today);
 
       const context = {
         recentBiomarkers,
