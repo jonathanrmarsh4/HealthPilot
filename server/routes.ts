@@ -2527,7 +2527,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/health-auto-export/ingest", webhookAuth, async (req, res) => {
+  // Diagnostic endpoint - logs ALL incoming webhook attempts before authentication
+  app.post("/api/health-auto-export/ingest", (req, res, next) => {
+    console.log("🔍 WEBHOOK DEBUG - Incoming request to /api/health-auto-export/ingest");
+    console.log("📋 Headers:", JSON.stringify(req.headers, null, 2));
+    console.log("📦 Body preview:", JSON.stringify(req.body, null, 2).substring(0, 500));
+    next();
+  }, webhookAuth, async (req, res) => {
     const userId = (req.user as any).claims.sub;
 
     try {
