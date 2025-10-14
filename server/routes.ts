@@ -2514,6 +2514,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log("ℹ️ No goal markers found in AI response");
       }
 
+      // Check if AI response contains supplement recommendations to save
+      let supplementSaved = false;
+      const supplementMatch = aiResponse.match(/<<<SAVE_SUPPLEMENT>>>([\s\S]*?)<<<END_SAVE_SUPPLEMENT>>>/);
+      
+      if (supplementMatch) {
+        console.log("💊 Supplement markers found! Extracting JSON...");
+        try {
+          const supplementJson = supplementMatch[1].trim();
+          console.log("📋 Supplement JSON:", supplementJson);
+          const supplements = JSON.parse(supplementJson);
+          
+          // Normalize to array (AI might send single object or array)
+          const supplementArray = Array.isArray(supplements) ? supplements : [supplements];
+          console.log("✅ Parsed supplements:", supplementArray.length);
+          
+          // Process each supplement recommendation
+          for (const supp of supplementArray) {
+            console.log("💾 Saving supplement recommendation:", supp.supplementName);
+            
+            await storage.createSupplementRecommendation({
+              userId,
+              supplementName: supp.supplementName,
+              dosage: supp.dosage,
+              reason: supp.reason,
+              biomarkerLinked: supp.biomarkerLinked || null,
+              status: 'pending',
+            });
+            
+            supplementSaved = true;
+          }
+          
+          console.log("✨ Supplement recommendation(s) saved successfully!");
+        } catch (e) {
+          console.error("❌ Failed to parse and save supplement recommendations:", e);
+        }
+      } else {
+        console.log("ℹ️ No supplement markers found in AI response");
+      }
+
       // Auto-advance onboarding steps after AI responds (user has engaged with current step)
       if (isOnboarding && onboardingStep && message.trim().length > 0) {
         const STEP_PROGRESSION: Record<string, string> = {
@@ -2537,6 +2576,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         trainingPlanSaved,
         mealPlanSaved,
         goalSaved,
+        supplementSaved,
       });
     } catch (error: any) {
       console.error("Error in chat:", error);
