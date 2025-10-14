@@ -7,6 +7,7 @@ import { insertBiomarkerSchema, insertHealthRecordSchema, biomarkers, sleepSessi
 import { listHealthDocuments, downloadFile, getFileMetadata } from "./services/googleDrive";
 import { analyzeHealthDocument, generateMealPlan, generateTrainingSchedule, generateHealthRecommendations, chatWithHealthCoach, generateDailyInsights, generateRecoveryInsights, generateTrendPredictions, generatePeriodComparison } from "./services/ai";
 import { calculatePhenoAge, getBiomarkerDisplayName, getBiomarkerUnit, getBiomarkerSource } from "./services/phenoAge";
+import { calculateReadinessScore } from "./services/readiness";
 import { parseISO, isValid } from "date-fns";
 import { eq, and } from "drizzle-orm";
 import { isAuthenticated, isAdmin, webhookAuth } from "./replitAuth";
@@ -1062,6 +1063,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(updated);
     } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/training/readiness", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    
+    try {
+      // Check if we already calculated readiness today
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const existingScore = await storage.getReadinessScoreForDate(userId, today);
+      
+      if (existingScore) {
+        // Return cached score from today
+        return res.json({
+          score: existingScore.score,
+          quality: existingScore.quality,
+          recommendation: existingScore.recommendation,
+          reasoning: existingScore.reasoning,
+          factors: {
+            sleep: { 
+              score: existingScore.sleepScore || 50, 
+              weight: 0.40, 
+              value: existingScore.sleepValue || undefined 
+            },
+            hrv: { 
+              score: existingScore.hrvScore || 50, 
+              weight: 0.30, 
+              value: existingScore.hrvValue || undefined 
+            },
+            restingHR: { 
+              score: existingScore.restingHRScore || 50, 
+              weight: 0.15, 
+              value: existingScore.restingHRValue || undefined 
+            },
+            workloadRecovery: { 
+              score: existingScore.workloadScore || 50, 
+              weight: 0.15 
+            }
+          }
+        });
+      }
+      
+      // Calculate fresh readiness score
+      const readinessScore = await calculateReadinessScore(userId, storage, today);
+      
+      // Save the score for today
+      await storage.createReadinessScore({
+        userId,
+        date: today,
+        score: readinessScore.score,
+        quality: readinessScore.quality,
+        recommendation: readinessScore.recommendation,
+        reasoning: readinessScore.reasoning,
+        sleepScore: readinessScore.factors.sleep.score,
+        sleepValue: readinessScore.factors.sleep.value || null,
+        hrvScore: readinessScore.factors.hrv.score,
+        hrvValue: readinessScore.factors.hrv.value || null,
+        restingHRScore: readinessScore.factors.restingHR.score,
+        restingHRValue: readinessScore.factors.restingHR.value || null,
+        workloadScore: readinessScore.factors.workloadRecovery.score,
+      });
+      
+      res.json(readinessScore);
+    } catch (error: any) {
+      console.error("Error calculating readiness score:", error);
       res.status(500).json({ error: error.message });
     }
   });

@@ -27,7 +27,7 @@ The application is a full-stack project utilizing React, TypeScript, Tailwind CS
 
 **Technical Implementations:**
 - **AI Intelligence Layer:** Provides daily personalized insights, context-aware chat, multi-metric recommendations, and alternative therapy suggestions. Includes safeguards for weight assessment (requires body fat percentage or health markers) and goal-driven assistance for training plans, meal plans, chat, and daily insights.
-- **Biomarker Tracking:** Displays data over time, shows reference range status, supports imperial/metric units, and includes comprehensive Australian blood work support with unit-aware reference ranges.
+- **Biomarker Tracking:** Displays data over time, shows reference range status, supports imperial/metric units, and includes comprehensive Australian blood work support with unit-aware reference ranges. **Now includes HRV (Heart Rate Variability) tracking** from Apple HealthKit with proper unit conversion (ms) and reference ranges (40-100ms optimal for active individuals).
 - **Authentication:** Production-ready security implementation using Replit Auth (OpenID Connect) with custom domain support and role-based access control.
 - **Security Protections:** Includes IDOR protection, privilege escalation prevention, data isolation, webhook authentication, and Zod schema validation.
 - **File Upload Security:** Validation for file size and types (PDF, DOC, DOCX, JPG, PNG, TXT).
@@ -35,6 +35,12 @@ The application is a full-stack project utilizing React, TypeScript, Tailwind CS
 - **Workout Tracking:** Comprehensive exercise data import from Apple Health via webhook, automatic creation of workout sessions, and smart matching algorithm for training schedules. Supports strength training logs.
 - **Recovery Session Integration:** Optional sauna and cold plunge sessions included in AI-generated training plans with smart post-workout scheduling.
 - **Training Analytics:** Provides training load calculation, workout statistics by type, workout-biomarker correlations, and AI-powered recovery insights with severity-based recommendations.
+- **Readiness Score System (Phase 1 - October 2025):** Daily readiness calculation using multi-factor analysis:
+  - **Algorithm:** Weighted scoring system - Sleep Quality (40%), HRV (30%), Resting Heart Rate (15%), Workout Load Recovery (15%)
+  - **Safety-First Logic:** Automatic rest recommendations when critical recovery markers are low (poor sleep <40, very low HRV <30, elevated RHR)
+  - **Smart Caching:** Daily scores stored in database to avoid recalculation, with historical tracking
+  - **Dashboard Widget:** Fuel gauge visualization with semicircle chart showing readiness score (0-100), color-coded recommendation badges (green=ready, yellow=caution, red=rest), quality labels (excellent/good/fair/poor), and component breakdown (Sleep, HRV, Resting HR, Recovery)
+  - **Workout Load Analysis:** Considers both acute (24h) and chronic (7d) training load with intensity estimation from heart rate data when available
 
 **Feature Specifications:**
 - Health record upload and AI analysis with status tracking.

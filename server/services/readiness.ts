@@ -19,7 +19,7 @@ export interface ReadinessScore {
  * Safety-first approach: prioritizes recovery signals over training plans
  */
 export async function calculateReadinessScore(
-  userId: number,
+  userId: string,
   storage: IStorage,
   targetDate: Date = new Date()
 ): Promise<ReadinessScore> {
@@ -39,11 +39,9 @@ export async function calculateReadinessScore(
     workloadRecovery: { score: 50, weight: WEIGHTS.workload }
   };
 
-  const userIdStr = String(userId);
-
   // 1. Sleep Quality Score (0-100)
   const yesterday = subDays(targetDate, 1);
-  const sleepSessions = await storage.getSleepSessions(userIdStr);
+  const sleepSessions = await storage.getSleepSessions(userId);
   const recentSleep = sleepSessions
     .filter(s => {
       const sessionDate = new Date(s.bedtime);
@@ -57,7 +55,7 @@ export async function calculateReadinessScore(
   }
 
   // 2. HRV Score (0-100) - Higher HRV = Better recovery
-  const biomarkers = await storage.getBiomarkers(userIdStr);
+  const biomarkers = await storage.getBiomarkers(userId);
   const recentHRV = biomarkers
     .filter(b => b.type === 'hrv')
     .filter(b => {
@@ -112,7 +110,7 @@ export async function calculateReadinessScore(
   }
 
   // 4. Workload Recovery Score (0-100) - Based on recent training load
-  const workoutSessions = await storage.getWorkoutSessions(userIdStr);
+  const workoutSessions = await storage.getWorkoutSessions(userId);
   const last7Days = workoutSessions.filter(w => {
     const workoutDate = new Date(w.startTime);
     return workoutDate >= subDays(targetDate, 7) && workoutDate < targetDate;
