@@ -103,18 +103,7 @@ export default function ReadinessSettings() {
 
   // Auto-adjust weights to maintain 100% total
   const handleWeightChange = (factor: string, value: number) => {
-    const diff = value - (
-      factor === 'sleep' ? sleepWeight :
-      factor === 'hrv' ? hrvWeight :
-      factor === 'restingHR' ? restingHRWeight :
-      workloadWeight
-    );
-
-    // Distribute the difference across other factors
-    const others = ['sleep', 'hrv', 'restingHR', 'workload'].filter(f => f !== factor);
-    const perOther = Math.floor(diff / others.length);
-    const remainder = diff % others.length;
-
+    // Start with current weights
     const newWeights = {
       sleep: sleepWeight,
       hrv: hrvWeight,
@@ -122,12 +111,40 @@ export default function ReadinessSettings() {
       workload: workloadWeight,
     };
 
+    // Update the changed factor
     newWeights[factor as keyof typeof newWeights] = value;
 
-    others.forEach((other, idx) => {
-      const adjust = perOther + (idx === 0 ? remainder : 0);
-      newWeights[other as keyof typeof newWeights] = Math.max(0, Math.min(100, newWeights[other as keyof typeof newWeights] - adjust));
-    });
+    // Calculate how much we need to redistribute
+    const currentTotal = value + (factor === 'sleep' ? 0 : sleepWeight) + 
+                         (factor === 'hrv' ? 0 : hrvWeight) + 
+                         (factor === 'restingHR' ? 0 : restingHRWeight) + 
+                         (factor === 'workload' ? 0 : workloadWeight);
+    const diff = currentTotal - 100;
+
+    if (diff !== 0) {
+      // Get other factors to adjust
+      const others = ['sleep', 'hrv', 'restingHR', 'workload'].filter(f => f !== factor);
+      
+      // Distribute the difference proportionally
+      const otherTotal = others.reduce((sum, f) => sum + newWeights[f as keyof typeof newWeights], 0);
+      
+      if (otherTotal > 0) {
+        // Adjust proportionally
+        others.forEach((other) => {
+          const currentWeight = newWeights[other as keyof typeof newWeights];
+          const proportion = currentWeight / otherTotal;
+          const adjustment = diff * proportion;
+          newWeights[other as keyof typeof newWeights] = Math.max(0, Math.round(currentWeight - adjustment));
+        });
+
+        // Ensure exact 100% by adjusting the first factor if needed
+        const newTotal = Object.values(newWeights).reduce((sum, w) => sum + w, 0);
+        if (newTotal !== 100) {
+          const firstOther = others[0] as keyof typeof newWeights;
+          newWeights[firstOther] += (100 - newTotal);
+        }
+      }
+    }
 
     setSleepWeight(newWeights.sleep);
     setHrvWeight(newWeights.hrv);
