@@ -56,6 +56,28 @@ function parseBiomarkerDate(dateStr: string | undefined, documentDate: string | 
   return new Date();
 }
 
+// Helper function to estimate workout intensity based on heart rate and perceived effort
+function estimateIntensity(avgHeartRate?: number | null, perceivedEffort?: number | null): "Low" | "Moderate" | "High" {
+  // Prioritize perceived effort if available (RPE 1-10 scale)
+  if (perceivedEffort) {
+    if (perceivedEffort <= 3) return "Low";
+    if (perceivedEffort <= 6) return "Moderate";
+    return "High";
+  }
+  
+  // Fall back to heart rate zones (rough estimation)
+  if (avgHeartRate) {
+    // Assuming max HR of 180 for rough estimation
+    const percentMax = (avgHeartRate / 180) * 100;
+    if (percentMax < 60) return "Low";
+    if (percentMax < 80) return "Moderate";
+    return "High";
+  }
+  
+  // Default to moderate if no data
+  return "Moderate";
+}
+
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_MIME_TYPES = [
   'application/pdf',
@@ -1477,6 +1499,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const sessions = await storage.getWorkoutSessions(userId, startDate, endDate);
       res.json(sessions);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Completed Workouts (Last 7 Days)
+  app.get("/api/workouts/completed", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    try {
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - 7);
+      
+      const sessions = await storage.getWorkoutSessions(userId, startDate, endDate);
+      
+      // Transform to match frontend CompletedWorkout interface
+      const completedWorkouts = sessions.map(session => ({
+        id: session.id,
+        date: session.startTime.toISOString(),
+        workoutType: session.workoutType,
+        duration: session.duration,
+        caloriesEstimate: session.calories || 0,
+        intensity: estimateIntensity(session.avgHeartRate, session.perceivedEffort)
+      }));
+      
+      res.json(completedWorkouts);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
