@@ -212,6 +212,11 @@ export const readinessSettings = pgTable("readiness_settings", {
   workloadWeight: real("workload_weight").notNull().default(0.15), // Default 15%
   alertThreshold: real("alert_threshold").notNull().default(50), // Alert when score < threshold
   alertsEnabled: integer("alerts_enabled").notNull().default(1), // 1 = enabled, 0 = disabled
+  // Personal Baselines - user's typical values when well-rested
+  usePersonalBaselines: integer("use_personal_baselines").notNull().default(0), // 1 = enabled, 0 = disabled
+  personalHrvBaseline: real("personal_hrv_baseline"), // User's typical HRV in ms when well-rested
+  personalRestingHrBaseline: real("personal_resting_hr_baseline"), // User's typical resting HR in bpm
+  personalSleepHoursBaseline: real("personal_sleep_hours_baseline"), // User's typical sleep hours
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
