@@ -34,6 +34,14 @@ import {
   type InsertRecoveryProtocol,
   type UserProtocolPreference,
   type InsertUserProtocolPreference,
+  type Supplement,
+  type InsertSupplement,
+  type DailyReminder,
+  type InsertDailyReminder,
+  type ReminderCompletion,
+  type InsertReminderCompletion,
+  type SupplementRecommendation,
+  type InsertSupplementRecommendation,
   users,
   healthRecords,
   biomarkers,
@@ -51,6 +59,10 @@ import {
   exerciseFeedback,
   recoveryProtocols,
   userProtocolPreferences,
+  supplements,
+  dailyReminders,
+  reminderCompletions,
+  supplementRecommendations,
 } from "@shared/schema";
 import { eq, desc, and, gte, lte, lt, sql, or, like, count, isNull } from "drizzle-orm";
 
@@ -185,6 +197,30 @@ export interface IStorage {
   getUserProtocolPreferences(userId: string): Promise<UserProtocolPreference[]>;
   getUserProtocolPreference(userId: string, protocolId: string): Promise<UserProtocolPreference | undefined>;
   getDownvotedProtocols(userId: string): Promise<string[]>; // Returns array of protocol IDs
+  
+  // Supplement methods
+  createSupplement(supplement: InsertSupplement): Promise<Supplement>;
+  getSupplements(userId: string): Promise<Supplement[]>;
+  getActiveSupplement(userId: string, id: string): Promise<Supplement | undefined>;
+  updateSupplement(id: string, userId: string, data: Partial<Supplement>): Promise<Supplement | undefined>;
+  deleteSupplement(id: string, userId: string): Promise<void>;
+  
+  // Daily Reminder methods
+  createDailyReminder(reminder: InsertDailyReminder): Promise<DailyReminder>;
+  getDailyReminders(userId: string): Promise<DailyReminder[]>;
+  getActiveRemindersForToday(userId: string): Promise<DailyReminder[]>;
+  updateDailyReminder(id: string, userId: string, data: Partial<DailyReminder>): Promise<DailyReminder | undefined>;
+  deleteDailyReminder(id: string, userId: string): Promise<void>;
+  
+  // Reminder Completion methods
+  markReminderComplete(reminderId: string, userId: string, date: string): Promise<ReminderCompletion>;
+  getReminderCompletions(userId: string, date?: string): Promise<ReminderCompletion[]>;
+  getReminderStreak(reminderId: string, userId: string): Promise<number>;
+  
+  // Supplement Recommendation methods
+  createSupplementRecommendation(recommendation: InsertSupplementRecommendation): Promise<SupplementRecommendation>;
+  getSupplementRecommendations(userId: string, status?: string): Promise<SupplementRecommendation[]>;
+  updateSupplementRecommendationStatus(id: string, userId: string, status: string): Promise<void>;
 }
 
 export class DbStorage implements IStorage {
@@ -1399,6 +1435,189 @@ export class DbStorage implements IStorage {
         )
       );
     return result.map(r => r.protocolId);
+  }
+
+  // Supplement methods
+  async createSupplement(supplement: InsertSupplement): Promise<Supplement> {
+    const result = await db.insert(supplements).values(supplement).returning();
+    return result[0];
+  }
+
+  async getSupplements(userId: string): Promise<Supplement[]> {
+    return await db
+      .select()
+      .from(supplements)
+      .where(and(eq(supplements.userId, userId), eq(supplements.active, 1)))
+      .orderBy(supplements.timing, supplements.name);
+  }
+
+  async getActiveSupplement(userId: string, id: string): Promise<Supplement | undefined> {
+    const result = await db
+      .select()
+      .from(supplements)
+      .where(
+        and(
+          eq(supplements.id, id),
+          eq(supplements.userId, userId),
+          eq(supplements.active, 1)
+        )
+      );
+    return result[0];
+  }
+
+  async updateSupplement(id: string, userId: string, data: Partial<Supplement>): Promise<Supplement | undefined> {
+    const result = await db
+      .update(supplements)
+      .set(data)
+      .where(and(eq(supplements.id, id), eq(supplements.userId, userId)))
+      .returning();
+    return result[0];
+  }
+
+  async deleteSupplement(id: string, userId: string): Promise<void> {
+    await db
+      .update(supplements)
+      .set({ active: 0 })
+      .where(and(eq(supplements.id, id), eq(supplements.userId, userId)));
+  }
+
+  // Daily Reminder methods
+  async createDailyReminder(reminder: InsertDailyReminder): Promise<DailyReminder> {
+    const result = await db.insert(dailyReminders).values(reminder).returning();
+    return result[0];
+  }
+
+  async getDailyReminders(userId: string): Promise<DailyReminder[]> {
+    return await db
+      .select()
+      .from(dailyReminders)
+      .where(and(eq(dailyReminders.userId, userId), eq(dailyReminders.active, 1)))
+      .orderBy(dailyReminders.timeOfDay, dailyReminders.title);
+  }
+
+  async getActiveRemindersForToday(userId: string): Promise<DailyReminder[]> {
+    return await db
+      .select()
+      .from(dailyReminders)
+      .where(
+        and(
+          eq(dailyReminders.userId, userId),
+          eq(dailyReminders.active, 1),
+          eq(dailyReminders.frequency, 'daily')
+        )
+      )
+      .orderBy(dailyReminders.timeOfDay);
+  }
+
+  async updateDailyReminder(id: string, userId: string, data: Partial<DailyReminder>): Promise<DailyReminder | undefined> {
+    const result = await db
+      .update(dailyReminders)
+      .set(data)
+      .where(and(eq(dailyReminders.id, id), eq(dailyReminders.userId, userId)))
+      .returning();
+    return result[0];
+  }
+
+  async deleteDailyReminder(id: string, userId: string): Promise<void> {
+    await db
+      .update(dailyReminders)
+      .set({ active: 0 })
+      .where(and(eq(dailyReminders.id, id), eq(dailyReminders.userId, userId)));
+  }
+
+  // Reminder Completion methods
+  async markReminderComplete(reminderId: string, userId: string, date: string): Promise<ReminderCompletion> {
+    const result = await db
+      .insert(reminderCompletions)
+      .values({ reminderId, userId, date })
+      .returning();
+    return result[0];
+  }
+
+  async getReminderCompletions(userId: string, date?: string): Promise<ReminderCompletion[]> {
+    if (date) {
+      return await db
+        .select()
+        .from(reminderCompletions)
+        .where(
+          and(
+            eq(reminderCompletions.userId, userId),
+            eq(reminderCompletions.date, date)
+          )
+        );
+    }
+    return await db
+      .select()
+      .from(reminderCompletions)
+      .where(eq(reminderCompletions.userId, userId))
+      .orderBy(desc(reminderCompletions.completedAt));
+  }
+
+  async getReminderStreak(reminderId: string, userId: string): Promise<number> {
+    const completions = await db
+      .select({ date: reminderCompletions.date })
+      .from(reminderCompletions)
+      .where(
+        and(
+          eq(reminderCompletions.reminderId, reminderId),
+          eq(reminderCompletions.userId, userId)
+        )
+      )
+      .orderBy(desc(reminderCompletions.date));
+
+    let streak = 0;
+    let expectedDate = new Date();
+    expectedDate.setHours(0, 0, 0, 0);
+
+    for (const completion of completions) {
+      const completionDate = new Date(completion.date);
+      if (completionDate.toDateString() === expectedDate.toDateString()) {
+        streak++;
+        expectedDate.setDate(expectedDate.getDate() - 1);
+      } else {
+        break;
+      }
+    }
+
+    return streak;
+  }
+
+  // Supplement Recommendation methods
+  async createSupplementRecommendation(recommendation: InsertSupplementRecommendation): Promise<SupplementRecommendation> {
+    const result = await db.insert(supplementRecommendations).values(recommendation).returning();
+    return result[0];
+  }
+
+  async getSupplementRecommendations(userId: string, status?: string): Promise<SupplementRecommendation[]> {
+    if (status) {
+      return await db
+        .select()
+        .from(supplementRecommendations)
+        .where(
+          and(
+            eq(supplementRecommendations.userId, userId),
+            eq(supplementRecommendations.status, status)
+          )
+        )
+        .orderBy(desc(supplementRecommendations.recommendedAt));
+    }
+    return await db
+      .select()
+      .from(supplementRecommendations)
+      .where(eq(supplementRecommendations.userId, userId))
+      .orderBy(desc(supplementRecommendations.recommendedAt));
+  }
+
+  async updateSupplementRecommendationStatus(id: string, userId: string, status: string): Promise<void> {
+    await db
+      .update(supplementRecommendations)
+      .set({ status })
+      .where(
+        and(
+          eq(supplementRecommendations.id, id),
+          eq(supplementRecommendations.userId, userId)
+        )
+      );
   }
 
   private getWeekKey(date: Date): string {
