@@ -16,6 +16,8 @@ import {
   type InsertChatMessage,
   type SleepSession,
   type InsertSleepSession,
+  type ReadinessScore,
+  type InsertReadinessScore,
   type Insight,
   type InsertInsight,
   type WorkoutSession,
@@ -32,6 +34,7 @@ import {
   recommendations,
   chatMessages,
   sleepSessions,
+  readinessScores,
   insights,
   workoutSessions,
   exerciseLogs,
@@ -88,6 +91,11 @@ export interface IStorage {
   upsertSleepSession(session: InsertSleepSession): Promise<SleepSession>;
   getSleepSessions(userId: string, startDate?: Date, endDate?: Date): Promise<SleepSession[]>;
   getLatestSleepSession(userId: string): Promise<SleepSession | undefined>;
+  
+  createReadinessScore(score: InsertReadinessScore): Promise<ReadinessScore>;
+  getReadinessScores(userId: string, startDate?: Date, endDate?: Date): Promise<ReadinessScore[]>;
+  getLatestReadinessScore(userId: string): Promise<ReadinessScore | undefined>;
+  getReadinessScoreForDate(userId: string, date: Date): Promise<ReadinessScore | undefined>;
   
   createInsight(insight: InsertInsight): Promise<Insight>;
   getInsights(userId: string, limit?: number): Promise<Insight[]>;
@@ -624,6 +632,60 @@ export class DbStorage implements IStorage {
       .where(eq(sleepSessions.userId, userId))
       .orderBy(desc(sleepSessions.bedtime))
       .limit(1);
+    return result[0];
+  }
+
+  async createReadinessScore(score: InsertReadinessScore): Promise<ReadinessScore> {
+    const result = await db.insert(readinessScores).values(score).returning();
+    return result[0];
+  }
+
+  async getReadinessScores(userId: string, startDate?: Date, endDate?: Date): Promise<ReadinessScore[]> {
+    let query = db
+      .select()
+      .from(readinessScores)
+      .where(eq(readinessScores.userId, userId));
+
+    if (startDate && endDate) {
+      const result = await query.orderBy(desc(readinessScores.date));
+      return result.filter(
+        s => s.date >= startDate && s.date <= endDate
+      );
+    }
+
+    return await query.orderBy(desc(readinessScores.date));
+  }
+
+  async getLatestReadinessScore(userId: string): Promise<ReadinessScore | undefined> {
+    const result = await db
+      .select()
+      .from(readinessScores)
+      .where(eq(readinessScores.userId, userId))
+      .orderBy(desc(readinessScores.date))
+      .limit(1);
+    return result[0];
+  }
+
+  async getReadinessScoreForDate(userId: string, date: Date): Promise<ReadinessScore | undefined> {
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+    
+    const result = await db
+      .select()
+      .from(readinessScores)
+      .where(
+        and(
+          eq(readinessScores.userId, userId),
+          gte(readinessScores.date, startOfDay),
+          lte(readinessScores.date, endOfDay)
+        )
+      )
+      .orderBy(desc(readinessScores.createdAt))
+      .limit(1);
+    
     return result[0];
   }
 

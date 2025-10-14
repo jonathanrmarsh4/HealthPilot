@@ -180,6 +180,24 @@ export const sleepSessions = pgTable("sleep_sessions", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const readinessScores = pgTable("readiness_scores", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  date: timestamp("date").notNull(), // Date this score is for
+  score: integer("score").notNull(), // 0-100
+  quality: text("quality").notNull(), // 'excellent', 'good', 'fair', 'poor'
+  recommendation: text("recommendation").notNull(), // 'ready', 'caution', 'rest'
+  reasoning: text("reasoning").notNull(),
+  sleepScore: integer("sleep_score"),
+  sleepValue: real("sleep_value"), // hours
+  hrvScore: integer("hrv_score"),
+  hrvValue: real("hrv_value"), // ms
+  restingHRScore: integer("resting_hr_score"),
+  restingHRValue: real("resting_hr_value"), // bpm
+  workloadScore: integer("workload_score"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const insights = pgTable("insights", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull(),
@@ -248,6 +266,11 @@ export const insertSleepSessionSchema = createInsertSchema(sleepSessions).omit({
   createdAt: true,
 });
 
+export const insertReadinessScoreSchema = createInsertSchema(readinessScores).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertInsightSchema = createInsertSchema(insights).omit({
   id: true,
   createdAt: true,
@@ -292,6 +315,9 @@ export type ChatMessage = typeof chatMessages.$inferSelect;
 
 export type InsertSleepSession = z.infer<typeof insertSleepSessionSchema>;
 export type SleepSession = typeof sleepSessions.$inferSelect;
+
+export type InsertReadinessScore = z.infer<typeof insertReadinessScoreSchema>;
+export type ReadinessScore = typeof readinessScores.$inferSelect;
 
 export type InsertInsight = z.infer<typeof insertInsightSchema>;
 export type Insight = typeof insights.$inferSelect;
