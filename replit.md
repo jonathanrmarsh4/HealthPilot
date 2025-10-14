@@ -61,6 +61,14 @@ The application is a full-stack project utilizing React, TypeScript, Tailwind CS
     - **Training Schedule Section:** Added "Your Training Schedule" card to Training page displaying all saved workout plans from AI chat using TrainingScheduleCard component
     - **Complete Visibility:** Training plans created via chat (including override plans) now properly appear on Training page, fixing previous issue where plans were saved but not visible
     - **Data Flow:** Chat saves plans via SAVE_TRAINING_PLAN markers → backend stores in training_schedules table → Training page fetches and displays via `/api/training-schedules` endpoint
+- **Training Page Redesign (Oct 14, 2025):** Simplified daily-focused UX:
+  - **Removed Weekly Calendar:** Eliminated confusing 7-day grid "This Week's Training" section in favor of daily check-in model
+  - **Renamed Sections:** Changed "AI Coach Recommendation" to "Today's Recommended Workout" for clarity
+  - **Custom Workout Display:** Shows "Your Custom Workout for Today" when user creates plans via AI chat, filtered to display today's workout only
+  - **Collapsible History:** Workout history (last 7 days) moved to expandable section to reduce visual clutter
+  - **Page Structure:** Readiness Widget (position 1) → Recovery Protocols → Today's Recommended Workout → Your Custom Workout (if exists) → Collapsible Workout History
+  - **Backend Support:** Added `/api/workouts/completed` endpoint with intensity estimation helper (Low/Moderate/High based on heart rate and perceived effort)
+  - **Daily Focus:** Encourages users to check in daily to see that day's workout instead of viewing full week ahead
 
 **Feature Specifications:**
 - Health record upload and AI analysis with status tracking.
