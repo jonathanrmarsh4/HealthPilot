@@ -12,6 +12,7 @@ import { parseISO, isValid, subDays } from "date-fns";
 import { eq, and, gte, or, inArray } from "drizzle-orm";
 import { isAuthenticated, isAdmin, webhookAuth } from "./replitAuth";
 import { z } from "zod";
+import { spoonacularService } from "./spoonacular";
 
 // Zod schema for admin user updates
 const adminUserUpdateSchema = z.object({
@@ -1034,6 +1035,166 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const plans = await storage.getMealPlans(userId);
       res.json(plans);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Nutrition Profile Routes
+  app.get("/api/nutrition-profile", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+
+    try {
+      const profile = await storage.getNutritionProfile(userId);
+      res.json(profile || null);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/nutrition-profile", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+
+    try {
+      const profile = await storage.createNutritionProfile({
+        ...req.body,
+        userId,
+      });
+      res.json(profile);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.patch("/api/nutrition-profile", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+
+    try {
+      const profile = await storage.updateNutritionProfile(userId, req.body);
+      
+      if (!profile) {
+        return res.status(404).json({ error: 'Nutrition profile not found' });
+      }
+      
+      res.json(profile);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Recipe Search Routes
+  app.get("/api/recipes/search", isAuthenticated, async (req, res) => {
+    try {
+      const {
+        query,
+        diet,
+        intolerances,
+        cuisine,
+        type,
+        maxReadyTime,
+        minProtein,
+        maxCalories,
+        minCalories,
+        number,
+        offset,
+        sort
+      } = req.query;
+
+      const results = await spoonacularService.searchRecipes({
+        query: query as string,
+        diet: diet as string,
+        intolerances: intolerances as string,
+        cuisine: cuisine as string,
+        type: type as string,
+        maxReadyTime: maxReadyTime ? parseInt(maxReadyTime as string) : undefined,
+        minProtein: minProtein ? parseInt(minProtein as string) : undefined,
+        maxCalories: maxCalories ? parseInt(maxCalories as string) : undefined,
+        minCalories: minCalories ? parseInt(minCalories as string) : undefined,
+        number: number ? parseInt(number as string) : 10,
+        offset: offset ? parseInt(offset as string) : 0,
+        sort: sort as string,
+      });
+
+      res.json(results);
+    } catch (error: any) {
+      console.error("Error searching recipes:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/recipes/:id", isAuthenticated, async (req, res) => {
+    try {
+      const recipeId = parseInt(req.params.id);
+      const recipe = await spoonacularService.getRecipeDetails(recipeId, true);
+      res.json(recipe);
+    } catch (error: any) {
+      console.error("Error fetching recipe:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Favorite Recipes Routes
+  app.get("/api/favorites", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+
+    try {
+      const favorites = await storage.getFavoriteRecipes(userId);
+      res.json(favorites);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/favorites", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+
+    try {
+      // Check if already favorited
+      const existing = await storage.getFavoriteRecipeBySpoonacularId(
+        userId,
+        req.body.spoonacularRecipeId
+      );
+
+      if (existing) {
+        return res.status(400).json({ error: 'Recipe already favorited' });
+      }
+
+      const favorite = await storage.createFavoriteRecipe({
+        ...req.body,
+        userId,
+      });
+      res.json(favorite);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/favorites/:id", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+
+    try {
+      await storage.deleteFavoriteRecipe(req.params.id, userId);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.patch("/api/favorites/:id/notes", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+
+    try {
+      const favorite = await storage.updateFavoriteRecipeNotes(
+        req.params.id,
+        userId,
+        req.body.notes
+      );
+      
+      if (!favorite) {
+        return res.status(404).json({ error: 'Favorite not found' });
+      }
+      
+      res.json(favorite);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
@@ -4221,6 +4382,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Auto-calculate body fat percentage if both weight and lean body mass are available
+      let bodyFatCalculations = 0; // Declare outside try block so it's accessible in goal auto-update
+      
       try {
         // Get unique dates where biomarkers were inserted
         const today = new Date();
@@ -4256,7 +4419,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         // Calculate and insert body fat percentage for days with both values
-        let bodyFatCalculations = 0;
         const bodyFatPromises = [];
         
         // Check existing body fat percentage entries to avoid duplicates
@@ -4320,26 +4482,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const activeUserGoals = activeGoals.filter(g => g.status === 'active');
         
         if (activeUserGoals.length > 0) {
-          // Get unique biomarker types that were just inserted or calculated
-          const biomarkerTypes = new Set<string>();
-          insertedBiomarkers.forEach(b => biomarkerTypes.add(b.type));
-          
           // Add body-fat-percentage if it was calculated
           if (bodyFatCalculations > 0) {
-            biomarkerTypes.add('body-fat-percentage');
+            insertedBiomarkerTypes.add('body-fat-percentage');
           }
           
-          console.log(`📊 Biomarker types to check: ${Array.from(biomarkerTypes).join(', ')}`);
+          // Map biomarker types to goal metric types
+          // This handles cases where multiple biomarker types map to a single goal metric
+          const biomarkerToGoalMetricMap: Record<string, string> = {
+            'blood-pressure-systolic': 'blood-pressure',
+            'blood-pressure-diastolic': 'blood-pressure',
+            // All other biomarker types map 1:1 to goal metrics
+          };
+          
+          // Get unique goal metric types from inserted biomarkers
+          const goalMetricTypes = new Set<string>();
+          const insertedBiomarkerTypesArray = Array.from(insertedBiomarkerTypes);
+          for (const biomarkerType of insertedBiomarkerTypesArray) {
+            const goalMetric = biomarkerToGoalMetricMap[biomarkerType] || biomarkerType;
+            goalMetricTypes.add(goalMetric);
+          }
+          
+          const goalMetricTypesArray = Array.from(goalMetricTypes);
+          console.log(`📊 Goal metric types to check: ${goalMetricTypesArray.join(', ')}`);
           
           let updatedGoalsCount = 0;
           
-          // For each biomarker type, check if there's a matching active goal
-          for (const biomarkerType of biomarkerTypes) {
-            const matchingGoals = activeUserGoals.filter(g => g.metricType === biomarkerType);
+          // For each goal metric type, check if there's a matching active goal
+          for (const goalMetricType of goalMetricTypesArray) {
+            const matchingGoals = activeUserGoals.filter(g => g.metricType === goalMetricType);
             
             if (matchingGoals.length > 0) {
-              // Get the latest biomarker value for this type
-              const latestBiomarker = await storage.getLatestBiomarkerByType(userId, biomarkerType);
+              // Get the appropriate biomarker type for fetching latest value
+              let biomarkerTypeToFetch = goalMetricType;
+              
+              // For blood pressure goals, use systolic value (primary health indicator)
+              if (goalMetricType === 'blood-pressure') {
+                biomarkerTypeToFetch = 'blood-pressure-systolic';
+              }
+              
+              const latestBiomarker = await storage.getLatestBiomarkerByType(userId, biomarkerTypeToFetch);
               
               if (latestBiomarker) {
                 // Update each matching goal
