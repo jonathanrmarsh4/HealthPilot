@@ -61,7 +61,7 @@ export const subsections: Record<string, SubsectionConfig> = {
   },
   "other": {
     title: "Other",
-    biomarkers: ["blood-glucose", "fasting-glucose", "hba1c", "insulin", "vitamin-d", "vitamin-b12", "folate", "weight", "height", "bmi", "blood-pressure", "heart-rate", "hrv", "steps", "calories", "temperature", "oxygen-saturation", "psa"]
+    biomarkers: ["blood-glucose", "fasting-glucose", "hba1c", "insulin", "vitamin-d", "vitamin-b12", "folate", "weight", "lean-body-mass", "body-fat-percentage", "height", "bmi", "blood-pressure", "heart-rate", "hrv", "steps", "calories", "temperature", "oxygen-saturation", "psa"]
   }
 };
 
@@ -528,6 +528,22 @@ export const biomarkerDisplayConfig: Record<string, BiomarkerConfig> = {
     decimals: 1
     // No fixed range - varies by individual
   },
+  "lean-body-mass": {
+    title: "Lean Body Mass",
+    description: "Muscle mass tracking",
+    days: 730,
+    color: "hsl(var(--chart-1))",
+    decimals: 1
+    // No fixed range - varies by individual
+  },
+  "body-fat-percentage": {
+    title: "Body Fat %",
+    description: "Body composition",
+    days: 730,
+    color: "hsl(var(--chart-4))",
+    decimals: 1,
+    referenceRange: { low: 10, high: 20 } // 10-20% for men (athletic to fit), 20-30% for women
+  },
   "height": {
     title: "Height",
     description: "6-month trend",
@@ -541,12 +557,6 @@ export const biomarkerDisplayConfig: Record<string, BiomarkerConfig> = {
     days: 730,
     color: "hsl(var(--chart-3))",
     referenceRange: { low: 18.5, high: 24.9 } // 18.5-24.9 normal BMI
-  },
-  "body-fat-percentage": {
-    title: "Body Fat %",
-    description: "6-month trend",
-    days: 730,
-    color: "hsl(var(--chart-4))"
   },
   "waist-circumference": {
     title: "Waist Circumference",

@@ -43,7 +43,8 @@ interface Goal {
 
 const METRIC_OPTIONS = [
   { value: "weight", label: "Weight", unit: "kg", decreaseGoal: true },
-  { value: "body-fat", label: "Body Fat %", unit: "%", decreaseGoal: true },
+  { value: "lean-body-mass", label: "Lean Body Mass", unit: "kg", decreaseGoal: false },
+  { value: "body-fat-percentage", label: "Body Fat %", unit: "%", decreaseGoal: true },
   { value: "heart-rate", label: "Resting Heart Rate", unit: "bpm", decreaseGoal: true },
   { value: "blood-pressure", label: "Blood Pressure", unit: "mmHg", decreaseGoal: true },
   { value: "blood-glucose", label: "Blood Glucose", unit: "mg/dL", decreaseGoal: true },

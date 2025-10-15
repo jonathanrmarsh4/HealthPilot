@@ -1,4 +1,4 @@
-export type MetricType = "weight" | "blood-glucose" | "blood-pressure" | "heart-rate" | "cholesterol" | "ldl-cholesterol" | "hdl-cholesterol" | "total-cholesterol" | "triglycerides" | "vldl-cholesterol" | "sleep" | "steps" | "exercise" | "height" | "temperature";
+export type MetricType = "weight" | "lean-body-mass" | "body-fat-percentage" | "blood-glucose" | "blood-pressure" | "heart-rate" | "cholesterol" | "ldl-cholesterol" | "hdl-cholesterol" | "total-cholesterol" | "triglycerides" | "vldl-cholesterol" | "sleep" | "steps" | "exercise" | "height" | "temperature";
 
 export interface UnitConfig {
   imperial: {
@@ -15,6 +15,14 @@ export const unitConfigs: Record<MetricType, UnitConfig> = {
   weight: {
     imperial: { unit: "lbs", label: "Weight (lbs)" },
     metric: { unit: "kg", label: "Weight (kg)" },
+  },
+  "lean-body-mass": {
+    imperial: { unit: "lbs", label: "Lean Body Mass (lbs)" },
+    metric: { unit: "kg", label: "Lean Body Mass (kg)" },
+  },
+  "body-fat-percentage": {
+    imperial: { unit: "%", label: "Body Fat %" },
+    metric: { unit: "%", label: "Body Fat %" },
   },
   height: {
     imperial: { unit: "in", label: "Height (in)" },
@@ -83,6 +91,7 @@ export function convertToMetric(value: number, type: MetricType, fromUnit: strin
   
   switch (type) {
     case "weight":
+    case "lean-body-mass":
       return fromUnit === "lbs" ? value * 0.453592 : value;
     case "height":
       return fromUnit === "in" ? value * 2.54 : value;
@@ -98,6 +107,8 @@ export function convertToMetric(value: number, type: MetricType, fromUnit: strin
       return fromUnit === "mg/dL" ? value / 88.57 : value;
     case "temperature":
       return fromUnit === "°F" ? (value - 32) * 5/9 : value;
+    case "body-fat-percentage":
+      return value; // Always in %, no conversion needed
     default:
       return value;
   }
@@ -112,6 +123,7 @@ export function convertFromMetric(value: number, type: MetricType, toUnit: strin
   
   switch (type) {
     case "weight":
+    case "lean-body-mass":
       return toUnit === "lbs" ? value / 0.453592 : value;
     case "height":
       return toUnit === "in" ? value / 2.54 : value;
@@ -127,6 +139,8 @@ export function convertFromMetric(value: number, type: MetricType, toUnit: strin
       return toUnit === "mg/dL" ? value * 88.57 : value;
     case "temperature":
       return toUnit === "°F" ? (value * 9/5) + 32 : value;
+    case "body-fat-percentage":
+      return value; // Always in %, no conversion needed
     default:
       return value;
   }
@@ -149,8 +163,11 @@ export function convertValue(
 export function formatValue(value: number, type: MetricType): string {
   switch (type) {
     case "weight":
+    case "lean-body-mass":
     case "height":
       return value.toFixed(1);
+    case "body-fat-percentage":
+      return value.toFixed(1); // Show 1 decimal for body fat %
     case "blood-glucose":
     case "cholesterol":
     case "ldl-cholesterol":

@@ -9,7 +9,7 @@ import { analyzeHealthDocument, generateMealPlan, generateTrainingSchedule, gene
 import { calculatePhenoAge, getBiomarkerDisplayName, getBiomarkerUnit, getBiomarkerSource } from "./services/phenoAge";
 import { calculateReadinessScore } from "./services/readiness";
 import { parseISO, isValid, subDays } from "date-fns";
-import { eq, and, gte } from "drizzle-orm";
+import { eq, and, gte, or, inArray } from "drizzle-orm";
 import { isAuthenticated, isAdmin, webhookAuth } from "./replitAuth";
 import { z } from "zod";
 
@@ -2140,7 +2140,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const getMetricUnit = (metricType: string): string => {
     const metricUnits: Record<string, string> = {
       "weight": "kg",
-      "body-fat": "%",
+      "lean-body-mass": "kg",
+      "body-fat-percentage": "%",
       "heart-rate": "bpm",
       "blood-pressure": "mmHg",
       "blood-glucose": "mg/dL",
@@ -3781,6 +3782,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return { value, unit: "lbs" };
         }
         
+        // Lean body mass conversions - store in lbs (same as weight)
+        if (biomarkerType === "lean-body-mass") {
+          if (normalizedUnit === "kg" || normalizedUnit === "kilogram") {
+            return { value: value * 2.20462, unit: "lbs" };
+          }
+          return { value, unit: "lbs" };
+        }
+        
         // Blood glucose conversions - store in mg/dL
         if (biomarkerType === "blood-glucose") {
           if (normalizedUnit === "mmol/l" || normalizedUnit === "mmol") {
@@ -3807,6 +3816,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           "blood-pressure-diastolic": "mmHg",
           "oxygen-saturation": "%",
           "sleep-hours": "hours",
+          "lean-body-mass": "lbs",
         };
         
         return { value, unit: defaultUnits[biomarkerType] || incomingUnit || "" };
@@ -3828,6 +3838,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         "Weight": "weight",
         "weight": "weight",
         "weight_body_mass": "weight",
+        "Lean Body Mass": "lean-body-mass",
+        "lean_body_mass": "lean-body-mass",
         "Steps": "steps",
         "step_count": "steps",
         "Active Energy": "calories",
@@ -4205,6 +4217,97 @@ export async function registerRoutes(app: Express): Promise<Server> {
           await Promise.all(biomarkerPromises);
           insertedCount += biomarkerPromises.length;
         }
+      }
+
+      // Auto-calculate body fat percentage if both weight and lean body mass are available
+      try {
+        // Get unique dates where biomarkers were inserted
+        const today = new Date();
+        const sevenDaysAgo = subDays(today, 7);
+        
+        // Query for recent weight and lean body mass biomarkers
+        const recentBiomarkers = await db.query.biomarkers.findMany({
+          where: and(
+            eq(biomarkers.userId, userId),
+            gte(biomarkers.recordedAt, sevenDaysAgo),
+            inArray(biomarkers.type, ['weight', 'lean-body-mass'])
+          ),
+          orderBy: (biomarkers, { desc }) => [desc(biomarkers.recordedAt)]
+        });
+        
+        // Group by date (YYYY-MM-DD) and find days with both weight and lean body mass
+        const biomarkersByDate = new Map<string, { weight?: number; leanBodyMass?: number }>();
+        
+        for (const biomarker of recentBiomarkers) {
+          const dateKey = biomarker.recordedAt.toISOString().split('T')[0];
+          
+          if (!biomarkersByDate.has(dateKey)) {
+            biomarkersByDate.set(dateKey, {});
+          }
+          
+          const dayData = biomarkersByDate.get(dateKey)!;
+          
+          if (biomarker.type === 'weight') {
+            dayData.weight = biomarker.value;
+          } else if (biomarker.type === 'lean-body-mass') {
+            dayData.leanBodyMass = biomarker.value;
+          }
+        }
+        
+        // Calculate and insert body fat percentage for days with both values
+        let bodyFatCalculations = 0;
+        const bodyFatPromises = [];
+        
+        // Check existing body fat percentage entries to avoid duplicates
+        const existingBodyFat = await db.query.biomarkers.findMany({
+          where: and(
+            eq(biomarkers.userId, userId),
+            eq(biomarkers.type, 'body-fat-percentage'),
+            gte(biomarkers.recordedAt, sevenDaysAgo)
+          )
+        });
+        
+        const existingBodyFatDates = new Set(
+          existingBodyFat.map(b => b.recordedAt.toISOString().split('T')[0])
+        );
+        
+        for (const [dateStr, data] of Array.from(biomarkersByDate.entries())) {
+          // Skip if body fat percentage already exists for this date
+          if (existingBodyFatDates.has(dateStr)) {
+            console.log(`⏭️ Body fat % already exists for ${dateStr}, skipping calculation`);
+            continue;
+          }
+          
+          if (data.weight && data.leanBodyMass && data.weight > 0) {
+            // Formula: Body Fat % = ((Weight - Lean Body Mass) / Weight) × 100
+            const bodyFatPercentage = ((data.weight - data.leanBodyMass) / data.weight) * 100;
+            
+            // Only insert if the calculation makes sense (0-100%)
+            if (bodyFatPercentage >= 0 && bodyFatPercentage <= 100) {
+              bodyFatPromises.push(
+                storage.upsertBiomarker({
+                  userId,
+                  type: "body-fat-percentage",
+                  value: Math.round(bodyFatPercentage * 10) / 10, // Round to 1 decimal place
+                  unit: "%",
+                  source: "calculated",
+                  recordedAt: new Date(dateStr),
+                })
+              );
+              bodyFatCalculations++;
+              console.log(`🧮 Calculated body fat % for ${dateStr}: ${bodyFatPercentage.toFixed(1)}% (Weight: ${data.weight} lbs, Lean: ${data.leanBodyMass} lbs)`);
+            }
+          }
+        }
+        
+        await Promise.all(bodyFatPromises);
+        
+        if (bodyFatCalculations > 0) {
+          console.log(`✅ Auto-calculated ${bodyFatCalculations} body fat percentage entries`);
+        }
+      } catch (error: any) {
+        console.error("Error auto-calculating body fat percentage:", error);
+        // Don't fail the whole request if body fat calculation fails
       }
 
       // Return success response immediately to avoid timeout
