@@ -343,6 +343,21 @@ export const goals = pgTable("goals", {
   achievedAt: timestamp("achieved_at"),
 });
 
+export const aiActions = pgTable("ai_actions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  actionType: text("action_type").notNull(), // 'UPDATE_GOAL', 'CREATE_GOAL', 'UPDATE_BIOMARKER', 'DELETE_BIOMARKER', 'ARCHIVE_RECORD', etc.
+  targetTable: text("target_table").notNull(), // 'goals', 'biomarkers', 'health_records', etc.
+  targetId: varchar("target_id"), // ID of the record that was modified/created
+  changesBefore: jsonb("changes_before"), // State before the change (for updates/deletes)
+  changesAfter: jsonb("changes_after"), // State after the change (for creates/updates)
+  reasoning: text("reasoning").notNull(), // AI's explanation of why it made this change
+  conversationContext: text("conversation_context"), // The user message that triggered this action
+  success: integer("success").notNull().default(1), // 1 if successful, 0 if failed
+  errorMessage: text("error_message"), // Error details if failed
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const insertHealthRecordSchema = createInsertSchema(healthRecords).omit({
   id: true,
   uploadedAt: true,
@@ -427,6 +442,11 @@ export const insertGoalSchema = createInsertSchema(goals).omit({
   id: true,
   createdAt: true,
   achievedAt: true,
+});
+
+export const insertAiActionSchema = createInsertSchema(aiActions).omit({
+  id: true,
+  createdAt: true,
 });
 
 export const insertExerciseFeedbackSchema = createInsertSchema(exerciseFeedback).omit({
@@ -614,6 +634,9 @@ export type ExerciseLog = typeof exerciseLogs.$inferSelect;
 
 export type InsertGoal = z.infer<typeof insertGoalSchema>;
 export type Goal = typeof goals.$inferSelect;
+
+export type InsertAiAction = z.infer<typeof insertAiActionSchema>;
+export type AiAction = typeof aiActions.$inferSelect;
 
 export type InsertExerciseFeedback = z.infer<typeof insertExerciseFeedbackSchema>;
 export type ExerciseFeedback = typeof exerciseFeedback.$inferSelect;

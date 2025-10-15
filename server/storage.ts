@@ -50,6 +50,8 @@ import {
   type InsertSupplementRecommendation,
   type ScheduledExerciseRecommendation,
   type InsertScheduledExerciseRecommendation,
+  type AiAction,
+  type InsertAiAction,
   users,
   healthRecords,
   biomarkers,
@@ -67,6 +69,7 @@ import {
   workoutSessions,
   exerciseLogs,
   goals,
+  aiActions,
   exerciseFeedback,
   recoveryProtocols,
   userProtocolPreferences,
@@ -207,6 +210,10 @@ export interface IStorage {
   updateGoal(id: string, userId: string, data: Partial<Goal>): Promise<Goal | undefined>;
   updateGoalProgress(goalId: string, userId: string, currentValue: number): Promise<Goal | undefined>;
   deleteGoal(id: string, userId: string): Promise<void>;
+  
+  createAiAction(action: InsertAiAction): Promise<AiAction>;
+  getAiActions(userId: string, limit?: number): Promise<AiAction[]>;
+  getAiActionsByType(userId: string, actionType: string): Promise<AiAction[]>;
   
   createExerciseFeedback(feedback: InsertExerciseFeedback): Promise<ExerciseFeedback>;
   getExerciseFeedback(userId: string, limit?: number): Promise<ExerciseFeedback[]>;
@@ -1431,6 +1438,28 @@ export class DbStorage implements IStorage {
 
   async deleteGoal(id: string, userId: string): Promise<void> {
     await db.delete(goals).where(and(eq(goals.id, id), eq(goals.userId, userId)));
+  }
+
+  async createAiAction(action: InsertAiAction): Promise<AiAction> {
+    const result = await db.insert(aiActions).values(action).returning();
+    return result[0];
+  }
+
+  async getAiActions(userId: string, limit: number = 100): Promise<AiAction[]> {
+    return await db
+      .select()
+      .from(aiActions)
+      .where(eq(aiActions.userId, userId))
+      .orderBy(desc(aiActions.createdAt))
+      .limit(limit);
+  }
+
+  async getAiActionsByType(userId: string, actionType: string): Promise<AiAction[]> {
+    return await db
+      .select()
+      .from(aiActions)
+      .where(and(eq(aiActions.userId, userId), eq(aiActions.actionType, actionType)))
+      .orderBy(desc(aiActions.createdAt));
   }
 
   async createExerciseFeedback(feedback: InsertExerciseFeedback): Promise<ExerciseFeedback> {
