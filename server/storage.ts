@@ -698,7 +698,7 @@ export class DbStorage implements IStorage {
   async rescheduleRecommendation(id: string, userId: string, newDate: Date): Promise<void> {
     await db
       .update(recommendations)
-      .set({ scheduledAt: newDate.toISOString() })
+      .set({ scheduledAt: newDate })
       .where(and(eq(recommendations.id, id), eq(recommendations.userId, userId)));
   }
 
