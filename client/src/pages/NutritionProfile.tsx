@@ -13,7 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Save, UtensilsCrossed, AlertCircle, Sparkles, CheckCircle } from "lucide-react";
 import type { NutritionProfile } from "@shared/schema";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 // Helper to convert empty string to undefined before number coercion
@@ -94,28 +94,30 @@ export default function NutritionProfile() {
   const form = useForm<NutritionProfileForm>({
     resolver: zodResolver(nutritionProfileSchema),
     defaultValues: {
-      dietaryPreferences: profile?.dietaryPreferences || [],
-      allergies: profile?.allergies || [],
-      cuisinePreferences: profile?.cuisinePreferences || [],
-      calorieTarget: profile?.calorieTarget ?? undefined,
-      proteinTarget: profile?.proteinTarget ?? undefined,
-      carbsTarget: profile?.carbsTarget ?? undefined,
-      fatTarget: profile?.fatTarget ?? undefined,
+      dietaryPreferences: [],
+      allergies: [],
+      cuisinePreferences: [],
+      calorieTarget: undefined,
+      proteinTarget: undefined,
+      carbsTarget: undefined,
+      fatTarget: undefined,
     },
   });
 
-  // Update form when profile loads
-  if (profile && !form.formState.isDirty) {
-    form.reset({
-      dietaryPreferences: profile.dietaryPreferences || [],
-      allergies: profile.allergies || [],
-      cuisinePreferences: profile.cuisinePreferences || [],
-      calorieTarget: profile.calorieTarget ?? undefined,
-      proteinTarget: profile.proteinTarget ?? undefined,
-      carbsTarget: profile.carbsTarget ?? undefined,
-      fatTarget: profile.fatTarget ?? undefined,
-    });
-  }
+  // Update form when profile loads - use useEffect to avoid infinite re-renders
+  useEffect(() => {
+    if (profile && !form.formState.isDirty) {
+      form.reset({
+        dietaryPreferences: profile.dietaryPreferences || [],
+        allergies: profile.allergies || [],
+        cuisinePreferences: profile.cuisinePreferences || [],
+        calorieTarget: profile.calorieTarget ?? undefined,
+        proteinTarget: profile.proteinTarget ?? undefined,
+        carbsTarget: profile.carbsTarget ?? undefined,
+        fatTarget: profile.fatTarget ?? undefined,
+      });
+    }
+  }, [profile, form]);
 
   const saveMutation = useMutation({
     mutationFn: async (data: NutritionProfileForm) => {
