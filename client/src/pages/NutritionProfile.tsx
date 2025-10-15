@@ -11,8 +11,10 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Save, UtensilsCrossed, AlertCircle } from "lucide-react";
+import { Loader2, Save, UtensilsCrossed, AlertCircle, Sparkles, CheckCircle } from "lucide-react";
 import type { NutritionProfile } from "@shared/schema";
+import { useState } from "react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 // Helper to convert empty string to undefined before number coercion
 const optionalNumber = z.preprocess(
@@ -31,6 +33,14 @@ const nutritionProfileSchema = z.object({
 });
 
 type NutritionProfileForm = z.infer<typeof nutritionProfileSchema>;
+
+interface AIRecommendations {
+  calorieTarget: number;
+  proteinTarget: number;
+  carbsTarget: number;
+  fatTarget: number;
+  explanation: string;
+}
 
 const DIETARY_PREFERENCES = [
   { id: "vegetarian", label: "Vegetarian" },
@@ -75,6 +85,7 @@ const CUISINE_OPTIONS = [
 
 export default function NutritionProfile() {
   const { toast } = useToast();
+  const [aiRecommendations, setAiRecommendations] = useState<AIRecommendations | null>(null);
 
   const { data: profile, isLoading } = useQuery<NutritionProfile>({
     queryKey: ["/api/nutrition-profile"],
@@ -86,10 +97,10 @@ export default function NutritionProfile() {
       dietaryPreferences: profile?.dietaryPreferences || [],
       allergies: profile?.allergies || [],
       cuisinePreferences: profile?.cuisinePreferences || [],
-      calorieTarget: profile?.calorieTarget || '',
-      proteinTarget: profile?.proteinTarget || '',
-      carbsTarget: profile?.carbsTarget || '',
-      fatTarget: profile?.fatTarget || '',
+      calorieTarget: profile?.calorieTarget ?? undefined,
+      proteinTarget: profile?.proteinTarget ?? undefined,
+      carbsTarget: profile?.carbsTarget ?? undefined,
+      fatTarget: profile?.fatTarget ?? undefined,
     },
   });
 
@@ -99,22 +110,21 @@ export default function NutritionProfile() {
       dietaryPreferences: profile.dietaryPreferences || [],
       allergies: profile.allergies || [],
       cuisinePreferences: profile.cuisinePreferences || [],
-      calorieTarget: profile.calorieTarget || '',
-      proteinTarget: profile.proteinTarget || '',
-      carbsTarget: profile.carbsTarget || '',
-      fatTarget: profile.fatTarget || '',
+      calorieTarget: profile.calorieTarget ?? undefined,
+      proteinTarget: profile.proteinTarget ?? undefined,
+      carbsTarget: profile.carbsTarget ?? undefined,
+      fatTarget: profile.fatTarget ?? undefined,
     });
   }
 
   const saveMutation = useMutation({
     mutationFn: async (data: NutritionProfileForm) => {
-      // Clean up empty string values
       const cleanData = {
         ...data,
-        calorieTarget: data.calorieTarget === '' ? null : data.calorieTarget,
-        proteinTarget: data.proteinTarget === '' ? null : data.proteinTarget,
-        carbsTarget: data.carbsTarget === '' ? null : data.carbsTarget,
-        fatTarget: data.fatTarget === '' ? null : data.fatTarget,
+        calorieTarget: data.calorieTarget ?? null,
+        proteinTarget: data.proteinTarget ?? null,
+        carbsTarget: data.carbsTarget ?? null,
+        fatTarget: data.fatTarget ?? null,
       };
 
       const res = await apiRequest(
@@ -126,6 +136,7 @@ export default function NutritionProfile() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/nutrition-profile"] });
+      setAiRecommendations(null); // Clear recommendations after save
       toast({
         title: "Success",
         description: "Nutrition profile saved successfully!",
@@ -139,6 +150,41 @@ export default function NutritionProfile() {
       });
     },
   });
+
+  const getAIRecommendationsMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/nutrition-profile/ai-recommendations", {});
+      return res.json() as Promise<AIRecommendations>;
+    },
+    onSuccess: (data) => {
+      setAiRecommendations(data);
+      toast({
+        title: "AI Recommendations Ready",
+        description: "Review the personalized macro targets below",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to generate recommendations",
+      });
+    },
+  });
+
+  const applyAIRecommendations = () => {
+    if (!aiRecommendations) return;
+    
+    form.setValue('calorieTarget', aiRecommendations.calorieTarget);
+    form.setValue('proteinTarget', aiRecommendations.proteinTarget);
+    form.setValue('carbsTarget', aiRecommendations.carbsTarget);
+    form.setValue('fatTarget', aiRecommendations.fatTarget);
+    
+    toast({
+      title: "Applied",
+      description: "AI recommendations have been applied to your targets",
+    });
+  };
 
   if (isLoading) {
     return (
@@ -351,12 +397,70 @@ export default function NutritionProfile() {
           {/* Macro Targets */}
           <Card>
             <CardHeader>
-              <CardTitle>Daily Nutrition Targets</CardTitle>
+              <CardTitle className="flex items-center justify-between">
+                <span>Daily Nutrition Targets</span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => getAIRecommendationsMutation.mutate()}
+                  disabled={getAIRecommendationsMutation.isPending}
+                  data-testid="button-ai-recommendations"
+                  className="gap-2"
+                >
+                  {getAIRecommendationsMutation.isPending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Analyzing...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-4 w-4" />
+                      Get AI Recommendations
+                    </>
+                  )}
+                </Button>
+              </CardTitle>
               <CardDescription>
-                Set your daily macro and calorie goals (optional)
+                Let AI recommend optimal macros based on your goals and health data, or set your own targets
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              {aiRecommendations && (
+                <Alert className="bg-primary/5 border-primary/20">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  <AlertDescription className="space-y-3">
+                    <div>
+                      <p className="font-semibold text-primary mb-1">AI Recommendation</p>
+                      <p className="text-sm text-muted-foreground">{aiRecommendations.explanation}</p>
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge variant="secondary" className="gap-1">
+                        <span className="font-semibold">{aiRecommendations.calorieTarget}</span> calories
+                      </Badge>
+                      <Badge variant="secondary" className="gap-1">
+                        <span className="font-semibold">{aiRecommendations.proteinTarget}g</span> protein
+                      </Badge>
+                      <Badge variant="secondary" className="gap-1">
+                        <span className="font-semibold">{aiRecommendations.carbsTarget}g</span> carbs
+                      </Badge>
+                      <Badge variant="secondary" className="gap-1">
+                        <span className="font-semibold">{aiRecommendations.fatTarget}g</span> fat
+                      </Badge>
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={applyAIRecommendations}
+                      data-testid="button-apply-recommendations"
+                      className="gap-2"
+                    >
+                      <CheckCircle className="h-4 w-4" />
+                      Apply These Targets
+                    </Button>
+                  </AlertDescription>
+                </Alert>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
@@ -370,10 +474,10 @@ export default function NutritionProfile() {
                           placeholder="e.g., 2000"
                           data-testid="input-calories"
                           {...field}
-                          value={field.value === '' ? '' : field.value}
+                          value={field.value ?? ''}
                           onChange={(e) => {
                             const val = e.target.value;
-                            field.onChange(val === '' ? '' : parseFloat(val));
+                            field.onChange(val === '' ? undefined : parseFloat(val));
                           }}
                         />
                       </FormControl>
@@ -395,10 +499,10 @@ export default function NutritionProfile() {
                           placeholder="e.g., 150"
                           data-testid="input-protein"
                           {...field}
-                          value={field.value === '' ? '' : field.value}
+                          value={field.value ?? ''}
                           onChange={(e) => {
                             const val = e.target.value;
-                            field.onChange(val === '' ? '' : parseFloat(val));
+                            field.onChange(val === '' ? undefined : parseFloat(val));
                           }}
                         />
                       </FormControl>
@@ -420,10 +524,10 @@ export default function NutritionProfile() {
                           placeholder="e.g., 200"
                           data-testid="input-carbs"
                           {...field}
-                          value={field.value === '' ? '' : field.value}
+                          value={field.value ?? ''}
                           onChange={(e) => {
                             const val = e.target.value;
-                            field.onChange(val === '' ? '' : parseFloat(val));
+                            field.onChange(val === '' ? undefined : parseFloat(val));
                           }}
                         />
                       </FormControl>
@@ -445,10 +549,10 @@ export default function NutritionProfile() {
                           placeholder="e.g., 70"
                           data-testid="input-fat"
                           {...field}
-                          value={field.value === '' ? '' : field.value}
+                          value={field.value ?? ''}
                           onChange={(e) => {
                             const val = e.target.value;
-                            field.onChange(val === '' ? '' : parseFloat(val));
+                            field.onChange(val === '' ? undefined : parseFloat(val));
                           }}
                         />
                       </FormControl>
