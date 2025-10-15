@@ -1,9 +1,10 @@
 import { RecommendationCard } from "@/components/RecommendationCard";
+import { ExerciseRecommendationCard } from "@/components/ExerciseRecommendationCard";
 import { ScheduleRecommendationDialog } from "@/components/ScheduleRecommendationDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Apple, Dumbbell, AlertCircle, TrendingUp, Brain, Loader2, Waves } from "lucide-react";
+import { Sparkles, Apple, Dumbbell, AlertCircle, TrendingUp, Brain, Loader2, Waves, Activity } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -27,6 +28,24 @@ export default function AIInsights() {
   const { data: biomarkers } = useQuery<Biomarker[]>({
     queryKey: ["/api/biomarkers"],
   });
+
+  const { data: exerciseRecommendations, isLoading: exerciseLoading } = useQuery<any[]>({
+    queryKey: ["/api/exercise-recommendations"],
+  });
+
+  const { data: calendarResponse } = useQuery<any>({
+    queryKey: ["/api/schedule/calendar"],
+  });
+
+  // Transform calendar object to array format for components
+  const calendarData = calendarResponse?.calendar
+    ? Object.entries(calendarResponse.calendar).map(([date, counts]: [string, any]) => ({
+        date,
+        exercises: counts.exercises,
+        workouts: counts.workouts,
+        supplements: counts.supplements,
+      }))
+    : [];
 
   const generateMutation = useMutation({
     mutationFn: async () => {
@@ -88,6 +107,71 @@ export default function AIInsights() {
       toast({
         title: "Error",
         description: error.message || "Failed to record feedback",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const autoScheduleMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await apiRequest("POST", `/api/exercise-recommendations/${id}/auto-schedule`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/exercise-recommendations"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/schedule/calendar"] });
+      toast({
+        title: "Success",
+        description: "Exercise auto-scheduled based on AI recommendation!",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to auto-schedule exercise",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const manualScheduleMutation = useMutation({
+    mutationFn: async ({ id, dates }: { id: number; dates: string[] }) => {
+      const res = await apiRequest("POST", `/api/exercise-recommendations/${id}/schedule-manual`, { dates });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/exercise-recommendations"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/schedule/calendar"] });
+      toast({
+        title: "Success",
+        description: "Exercise scheduled for selected days!",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to schedule exercise",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const declineExerciseMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await apiRequest("POST", `/api/exercise-recommendations/${id}/decline`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/exercise-recommendations"] });
+      toast({
+        title: "Declined",
+        description: "Exercise recommendation dismissed",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to decline exercise",
         variant: "destructive",
       });
     },
@@ -208,6 +292,42 @@ export default function AIInsights() {
           </CardContent>
         </Card>
       </div>
+
+      {exerciseRecommendations && exerciseRecommendations.filter((e: any) => e.status === "pending" || e.status === "scheduled").length > 0 && (
+        <div>
+          <h2 className="text-2xl font-semibold mb-6 flex items-center gap-2">
+            <Activity className="h-6 w-6 text-primary" />
+            AI Exercise Recommendations
+          </h2>
+          {exerciseLoading ? (
+            <div className="space-y-4">
+              {[...Array(2)].map((_, i) => (
+                <Card key={i}>
+                  <CardContent className="p-6">
+                    <Skeleton className="h-20 w-full" />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="grid gap-4 mb-8">
+              {exerciseRecommendations
+                .filter((e: any) => e.status === "pending" || e.status === "scheduled")
+                .map((exercise: any) => (
+                  <ExerciseRecommendationCard
+                    key={exercise.id}
+                    recommendation={exercise}
+                    calendarData={calendarData || []}
+                    onAutoSchedule={(id) => autoScheduleMutation.mutate(id)}
+                    onManualSchedule={(id, dates) => manualScheduleMutation.mutate({ id, dates })}
+                    onDecline={(id) => declineExerciseMutation.mutate(id)}
+                    isScheduling={autoScheduleMutation.isPending || manualScheduleMutation.isPending || declineExerciseMutation.isPending}
+                  />
+                ))}
+            </div>
+          )}
+        </div>
+      )}
 
       <div>
         <h2 className="text-2xl font-semibold mb-6">Personalized Recommendations</h2>

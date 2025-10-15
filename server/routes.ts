@@ -1788,8 +1788,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const { startDate, endDate } = req.query;
     
     try {
-      const start = new Date(startDate as string);
-      const end = new Date(endDate as string);
+      // Default to current month if no dates provided
+      const now = new Date();
+      const start = startDate ? new Date(startDate as string) : new Date(now.getFullYear(), now.getMonth(), 1);
+      const end = endDate ? new Date(endDate as string) : new Date(now.getFullYear(), now.getMonth() + 2, 0); // End of next month
+      
+      // Validate dates
+      if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+        return res.status(400).json({ error: "Invalid date range" });
+      }
 
       // Get all scheduled items for the date range
       const [exercises, workouts, supplements] = await Promise.all([
@@ -1808,11 +1815,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Format response with counts per day
       const calendar: Record<string, { exercises: number; workouts: number; supplements: number }> = {};
       
+      // Helper to format date as YYYY-MM-DD in local timezone
+      const formatDateKey = (date: Date | string): string => {
+        const d = typeof date === 'string' ? new Date(date) : date;
+        if (isNaN(d.getTime())) return '';
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
+
       // Count exercises per day
       exercises.forEach((ex: any) => {
         if (ex.scheduledDates) {
           ex.scheduledDates.forEach((date: string) => {
-            const dateKey = new Date(date).toISOString().split('T')[0];
+            // If date is already YYYY-MM-DD format, use directly
+            const dateKey = date.match(/^\d{4}-\d{2}-\d{2}$/) ? date : formatDateKey(date);
             if (!calendar[dateKey]) calendar[dateKey] = { exercises: 0, workouts: 0, supplements: 0 };
             calendar[dateKey].exercises++;
           });
@@ -1822,7 +1840,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Count workouts per day
       filteredWorkouts.forEach((wo: any) => {
         if (wo.scheduledFor) {
-          const dateKey = new Date(wo.scheduledFor).toISOString().split('T')[0];
+          const dateKey = formatDateKey(wo.scheduledFor);
           if (!calendar[dateKey]) calendar[dateKey] = { exercises: 0, workouts: 0, supplements: 0 };
           calendar[dateKey].workouts++;
         }
@@ -1831,7 +1849,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Supplements are daily, so add to all days in range
       const currentDate = new Date(start);
       while (currentDate <= end) {
-        const dateKey = currentDate.toISOString().split('T')[0];
+        const dateKey = formatDateKey(currentDate);
         if (!calendar[dateKey]) calendar[dateKey] = { exercises: 0, workouts: 0, supplements: 0 };
         calendar[dateKey].supplements = supplements.filter((s: any) => s.active === 1).length;
         currentDate.setDate(currentDate.getDate() + 1);
