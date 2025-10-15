@@ -2744,6 +2744,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // Load user's fitness profile for personalized recommendations
+      const fitnessProfile = await storage.getFitnessProfile(userId);
+
       const context = {
         recentBiomarkers,
         recentInsights,
@@ -2754,6 +2757,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         activeGoals,
         readinessScore: readinessScore || undefined,
         downvotedProtocols: downvotedProtocols.length > 0 ? downvotedProtocols : undefined,
+        fitnessProfile: fitnessProfile || undefined,
       };
 
       const aiResponse = await chatWithHealthCoach(conversationHistory, context);
@@ -2995,6 +2999,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log("ℹ️ No exercise markers found in AI response");
       }
 
+      // Check if AI response contains fitness profile updates
+      let fitnessProfileUpdated = false;
+      const fitnessProfileMatch = aiResponse.match(/<<<UPDATE_FITNESS_PROFILE>>>([\s\S]*?)<<<END_UPDATE_FITNESS_PROFILE>>>/);
+      
+      if (fitnessProfileMatch) {
+        console.log("💪 Fitness profile update markers found! Extracting JSON...");
+        try {
+          const profileJson = fitnessProfileMatch[1].trim();
+          console.log("📋 Fitness profile JSON:", profileJson);
+          const profileData = JSON.parse(profileJson);
+          
+          // Get existing profile to merge with updates
+          const existingProfile = await storage.getFitnessProfile(userId);
+          
+          // Merge new data with existing profile (partial updates)
+          const mergedProfile = {
+            userId,
+            fitnessLevel: profileData.fitnessLevel ?? existingProfile?.fitnessLevel ?? null,
+            trainingExperience: profileData.trainingExperience ?? existingProfile?.trainingExperience ?? null,
+            equipment: profileData.equipment ?? existingProfile?.equipment ?? [],
+            gymAccess: profileData.gymAccess ?? existingProfile?.gymAccess ?? false,
+            crossfitAccess: profileData.crossfitAccess ?? existingProfile?.crossfitAccess ?? false,
+            homeSetup: profileData.homeSetup ?? existingProfile?.homeSetup ?? [],
+            specialFacilities: profileData.specialFacilities ?? existingProfile?.specialFacilities ?? [],
+            recoveryEquipment: profileData.recoveryEquipment ?? existingProfile?.recoveryEquipment ?? [],
+            goals: profileData.goals ?? existingProfile?.goals ?? [],
+            workoutPreferences: profileData.workoutPreferences ?? existingProfile?.workoutPreferences ?? [],
+            injuriesLimitations: profileData.injuriesLimitations ?? existingProfile?.injuriesLimitations ?? null,
+            medicalConditions: profileData.medicalConditions ?? existingProfile?.medicalConditions ?? null,
+            preferredDuration: profileData.preferredDuration ?? existingProfile?.preferredDuration ?? null,
+            availableDays: profileData.availableDays ?? existingProfile?.availableDays ?? [],
+          };
+          
+          // Validate with Zod schema
+          const validation = insertFitnessProfileSchema.safeParse(mergedProfile);
+          
+          if (!validation.success) {
+            console.error("❌ Fitness profile validation failed:", validation.error.errors);
+            throw new Error("Invalid fitness profile data from AI");
+          }
+          
+          console.log("💾 Updating fitness profile with validated data...");
+          await storage.upsertFitnessProfile(validation.data);
+          
+          fitnessProfileUpdated = true;
+          console.log("✨ Fitness profile updated successfully!");
+        } catch (e) {
+          console.error("❌ Failed to parse and update fitness profile:", e);
+        }
+      } else {
+        console.log("ℹ️ No fitness profile update markers found in AI response");
+      }
+
       // Auto-advance onboarding steps after AI responds (user has engaged with current step)
       if (isOnboarding && onboardingStep && message.trim().length > 0) {
         const STEP_PROGRESSION: Record<string, string> = {
@@ -3020,6 +3077,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         goalSaved,
         supplementSaved,
         exerciseSaved,
+        fitnessProfileUpdated,
       });
     } catch (error: any) {
       console.error("Error in chat:", error);

@@ -126,6 +126,11 @@ export default function Training() {
     queryKey: ["/api/training/readiness"],
   });
 
+  // Check if user has completed their fitness profile
+  const { data: fitnessProfile } = useQuery<any>({
+    queryKey: ["/api/fitness-profile"],
+  });
+
   const { data: readinessSettings } = useQuery<ReadinessSettings>({
     queryKey: ["/api/training/readiness/settings"],
   });
@@ -319,6 +324,18 @@ export default function Training() {
     (selectedPlan === 'primary' ? dailyRec.recommendation.primaryPlan : 
      selectedPlan === 'alternate' ? dailyRec.recommendation.alternatePlan : null) : null;
 
+  // Check if fitness profile is incomplete
+  const isProfileIncomplete = useMemo(() => {
+    if (!fitnessProfile) return true;
+    
+    // Check if key fields are missing
+    const hasBasicInfo = fitnessProfile.fitnessLevel && fitnessProfile.trainingExperience;
+    const hasEquipmentInfo = fitnessProfile.equipment?.length > 0 || fitnessProfile.homeSetup?.length > 0;
+    const hasGoals = fitnessProfile.goals?.length > 0;
+    
+    return !hasBasicInfo || !hasEquipmentInfo || !hasGoals;
+  }, [fitnessProfile]);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -347,6 +364,34 @@ export default function Training() {
           )}
         </Button>
       </div>
+
+      {/* Fitness Profile Completion Banner */}
+      {isProfileIncomplete && (
+        <Card className="bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20" data-testid="card-profile-incomplete">
+          <CardContent className="p-4">
+            <div className="flex items-start gap-4">
+              <div className="bg-primary/10 p-2 rounded-lg">
+                <Sparkles className="h-5 w-5 text-primary" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-sm">Get More Personalized Workouts</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Complete your fitness profile to receive AI-powered workout recommendations perfectly matched to your fitness level, available equipment, and goals.
+                </p>
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="mt-3"
+                  onClick={() => setLocation('/training/fitness-profile')}
+                  data-testid="button-complete-profile"
+                >
+                  Complete Fitness Profile
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Alert Banner */}
       {showAlert && (

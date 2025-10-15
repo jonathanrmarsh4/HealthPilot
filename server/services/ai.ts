@@ -786,6 +786,7 @@ export async function chatWithHealthCoach(
     activeGoals?: any[];
     readinessScore?: any;
     downvotedProtocols?: string[];
+    fitnessProfile?: any;
   }
 ) {
   let contextSection = "";
@@ -851,6 +852,58 @@ export async function chatWithHealthCoach(
     
     if (context.userTimezone) {
       contextSection += `- User timezone: ${context.userTimezone}\n`;
+    }
+    
+    if (context.fitnessProfile) {
+      const profile = context.fitnessProfile;
+      contextSection += `\n🏋️ USER'S FITNESS PROFILE:\n`;
+      
+      if (profile.fitnessLevel) {
+        contextSection += `- Fitness Level: ${profile.fitnessLevel}\n`;
+      }
+      if (profile.trainingExperience) {
+        contextSection += `- Training Experience: ${profile.trainingExperience}\n`;
+      }
+      if (profile.gymAccess !== null) {
+        contextSection += `- Gym Access: ${profile.gymAccess ? 'Yes' : 'No'}\n`;
+      }
+      if (profile.crossfitAccess !== null) {
+        contextSection += `- CrossFit Access: ${profile.crossfitAccess ? 'Yes' : 'No'}\n`;
+      }
+      if (profile.equipment && profile.equipment.length > 0) {
+        contextSection += `- Available Equipment: ${profile.equipment.join(', ')}\n`;
+      }
+      if (profile.homeSetup && profile.homeSetup.length > 0) {
+        contextSection += `- Home Setup: ${profile.homeSetup.join(', ')}\n`;
+      }
+      if (profile.specialFacilities && profile.specialFacilities.length > 0) {
+        contextSection += `- Special Facilities: ${profile.specialFacilities.join(', ')}\n`;
+      }
+      if (profile.goals && profile.goals.length > 0) {
+        contextSection += `- Fitness Goals: ${profile.goals.join(', ')}\n`;
+      }
+      if (profile.workoutPreferences && profile.workoutPreferences.length > 0) {
+        contextSection += `- Workout Preferences: ${profile.workoutPreferences.join(', ')}\n`;
+      }
+      if (profile.preferredDuration) {
+        contextSection += `- Preferred Workout Duration: ${profile.preferredDuration} minutes\n`;
+      }
+      if (profile.availableDays && profile.availableDays.length > 0) {
+        contextSection += `- Available Days: ${profile.availableDays.join(', ')}\n`;
+      }
+      if (profile.injuriesLimitations) {
+        contextSection += `- Injuries/Limitations: ${profile.injuriesLimitations}\n`;
+      }
+      if (profile.medicalConditions) {
+        contextSection += `- Medical Conditions: ${profile.medicalConditions}\n`;
+      }
+      
+      contextSection += `\n**IMPORTANT**: Use this fitness profile to personalize ALL workout and exercise recommendations:\n`;
+      contextSection += `- Match intensity to their fitness level (${profile.fitnessLevel || 'beginner'})\n`;
+      contextSection += `- Only suggest exercises using their available equipment\n`;
+      contextSection += `- Respect their injuries/limitations when programming\n`;
+      contextSection += `- Align workouts with their stated goals and preferences\n`;
+      contextSection += `- Schedule workouts on their available days\n`;
     }
     
     contextSection += `\nUse this context to provide more personalized and relevant responses. Reference specific metrics or insights when appropriate.`;
@@ -1244,6 +1297,98 @@ User: "Yes, that sounds great!"
 <<<END_SAVE_EXERCISE>>>
 
 "Perfect! I've created this recommendation. Would you like me to auto-schedule it 3x per week (I'll pick the best days based on your training), or would you prefer to choose specific days yourself?"
+
+## FITNESS PROFILE AUTO-UPDATE:
+As you chat with users and learn about their fitness level, equipment access, training preferences, and limitations, you can automatically update their fitness profile. This eliminates the need for them to manually fill out forms.
+
+### When to Update Fitness Profile:
+Listen for mentions of:
+- **Fitness level**: "I'm a beginner", "I've been training for 5 years", "I'm intermediate", "I'm pretty advanced"
+- **Equipment access**: "I have dumbbells at home", "I go to a CrossFit gym", "I only have resistance bands", "I work out at a regular gym"
+- **Facilities**: "I have access to a sauna", "My gym has a pool", "I do cold plunges", "I have a rowing machine"
+- **Goals**: "I want to build muscle", "My goal is fat loss", "I'm training for endurance", "I want to improve flexibility"
+- **Preferences**: "I love strength training", "I hate cardio", "I prefer HIIT workouts", "I like yoga"
+- **Limitations**: "I have a bad knee", "Lower back issues", "Shoulder injury", "No running due to shin splints"
+- **Training schedule**: "I can work out Monday/Wednesday/Friday", "I have time in the mornings", "I can train 5 days a week"
+
+### Profile Update Process:
+1. Listen for fitness-related information during natural conversation
+2. Extract the relevant details
+3. **When you have clear fitness information**, update their profile automatically using this format:
+
+<<<UPDATE_FITNESS_PROFILE>>>
+{
+  "fitnessLevel": "intermediate",
+  "trainingExperience": "3-5 years",
+  "equipment": ["dumbbells", "resistance_bands", "pull_up_bar"],
+  "gymAccess": true,
+  "crossfitAccess": false,
+  "homeSetup": ["dumbbells", "resistance_bands", "yoga_mat"],
+  "goals": ["muscle_gain", "strength"],
+  "workoutPreferences": ["strength_training", "hiit"],
+  "injuriesLimitations": "Previous lower back injury - avoid heavy deadlifts",
+  "availableDays": ["monday", "wednesday", "friday", "saturday"]
+}
+<<<END_UPDATE_FITNESS_PROFILE>>>
+
+**Field Options**:
+- **fitnessLevel**: "beginner", "intermediate", "advanced", "athlete", "elite"
+- **trainingExperience**: "<1 year", "1-2 years", "3-5 years", "5-10 years", "10+ years"
+- **equipment**: Array of: "barbell", "dumbbells", "kettlebells", "resistance_bands", "pull_up_bar", "rowing_machine", "assault_bike", "treadmill", "elliptical", "medicine_ball", "plyo_box", "battle_ropes", "trx", "foam_roller", "yoga_mat", "none"
+- **gymAccess**: true/false
+- **crossfitAccess**: true/false
+- **homeSetup**: Same equipment array as above
+- **specialFacilities**: Array of: "sauna", "cold_plunge", "pool", "track", "turf_area", "climbing_wall"
+- **recoveryEquipment**: Array of: "massage_gun", "foam_roller", "lacrosse_ball", "resistance_bands_recovery", "compression_boots"
+- **goals**: Array of: "weight_loss", "muscle_gain", "strength", "endurance", "flexibility", "general_fitness", "athletic_performance"
+- **workoutPreferences**: Array of: "strength_training", "cardio", "hiit", "crossfit", "yoga", "pilates", "running", "cycling", "swimming", "sports"
+- **injuriesLimitations**: String describing any injuries or limitations
+- **medicalConditions**: String describing any relevant medical conditions
+- **preferredDuration**: Number in minutes (30, 45, 60, 90)
+- **availableDays**: Array of: "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"
+
+**Important Rules**:
+- Only update fields that the user explicitly mentions - don't make assumptions
+- Include only the fields you have information about (partial updates are OK)
+- Don't ask for confirmation - update automatically when you learn new information
+- After updating, subtly acknowledge: "Got it, I've noted that in your profile." or "I've updated your fitness profile with this information."
+- DON'T be overly excited or make a big deal about updating the profile
+- Use this to make future workout recommendations more personalized
+
+**Example Conversations**:
+
+User: "I've been training for about 4 years now. I'm pretty intermediate, maybe getting to advanced."
+You: "Great! With 4 years of training experience, you're definitely in the intermediate to advanced range. That means we can incorporate more challenging exercises and progressive overload strategies."
+
+<<<UPDATE_FITNESS_PROFILE>>>
+{
+  "fitnessLevel": "intermediate",
+  "trainingExperience": "3-5 years"
+}
+<<<END_UPDATE_FITNESS_PROFILE>>>
+
+---
+
+User: "I work out at home. I have dumbbells, resistance bands, and a pull-up bar."
+You: "Perfect! That's a solid home setup. We can create effective strength training workouts with dumbbells, bands, and bodyweight exercises using your pull-up bar."
+
+<<<UPDATE_FITNESS_PROFILE>>>
+{
+  "gymAccess": false,
+  "homeSetup": ["dumbbells", "resistance_bands", "pull_up_bar"]
+}
+<<<END_UPDATE_FITNESS_PROFILE>>>
+
+---
+
+User: "I can't do anything high impact because of my knee. It's from an old sports injury."
+You: "I understand. We'll focus on low-impact exercises that build strength without stressing your knee. Options like swimming, cycling, resistance training, and modified movements will work great for you."
+
+<<<UPDATE_FITNESS_PROFILE>>>
+{
+  "injuriesLimitations": "Knee injury (old sports injury) - no high-impact exercises like running or jumping"
+}
+<<<END_UPDATE_FITNESS_PROFILE>>>
 
 Be conversational, empathetic, and encouraging. **Ask ONE question at a time - never multiple questions in the same message.** Keep responses concise and focused. Remember any information the user shares and reference it in future responses.${onboardingSection}${contextSection}
 
