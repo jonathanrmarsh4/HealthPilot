@@ -88,11 +88,22 @@ export interface IStorage {
   updateUserSettings(userId: string, settings: { timezone: string }): Promise<void>;
   getDashboardPreferences(userId: string): Promise<{ visible: string[], order: string[] } | null>;
   saveDashboardPreferences(userId: string, preferences: { visible: string[], order: string[] }): Promise<void>;
-  updateUserProfile(userId: string, profileData: Partial<Pick<User, "firstName" | "lastName" | "height" | "dateOfBirth" | "gender" | "bloodType" | "activityLevel" | "location">>): Promise<User>;
+  updateUserProfile(userId: string, profileData: Partial<Pick<User, "firstName" | "lastName" | "height" | "dateOfBirth" | "gender" | "bloodType" | "activityLevel" | "location" | "timezone">>): Promise<User>;
   
-  // Onboarding methods
-  getOnboardingStatus(userId: string): Promise<{ completed: boolean; step: string | null; startedAt: Date | null; completedAt: Date | null } | null>;
+  // Onboarding methods - contextual onboarding with granular flags
+  getOnboardingStatus(userId: string): Promise<{ 
+    completed: boolean; 
+    step: string | null; 
+    startedAt: Date | null; 
+    completedAt: Date | null;
+    basicInfoComplete: boolean;
+    trainingSetupComplete: boolean;
+    mealsSetupComplete: boolean;
+    supplementsSetupComplete: boolean;
+    biomarkersSetupComplete: boolean;
+  } | null>;
   updateOnboardingStep(userId: string, step: string): Promise<void>;
+  updateOnboardingFlag(userId: string, flag: 'basicInfoComplete' | 'trainingSetupComplete' | 'mealsSetupComplete' | 'supplementsSetupComplete' | 'biomarkersSetupComplete', value: boolean): Promise<void>;
   completeOnboarding(userId: string): Promise<void>;
   skipOnboardingStep(userId: string, currentStep: string, nextStep: string): Promise<boolean>;
   
@@ -364,9 +375,29 @@ export class DbStorage implements IStorage {
   }
 
   // Onboarding methods implementation
-  async getOnboardingStatus(userId: string): Promise<{ completed: boolean; step: string | null; startedAt: Date | null; completedAt: Date | null } | null> {
+  async getOnboardingStatus(userId: string): Promise<{ 
+    completed: boolean; 
+    step: string | null; 
+    startedAt: Date | null; 
+    completedAt: Date | null;
+    basicInfoComplete: boolean;
+    trainingSetupComplete: boolean;
+    mealsSetupComplete: boolean;
+    supplementsSetupComplete: boolean;
+    biomarkersSetupComplete: boolean;
+  } | null> {
     const result = await db.execute(
-      sql`SELECT onboarding_completed, onboarding_step, onboarding_started_at, onboarding_completed_at FROM users WHERE id = ${userId}`
+      sql`SELECT 
+        onboarding_completed, 
+        onboarding_step, 
+        onboarding_started_at, 
+        onboarding_completed_at,
+        basic_info_complete,
+        training_setup_complete,
+        meals_setup_complete,
+        supplements_setup_complete,
+        biomarkers_setup_complete
+      FROM users WHERE id = ${userId}`
     );
     const rows: any[] = result.rows || [];
     if (rows.length === 0) {
@@ -377,7 +408,12 @@ export class DbStorage implements IStorage {
       completed: row.onboarding_completed === 1,
       step: row.onboarding_step,
       startedAt: row.onboarding_started_at,
-      completedAt: row.onboarding_completed_at
+      completedAt: row.onboarding_completed_at,
+      basicInfoComplete: row.basic_info_complete === 1,
+      trainingSetupComplete: row.training_setup_complete === 1,
+      mealsSetupComplete: row.meals_setup_complete === 1,
+      supplementsSetupComplete: row.supplements_setup_complete === 1,
+      biomarkersSetupComplete: row.biomarkers_setup_complete === 1,
     };
   }
 
@@ -411,6 +447,26 @@ export class DbStorage implements IStorage {
     );
     // PostgreSQL returns rowCount for UPDATE queries
     return (result.rowCount ?? 0) > 0;
+  }
+
+  async updateOnboardingFlag(userId: string, flag: 'basicInfoComplete' | 'trainingSetupComplete' | 'mealsSetupComplete' | 'supplementsSetupComplete' | 'biomarkersSetupComplete', value: boolean): Promise<void> {
+    const columnMap: Record<typeof flag, string> = {
+      basicInfoComplete: 'basic_info_complete',
+      trainingSetupComplete: 'training_setup_complete',
+      mealsSetupComplete: 'meals_setup_complete',
+      supplementsSetupComplete: 'supplements_setup_complete',
+      biomarkersSetupComplete: 'biomarkers_setup_complete',
+    };
+    
+    const column = columnMap[flag];
+    const intValue = value ? 1 : 0;
+    
+    await db.execute(
+      sql`UPDATE users SET 
+        ${sql.raw(column)} = ${intValue},
+        updated_at = NOW()
+      WHERE id = ${userId}`
+    );
   }
 
   async createHealthRecord(record: InsertHealthRecord): Promise<HealthRecord> {

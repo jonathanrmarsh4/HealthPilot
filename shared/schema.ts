@@ -36,9 +36,14 @@ export const users = pgTable("users", {
   activityLevel: varchar("activity_level"), // 'sedentary', 'light', 'moderate', 'active', 'very_active'
   location: varchar("location"), // City, Country
   dashboardPreferences: jsonb("dashboard_preferences"), // Widget visibility and order preferences
-  // Onboarding tracking
+  // Onboarding tracking - granular completion flags for contextual onboarding
   onboardingCompleted: integer("onboarding_completed").notNull().default(0), // 0 = false, 1 = true (for compatibility)
-  onboardingStep: varchar("onboarding_step"), // Current step: 'welcome', 'apple_health', 'health_records', 'training_plan', 'meal_plan'
+  onboardingStep: varchar("onboarding_step"), // Legacy field - kept for compatibility
+  basicInfoComplete: integer("basic_info_complete").notNull().default(0), // Initial questions (age, height, weight, gender, activity)
+  trainingSetupComplete: integer("training_setup_complete").notNull().default(0), // Fitness profile + training plan setup
+  mealsSetupComplete: integer("meals_setup_complete").notNull().default(0), // Nutrition preferences + meal plan setup
+  supplementsSetupComplete: integer("supplements_setup_complete").notNull().default(0), // Supplement recommendations received
+  biomarkersSetupComplete: integer("biomarkers_setup_complete").notNull().default(0), // Blood work upload prompted
   onboardingStartedAt: timestamp("onboarding_started_at"),
   onboardingCompletedAt: timestamp("onboarding_completed_at"),
   createdAt: timestamp("created_at").defaultNow(),
