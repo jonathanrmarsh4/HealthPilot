@@ -3532,6 +3532,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log("ℹ️ No fitness profile update markers found in AI response");
       }
 
+      // Check if AI response contains user profile updates
+      let userProfileUpdated = false;
+      const userProfileMatch = aiResponse.match(/<<<UPDATE_USER_PROFILE>>>([\s\S]*?)<<<END_UPDATE_USER_PROFILE>>>/);
+      
+      if (userProfileMatch) {
+        console.log("👤 User profile update markers found! Extracting JSON...");
+        try {
+          const profileJson = userProfileMatch[1].trim();
+          console.log("📋 User profile JSON:", profileJson);
+          const profileData = JSON.parse(profileJson);
+          
+          // Prepare update data - only include fields that are provided
+          const updateData: any = {};
+          
+          if (profileData.dateOfBirth) {
+            updateData.dateOfBirth = new Date(profileData.dateOfBirth);
+          }
+          if (profileData.height !== undefined) {
+            updateData.height = Number(profileData.height);
+          }
+          if (profileData.gender) {
+            updateData.gender = profileData.gender;
+          }
+          if (profileData.activityLevel) {
+            updateData.activityLevel = profileData.activityLevel;
+          }
+          
+          console.log("💾 Updating user profile with validated data...");
+          await storage.updateUserProfile(userId, updateData);
+          
+          // Mark basic info as complete if we have key fields
+          if (profileData.dateOfBirth || profileData.height || profileData.gender || profileData.activityLevel) {
+            await storage.updateOnboardingFlag(userId, 'basicInfoComplete', true);
+          }
+          
+          userProfileUpdated = true;
+          console.log("✨ User profile updated successfully!");
+        } catch (e) {
+          console.error("❌ Failed to parse and update user profile:", e);
+        }
+      } else {
+        console.log("ℹ️ No user profile update markers found in AI response");
+      }
+
       // Check if AI response contains goal update instructions
       let goalUpdated = false;
       const updateGoalMatch = aiResponse.match(/<<<UPDATE_GOAL>>>([\s\S]*?)<<<END_UPDATE_GOAL>>>/);
@@ -3772,6 +3816,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         supplementSaved,
         exerciseSaved,
         fitnessProfileUpdated,
+        userProfileUpdated,
         goalUpdated,
         goalCreated,
         biomarkerUpdated,
