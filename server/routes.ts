@@ -3048,19 +3048,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
         content: msg.content
       }));
 
-      // Gather context for AI
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      // Gather comprehensive context for AI - full user history for complete visibility
       const now = new Date();
       
-      // Get all biomarkers from last 7 days and sort by newest first
+      // Get ALL biomarkers (no time filter) for complete health history analysis
       const allBiomarkers = await storage.getBiomarkers(userId);
-      const recentBiomarkers = allBiomarkers
-        .filter(b => new Date(b.recordedAt) >= sevenDaysAgo)
-        .sort((a, b) => new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime())
-        .slice(0, 20);
-
-      const recentInsights = await storage.getInsights(userId, 5);
+      
+      // Get comprehensive insights (increased from 5 to 20)
+      const recentInsights = await storage.getInsights(userId, 20);
+      
+      // Get ALL sleep sessions for complete sleep pattern analysis
+      const allSleepSessions = await storage.getSleepSessions(userId);
+      
+      // Get ALL workout sessions for complete training history
+      const allWorkoutSessions = await storage.getWorkoutSessions(userId);
+      
+      // Get ALL training schedules for complete training plan visibility
+      const allTrainingSchedules = await storage.getTrainingSchedules(userId);
+      
+      // Get historical readiness scores (last 30 days)
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const historicalReadiness = await storage.getReadinessScores(userId, thirtyDaysAgo, now);
+      
+      // Get health records for medical context
+      const healthRecords = await storage.getHealthRecords(userId);
+      
+      // Get supplements for current supplement stack visibility
+      const supplements = await storage.getSupplements(userId);
+      
+      // Get meal plans for nutrition context
+      const mealPlans = await storage.getMealPlans(userId);
       
       const user = await storage.getUser(userId);
       
@@ -3075,7 +3093,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         onboardingStep = 'welcome';
       }
       
-      // Fetch active goals to provide goal-driven recommendations
+      // Fetch ALL goals (not just active) for complete goal visibility
       const allGoals = await storage.getGoals(userId);
       const activeGoals = allGoals.filter(goal => goal.status === 'active');
 
@@ -3103,14 +3121,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const nutritionProfile = await storage.getNutritionProfile(userId);
 
       const context = {
-        recentBiomarkers,
+        // Full biomarker history for complete health analysis
+        allBiomarkers,
+        
+        // Comprehensive insights
         recentInsights,
+        
+        // Complete sleep history for pattern analysis
+        allSleepSessions,
+        
+        // Full workout history for training analysis
+        allWorkoutSessions,
+        
+        // All training schedules for program visibility
+        allTrainingSchedules,
+        
+        // Historical readiness for trend analysis
+        historicalReadiness,
+        
+        // Health records for medical context
+        healthRecords,
+        
+        // Current supplement stack
+        supplements,
+        
+        // Meal plans for nutrition context
+        mealPlans,
+        
+        // All goals for complete goal management
+        allGoals,
+        
+        // Active goals for current focus
+        activeGoals,
+        
+        // Current page and user info
         currentPage,
         userTimezone: user?.timezone || undefined,
         isOnboarding,
         onboardingStep,
-        activeGoals,
+        
+        // Today's readiness
         readinessScore: readinessScore || undefined,
+        
+        // User preferences
         downvotedProtocols: downvotedProtocols.length > 0 ? downvotedProtocols : undefined,
         fitnessProfile: fitnessProfile || undefined,
         nutritionProfile: nutritionProfile || undefined,

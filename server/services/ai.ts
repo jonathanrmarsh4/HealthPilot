@@ -837,14 +837,29 @@ Generate insights that demonstrate deep understanding of how different health me
 export async function chatWithHealthCoach(
   conversationHistory: Array<{ role: "user" | "assistant"; content: string }>,
   context?: {
-    recentBiomarkers?: any[];
+    // Full user history for complete health analysis
+    allBiomarkers?: any[];
     recentInsights?: any[];
+    allSleepSessions?: any[];
+    allWorkoutSessions?: any[];
+    allTrainingSchedules?: any[];
+    historicalReadiness?: any[];
+    healthRecords?: any[];
+    supplements?: any[];
+    mealPlans?: any[];
+    allGoals?: any[];
+    
+    // Current state
+    activeGoals?: any[];
+    readinessScore?: any;
+    
+    // User context
     currentPage?: string;
     userTimezone?: string;
     isOnboarding?: boolean;
     onboardingStep?: string | null;
-    activeGoals?: any[];
-    readinessScore?: any;
+    
+    // User preferences
     downvotedProtocols?: string[];
     fitnessProfile?: any;
     nutritionProfile?: any;
@@ -885,10 +900,34 @@ export async function chatWithHealthCoach(
       contextSection += `- Only explain risks if they ask about risks - don't lecture them when they've made a clear choice to override\n`;
     }
     
-    if (context.recentBiomarkers && context.recentBiomarkers.length > 0) {
-      contextSection += `\nRecent Health Metrics (last 7 days):\n`;
-      context.recentBiomarkers.forEach(b => {
-        contextSection += `- ${b.type}: ${b.value} ${b.unit || ''} (${new Date(b.recordedAt).toLocaleDateString()})\n`;
+    // Display comprehensive biomarker history with intelligent grouping
+    if (context.allBiomarkers && context.allBiomarkers.length > 0) {
+      contextSection += `\n📊 COMPLETE BIOMARKER HISTORY (${context.allBiomarkers.length} total records):\n`;
+      
+      // Group biomarkers by type for better analysis
+      const biomarkersByType: Record<string, any[]> = {};
+      context.allBiomarkers.forEach(b => {
+        if (!biomarkersByType[b.type]) {
+          biomarkersByType[b.type] = [];
+        }
+        biomarkersByType[b.type].push(b);
+      });
+      
+      // Show most recent value and trend for each biomarker type
+      Object.entries(biomarkersByType).forEach(([type, values]) => {
+        const sorted = values.sort((a, b) => new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime());
+        const latest = sorted[0];
+        const count = values.length;
+        
+        contextSection += `- ${type}: ${latest.value} ${latest.unit || ''} (${new Date(latest.recordedAt).toLocaleDateString()}) [${count} historical records]\n`;
+        
+        // Show trend if we have enough data
+        if (count >= 3) {
+          const oldest = sorted[count - 1];
+          const change = ((latest.value - oldest.value) / oldest.value * 100).toFixed(1);
+          const trend = parseFloat(change) > 0 ? '↑' : '↓';
+          contextSection += `  └─ Trend: ${trend} ${Math.abs(parseFloat(change))}% since ${new Date(oldest.recordedAt).toLocaleDateString()}\n`;
+        }
       });
     }
     
@@ -1001,7 +1040,104 @@ export async function chatWithHealthCoach(
       contextSection += `- If they ask about nutrition or meals, proactively use this profile to give personalized advice\n`;
     }
     
-    contextSection += `\nUse this context to provide more personalized and relevant responses. Reference specific metrics or insights when appropriate.`;
+    // Sleep history
+    if (context.allSleepSessions && context.allSleepSessions.length > 0) {
+      const recentSleep = context.allSleepSessions.slice(0, 7);
+      contextSection += `\n😴 SLEEP HISTORY (${context.allSleepSessions.length} total sessions, showing recent 7):\n`;
+      recentSleep.forEach(s => {
+        const hours = s.totalMinutes ? (s.totalMinutes / 60).toFixed(1) : 'N/A';
+        contextSection += `- ${new Date(s.bedtime).toLocaleDateString()}: ${hours}h, Quality: ${s.quality || 'N/A'}, Awake: ${s.awakeMinutes || 0}m\n`;
+      });
+    }
+    
+    // Workout history
+    if (context.allWorkoutSessions && context.allWorkoutSessions.length > 0) {
+      const recentWorkouts = context.allWorkoutSessions.slice(0, 10);
+      contextSection += `\n🏋️ WORKOUT HISTORY (${context.allWorkoutSessions.length} total workouts, showing recent 10):\n`;
+      recentWorkouts.forEach(w => {
+        const duration = w.durationMinutes ? `${w.durationMinutes}min` : 'N/A';
+        contextSection += `- ${new Date(w.startTime).toLocaleDateString()}: ${w.workoutType} (${duration}, ${w.caloriesBurned || 0} cal)\n`;
+      });
+    }
+    
+    // Training schedules
+    if (context.allTrainingSchedules && context.allTrainingSchedules.length > 0) {
+      contextSection += `\n📅 TRAINING SCHEDULES (${context.allTrainingSchedules.length} total):\n`;
+      const activeSchedules = context.allTrainingSchedules.filter(s => !s.completed);
+      const completedSchedules = context.allTrainingSchedules.filter(s => s.completed);
+      
+      if (activeSchedules.length > 0) {
+        contextSection += `Active Plans (${activeSchedules.length}):\n`;
+        activeSchedules.slice(0, 7).forEach(s => {
+          contextSection += `- ${s.day}: ${s.workoutType} (${s.intensity}, ${s.duration}min)${s.coreProgram ? ' [Core]' : ' [Supplementary]'}\n`;
+        });
+      }
+      
+      if (completedSchedules.length > 0) {
+        contextSection += `Completed (${completedSchedules.length} total)\n`;
+      }
+    }
+    
+    // Historical readiness scores
+    if (context.historicalReadiness && context.historicalReadiness.length > 0) {
+      contextSection += `\n📈 READINESS SCORE HISTORY (Last 30 days, ${context.historicalReadiness.length} scores):\n`;
+      const avgScore = (context.historicalReadiness.reduce((sum, r) => sum + r.score, 0) / context.historicalReadiness.length).toFixed(0);
+      const recent7 = context.historicalReadiness.slice(0, 7);
+      contextSection += `- 30-day average: ${avgScore}/100\n`;
+      contextSection += `- Recent trend: ${recent7.map(r => `${r.score}`).join(', ')}\n`;
+    }
+    
+    // Health records
+    if (context.healthRecords && context.healthRecords.length > 0) {
+      contextSection += `\n📋 HEALTH RECORDS (${context.healthRecords.length} files):\n`;
+      context.healthRecords.forEach(r => {
+        const date = new Date(r.uploadedAt).toLocaleDateString();
+        const status = r.analysisStatus;
+        contextSection += `- ${r.fileName} (${date}) - Status: ${status}\n`;
+        if (r.aiAnalysisSummary) {
+          contextSection += `  Summary: ${r.aiAnalysisSummary.substring(0, 100)}...\n`;
+        }
+      });
+    }
+    
+    // Supplements
+    if (context.supplements && context.supplements.length > 0) {
+      const activeSupplements = context.supplements.filter(s => s.status === 'active');
+      if (activeSupplements.length > 0) {
+        contextSection += `\n💊 CURRENT SUPPLEMENT STACK (${activeSupplements.length} active):\n`;
+        activeSupplements.forEach(s => {
+          contextSection += `- ${s.name}: ${s.dosage} ${s.frequency}`;
+          if (s.purpose) contextSection += ` (${s.purpose})`;
+          contextSection += `\n`;
+        });
+      }
+    }
+    
+    // Meal plans
+    if (context.mealPlans && context.mealPlans.length > 0) {
+      const upcomingMeals = context.mealPlans.filter(m => new Date(m.mealDate) >= new Date()).slice(0, 5);
+      if (upcomingMeals.length > 0) {
+        contextSection += `\n🍴 UPCOMING MEAL PLANS (${upcomingMeals.length} planned):\n`;
+        upcomingMeals.forEach(m => {
+          contextSection += `- ${new Date(m.mealDate).toLocaleDateString()}: ${m.mealType} - ${m.recipeName}\n`;
+        });
+      }
+    }
+    
+    // All goals (including completed/cancelled for context)
+    if (context.allGoals && context.allGoals.length > 0) {
+      const completedGoals = context.allGoals.filter(g => g.status === 'completed');
+      const cancelledGoals = context.allGoals.filter(g => g.status === 'cancelled');
+      
+      if (completedGoals.length > 0) {
+        contextSection += `\n✅ COMPLETED GOALS (${completedGoals.length}):\n`;
+        completedGoals.slice(0, 3).forEach(g => {
+          contextSection += `- ${g.metricType}: Achieved ${g.targetValue} ${g.unit}\n`;
+        });
+      }
+    }
+    
+    contextSection += `\nUse this comprehensive health data to provide deeply personalized and context-aware responses. You have complete visibility into the user's health journey - use it to spot patterns, make intelligent recommendations, and provide holistic health coaching.`;
   }
 
   // Onboarding mode handling
