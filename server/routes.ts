@@ -3482,6 +3482,181 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log("ℹ️ No fitness profile update markers found in AI response");
       }
 
+      // Check if AI response contains goal update instructions
+      let goalUpdated = false;
+      const updateGoalMatch = aiResponse.match(/<<<UPDATE_GOAL>>>([\s\S]*?)<<<END_UPDATE_GOAL>>>/);
+      
+      if (updateGoalMatch) {
+        console.log("🎯 Goal update markers found! Extracting JSON...");
+        try {
+          const updateJson = updateGoalMatch[1].trim();
+          const updateData = JSON.parse(updateJson);
+          
+          // Get the goal before update for audit trail
+          const goalBefore = await storage.getGoal(updateData.goalId, userId);
+          
+          if (goalBefore) {
+            // Update goal with new data
+            const updatedGoal = await storage.updateGoal(updateData.goalId, userId, {
+              currentValue: updateData.currentValue ?? goalBefore.currentValue,
+              status: updateData.status ?? goalBefore.status,
+              notes: updateData.notes ?? goalBefore.notes,
+            });
+            
+            if (updatedGoal) {
+              // Log to audit trail
+              await storage.createAiAction({
+                userId,
+                actionType: 'UPDATE_GOAL',
+                targetTable: 'goals',
+                targetId: updateData.goalId,
+                changesBefore: goalBefore,
+                changesAfter: updatedGoal,
+                reasoning: updateData.reasoning || 'AI updated goal based on user conversation',
+                conversationContext: message,
+                success: 1,
+              });
+              
+              goalUpdated = true;
+              console.log("✨ Goal updated and logged to audit trail!");
+            }
+          }
+        } catch (e) {
+          console.error("❌ Failed to update goal:", e);
+          await storage.createAiAction({
+            userId,
+            actionType: 'UPDATE_GOAL',
+            targetTable: 'goals',
+            targetId: null,
+            changesBefore: null,
+            changesAfter: null,
+            reasoning: 'Failed to update goal',
+            conversationContext: message,
+            success: 0,
+            errorMessage: e instanceof Error ? e.message : String(e),
+          });
+        }
+      }
+
+      // Check if AI response contains new goal creation
+      let goalCreated = false;
+      const createGoalMatch = aiResponse.match(/<<<CREATE_GOAL>>>([\s\S]*?)<<<END_CREATE_GOAL>>>/);
+      
+      if (createGoalMatch) {
+        console.log("🎯 Goal creation markers found! Extracting JSON...");
+        try {
+          const goalJson = createGoalMatch[1].trim();
+          const goalData = JSON.parse(goalJson);
+          
+          // Create new goal
+          const newGoal = await storage.createGoal({
+            userId,
+            metricType: goalData.metricType,
+            targetValue: goalData.targetValue,
+            currentValue: goalData.currentValue ?? null,
+            startValue: goalData.startValue ?? goalData.currentValue ?? null,
+            unit: goalData.unit,
+            deadline: new Date(goalData.deadline),
+            status: 'active',
+            notes: goalData.notes || null,
+          });
+          
+          // Log to audit trail
+          await storage.createAiAction({
+            userId,
+            actionType: 'CREATE_GOAL',
+            targetTable: 'goals',
+            targetId: newGoal.id,
+            changesBefore: null,
+            changesAfter: newGoal,
+            reasoning: goalData.reasoning || 'AI created goal based on user conversation',
+            conversationContext: message,
+            success: 1,
+          });
+          
+          goalCreated = true;
+          console.log("✨ Goal created and logged to audit trail!");
+        } catch (e) {
+          console.error("❌ Failed to create goal:", e);
+          await storage.createAiAction({
+            userId,
+            actionType: 'CREATE_GOAL',
+            targetTable: 'goals',
+            targetId: null,
+            changesBefore: null,
+            changesAfter: null,
+            reasoning: 'Failed to create goal',
+            conversationContext: message,
+            success: 0,
+            errorMessage: e instanceof Error ? e.message : String(e),
+          });
+        }
+      }
+
+      // Check if AI response contains biomarker update
+      let biomarkerUpdated = false;
+      const updateBiomarkerMatch = aiResponse.match(/<<<UPDATE_BIOMARKER>>>([\s\S]*?)<<<END_UPDATE_BIOMARKER>>>/);
+      
+      if (updateBiomarkerMatch) {
+        console.log("📊 Biomarker update markers found! Extracting JSON...");
+        try {
+          const updateJson = updateBiomarkerMatch[1].trim();
+          const updateData = JSON.parse(updateJson);
+          
+          // Find the biomarker to update
+          const biomarkers = await storage.getBiomarkers(userId, updateData.type);
+          const biomarkerToUpdate = biomarkers.find(b => 
+            b.id === updateData.biomarkerId || 
+            (new Date(b.recordedAt).toDateString() === new Date(updateData.recordedAt).toDateString() && b.type === updateData.type)
+          );
+          
+          if (biomarkerToUpdate) {
+            const biomarkerBefore = { ...biomarkerToUpdate };
+            
+            // Update using upsert (since we don't have a direct update method)
+            const updatedBiomarker = await storage.upsertBiomarker({
+              id: biomarkerToUpdate.id,
+              userId,
+              type: updateData.type ?? biomarkerToUpdate.type,
+              value: updateData.value ?? biomarkerToUpdate.value,
+              unit: updateData.unit ?? biomarkerToUpdate.unit,
+              recordedAt: updateData.recordedAt ? new Date(updateData.recordedAt) : biomarkerToUpdate.recordedAt,
+              source: updateData.source ?? biomarkerToUpdate.source,
+            });
+            
+            // Log to audit trail
+            await storage.createAiAction({
+              userId,
+              actionType: 'UPDATE_BIOMARKER',
+              targetTable: 'biomarkers',
+              targetId: updatedBiomarker.id,
+              changesBefore: biomarkerBefore,
+              changesAfter: updatedBiomarker,
+              reasoning: updateData.reasoning || 'AI updated biomarker based on user conversation',
+              conversationContext: message,
+              success: 1,
+            });
+            
+            biomarkerUpdated = true;
+            console.log("✨ Biomarker updated and logged to audit trail!");
+          }
+        } catch (e) {
+          console.error("❌ Failed to update biomarker:", e);
+          await storage.createAiAction({
+            userId,
+            actionType: 'UPDATE_BIOMARKER',
+            targetTable: 'biomarkers',
+            targetId: null,
+            changesBefore: null,
+            changesAfter: null,
+            reasoning: 'Failed to update biomarker',
+            conversationContext: message,
+            success: 0,
+            errorMessage: e instanceof Error ? e.message : String(e),
+          });
+        }
+      }
+
       // Auto-advance onboarding steps after AI responds (user has engaged with current step)
       if (isOnboarding && onboardingStep && message.trim().length > 0) {
         const STEP_PROGRESSION: Record<string, string> = {
@@ -3508,6 +3683,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         supplementSaved,
         exerciseSaved,
         fitnessProfileUpdated,
+        goalUpdated,
+        goalCreated,
+        biomarkerUpdated,
       });
     } catch (error: any) {
       console.error("Error in chat:", error);
