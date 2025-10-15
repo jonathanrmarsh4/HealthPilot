@@ -59,19 +59,19 @@ function parseBiomarkerDate(dateStr: string | undefined, documentDate: string | 
 
 // Helper function to estimate workout intensity based on heart rate and perceived effort
 function estimateIntensity(avgHeartRate?: number | null, perceivedEffort?: number | null): "Low" | "Moderate" | "High" {
-  // Prioritize perceived effort if available (RPE - scale)
+  // Prioritize perceived effort if available (RPE 1-10 scale)
   if (perceivedEffort) {
-    if (perceivedEffort <= ) return "Low";
-    if (perceivedEffort <= ) return "Moderate";
+    if (perceivedEffort <= 3) return "Low";
+    if (perceivedEffort <= 6) return "Moderate";
     return "High";
   }
   
   // Fall back to heart rate zones (rough estimation)
   if (avgHeartRate) {
-    // Assuming max HR of  for rough estimation
-    const percentMax = (avgHeartRate / )  ;
-    if (percentMax < ) return "Low";
-    if (percentMax < ) return "Moderate";
+    // Assuming max HR of 180 for rough estimation
+    const percentMax = (avgHeartRate / 180) * 100;
+    if (percentMax < 60) return "Low";
+    if (percentMax < 80) return "Moderate";
     return "High";
   }
   
@@ -83,31 +83,31 @@ function estimateIntensity(avgHeartRate?: number | null, perceivedEffort?: numbe
 function calculateScheduledDates(frequency: string): string[] {
   const dates: string[] = [];
   const today = new Date();
-  today.setHours(, , , );
+  today.setHours(0, 0, 0, 0);
   
   // Helper to format date as YYYY-MM-DD in local timezone
   const formatLocalDate = (date: Date): string => {
     const year = date.getFullYear();
-    const month = String(date.getMonth() + ).padStart(, '');
-    const day = String(date.getDate()).padStart(, '');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
   };
   
-  // Parse frequency (e.g., "x_week", "x_week", "daily", "specific_day")
+  // Parse frequency (e.g., "3x_week", "5x_week", "daily", "specific_day")
   if (frequency === "daily") {
-    // Schedule for next  days
-    for (let i = ; i < ; i++) {
+    // Schedule for next 7 days
+    for (let i = 0; i < 7; i++) {
       const date = new Date(today);
       date.setDate(today.getDate() + i);
       dates.push(formatLocalDate(date));
     }
   } else if (frequency.includes("x_week")) {
-    const timesPerWeek = parseInt(frequency.split("x")[]);
+    const timesPerWeek = parseInt(frequency.split("x")[0]);
     // Distribute evenly across the week
-    const interval = Math.floor( / timesPerWeek);
-    for (let i = ; i < timesPerWeek; i++) {
+    const interval = Math.floor(7 / timesPerWeek);
+    for (let i = 0; i < timesPerWeek; i++) {
       const date = new Date(today);
-      date.setDate(today.getDate() + (i  interval));
+      date.setDate(today.getDate() + (i * interval));
       dates.push(formatLocalDate(date));
     }
   } else if (frequency === "specific_day") {
@@ -118,7 +118,7 @@ function calculateScheduledDates(frequency: string): string[] {
   return dates;
 }
 
-const MAX_FILE_SIZE =     ; // MB
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_MIME_TYPES = [
   'application/pdf',
   'application/msword',
@@ -145,26 +145,26 @@ const upload = multer({
 export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/auth/user", async (req, res) => {
     // Completely disable caching and ETags for Safari iOS
-    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private, max-age=');
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private, max-age=0');
     res.set('Pragma', 'no-cache');
-    res.set('Expires', '');
+    res.set('Expires', '0');
     // Disable ETag generation
     req.app.set('etag', false);
     
     try {
       if (!req.isAuthenticated()) {
         // Send with explicit no-cache and without ETag
-        return res.status().send('null');
+        return res.status(200).send('null');
       }
 
       const user = req.user as any;
       if (!user.claims?.sub) {
-        return res.status().send('null');
+        return res.status(200).send('null');
       }
 
       const dbUser = await storage.getUser(user.claims.sub);
       if (!dbUser) {
-        return res.status().send('null');
+        return res.status(200).send('null');
       }
 
       // Send JSON with timestamp to prevent caching - Safari iOS is very aggressive
@@ -177,27 +177,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         role: dbUser.role,
         subscriptionTier: dbUser.subscriptionTier,
         subscriptionStatus: dbUser.subscriptionStatus,
-        _timestamp: Date.now(), // Force unique response to prevent 
+        _timestamp: Date.now(), // Force unique response to prevent 304
       };
       res.set('Content-Type', 'application/json');
-      res.status().send(JSON.stringify(responseData));
+      res.status(200).send(JSON.stringify(responseData));
     } catch (error: any) {
       console.error("Error getting user:", error);
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
   app.get("/api/admin/users", isAdmin, async (req, res) => {
     try {
-      const limit = parseInt(req.query.limit as string) || ;
-      const offset = parseInt(req.query.offset as string) || ;
+      const limit = parseInt(req.query.limit as string) || 20;
+      const offset = parseInt(req.query.offset as string) || 0;
       const search = req.query.search as string | undefined;
 
       const result = await storage.getAllUsers(limit, offset, search);
       res.json(result);
     } catch (error: any) {
       console.error("Error getting users:", error);
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -207,13 +207,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await storage.getUser(id);
       
       if (!user) {
-        return res.status().json({ error: "User not found" });
+        return res.status(404).json({ error: "User not found" });
       }
 
       res.json(user);
     } catch (error: any) {
       console.error("Error getting user:", error);
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -224,7 +224,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Validate request body with Zod
       const validationResult = adminUserUpdateSchema.safeParse(req.body);
       if (!validationResult.success) {
-        return res.status().json({ 
+        return res.status(400).json({ 
           error: "Invalid update data", 
           details: validationResult.error.format() 
         });
@@ -235,7 +235,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(updatedUser);
     } catch (error: any) {
       console.error("Error updating user:", error);
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -246,13 +246,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Prevent admins from deleting themselves
       if (id === currentUserId) {
-        return res.status().json({ error: "Cannot delete your own account" });
+        return res.status(400).json({ error: "Cannot delete your own account" });
       }
       
       // Check if user exists
       const user = await storage.getUser(id);
       if (!user) {
-        return res.status().json({ error: "User not found" });
+        return res.status(404).json({ error: "User not found" });
       }
       
       // Delete user and all associated data
@@ -262,7 +262,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true, message: "User deleted successfully" });
     } catch (error: any) {
       console.error("Error deleting user:", error);
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -272,7 +272,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(stats);
     } catch (error: any) {
       console.error("Error getting admin stats:", error);
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -282,13 +282,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const user = await storage.getUser(userId);
       if (!user) {
-        return res.status().json({ error: "User not found" });
+        return res.status(404).json({ error: "User not found" });
       }
 
       // Get latest weight from biomarkers
       const biomarkers = await storage.getBiomarkers(userId, "weight");
-      const latestWeight = biomarkers.length >  
-        ? biomarkers.sort((a, b) => new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime())[] 
+      const latestWeight = biomarkers.length > 0 
+        ? biomarkers.sort((a, b) => new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime())[0] 
         : null;
 
       res.json({
@@ -312,7 +312,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       console.error("Error getting profile:", error);
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -340,7 +340,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const validationResult = profileSchema.safeParse(req.body);
       if (!validationResult.success) {
-        return res.status().json({ 
+        return res.status(400).json({ 
           error: "Invalid profile data", 
           details: validationResult.error.format() 
         });
@@ -351,7 +351,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(updatedUser);
     } catch (error: any) {
       console.error("Error updating profile:", error);
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -380,7 +380,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const fileBuffer = await downloadFile(fileId);
       
       if (fileBuffer.length > MAX_FILE_SIZE) {
-        return res.status().json({ error: 'File too large. Maximum size is MB.' });
+        return res.status(400).json({ error: 'File too large. Maximum size is 10MB.' });
       }
       
       // Create record with 'processing' status
@@ -394,7 +394,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       try {
-        const fileText = fileBuffer.toString('utf-');
+        const fileText = fileBuffer.toString('utf-8');
         
         // Pass file creation date to AI for fallback
         const fileCreatedDate = metadata.createdTime ? new Date(metadata.createdTime) : undefined;
@@ -404,7 +404,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const stillExists = await storage.getHealthRecordByFileId(fileId, userId);
         if (!stillExists) {
           // Record was deleted during analysis, don't update or create biomarkers
-          return res.status().json({ error: 'Record was deleted during analysis' });
+          return res.status(410).json({ error: 'Record was deleted during analysis' });
         }
         
         // Update record with completed status and analysis results
@@ -421,8 +421,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Special handling for blood pressure values in "X/Y" format
             if (biomarker.type === 'blood-pressure' && typeof biomarker.value === 'string' && biomarker.value.includes('/')) {
               const parts = biomarker.value.split('/');
-              const systolic = parseFloat(parts[]);
-              const diastolic = parseFloat(parts[]);
+              const systolic = parseFloat(parts[0]);
+              const diastolic = parseFloat(parts[1]);
               
               if (!isNaN(systolic) && !isNaN(diastolic)) {
                 // Create separate biomarkers for systolic and diastolic
@@ -478,10 +478,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     } catch (error: any) {
       if (error.name === 'AbortError') {
-        return res.status().json({ error: 'Request cancelled' });
+        return res.status(499).json({ error: 'Request cancelled' });
       }
       console.error("Error analyzing document:", error);
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -493,15 +493,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const record = await storage.getHealthRecord(id, userId);
       if (!record) {
-        return res.status().json({ error: 'Health record not found' });
+        return res.status(404).json({ error: 'Health record not found' });
       }
       
       if (record.status !== 'failed') {
-        return res.status().json({ error: 'Only failed records can be retried' });
+        return res.status(400).json({ error: 'Only failed records can be retried' });
       }
       
       if (!record.fileId) {
-        return res.status().json({ error: 'No Google Drive file associated with this record' });
+        return res.status(400).json({ error: 'No Google Drive file associated with this record' });
       }
       
       // Verify file still exists in Google Drive
@@ -515,7 +515,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       try {
-        const fileText = fileBuffer.toString('utf-');
+        const fileText = fileBuffer.toString('utf-8');
         const fileCreatedDate = metadata.createdTime ? new Date(metadata.createdTime) : undefined;
         const analysis = await analyzeHealthDocument(fileText, record.name, fileCreatedDate);
         
@@ -533,8 +533,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Special handling for blood pressure values in "X/Y" format
             if (biomarker.type === 'blood-pressure' && typeof biomarker.value === 'string' && biomarker.value.includes('/')) {
               const parts = biomarker.value.split('/');
-              const systolic = parseFloat(parts[]);
-              const diastolic = parseFloat(parts[]);
+              const systolic = parseFloat(parts[0]);
+              const diastolic = parseFloat(parts[1]);
               
               if (!isNaN(systolic) && !isNaN(diastolic)) {
                 // Create separate biomarkers for systolic and diastolic
@@ -590,27 +590,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     } catch (error: any) {
       console.error("Error retrying analysis:", error);
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
   app.post("/api/health-records/upload", isAuthenticated, upload.single('file'), async (req, res) => {
     const userId = (req.user as any).claims.sub;
     
-    console.log(` UPLOAD REQUEST RECEIVED! User: ${userId}, Has file: ${!!req.file}`);
+    console.log(`🔥 UPLOAD REQUEST RECEIVED! User: ${userId}, Has file: ${!!req.file}`);
     
     // Increase timeout for this specific route to handle large file processing
-    req.setTimeout(); //  minutes
-    res.setTimeout(); //  minutes
+    req.setTimeout(300000); // 5 minutes
+    res.setTimeout(300000); // 5 minutes
     
     try {
       if (!req.file) {
-        console.log(` No file in request for user ${userId}`);
-        return res.status().json({ error: "No file uploaded" });
+        console.log(`❌ No file in request for user ${userId}`);
+        return res.status(400).json({ error: "No file uploaded" });
       }
 
-      const fileSizeKB = (req.file.size / ).toFixed();
-      console.log(` Processing health record: ${req.file.originalname} (${fileSizeKB} KB) for user ${userId}`);
+      const fileSizeKB = (req.file.size / 1024).toFixed(1);
+      console.log(`📄 Processing health record: ${req.file.originalname} (${fileSizeKB} KB) for user ${userId}`);
 
       // Extract text based on file type
       let fileText: string;
@@ -622,20 +622,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const parser = new PDFParse({ data: req.file.buffer });
         const textResult = await parser.getText();
         fileText = textResult.text;
-        console.log(` Extracted ${fileText.length} characters from PDF (${textResult.pages.length} pages)`);
+        console.log(`📝 Extracted ${fileText.length} characters from PDF (${textResult.pages.length} pages)`);
       } else {
         // For text-based files, use simple string conversion
-        fileText = req.file.buffer.toString('utf-');
-        console.log(` Document text length: ${fileText.length} characters`);
+        fileText = req.file.buffer.toString('utf-8');
+        console.log(`📝 Document text length: ${fileText.length} characters`);
       }
       
       const analysis = await analyzeHealthDocument(fileText, req.file.originalname);
       
-      console.log(` AI Analysis Results:`, {
+      console.log(`🔍 AI Analysis Results:`, {
         hasBiomarkers: !!analysis.biomarkers,
-        biomarkerCount: analysis.biomarkers?.length || ,
+        biomarkerCount: analysis.biomarkers?.length || 0,
         documentDate: analysis.documentDate,
-        summary: analysis.summary?.substring(, ) + '...',
+        summary: analysis.summary?.substring(0, 100) + '...',
       });
 
       const record = await storage.createHealthRecord({
@@ -649,15 +649,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       if (analysis.biomarkers && Array.isArray(analysis.biomarkers)) {
-        console.log(` Extracted ${analysis.biomarkers.length} biomarkers from ${req.file.originalname}`);
+        console.log(`✅ Extracted ${analysis.biomarkers.length} biomarkers from ${req.file.originalname}`);
         
-        let savedCount = ;
-        let skippedCount = ;
+        let savedCount = 0;
+        let skippedCount = 0;
         
         for (const biomarker of analysis.biomarkers) {
           // Skip biomarkers without required fields
           if (!biomarker.type || biomarker.value === null || biomarker.value === undefined || !biomarker.unit) {
-            console.warn(`️ Skipping biomarker with missing data:`, { 
+            console.warn(`⚠️ Skipping biomarker with missing data:`, { 
               type: biomarker.type, 
               value: biomarker.value, 
               unit: biomarker.unit 
@@ -666,10 +666,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             continue;
           }
           
-          // Parse value to number, skip if invalid (e.g., "<", ">")
+          // Parse value to number, skip if invalid (e.g., "<100", ">50")
           const numericValue = typeof biomarker.value === 'number' ? biomarker.value : parseFloat(biomarker.value);
           if (isNaN(numericValue)) {
-            console.warn(`️ Skipping biomarker with non-numeric value:`, { 
+            console.warn(`⚠️ Skipping biomarker with non-numeric value:`, { 
               type: biomarker.type, 
               value: biomarker.value, 
               unit: biomarker.unit 
@@ -690,35 +690,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
           savedCount++;
         }
         
-        console.log(` Saved ${savedCount} biomarkers, skipped ${skippedCount} incomplete ones`);
+        console.log(`💾 Saved ${savedCount} biomarkers, skipped ${skippedCount} incomplete ones`);
       } else {
-        console.warn(`️ No biomarkers extracted from ${req.file.originalname}. Analysis may have failed.`);
+        console.warn(`⚠️ No biomarkers extracted from ${req.file.originalname}. Analysis may have failed.`);
       }
 
       res.json(record);
     } catch (error: any) {
-      console.error(" Error uploading file:", error.message || error);
+      console.error("❌ Error uploading file:", error.message || error);
       
       // Handle specific error cases with user-friendly messages
       if (error.message?.includes('prompt is too long')) {
-        return res.status().json({ 
-          error: "Document is too large to process. Please try splitting it into smaller files or upload a document under MB."
+        return res.status(400).json({ 
+          error: "Document is too large to process. Please try splitting it into smaller files or upload a document under 3MB."
         });
       }
       
-      if (error.status ===  || error.error?.type === 'invalid_request_error') {
-        return res.status().json({ 
+      if (error.status === 400 || error.error?.type === 'invalid_request_error') {
+        return res.status(400).json({ 
           error: "Unable to process this document. The file may be too large or contain unsupported content. Please try a smaller file."
         });
       }
 
       if (error.message?.includes('timeout') || error.code === 'ECONNABORTED') {
-        return res.status().json({ 
+        return res.status(408).json({ 
           error: "Processing timed out. Large documents may require splitting into smaller files. Please try again with a smaller file."
         });
       }
       
-      res.status().json({ 
+      res.status(500).json({ 
         error: error.message || "Failed to analyze document. Please try again."
       });
     }
@@ -731,7 +731,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const records = await storage.getHealthRecords(userId);
       res.json(records);
     } catch (error: any) {
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -742,7 +742,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.deleteHealthRecord(id, userId);
       res.json({ success: true });
     } catch (error: any) {
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -757,7 +757,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const biomarker = await storage.createBiomarker(validatedData);
       res.json(biomarker);
     } catch (error: any) {
-      res.status().json({ error: error.message });
+      res.status(400).json({ error: error.message });
     }
   });
 
@@ -772,7 +772,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
       res.json(biomarkers);
     } catch (error: any) {
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -781,7 +781,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       const { type } = req.params;
-      const { days = '' } = req.query;
+      const { days = '7' } = req.query;
       
       const endDate = new Date();
       const startDate = new Date();
@@ -803,7 +803,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(chartData);
     } catch (error: any) {
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -815,12 +815,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const latestBiomarker = await storage.getLatestBiomarkerByType(userId, type);
       
       if (!latestBiomarker) {
-        return res.status().json({ error: "No biomarker found for this type" });
+        return res.status(404).json({ error: "No biomarker found for this type" });
       }
       
       res.json(latestBiomarker);
     } catch (error: any) {
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -831,14 +831,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get user's date of birth to calculate chronological age
       const user = await storage.getUser(userId);
       if (!user || !user.dateOfBirth) {
-        return res.status().json({ error: "Date of birth not set. Please update your profile." });
+        return res.status(400).json({ error: "Date of birth not set. Please update your profile." });
       }
 
       const today = new Date();
       const birthDate = new Date(user.dateOfBirth);
       let chronologicalAge = today.getFullYear() - birthDate.getFullYear();
       const monthDiff = today.getMonth() - birthDate.getMonth();
-      if (monthDiff <  || (monthDiff ===  && today.getDate() < birthDate.getDate())) {
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
         chronologicalAge--;
       }
 
@@ -869,50 +869,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (key === 'albumin') {
             // Convert albumin to g/L if needed
             if (unit === 'g/dL') {
-              value = value  ; // g/dL to g/L
-              console.log(` Converted albumin: ${originalValue} ${unit} → ${value} g/L`);
+              value = value * 10; // g/dL to g/L
+              console.log(`🔄 Converted albumin: ${originalValue} ${unit} → ${value} g/L`);
             }
           } else if (key === 'glucose') {
             // Convert glucose to mmol/L if needed
             if (unit === 'mg/dL') {
-              value = value / .; // mg/dL to mmol/L
-              console.log(` Converted glucose: ${originalValue} ${unit} → ${value} mmol/L`);
+              value = value / 18.016; // mg/dL to mmol/L
+              console.log(`🔄 Converted glucose: ${originalValue} ${unit} → ${value} mmol/L`);
             }
           } else if (key === 'creatinine') {
             // Convert creatinine to µmol/L if needed
             if (unit === 'mg/dL') {
-              value = value  .; // mg/dL to µmol/L
-              console.log(` Converted creatinine: ${originalValue} ${unit} → ${value} µmol/L`);
+              value = value * 88.4; // mg/dL to µmol/L
+              console.log(`🔄 Converted creatinine: ${originalValue} ${unit} → ${value} µmol/L`);
             }
           } else if (key === 'lymphocytePercent') {
             // Convert lymphocyte absolute count to percentage if needed
-            if (unit === 'x⁹/L' || unit === 'K/μL') {
+            if (unit === 'x10⁹/L' || unit === 'K/μL') {
               // Need WBC to calculate percentage - fetch it first
               const wbcBiomarker = await storage.getLatestBiomarkerByType(userId, 'wbc');
               if (wbcBiomarker) {
-                // Lymphocyte % = (Lymphocyte absolute / WBC)  
-                // If lymph is in x⁹/L and WBC is in K/μL, they're the same unit
-                value = (value / wbcBiomarker.value)  ;
-                console.log(` Converted lymphocytes: ${originalValue} ${unit} → ${value}% (WBC: ${wbcBiomarker.value})`);
+                // Lymphocyte % = (Lymphocyte absolute / WBC) * 100
+                // If lymph is in x10⁹/L and WBC is in K/μL, they're the same unit
+                value = (value / wbcBiomarker.value) * 100;
+                console.log(`🔄 Converted lymphocytes: ${originalValue} ${unit} → ${value}% (WBC: ${wbcBiomarker.value})`);
               }
             }
           }
           
-          console.log(` ${key}: ${value} (original: ${originalValue} ${unit})`);
+          console.log(`📌 ${key}: ${value} (original: ${originalValue} ${unit})`);
           biomarkerValues[key] = value;
         }
       }
 
       // Calculate PhenoAge
-      console.log(" Biomarker values for PhenoAge calculation:", biomarkerValues);
-      console.log(" Chronological age:", chronologicalAge);
+      console.log("📊 Biomarker values for PhenoAge calculation:", biomarkerValues);
+      console.log("📅 Chronological age:", chronologicalAge);
       
       const result = calculatePhenoAge(biomarkerValues, chronologicalAge);
       
-      console.log(" PhenoAge calculation result:", result);
+      console.log("🧬 PhenoAge calculation result:", result);
       
       if (!result) {
-        return res.status().json({ error: "Failed to calculate biological age" });
+        return res.status(500).json({ error: "Failed to calculate biological age" });
       }
 
       // Add user-friendly biomarker info to missing/available lists
@@ -934,11 +934,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...result,
         missingBiomarkers: missingWithInfo,
         availableBiomarkers: availableWithInfo,
-        canCalculate: result.missingBiomarkers.length === 
+        canCalculate: result.missingBiomarkers.length === 0
       });
     } catch (error: any) {
       console.error("Error calculating biological age:", error);
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -946,52 +946,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const userId = (req.user as any).claims.sub;
 
     try {
-      // Step : Get user's nutrition profile for dietary preferences
+      // Step 1: Get user's nutrition profile for dietary preferences
       const nutritionProfile = await storage.getNutritionProfile(userId);
       
-      // Step : Get recent biomarkers for health-based filtering
+      // Step 2: Get recent biomarkers for health-based filtering
       const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - );
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
       const allBiomarkers = await storage.getBiomarkers(userId);
       const recentBiomarkers = allBiomarkers.filter(b => new Date(b.recordedAt) >= sevenDaysAgo);
       
       // Analyze biomarkers for health concerns
       const latestGlucose = recentBiomarkers.filter(b => b.type === 'blood_glucose').sort((a, b) => 
         new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime()
-      )[];
+      )[0];
       
       const latestCholesterol = recentBiomarkers.filter(b => b.type === 'total_cholesterol').sort((a, b) => 
         new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime()
-      )[];
+      )[0];
       
       const latestTriglycerides = recentBiomarkers.filter(b => b.type === 'triglycerides').sort((a, b) => 
         new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime()
-      )[];
+      )[0];
       
       // Determine health-based meal modifications
       const healthFilters: string[] = [];
       let healthContext = '';
       
       // High blood glucose: recommend low glycemic index meals
-      if (latestGlucose && latestGlucose.value > ) {
-        healthContext += `High blood glucose (${latestGlucose.value} mg/dL) - prioritizing low-sugar, low-GI recipes\n`;
+      if (latestGlucose && latestGlucose.value > 100) {
+        healthContext += `🩸 High blood glucose (${latestGlucose.value} mg/dL) - prioritizing low-sugar, low-GI recipes\n`;
       }
       
       // High cholesterol: recommend heart-healthy meals
-      if (latestCholesterol && latestCholesterol.value > ) {
-        healthContext += `High cholesterol (${latestCholesterol.value} mg/dL) - prioritizing heart-healthy recipes\n`;
+      if (latestCholesterol && latestCholesterol.value > 200) {
+        healthContext += `❤️ High cholesterol (${latestCholesterol.value} mg/dL) - prioritizing heart-healthy recipes\n`;
       }
       
       // High triglycerides: recommend low-carb meals
-      if (latestTriglycerides && latestTriglycerides.value > ) {
-        healthContext += `High triglycerides (${latestTriglycerides.value} mg/dL) - prioritizing low-carb recipes\n`;
+      if (latestTriglycerides && latestTriglycerides.value > 150) {
+        healthContext += `🧪 High triglycerides (${latestTriglycerides.value} mg/dL) - prioritizing low-carb recipes\n`;
       }
       
-      // Step : Get active goals for calorie/macro adjustments
+      // Step 3: Get active goals for calorie/macro adjustments
       const allGoals = await storage.getGoals(userId);
       const activeGoals = allGoals.filter(goal => goal.status === 'active');
       
-      let calorieModifier = ;
+      let calorieModifier = 0;
       let proteinBoost = false;
       
       activeGoals.forEach(goal => {
@@ -1001,99 +1001,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           if (currentWeight && targetWeight) {
             if (targetWeight < currentWeight) {
-              // Weight loss goal: reduce calories by /day
-              calorieModifier = -;
-              healthContext += `Weight loss goal: reducing daily calories by \n`;
+              // Weight loss goal: reduce calories by 500/day
+              calorieModifier = -500;
+              healthContext += `🎯 Weight loss goal: reducing daily calories by 500\n`;
             } else if (targetWeight > currentWeight) {
-              // Weight gain goal: increase calories by /day
-              calorieModifier = ;
-              healthContext += `Weight gain goal: increasing daily calories by \n`;
+              // Weight gain goal: increase calories by 500/day
+              calorieModifier = 500;
+              healthContext += `🎯 Weight gain goal: increasing daily calories by 500\n`;
             }
           }
         }
         
         if (goal.metricType === 'lean_body_mass') {
           proteinBoost = true;
-          healthContext += `Muscle building goal: prioritizing high-protein recipes\n`;
+          healthContext += `💪 Muscle building goal: prioritizing high-protein recipes\n`;
         }
       });
       
-      // Step .: Check training schedule for workout-aware meal timing
-      const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-      const today = new Date();
-      const todayName = daysOfWeek[today.getDay()];
-      
-      // Get today's scheduled workouts
-      const trainingSchedules = await storage.getTrainingSchedules(userId);
-      const todaysWorkouts = trainingSchedules.filter(schedule => schedule.day === todayName && !schedule.completed);
-      
-      // Get today's actual workout sessions
-      const todayStart = new Date(today);
-      todayStart.setHours(, , , );
-      const todayEnd = new Date(today);
-      todayEnd.setHours(, , , );
-      
-      const workoutSessions = await storage.getWorkoutSessions(userId);
-      const todaysCompletedWorkouts = workoutSessions.filter(session => {
-        const sessionDate = new Date(session.startTime);
-        return sessionDate >= todayStart && sessionDate <= todayEnd;
-      });
-      
-      const hasWorkoutToday = todaysWorkouts.length >  || todaysCompletedWorkouts.length > ;
-      let isHighIntensityWorkout = false;
-      
-      if (hasWorkoutToday) {
-        // Check workout intensity from scheduled workouts
-        const highIntensityScheduled = todaysWorkouts.filter(w => 
-          w.intensity === 'high' || w.workoutType?.toLowerCase().includes('strength')
-        );
-        // Check completed workouts for high intensity (based on effort or type)
-        const highIntensityCompleted = todaysCompletedWorkouts.filter(w => 
-          (w.perceivedEffort && w.perceivedEffort >= ) || w.workoutType?.toLowerCase().includes('strength')
-        );
-        isHighIntensityWorkout = highIntensityScheduled.length >  || highIntensityCompleted.length > ;
-        
-        proteinBoost = true;
-        healthContext += `Training day detected: boosting protein and carbs for workout recovery\n`;
-        if (isHighIntensityWorkout) {
-          healthContext += `High-intensity/strength training: prioritizing post-workout nutrition\n`;
-        }
-      }
-      
-      // Step : Delete past meals to keep only current/future meals
+      // Step 4: Delete past meals to keep only current/future meals
       const deletedCount = await storage.deletePastMealPlans(userId);
-      console.log(`Deleted ${deletedCount} past meal(s) for user ${userId}`);
+      console.log(`🗑️ Deleted ${deletedCount} past meal(s) for user ${userId}`);
       
-      // Step : Check existing meals to determine start date
+      // Step 5: Check existing meals to determine start date
       const existingMeals = await storage.getMealPlans(userId);
       let startDate = new Date();
-      startDate.setHours(, , , );
+      startDate.setHours(0, 0, 0, 0);
       
       // If there are existing future meals, start from tomorrow
-      if (existingMeals.length > ) {
-        startDate.setDate(startDate.getDate() + );
+      if (existingMeals.length > 0) {
+        startDate.setDate(startDate.getDate() + 1);
       }
       
-      // Step : Generate meal plan using Spoonacular with intelligent filtering
+      // Step 6: Generate meal plan using Spoonacular with intelligent filtering
       const savedPlans = [];
       const mealTypes = ['breakfast', 'lunch', 'dinner'];
-      const daysToGenerate = ; // Generate  days of meals
+      const daysToGenerate = 4; // Generate 4 days of meals
       
       // Build dietary restrictions from nutrition profile
-      const diet = nutritionProfile?.dietaryPreferences?.[]; // Use first preference as main diet
+      const diet = nutritionProfile?.dietaryPreferences?.[0]; // Use first preference as main diet
       const intolerances = nutritionProfile?.allergies?.join(',') || '';
       
       // Calculate intelligent calorie targets
-      const baseCalorieTarget = nutritionProfile?.calorieTarget || ;
+      const baseCalorieTarget = nutritionProfile?.calorieTarget || 2000;
       const adjustedDailyCalories = baseCalorieTarget + calorieModifier;
-      const targetCaloriesPerMeal = Math.round(adjustedDailyCalories / );
+      const targetCaloriesPerMeal = Math.round(adjustedDailyCalories / 3);
       
-      console.log(`Intelligent meal generation:`);
+      console.log(`🍽️ Intelligent meal generation:`);
       console.log(`   Diet: ${diet || 'none'}, Intolerances: ${intolerances || 'none'}`);
       console.log(`   Base calories: ${baseCalorieTarget}, Adjusted: ${adjustedDailyCalories} (modifier: ${calorieModifier})`);
       if (healthContext) console.log(`   Health context:\n${healthContext}`);
       
-      for (let day = ; day < daysToGenerate; day++) {
+      for (let day = 0; day < daysToGenerate; day++) {
         const scheduledDate = new Date(startDate);
         scheduledDate.setDate(startDate.getDate() + day);
         
@@ -1104,72 +1062,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
               type: mealType,
               diet: diet as string,
               intolerances: intolerances,
-              maxCalories: targetCaloriesPerMeal + ,
-              minCalories: targetCaloriesPerMeal - ,
-              number: ,
+              maxCalories: targetCaloriesPerMeal + 200,
+              minCalories: targetCaloriesPerMeal - 200,
+              number: 5,
               sort: 'random',
               addRecipeInformation: true,
             };
             
             // Apply health-based filters
-            if (latestGlucose && latestGlucose.value > ) {
+            if (latestGlucose && latestGlucose.value > 100) {
               // High glucose: limit sugar and prefer low-GI foods
-              searchParams.maxSugar = ; // Max g sugar per meal
+              searchParams.maxSugar = 15; // Max 15g sugar per meal
             }
             
-            if (latestCholesterol && latestCholesterol.value > ) {
+            if (latestCholesterol && latestCholesterol.value > 200) {
               // High cholesterol: limit saturated fat
-              searchParams.maxSaturatedFat = ; // Max g saturated fat per meal
+              searchParams.maxSaturatedFat = 5; // Max 5g saturated fat per meal
             }
             
-            if (latestTriglycerides && latestTriglycerides.value > ) {
+            if (latestTriglycerides && latestTriglycerides.value > 150) {
               // High triglycerides: lower carbs
-              searchParams.maxCarbs = Math.round(targetCaloriesPerMeal  . / ); // % of calories from carbs
+              searchParams.maxCarbs = Math.round(targetCaloriesPerMeal * 0.35 / 4); // 35% of calories from carbs
             }
             
             // Apply goal-based filters
             if (proteinBoost) {
               // Muscle building: boost protein
-              searchParams.minProtein = Math.round(targetCaloriesPerMeal  . / ); // % of calories from protein
-            }
-            
-            // Apply workout-specific meal timing adjustments
-            if (hasWorkoutToday) {
-              // Assume workouts typically happen midday or afternoon
-              // Pre-workout meals (breakfast/lunch): moderate carbs for energy
-              // Post-workout meals (lunch/dinner): high protein and carbs for recovery
-              
-              if (mealType === 'breakfast') {
-                // Morning meal: moderate carbs for energy
-                if (!searchParams.minCarbs) {
-                  searchParams.minCarbs = Math.round(targetCaloriesPerMeal  . / ); // % from carbs
-                }
-              } else if (mealType === 'lunch') {
-                // Midday meal: could be pre or post workout - boost both protein and carbs
-                if (!searchParams.minProtein) {
-                  searchParams.minProtein = Math.round(targetCaloriesPerMeal  . / ); // % from protein
-                }
-                if (!searchParams.minCarbs) {
-                  searchParams.minCarbs = Math.round(targetCaloriesPerMeal  . / ); // % from carbs
-                }
-                searchParams.maxCalories = targetCaloriesPerMeal + ; // Slightly larger lunch on workout days
-              } else if (mealType === 'dinner') {
-                // Evening meal: likely post-workout - prioritize protein for recovery
-                if (!searchParams.minProtein) {
-                  searchParams.minProtein = Math.round(targetCaloriesPerMeal  . / ); // % from protein
-                }
-                if (!searchParams.minCarbs && !isHighIntensityWorkout) {
-                  searchParams.minCarbs = Math.round(targetCaloriesPerMeal  . / ); // % from carbs
-                }
-              }
+              searchParams.minProtein = Math.round(targetCaloriesPerMeal * 0.30 / 4); // 30% of calories from protein
             }
             
             // Search for recipes matching nutritional requirements
             const searchResults = await spoonacularService.searchRecipes(searchParams);
 
-            if (searchResults.results && searchResults.results.length > ) {
+            if (searchResults.results && searchResults.results.length > 0) {
               // Pick a random recipe from the results
-              const recipe = searchResults.results[Math.floor(Math.random()  searchResults.results.length)];
+              const recipe = searchResults.results[Math.floor(Math.random() * searchResults.results.length)];
               
               // Get full recipe details including ingredients and instructions
               const recipeDetails = await spoonacularService.getRecipeDetails(recipe.id);
@@ -1181,76 +1108,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
               
               // Extract step-by-step instructions
               let detailedInstructions = '';
-              if (recipeDetails.analyzedInstructions && recipeDetails.analyzedInstructions.length > ) {
-                const steps = recipeDetails.analyzedInstructions[].steps || [];
+              if (recipeDetails.analyzedInstructions && recipeDetails.analyzedInstructions.length > 0) {
+                const steps = recipeDetails.analyzedInstructions[0].steps || [];
                 detailedInstructions = steps
-                  .map((step: any, index: number) => `${index + }. ${step.step}`)
+                  .map((step: any, index: number) => `${index + 1}. ${step.step}`)
                   .join('\n\n');
-              }
-              
-              // Fallback: create basic instructions if none available
-              if (!detailedInstructions && ingredients.length > ) {
-                detailedInstructions = `Instructions not available. Please visit ${recipeDetails.sourceUrl} for detailed cooking instructions.`;
               }
               
               // Calculate macros from nutrition data
               const nutrition = recipeDetails.nutrition;
-              const calories = nutrition?.nutrients?.find((n: any) => n.name === 'Calories')?.amount || ;
-              const protein = nutrition?.nutrients?.find((n: any) => n.name === 'Protein')?.amount || ;
-              const carbs = nutrition?.nutrients?.find((n: any) => n.name === 'Carbohydrates')?.amount || ;
-              const fat = nutrition?.nutrients?.find((n: any) => n.name === 'Fat')?.amount || ;
+              const calories = nutrition?.nutrients?.find((n: any) => n.name === 'Calories')?.amount || 0;
+              const protein = nutrition?.nutrients?.find((n: any) => n.name === 'Protein')?.amount || 0;
+              const carbs = nutrition?.nutrients?.find((n: any) => n.name === 'Carbohydrates')?.amount || 0;
+              const fat = nutrition?.nutrients?.find((n: any) => n.name === 'Fat')?.amount || 0;
               
               // Save meal plan with Spoonacular data
+              const recipeData = recipeDetails as any; // Type assertion for additional API fields
               const saved = await storage.createMealPlan({
                 userId,
-                mealType: mealType.charAt().toUpperCase() + mealType.slice(),
+                mealType: mealType.charAt(0).toUpperCase() + mealType.slice(1),
                 name: recipeDetails.title,
-                description: recipeDetails.summary?.replace(/<[^>]>/g, '').substring(, ) || '',
+                description: recipeDetails.summary?.replace(/<[^>]*>/g, '').substring(0, 200) || '',
                 calories: Math.round(calories),
                 protein: Math.round(protein),
                 carbs: Math.round(carbs),
                 fat: Math.round(fat),
-                prepTime: recipeDetails.readyInMinutes || ,
-                servings: recipeDetails.servings || ,
+                prepTime: recipeDetails.readyInMinutes || 30,
+                servings: recipeDetails.servings || 1,
                 ingredients,
-                detailedRecipe: detailedInstructions,
-                recipe: detailedInstructions,
-                tags: recipeDetails.diets || [],
+                detailedRecipe: detailedInstructions || recipeData.instructions || '',
+                recipe: recipeData.instructions || '',
+                tags: recipeData.diets || [],
                 imageUrl: recipeDetails.image,
                 spoonacularRecipeId: recipe.id,
-                sourceUrl: recipeDetails.sourceUrl,
-                readyInMinutes: recipeDetails.readyInMinutes,
-                healthScore: recipeDetails.healthScore,
-                dishTypes: recipeDetails.dishTypes,
-                diets: recipeDetails.diets,
                 scheduledDate,
               });
               
               savedPlans.push(saved);
-              console.log(` Added ${mealType} for day ${day + }: ${recipeDetails.title}`);
+              console.log(`✅ Added ${mealType} for day ${day + 1}: ${recipeDetails.title}`);
             }
           } catch (error) {
-            console.error(`Error generating ${mealType} for day ${day + }:`, error);
+            console.error(`Error generating ${mealType} for day ${day + 1}:`, error);
             // Continue with other meals even if one fails
           }
         }
       }
       
-      // Step : Enforce -day maximum - delete any meals beyond  days from today
+      // Step 5: Enforce 7-day maximum - delete any meals beyond 7 days from today
       const maxDate = new Date();
-      maxDate.setHours(, , , );
-      maxDate.setDate(maxDate.getDate() + );
+      maxDate.setHours(0, 0, 0, 0);
+      maxDate.setDate(maxDate.getDate() + 7);
       
       const cappedCount = await storage.deleteFutureMealsBeyondDate(userId, maxDate);
-      if (cappedCount > ) {
-        console.log(` Enforced -day cap: deleted ${cappedCount} meal(s) beyond ${maxDate.toISOString().split('T')[]}`);
+      if (cappedCount > 0) {
+        console.log(`🔒 Enforced 7-day cap: deleted ${cappedCount} meal(s) beyond ${maxDate.toISOString().split('T')[0]}`);
       }
       
-      console.log(` Generated ${savedPlans.length} Spoonacular meals for ${daysToGenerate} days starting ${startDate.toISOString().split('T')[]}`);
+      console.log(`✅ Generated ${savedPlans.length} Spoonacular meals for ${daysToGenerate} days starting ${startDate.toISOString().split('T')[0]}`);
       res.json(savedPlans);
     } catch (error: any) {
       console.error("Error generating meal plan:", error);
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -1261,7 +1179,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const plans = await storage.getMealPlans(userId);
       res.json(plans);
     } catch (error: any) {
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -1273,7 +1191,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const profile = await storage.getNutritionProfile(userId);
       res.json(profile || null);
     } catch (error: any) {
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -1287,7 +1205,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       res.json(profile);
     } catch (error: any) {
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -1298,12 +1216,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const profile = await storage.updateNutritionProfile(userId, req.body);
       
       if (!profile) {
-        return res.status().json({ error: 'Nutrition profile not found' });
+        return res.status(404).json({ error: 'Nutrition profile not found' });
       }
       
       res.json(profile);
     } catch (error: any) {
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -1335,15 +1253,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         minProtein: minProtein ? parseInt(minProtein as string) : undefined,
         maxCalories: maxCalories ? parseInt(maxCalories as string) : undefined,
         minCalories: minCalories ? parseInt(minCalories as string) : undefined,
-        number: number ? parseInt(number as string) : ,
-        offset: offset ? parseInt(offset as string) : ,
+        number: number ? parseInt(number as string) : 10,
+        offset: offset ? parseInt(offset as string) : 0,
         sort: sort as string,
       });
 
       res.json(results);
     } catch (error: any) {
       console.error("Error searching recipes:", error);
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -1354,7 +1272,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(recipe);
     } catch (error: any) {
       console.error("Error fetching recipe:", error);
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -1366,7 +1284,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const favorites = await storage.getFavoriteRecipes(userId);
       res.json(favorites);
     } catch (error: any) {
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -1381,7 +1299,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
 
       if (existing) {
-        return res.status().json({ error: 'Recipe already favorited' });
+        return res.status(400).json({ error: 'Recipe already favorited' });
       }
 
       const favorite = await storage.createFavoriteRecipe({
@@ -1390,7 +1308,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       res.json(favorite);
     } catch (error: any) {
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -1401,7 +1319,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.deleteFavoriteRecipe(req.params.id, userId);
       res.json({ success: true });
     } catch (error: any) {
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -1416,12 +1334,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
       
       if (!favorite) {
-        return res.status().json({ error: 'Favorite not found' });
+        return res.status(404).json({ error: 'Favorite not found' });
       }
       
       res.json(favorite);
     } catch (error: any) {
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -1449,7 +1367,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const saved = await storage.createTrainingSchedule({
           ...schedule,
           userId,
-          completed: ,
+          completed: 0,
           exercises: schedule.exercises || [], // Ensure exercises is never null
         });
         savedSchedules.push(saved);
@@ -1458,7 +1376,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(savedSchedules);
     } catch (error: any) {
       console.error("Error generating training schedule:", error);
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -1469,7 +1387,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const schedules = await storage.getTrainingSchedules(userId);
       res.json(schedules);
     } catch (error: any) {
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -1480,17 +1398,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { completed } = req.body;
       
       const updated = await storage.updateTrainingSchedule(id, userId, {
-        completed: completed ?  : ,
+        completed: completed ? 1 : 0,
         completedAt: completed ? new Date() : null,
       });
       
       if (!updated) {
-        return res.status().json({ error: 'Training schedule not found' });
+        return res.status(404).json({ error: 'Training schedule not found' });
       }
       
       res.json(updated);
     } catch (error: any) {
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -1505,12 +1423,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       if (!updated) {
-        return res.status().json({ error: 'Training schedule not found' });
+        return res.status(404).json({ error: 'Training schedule not found' });
       }
       
       res.json(updated);
     } catch (error: any) {
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -1520,7 +1438,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Check if we already calculated readiness today
       const today = new Date();
-      today.setHours(, , , );
+      today.setHours(0, 0, 0, 0);
       
       const existingScore = await storage.getReadinessScoreForDate(userId, today);
       
@@ -1533,23 +1451,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
           reasoning: existingScore.reasoning,
           factors: {
             sleep: { 
-              score: existingScore.sleepScore || , 
-              weight: ., 
+              score: existingScore.sleepScore || 50, 
+              weight: 0.40, 
               value: existingScore.sleepValue || undefined 
             },
             hrv: { 
-              score: existingScore.hrvScore || , 
-              weight: ., 
+              score: existingScore.hrvScore || 50, 
+              weight: 0.30, 
               value: existingScore.hrvValue || undefined 
             },
             restingHR: { 
-              score: existingScore.restingHRScore || , 
-              weight: ., 
+              score: existingScore.restingHRScore || 50, 
+              weight: 0.15, 
               value: existingScore.restingHRValue || undefined 
             },
             workloadRecovery: { 
-              score: existingScore.workloadScore || , 
-              weight: . 
+              score: existingScore.workloadScore || 50, 
+              weight: 0.15 
             }
           }
         });
@@ -1578,7 +1496,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(readinessScore);
     } catch (error: any) {
       console.error("Error calculating readiness score:", error);
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -1587,7 +1505,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const userId = (req.user as any).claims.sub;
     try {
       const today = new Date();
-      today.setHours(, , , );
+      today.setHours(0, 0, 0, 0);
       
       // Delete today's cached readiness score
       await db.delete(readinessScores).where(
@@ -1600,7 +1518,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true, message: "Readiness score cache cleared. Refresh to recalculate." });
     } catch (error: any) {
       console.error("Error clearing readiness cache:", error);
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -1615,13 +1533,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         settings = {
           id: '',
           userId,
-          sleepWeight: .,
-          hrvWeight: .,
-          restingHRWeight: .,
-          workloadWeight: .,
-          alertThreshold: ,
-          alertsEnabled: ,
-          usePersonalBaselines: ,
+          sleepWeight: 0.40,
+          hrvWeight: 0.30,
+          restingHRWeight: 0.15,
+          workloadWeight: 0.15,
+          alertThreshold: 50,
+          alertsEnabled: 1,
+          usePersonalBaselines: 0,
           personalHrvBaseline: null,
           personalRestingHrBaseline: null,
           personalSleepHoursBaseline: null,
@@ -1633,7 +1551,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(settings);
     } catch (error: any) {
       console.error("Error fetching readiness settings:", error);
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -1654,10 +1572,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         personalSleepHoursBaseline
       } = req.body;
       
-      // Validate weights sum to .
+      // Validate weights sum to 1.0
       const totalWeight = sleepWeight + hrvWeight + restingHRWeight + workloadWeight;
-      if (Math.abs(totalWeight - .) > .) {
-        return res.status().json({ error: "Weights must sum to %" });
+      if (Math.abs(totalWeight - 1.0) > 0.01) {
+        return res.status(400).json({ error: "Weights must sum to 100%" });
       }
       
       const settings = await storage.upsertReadinessSettings({
@@ -1668,7 +1586,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         workloadWeight,
         alertThreshold,
         alertsEnabled,
-        usePersonalBaselines: usePersonalBaselines ?? ,
+        usePersonalBaselines: usePersonalBaselines ?? 0,
         personalHrvBaseline: personalHrvBaseline ?? null,
         personalRestingHrBaseline: personalRestingHrBaseline ?? null,
         personalSleepHoursBaseline: personalSleepHoursBaseline ?? null,
@@ -1676,7 +1594,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Clear cached readiness scores to force recalculation with new weights
       const today = new Date();
-      today.setHours(, , , );
+      today.setHours(0, 0, 0, 0);
       await db.delete(readinessScores).where(
         and(
           eq(readinessScores.userId, userId),
@@ -1687,37 +1605,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(settings);
     } catch (error: any) {
       console.error("Error updating readiness settings:", error);
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
-  // Auto-calculate personal baselines from -day historical data
+  // Auto-calculate personal baselines from 30-day historical data
   app.get("/api/training/readiness/auto-calculate-baselines", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
     try {
-      const thirtyDaysAgo = subDays(new Date(), );
+      const thirtyDaysAgo = subDays(new Date(), 30);
       
-      // Get HRV data from last  days
+      // Get HRV data from last 30 days
       const biomarkers = await storage.getBiomarkers(userId);
       const hrvData = biomarkers
         .filter(b => b.type === 'hrv' && new Date(b.recordedAt) >= thirtyDaysAgo)
         .map(b => b.value);
       
-      // Get Resting HR data from last  days
+      // Get Resting HR data from last 30 days
       const rhrData = biomarkers
         .filter(b => b.type === 'heart-rate' && new Date(b.recordedAt) >= thirtyDaysAgo)
         .map(b => b.value);
       
-      // Get Sleep data from last  days
+      // Get Sleep data from last 30 days
       const sleepSessions = await storage.getSleepSessions(userId);
       const sleepData = sleepSessions
         .filter(s => new Date(s.bedtime) >= thirtyDaysAgo && s.totalMinutes)
-        .map(s => s.totalMinutes / ); // Convert to hours
+        .map(s => s.totalMinutes / 60); // Convert to hours
       
       // Calculate averages (or return null if no data)
       const calculateAverage = (data: number[]) => {
-        if (data.length === ) return null;
-        return Math.round((data.reduce((sum, val) => sum + val, ) / data.length)  ) / ; // Round to  decimal
+        if (data.length === 0) return null;
+        return Math.round((data.reduce((sum, val) => sum + val, 0) / data.length) * 10) / 10; // Round to 1 decimal
       };
       
       const baselines = {
@@ -1734,7 +1652,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(baselines);
     } catch (error: any) {
       console.error("Error auto-calculating baselines:", error);
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -1748,7 +1666,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(profile);
     } catch (error: any) {
       console.error("Error fetching fitness profile:", error);
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -1763,7 +1681,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       if (!validation.success) {
-        return res.status().json({ 
+        return res.status(400).json({ 
           error: "Invalid fitness profile data", 
           details: validation.error.errors 
         });
@@ -1773,7 +1691,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(profile);
     } catch (error: any) {
       console.error("Error updating fitness profile:", error);
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -1787,7 +1705,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(protocols);
     } catch (error: any) {
       console.error("Error fetching recovery protocols:", error);
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -1797,7 +1715,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Get today's readiness score
       const today = new Date();
-      today.setHours(, , , );
+      today.setHours(0, 0, 0, 0);
       
       const readinessScore = await calculateReadinessScore(userId, storage, today);
       
@@ -1806,10 +1724,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Determine which factors are low and need attention
       const lowFactors: string[] = [];
-      if (readinessScore.factors.sleep.score < ) lowFactors.push('sleep');
-      if (readinessScore.factors.hrv.score < ) lowFactors.push('hrv');
-      if (readinessScore.factors.restingHR.score < ) lowFactors.push('resting_hr');
-      if (readinessScore.factors.workloadRecovery.score < ) lowFactors.push('workload');
+      if (readinessScore.factors.sleep.score < 60) lowFactors.push('sleep');
+      if (readinessScore.factors.hrv.score < 60) lowFactors.push('hrv');
+      if (readinessScore.factors.restingHR.score < 60) lowFactors.push('resting_hr');
+      if (readinessScore.factors.workloadRecovery.score < 60) lowFactors.push('workload');
       
       // Get protocols that target the low factors
       const allRecommendations: any[] = [];
@@ -1824,10 +1742,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         p => !downvotedProtocols.includes(p.id)
       );
       
-      // Remove duplicates and limit to top 
+      // Remove duplicates and limit to top 3
       const uniqueRecommendations = Array.from(
         new Map(filteredRecommendations.map(p => [p.id, p])).values()
-      ).slice(, );
+      ).slice(0, 3);
       
       // Get user preferences for these protocols
       const preferences = await storage.getUserProtocolPreferences(userId);
@@ -1845,7 +1763,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(response);
     } catch (error: any) {
       console.error("Error generating recovery recommendations:", error);
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -1857,12 +1775,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     try {
       if (!['upvote', 'downvote', 'neutral'].includes(preference)) {
-        return res.status().json({ error: "Invalid preference. Must be 'upvote', 'downvote', or 'neutral'" });
+        return res.status(400).json({ error: "Invalid preference. Must be 'upvote', 'downvote', or 'neutral'" });
       }
       
       // Get current readiness score for context
       const today = new Date();
-      today.setHours(, , , );
+      today.setHours(0, 0, 0, 0);
       const readinessScore = await calculateReadinessScore(userId, storage, today);
       
       const result = await storage.upsertUserProtocolPreference({
@@ -1879,7 +1797,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(result);
     } catch (error: any) {
       console.error("Error voting on protocol:", error);
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -1891,7 +1809,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(preferences);
     } catch (error: any) {
       console.error("Error fetching protocol preferences:", error);
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -1905,7 +1823,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(supplements);
     } catch (error: any) {
       console.error("Error fetching supplements:", error);
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -1920,7 +1838,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(supplement);
     } catch (error: any) {
       console.error("Error creating supplement:", error);
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -1931,12 +1849,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const supplement = await storage.updateSupplement(id, userId, req.body);
       if (!supplement) {
-        return res.status().json({ error: "Supplement not found" });
+        return res.status(404).json({ error: "Supplement not found" });
       }
       res.json(supplement);
     } catch (error: any) {
       console.error("Error updating supplement:", error);
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -1949,7 +1867,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true });
     } catch (error: any) {
       console.error("Error deleting supplement:", error);
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -1963,7 +1881,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(reminders);
     } catch (error: any) {
       console.error("Error fetching daily reminders:", error);
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -1974,7 +1892,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const reminders = await storage.getActiveRemindersForToday(userId);
       
       // Get today's completions
-      const today = new Date().toISOString().split('T')[];
+      const today = new Date().toISOString().split('T')[0];
       const completions = await storage.getReminderCompletions(userId, today);
       const completedIds = new Set(completions.map(c => c.reminderId));
       
@@ -1993,7 +1911,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(remindersWithInfo);
     } catch (error: any) {
       console.error("Error fetching today's reminders:", error);
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -2008,7 +1926,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(reminder);
     } catch (error: any) {
       console.error("Error creating daily reminder:", error);
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -2017,12 +1935,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const userId = (req.user as any).claims.sub;
     const { id } = req.params;
     try {
-      const today = new Date().toISOString().split('T')[];
+      const today = new Date().toISOString().split('T')[0];
       const completion = await storage.markReminderComplete(id, userId, today);
       res.json(completion);
     } catch (error: any) {
       console.error("Error marking reminder complete:", error);
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -2037,7 +1955,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(recommendations);
     } catch (error: any) {
       console.error("Error fetching supplement recommendations:", error);
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -2051,7 +1969,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const recommendation = recommendations.find(r => r.id === id);
       
       if (!recommendation) {
-        return res.status().json({ error: "Recommendation not found" });
+        return res.status(404).json({ error: "Recommendation not found" });
       }
 
       // Add to supplement stack
@@ -2061,7 +1979,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         dosage: recommendation.dosage,
         timing: 'morning', // Default timing
         purpose: recommendation.reason,
-        active: 
+        active: 1
       });
 
       // Create daily reminder
@@ -2073,7 +1991,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         frequency: 'daily',
         timeOfDay: 'morning',
         linkedRecordId: supplement.id,
-        active: 
+        active: 1
       });
 
       // Update recommendation status
@@ -2082,7 +2000,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ supplement, accepted: true });
     } catch (error: any) {
       console.error("Error accepting supplement recommendation:", error);
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -2095,7 +2013,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true });
     } catch (error: any) {
       console.error("Error declining supplement recommendation:", error);
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -2116,9 +2034,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error creating exercise recommendation:", error);
       if (error.name === 'ZodError') {
-        return res.status().json({ error: "Invalid recommendation data", details: error.errors });
+        return res.status(400).json({ error: "Invalid recommendation data", details: error.errors });
       }
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -2131,7 +2049,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(recommendations);
     } catch (error: any) {
       console.error("Error fetching exercise recommendations:", error);
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -2145,7 +2063,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const recommendation = recommendations.find(r => r.id === id);
       
       if (!recommendation) {
-        return res.status().json({ error: "Recommendation not found" });
+        return res.status(404).json({ error: "Recommendation not found" });
       }
 
       // Parse frequency and calculate scheduled dates
@@ -2162,7 +2080,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true, scheduledDates });
     } catch (error: any) {
       console.error("Error auto-scheduling exercise:", error);
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -2183,7 +2101,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true, scheduledDates: dates });
     } catch (error: any) {
       console.error("Error manually scheduling exercise:", error);
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -2203,7 +2121,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true });
     } catch (error: any) {
       console.error("Error declining exercise recommendation:", error);
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -2215,12 +2133,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Default to current month if no dates provided
       const now = new Date();
-      const start = startDate ? new Date(startDate as string) : new Date(now.getFullYear(), now.getMonth(), );
-      const end = endDate ? new Date(endDate as string) : new Date(now.getFullYear(), now.getMonth() + , ); // End of next month
+      const start = startDate ? new Date(startDate as string) : new Date(now.getFullYear(), now.getMonth(), 1);
+      const end = endDate ? new Date(endDate as string) : new Date(now.getFullYear(), now.getMonth() + 2, 0); // End of next month
       
       // Validate dates
       if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-        return res.status().json({ error: "Invalid date range" });
+        return res.status(400).json({ error: "Invalid date range" });
       }
 
       // Get all scheduled items for the date range
@@ -2245,8 +2163,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const d = typeof date === 'string' ? new Date(date) : date;
         if (isNaN(d.getTime())) return '';
         const year = d.getFullYear();
-        const month = String(d.getMonth() + ).padStart(, '');
-        const day = String(d.getDate()).padStart(, '');
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
         return `${year}-${month}-${day}`;
       };
 
@@ -2255,8 +2173,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (ex.scheduledDates) {
           ex.scheduledDates.forEach((date: string) => {
             // If date is already YYYY-MM-DD format, use directly
-            const dateKey = date.match(/^\d{}-\d{}-\d{}$/) ? date : formatDateKey(date);
-            if (!calendar[dateKey]) calendar[dateKey] = { exercises: , workouts: , supplements:  };
+            const dateKey = date.match(/^\d{4}-\d{2}-\d{2}$/) ? date : formatDateKey(date);
+            if (!calendar[dateKey]) calendar[dateKey] = { exercises: 0, workouts: 0, supplements: 0 };
             calendar[dateKey].exercises++;
           });
         }
@@ -2266,7 +2184,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       filteredWorkouts.forEach((wo: any) => {
         if (wo.scheduledFor) {
           const dateKey = formatDateKey(wo.scheduledFor);
-          if (!calendar[dateKey]) calendar[dateKey] = { exercises: , workouts: , supplements:  };
+          if (!calendar[dateKey]) calendar[dateKey] = { exercises: 0, workouts: 0, supplements: 0 };
           calendar[dateKey].workouts++;
         }
       });
@@ -2275,15 +2193,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const currentDate = new Date(start);
       while (currentDate <= end) {
         const dateKey = formatDateKey(currentDate);
-        if (!calendar[dateKey]) calendar[dateKey] = { exercises: , workouts: , supplements:  };
-        calendar[dateKey].supplements = supplements.filter((s: any) => s.active === ).length;
-        currentDate.setDate(currentDate.getDate() + );
+        if (!calendar[dateKey]) calendar[dateKey] = { exercises: 0, workouts: 0, supplements: 0 };
+        calendar[dateKey].supplements = supplements.filter((s: any) => s.active === 1).length;
+        currentDate.setDate(currentDate.getDate() + 1);
       }
 
       res.json({ calendar, exercises, workouts: filteredWorkouts });
     } catch (error: any) {
       console.error("Error fetching calendar data:", error);
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -2292,9 +2210,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const userId = (req.user as any).claims.sub;
     try {
       const today = new Date();
-      today.setHours(, , , );
+      today.setHours(0, 0, 0, 0);
       
-      // . Get readiness score (use cached if available)
+      // 1. Get readiness score (use cached if available)
       let readinessData = await storage.getReadinessScoreForDate(userId, today);
       
       if (!readinessData) {
@@ -2319,37 +2237,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // . Get recent workout history (last  days)
+      // 2. Get recent workout history (last 7 days)
       const workoutSessions = await storage.getWorkoutSessions(userId);
       const sevenDaysAgo = new Date(today);
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - );
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
       const recentWorkouts = workoutSessions
         .filter(w => new Date(w.startTime) >= sevenDaysAgo && new Date(w.startTime) < today)
         .map(w => ({
           type: w.workoutType,
-          duration: w.duration || ,
+          duration: w.duration || 0,
           startTime: new Date(w.startTime),
         }));
       
-      // . Generate AI recommendation with safety-first logic
+      // 3. Generate AI recommendation with safety-first logic
       const aiRecommendation = await generateDailyTrainingRecommendation({
         readinessScore: readinessData!.score,
         readinessRecommendation: readinessData!.recommendation as "ready" | "caution" | "rest",
         readinessFactors: {
           sleep: { 
-            score: readinessData!.sleepScore || , 
+            score: readinessData!.sleepScore || 50, 
             value: readinessData!.sleepValue || undefined 
           },
           hrv: { 
-            score: readinessData!.hrvScore || , 
+            score: readinessData!.hrvScore || 50, 
             value: readinessData!.hrvValue || undefined 
           },
           restingHR: { 
-            score: readinessData!.restingHRScore || , 
+            score: readinessData!.restingHRScore || 50, 
             value: readinessData!.restingHRValue || undefined 
           },
           workloadRecovery: { 
-            score: readinessData!.workloadScore ||  
+            score: readinessData!.workloadScore || 50 
           },
         },
         recentWorkouts,
@@ -2362,7 +2280,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       console.error("Error generating daily training recommendation:", error);
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -2372,7 +2290,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { sessionType, duration, notes } = req.body;
       
       if (!sessionType || !['sauna', 'cold_plunge'].includes(sessionType)) {
-        return res.status().json({ error: 'Invalid session type. Must be "sauna" or "cold_plunge"' });
+        return res.status(400).json({ error: 'Invalid session type. Must be "sauna" or "cold_plunge"' });
       }
       
       const now = new Date();
@@ -2383,8 +2301,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         workoutType,
         sessionType,
         startTime: now,
-        endTime: new Date(now.getTime() + (duration || )  ),
-        duration: duration || ,
+        endTime: new Date(now.getTime() + (duration || 20) * 60000),
+        duration: duration || 20,
         sourceType: 'manual',
         notes: notes || '',
       });
@@ -2392,7 +2310,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(session);
     } catch (error: any) {
       console.error("Error logging recovery session:", error);
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -2400,7 +2318,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/workout-sessions", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
     try {
-      const { days = '' } = req.query;
+      const { days = '30' } = req.query;
       const endDate = new Date();
       const startDate = days === 'all' ? undefined : new Date();
       if (startDate) {
@@ -2410,17 +2328,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const sessions = await storage.getWorkoutSessions(userId, startDate, endDate);
       res.json(sessions);
     } catch (error: any) {
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
-  // Completed Workouts (Last  Days)
+  // Completed Workouts (Last 7 Days)
   app.get("/api/workouts/completed", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
     try {
       const endDate = new Date();
       const startDate = new Date();
-      startDate.setDate(startDate.getDate() - );
+      startDate.setDate(startDate.getDate() - 7);
       
       const sessions = await storage.getWorkoutSessions(userId, startDate, endDate);
       
@@ -2430,13 +2348,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         date: session.startTime.toISOString(),
         workoutType: session.workoutType,
         duration: session.duration,
-        caloriesEstimate: session.calories || ,
+        caloriesEstimate: session.calories || 0,
         intensity: estimateIntensity(session.avgHeartRate, session.perceivedEffort)
       }));
       
       res.json(completedWorkouts);
     } catch (error: any) {
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -2444,7 +2362,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/analytics/training-load", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
     try {
-      const { days = '' } = req.query;
+      const { days = '30' } = req.query;
       const endDate = new Date();
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - parseInt(days as string));
@@ -2452,14 +2370,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const trainingLoad = await storage.getTrainingLoad(userId, startDate, endDate);
       res.json(trainingLoad);
     } catch (error: any) {
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
   app.get("/api/analytics/workout-stats", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
     try {
-      const { days = '' } = req.query;
+      const { days = '30' } = req.query;
       const endDate = new Date();
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - parseInt(days as string));
@@ -2467,14 +2385,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const stats = await storage.getWorkoutStats(userId, startDate, endDate);
       res.json(stats);
     } catch (error: any) {
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
   app.get("/api/analytics/correlations", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
     try {
-      const { days = '' } = req.query;
+      const { days = '30' } = req.query;
       const endDate = new Date();
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - parseInt(days as string));
@@ -2482,14 +2400,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const correlations = await storage.getWorkoutBiomarkerCorrelations(userId, startDate, endDate);
       res.json(correlations);
     } catch (error: any) {
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
   app.get("/api/analytics/recovery-insights", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
     try {
-      const { days = '' } = req.query;
+      const { days = '30' } = req.query;
       const endDate = new Date();
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - parseInt(days as string));
@@ -2501,11 +2419,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       ]);
       
       // Provide safe defaults if storage returns null/undefined
-      const safeTrainingLoad = trainingLoad || { weeklyLoad: , monthlyLoad: , weeklyHours:  };
-      const safeWorkoutStats = workoutStats || { totalWorkouts: , totalDuration: , totalCalories: , byType: [] };
+      const safeTrainingLoad = trainingLoad || { weeklyLoad: 0, monthlyLoad: 0, weeklyHours: 0 };
+      const safeWorkoutStats = workoutStats || { totalWorkouts: 0, totalDuration: 0, totalCalories: 0, byType: [] };
       const safeCorrelations = correlations || {
-        sleepQuality: { workoutDays: , nonWorkoutDays: , improvement:  },
-        restingHR: { workoutDays: , nonWorkoutDays: , improvement:  }
+        sleepQuality: { workoutDays: 0, nonWorkoutDays: 0, improvement: 0 },
+        restingHR: { workoutDays: 0, nonWorkoutDays: 0, improvement: 0 }
       };
       
       const insights = await generateRecoveryInsights({
@@ -2518,7 +2436,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(insights);
     } catch (error: any) {
       console.error("Error generating recovery insights:", error);
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -2561,7 +2479,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(goal);
     } catch (error: any) {
       console.error("Error creating goal:", error);
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -2571,7 +2489,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const goals = await storage.getGoals(userId);
       res.json(goals);
     } catch (error: any) {
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -2581,11 +2499,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const goal = await storage.getGoal(id, userId);
       if (!goal) {
-        return res.status().json({ error: "Goal not found" });
+        return res.status(404).json({ error: "Goal not found" });
       }
       res.json(goal);
     } catch (error: any) {
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -2607,11 +2525,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const goal = await storage.updateGoal(id, userId, updateData);
       if (!goal) {
-        return res.status().json({ error: "Goal not found" });
+        return res.status(404).json({ error: "Goal not found" });
       }
       res.json(goal);
     } catch (error: any) {
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -2622,11 +2540,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const goal = await storage.updateGoalProgress(id, userId, currentValue);
       if (!goal) {
-        return res.status().json({ error: "Goal not found" });
+        return res.status(404).json({ error: "Goal not found" });
       }
       res.json(goal);
     } catch (error: any) {
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -2637,7 +2555,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.deleteGoal(id, userId);
       res.json({ success: true });
     } catch (error: any) {
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -2648,7 +2566,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { exerciseName, feedback, context } = req.body;
       
       if (!exerciseName || !feedback || !['up', 'down'].includes(feedback)) {
-        return res.status().json({ error: "Invalid request. exerciseName and feedback ('up' or 'down') are required." });
+        return res.status(400).json({ error: "Invalid request. exerciseName and feedback ('up' or 'down') are required." });
       }
       
       const result = await storage.createExerciseFeedback({
@@ -2661,19 +2579,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(result);
     } catch (error: any) {
       console.error("Error saving exercise feedback:", error);
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
   app.get("/api/exercise-feedback", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
     try {
-      const { limit = '' } = req.query;
+      const { limit = '50' } = req.query;
       const feedback = await storage.getExerciseFeedback(userId, parseInt(limit as string));
       res.json(feedback);
     } catch (error: any) {
       console.error("Error fetching exercise feedback:", error);
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -2681,16 +2599,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/insights/trend-predictions", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
     try {
-      const { biomarkerType, timeframeWeeks =  } = req.body;
+      const { biomarkerType, timeframeWeeks = 4 } = req.body;
       
       const endDate = new Date();
       const startDate = new Date();
-      startDate.setDate(startDate.getDate() - ); // Last  days of data
+      startDate.setDate(startDate.getDate() - 90); // Last 90 days of data
       
       const historicalData = await storage.getBiomarkersByTimeRange(userId, biomarkerType, startDate, endDate);
       
-      if (historicalData.length < ) {
-        return res.status().json({ error: "Insufficient data for prediction. Need at least  data points." });
+      if (historicalData.length < 3) {
+        return res.status(400).json({ error: "Insufficient data for prediction. Need at least 3 data points." });
       }
       
       const prediction = await generateTrendPredictions({
@@ -2702,39 +2620,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(prediction);
     } catch (error: any) {
       console.error("Error generating trend prediction:", error);
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
   app.post("/api/insights/period-comparison", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
     try {
-      const { metricType, periodStart, periodEnd, periodStart, periodEnd } = req.body;
+      const { metricType, period1Start, period1End, period2Start, period2End } = req.body;
       
-      const pStart = new Date(periodStart);
-      const pEnd = new Date(periodEnd);
-      const pStart = new Date(periodStart);
-      const pEnd = new Date(periodEnd);
+      const p1Start = new Date(period1Start);
+      const p1End = new Date(period1End);
+      const p2Start = new Date(period2Start);
+      const p2End = new Date(period2End);
       
-      const [periodData, periodData] = await Promise.all([
-        storage.getBiomarkersByTimeRange(userId, metricType, pStart, pEnd),
-        storage.getBiomarkersByTimeRange(userId, metricType, pStart, pEnd),
+      const [period1Data, period2Data] = await Promise.all([
+        storage.getBiomarkersByTimeRange(userId, metricType, p1Start, p1End),
+        storage.getBiomarkersByTimeRange(userId, metricType, p2Start, p2End),
       ]);
       
-      if (periodData.length ===  || periodData.length === ) {
-        return res.status().json({ error: "Insufficient data in one or both periods." });
+      if (period1Data.length === 0 || period2Data.length === 0) {
+        return res.status(400).json({ error: "Insufficient data in one or both periods." });
       }
       
       const comparison = await generatePeriodComparison({
         metricType,
-        period: { start: pStart, end: pEnd, data: periodData },
-        period: { start: pStart, end: pEnd, data: periodData },
+        period1: { start: p1Start, end: p1End, data: period1Data },
+        period2: { start: p2Start, end: p2End, data: period2Data },
       });
       
       res.json(comparison);
     } catch (error: any) {
       console.error("Error generating period comparison:", error);
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -2747,13 +2665,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const chatHistory = await storage.getChatMessages(userId);
       const chatContext = chatHistory.map(msg => `${msg.role}: ${msg.content}`).join('\n');
       
-      // Get recent sleep sessions (last  days)
+      // Get recent sleep sessions (last 30 days)
       const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - );
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       const sleepSessions = await storage.getSleepSessions(userId, thirtyDaysAgo, new Date());
       
       // Get recent AI insights for context
-      const recentInsights = await storage.getInsights(userId, );
+      const recentInsights = await storage.getInsights(userId, 10);
       
       const recommendations = await generateHealthRecommendations({
         biomarkers,
@@ -2775,7 +2693,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(savedRecs);
     } catch (error: any) {
       console.error("Error generating recommendations:", error);
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -2786,7 +2704,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const recommendations = await storage.getRecommendations(userId);
       res.json(recommendations);
     } catch (error: any) {
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -2797,7 +2715,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.dismissRecommendation(id, userId);
       res.json({ success: true });
     } catch (error: any) {
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -2811,7 +2729,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const recommendation = recommendations.find(r => r.id === id);
       
       if (!recommendation) {
-        return res.status().json({ error: "Recommendation not found" });
+        return res.status(404).json({ error: "Recommendation not found" });
       }
 
       // Extract workout type from title or category
@@ -2824,22 +2742,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
                           recommendation.title.toLowerCase().includes('stretching') ? 'stretching' :
                           'other');
 
-      // Estimate duration based on workout type (default  minutes)
-      const estimatedDuration = workoutType === 'hiit' ?  : 
-                                workoutType === 'yoga' ?  :
-                                workoutType === 'mobility' ?  :
-                                workoutType === 'stretching' ?  : ;
+      // Estimate duration based on workout type (default 45 minutes)
+      const estimatedDuration = workoutType === 'hiit' ? 30 : 
+                                workoutType === 'yoga' ? 60 :
+                                workoutType === 'mobility' ? 20 :
+                                workoutType === 'stretching' ? 15 : 45;
 
       // Estimate perceived effort based on workout type (for intensity calculation)
-      const estimatedEffort = workoutType === 'hiit' ?  :
-                              workoutType === 'strength' ?  :
-                              workoutType === 'cardio' ?  :
-                              workoutType === 'yoga' ?  :
-                              workoutType === 'mobility' ?  :
-                              workoutType === 'stretching' ?  : ;
+      const estimatedEffort = workoutType === 'hiit' ? 8 :
+                              workoutType === 'strength' ? 7 :
+                              workoutType === 'cardio' ? 6 :
+                              workoutType === 'yoga' ? 4 :
+                              workoutType === 'mobility' ? 3 :
+                              workoutType === 'stretching' ? 2 : 5;
 
       const now = new Date();
-      const startTime = new Date(now.getTime() - estimatedDuration    );
+      const startTime = new Date(now.getTime() - estimatedDuration * 60 * 1000);
 
       // Create workout session entry with estimated effort for intensity calculation
       await storage.createWorkoutSession({
@@ -2861,7 +2779,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true });
     } catch (error: any) {
       console.error("Error completing recommendation:", error);
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -2872,7 +2790,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { date, action } = req.body;
 
       if (!date || !action || !['add', 'replace'].includes(action)) {
-        return res.status().json({ error: "Invalid request. Provide date and action (add/replace)" });
+        return res.status(400).json({ error: "Invalid request. Provide date and action (add/replace)" });
       }
 
       const targetDate = new Date(date);
@@ -2885,18 +2803,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const schedules = await storage.getTrainingSchedules(userId);
         const replaceableWorkout = schedules.find(s => 
           s.day === dayOfWeek && 
-          (s.isOptional ===  || s.coreProgram === )
+          (s.isOptional === 1 || s.coreProgram === 0)
         );
 
         if (replaceableWorkout) {
           // Delete the optional workout to make room for recommendation
           await storage.updateTrainingSchedule(replaceableWorkout.id, userId, { 
-            completed: , 
+            completed: 1, 
             completedAt: new Date() 
           });
           trainingScheduleId = replaceableWorkout.id;
         } else {
-          return res.status().json({ 
+          return res.status(400).json({ 
             error: "No optional or recovery workout found for that day. Core workouts cannot be replaced." 
           });
         }
@@ -2913,7 +2831,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       console.error("Error scheduling recommendation:", error);
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -2924,7 +2842,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { feedback, reason } = req.body;
 
       if (!feedback || !['positive', 'negative'].includes(feedback)) {
-        return res.status().json({ error: "Invalid feedback. Must be 'positive' or 'negative'" });
+        return res.status(400).json({ error: "Invalid feedback. Must be 'positive' or 'negative'" });
       }
 
       await storage.recordRecommendationFeedback(id, userId, feedback, reason);
@@ -2932,7 +2850,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true, feedback });
     } catch (error: any) {
       console.error("Error recording recommendation feedback:", error);
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -2943,7 +2861,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(recommendations);
     } catch (error: any) {
       console.error("Error fetching scheduled recommendations:", error);
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -2955,7 +2873,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(recommendations);
     } catch (error: any) {
       console.error("Error fetching today's scheduled recommendations:", error);
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -2966,7 +2884,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { date } = req.body;
 
       if (!date) {
-        return res.status().json({ error: "Date is required" });
+        return res.status(400).json({ error: "Date is required" });
       }
 
       const newDate = new Date(date);
@@ -2975,7 +2893,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true, scheduledFor: newDate });
     } catch (error: any) {
       console.error("Error rescheduling recommendation:", error);
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -2986,22 +2904,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userSettings = await storage.getUserSettings(userId);
       const timezone = userSettings.timezone || 'UTC';
       
-      // Get last  days of data
+      // Get last 7 days of data
       const endDate = new Date();
       const startDate = new Date();
-      startDate.setDate(startDate.getDate() - );
+      startDate.setDate(startDate.getDate() - 7);
       
       const biomarkers = await storage.getBiomarkers(userId);
       const sleepSessions = await storage.getSleepSessions(userId, startDate, endDate);
       const chatHistory = await storage.getChatMessages(userId);
-      const chatContext = chatHistory.slice(-).map(msg => `${msg.role}: ${msg.content}`).join('\n');
+      const chatContext = chatHistory.slice(-10).map(msg => `${msg.role}: ${msg.content}`).join('\n');
       
       // Fetch active goals to provide goal-driven insights
       const allGoals = await storage.getGoals(userId);
       const activeGoals = allGoals.filter(goal => goal.status === 'active');
       
       const insights = await generateDailyInsights({
-        biomarkers: biomarkers.slice(, ), // Last  biomarkers
+        biomarkers: biomarkers.slice(0, 50), // Last 50 biomarkers
         sleepSessions,
         chatContext,
         timezone,
@@ -3021,7 +2939,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(savedInsights);
     } catch (error: any) {
       console.error("Error generating insights:", error);
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -3033,7 +2951,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const insights = await storage.getDailyInsights(userId, date);
       res.json(insights);
     } catch (error: any) {
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -3041,11 +2959,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const userId = (req.user as any).claims.sub;
 
     try {
-      const limit = req.query.limit ? parseInt(req.query.limit as string) : ;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
       const insights = await storage.getInsights(userId, limit);
       res.json(insights);
     } catch (error: any) {
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -3056,7 +2974,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.dismissInsight(id, userId);
       res.json({ success: true });
     } catch (error: any) {
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -3067,7 +2985,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { message, currentPage } = req.body;
       
       if (!message || typeof message !== 'string') {
-        return res.status().json({ error: "Message is required" });
+        return res.status(400).json({ error: "Message is required" });
       }
 
       const userMessage = await storage.createChatMessage({
@@ -3085,17 +3003,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Gather context for AI
       const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - );
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
       const now = new Date();
       
-      // Get all biomarkers from last  days and sort by newest first
+      // Get all biomarkers from last 7 days and sort by newest first
       const allBiomarkers = await storage.getBiomarkers(userId);
       const recentBiomarkers = allBiomarkers
         .filter(b => new Date(b.recordedAt) >= sevenDaysAgo)
         .sort((a, b) => new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime())
-        .slice(, );
+        .slice(0, 20);
 
-      const recentInsights = await storage.getInsights(userId, );
+      const recentInsights = await storage.getInsights(userId, 5);
       
       const user = await storage.getUser(userId);
       
@@ -3122,7 +3040,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const downvotedProtocolIds = await storage.getDownvotedProtocols(userId);
       const downvotedProtocols: string[] = [];
       
-      if (downvotedProtocolIds.length > ) {
+      if (downvotedProtocolIds.length > 0) {
         for (const protocolId of downvotedProtocolIds) {
           const protocol = await storage.getRecoveryProtocol(protocolId);
           if (protocol) {
@@ -3146,7 +3064,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         onboardingStep,
         activeGoals,
         readinessScore: readinessScore || undefined,
-        downvotedProtocols: downvotedProtocols.length >  ? downvotedProtocols : undefined,
+        downvotedProtocols: downvotedProtocols.length > 0 ? downvotedProtocols : undefined,
         fitnessProfile: fitnessProfile || undefined,
         nutritionProfile: nutritionProfile || undefined,
       };
@@ -3161,19 +3079,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Check if AI response contains a training plan to save
       let trainingPlanSaved = false;
-      const trainingPlanMatch = aiResponse.match(/<<<SAVE_TRAINING_PLAN>>>([\s\S]?)<<<END_SAVE_TRAINING_PLAN>>>/);
+      const trainingPlanMatch = aiResponse.match(/<<<SAVE_TRAINING_PLAN>>>([\s\S]*?)<<<END_SAVE_TRAINING_PLAN>>>/);
       
       if (trainingPlanMatch) {
-        console.log(" Training plan markers found! Extracting JSON...");
+        console.log("🏋️ Training plan markers found! Extracting JSON...");
         try {
-          const trainingPlanJson = trainingPlanMatch[].trim();
-          console.log(" Training plan JSON:", trainingPlanJson);
+          const trainingPlanJson = trainingPlanMatch[1].trim();
+          console.log("📋 Training plan JSON:", trainingPlanJson);
           const trainingPlans = JSON.parse(trainingPlanJson);
-          console.log(" Parsed training plans:", trainingPlans.length, "workouts");
+          console.log("✅ Parsed training plans:", trainingPlans.length, "workouts");
           
           // Save each workout from the plan
           for (const plan of trainingPlans) {
-            console.log(" Saving workout:", plan.day, "-", plan.workoutType);
+            console.log("💾 Saving workout:", plan.day, "-", plan.workoutType);
             try {
               const schedule = await storage.createTrainingSchedule({
                 userId,
@@ -3184,12 +3102,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 intensity: plan.intensity,
                 description: plan.description || null,
                 exercises: plan.exercises,
-                coreProgram: , // AI-generated plans are core programs by default
-                completed: ,
+                coreProgram: 1, // AI-generated plans are core programs by default
+                completed: 0,
               });
-              console.log(" Workout saved successfully with ID:", schedule.id);
+              console.log("✅ Workout saved successfully with ID:", schedule.id);
             } catch (saveError) {
-              console.error(" Failed to save individual workout:", {
+              console.error("❌ Failed to save individual workout:", {
                 day: plan.day,
                 error: saveError,
                 planData: plan
@@ -3199,84 +3117,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
           
           trainingPlanSaved = true;
-          console.log(" Training plan saved successfully!");
+          console.log("✨ Training plan saved successfully!");
           
           // Auto-advance onboarding step when training plan is saved
           if (isOnboarding && onboardingStep === 'training_plan') {
             await storage.updateOnboardingStep(userId, 'meal_plan');
           }
         } catch (e) {
-          console.error(" Failed to parse and save training plan:", e);
-          console.error("Raw JSON that failed:", trainingPlanMatch[].trim());
+          console.error("❌ Failed to parse and save training plan:", e);
+          console.error("Raw JSON that failed:", trainingPlanMatch[1].trim());
         }
       } else {
-        console.log("️ No training plan markers found in AI response");
+        console.log("ℹ️ No training plan markers found in AI response");
       }
 
       // Check if AI response contains a meal plan to save
       let mealPlanSaved = false;
-      const mealPlanMatch = aiResponse.match(/<<<SAVE_MEAL_PLAN>>>([\s\S]?)<<<END_SAVE_MEAL_PLAN>>>/);
+      const mealPlanMatch = aiResponse.match(/<<<SAVE_MEAL_PLAN>>>([\s\S]*?)<<<END_SAVE_MEAL_PLAN>>>/);
       
       if (mealPlanMatch) {
-        console.log(" Meal plan markers found! Extracting JSON...");
+        console.log("🍽️ Meal plan markers found! Extracting JSON...");
         try {
-          const mealPlanJson = mealPlanMatch[].trim();
-          console.log(" Meal plan JSON:", mealPlanJson);
+          const mealPlanJson = mealPlanMatch[1].trim();
+          console.log("📋 Meal plan JSON:", mealPlanJson);
           const mealPlans = JSON.parse(mealPlanJson);
-          console.log(" Parsed meal plans:", mealPlans.length, "meals");
+          console.log("✅ Parsed meal plans:", mealPlans.length, "meals");
           
           // Save each meal from the plan
           for (const plan of mealPlans) {
             // Use 'meal' or 'name' field for meal name (AI might use either)
             const mealName = plan.name || plan.meal || "Meal Plan";
-            console.log(" Saving meal:", mealName);
+            console.log("💾 Saving meal:", mealName);
             await storage.createMealPlan({
               userId,
               name: mealName,
               description: plan.description || null,
               mealType: plan.mealType || "Meal",
-              calories: plan.calories || ,
-              protein: plan.protein || ,
-              carbs: plan.carbs || ,
-              fat: plan.fat || ,
-              prepTime: plan.prepTime || ,
+              calories: plan.calories || 0,
+              protein: plan.protein || 0,
+              carbs: plan.carbs || 0,
+              fat: plan.fat || 0,
+              prepTime: plan.prepTime || 30,
               recipe: plan.recipe || JSON.stringify(plan.items || []),
               tags: plan.tags || [],
             });
           }
           
           mealPlanSaved = true;
-          console.log(" Meal plan saved successfully!");
+          console.log("✨ Meal plan saved successfully!");
           
           // Auto-advance onboarding step when meal plan is saved (if on meal_plan step)
           if (isOnboarding && onboardingStep === 'meal_plan') {
             await storage.completeOnboarding(userId);
           }
         } catch (e) {
-          console.error(" Failed to parse and save meal plan:", e);
+          console.error("❌ Failed to parse and save meal plan:", e);
         }
       } else {
-        console.log("️ No meal plan markers found in AI response");
+        console.log("ℹ️ No meal plan markers found in AI response");
       }
 
       // Check if AI response contains a goal to save
       let goalSaved = false;
-      const goalMatch = aiResponse.match(/<<<SAVE_GOAL>>>([\s\S]?)<<<END_SAVE_GOAL>>>/);
+      const goalMatch = aiResponse.match(/<<<SAVE_GOAL>>>([\s\S]*?)<<<END_SAVE_GOAL>>>/);
       
       if (goalMatch) {
-        console.log(" Goal markers found! Extracting JSON...");
+        console.log("🎯 Goal markers found! Extracting JSON...");
         try {
-          const goalJson = goalMatch[].trim();
-          console.log(" Goal JSON:", goalJson);
+          const goalJson = goalMatch[1].trim();
+          console.log("📋 Goal JSON:", goalJson);
           const parsedData = JSON.parse(goalJson);
           
           // Normalize to array (AI might send single object or array)
           const goalDataArray = Array.isArray(parsedData) ? parsedData : [parsedData];
-          console.log(" Parsed goals:", goalDataArray.length);
+          console.log("✅ Parsed goals:", goalDataArray.length);
           
           // Process each goal
           for (const goalData of goalDataArray) {
-            console.log(" Processing goal:", goalData.metricType);
+            console.log("💾 Processing goal:", goalData.metricType);
             
             // Fetch latest biomarker value to auto-populate start and current values
             // If biomarker lookup fails, use AI-provided values or null
@@ -3289,10 +3207,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 // Override with latest biomarker data (more current than AI-provided values)
                 startValue = latestBiomarker.value;
                 currentValue = latestBiomarker.value;
-                console.log(` Auto-populated from latest ${goalData.metricType}: ${latestBiomarker.value}`);
+                console.log(`📊 Auto-populated from latest ${goalData.metricType}: ${latestBiomarker.value}`);
               }
             } catch (e) {
-              console.log("️ Could not fetch latest biomarker, using AI-provided or null values");
+              console.log("⚠️ Could not fetch latest biomarker, using AI-provided or null values");
             }
             
             // Convert deadline string to Date object
@@ -3312,38 +3230,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
               currentValue,
               deadline,
               unit,
-              createdByAI: , // Mark as AI-created
+              createdByAI: 1, // Mark as AI-created
             });
             
             goalSaved = true;
           }
           
-          console.log(" Goal(s) saved successfully!");
+          console.log("✨ Goal(s) saved successfully!");
         } catch (e) {
-          console.error(" Failed to parse and save goal:", e);
+          console.error("❌ Failed to parse and save goal:", e);
         }
       } else {
-        console.log("️ No goal markers found in AI response");
+        console.log("ℹ️ No goal markers found in AI response");
       }
 
       // Check if AI response contains supplement recommendations to save
       let supplementSaved = false;
-      const supplementMatch = aiResponse.match(/<<<SAVE_SUPPLEMENT>>>([\s\S]?)<<<END_SAVE_SUPPLEMENT>>>/);
+      const supplementMatch = aiResponse.match(/<<<SAVE_SUPPLEMENT>>>([\s\S]*?)<<<END_SAVE_SUPPLEMENT>>>/);
       
       if (supplementMatch) {
-        console.log(" Supplement markers found! Extracting JSON...");
+        console.log("💊 Supplement markers found! Extracting JSON...");
         try {
-          const supplementJson = supplementMatch[].trim();
-          console.log(" Supplement JSON:", supplementJson);
+          const supplementJson = supplementMatch[1].trim();
+          console.log("📋 Supplement JSON:", supplementJson);
           const supplements = JSON.parse(supplementJson);
           
           // Normalize to array (AI might send single object or array)
           const supplementArray = Array.isArray(supplements) ? supplements : [supplements];
-          console.log(" Parsed supplements:", supplementArray.length);
+          console.log("✅ Parsed supplements:", supplementArray.length);
           
           // Process each supplement recommendation
           for (const supp of supplementArray) {
-            console.log(" Saving supplement recommendation:", supp.supplementName);
+            console.log("💾 Saving supplement recommendation:", supp.supplementName);
             
             await storage.createSupplementRecommendation({
               userId,
@@ -3357,26 +3275,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
             supplementSaved = true;
           }
           
-          console.log(" Supplement recommendation(s) saved successfully!");
+          console.log("✨ Supplement recommendation(s) saved successfully!");
         } catch (e) {
-          console.error(" Failed to parse and save supplement recommendations:", e);
+          console.error("❌ Failed to parse and save supplement recommendations:", e);
         }
       } else {
-        console.log("️ No supplement markers found in AI response");
+        console.log("ℹ️ No supplement markers found in AI response");
       }
 
       // Check if AI response contains exercise recommendations to save
       let exerciseSaved = false;
-      const exerciseMatch = aiResponse.match(/<<<SAVE_EXERCISE>>>([\s\S]?)<<<END_SAVE_EXERCISE>>>/);
+      const exerciseMatch = aiResponse.match(/<<<SAVE_EXERCISE>>>([\s\S]*?)<<<END_SAVE_EXERCISE>>>/);
       
       if (exerciseMatch) {
-        console.log(" Exercise markers found! Extracting JSON...");
+        console.log("🏃 Exercise markers found! Extracting JSON...");
         try {
-          const exerciseJson = exerciseMatch[].trim();
-          console.log(" Exercise JSON:", exerciseJson);
+          const exerciseJson = exerciseMatch[1].trim();
+          console.log("📋 Exercise JSON:", exerciseJson);
           const exercise = JSON.parse(exerciseJson);
           
-          console.log(" Saving exercise recommendation:", exercise.exerciseName);
+          console.log("💾 Saving exercise recommendation:", exercise.exerciseName);
           
           await storage.createScheduledExerciseRecommendation({
             userId,
@@ -3387,7 +3305,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             frequency: exercise.frequency,
             recommendedBy: 'ai',
             reason: exercise.reason,
-            isSupplementary: , // Always supplementary from AI
+            isSupplementary: 1, // Always supplementary from AI
             status: 'pending',
             scheduledDates: null,
             userFeedback: null,
@@ -3395,23 +3313,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
           
           exerciseSaved = true;
-          console.log(" Exercise recommendation saved successfully!");
+          console.log("✨ Exercise recommendation saved successfully!");
         } catch (e) {
-          console.error(" Failed to parse and save exercise recommendation:", e);
+          console.error("❌ Failed to parse and save exercise recommendation:", e);
         }
       } else {
-        console.log("️ No exercise markers found in AI response");
+        console.log("ℹ️ No exercise markers found in AI response");
       }
 
       // Check if AI response contains fitness profile updates
       let fitnessProfileUpdated = false;
-      const fitnessProfileMatch = aiResponse.match(/<<<UPDATE_FITNESS_PROFILE>>>([\s\S]?)<<<END_UPDATE_FITNESS_PROFILE>>>/);
+      const fitnessProfileMatch = aiResponse.match(/<<<UPDATE_FITNESS_PROFILE>>>([\s\S]*?)<<<END_UPDATE_FITNESS_PROFILE>>>/);
       
       if (fitnessProfileMatch) {
-        console.log(" Fitness profile update markers found! Extracting JSON...");
+        console.log("💪 Fitness profile update markers found! Extracting JSON...");
         try {
-          const profileJson = fitnessProfileMatch[].trim();
-          console.log(" Fitness profile JSON:", profileJson);
+          const profileJson = fitnessProfileMatch[1].trim();
+          console.log("📋 Fitness profile JSON:", profileJson);
           const profileData = JSON.parse(profileJson);
           
           // Get existing profile to merge with updates
@@ -3427,8 +3345,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             hasGymAccess: profileData.hasGymAccess !== undefined 
               ? profileData.hasGymAccess 
               : profileData.gymAccess !== undefined 
-                ? (profileData.gymAccess ?  : ) 
-                : existingProfile?.hasGymAccess ?? ,
+                ? (profileData.gymAccess ? 1 : 0) 
+                : existingProfile?.hasGymAccess ?? 0,
             gymType: profileData.gymType ?? existingProfile?.gymType ?? null,
             homeEquipment: profileData.homeEquipment ?? profileData.equipment ?? existingProfile?.homeEquipment ?? [],
             specialFacilities: profileData.specialFacilities ?? existingProfile?.specialFacilities ?? [],
@@ -3448,24 +3366,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const validation = insertFitnessProfileSchema.safeParse(mergedProfile);
           
           if (!validation.success) {
-            console.error(" Fitness profile validation failed:", validation.error.errors);
+            console.error("❌ Fitness profile validation failed:", validation.error.errors);
             throw new Error("Invalid fitness profile data from AI");
           }
           
-          console.log(" Updating fitness profile with validated data...");
+          console.log("💾 Updating fitness profile with validated data...");
           await storage.upsertFitnessProfile(validation.data);
           
           fitnessProfileUpdated = true;
-          console.log(" Fitness profile updated successfully!");
+          console.log("✨ Fitness profile updated successfully!");
         } catch (e) {
-          console.error(" Failed to parse and update fitness profile:", e);
+          console.error("❌ Failed to parse and update fitness profile:", e);
         }
       } else {
-        console.log("️ No fitness profile update markers found in AI response");
+        console.log("ℹ️ No fitness profile update markers found in AI response");
       }
 
       // Auto-advance onboarding steps after AI responds (user has engaged with current step)
-      if (isOnboarding && onboardingStep && message.trim().length > ) {
+      if (isOnboarding && onboardingStep && message.trim().length > 0) {
         const STEP_PROGRESSION: Record<string, string> = {
           'welcome': 'apple_health',
           'apple_health': 'health_records',
@@ -3493,7 +3411,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       console.error("Error in chat:", error);
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -3504,7 +3422,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const messages = await storage.getChatMessages(userId);
       res.json(messages);
     } catch (error: any) {
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -3515,7 +3433,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.clearChatHistory(userId);
       res.json({ success: true });
     } catch (error: any) {
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -3538,24 +3456,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const filtered = biomarkers
           .filter(b => b.type === type && new Date(b.recordedAt) < currentDate)
           .sort((a, b) => new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime());
-        return filtered.length >  ? filtered[].value : null;
+        return filtered.length > 0 ? filtered[0].value : null;
       };
 
       const calculateTrend = (current: number, previous: number | null) => {
-        if (previous === null || previous === ) return ;
-        return ((current - previous) / previous)  ;
+        if (previous === null || previous === 0) return 0;
+        return ((current - previous) / previous) * 100;
       };
 
       const formatLastUpdated = (date: Date) => {
         const now = new Date();
         const diffMs = now.getTime() - new Date(date).getTime();
-        const diffHours = Math.floor(diffMs / (    ));
-        const diffDays = Math.floor(diffHours / );
+        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+        const diffDays = Math.floor(diffHours / 24);
         
-        if (diffHours < ) return 'Just now';
-        if (diffHours < ) return `${diffHours} hour${diffHours >  ? 's' : ''} ago`;
-        if (diffDays === ) return 'Today';
-        if (diffDays === ) return 'Yesterday';
+        if (diffHours < 1) return 'Just now';
+        if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+        if (diffDays === 0) return 'Today';
+        if (diffDays === 1) return 'Yesterday';
         return `${diffDays} days ago`;
       };
 
@@ -3566,31 +3484,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const calories = latestByType['calories'];
       
       res.json({
-        dailySteps: steps ? steps.value : ,
-        restingHR: heartRate ? heartRate.value : ,
-        activeDays: ,
-        calories: calories ? calories.value : ,
+        dailySteps: steps ? steps.value : 0,
+        restingHR: heartRate ? heartRate.value : 0,
+        activeDays: 5,
+        calories: calories ? calories.value : 0,
         heartRate: heartRate ? {
           value: heartRate.value,
           trend: calculateTrend(heartRate.value, getPreviousValue('heart-rate', new Date(heartRate.recordedAt))),
           lastUpdated: formatLastUpdated(heartRate.recordedAt)
-        } : { value: , trend: , lastUpdated: 'Never' },
+        } : { value: 0, trend: 0, lastUpdated: 'Never' },
         bloodGlucose: bloodGlucose ? {
           value: bloodGlucose.value,
           trend: calculateTrend(bloodGlucose.value, getPreviousValue('blood-glucose', new Date(bloodGlucose.recordedAt))),
           lastUpdated: formatLastUpdated(bloodGlucose.recordedAt)
-        } : { value: , trend: , lastUpdated: 'Never' },
+        } : { value: 0, trend: 0, lastUpdated: 'Never' },
         weight: weight ? {
           value: weight.value,
           trend: calculateTrend(weight.value, getPreviousValue('weight', new Date(weight.recordedAt))),
           lastUpdated: formatLastUpdated(weight.recordedAt)
-        } : { value: , trend: , lastUpdated: 'Never' },
+        } : { value: 0, trend: 0, lastUpdated: 'Never' },
         totalRecords: records.length,
         analyzedRecords: records.filter(r => r.analyzedAt).length,
         activeRecommendations: recommendations.length,
       });
     } catch (error: any) {
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -3604,8 +3522,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!latest) {
         return res.json({
           hasData: false,
-          sleepScore: ,
-          totalSleepMinutes: ,
+          sleepScore: 0,
+          totalSleepMinutes: 0,
           quality: 'No data',
           lastNight: null,
         });
@@ -3613,22 +3531,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({
         hasData: true,
-        sleepScore: latest.sleepScore || ,
+        sleepScore: latest.sleepScore || 0,
         totalSleepMinutes: latest.totalMinutes,
         quality: latest.quality || 'Unknown',
         lastNight: {
           bedtime: latest.bedtime,
           waketime: latest.waketime,
           totalMinutes: latest.totalMinutes,
-          awakeMinutes: latest.awakeMinutes || ,
-          lightMinutes: latest.lightMinutes || ,
-          deepMinutes: latest.deepMinutes || ,
-          remMinutes: latest.remMinutes || ,
-          sleepScore: latest.sleepScore || ,
+          awakeMinutes: latest.awakeMinutes || 0,
+          lightMinutes: latest.lightMinutes || 0,
+          deepMinutes: latest.deepMinutes || 0,
+          remMinutes: latest.remMinutes || 0,
+          sleepScore: latest.sleepScore || 0,
         },
       });
     } catch (error: any) {
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -3636,7 +3554,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const userId = (req.user as any).claims.sub;
 
     try {
-      const days = parseInt(req.query.days as string) || ;
+      const days = parseInt(req.query.days as string) || 30;
       const endDate = new Date();
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - days);
@@ -3644,7 +3562,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const sessions = await storage.getSleepSessions(userId, startDate, endDate);
       res.json(sessions);
     } catch (error: any) {
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -3654,11 +3572,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const latest = await storage.getLatestSleepSession(userId);
       if (!latest) {
-        return res.status().json({ error: "No sleep data found" });
+        return res.status(404).json({ error: "No sleep data found" });
       }
       res.json(latest);
     } catch (error: any) {
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -3669,33 +3587,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const endDate = new Date();
       const startDate = new Date();
-      startDate.setDate(startDate.getDate() - ); // Last  days
+      startDate.setDate(startDate.getDate() - 7); // Last 7 days
 
-      // Get sleep data (% of score)
+      // Get sleep data (30% of score)
       const sleepSessions = await storage.getSleepSessions(userId, startDate, endDate);
-      const avgSleepScore = sleepSessions.length > 
-        ? sleepSessions.reduce((sum, s) => sum + (s.sleepScore || ), ) / sleepSessions.length
-        : ;
-      const sleepComponent = (avgSleepScore / )  ;
+      const avgSleepScore = sleepSessions.length > 0
+        ? sleepSessions.reduce((sum, s) => sum + (s.sleepScore || 0), 0) / sleepSessions.length
+        : 0;
+      const sleepComponent = (avgSleepScore / 100) * 30;
 
-      // Get activity data (% of score)
+      // Get activity data (25% of score)
       const biomarkers = await storage.getBiomarkers(userId);
       const recentSteps = biomarkers
         .filter(b => b.type === 'steps' && new Date(b.recordedAt) >= startDate)
         .map(b => b.value);
-      const avgSteps = recentSteps.length > 
-        ? recentSteps.reduce((sum, val) => sum + val, ) / recentSteps.length
-        : ;
+      const avgSteps = recentSteps.length > 0
+        ? recentSteps.reduce((sum, val) => sum + val, 0) / recentSteps.length
+        : 0;
       
       const workouts = await storage.getWorkoutSessions(userId, startDate, endDate);
-      const workoutDays = new Set(workouts.map(w => w.startTime.toISOString().split('T')[])).size;
+      const workoutDays = new Set(workouts.map(w => w.startTime.toISOString().split('T')[0])).size;
       
-      // Activity score: k steps = %, + workout days = %
-      const stepsScore = Math.min((avgSteps / )  , );
-      const workoutScore = Math.min((workoutDays / )  , );
-      const activityComponent = ((stepsScore + workoutScore) / )  ;
+      // Activity score: 10k steps = 50%, 5+ workout days = 50%
+      const stepsScore = Math.min((avgSteps / 10000) * 50, 50);
+      const workoutScore = Math.min((workoutDays / 5) * 50, 50);
+      const activityComponent = ((stepsScore + workoutScore) / 100) * 25;
 
-      // Get biomarker health (% of score)
+      // Get biomarker health (45% of score)
       const latestByType: Record<string, any> = {};
       biomarkers.forEach(b => {
         if (!latestByType[b.type] || new Date(b.recordedAt) > new Date(latestByType[b.type].recordedAt)) {
@@ -3703,24 +3621,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       });
 
-      let biomarkerScore = ;
-      let biomarkerCount = ;
+      let biomarkerScore = 0;
+      let biomarkerCount = 0;
 
-      // Heart rate: - bpm is optimal
+      // Heart rate: 60-100 bpm is optimal
       const hr = latestByType['heart-rate'];
       if (hr) {
-        if (hr.value >=  && hr.value <= ) biomarkerScore += ;
-        else if (hr.value >  && hr.value <= ) biomarkerScore += ;
-        else biomarkerScore += ;
+        if (hr.value >= 60 && hr.value <= 80) biomarkerScore += 100;
+        else if (hr.value > 80 && hr.value <= 100) biomarkerScore += 70;
+        else biomarkerScore += 40;
         biomarkerCount++;
       }
 
-      // Blood glucose: < mg/dL is optimal
+      // Blood glucose: <100 mg/dL is optimal
       const glucose = latestByType['blood-glucose'];
       if (glucose) {
-        if (glucose.value < ) biomarkerScore += ;
-        else if (glucose.value < ) biomarkerScore += ;
-        else biomarkerScore += ;
+        if (glucose.value < 100) biomarkerScore += 100;
+        else if (glucose.value < 126) biomarkerScore += 70;
+        else biomarkerScore += 40;
         biomarkerCount++;
       }
 
@@ -3730,30 +3648,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const oldWeights = biomarkers
           .filter(b => b.type === 'weight' && new Date(b.recordedAt) < new Date(weight.recordedAt))
           .sort((a, b) => new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime())
-          .slice(, );
+          .slice(0, 5);
         
-        if (oldWeights.length > ) {
-          const avgOldWeight = oldWeights.reduce((sum, w) => sum + w.value, ) / oldWeights.length;
+        if (oldWeights.length > 0) {
+          const avgOldWeight = oldWeights.reduce((sum, w) => sum + w.value, 0) / oldWeights.length;
           const change = Math.abs(weight.value - avgOldWeight);
-          if (change < ) biomarkerScore += ; // Stable
-          else if (change < ) biomarkerScore += ;
-          else biomarkerScore += ;
+          if (change < 2) biomarkerScore += 100; // Stable
+          else if (change < 5) biomarkerScore += 80;
+          else biomarkerScore += 60;
           biomarkerCount++;
         }
       }
 
-      const biomarkerComponent = biomarkerCount > 
-        ? ((biomarkerScore / biomarkerCount) / )  
-        : ;
+      const biomarkerComponent = biomarkerCount > 0
+        ? ((biomarkerScore / biomarkerCount) / 100) * 45
+        : 0;
 
       // Calculate final score - ensure we don't return NaN
-      const totalScore = Math.round(sleepComponent + activityComponent + biomarkerComponent) || ;
+      const totalScore = Math.round(sleepComponent + activityComponent + biomarkerComponent) || 0;
       
       // Determine quality label
       let quality = 'Poor';
-      if (totalScore >= ) quality = 'Excellent';
-      else if (totalScore >= ) quality = 'Good';
-      else if (totalScore >= ) quality = 'Fair';
+      if (totalScore >= 80) quality = 'Excellent';
+      else if (totalScore >= 60) quality = 'Good';
+      else if (totalScore >= 40) quality = 'Fair';
 
       res.json({
         score: totalScore,
@@ -3771,7 +3689,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       });
     } catch (error: any) {
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -3782,7 +3700,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const endDate = new Date();
       const startDate = new Date();
-      startDate.setDate(startDate.getDate() - ); // Last  days
+      startDate.setDate(startDate.getDate() - 30); // Last 30 days
 
       const biomarkers = await storage.getBiomarkers(userId);
       const correlations = await storage.getWorkoutBiomarkerCorrelations(userId, startDate, endDate);
@@ -3795,17 +3713,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .filter(b => b.type === type && new Date(b.recordedAt) >= startDate)
           .sort((a, b) => new Date(a.recordedAt).getTime() - new Date(b.recordedAt).getTime());
         
-        if (metricData.length >= ) {
-          const recent = metricData.slice(-).reduce((sum, b) => sum + b.value, ) / ;
-          const older = metricData.slice(, ).reduce((sum, b) => sum + b.value, ) / ;
-          const change = older !==  ? ((recent - older) / older)   : ;
+        if (metricData.length >= 3) {
+          const recent = metricData.slice(-3).reduce((sum, b) => sum + b.value, 0) / 3;
+          const older = metricData.slice(0, 3).reduce((sum, b) => sum + b.value, 0) / 3;
+          const change = older !== 0 ? ((recent - older) / older) * 100 : 0;
           
-          if (Math.abs(change) > ) {
-            const improving = lowerIsBetter ? change <  : change > ;
+          if (Math.abs(change) > 5) {
+            const improving = lowerIsBetter ? change < 0 : change > 0;
             insights.push({
               type: improving ? 'positive' : 'negative',
               title: `${label} ${improving ? 'Improving' : 'Declining'}`,
-              description: `${Math.abs(change).toFixed()}% ${change >  ? 'increase' : 'decrease'} over the last  days`,
+              description: `${Math.abs(change).toFixed(1)}% ${change > 0 ? 'increase' : 'decrease'} over the last 30 days`,
               metric: type,
             });
           }
@@ -3818,43 +3736,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
       analyzeMetric('steps', 'Daily Steps');
 
       // Add workout-biomarker correlations
-      if (correlations.sleepQuality.improvement !== ) {
+      if (correlations.sleepQuality.improvement !== 0) {
         insights.push({
-          type: correlations.sleepQuality.improvement >  ? 'positive' : 'neutral',
+          type: correlations.sleepQuality.improvement > 0 ? 'positive' : 'neutral',
           title: 'Exercise & Sleep Quality',
-          description: `Exercise ${correlations.sleepQuality.improvement >  ? 'improves' : 'impacts'} sleep quality by ${Math.abs(correlations.sleepQuality.improvement)} points`,
+          description: `Exercise ${correlations.sleepQuality.improvement > 0 ? 'improves' : 'impacts'} sleep quality by ${Math.abs(correlations.sleepQuality.improvement)} points`,
           metric: 'sleep-workout-correlation',
         });
       }
 
-      if (correlations.restingHR.improvement !== ) {
+      if (correlations.restingHR.improvement !== 0) {
         insights.push({
-          type: correlations.restingHR.improvement >  ? 'positive' : 'neutral',
+          type: correlations.restingHR.improvement > 0 ? 'positive' : 'neutral',
           title: 'Exercise & Heart Rate',
-          description: `Workout days show ${Math.abs(correlations.restingHR.improvement)} bpm ${correlations.restingHR.improvement >  ? 'improvement' : 'difference'} in resting heart rate`,
+          description: `Workout days show ${Math.abs(correlations.restingHR.improvement)} bpm ${correlations.restingHR.improvement > 0 ? 'improvement' : 'difference'} in resting heart rate`,
           metric: 'hr-workout-correlation',
         });
       }
 
-      // -day activity summary
-      const lastDays = new Date();
-      lastDays.setDate(lastDays.getDate() - );
-      const workouts = await storage.getWorkoutSessions(userId, lastDays, endDate);
+      // 7-day activity summary
+      const last7Days = new Date();
+      last7Days.setDate(last7Days.getDate() - 7);
+      const workouts = await storage.getWorkoutSessions(userId, last7Days, endDate);
       const totalWorkouts = workouts.length;
-      const totalDuration = workouts.reduce((sum, w) => sum + (w.duration || ), );
+      const totalDuration = workouts.reduce((sum, w) => sum + (w.duration || 0), 0);
       
-      if (totalWorkouts > ) {
+      if (totalWorkouts > 0) {
         insights.push({
           type: 'info',
-          title: '-Day Activity Summary',
-          description: `${totalWorkouts} workout${totalWorkouts >  ? 's' : ''} completed, ${Math.round(totalDuration / )} hours total training time`,
+          title: '7-Day Activity Summary',
+          description: `${totalWorkouts} workout${totalWorkouts > 1 ? 's' : ''} completed, ${Math.round(totalDuration / 60)} hours total training time`,
           metric: 'activity-summary',
         });
       }
 
       res.json({ insights });
     } catch (error: any) {
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -3865,7 +3783,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const settings = await storage.getUserSettings(userId);
       res.json(settings);
     } catch (error: any) {
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -3875,12 +3793,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { timezone } = req.body;
       if (!timezone) {
-        return res.status().json({ error: "Timezone is required" });
+        return res.status(400).json({ error: "Timezone is required" });
       }
       await storage.updateUserSettings(userId, { timezone });
       res.json({ success: true, timezone });
     } catch (error: any) {
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -3891,7 +3809,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const preferences = await storage.getDashboardPreferences(userId);
       res.json(preferences || { visible: [], order: [] });
     } catch (error: any) {
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -3901,12 +3819,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { visible, order } = req.body;
       if (!Array.isArray(visible) || !Array.isArray(order)) {
-        return res.status().json({ error: "visible and order must be arrays" });
+        return res.status(400).json({ error: "visible and order must be arrays" });
       }
       await storage.saveDashboardPreferences(userId, { visible, order });
       res.json({ success: true, visible, order });
     } catch (error: any) {
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -3930,7 +3848,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.json(status);
       }
     } catch (error: any) {
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -3940,16 +3858,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { step } = req.body;
       if (!step || typeof step !== 'string') {
-        return res.status().json({ error: "Step is required" });
+        return res.status(400).json({ error: "Step is required" });
       }
       // Validate step is one of the allowed values
       if (!VALID_ONBOARDING_STEPS.includes(step as any)) {
-        return res.status().json({ error: `Invalid step. Must be one of: ${VALID_ONBOARDING_STEPS.join(', ')}` });
+        return res.status(400).json({ error: `Invalid step. Must be one of: ${VALID_ONBOARDING_STEPS.join(', ')}` });
       }
       await storage.updateOnboardingStep(userId, step);
       res.json({ success: true, step });
     } catch (error: any) {
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -3960,7 +3878,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.completeOnboarding(userId);
       res.json({ success: true, completed: true });
     } catch (error: any) {
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -3970,19 +3888,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { currentStep, nextStep } = req.body;
       if (!currentStep || !nextStep) {
-        return res.status().json({ error: "currentStep and nextStep are required" });
+        return res.status(400).json({ error: "currentStep and nextStep are required" });
       }
       // Validate steps are valid
       if (!VALID_ONBOARDING_STEPS.includes(currentStep as any) || !VALID_ONBOARDING_STEPS.includes(nextStep as any)) {
-        return res.status().json({ error: `Invalid step. Must be one of: ${VALID_ONBOARDING_STEPS.join(', ')}` });
+        return res.status(400).json({ error: `Invalid step. Must be one of: ${VALID_ONBOARDING_STEPS.join(', ')}` });
       }
       const updated = await storage.skipOnboardingStep(userId, currentStep, nextStep);
       if (!updated) {
-        return res.status().json({ error: "Current step does not match. Onboarding state may have changed." });
+        return res.status(409).json({ error: "Current step does not match. Onboarding state may have changed." });
       }
       res.json({ success: true, step: nextStep });
     } catch (error: any) {
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -3990,14 +3908,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const userId = (req.user as any).claims.sub;
 
     try {
-      const webhookSecret = process.env.WEBHOOK_SECRET || "dev-webhook-secret-";
+      const webhookSecret = process.env.WEBHOOK_SECRET || "dev-webhook-secret-12345";
       res.json({
         userId,
         webhookSecret,
         webhookUrl: `${req.protocol}://${req.get('host')}/api/health-auto-export/ingest`
       });
     } catch (error: any) {
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -4005,16 +3923,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const userId = (req.user as any).claims.sub;
 
     try {
-      console.log(" Starting duplicate cleanup...");
+      console.log("🧹 Starting duplicate cleanup...");
       
       // First, delete the bad weight spike
-      const badWeightId = 'dec-b-cc-d-efad';
+      const badWeightId = '21d7e29c-713b-4c1c-97d0-657548ef41ad';
       await db.delete(biomarkers).where(eq(biomarkers.id, badWeightId));
-      console.log(" Deleted bad weight spike");
+      console.log("✅ Deleted bad weight spike");
       
       // Now delete all duplicates keeping only the first occurrence
       const allBiomarkers = await db.select().from(biomarkers).where(eq(biomarkers.userId, userId));
-      console.log(` Total biomarkers: ${allBiomarkers.length}`);
+      console.log(`📊 Total biomarkers: ${allBiomarkers.length}`);
       
       const seen = new Set<string>();
       const toDelete: string[] = [];
@@ -4032,104 +3950,104 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      console.log(`  Found ${toDelete.length} duplicates to delete`);
+      console.log(`🗑️  Found ${toDelete.length} duplicates to delete`);
       
       // Delete in batches
       for (const id of toDelete) {
         await db.delete(biomarkers).where(eq(biomarkers.id, id));
       }
       
-      console.log(" Cleanup complete");
+      console.log("✅ Cleanup complete");
       
       res.json({ 
         success: true, 
-        message: `Cleaned up ${toDelete.length + } biomarkers (including bad spike)`,
-        deletedCount: toDelete.length + ,
+        message: `Cleaned up ${toDelete.length + 1} biomarkers (including bad spike)`,
+        deletedCount: toDelete.length + 1,
         details: {
           duplicatesRemoved: toDelete.length,
-          badSpikeRemoved: 
+          badSpikeRemoved: 1
         }
       });
     } catch (error: any) {
       console.error("Error cleaning up duplicates:", error);
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
   // Diagnostic endpoint - logs ALL incoming webhook attempts before authentication
   app.post("/api/health-auto-export/ingest", (req, res, next) => {
-    console.log(" WEBHOOK DEBUG - Incoming request to /api/health-auto-export/ingest");
-    console.log(" Headers:", JSON.stringify(req.headers, null, ));
-    console.log(" Body preview:", JSON.stringify(req.body, null, ).substring(, ));
+    console.log("🔍 WEBHOOK DEBUG - Incoming request to /api/health-auto-export/ingest");
+    console.log("📋 Headers:", JSON.stringify(req.headers, null, 2));
+    console.log("📦 Body preview:", JSON.stringify(req.body, null, 2).substring(0, 500));
     next();
   }, webhookAuth, async (req, res) => {
     const userId = (req.user as any).claims.sub;
 
     try {
-      console.log(" Received Health Auto Export webhook");
-      console.log(" Full payload structure:", JSON.stringify(req.body, null, ));
-      console.log(" Payload keys:", Object.keys(req.body));
+      console.log("📥 Received Health Auto Export webhook");
+      console.log("📋 Full payload structure:", JSON.stringify(req.body, null, 2));
+      console.log("🔑 Payload keys:", Object.keys(req.body));
       
       // Support multiple payload formats from Health Auto Export
       let metrics: any[] = [];
       
-      // Format : { data: { metrics: [...] } } - Standard format
+      // Format 1: { data: { metrics: [...] } } - Standard format
       if (req.body.data && req.body.data.metrics && Array.isArray(req.body.data.metrics)) {
         metrics = req.body.data.metrics;
-        console.log(" Using format : data.metrics array");
+        console.log("✅ Using format 1: data.metrics array");
       }
-      // Format : { metrics: [...] } - Direct metrics array
+      // Format 2: { metrics: [...] } - Direct metrics array
       else if (req.body.metrics && Array.isArray(req.body.metrics)) {
         metrics = req.body.metrics;
-        console.log(" Using format : direct metrics array");
+        console.log("✅ Using format 2: direct metrics array");
       }
-      // Format : Direct array at root - [...]
+      // Format 3: Direct array at root - [...]
       else if (Array.isArray(req.body)) {
         metrics = req.body;
-        console.log(" Using format : root array");
+        console.log("✅ Using format 3: root array");
       }
-      // Format : { data: [...] } - Data as direct array
+      // Format 4: { data: [...] } - Data as direct array
       else if (req.body.data && Array.isArray(req.body.data)) {
         metrics = req.body.data;
-        console.log(" Using format : data array");
+        console.log("✅ Using format 4: data array");
       }
-      // Format : Single metric object - wrap it in array
+      // Format 5: Single metric object - wrap it in array
       else if (req.body.name || req.body.type) {
         metrics = [req.body];
-        console.log(" Using format : single metric object");
+        console.log("✅ Using format 5: single metric object");
       }
-      // Format : Try to extract arrays from ANY top-level property
+      // Format 6: Try to extract arrays from ANY top-level property
       else {
-        console.log("️ Trying flexible extraction...");
+        console.log("⚠️ Trying flexible extraction...");
         const bodyKeys = Object.keys(req.body || {});
-        console.log(" Available keys:", bodyKeys);
+        console.log("🔍 Available keys:", bodyKeys);
         
         // Try to find ANY array in the payload
         for (const key of bodyKeys) {
           const value = req.body[key];
-          if (Array.isArray(value) && value.length > ) {
+          if (Array.isArray(value) && value.length > 0) {
             metrics = value;
-            console.log(` Using format : extracted array from '${key}' property`);
+            console.log(`✅ Using format 6: extracted array from '${key}' property`);
             break;
           }
           // Check nested objects for arrays
           if (value && typeof value === 'object' && !Array.isArray(value)) {
             const nestedKeys = Object.keys(value);
             for (const nestedKey of nestedKeys) {
-              if (Array.isArray(value[nestedKey]) && value[nestedKey].length > ) {
+              if (Array.isArray(value[nestedKey]) && value[nestedKey].length > 0) {
                 metrics = value[nestedKey];
-                console.log(` Using format : extracted array from '${key}.${nestedKey}' property`);
+                console.log(`✅ Using format 6: extracted array from '${key}.${nestedKey}' property`);
                 break;
               }
             }
-            if (metrics.length > ) break;
+            if (metrics.length > 0) break;
           }
         }
         
         // If still no metrics found, return detailed error
-        if (metrics.length === ) {
-          console.log(" No array data found in payload");
-          console.log(" Body structure:", {
+        if (metrics.length === 0) {
+          console.log("❌ No array data found in payload");
+          console.log("📊 Body structure:", {
             hasData: !!req.body.data,
             dataType: typeof req.body.data,
             hasMetrics: !!req.body.metrics,
@@ -4137,28 +4055,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
             bodyKeys: Object.keys(req.body || {}),
             isArray: Array.isArray(req.body)
           });
-          return res.status().json({ 
+          return res.status(400).json({ 
             error: "Invalid data format",
             details: "Expected formats: {data: {metrics: [...]}}, {metrics: [...]}, [...], {data: [...]}, or single metric object",
             received: {
               keys: Object.keys(req.body || {}),
               structure: typeof req.body,
-              fullPayload: JSON.stringify(req.body).substring(, ) // First  chars for debugging
+              fullPayload: JSON.stringify(req.body).substring(0, 500) // First 500 chars for debugging
             }
           });
         }
       }
 
-      if (metrics.length === ) {
-        console.log("️ No metrics found in payload");
-        return res.status().json({ 
+      if (metrics.length === 0) {
+        console.log("⚠️ No metrics found in payload");
+        return res.status(400).json({ 
           error: "No metrics found",
           details: "Payload contained no metric data to process"
         });
       }
 
-      console.log(` Processing ${metrics.length} metric(s)`);
-      metrics.forEach((m, i) => console.log(`  ${i + }. ${m.name || m.type || 'unknown'}: ${Array.isArray(m.data) ? m.data.length : } data point(s)`));
+      console.log(`📊 Processing ${metrics.length} metric(s)`);
+      metrics.forEach((m, i) => console.log(`  ${i + 1}. ${m.name || m.type || 'unknown'}: ${Array.isArray(m.data) ? m.data.length : 1} data point(s)`));
 
       // Helper function to convert incoming units to standardized storage units
       const convertToStorageUnit = (value: number, incomingUnit: string, biomarkerType: string): { value: number; unit: string } => {
@@ -4167,7 +4085,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Weight conversions - store in lbs
         if (biomarkerType === "weight") {
           if (normalizedUnit === "kg" || normalizedUnit === "kilogram") {
-            return { value: value  ., unit: "lbs" };
+            return { value: value * 2.20462, unit: "lbs" };
           }
           return { value, unit: "lbs" };
         }
@@ -4175,7 +4093,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Lean body mass conversions - store in lbs (same as weight)
         if (biomarkerType === "lean-body-mass") {
           if (normalizedUnit === "kg" || normalizedUnit === "kilogram") {
-            return { value: value  ., unit: "lbs" };
+            return { value: value * 2.20462, unit: "lbs" };
           }
           return { value, unit: "lbs" };
         }
@@ -4183,7 +4101,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Blood glucose conversions - store in mg/dL
         if (biomarkerType === "blood-glucose") {
           if (normalizedUnit === "mmol/l" || normalizedUnit === "mmol") {
-            return { value: value  ., unit: "mg/dL" };
+            return { value: value * 18.018, unit: "mg/dL" };
           }
           return { value, unit: "mg/dL" };
         }
@@ -4191,7 +4109,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Temperature conversions - store in °F
         if (biomarkerType === "body-temperature") {
           if (normalizedUnit === "°c" || normalizedUnit === "c" || normalizedUnit === "celsius") {
-            return { value: (value  /) + , unit: "°F" };
+            return { value: (value * 9/5) + 32, unit: "°F" };
           }
           return { value, unit: "°F" };
         }
@@ -4248,9 +4166,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         "sleep_analysis": "sleep-hours",
       };
 
-      let insertedCount = ;
-      let sleepSessionsCount = ;
-      let workoutSessionsCount = ;
+      let insertedCount = 0;
+      let sleepSessionsCount = 0;
+      let workoutSessionsCount = 0;
       const insertedBiomarkerTypes = new Set<string>(); // Track biomarker types for goal updates
 
       for (const metric of metrics) {
@@ -4260,7 +4178,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // If metric IS a workout object, wrap it in a data array
         if (isWorkoutObject && !metric.data) {
           metric.data = [metric]; // Wrap the workout object in an array
-          console.log(` Wrapped workout object in data array for: "${metric.name}"`);
+          console.log(`🔧 Wrapped workout object in data array for: "${metric.name}"`);
         }
         
         // Special handling for workout sessions - check multiple possible field names
@@ -4268,48 +4186,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const nameBasedWorkout = metricName === "workout" || metricName === "workouts" || metricName.includes("workout") || metricName.includes("cycling") || metricName.includes("running");
         
         // Debug: Log metric structure
-        console.log(` Analyzing metric: "${metric.name}"`, {
+        console.log(`🔬 Analyzing metric: "${metric.name}"`, {
           hasData: !!metric.data,
           isArray: Array.isArray(metric.data),
           dataLength: metric.data?.length,
-          firstItemKeys: metric.data?.[] ? Object.keys(metric.data[]) : []
+          firstItemKeys: metric.data?.[0] ? Object.keys(metric.data[0]) : []
         });
         
         // Also detect workouts by checking if data has workout-specific fields
-        const hasWorkoutFields = metric.data && Array.isArray(metric.data) && metric.data.length >  && 
-          metric.data[] && (
-            metric.data[].workoutType || 
-            metric.data[].workout_type ||
-            (metric.data[].startDate && metric.data[].totalEnergyBurned) ||
-            (metric.data[].start_date && metric.data[].total_energy_burned) ||
-            (metric.data[].start && metric.data[].duration) ||
-            (metric.data[].start && metric.data[].activeEnergyBurned)
+        const hasWorkoutFields = metric.data && Array.isArray(metric.data) && metric.data.length > 0 && 
+          metric.data[0] && (
+            metric.data[0].workoutType || 
+            metric.data[0].workout_type ||
+            (metric.data[0].startDate && metric.data[0].totalEnergyBurned) ||
+            (metric.data[0].start_date && metric.data[0].total_energy_burned) ||
+            (metric.data[0].start && metric.data[0].duration) ||
+            (metric.data[0].start && metric.data[0].activeEnergyBurned)
           );
         
         const isWorkout = nameBasedWorkout || hasWorkoutFields;
-        console.log(` Workout detection for "${metric.name}": ${isWorkout} (nameBasedWorkout: ${nameBasedWorkout}, hasWorkoutFields: ${hasWorkoutFields})`);
+        console.log(`🎯 Workout detection for "${metric.name}": ${isWorkout} (nameBasedWorkout: ${nameBasedWorkout}, hasWorkoutFields: ${hasWorkoutFields})`);
         
         if (isWorkout && metric.data && Array.isArray(metric.data)) {
-          console.log(` Processing ${metric.data.length} workout(s)`);
+          console.log(`🏋️ Processing ${metric.data.length} workout(s)`);
           
           // Batch process workout sessions in parallel
           const workoutPromises = [];
           
           for (const workout of metric.data) {
-            console.log(" Workout data keys:", Object.keys(workout));
+            console.log("📋 Workout data keys:", Object.keys(workout));
             
             // Support multiple field name variations for dates
             const startDate = workout.startDate || workout.start_date || workout.startTime || workout.start;
             const endDate = workout.endDate || workout.end_date || workout.endTime || workout.end;
             
-            console.log(" Extracted dates:", { startDate, endDate });
+            console.log("🔍 Extracted dates:", { startDate, endDate });
             
             if (startDate && endDate) {
               const startTime = new Date(startDate);
               const endTime = new Date(endDate);
-              const duration = Math.round((endTime.getTime() - startTime.getTime()) / (  )); // minutes
+              const duration = Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60)); // minutes
               
-              console.log(`️  Duration: ${duration} minutes (${startTime.toISOString()} → ${endTime.toISOString()})`);
+              console.log(`⏱️  Duration: ${duration} minutes (${startTime.toISOString()} → ${endTime.toISOString()})`);
               
               // Map Apple Health workout types to our standard types
               const workoutTypeMap: Record<string, string> = {
@@ -4334,12 +4252,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
                  metric.name?.toLowerCase().includes("walking") ? "walking" : "other");
               
               // Handle nested qty/units structure for distance and energy
-              const distance = workout.distance?.qty ? Math.round(workout.distance.qty  ) : // km to meters
+              const distance = workout.distance?.qty ? Math.round(workout.distance.qty * 1000) : // km to meters
                               workout.distance ? Math.round(workout.distance) : null;
               const calories = workout.activeEnergyBurned?.qty ? Math.round(workout.activeEnergyBurned.qty) : // kJ
                               workout.totalEnergyBurned ? Math.round(workout.totalEnergyBurned) : null;
               
-              console.log(" Creating workout:", { workoutType, duration, distance, calories });
+              console.log("💪 Creating workout:", { workoutType, duration, distance, calories });
               
               // Create workout session and match to schedule in parallel
               workoutPromises.push(
@@ -4362,12 +4280,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   const matchingSchedule = await storage.findMatchingSchedule(userId, workoutType, startTime);
                   if (matchingSchedule) {
                     await storage.matchWorkoutToSchedule(session.id, matchingSchedule.id, userId);
-                    console.log(` Matched workout to training schedule: ${matchingSchedule.workoutType} on ${matchingSchedule.day}`);
+                    console.log(`✅ Matched workout to training schedule: ${matchingSchedule.workoutType} on ${matchingSchedule.day}`);
                   }
                 })()
               );
             } else {
-              console.log("️  Missing start/end date for workout:", {
+              console.log("⚠️  Missing start/end date for workout:", {
                 hasStartDate: !!startDate,
                 hasEndDate: !!endDate,
                 workoutKeys: Object.keys(workout)
@@ -4385,7 +4303,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const isSleep = metricName === "sleep_analysis" || metricName === "sleep analysis" || metricName.includes("sleep");
         
         if (isSleep && metric.data && Array.isArray(metric.data)) {
-          console.log(` Processing ${metric.data.length} sleep data point(s)`);
+          console.log(`🛌 Processing ${metric.data.length} sleep data point(s)`);
           
           // Group sleep segments by date (same night)
           // Apple Health sends multiple segments for one night (REM, Core, Deep, etc.)
@@ -4405,103 +4323,103 @@ export async function registerRoutes(app: Express): Promise<Server> {
               const bedtime = new Date(dataPoint.inBedStart);
               const waketime = new Date(dataPoint.inBedEnd);
               
-              // Smart night key: if bedtime is after pm, use that date; otherwise it's a morning nap
-              // This handles sleep that crosses midnight (e.g., pm Oct  to am Oct  = Oct  night)
+              // Smart night key: if bedtime is after 3pm, use that date; otherwise it's a morning nap
+              // This handles sleep that crosses midnight (e.g., 10pm Oct 13 to 6am Oct 14 = Oct 13 night)
               const bedHour = bedtime.getHours();
-              const nightDate = bedHour >=  ? bedtime : new Date(bedtime.getTime() -       );
-              const nightKey = nightDate.toISOString().split('T')[];
+              const nightDate = bedHour >= 15 ? bedtime : new Date(bedtime.getTime() - 12 * 60 * 60 * 1000);
+              const nightKey = nightDate.toISOString().split('T')[0];
               
               const existing = sleepNights.get(nightKey);
               
               if (existing) {
                 // Merge with existing night - extend the time range and accumulate minutes
-                console.log(` Merging sleep segment for night ${nightKey}`);
+                console.log(`🔗 Merging sleep segment for night ${nightKey}`);
                 existing.bedtime = new Date(Math.min(existing.bedtime.getTime(), bedtime.getTime()));
                 existing.waketime = new Date(Math.max(existing.waketime.getTime(), waketime.getTime()));
-                existing.awakeMinutes += Math.round((dataPoint.awake || )  );
-                existing.deepMinutes += Math.round((dataPoint.deep || )  );
-                existing.remMinutes += Math.round((dataPoint.rem || )  );
-                existing.coreMinutes += Math.round((dataPoint.core || )  );
+                existing.awakeMinutes += Math.round((dataPoint.awake || 0) * 60);
+                existing.deepMinutes += Math.round((dataPoint.deep || 0) * 60);
+                existing.remMinutes += Math.round((dataPoint.rem || 0) * 60);
+                existing.coreMinutes += Math.round((dataPoint.core || 0) * 60);
                 
                 // Use the highest sleep score if multiple segments have scores
                 if (dataPoint.sleepScore !== undefined && dataPoint.sleepScore !== null) {
-                  existing.sleepScore = Math.max(existing.sleepScore || , Math.round(dataPoint.sleepScore));
+                  existing.sleepScore = Math.max(existing.sleepScore || 0, Math.round(dataPoint.sleepScore));
                 }
               } else {
                 // First segment for this night
-                console.log(` New sleep night detected: ${nightKey}`);
+                console.log(`🆕 New sleep night detected: ${nightKey}`);
                 sleepNights.set(nightKey, {
                   bedtime,
                   waketime,
-                  awakeMinutes: Math.round((dataPoint.awake || )  ),
-                  deepMinutes: Math.round((dataPoint.deep || )  ),
-                  remMinutes: Math.round((dataPoint.rem || )  ),
-                  coreMinutes: Math.round((dataPoint.core || )  ),
+                  awakeMinutes: Math.round((dataPoint.awake || 0) * 60),
+                  deepMinutes: Math.round((dataPoint.deep || 0) * 60),
+                  remMinutes: Math.round((dataPoint.rem || 0) * 60),
+                  coreMinutes: Math.round((dataPoint.core || 0) * 60),
                   sleepScore: dataPoint.sleepScore !== undefined ? Math.round(dataPoint.sleepScore) : undefined,
                 });
               }
             }
           }
           
-          console.log(` Grouped into ${sleepNights.size} night(s) of sleep`);
+          console.log(`📊 Grouped into ${sleepNights.size} night(s) of sleep`);
           
           // Now create one sleep session per night
           const sleepPromises = [];
           
           for (const [nightKey, night] of Array.from(sleepNights.entries())) {
-            const totalMinutes = Math.round((night.waketime.getTime() - night.bedtime.getTime()) / (  ));
+            const totalMinutes = Math.round((night.waketime.getTime() - night.bedtime.getTime()) / (1000 * 60));
             
             // Use Apple Health's sleep score if available, otherwise calculate our own
             let sleepScore: number;
             
             if (night.sleepScore !== undefined && night.sleepScore !== null) {
               sleepScore = night.sleepScore;
-              console.log(` Using Apple Health sleep score for ${nightKey}: ${sleepScore}`);
+              console.log(`✅ Using Apple Health sleep score for ${nightKey}: ${sleepScore}`);
             } else {
-              // Calculate our own score (-) based on sleep quality
-              sleepScore = ; // Base score
-              const sleepHours = totalMinutes / ;
+              // Calculate our own score (0-100) based on sleep quality
+              sleepScore = 70; // Base score
+              const sleepHours = totalMinutes / 60;
               
-              // Adjust for total sleep duration (optimal - hours)
-              if (sleepHours >=  && sleepHours <= ) {
-                sleepScore += ;
-              } else if (sleepHours >=  && sleepHours < ) {
-                sleepScore += ;
-              } else if (sleepHours < ) {
-                sleepScore -= ;
+              // Adjust for total sleep duration (optimal 7-9 hours)
+              if (sleepHours >= 7 && sleepHours <= 9) {
+                sleepScore += 10;
+              } else if (sleepHours >= 6 && sleepHours < 7) {
+                sleepScore += 5;
+              } else if (sleepHours < 6) {
+                sleepScore -= 10;
               }
               
-              // Adjust for deep sleep (should be ~% of total)
-              const deepHours = night.deepMinutes / ;
+              // Adjust for deep sleep (should be ~20% of total)
+              const deepHours = night.deepMinutes / 60;
               const deepPercentage = deepHours / sleepHours;
-              if (deepPercentage >= . && deepPercentage <= .) {
-                sleepScore += ;
-              } else if (deepPercentage < .) {
-                sleepScore -= ;
+              if (deepPercentage >= 0.15 && deepPercentage <= 0.25) {
+                sleepScore += 10;
+              } else if (deepPercentage < 0.10) {
+                sleepScore -= 5;
               }
               
-              // Adjust for REM sleep (should be ~-% of total)
-              const remHours = night.remMinutes / ;
+              // Adjust for REM sleep (should be ~20-25% of total)
+              const remHours = night.remMinutes / 60;
               const remPercentage = remHours / sleepHours;
-              if (remPercentage >= . && remPercentage <= .) {
-                sleepScore += ;
-              } else if (remPercentage < .) {
-                sleepScore -= ;
+              if (remPercentage >= 0.18 && remPercentage <= 0.28) {
+                sleepScore += 10;
+              } else if (remPercentage < 0.15) {
+                sleepScore -= 5;
               }
               
-              // Ensure score is between  and 
-              sleepScore = Math.max(, Math.min(, sleepScore));
-              console.log(` Calculated custom sleep score for ${nightKey}: ${sleepScore}`);
+              // Ensure score is between 0 and 100
+              sleepScore = Math.max(0, Math.min(100, sleepScore));
+              console.log(`🧮 Calculated custom sleep score for ${nightKey}: ${sleepScore}`);
             }
             
             // Determine quality
             let quality = "Fair";
-            if (sleepScore >= ) quality = "Excellent";
-            else if (sleepScore >= ) quality = "Good";
-            else if (sleepScore >= ) quality = "Fair";
+            if (sleepScore >= 85) quality = "Excellent";
+            else if (sleepScore >= 75) quality = "Good";
+            else if (sleepScore >= 60) quality = "Fair";
             else quality = "Poor";
             
-            console.log(` Creating sleep session for ${nightKey}: ${night.bedtime.toISOString()} to ${night.waketime.toISOString()} (${totalMinutes} mins, score: ${sleepScore})`);
+            console.log(`💾 Creating sleep session for ${nightKey}: ${night.bedtime.toISOString()} to ${night.waketime.toISOString()} (${totalMinutes} mins, score: ${sleepScore})`);
             
             sleepPromises.push(
               storage.upsertSleepSession({
@@ -4526,14 +4444,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Clear cached readiness scores since sleep data changed
           // This forces recalculation with the new sleep data
           const today = new Date();
-          today.setHours(, , , );
+          today.setHours(0, 0, 0, 0);
           await db.delete(readinessScores).where(
             and(
               eq(readinessScores.userId, userId),
               gte(readinessScores.date, today)
             )
           );
-          console.log(' Cleared readiness score cache due to new sleep data');
+          console.log('🔄 Cleared readiness score cache due to new sleep data');
           
           continue; // Skip the normal biomarker processing for sleep
         }
@@ -4611,12 +4529,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Auto-calculate body fat percentage if both weight and lean body mass are available
-      let bodyFatCalculations = ; // Declare outside try block so it's accessible in goal auto-update
+      let bodyFatCalculations = 0; // Declare outside try block so it's accessible in goal auto-update
       
       try {
         // Get unique dates where biomarkers were inserted
         const today = new Date();
-        const sevenDaysAgo = subDays(today, );
+        const sevenDaysAgo = subDays(today, 7);
         
         // Query for recent weight and lean body mass biomarkers
         const recentBiomarkers = await db.query.biomarkers.findMany({
@@ -4632,7 +4550,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const biomarkersByDate = new Map<string, { weight?: number; leanBodyMass?: number }>();
         
         for (const biomarker of recentBiomarkers) {
-          const dateKey = biomarker.recordedAt.toISOString().split('T')[];
+          const dateKey = biomarker.recordedAt.toISOString().split('T')[0];
           
           if (!biomarkersByDate.has(dateKey)) {
             biomarkersByDate.set(dateKey, {});
@@ -4660,42 +4578,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
         
         const existingBodyFatDates = new Set(
-          existingBodyFat.map(b => b.recordedAt.toISOString().split('T')[])
+          existingBodyFat.map(b => b.recordedAt.toISOString().split('T')[0])
         );
         
         for (const [dateStr, data] of Array.from(biomarkersByDate.entries())) {
           // Skip if body fat percentage already exists for this date
           if (existingBodyFatDates.has(dateStr)) {
-            console.log(`️ Body fat % already exists for ${dateStr}, skipping calculation`);
+            console.log(`⏭️ Body fat % already exists for ${dateStr}, skipping calculation`);
             continue;
           }
           
-          if (data.weight && data.leanBodyMass && data.weight > ) {
-            // Formula: Body Fat % = ((Weight - Lean Body Mass) / Weight) × 
-            const bodyFatPercentage = ((data.weight - data.leanBodyMass) / data.weight)  ;
+          if (data.weight && data.leanBodyMass && data.weight > 0) {
+            // Formula: Body Fat % = ((Weight - Lean Body Mass) / Weight) × 100
+            const bodyFatPercentage = ((data.weight - data.leanBodyMass) / data.weight) * 100;
             
-            // Only insert if the calculation makes sense (-%)
-            if (bodyFatPercentage >=  && bodyFatPercentage <= ) {
+            // Only insert if the calculation makes sense (0-100%)
+            if (bodyFatPercentage >= 0 && bodyFatPercentage <= 100) {
               bodyFatPromises.push(
                 storage.upsertBiomarker({
                   userId,
                   type: "body-fat-percentage",
-                  value: Math.round(bodyFatPercentage  ) / , // Round to  decimal place
+                  value: Math.round(bodyFatPercentage * 10) / 10, // Round to 1 decimal place
                   unit: "%",
                   source: "calculated",
                   recordedAt: new Date(dateStr),
                 })
               );
               bodyFatCalculations++;
-              console.log(` Calculated body fat % for ${dateStr}: ${bodyFatPercentage.toFixed()}% (Weight: ${data.weight} lbs, Lean: ${data.leanBodyMass} lbs)`);
+              console.log(`🧮 Calculated body fat % for ${dateStr}: ${bodyFatPercentage.toFixed(1)}% (Weight: ${data.weight} lbs, Lean: ${data.leanBodyMass} lbs)`);
             }
           }
         }
         
         await Promise.all(bodyFatPromises);
         
-        if (bodyFatCalculations > ) {
-          console.log(` Auto-calculated ${bodyFatCalculations} body fat percentage entries`);
+        if (bodyFatCalculations > 0) {
+          console.log(`✅ Auto-calculated ${bodyFatCalculations} body fat percentage entries`);
         }
       } catch (error: any) {
         console.error("Error auto-calculating body fat percentage:", error);
@@ -4704,15 +4622,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Auto-update goals with latest biomarker values
       try {
-        console.log(" Checking for goals to auto-update...");
+        console.log("🎯 Checking for goals to auto-update...");
         
         // Get all active goals for the user
         const activeGoals = await storage.getGoals(userId);
         const activeUserGoals = activeGoals.filter(g => g.status === 'active');
         
-        if (activeUserGoals.length > ) {
+        if (activeUserGoals.length > 0) {
           // Add body-fat-percentage if it was calculated
-          if (bodyFatCalculations > ) {
+          if (bodyFatCalculations > 0) {
             insertedBiomarkerTypes.add('body-fat-percentage');
           }
           
@@ -4721,7 +4639,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const biomarkerToGoalMetricMap: Record<string, string> = {
             'blood-pressure-systolic': 'blood-pressure',
             'blood-pressure-diastolic': 'blood-pressure',
-            // All other biomarker types map : to goal metrics
+            // All other biomarker types map 1:1 to goal metrics
           };
           
           // Get unique goal metric types from inserted biomarkers
@@ -4733,15 +4651,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
           
           const goalMetricTypesArray = Array.from(goalMetricTypes);
-          console.log(` Goal metric types to check: ${goalMetricTypesArray.join(', ')}`);
+          console.log(`📊 Goal metric types to check: ${goalMetricTypesArray.join(', ')}`);
           
-          let updatedGoalsCount = ;
+          let updatedGoalsCount = 0;
           
           // For each goal metric type, check if there's a matching active goal
           for (const goalMetricType of goalMetricTypesArray) {
             const matchingGoals = activeUserGoals.filter(g => g.metricType === goalMetricType);
             
-            if (matchingGoals.length > ) {
+            if (matchingGoals.length > 0) {
               // Get the appropriate biomarker type for fetching latest value
               let biomarkerTypeToFetch = goalMetricType;
               
@@ -4757,19 +4675,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 for (const goal of matchingGoals) {
                   await storage.updateGoalProgress(goal.id, userId, latestBiomarker.value);
                   updatedGoalsCount++;
-                  console.log(` Auto-updated goal "${goal.metricType}" to ${latestBiomarker.value} ${latestBiomarker.unit}`);
+                  console.log(`✅ Auto-updated goal "${goal.metricType}" to ${latestBiomarker.value} ${latestBiomarker.unit}`);
                 }
               }
             }
           }
           
-          if (updatedGoalsCount > ) {
-            console.log(` Successfully auto-updated ${updatedGoalsCount} goal(s)`);
+          if (updatedGoalsCount > 0) {
+            console.log(`🎯 Successfully auto-updated ${updatedGoalsCount} goal(s)`);
           } else {
-            console.log(`️ No matching active goals found for these biomarkers`);
+            console.log(`ℹ️ No matching active goals found for these biomarkers`);
           }
         } else {
-          console.log(`️ No active goals found for user`);
+          console.log(`ℹ️ No active goals found for user`);
         }
       } catch (error: any) {
         console.error("Error auto-updating goals:", error);
@@ -4788,7 +4706,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error processing Health Auto Export data:", error);
       // Only send error if response hasn't been sent yet
       if (!res.headersSent) {
-        res.status().json({ error: error.message });
+        res.status(500).json({ error: error.message });
       }
     }
   });
@@ -4796,7 +4714,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Junction (Vital) webhook endpoint with Svix signature verification
   app.post("/api/junction/webhook", async (req, res) => {
     try {
-      console.log(" Received Junction webhook");
+      console.log("📥 Received Junction webhook");
       
       // Verify Svix webhook signature
       const svixId = req.headers['svix-id'] as string;
@@ -4804,50 +4722,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const svixSignature = req.headers['svix-signature'] as string;
       
       if (!svixId || !svixTimestamp || !svixSignature) {
-        console.error(" Missing Svix headers");
-        return res.status().json({ error: "Missing webhook signature headers" });
+        console.error("❌ Missing Svix headers");
+        return res.status(401).json({ error: "Missing webhook signature headers" });
       }
       
       // TODO: Implement Svix signature verification using webhook secret from Junction dashboard
       // For now, require the headers to be present (basic validation)
       // In production, use Svix SDK: new Webhook(secret).verify(payload, headers)
-      console.log(" Svix headers present:", { svixId, svixTimestamp });
+      console.log("✅ Svix headers present:", { svixId, svixTimestamp });
       
-      console.log(" Event type:", req.body.event_type);
-      console.log(" Full payload:", JSON.stringify(req.body, null, ));
+      console.log("🔑 Event type:", req.body.event_type);
+      console.log("📋 Full payload:", JSON.stringify(req.body, null, 2));
 
       const eventType = req.body.event_type;
       const data = req.body.data;
 
       // Verify required fields
       if (!eventType || !data) {
-        return res.status().json({ error: "Missing event_type or data" });
+        return res.status(400).json({ error: "Missing event_type or data" });
       }
 
       // Handle different event types
       if (eventType === "provider.connection.created") {
         // User connected a provider
-        console.log(` Provider connected: ${data.provider?.name} for user ${req.body.user_id}`);
+        console.log(`✅ Provider connected: ${data.provider?.name} for user ${req.body.user_id}`);
         return res.json({ success: true, message: "Provider connection acknowledged" });
       }
 
       if (eventType.startsWith("historical.data.")) {
         // Historical data backfill completed - notification only
         const resource = eventType.replace("historical.data.", "").replace(".created", "");
-        console.log(` Historical backfill complete for ${resource}: ${data.start_date} to ${data.end_date}`);
+        console.log(`📚 Historical backfill complete for ${resource}: ${data.start_date} to ${data.end_date}`);
         return res.json({ success: true, message: "Historical backfill acknowledged" });
       }
 
       if (eventType.startsWith("daily.data.")) {
         // Incremental data update - contains actual health data
         const resource = eventType.replace("daily.data.", "").replace(".created", "").replace(".updated", "");
-        console.log(` Processing ${resource} data for user ${data.user_id}`);
+        console.log(`📊 Processing ${resource} data for user ${data.user_id}`);
 
         // Map user_id to HealthPilot user (you'll need to maintain this mapping)
         // For now, using client_user_id which should match your user ID
         const userId = req.body.client_user_id || data.user_id;
 
-        let insertedCount = ;
+        let insertedCount = 0;
 
         // Handle different resource types
         if (resource === "workouts") {
@@ -4859,31 +4777,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
             workoutType: data.sport?.name || "Unknown",
             startTime: new Date(data.time_start),
             endTime: new Date(data.time_end),
-            duration: Math.round((data.moving_time || ) / ), // Convert seconds to minutes
-            calories: data.calories || ,
-            distance: data.distance || ,
+            duration: Math.round((data.moving_time || 0) / 60), // Convert seconds to minutes
+            calories: data.calories || 0,
+            distance: data.distance || 0,
             avgHeartRate: data.average_hr || null,
             maxHeartRate: data.max_hr || null,
           });
           insertedCount++;
-          console.log(` Created workout session: ${workout.id}`);
+          console.log(`✅ Created workout session: ${workout.id}`);
         } else if (resource === "sleep") {
           // Create sleep session
-          const totalMinutes = Math.round((data.total || data.duration || ) / ); // Convert seconds to minutes
+          const totalMinutes = Math.round((data.total || data.duration || 0) / 60); // Convert seconds to minutes
           const sleep = await storage.createSleepSession({
             userId,
             source: `junction-${data.source?.provider || 'unknown'}`,
             bedtime: new Date(data.bedtime_start),
             waketime: new Date(data.bedtime_stop),
             totalMinutes,
-            awakeMinutes: Math.round((data.awake || ) / ),
-            lightMinutes: Math.round((data.light || ) / ),
-            deepMinutes: Math.round((data.deep || ) / ),
-            remMinutes: Math.round((data.rem || ) / ),
+            awakeMinutes: Math.round((data.awake || 0) / 60),
+            lightMinutes: Math.round((data.light || 0) / 60),
+            deepMinutes: Math.round((data.deep || 0) / 60),
+            remMinutes: Math.round((data.rem || 0) / 60),
             sleepScore: data.score || null,
           });
           insertedCount++;
-          console.log(` Created sleep session: ${sleep.id}`);
+          console.log(`✅ Created sleep session: ${sleep.id}`);
         } else if (resource === "heartrate") {
           // Store heart rate as biomarker
           await storage.upsertBiomarker({
@@ -4953,13 +4871,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Unknown event type
-      console.log(`️ Unknown event type: ${eventType}`);
+      console.log(`⚠️ Unknown event type: ${eventType}`);
       return res.json({ success: true, message: "Event acknowledged" });
 
     } catch (error: any) {
       console.error("Error processing Junction webhook:", error);
       if (!res.headersSent) {
-        res.status().json({ error: error.message });
+        res.status(500).json({ error: error.message });
       }
     }
   });
@@ -4982,7 +4900,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .where(eq(sleepSessions.userId, userId))
         .returning();
       
-      console.log(` Cleaned up ${deletedBiomarkers.length} ai-extracted biomarkers and ${deletedSleep.length} sleep sessions`);
+      console.log(`🗑️ Cleaned up ${deletedBiomarkers.length} ai-extracted biomarkers and ${deletedSleep.length} sleep sessions`);
       
       res.json({
         success: true,
@@ -4991,14 +4909,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       console.error("Error cleaning up test data:", error);
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
   // Migrate test user data to authenticated user
   app.post("/api/migrate-test-data", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
-    const testUserId = 'test-user-';
+    const testUserId = 'test-user-1';
 
     try {
       if (userId === testUserId) {
@@ -5008,7 +4926,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Update all tables to transfer data from test-user- to current user
+      // Update all tables to transfer data from test-user-1 to current user
       const [healthRecordsUpdated] = await Promise.all([
         db.update(healthRecords)
           .set({ userId })
@@ -5031,7 +4949,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .where(eq(recommendations.userId, testUserId)),
       ]);
 
-      console.log(` Migrated all test-user- data to user ${userId}`);
+      console.log(`✅ Migrated all test-user-1 data to user ${userId}`);
       
       res.json({
         success: true,
@@ -5040,7 +4958,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       console.error("Error migrating test data:", error);
-      res.status().json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
