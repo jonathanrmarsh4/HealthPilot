@@ -300,6 +300,28 @@ export default function Training() {
     },
   });
 
+  const toggleCompleteMutation = useMutation({
+    mutationFn: async ({ scheduleId, currentCompleted }: { scheduleId: string; currentCompleted: boolean }) => {
+      return apiRequest('PATCH', `/api/training-schedules/${scheduleId}/complete`, { 
+        completed: !currentCompleted 
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/training-schedules"] });
+      toast({
+        title: "Status Updated",
+        description: "Workout completion status has been updated",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update workout status",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleExerciseFeedback = (exerciseName: string, feedback: 'up' | 'down') => {
     const currentFeedback = exerciseFeedback[exerciseName];
     
@@ -311,6 +333,10 @@ export default function Training() {
       setExerciseFeedback({ ...exerciseFeedback, [exerciseName]: feedback });
       exerciseFeedbackMutation.mutate({ exerciseName, feedback });
     }
+  };
+
+  const handleToggleComplete = (scheduleId: string, currentCompleted: boolean) => {
+    toggleCompleteMutation.mutate({ scheduleId, currentCompleted });
   };
 
   // Readiness chart data
@@ -824,6 +850,7 @@ export default function Training() {
                 exercises={workout.exercises}
                 completed={workout.completed === 1}
                 sessionType={workout.sessionType}
+                onToggleComplete={handleToggleComplete}
               />
             ))}
             {todaysCustomWorkout && (
