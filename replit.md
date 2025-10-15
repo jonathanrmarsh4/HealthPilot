@@ -43,6 +43,7 @@ The application is a full-stack project utilizing React, TypeScript, Tailwind CS
 **Feature Specifications:**
 - Health record upload and AI analysis with status tracking.
 - Weekly Meal Planning System: AI-generated personalized meal plans with a 4-day rolling window, automatic date assignment, smart cleanup, weekly calendar view, and detailed recipe modal.
+- AI Macro Recommendations: Intelligent nutrition target suggestions based on user goals, biomarkers, and training schedule. The AI analyzes active health goals, current weight, body fat percentage, training frequency, and dietary preferences to recommend optimal daily calorie and macronutrient targets (protein, carbs, fat) with detailed explanation. Users can apply recommendations directly or customize targets before saving.
 - AI-powered alternative therapy recommendations.
 - Admin control panel for user and subscription management.
 - Auto-Save Training Plans from Chat based on user confirmation.
