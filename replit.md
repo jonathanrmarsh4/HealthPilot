@@ -25,7 +25,8 @@ The application is a full-stack project utilizing React, TypeScript, Tailwind CS
 
 **Technical Implementations:**
 - **AI Intelligence Layer:** Provides daily personalized insights, context-aware chat, multi-metric recommendations, and alternative therapy suggestions with safeguards and goal-driven assistance.
-- **Biomarker Tracking:** Displays data over time, shows reference range status, supports imperial/metric units, includes comprehensive Australian blood work support, and HRV tracking from Apple HealthKit.
+- **Biomarker Tracking:** Displays data over time, shows reference range status, supports imperial/metric units, includes comprehensive Australian blood work support, HRV tracking from Apple HealthKit, lean body mass tracking, and automatic body fat percentage calculation. Auto-calculates body fat % when both weight and lean body mass are synced using formula: (Weight - Lean Body Mass) / Weight × 100, with smart duplicate prevention.
+- **Goal Auto-Update System:** Automatic goal progress updates when new biomarker data syncs from Apple Health webhook. When weight, lean body mass, body fat %, heart rate, or other biomarker data arrives, the system automatically updates any active goals tracking those metrics with the latest values. Ensures goals always reflect current health status without manual updates.
 - **Authentication:** Production-ready security using Replit Auth (OpenID Connect) with custom domain support and role-based access control.
 - **Security Protections:** Includes IDOR protection, privilege escalation prevention, data isolation, webhook authentication, and Zod schema validation.
 - **File Upload Security:** Validation for file size and types (PDF, DOC, DOCX, JPG, PNG, TXT).
