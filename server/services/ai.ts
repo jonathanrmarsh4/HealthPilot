@@ -814,7 +814,7 @@ export async function chatWithHealthCoach(
       contextSection += `  - If readiness < 40: Recommend rest/recovery, explain why pushing through is typically counterproductive\n`;
       contextSection += `  - If readiness 40-59: Suggest light training or active recovery, explain the importance of listening to the body\n`;
       contextSection += `  - If readiness 60-74: Moderate training is appropriate, but avoid max intensity\n`;
-      contextSection += `  - If readiness ≥ 75: User is ready for challenging workouts\n`;
+      contextSection += `  - If readiness ≥ 75: User is ready for HIGH INTENSITY workouts - heavy weights, challenging compound lifts, higher volume sets, faster pace intervals, HIIT, or max effort cardio. This is when to PUSH HARD and maximize training stimulus!\n`;
       contextSection += `\n🔓 USER OVERRIDE ALLOWED:\n`;
       contextSection += `- **HOWEVER**, if the user EXPLICITLY requests more rigorous/intense training despite low readiness, YOU MUST HONOR THEIR REQUEST\n`;
       contextSection += `- When user explicitly asks to override (e.g., "I want a hard workout anyway", "give me a rigorous plan", "I want to push through", "override and give me an intense workout"), CREATE THE REQUESTED PLAN\n`;
