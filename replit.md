@@ -21,6 +21,7 @@ The application is a full-stack project utilizing React, TypeScript, Tailwind CS
 - PWA support for iOS home screen installation with custom icon and theme.
 - Enhanced Dashboard Widgets: Including a Readiness Score Widget (compact semicircle gauge), Health Score Widget (three-segment donut chart), Biological Age Widget, Goals Summary Widget, and Data Insights Widget.
 - Training Page Redesign: Simplified daily-focused UX, removing weekly calendar, renaming sections for clarity, and incorporating collapsible workout history.
+- Organized Sidebar Navigation: 5 collapsible sections (About You, Your Plan, Insights, Settings & Data, Admin Panel) with renamed menu items for clarity. Health Coach removed (AI chat accessible via floating widget). Admin Panel visible only to admin users with future features shown as disabled with "Soon" badges.
 
 **Technical Implementations:**
 - **AI Intelligence Layer:** Provides daily personalized insights, context-aware chat, multi-metric recommendations, and alternative therapy suggestions with safeguards and goal-driven assistance.
