@@ -221,6 +221,44 @@ export const readinessSettings = pgTable("readiness_settings", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+export const fitnessProfiles = pgTable("fitness_profiles", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().unique(), // One profile per user
+  
+  // Fitness Level & Experience
+  fitnessLevel: varchar("fitness_level").notNull().default("intermediate"), // 'beginner', 'intermediate', 'advanced', 'athlete', 'elite'
+  trainingExperience: integer("training_experience"), // years of training
+  currentTrainingFrequency: integer("current_training_frequency"), // days per week
+  
+  // Equipment Access
+  hasGymAccess: integer("has_gym_access").notNull().default(0), // 1 = yes, 0 = no
+  gymType: varchar("gym_type"), // 'commercial', 'crossfit', 'powerlifting', 'boutique', 'home', 'other'
+  homeEquipment: text("home_equipment").array(), // ['dumbbells', 'barbell', 'rack', 'bench', 'bands', 'kettlebells', etc.]
+  
+  // Facilities & Memberships
+  specialFacilities: text("special_facilities").array(), // ['crossfit_box', 'pool', 'track', 'climbing_gym', etc.]
+  recoveryEquipment: text("recovery_equipment").array(), // ['sauna', 'cold_plunge', 'massage_gun', 'foam_roller', etc.]
+  
+  // Goals & Preferences
+  primaryGoal: varchar("primary_goal"), // 'strength', 'endurance', 'weight_loss', 'muscle_gain', 'performance', 'general_fitness'
+  secondaryGoals: text("secondary_goals").array(), // additional goals
+  preferredWorkoutTypes: text("preferred_workout_types").array(), // ['strength', 'hiit', 'cardio', 'yoga', 'crossfit', etc.]
+  preferredDuration: integer("preferred_duration"), // minutes per workout
+  preferredIntensity: varchar("preferred_intensity"), // 'low', 'moderate', 'high', 'variable'
+  availableDays: text("available_days").array(), // ['Monday', 'Tuesday', etc.]
+  
+  // Health & Limitations
+  injuries: text("injuries").array(), // list of current or past injuries
+  limitations: text("limitations").array(), // movement restrictions or considerations
+  medicalConditions: text("medical_conditions").array(), // relevant health conditions
+  
+  // Additional Context
+  notes: text("notes"), // any additional information
+  
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 export const exerciseFeedback = pgTable("exercise_feedback", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull(),
@@ -304,6 +342,12 @@ export const insertReadinessScoreSchema = createInsertSchema(readinessScores).om
 });
 
 export const insertReadinessSettingsSchema = createInsertSchema(readinessSettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertFitnessProfileSchema = createInsertSchema(fitnessProfiles).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
@@ -494,6 +538,9 @@ export type ReadinessScore = typeof readinessScores.$inferSelect;
 
 export type InsertReadinessSettings = z.infer<typeof insertReadinessSettingsSchema>;
 export type ReadinessSettings = typeof readinessSettings.$inferSelect;
+
+export type InsertFitnessProfile = z.infer<typeof insertFitnessProfileSchema>;
+export type FitnessProfile = typeof fitnessProfiles.$inferSelect;
 
 export type InsertInsight = z.infer<typeof insertInsightSchema>;
 export type Insight = typeof insights.$inferSelect;

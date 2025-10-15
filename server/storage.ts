@@ -20,6 +20,8 @@ import {
   type InsertReadinessScore,
   type ReadinessSettings,
   type InsertReadinessSettings,
+  type FitnessProfile,
+  type InsertFitnessProfile,
   type Insight,
   type InsertInsight,
   type WorkoutSession,
@@ -54,6 +56,7 @@ import {
   sleepSessions,
   readinessScores,
   readinessSettings,
+  fitnessProfiles,
   insights,
   workoutSessions,
   exerciseLogs,
@@ -131,6 +134,9 @@ export interface IStorage {
   
   getReadinessSettings(userId: string): Promise<ReadinessSettings | undefined>;
   upsertReadinessSettings(settings: InsertReadinessSettings): Promise<ReadinessSettings>;
+  
+  getFitnessProfile(userId: string): Promise<FitnessProfile | undefined>;
+  upsertFitnessProfile(profile: InsertFitnessProfile): Promise<FitnessProfile>;
   
   createInsight(insight: InsertInsight): Promise<Insight>;
   getInsights(userId: string, limit?: number): Promise<Insight[]>;
@@ -875,6 +881,31 @@ export class DbStorage implements IStorage {
       return result[0];
     } else {
       const result = await db.insert(readinessSettings).values(settings).returning();
+      return result[0];
+    }
+  }
+
+  async getFitnessProfile(userId: string): Promise<FitnessProfile | undefined> {
+    const result = await db
+      .select()
+      .from(fitnessProfiles)
+      .where(eq(fitnessProfiles.userId, userId))
+      .limit(1);
+    return result[0];
+  }
+
+  async upsertFitnessProfile(profile: InsertFitnessProfile): Promise<FitnessProfile> {
+    const existing = await this.getFitnessProfile(profile.userId);
+    
+    if (existing) {
+      const result = await db
+        .update(fitnessProfiles)
+        .set({ ...profile, updatedAt: new Date() })
+        .where(eq(fitnessProfiles.userId, profile.userId))
+        .returning();
+      return result[0];
+    } else {
+      const result = await db.insert(fitnessProfiles).values(profile).returning();
       return result[0];
     }
   }

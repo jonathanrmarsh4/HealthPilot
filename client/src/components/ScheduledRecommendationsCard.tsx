@@ -66,6 +66,7 @@ function SwipeableRecommendation({
       <motion.div
         drag="x"
         dragElastic={0.2}
+        dragDirectionLock
         style={{ x }}
         onDragEnd={(e, { offset }) => {
           // Check if swipe exceeds threshold

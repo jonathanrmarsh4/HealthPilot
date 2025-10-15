@@ -20,6 +20,7 @@ import Sleep from "@/pages/Sleep";
 import MealPlans from "@/pages/MealPlans";
 import Training from "@/pages/Training";
 import ReadinessSettings from "@/pages/ReadinessSettings";
+import FitnessProfile from "@/pages/FitnessProfile";
 import AIInsights from "@/pages/AIInsights";
 import Insights from "@/pages/Insights";
 import Goals from "@/pages/Goals";
@@ -47,6 +48,7 @@ function Router() {
       <Route path="/meals" component={MealPlans} />
       <Route path="/training" component={Training} />
       <Route path="/training/readiness-settings" component={ReadinessSettings} />
+      <Route path="/training/fitness-profile" component={FitnessProfile} />
       <Route path="/supplements" component={Supplements} />
       <Route path="/insights" component={AIInsights} />
       <Route path="/data-insights" component={Insights} />

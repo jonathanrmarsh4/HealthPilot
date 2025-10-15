@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
 import multer from "multer";
-import { insertBiomarkerSchema, insertHealthRecordSchema, insertScheduledExerciseRecommendationSchema, biomarkers, sleepSessions, healthRecords, mealPlans, trainingSchedules, recommendations, readinessScores } from "@shared/schema";
+import { insertBiomarkerSchema, insertHealthRecordSchema, insertScheduledExerciseRecommendationSchema, insertFitnessProfileSchema, biomarkers, sleepSessions, healthRecords, mealPlans, trainingSchedules, recommendations, readinessScores } from "@shared/schema";
 import { listHealthDocuments, downloadFile, getFileMetadata } from "./services/googleDrive";
 import { analyzeHealthDocument, generateMealPlan, generateTrainingSchedule, generateHealthRecommendations, chatWithHealthCoach, generateDailyInsights, generateRecoveryInsights, generateTrendPredictions, generatePeriodComparison, generateDailyTrainingRecommendation } from "./services/ai";
 import { calculatePhenoAge, getBiomarkerDisplayName, getBiomarkerUnit, getBiomarkerSource } from "./services/phenoAge";
@@ -1348,6 +1348,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(baselines);
     } catch (error: any) {
       console.error("Error auto-calculating baselines:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Fitness Profile Endpoints
+
+  // Get fitness profile
+  app.get("/api/fitness-profile", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    try {
+      const profile = await storage.getFitnessProfile(userId);
+      res.json(profile);
+    } catch (error: any) {
+      console.error("Error fetching fitness profile:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Update fitness profile
+  app.post("/api/fitness-profile", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    try {
+      // Validate request body with Zod schema
+      const validation = insertFitnessProfileSchema.safeParse({
+        userId,  // Server-side binding to prevent tampering
+        ...req.body
+      });
+
+      if (!validation.success) {
+        return res.status(400).json({ 
+          error: "Invalid fitness profile data", 
+          details: validation.error.errors 
+        });
+      }
+
+      const profile = await storage.upsertFitnessProfile(validation.data);
+      res.json(profile);
+    } catch (error: any) {
+      console.error("Error updating fitness profile:", error);
       res.status(500).json({ error: error.message });
     }
   });
@@ -2730,12 +2769,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const trainingPlanMatch = aiResponse.match(/<<<SAVE_TRAINING_PLAN>>>([\s\S]*?)<<<END_SAVE_TRAINING_PLAN>>>/);
       
       if (trainingPlanMatch) {
+        console.log("🏋️ Training plan markers found! Extracting JSON...");
         try {
           const trainingPlanJson = trainingPlanMatch[1].trim();
+          console.log("📋 Training plan JSON:", trainingPlanJson);
           const trainingPlans = JSON.parse(trainingPlanJson);
+          console.log("✅ Parsed training plans:", trainingPlans.length, "workouts");
           
           // Save each workout from the plan
           for (const plan of trainingPlans) {
+            console.log("💾 Saving workout:", plan.day, "-", plan.workoutType);
             await storage.createTrainingSchedule({
               userId,
               day: plan.day,
@@ -2748,14 +2791,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
           
           trainingPlanSaved = true;
+          console.log("✨ Training plan saved successfully!");
           
           // Auto-advance onboarding step when training plan is saved
           if (isOnboarding && onboardingStep === 'training_plan') {
             await storage.updateOnboardingStep(userId, 'meal_plan');
           }
         } catch (e) {
-          console.error("Failed to parse and save training plan:", e);
+          console.error("❌ Failed to parse and save training plan:", e);
+          console.error("Raw JSON that failed:", trainingPlanMatch[1].trim());
         }
+      } else {
+        console.log("ℹ️ No training plan markers found in AI response");
       }
 
       // Check if AI response contains a meal plan to save
