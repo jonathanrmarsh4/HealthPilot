@@ -5,7 +5,7 @@ import { db } from "./db";
 import multer from "multer";
 import { insertBiomarkerSchema, insertHealthRecordSchema, insertScheduledExerciseRecommendationSchema, insertFitnessProfileSchema, biomarkers, sleepSessions, healthRecords, mealPlans, trainingSchedules, recommendations, readinessScores } from "@shared/schema";
 import { listHealthDocuments, downloadFile, getFileMetadata } from "./services/googleDrive";
-import { analyzeHealthDocument, generateMealPlan, generateTrainingSchedule, generateHealthRecommendations, chatWithHealthCoach, generateDailyInsights, generateRecoveryInsights, generateTrendPredictions, generatePeriodComparison, generateDailyTrainingRecommendation } from "./services/ai";
+import { analyzeHealthDocument, generateMealPlan, generateTrainingSchedule, generateHealthRecommendations, chatWithHealthCoach, generateDailyInsights, generateRecoveryInsights, generateTrendPredictions, generatePeriodComparison, generateDailyTrainingRecommendation, generateMacroRecommendations } from "./services/ai";
 import { calculatePhenoAge, getBiomarkerDisplayName, getBiomarkerUnit, getBiomarkerSource } from "./services/phenoAge";
 import { calculateReadinessScore } from "./services/readiness";
 import { parseISO, isValid, subDays } from "date-fns";
@@ -1221,6 +1221,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(profile);
     } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/nutrition-profile/ai-recommendations", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+
+    try {
+      // Gather user data for AI analysis
+      const [goals, biomarkers, trainingSchedules, profile] = await Promise.all([
+        storage.getGoals(userId),
+        storage.getBiomarkers(userId),
+        storage.getTrainingSchedules(userId),
+        storage.getNutritionProfile(userId)
+      ]);
+
+      // Get latest key biomarkers
+      const latestWeight = biomarkers
+        .filter(b => b.type === 'weight')
+        .sort((a, b) => new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime())[0];
+      
+      const latestBodyFat = biomarkers
+        .filter(b => b.type === 'body_fat_percentage')
+        .sort((a, b) => new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime())[0];
+
+      // Build context for AI
+      const context = {
+        goals: goals.filter(g => g.status === 'active').map(g => ({
+          metric: g.metricType,
+          current: g.currentValue,
+          target: g.targetValue,
+          unit: g.unit,
+          deadline: g.deadline
+        })),
+        currentWeight: latestWeight ? { value: latestWeight.value, unit: latestWeight.unit } : null,
+        currentBodyFat: latestBodyFat ? { value: latestBodyFat.value, unit: latestBodyFat.unit } : null,
+        trainingDays: trainingSchedules.length,
+        dietaryPreferences: profile?.dietaryPreferences || [],
+        mealsPerDay: profile?.mealsPerDay || 3,
+        snacksPerDay: profile?.snacksPerDay || 1
+      };
+
+      const recommendations = await generateMacroRecommendations(context);
+      
+      res.json(recommendations);
+    } catch (error: any) {
+      console.error("Error generating macro recommendations:", error);
       res.status(500).json({ error: error.message });
     }
   });

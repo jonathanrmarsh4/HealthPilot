@@ -384,6 +384,66 @@ Rules:
   return allMeals;
 }
 
+export async function generateMacroRecommendations(context: {
+  goals?: any[];
+  currentWeight?: { value: number; unit: string } | null;
+  currentBodyFat?: { value: number; unit: string } | null;
+  trainingDays?: number;
+  dietaryPreferences?: string[];
+  mealsPerDay?: number;
+  snacksPerDay?: number;
+}) {
+  const completion = await retryWithBackoff(() => 
+    openai.chat.completions.create({
+      model: "gpt-4o",
+      max_tokens: 1000,
+      response_format: { type: "json_object" },
+      messages: [
+        {
+          role: "system",
+          content: "You are a nutrition expert AI. Respond only with valid JSON in the exact format requested."
+        },
+        {
+          role: "user",
+          content: `You are a nutrition expert AI. Analyze the user's health data and recommend optimal daily macronutrient targets.
+
+User Data:
+- Active Goals: ${JSON.stringify(context.goals || [], null, 2)}
+- Current Weight: ${context.currentWeight ? `${context.currentWeight.value} ${context.currentWeight.unit}` : 'Not available'}
+- Current Body Fat: ${context.currentBodyFat ? `${context.currentBodyFat.value}%` : 'Not available'}
+- Training Days per Week: ${context.trainingDays || 0}
+- Dietary Preferences: ${context.dietaryPreferences?.join(', ') || 'None specified'}
+- Meals/Snacks per Day: ${context.mealsPerDay || 3} meals, ${context.snacksPerDay || 1} snacks
+
+Based on this data, recommend:
+1. Daily calorie target (consider their goals - weight loss, muscle gain, maintenance)
+2. Daily protein target in grams (consider activity level and goals)
+3. Daily carbohydrate target in grams (consider training load)
+4. Daily fat target in grams (for hormonal health and satiety)
+
+Provide a brief explanation (2-3 sentences) of your reasoning.
+
+Respond in this exact JSON format:
+{
+  "calorieTarget": <number>,
+  "proteinTarget": <number>,
+  "carbsTarget": <number>,
+  "fatTarget": <number>,
+  "explanation": "<your reasoning here>"
+}`
+        }
+      ]
+    })
+  );
+
+  const content = completion.choices[0].message.content;
+  if (!content) {
+    throw new Error("No content in AI response");
+  }
+
+  return JSON.parse(content);
+}
+
 export async function generateTrainingSchedule(userProfile: {
   fitnessLevel?: string;
   goals?: string[];
