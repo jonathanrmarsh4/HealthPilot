@@ -196,6 +196,17 @@ export default function Training() {
     );
   }, [trainingSchedules]);
 
+  // Get all uncompleted custom workouts for the week (for displaying full weekly plan)
+  const weeklyCustomWorkouts = useMemo(() => {
+    if (!trainingSchedules || trainingSchedules.length === 0) return [];
+    
+    // Sort by day of week order (Monday first)
+    const dayOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    return trainingSchedules
+      .filter(schedule => schedule.completed === 0)
+      .sort((a, b) => dayOrder.indexOf(a.day) - dayOrder.indexOf(b.day));
+  }, [trainingSchedules]);
+
   // Filter completed workouts for last 7 days
   const recentWorkouts = useMemo(() => {
     if (!completedWorkouts) return [];
@@ -784,38 +795,43 @@ export default function Training() {
         </CardContent>
       </Card>
 
-      {/* Your Custom Workout (if exists for today) */}
-      {todaysCustomWorkout && (
-        <Card data-testid="card-custom-workout">
+      {/* Your Weekly Training Schedule (if exists) */}
+      {weeklyCustomWorkouts.length > 0 && (
+        <Card data-testid="card-weekly-training">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Dumbbell className="h-5 w-5 text-primary" />
-                <CardTitle>Your Custom Workout for Today</CardTitle>
+                <CardTitle>Your Weekly Training Schedule</CardTitle>
               </div>
               <Badge variant="outline" className="text-xs">
                 Created in AI Chat
               </Badge>
             </div>
             <CardDescription>
-              This workout plan was created for you through the AI Coach chat
+              Your custom workout plan created through the AI Coach
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <TrainingScheduleCard
-              id={todaysCustomWorkout.id}
-              day={todaysCustomWorkout.day}
-              workoutType={todaysCustomWorkout.workoutType}
-              duration={todaysCustomWorkout.duration}
-              intensity={todaysCustomWorkout.intensity as "Low" | "Moderate" | "High"}
-              exercises={todaysCustomWorkout.exercises}
-              completed={todaysCustomWorkout.completed === 1}
-              sessionType={todaysCustomWorkout.sessionType}
-            />
-            <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
-              <Info className="h-4 w-4" />
-              <span>You can switch between this custom plan and the AI recommendation above</span>
-            </div>
+          <CardContent className="space-y-4">
+            {weeklyCustomWorkouts.map((workout) => (
+              <TrainingScheduleCard
+                key={workout.id}
+                id={workout.id}
+                day={workout.day}
+                workoutType={workout.workoutType}
+                duration={workout.duration}
+                intensity={workout.intensity as "Low" | "Moderate" | "High"}
+                exercises={workout.exercises}
+                completed={workout.completed === 1}
+                sessionType={workout.sessionType}
+              />
+            ))}
+            {todaysCustomWorkout && (
+              <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
+                <Info className="h-4 w-4" />
+                <span>You can switch between this custom plan and the AI recommendation above</span>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
