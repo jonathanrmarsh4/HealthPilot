@@ -149,7 +149,7 @@ export function ReadinessScoreWidget() {
               Sleep
             </span>
             <span className="font-semibold" data-testid="text-readiness-sleep-score">
-              {readinessScore.factors.sleep.score}
+              {Math.round(readinessScore.factors.sleep.score)}
             </span>
           </div>
           
@@ -159,7 +159,7 @@ export function ReadinessScoreWidget() {
               HRV
             </span>
             <span className="font-semibold" data-testid="text-readiness-hrv-score">
-              {readinessScore.factors.hrv.score}
+              {Math.round(readinessScore.factors.hrv.score)}
             </span>
           </div>
           
@@ -169,7 +169,7 @@ export function ReadinessScoreWidget() {
               Rest HR
             </span>
             <span className="font-semibold" data-testid="text-readiness-rhr-score">
-              {readinessScore.factors.restingHR.score}
+              {Math.round(readinessScore.factors.restingHR.score)}
             </span>
           </div>
           
@@ -179,7 +179,7 @@ export function ReadinessScoreWidget() {
               Recovery
             </span>
             <span className="font-semibold" data-testid="text-readiness-recovery-score">
-              {readinessScore.factors.workloadRecovery.score}
+              {Math.round(readinessScore.factors.workloadRecovery.score)}
             </span>
           </div>
         </div>

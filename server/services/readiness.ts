@@ -37,10 +37,10 @@ export async function calculateReadinessScore(
     restingHR: settings.restingHRWeight,
     workload: settings.workloadWeight
   } : {
-    sleep: 0.40,      // 40% - Most important for recovery
+    sleep: 0.45,      // 45% - Most important for recovery
     hrv: 0.30,        // 30% - Key nervous system indicator
     restingHR: 0.15,  // 15% - Secondary vital sign
-    workload: 0.15    // 15% - Training load impact
+    workload: 0.10    // 10% - Reduced training load impact for more training flexibility
   };
 
   // Personal baseline settings
