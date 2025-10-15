@@ -165,20 +165,25 @@ export function AppSidebar() {
                       {section.items.map((item) => (
                         <SidebarMenuItem key={item.title}>
                           <SidebarMenuButton
-                            asChild
+                            asChild={!item.badge}
                             isActive={location === item.url}
                             disabled={!!item.badge}
                             data-testid={`link-${item.title.toLowerCase().replace(/\s+/g, "-")}`}
                           >
-                            <Link href={item.url} className="pl-6">
-                              <item.icon className="h-4 w-4" />
-                              <span>{item.title}</span>
-                              {item.badge && (
+                            {item.badge ? (
+                              <span className="pl-6 cursor-not-allowed" aria-disabled="true">
+                                <item.icon className="h-4 w-4" />
+                                <span>{item.title}</span>
                                 <span className="ml-auto text-xs text-muted-foreground">
                                   {item.badge}
                                 </span>
-                              )}
-                            </Link>
+                              </span>
+                            ) : (
+                              <Link href={item.url} className="pl-6">
+                                <item.icon className="h-4 w-4" />
+                                <span>{item.title}</span>
+                              </Link>
+                            )}
                           </SidebarMenuButton>
                         </SidebarMenuItem>
                       ))}

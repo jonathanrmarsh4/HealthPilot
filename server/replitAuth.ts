@@ -66,6 +66,7 @@ async function upsertUser(
     firstName: claims["first_name"],
     lastName: claims["last_name"],
     profileImageUrl: claims["profile_image_url"],
+    role: claims["role"] === "admin" ? "admin" : "user", // Extract role from OIDC claims if present
   });
 }
 
