@@ -3636,31 +3636,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (biomarkerToUpdate) {
             const biomarkerBefore = { ...biomarkerToUpdate };
             
-            // Create corrected biomarker entry (biomarkers are time-series, we don't update, we create corrections)
-            const correctedBiomarker = await storage.createBiomarker({
+            // Update the biomarker with corrected values
+            const updatedBiomarker = await storage.updateBiomarker(
+              biomarkerToUpdate.id,
               userId,
-              type: updateData.type ?? biomarkerToUpdate.type,
-              value: updateData.value ?? biomarkerToUpdate.value,
-              unit: updateData.unit ?? biomarkerToUpdate.unit,
-              recordedAt: updateData.recordedAt ? new Date(updateData.recordedAt) : biomarkerToUpdate.recordedAt,
-              source: 'ai_correction',
-            });
+              {
+                type: updateData.type ?? biomarkerToUpdate.type,
+                value: updateData.value ?? biomarkerToUpdate.value,
+                unit: updateData.unit ?? biomarkerToUpdate.unit,
+                recordedAt: updateData.recordedAt ? new Date(updateData.recordedAt) : biomarkerToUpdate.recordedAt,
+                source: updateData.source ?? biomarkerToUpdate.source,
+              }
+            );
             
-            // Log to audit trail
-            await storage.createAiAction({
-              userId,
-              actionType: 'UPDATE_BIOMARKER',
-              targetTable: 'biomarkers',
-              targetId: correctedBiomarker.id,
-              changesBefore: biomarkerBefore,
-              changesAfter: correctedBiomarker,
-              reasoning: updateData.reasoning || 'AI corrected biomarker based on user conversation',
-              conversationContext: message,
-              success: 1,
-            });
-            
-            biomarkerUpdated = true;
-            console.log("✨ Biomarker correction created and logged to audit trail!");
+            if (updatedBiomarker) {
+              // Log to audit trail
+              await storage.createAiAction({
+                userId,
+                actionType: 'UPDATE_BIOMARKER',
+                targetTable: 'biomarkers',
+                targetId: updatedBiomarker.id,
+                changesBefore: biomarkerBefore,
+                changesAfter: updatedBiomarker,
+                reasoning: updateData.reasoning || 'AI updated biomarker based on user conversation',
+                conversationContext: message,
+                success: 1,
+              });
+              
+              biomarkerUpdated = true;
+              console.log("✨ Biomarker updated and logged to audit trail!");
+            }
           }
         } catch (e) {
           console.error("❌ Failed to update biomarker:", e);

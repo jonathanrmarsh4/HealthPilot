@@ -105,6 +105,7 @@ export interface IStorage {
   
   createBiomarker(biomarker: InsertBiomarker): Promise<Biomarker>;
   upsertBiomarker(biomarker: InsertBiomarker): Promise<Biomarker>;
+  updateBiomarker(id: string, userId: string, data: Partial<InsertBiomarker>): Promise<Biomarker | undefined>;
   getBiomarkers(userId: string, type?: string): Promise<Biomarker[]>;
   getBiomarkersByTimeRange(userId: string, type: string, startDate: Date, endDate: Date): Promise<Biomarker[]>;
   getLatestBiomarkerByType(userId: string, type: string): Promise<Biomarker | undefined>;
@@ -494,6 +495,15 @@ export class DbStorage implements IStorage {
     // Insert new record
     const [inserted] = await db.insert(biomarkers).values(biomarker).returning();
     return inserted;
+  }
+
+  async updateBiomarker(id: string, userId: string, data: Partial<InsertBiomarker>): Promise<Biomarker | undefined> {
+    const result = await db
+      .update(biomarkers)
+      .set(data)
+      .where(and(eq(biomarkers.id, id), eq(biomarkers.userId, userId)))
+      .returning();
+    return result[0];
   }
 
   async getBiomarkers(userId: string, type?: string): Promise<Biomarker[]> {
