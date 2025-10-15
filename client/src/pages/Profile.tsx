@@ -13,7 +13,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { Loader2, User, Heart, CreditCard, Settings, MapPin } from "lucide-react";
+import { Loader2, User, Heart, CreditCard, Settings, MapPin, Dumbbell, ArrowRight } from "lucide-react";
+import { Link } from "wouter";
 import { format } from "date-fns";
 import { useLocale } from "@/contexts/LocaleContext";
 import { convertValue, unitConfigs } from "@/lib/unitConversions";
@@ -505,6 +506,30 @@ export default function Profile() {
                   </Button>
                 </form>
               </Form>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Dumbbell className="h-5 w-5" />
+                Fitness Profile
+              </CardTitle>
+              <CardDescription>
+                Configure your training preferences and AI workout recommendations
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground mb-4">
+                Set up your fitness level, available equipment, workout goals, and training preferences to receive personalized AI-powered workout plans tailored to your specific needs.
+              </p>
+              <Link href="/training/fitness-profile">
+                <Button variant="default" className="w-full sm:w-auto" data-testid="button-fitness-profile">
+                  <Dumbbell className="mr-2 h-4 w-4" />
+                  Manage Fitness Profile
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
             </CardContent>
           </Card>
         </TabsContent>

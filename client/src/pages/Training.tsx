@@ -328,10 +328,10 @@ export default function Training() {
   const isProfileIncomplete = useMemo(() => {
     if (!fitnessProfile) return true;
     
-    // Check if key fields are missing
+    // Check if key fields are missing - use correct property names from schema
     const hasBasicInfo = fitnessProfile.fitnessLevel && fitnessProfile.trainingExperience;
-    const hasEquipmentInfo = fitnessProfile.equipment?.length > 0 || fitnessProfile.homeSetup?.length > 0;
-    const hasGoals = fitnessProfile.goals?.length > 0;
+    const hasEquipmentInfo = (fitnessProfile.homeEquipment?.length > 0) || (fitnessProfile.hasGymAccess === 1);
+    const hasGoals = fitnessProfile.primaryGoal || (fitnessProfile.secondaryGoals?.length > 0);
     
     return !hasBasicInfo || !hasEquipmentInfo || !hasGoals;
   }, [fitnessProfile]);

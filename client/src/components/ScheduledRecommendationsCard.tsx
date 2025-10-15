@@ -37,6 +37,7 @@ function SwipeableRecommendation({
   isCompleting,
 }: SwipeableRecommendationProps) {
   const x = useMotionValue(0);
+  const [isDragging, setIsDragging] = useState(false);
   const background = useTransform(
     x,
     [-150, 0, 150],
@@ -49,16 +50,16 @@ function SwipeableRecommendation({
     <div className="relative overflow-hidden rounded-lg" data-testid={`scheduled-recommendation-${recommendation.id}`}>
       {/* Background Actions */}
       <motion.div 
-        className="absolute inset-0 flex items-center justify-between px-6"
+        className="absolute inset-0 flex items-center justify-between px-4 md:px-6"
         style={{ background }}
       >
         <div className="flex items-center gap-2 text-white">
-          <Trash2 className="w-5 h-5" />
-          <span className="text-sm font-medium">Delete</span>
+          <Trash2 className="w-4 h-4 md:w-5 md:h-5" />
+          <span className="text-xs md:text-sm font-medium">Delete</span>
         </div>
         <div className="flex items-center gap-2 text-white">
-          <span className="text-sm font-medium">Reschedule</span>
-          <CalendarClock className="w-5 h-5" />
+          <span className="text-xs md:text-sm font-medium">Reschedule</span>
+          <CalendarClock className="w-4 h-4 md:w-5 md:h-5" />
         </div>
       </motion.div>
 
@@ -67,64 +68,74 @@ function SwipeableRecommendation({
         drag="x"
         dragElastic={0.2}
         dragDirectionLock
-        style={{ x }}
+        dragConstraints={{ left: -200, right: 200 }}
+        style={{ x, touchAction: 'pan-y' }}
+        onDragStart={() => setIsDragging(true)}
         onDragEnd={(e, { offset }) => {
+          setIsDragging(false);
           // Check if swipe exceeds threshold
           if (offset.x < -SWIPE_THRESHOLD) {
             // Swipe left - delete
             onDelete();
-            // Immediately reset position
-            x.set(0);
           } else if (offset.x > SWIPE_THRESHOLD) {
             // Swipe right - reschedule
             onReschedule();
-            // Immediately reset position
-            x.set(0);
-          } else {
-            // Snap back to center
-            x.set(0);
           }
+          // Always reset position smoothly
+          setTimeout(() => x.set(0), 50);
         }}
+        className="cursor-grab active:cursor-grabbing"
       >
         <Card>
-          <CardHeader>
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex-1">
-                <CardTitle className="text-lg mb-2">{recommendation.title}</CardTitle>
-                <CardDescription className="text-sm">
+          <CardHeader className="p-3 md:p-4 lg:p-6">
+            <div className="flex flex-col md:flex-row items-start md:items-center gap-3 md:gap-4">
+              <div className="flex-1 min-w-0 w-full">
+                <CardTitle className="text-base md:text-lg mb-1 md:mb-2 break-words">{recommendation.title}</CardTitle>
+                <CardDescription className="text-xs md:text-sm break-words">
                   {recommendation.description}
                 </CardDescription>
               </div>
-              <div className="flex gap-2">
-                {/* Action buttons - always accessible */}
+              <div className="flex gap-2 w-full md:w-auto md:flex-shrink-0" style={{ pointerEvents: isDragging ? 'none' : 'auto' }}>
+                {/* Action buttons - prevent drag interference */}
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={onReschedule}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onReschedule();
+                  }}
                   data-testid={`button-reschedule-${recommendation.id}`}
                   aria-label="Reschedule recommendation"
+                  className="flex-shrink-0"
                 >
                   <CalendarClock className="w-4 h-4" />
                 </Button>
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={onDelete}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete();
+                  }}
                   data-testid={`button-delete-${recommendation.id}`}
                   aria-label="Delete recommendation"
+                  className="flex-shrink-0"
                 >
                   <Trash2 className="w-4 h-4" />
                 </Button>
                 <Button
                   variant="default"
                   size="sm"
-                  onClick={onComplete}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onComplete();
+                  }}
                   disabled={isCompleting}
                   data-testid={`button-complete-${recommendation.id}`}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 flex-shrink-0"
                 >
                   <Check className="w-4 h-4" />
-                  Complete
+                  <span className="hidden sm:inline">Complete</span>
                 </Button>
               </div>
             </div>
