@@ -2783,15 +2783,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Save each workout from the plan
           for (const plan of trainingPlans) {
             console.log("💾 Saving workout:", plan.day, "-", plan.workoutType);
-            await storage.createTrainingSchedule({
-              userId,
-              day: plan.day,
-              workoutType: plan.workoutType,
-              duration: plan.duration,
-              intensity: plan.intensity,
-              exercises: plan.exercises,
-              completed: 0,
-            });
+            try {
+              const schedule = await storage.createTrainingSchedule({
+                userId,
+                day: plan.day,
+                workoutType: plan.workoutType,
+                sessionType: "workout", // Required field - default type is workout
+                duration: plan.duration,
+                intensity: plan.intensity,
+                description: plan.description || null,
+                exercises: plan.exercises,
+                coreProgram: 1, // AI-generated plans are core programs by default
+                completed: 0,
+              });
+              console.log("✅ Workout saved successfully with ID:", schedule.id);
+            } catch (saveError) {
+              console.error("❌ Failed to save individual workout:", {
+                day: plan.day,
+                error: saveError,
+                planData: plan
+              });
+              throw saveError; // Re-throw to trigger outer catch
+            }
           }
           
           trainingPlanSaved = true;
@@ -3016,20 +3029,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Merge new data with existing profile (partial updates)
           const mergedProfile = {
             userId,
-            fitnessLevel: profileData.fitnessLevel ?? existingProfile?.fitnessLevel ?? null,
+            fitnessLevel: profileData.fitnessLevel ?? existingProfile?.fitnessLevel ?? 'intermediate',
             trainingExperience: profileData.trainingExperience ?? existingProfile?.trainingExperience ?? null,
-            equipment: profileData.equipment ?? existingProfile?.equipment ?? [],
-            gymAccess: profileData.gymAccess ?? existingProfile?.gymAccess ?? false,
-            crossfitAccess: profileData.crossfitAccess ?? existingProfile?.crossfitAccess ?? false,
-            homeSetup: profileData.homeSetup ?? existingProfile?.homeSetup ?? [],
+            currentTrainingFrequency: profileData.currentTrainingFrequency ?? existingProfile?.currentTrainingFrequency ?? null,
+            // Handle hasGymAccess with backward compatibility for gymAccess boolean
+            hasGymAccess: profileData.hasGymAccess !== undefined 
+              ? profileData.hasGymAccess 
+              : profileData.gymAccess !== undefined 
+                ? (profileData.gymAccess ? 1 : 0) 
+                : existingProfile?.hasGymAccess ?? 0,
+            gymType: profileData.gymType ?? existingProfile?.gymType ?? null,
+            homeEquipment: profileData.homeEquipment ?? profileData.equipment ?? existingProfile?.homeEquipment ?? [],
             specialFacilities: profileData.specialFacilities ?? existingProfile?.specialFacilities ?? [],
             recoveryEquipment: profileData.recoveryEquipment ?? existingProfile?.recoveryEquipment ?? [],
-            goals: profileData.goals ?? existingProfile?.goals ?? [],
-            workoutPreferences: profileData.workoutPreferences ?? existingProfile?.workoutPreferences ?? [],
-            injuriesLimitations: profileData.injuriesLimitations ?? existingProfile?.injuriesLimitations ?? null,
-            medicalConditions: profileData.medicalConditions ?? existingProfile?.medicalConditions ?? null,
+            primaryGoal: profileData.primaryGoal ?? profileData.goal ?? existingProfile?.primaryGoal ?? null,
+            secondaryGoals: profileData.secondaryGoals ?? profileData.goals ?? existingProfile?.secondaryGoals ?? [],
+            preferredWorkoutTypes: profileData.preferredWorkoutTypes ?? profileData.workoutPreferences ?? existingProfile?.preferredWorkoutTypes ?? [],
             preferredDuration: profileData.preferredDuration ?? existingProfile?.preferredDuration ?? null,
+            preferredIntensity: profileData.preferredIntensity ?? existingProfile?.preferredIntensity ?? null,
             availableDays: profileData.availableDays ?? existingProfile?.availableDays ?? [],
+            injuries: profileData.injuries ?? existingProfile?.injuries ?? [],
+            limitations: profileData.limitations ?? existingProfile?.limitations ?? [],
+            medicalConditions: profileData.medicalConditions ?? existingProfile?.medicalConditions ?? [],
           };
           
           // Validate with Zod schema
