@@ -10,7 +10,7 @@ import { motion, useMotionValue, useTransform } from "framer-motion";
 import { useState } from "react";
 
 interface Recommendation {
-  id: number;
+  id: string;
   title: string;
   description: string;
   scheduledAt: string | null;
@@ -84,9 +84,9 @@ function SwipeableRecommendation({
           // Always reset position smoothly
           setTimeout(() => x.set(0), 50);
         }}
-        className="cursor-grab active:cursor-grabbing"
+        className="cursor-grab active:cursor-grabbing relative z-10 bg-background"
       >
-        <Card>
+        <Card className="shadow-lg">
           <CardHeader className="p-3 md:p-4 lg:p-6">
             <div className="flex flex-col md:flex-row items-start md:items-center gap-3 md:gap-4">
               <div className="flex-1 min-w-0 w-full">
@@ -102,7 +102,9 @@ function SwipeableRecommendation({
                   size="icon"
                   onClick={(e) => {
                     e.stopPropagation();
-                    onReschedule();
+                    if (!isDragging) {
+                      onReschedule();
+                    }
                   }}
                   data-testid={`button-reschedule-${recommendation.id}`}
                   aria-label="Reschedule recommendation"
@@ -148,10 +150,10 @@ function SwipeableRecommendation({
 
 export function ScheduledRecommendationsCard({ recommendations }: ScheduledRecommendationsCardProps) {
   const { toast } = useToast();
-  const [swipingId, setSwipingId] = useState<number | null>(null);
+  const [swipingId, setSwipingId] = useState<string | null>(null);
 
   const completeMutation = useMutation({
-    mutationFn: async (recommendationId: number) => {
+    mutationFn: async (recommendationId: string) => {
       return apiRequest("POST", `/api/recommendations/${recommendationId}/complete`, {});
     },
     onSuccess: () => {
@@ -176,14 +178,38 @@ export function ScheduledRecommendationsCard({ recommendations }: ScheduledRecom
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (recommendationId: number) => {
+    mutationFn: async (recommendationId: string) => {
       return apiRequest("PATCH", `/api/recommendations/${recommendationId}/dismiss`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/recommendations/today"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/recommendations/scheduled"] });
       toast({
         title: "Deleted",
         description: "Recommendation removed from your schedule.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const rescheduleMutation = useMutation({
+    mutationFn: async ({ recommendationId, newDate }: { recommendationId: string; newDate: Date }) => {
+      return apiRequest("PATCH", `/api/recommendations/${recommendationId}/reschedule`, { 
+        date: newDate.toISOString() 
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/recommendations/today"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/recommendations/scheduled"] });
+      toast({
+        title: "Rescheduled",
+        description: "Recommendation moved to tomorrow.",
       });
     },
     onError: (error: Error) => {
@@ -230,10 +256,10 @@ export function ScheduledRecommendationsCard({ recommendations }: ScheduledRecom
             onComplete={() => completeMutation.mutate(rec.id)}
             onDelete={() => deleteMutation.mutate(rec.id)}
             onReschedule={() => {
-              toast({
-                title: "Reschedule",
-                description: "Drag to calendar to reschedule this recommendation.",
-              });
+              // Reschedule to tomorrow
+              const tomorrow = new Date();
+              tomorrow.setDate(tomorrow.getDate() + 1);
+              rescheduleMutation.mutate({ recommendationId: rec.id, newDate: tomorrow });
             }}
             isCompleting={completeMutation.isPending}
           />
