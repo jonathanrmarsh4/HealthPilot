@@ -397,6 +397,11 @@ export default function Training() {
                   <span className="flex items-center gap-2">
                     <Moon className="h-4 w-4 text-blue-500" />
                     Sleep Quality
+                    {readinessScore.factors.sleep.value && (
+                      <span className="text-xs text-muted-foreground">
+                        ({Math.round(readinessScore.factors.sleep.value)}h)
+                      </span>
+                    )}
                   </span>
                   <span className="font-medium">{readinessScore.factors.sleep.score}/100</span>
                 </div>

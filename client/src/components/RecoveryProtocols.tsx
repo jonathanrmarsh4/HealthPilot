@@ -102,6 +102,8 @@ export function RecoveryProtocols() {
   }
 
   if (!recommendations || recommendations.recommendations.length === 0) {
+    const isExcellent = recommendations?.readinessScore >= 80;
+    
     return (
       <Card data-testid="card-recovery-protocols-empty">
         <CardHeader>
@@ -115,8 +117,17 @@ export function RecoveryProtocols() {
         </CardHeader>
         <CardContent>
           <div className="text-center py-8 text-muted-foreground">
-            <p>Your readiness score is excellent! No specific recovery protocols recommended at this time.</p>
-            <p className="text-sm mt-2">Keep up the great work! 🎉</p>
+            {isExcellent ? (
+              <>
+                <p>Your readiness score is excellent! No specific recovery protocols recommended at this time.</p>
+                <p className="text-sm mt-2">Keep up the great work! 🎉</p>
+              </>
+            ) : (
+              <>
+                <p>No recovery protocols available at this time.</p>
+                <p className="text-sm mt-2">Check back later for personalized recommendations.</p>
+              </>
+            )}
           </div>
         </CardContent>
       </Card>
