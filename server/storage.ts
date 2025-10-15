@@ -6,8 +6,12 @@ import {
   type InsertHealthRecord,
   type Biomarker,
   type InsertBiomarker,
+  type NutritionProfile,
+  type InsertNutritionProfile,
   type MealPlan,
   type InsertMealPlan,
+  type FavoriteRecipe,
+  type InsertFavoriteRecipe,
   type TrainingSchedule,
   type InsertTrainingSchedule,
   type Recommendation,
@@ -49,7 +53,9 @@ import {
   users,
   healthRecords,
   biomarkers,
+  nutritionProfiles,
   mealPlans,
+  favoriteRecipes,
   trainingSchedules,
   recommendations,
   chatMessages,
@@ -100,10 +106,20 @@ export interface IStorage {
   getBiomarkersByTimeRange(userId: string, type: string, startDate: Date, endDate: Date): Promise<Biomarker[]>;
   getLatestBiomarkerByType(userId: string, type: string): Promise<Biomarker | undefined>;
   
+  createNutritionProfile(profile: InsertNutritionProfile): Promise<NutritionProfile>;
+  getNutritionProfile(userId: string): Promise<NutritionProfile | undefined>;
+  updateNutritionProfile(userId: string, data: Partial<NutritionProfile>): Promise<NutritionProfile | undefined>;
+  
   createMealPlan(mealPlan: InsertMealPlan): Promise<MealPlan>;
   getMealPlans(userId: string): Promise<MealPlan[]>;
   deletePastMealPlans(userId: string): Promise<number>; // Returns count of deleted meals
   deleteFutureMealsBeyondDate(userId: string, maxDate: Date): Promise<number>; // Delete meals scheduled after maxDate
+  
+  createFavoriteRecipe(favorite: InsertFavoriteRecipe): Promise<FavoriteRecipe>;
+  getFavoriteRecipes(userId: string): Promise<FavoriteRecipe[]>;
+  getFavoriteRecipeBySpoonacularId(userId: string, spoonacularRecipeId: number): Promise<FavoriteRecipe | undefined>;
+  deleteFavoriteRecipe(id: string, userId: string): Promise<void>;
+  updateFavoriteRecipeNotes(id: string, userId: string, notes: string): Promise<FavoriteRecipe | undefined>;
   
   createTrainingSchedule(schedule: InsertTrainingSchedule): Promise<TrainingSchedule>;
   getTrainingSchedules(userId: string): Promise<TrainingSchedule[]>;
@@ -521,6 +537,29 @@ export class DbStorage implements IStorage {
     return result[0];
   }
 
+  async createNutritionProfile(profile: InsertNutritionProfile): Promise<NutritionProfile> {
+    const result = await db.insert(nutritionProfiles).values(profile).returning();
+    return result[0];
+  }
+
+  async getNutritionProfile(userId: string): Promise<NutritionProfile | undefined> {
+    const result = await db
+      .select()
+      .from(nutritionProfiles)
+      .where(eq(nutritionProfiles.userId, userId))
+      .limit(1);
+    return result[0];
+  }
+
+  async updateNutritionProfile(userId: string, data: Partial<NutritionProfile>): Promise<NutritionProfile | undefined> {
+    const result = await db
+      .update(nutritionProfiles)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(nutritionProfiles.userId, userId))
+      .returning();
+    return result[0];
+  }
+
   async createMealPlan(mealPlan: InsertMealPlan): Promise<MealPlan> {
     const result = await db.insert(mealPlans).values(mealPlan).returning();
     return result[0];
@@ -579,6 +618,48 @@ export class DbStorage implements IStorage {
       .returning({ id: mealPlans.id });
     
     return result.length;
+  }
+
+  async createFavoriteRecipe(favorite: InsertFavoriteRecipe): Promise<FavoriteRecipe> {
+    const result = await db.insert(favoriteRecipes).values(favorite).returning();
+    return result[0];
+  }
+
+  async getFavoriteRecipes(userId: string): Promise<FavoriteRecipe[]> {
+    return await db
+      .select()
+      .from(favoriteRecipes)
+      .where(eq(favoriteRecipes.userId, userId))
+      .orderBy(desc(favoriteRecipes.createdAt));
+  }
+
+  async getFavoriteRecipeBySpoonacularId(userId: string, spoonacularRecipeId: number): Promise<FavoriteRecipe | undefined> {
+    const result = await db
+      .select()
+      .from(favoriteRecipes)
+      .where(
+        and(
+          eq(favoriteRecipes.userId, userId),
+          eq(favoriteRecipes.spoonacularRecipeId, spoonacularRecipeId)
+        )
+      )
+      .limit(1);
+    return result[0];
+  }
+
+  async deleteFavoriteRecipe(id: string, userId: string): Promise<void> {
+    await db
+      .delete(favoriteRecipes)
+      .where(and(eq(favoriteRecipes.id, id), eq(favoriteRecipes.userId, userId)));
+  }
+
+  async updateFavoriteRecipeNotes(id: string, userId: string, notes: string): Promise<FavoriteRecipe | undefined> {
+    const result = await db
+      .update(favoriteRecipes)
+      .set({ notes })
+      .where(and(eq(favoriteRecipes.id, id), eq(favoriteRecipes.userId, userId)))
+      .returning();
+    return result[0];
   }
 
   async createTrainingSchedule(schedule: InsertTrainingSchedule): Promise<TrainingSchedule> {

@@ -71,6 +71,26 @@ export const biomarkers = pgTable("biomarkers", {
   recordId: varchar("record_id"),
 });
 
+export const nutritionProfiles = pgTable("nutrition_profiles", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().unique(),
+  dietaryPreferences: text("dietary_preferences").array(), // 'vegetarian', 'vegan', 'keto', 'paleo', 'mediterranean', 'whole30', etc.
+  allergies: text("allergies").array(), // 'dairy', 'gluten', 'nuts', 'soy', 'eggs', 'shellfish', etc.
+  intolerances: text("intolerances").array(), // 'lactose', 'gluten', 'fructose', etc.
+  cuisinePreferences: text("cuisine_preferences").array(), // 'italian', 'asian', 'mexican', 'mediterranean', etc.
+  dislikedFoods: text("disliked_foods").array(), // Specific foods user doesn't like
+  calorieTarget: integer("calorie_target"), // Daily calorie goal
+  proteinTarget: real("protein_target"), // Daily protein goal in grams
+  carbsTarget: real("carbs_target"), // Daily carbs goal in grams
+  fatTarget: real("fat_target"), // Daily fat goal in grams
+  mealsPerDay: integer("meals_per_day").default(3), // How many meals per day
+  snacksPerDay: integer("snacks_per_day").default(1), // How many snacks per day
+  cookingSkillLevel: text("cooking_skill_level"), // 'beginner', 'intermediate', 'advanced'
+  maxPrepTime: integer("max_prep_time"), // Maximum prep time willing to spend (minutes)
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 export const mealPlans = pgTable("meal_plans", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull(),
@@ -89,6 +109,30 @@ export const mealPlans = pgTable("meal_plans", {
   imageUrl: varchar("image_url"), // URL to meal photo
   scheduledDate: timestamp("scheduled_date"), // The date this meal is scheduled for
   tags: text("tags").array(),
+  // Spoonacular-specific fields
+  spoonacularRecipeId: integer("spoonacular_recipe_id"), // ID from Spoonacular API
+  sourceUrl: text("source_url"), // Original recipe source URL
+  readyInMinutes: integer("ready_in_minutes"), // Total time to make
+  healthScore: real("health_score"), // Spoonacular health score (0-100)
+  dishTypes: text("dish_types").array(), // 'breakfast', 'main course', 'dessert', etc.
+  diets: text("diets").array(), // 'vegetarian', 'vegan', 'gluten free', etc.
+  cuisines: text("cuisines").array(), // 'italian', 'asian', etc.
+  extendedIngredients: jsonb("extended_ingredients"), // Full ingredient details from Spoonacular
+  analyzedInstructions: jsonb("analyzed_instructions"), // Structured cooking steps
+  nutritionData: jsonb("nutrition_data"), // Full nutrition breakdown from Spoonacular
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const favoriteRecipes = pgTable("favorite_recipes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  spoonacularRecipeId: integer("spoonacular_recipe_id").notNull(),
+  recipeName: text("recipe_name").notNull(),
+  imageUrl: text("image_url"),
+  readyInMinutes: integer("ready_in_minutes"),
+  servings: integer("servings"),
+  recipeData: jsonb("recipe_data"), // Store full recipe for quick access
+  notes: text("notes"), // User's personal notes about this recipe
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -310,7 +354,18 @@ export const insertBiomarkerSchema = createInsertSchema(biomarkers).omit({
   recordedAt: z.coerce.date().optional().default(() => new Date()),
 });
 
+export const insertNutritionProfileSchema = createInsertSchema(nutritionProfiles).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const insertMealPlanSchema = createInsertSchema(mealPlans).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertFavoriteRecipeSchema = createInsertSchema(favoriteRecipes).omit({
   id: true,
   createdAt: true,
 });
@@ -518,8 +573,14 @@ export type HealthRecord = typeof healthRecords.$inferSelect;
 export type InsertBiomarker = z.infer<typeof insertBiomarkerSchema>;
 export type Biomarker = typeof biomarkers.$inferSelect;
 
+export type InsertNutritionProfile = z.infer<typeof insertNutritionProfileSchema>;
+export type NutritionProfile = typeof nutritionProfiles.$inferSelect;
+
 export type InsertMealPlan = z.infer<typeof insertMealPlanSchema>;
 export type MealPlan = typeof mealPlans.$inferSelect;
+
+export type InsertFavoriteRecipe = z.infer<typeof insertFavoriteRecipeSchema>;
+export type FavoriteRecipe = typeof favoriteRecipes.$inferSelect;
 
 export type InsertTrainingSchedule = z.infer<typeof insertTrainingScheduleSchema>;
 export type TrainingSchedule = typeof trainingSchedules.$inferSelect;
