@@ -6,7 +6,6 @@ import {
   Dumbbell,
   Sparkles,
   Smartphone,
-  MessageCircle,
   Moon,
   Shield,
   User,
@@ -14,6 +13,15 @@ import {
   Target,
   Dna,
   Pill,
+  ChevronRight,
+  Users,
+  CreditCard,
+  DollarSign,
+  TrendingUp,
+  Sliders,
+  UserCircle,
+  Wallet,
+  Settings,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import {
@@ -25,76 +33,77 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubItem,
+  SidebarMenuSubButton,
   SidebarHeader,
 } from "@/components/ui/sidebar";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useAuth } from "@/hooks/useAuth";
 import logoPath from "@assets/HealthPilot_Logo_1759904141260.png";
 
-const menuItems = [
+interface MenuItem {
+  title: string;
+  url: string;
+  icon: any;
+  badge?: string;
+}
+
+interface MenuSection {
+  title: string;
+  icon: any;
+  items: MenuItem[];
+  adminOnly?: boolean;
+}
+
+const menuSections: MenuSection[] = [
   {
-    title: "Dashboard",
-    url: "/",
-    icon: LayoutDashboard,
+    title: "About You",
+    icon: UserCircle,
+    items: [
+      { title: "Goals", url: "/goals", icon: Target },
+      { title: "Biomarkers", url: "/biomarkers", icon: Activity },
+      { title: "Sleep", url: "/sleep", icon: Moon },
+      { title: "Longevity", url: "/biological-age", icon: Dna },
+    ],
   },
   {
-    title: "Health Records",
-    url: "/records",
-    icon: FileText,
-  },
-  {
-    title: "Biomarkers",
-    url: "/biomarkers",
-    icon: Activity,
-  },
-  {
-    title: "Sleep",
-    url: "/sleep",
-    icon: Moon,
-  },
-  {
-    title: "Apple Health Setup",
-    url: "/apple-health",
-    icon: Smartphone,
-  },
-  {
-    title: "Meal Plans",
-    url: "/meals",
-    icon: Utensils,
-  },
-  {
-    title: "Training",
-    url: "/training",
+    title: "Your Plan",
     icon: Dumbbell,
+    items: [
+      { title: "Training", url: "/training", icon: Dumbbell },
+      { title: "Nutrition", url: "/meals", icon: Utensils },
+      { title: "Supplementation", url: "/supplements", icon: Pill },
+    ],
   },
   {
-    title: "Supplements",
-    url: "/supplements",
-    icon: Pill,
-  },
-  {
-    title: "AI Insights",
-    url: "/insights",
+    title: "Insights",
     icon: Sparkles,
+    items: [
+      { title: "Recommendations", url: "/insights", icon: Sparkles },
+      { title: "Trends", url: "/data-insights", icon: BarChart3 },
+    ],
   },
   {
-    title: "Data Insights",
-    url: "/data-insights",
-    icon: BarChart3,
+    title: "Settings & Data",
+    icon: Settings,
+    items: [
+      { title: "Health Records", url: "/records", icon: FileText },
+      { title: "Fitness Profile", url: "/training/fitness-profile", icon: User },
+      { title: "Integrations", url: "/apple-health", icon: Smartphone },
+    ],
   },
   {
-    title: "Goals",
-    url: "/goals",
-    icon: Target,
-  },
-  {
-    title: "Biological Age",
-    url: "/biological-age",
-    icon: Dna,
-  },
-  {
-    title: "Health Coach",
-    url: "/chat",
-    icon: Sparkles,
+    title: "Admin Panel",
+    icon: Shield,
+    adminOnly: true,
+    items: [
+      { title: "Users", url: "/admin", icon: Users },
+      { title: "Billing", url: "/admin", icon: CreditCard },
+      { title: "AI Usage & Cost", url: "/admin", icon: DollarSign, badge: "Soon" },
+      { title: "Profitability", url: "/admin", icon: Wallet, badge: "Soon" },
+      { title: "Dynamic Pricing", url: "/admin", icon: Sliders, badge: "Soon" },
+    ],
   },
 ];
 
@@ -115,41 +124,76 @@ export function AppSidebar() {
         </Link>
       </SidebarHeader>
       <SidebarContent>
+        {/* Dashboard - Always visible at top */}
         <SidebarGroup>
-          <SidebarGroupLabel>Main Menu</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={location === item.url}
-                    data-testid={`link-${item.title.toLowerCase().replace(" ", "-")}`}
-                  >
-                    <Link href={item.url}>
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={location === "/"}
+                  data-testid="link-dashboard"
+                >
+                  <Link href="/">
+                    <LayoutDashboard className="h-4 w-4" />
+                    <span>Dashboard</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-        
+
+        {/* Collapsible Menu Sections */}
+        {menuSections.map((section) => {
+          // Hide admin section if not admin
+          if (section.adminOnly && !isAdmin) return null;
+
+          return (
+            <Collapsible key={section.title} defaultOpen={true} className="group/collapsible">
+              <SidebarGroup>
+                <SidebarGroupLabel asChild>
+                  <CollapsibleTrigger className="flex w-full items-center gap-2 hover-elevate active-elevate-2 rounded-md px-2 py-1.5">
+                    <section.icon className="h-4 w-4" />
+                    <span className="flex-1 text-left">{section.title}</span>
+                    <ChevronRight className="h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-90" />
+                  </CollapsibleTrigger>
+                </SidebarGroupLabel>
+                <CollapsibleContent>
+                  <SidebarGroupContent>
+                    <SidebarMenu>
+                      {section.items.map((item) => (
+                        <SidebarMenuItem key={item.title}>
+                          <SidebarMenuButton
+                            asChild
+                            isActive={location === item.url}
+                            disabled={!!item.badge}
+                            data-testid={`link-${item.title.toLowerCase().replace(/\s+/g, "-")}`}
+                          >
+                            <Link href={item.url} className="pl-6">
+                              <item.icon className="h-4 w-4" />
+                              <span>{item.title}</span>
+                              {item.badge && (
+                                <span className="ml-auto text-xs text-muted-foreground">
+                                  {item.badge}
+                                </span>
+                              )}
+                            </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      ))}
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </CollapsibleContent>
+              </SidebarGroup>
+            </Collapsible>
+          );
+        })}
+
+        {/* Profile at bottom */}
         <SidebarGroup className="mt-auto">
           <SidebarGroupContent>
             <SidebarMenu>
-              {isAdmin && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={location === "/admin"} data-testid="link-admin">
-                    <Link href="/admin">
-                      <Shield className="h-4 w-4" />
-                      <span>Admin Panel</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              )}
               <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={location === "/profile"} data-testid="link-profile">
                   <Link href="/profile">
