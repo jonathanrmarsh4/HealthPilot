@@ -949,11 +949,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Step 1: Get user's nutrition profile for dietary preferences
       const nutritionProfile = await storage.getNutritionProfile(userId);
       
-      // Step 2: Delete past meals to keep only current/future meals
+      // Step 2: Get recent biomarkers for health-based filtering
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      const allBiomarkers = await storage.getBiomarkers(userId);
+      const recentBiomarkers = allBiomarkers.filter(b => new Date(b.recordedAt) >= sevenDaysAgo);
+      
+      // Analyze biomarkers for health concerns
+      const latestGlucose = recentBiomarkers.filter(b => b.type === 'blood_glucose').sort((a, b) => 
+        new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime()
+      )[0];
+      
+      const latestCholesterol = recentBiomarkers.filter(b => b.type === 'total_cholesterol').sort((a, b) => 
+        new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime()
+      )[0];
+      
+      const latestTriglycerides = recentBiomarkers.filter(b => b.type === 'triglycerides').sort((a, b) => 
+        new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime()
+      )[0];
+      
+      // Determine health-based meal modifications
+      const healthFilters: string[] = [];
+      let healthContext = '';
+      
+      // High blood glucose: recommend low glycemic index meals
+      if (latestGlucose && latestGlucose.value > 100) {
+        healthContext += `🩸 High blood glucose (${latestGlucose.value} mg/dL) - prioritizing low-sugar, low-GI recipes\n`;
+      }
+      
+      // High cholesterol: recommend heart-healthy meals
+      if (latestCholesterol && latestCholesterol.value > 200) {
+        healthContext += `❤️ High cholesterol (${latestCholesterol.value} mg/dL) - prioritizing heart-healthy recipes\n`;
+      }
+      
+      // High triglycerides: recommend low-carb meals
+      if (latestTriglycerides && latestTriglycerides.value > 150) {
+        healthContext += `🧪 High triglycerides (${latestTriglycerides.value} mg/dL) - prioritizing low-carb recipes\n`;
+      }
+      
+      // Step 3: Get active goals for calorie/macro adjustments
+      const allGoals = await storage.getGoals(userId);
+      const activeGoals = allGoals.filter(goal => goal.status === 'active');
+      
+      let calorieModifier = 0;
+      let proteinBoost = false;
+      
+      activeGoals.forEach(goal => {
+        if (goal.metricType === 'weight') {
+          const targetWeight = goal.targetValue;
+          const currentWeight = goal.currentValue;
+          
+          if (currentWeight && targetWeight) {
+            if (targetWeight < currentWeight) {
+              // Weight loss goal: reduce calories by 500/day
+              calorieModifier = -500;
+              healthContext += `🎯 Weight loss goal: reducing daily calories by 500\n`;
+            } else if (targetWeight > currentWeight) {
+              // Weight gain goal: increase calories by 500/day
+              calorieModifier = 500;
+              healthContext += `🎯 Weight gain goal: increasing daily calories by 500\n`;
+            }
+          }
+        }
+        
+        if (goal.metricType === 'lean_body_mass') {
+          proteinBoost = true;
+          healthContext += `💪 Muscle building goal: prioritizing high-protein recipes\n`;
+        }
+      });
+      
+      // Step 4: Delete past meals to keep only current/future meals
       const deletedCount = await storage.deletePastMealPlans(userId);
       console.log(`🗑️ Deleted ${deletedCount} past meal(s) for user ${userId}`);
       
-      // Step 3: Check existing meals to determine start date
+      // Step 5: Check existing meals to determine start date
       const existingMeals = await storage.getMealPlans(userId);
       let startDate = new Date();
       startDate.setHours(0, 0, 0, 0);
@@ -963,7 +1032,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         startDate.setDate(startDate.getDate() + 1);
       }
       
-      // Step 4: Generate meal plan using Spoonacular
+      // Step 6: Generate meal plan using Spoonacular with intelligent filtering
       const savedPlans = [];
       const mealTypes = ['breakfast', 'lunch', 'dinner'];
       const daysToGenerate = 4; // Generate 4 days of meals
@@ -971,11 +1040,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Build dietary restrictions from nutrition profile
       const diet = nutritionProfile?.dietaryPreferences?.[0]; // Use first preference as main diet
       const intolerances = nutritionProfile?.allergies?.join(',') || '';
-      const targetCaloriesPerMeal = nutritionProfile?.calorieTarget 
-        ? Math.round(nutritionProfile.calorieTarget / 3) 
-        : undefined;
       
-      console.log(`🍽️ Generating meal plan with diet: ${diet || 'none'}, intolerances: ${intolerances || 'none'}`);
+      // Calculate intelligent calorie targets
+      const baseCalorieTarget = nutritionProfile?.calorieTarget || 2000;
+      const adjustedDailyCalories = baseCalorieTarget + calorieModifier;
+      const targetCaloriesPerMeal = Math.round(adjustedDailyCalories / 3);
+      
+      console.log(`🍽️ Intelligent meal generation:`);
+      console.log(`   Diet: ${diet || 'none'}, Intolerances: ${intolerances || 'none'}`);
+      console.log(`   Base calories: ${baseCalorieTarget}, Adjusted: ${adjustedDailyCalories} (modifier: ${calorieModifier})`);
+      if (healthContext) console.log(`   Health context:\n${healthContext}`);
       
       for (let day = 0; day < daysToGenerate; day++) {
         const scheduledDate = new Date(startDate);
@@ -983,17 +1057,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         for (const mealType of mealTypes) {
           try {
-            // Search for recipes matching nutritional requirements
-            const searchResults = await spoonacularService.searchRecipes({
+            // Build intelligent search parameters
+            const searchParams: any = {
               type: mealType,
               diet: diet as string,
               intolerances: intolerances,
-              maxCalories: targetCaloriesPerMeal ? targetCaloriesPerMeal + 200 : undefined,
-              minCalories: targetCaloriesPerMeal ? targetCaloriesPerMeal - 200 : undefined,
-              number: 5, // Get 5 options
+              maxCalories: targetCaloriesPerMeal + 200,
+              minCalories: targetCaloriesPerMeal - 200,
+              number: 5,
               sort: 'random',
               addRecipeInformation: true,
-            });
+            };
+            
+            // Apply health-based filters
+            if (latestGlucose && latestGlucose.value > 100) {
+              // High glucose: limit sugar and prefer low-GI foods
+              searchParams.maxSugar = 15; // Max 15g sugar per meal
+            }
+            
+            if (latestCholesterol && latestCholesterol.value > 200) {
+              // High cholesterol: limit saturated fat
+              searchParams.maxSaturatedFat = 5; // Max 5g saturated fat per meal
+            }
+            
+            if (latestTriglycerides && latestTriglycerides.value > 150) {
+              // High triglycerides: lower carbs
+              searchParams.maxCarbs = Math.round(targetCaloriesPerMeal * 0.35 / 4); // 35% of calories from carbs
+            }
+            
+            // Apply goal-based filters
+            if (proteinBoost) {
+              // Muscle building: boost protein
+              searchParams.minProtein = Math.round(targetCaloriesPerMeal * 0.30 / 4); // 30% of calories from protein
+            }
+            
+            // Search for recipes matching nutritional requirements
+            const searchResults = await spoonacularService.searchRecipes(searchParams);
 
             if (searchResults.results && searchResults.results.length > 0) {
               // Pick a random recipe from the results
