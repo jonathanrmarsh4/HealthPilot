@@ -451,7 +451,7 @@ export default function Training() {
                       </span>
                     )}
                   </span>
-                  <span className="font-medium">{readinessScore.factors.sleep.score}/100</span>
+                  <span className="font-medium">{Math.round(readinessScore.factors.sleep.score)}/100</span>
                 </div>
                 <Progress value={readinessScore.factors.sleep.score} className="h-2" />
                 
@@ -460,7 +460,7 @@ export default function Training() {
                     <Activity className="h-4 w-4 text-green-500" />
                     HRV
                   </span>
-                  <span className="font-medium">{readinessScore.factors.hrv.score}/100</span>
+                  <span className="font-medium">{Math.round(readinessScore.factors.hrv.score)}/100</span>
                 </div>
                 <Progress value={readinessScore.factors.hrv.score} className="h-2" />
                 
@@ -469,7 +469,7 @@ export default function Training() {
                     <Heart className="h-4 w-4 text-red-500" />
                     Resting HR
                   </span>
-                  <span className="font-medium">{readinessScore.factors.restingHR.score}/100</span>
+                  <span className="font-medium">{Math.round(readinessScore.factors.restingHR.score)}/100</span>
                 </div>
                 <Progress value={readinessScore.factors.restingHR.score} className="h-2" />
                 
@@ -478,7 +478,7 @@ export default function Training() {
                     <Zap className="h-4 w-4 text-purple-500" />
                     Recovery
                   </span>
-                  <span className="font-medium">{readinessScore.factors.workloadRecovery.score}/100</span>
+                  <span className="font-medium">{Math.round(readinessScore.factors.workloadRecovery.score)}/100</span>
                 </div>
                 <Progress value={readinessScore.factors.workloadRecovery.score} className="h-2" />
 
