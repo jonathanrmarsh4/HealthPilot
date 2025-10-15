@@ -140,13 +140,14 @@ export function ScheduledRecommendationsCard({ recommendations }: ScheduledRecom
 
   const completeMutation = useMutation({
     mutationFn: async (recommendationId: number) => {
-      return apiRequest("PATCH", `/api/recommendations/${recommendationId}/dismiss`);
+      return apiRequest("POST", `/api/recommendations/${recommendationId}/complete`, {});
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/recommendations/today"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/workout-sessions"] });
       toast({
         title: "Workout completed!",
-        description: "Great job completing your scheduled workout.",
+        description: "Great job completing your scheduled workout. It's been added to your history.",
       });
     },
     onError: (error: Error) => {

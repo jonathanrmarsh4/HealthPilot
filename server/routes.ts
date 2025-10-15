@@ -2375,6 +2375,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/recommendations/:id/complete", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    try {
+      const { id } = req.params;
+      
+      // Get the recommendation
+      const recommendations = await storage.getRecommendations(userId);
+      const recommendation = recommendations.find(r => r.id === id);
+      
+      if (!recommendation) {
+        return res.status(404).json({ error: "Recommendation not found" });
+      }
+
+      // Extract workout type from title or category
+      const workoutType = recommendation.category?.toLowerCase() || 
+                         (recommendation.title.toLowerCase().includes('cardio') ? 'cardio' :
+                          recommendation.title.toLowerCase().includes('strength') ? 'strength' :
+                          recommendation.title.toLowerCase().includes('yoga') ? 'yoga' :
+                          recommendation.title.toLowerCase().includes('hiit') ? 'hiit' :
+                          recommendation.title.toLowerCase().includes('mobility') ? 'mobility' :
+                          recommendation.title.toLowerCase().includes('stretching') ? 'stretching' :
+                          'other');
+
+      // Estimate duration based on workout type (default 45 minutes)
+      const estimatedDuration = workoutType === 'hiit' ? 30 : 
+                                workoutType === 'yoga' ? 60 :
+                                workoutType === 'mobility' ? 20 :
+                                workoutType === 'stretching' ? 15 : 45;
+
+      const now = new Date();
+      const startTime = new Date(now.getTime() - estimatedDuration * 60 * 1000);
+
+      // Create workout session entry
+      await storage.createWorkoutSession({
+        userId,
+        workoutType,
+        sessionType: 'workout',
+        startTime,
+        endTime: now,
+        duration: estimatedDuration,
+        sourceType: 'manual',
+        trainingScheduleId: recommendation.trainingScheduleId || undefined,
+        notes: recommendation.description,
+      });
+
+      // Dismiss the recommendation
+      await storage.dismissRecommendation(id, userId);
+      
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error completing recommendation:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.post("/api/recommendations/:id/schedule", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
     try {
