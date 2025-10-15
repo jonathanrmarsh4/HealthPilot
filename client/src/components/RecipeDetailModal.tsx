@@ -2,7 +2,9 @@ import { useState, useEffect } from "react";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from "@/components/ui/drawer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Clock, Flame, Beef, Wheat, Droplet, ChefHat, List, Minus, Plus, Users } from "lucide-react";
+import { Clock, Flame, Beef, Wheat, Droplet, ChefHat, List, Minus, Plus, Users, ThumbsUp, ThumbsDown } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import type { MealPlan } from "@shared/schema";
 
 interface RecipeDetailModalProps {
@@ -13,15 +15,47 @@ interface RecipeDetailModalProps {
 
 export function RecipeDetailModal({ meal, open, onOpenChange }: RecipeDetailModalProps) {
   const [servings, setServings] = useState(1);
+  const [feedback, setFeedback] = useState<string | null>(null);
+  const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
+  const { toast } = useToast();
 
-  // Reset servings when meal changes
+  // Reset servings and feedback when meal changes
   useEffect(() => {
     if (meal) {
       setServings(meal.servings || 1);
+      setFeedback(meal.userFeedback || null);
     }
   }, [meal]);
 
   if (!meal) return null;
+
+  const handleFeedback = async (feedbackType: "liked" | "disliked") => {
+    if (!meal) return;
+    
+    setIsSubmittingFeedback(true);
+    
+    try {
+      await apiRequest("PATCH", `/api/meal-plans/${meal.id}/feedback`, { 
+        feedback: feedbackType 
+      });
+      
+      setFeedback(feedbackType);
+      toast({
+        title: feedbackType === "liked" ? "Thanks for the feedback!" : "Noted!",
+        description: feedbackType === "liked" 
+          ? "We'll suggest more meals like this." 
+          : "We'll adjust future meal suggestions.",
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to save feedback. Please try again.",
+      });
+    } finally {
+      setIsSubmittingFeedback(false);
+    }
+  };
 
   // Calculate scaling factor for ingredients
   const originalServings = meal.servings || 1;
@@ -131,10 +165,10 @@ export function RecipeDetailModal({ meal, open, onOpenChange }: RecipeDetailModa
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerContent 
-        className="max-h-[90vh] overflow-y-auto"
+        className="max-h-[90vh] flex flex-col"
         data-testid="drawer-recipe-detail"
       >
-        <div className="mx-auto w-full max-w-2xl">
+        <div className="mx-auto w-full max-w-2xl overflow-y-auto flex-1">
           {/* Meal Photo */}
           {meal.imageUrl && (
             <div className="w-full h-48 sm:h-64 overflow-hidden rounded-t-lg">
@@ -154,6 +188,35 @@ export function RecipeDetailModal({ meal, open, onOpenChange }: RecipeDetailModa
             <DrawerDescription data-testid="text-meal-description">
               {meal.description}
             </DrawerDescription>
+            
+            {/* Feedback Buttons */}
+            <div className="flex items-center gap-2 mt-4">
+              <p className="text-sm text-muted-foreground mr-2">How did you like this meal?</p>
+              <div className="flex gap-2">
+                <Button
+                  variant={feedback === "liked" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => handleFeedback("liked")}
+                  disabled={isSubmittingFeedback}
+                  data-testid="button-like-meal"
+                  className="gap-2"
+                >
+                  <ThumbsUp className="h-4 w-4" />
+                  {feedback === "liked" && "Liked"}
+                </Button>
+                <Button
+                  variant={feedback === "disliked" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => handleFeedback("disliked")}
+                  disabled={isSubmittingFeedback}
+                  data-testid="button-dislike-meal"
+                  className="gap-2"
+                >
+                  <ThumbsDown className="h-4 w-4" />
+                  {feedback === "disliked" && "Disliked"}
+                </Button>
+              </div>
+            </div>
           </DrawerHeader>
 
           <div className="p-6 space-y-6">

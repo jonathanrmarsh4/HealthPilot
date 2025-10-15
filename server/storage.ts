@@ -116,6 +116,7 @@ export interface IStorage {
   
   createMealPlan(mealPlan: InsertMealPlan): Promise<MealPlan>;
   getMealPlans(userId: string): Promise<MealPlan[]>;
+  updateMealFeedback(mealId: string, userId: string, feedback: string): Promise<MealPlan | undefined>;
   deletePastMealPlans(userId: string): Promise<number>; // Returns count of deleted meals
   deleteFutureMealsBeyondDate(userId: string, maxDate: Date): Promise<number>; // Delete meals scheduled after maxDate
   
@@ -602,6 +603,23 @@ export class DbStorage implements IStorage {
         )
       )
       .orderBy(mealPlans.scheduledDate, mealPlans.mealType);
+  }
+
+  async updateMealFeedback(mealId: string, userId: string, feedback: string): Promise<MealPlan | undefined> {
+    const result = await db
+      .update(mealPlans)
+      .set({ 
+        userFeedback: feedback,
+        feedbackAt: new Date()
+      })
+      .where(
+        and(
+          eq(mealPlans.id, mealId),
+          eq(mealPlans.userId, userId)
+        )
+      )
+      .returning();
+    return result[0];
   }
 
   async deletePastMealPlans(userId: string): Promise<number> {

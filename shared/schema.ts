@@ -121,6 +121,8 @@ export const mealPlans = pgTable("meal_plans", {
   analyzedInstructions: jsonb("analyzed_instructions"), // Structured cooking steps
   nutritionData: jsonb("nutrition_data"), // Full nutrition breakdown from Spoonacular
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  userFeedback: text("user_feedback"), // "liked" or "disliked"
+  feedbackAt: timestamp("feedback_at"), // When user gave feedback
 });
 
 export const favoriteRecipes = pgTable("favorite_recipes", {

@@ -1142,6 +1142,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 imageUrl: recipeDetails.image,
                 spoonacularRecipeId: recipe.id,
                 scheduledDate,
+                sourceUrl: recipeDetails.sourceUrl,
+                readyInMinutes: recipeDetails.readyInMinutes,
+                healthScore: recipeDetails.healthScore,
+                dishTypes: recipeDetails.dishTypes || [],
+                diets: recipeDetails.diets || [],
+                cuisines: recipeDetails.cuisines || [],
+                extendedIngredients: recipeDetails.extendedIngredients || null,
+                analyzedInstructions: recipeDetails.analyzedInstructions || null,
+                nutritionData: recipeDetails.nutrition || null,
               });
               
               savedPlans.push(saved);
@@ -1178,6 +1187,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const plans = await storage.getMealPlans(userId);
       res.json(plans);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.patch("/api/meal-plans/:id/feedback", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { id } = req.params;
+    const { feedback } = req.body; // "liked" or "disliked"
+
+    try {
+      const updated = await storage.updateMealFeedback(id, userId, feedback);
+      
+      if (!updated) {
+        return res.status(404).json({ error: 'Meal plan not found' });
+      }
+      
+      res.json(updated);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
