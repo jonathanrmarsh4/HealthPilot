@@ -58,26 +58,49 @@ export function ReadinessScoreWidget() {
     return 'destructive';
   };
 
+  // Calculate weighted contributions for multicolored segments
+  const totalWeightedScore = 
+    readinessScore.factors.sleep.score * readinessScore.factors.sleep.weight +
+    readinessScore.factors.hrv.score * readinessScore.factors.hrv.weight +
+    readinessScore.factors.restingHR.score * readinessScore.factors.restingHR.weight +
+    readinessScore.factors.workloadRecovery.score * readinessScore.factors.workloadRecovery.weight;
+
+  // Guard against division by zero - fallback to equal distribution if no data
+  const safePercentage = (value: number) => {
+    if (totalWeightedScore <= 0) return 25; // Equal 25% for each factor if no data
+    return Math.round((value / totalWeightedScore) * 100);
+  };
+
   const readinessChartData = [
     { 
-      name: 'Ready', 
-      value: readinessScore.score >= 70 ? readinessScore.score : 0, 
-      color: 'hsl(var(--chart-1))' 
+      name: 'Sleep', 
+      value: readinessScore.factors.sleep.score * readinessScore.factors.sleep.weight, 
+      color: '#3b82f6', // Blue
+      percentage: safePercentage(readinessScore.factors.sleep.score * readinessScore.factors.sleep.weight)
     },
     { 
-      name: 'Caution', 
-      value: readinessScore.score >= 40 && readinessScore.score < 70 ? readinessScore.score : 0, 
-      color: 'hsl(var(--chart-2))' 
+      name: 'HRV', 
+      value: readinessScore.factors.hrv.score * readinessScore.factors.hrv.weight, 
+      color: '#10b981', // Green
+      percentage: safePercentage(readinessScore.factors.hrv.score * readinessScore.factors.hrv.weight)
     },
     { 
-      name: 'Rest', 
-      value: readinessScore.score < 40 ? readinessScore.score : 0, 
-      color: 'hsl(var(--chart-3))' 
+      name: 'Rest HR', 
+      value: readinessScore.factors.restingHR.score * readinessScore.factors.restingHR.weight, 
+      color: '#ef4444', // Red
+      percentage: safePercentage(readinessScore.factors.restingHR.score * readinessScore.factors.restingHR.weight)
+    },
+    { 
+      name: 'Recovery', 
+      value: readinessScore.factors.workloadRecovery.score * readinessScore.factors.workloadRecovery.weight, 
+      color: '#8b5cf6', // Purple
+      percentage: safePercentage(readinessScore.factors.workloadRecovery.score * readinessScore.factors.workloadRecovery.weight)
     },
     { 
       name: 'Remaining', 
       value: 100 - readinessScore.score, 
-      color: 'hsl(var(--muted))' 
+      color: 'hsl(var(--muted))',
+      percentage: 0
     }
   ];
 
@@ -110,7 +133,7 @@ export function ReadinessScoreWidget() {
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Semicircle Gauge Chart */}
-        <div className="relative flex items-center justify-center">
+        <div className="flex items-center justify-center">
           <ResponsiveContainer width="100%" height={180}>
             <PieChart>
               <Pie
@@ -121,67 +144,50 @@ export function ReadinessScoreWidget() {
                 outerRadius={70}
                 startAngle={180}
                 endAngle={0}
+                paddingAngle={1}
                 dataKey="value"
               >
                 {readinessChartData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.color} />
                 ))}
               </Pie>
+              <text
+                x="50%"
+                y="65%"
+                textAnchor="middle"
+                dominantBaseline="middle"
+                className="fill-foreground text-3xl font-bold"
+                data-testid="text-readiness-score"
+              >
+                {readinessScore.score}
+              </text>
+              <text
+                x="50%"
+                y="80%"
+                textAnchor="middle"
+                dominantBaseline="middle"
+                className="fill-muted-foreground text-xs uppercase tracking-wide"
+              >
+                {readinessScore.recommendation}
+              </text>
             </PieChart>
           </ResponsiveContainer>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="text-center mb-8">
-              <div className="text-3xl font-bold" data-testid="text-readiness-score">
-                {readinessScore.score}
-              </div>
-              <div className="text-xs text-muted-foreground uppercase tracking-wide">
-                {readinessScore.recommendation}
-              </div>
-            </div>
-          </div>
         </div>
 
-        {/* Compact Factor Breakdown */}
-        <div className="grid grid-cols-2 gap-3 pt-2 border-t">
-          <div className="flex items-center justify-between text-xs">
-            <span className="flex items-center gap-1.5 text-muted-foreground">
-              <Moon className="h-3.5 w-3.5 text-blue-500" />
-              Sleep
-            </span>
-            <span className="font-semibold" data-testid="text-readiness-sleep-score">
-              {Math.round(readinessScore.factors.sleep.score)}
-            </span>
-          </div>
-          
-          <div className="flex items-center justify-between text-xs">
-            <span className="flex items-center gap-1.5 text-muted-foreground">
-              <Activity className="h-3.5 w-3.5 text-green-500" />
-              HRV
-            </span>
-            <span className="font-semibold" data-testid="text-readiness-hrv-score">
-              {Math.round(readinessScore.factors.hrv.score)}
-            </span>
-          </div>
-          
-          <div className="flex items-center justify-between text-xs">
-            <span className="flex items-center gap-1.5 text-muted-foreground">
-              <Heart className="h-3.5 w-3.5 text-red-500" />
-              Rest HR
-            </span>
-            <span className="font-semibold" data-testid="text-readiness-rhr-score">
-              {Math.round(readinessScore.factors.restingHR.score)}
-            </span>
-          </div>
-          
-          <div className="flex items-center justify-between text-xs">
-            <span className="flex items-center gap-1.5 text-muted-foreground">
-              <Zap className="h-3.5 w-3.5 text-purple-500" />
-              Recovery
-            </span>
-            <span className="font-semibold" data-testid="text-readiness-recovery-score">
-              {Math.round(readinessScore.factors.workloadRecovery.score)}
-            </span>
-          </div>
+        {/* Factor Breakdown with percentages */}
+        <div className="grid grid-cols-2 gap-2 pt-2">
+          {readinessChartData.slice(0, 4).map((item) => (
+            <div key={item.name} className="flex items-center gap-2 text-xs">
+              <div 
+                className="w-3 h-3 rounded-sm" 
+                style={{ backgroundColor: item.color }}
+              />
+              <span className="text-muted-foreground">{item.name}</span>
+              <span className="font-medium ml-auto" data-testid={`text-readiness-${item.name.toLowerCase().replace(/\s+/g, '-')}-percentage`}>
+                {item.percentage}%
+              </span>
+            </div>
+          ))}
         </div>
       </CardContent>
     </Card>
