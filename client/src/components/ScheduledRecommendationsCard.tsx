@@ -143,8 +143,12 @@ export function ScheduledRecommendationsCard({ recommendations }: ScheduledRecom
       return apiRequest("POST", `/api/recommendations/${recommendationId}/complete`, {});
     },
     onSuccess: () => {
+      // Invalidate all queries that might be affected by workout completion
       queryClient.invalidateQueries({ queryKey: ["/api/recommendations/today"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/workout-sessions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/workouts/completed"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/training/readiness"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/training/daily-recommendation"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/training-schedules"] });
       toast({
         title: "Workout completed!",
         description: "Great job completing your scheduled workout. It's been added to your history.",
