@@ -120,6 +120,7 @@ export default function Training() {
   const [selectedPlan, setSelectedPlan] = useState<'primary' | 'alternate' | 'rest'>('primary');
   const [exerciseFeedback, setExerciseFeedback] = useState<Record<string, 'up' | 'down'>>({});
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set());
 
   const { data: readinessScore, isLoading: readinessLoading } = useQuery<ReadinessScore>({
     queryKey: ["/api/training/readiness"],
@@ -200,6 +201,53 @@ export default function Training() {
       return workoutDate >= sevenDaysAgo;
     }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [completedWorkouts]);
+
+  // Group workouts by day with totals
+  const workoutsByDay = useMemo(() => {
+    if (!recentWorkouts || recentWorkouts.length === 0) return [];
+
+    const grouped = new Map<string, {
+      date: Date;
+      dateKey: string;
+      workouts: CompletedWorkout[];
+      totalCalories: number;
+      totalMinutes: number;
+    }>();
+
+    recentWorkouts.forEach(workout => {
+      const workoutDate = new Date(workout.date);
+      const dateKey = format(workoutDate, 'yyyy-MM-dd');
+      
+      if (!grouped.has(dateKey)) {
+        grouped.set(dateKey, {
+          date: workoutDate,
+          dateKey,
+          workouts: [],
+          totalCalories: 0,
+          totalMinutes: 0,
+        });
+      }
+
+      const dayGroup = grouped.get(dateKey)!;
+      dayGroup.workouts.push(workout);
+      dayGroup.totalCalories += workout.caloriesEstimate;
+      dayGroup.totalMinutes += workout.duration;
+    });
+
+    return Array.from(grouped.values()).sort((a, b) => b.date.getTime() - a.date.getTime());
+  }, [recentWorkouts]);
+
+  const toggleDayExpansion = (dateKey: string) => {
+    setExpandedDays(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(dateKey)) {
+        newSet.delete(dateKey);
+      } else {
+        newSet.add(dateKey);
+      }
+      return newSet;
+    });
+  };
 
   const refreshPlanMutation = useMutation({
     mutationFn: async () => {
@@ -760,29 +808,66 @@ export default function Training() {
                   <Skeleton className="h-20 w-full" />
                   <Skeleton className="h-20 w-full" />
                 </div>
-              ) : recentWorkouts.length > 0 ? (
+              ) : workoutsByDay.length > 0 ? (
                 <div className="space-y-3">
-                  {recentWorkouts.map((workout) => (
+                  {workoutsByDay.map((dayGroup) => (
                     <div
-                      key={workout.id}
-                      className="flex items-center justify-between p-4 rounded-lg border bg-card"
-                      data-testid={`workout-history-${workout.id}`}
+                      key={dayGroup.dateKey}
+                      className="rounded-lg border bg-card overflow-hidden"
+                      data-testid={`workout-day-${dayGroup.dateKey}`}
                     >
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h4 className="font-medium">{workout.workoutType}</h4>
-                          <Badge variant="outline" className="text-xs">
-                            {workout.intensity}
-                          </Badge>
+                      {/* Day Header with Totals */}
+                      <button
+                        onClick={() => toggleDayExpansion(dayGroup.dateKey)}
+                        className="w-full flex items-center justify-between p-4 hover-elevate"
+                        data-testid={`button-toggle-day-${dayGroup.dateKey}`}
+                      >
+                        <div className="flex-1 text-left">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h4 className="font-medium">
+                              {format(dayGroup.date, 'EEEE, MMM d')}
+                            </h4>
+                            <Badge variant="secondary" className="text-xs">
+                              {dayGroup.workouts.length} {dayGroup.workouts.length === 1 ? 'activity' : 'activities'}
+                            </Badge>
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            {dayGroup.totalMinutes} min • {dayGroup.totalCalories} kcal
+                          </div>
                         </div>
-                        <div className="text-sm text-muted-foreground">
-                          {format(new Date(workout.date), 'EEEE, MMM d')}
+                        {expandedDays.has(dayGroup.dateKey) ? (
+                          <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </button>
+
+                      {/* Expandable Activities List */}
+                      {expandedDays.has(dayGroup.dateKey) && (
+                        <div className="border-t bg-muted/30">
+                          {dayGroup.workouts.map((workout, index) => (
+                            <div
+                              key={workout.id}
+                              className={`flex items-center justify-between p-4 ${
+                                index !== dayGroup.workouts.length - 1 ? 'border-b' : ''
+                              }`}
+                              data-testid={`workout-activity-${workout.id}`}
+                            >
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium text-sm">{workout.workoutType}</span>
+                                  <Badge variant="outline" className="text-xs">
+                                    {workout.intensity}
+                                  </Badge>
+                                </div>
+                              </div>
+                              <div className="text-right text-sm text-muted-foreground">
+                                <span>{workout.duration} min • {workout.caloriesEstimate} kcal</span>
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                      </div>
-                      <div className="text-right text-sm">
-                        <div className="font-medium">{workout.duration} min</div>
-                        <div className="text-muted-foreground">~{workout.caloriesEstimate} kcal</div>
-                      </div>
+                      )}
                     </div>
                   ))}
                 </div>

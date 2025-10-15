@@ -2404,10 +2404,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
                                 workoutType === 'mobility' ? 20 :
                                 workoutType === 'stretching' ? 15 : 45;
 
+      // Estimate perceived effort based on workout type (for intensity calculation)
+      const estimatedEffort = workoutType === 'hiit' ? 8 :
+                              workoutType === 'strength' ? 7 :
+                              workoutType === 'cardio' ? 6 :
+                              workoutType === 'yoga' ? 4 :
+                              workoutType === 'mobility' ? 3 :
+                              workoutType === 'stretching' ? 2 : 5;
+
       const now = new Date();
       const startTime = new Date(now.getTime() - estimatedDuration * 60 * 1000);
 
-      // Create workout session entry
+      // Create workout session entry with estimated effort for intensity calculation
       await storage.createWorkoutSession({
         userId,
         workoutType,
@@ -2418,6 +2426,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         sourceType: 'manual',
         trainingScheduleId: recommendation.trainingScheduleId || undefined,
         notes: recommendation.description,
+        perceivedEffort: estimatedEffort,
       });
 
       // Dismiss the recommendation
