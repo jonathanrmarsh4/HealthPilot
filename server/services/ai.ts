@@ -1830,11 +1830,40 @@ CRITICAL SAFETY RULES:
 4. Be honest about recovery needs - it's better to undertrain than overtrain
 5. Consider cumulative fatigue from recent workouts
 
+WORKOUT DURATION REQUIREMENTS:
+- Primary workouts: MINIMUM 60 minutes (aim for 60-75 minutes for optimal training stimulus)
+- Alternate/lighter workouts: 30 minutes (recovery-focused, shorter duration acceptable)
+- Rest day activities: 10-20 minutes (gentle movement only)
+
+INTENSITY CALIBRATION BY READINESS SCORE:
+- Readiness 75-100 (Ready): HIGH INTENSITY workouts
+  * Heavy compound lifts (80-90% 1RM), challenging sets close to failure
+  * Higher volume training (4-5 sets per exercise)
+  * Intense cardio: HIIT, sprints, max effort intervals
+  * Longer duration challenging workouts (60-75 min)
+  
+- Readiness 60-74 (Caution/Ready): MODERATE-HIGH INTENSITY workouts
+  * Moderate weights (70-80% 1RM), controlled effort
+  * Moderate volume (3-4 sets per exercise)
+  * Steady-state cardio with tempo intervals
+  * Full 60-minute sessions with good work capacity
+  
+- Readiness 40-59 (Caution): LIGHT-MODERATE INTENSITY
+  * Light-moderate weights (60-70% 1RM), technique focus
+  * Lower volume (2-3 sets per exercise)
+  * Easy cardio, zone 2 heart rate
+  * 60 min with more rest between sets
+  
+- Readiness <40 (Rest): ACTIVE RECOVERY OR REST
+  * Mobility work, stretching, light movement
+  * 30 min or less, very low intensity
+
 Your recommendations should be:
 - Specific and actionable (exact exercises, sets, reps, duration)
 - Adaptive to current recovery state
 - Encouraging but realistic
-- Include clear reasoning based on recovery data`
+- Include clear reasoning based on recovery data
+- ALWAYS meet the minimum 60-minute duration for primary workouts unless readiness is very low (<40)`
       },
       {
         role: "user",
@@ -1877,24 +1906,24 @@ Generate a recommendation with this JSON structure:
         "notes": "specific tips or form cues"
       }
     ],
-    "totalDuration": number (minutes),
-    "intensity": "light/moderate/high",
+    "totalDuration": number (MUST be 60+ minutes for readiness ≥40, can be less only for readiness <40),
+    "intensity": "light/moderate/high" (match intensity to readiness score using calibration guide above),
     "calorieEstimate": number
   },
   "alternatePlan": {
-    "title": "Lighter Alternative",
+    "title": "Lighter Alternative (30 min)",
     "exercises": [same structure as primaryPlan],
-    "totalDuration": number,
+    "totalDuration": 30,
     "intensity": "light/moderate",
     "calorieEstimate": number
   },
   "restDayOption": {
     "title": "Active Recovery / Rest",
     "activities": ["Gentle stretching", "Light walk", "Meditation"],
-    "duration": number (minutes),
+    "duration": number (10-20 minutes),
     "benefits": "Why rest might be better today"
   },
-  "aiReasoning": "Clear explanation of why these recommendations make sense based on readiness score and recovery markers. Be specific about which factors influenced the decision.",
+  "aiReasoning": "Clear explanation of why these recommendations make sense based on readiness score and recovery markers. Explain how the intensity and duration were calibrated to the readiness score.",
   "safetyNote": "Any important warnings or cautions (only if readiness is concerning)",
   "adjustmentsMade": {
     "intensityReduced": boolean (true if intensity was lowered from scheduled/planned workout),
@@ -1903,6 +1932,12 @@ Generate a recommendation with this JSON structure:
     "reason": "Brief explanation of what was adjusted and why based on readiness"
   }
 }
+
+CRITICAL REMINDERS:
+- Readiness score ${data.readinessScore} determines workout intensity (see calibration guide above)
+- Primary workout must be 60+ minutes unless readiness <40
+- Alternate workout should be exactly 30 minutes
+- Match intensity precisely to readiness level for optimal training and recovery balance
 
 Be specific, actionable, and prioritize safety over performance.`,
       },
