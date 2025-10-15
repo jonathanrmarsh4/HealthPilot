@@ -3516,11 +3516,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const updateData = JSON.parse(updateJson);
           
           // Get the goal before update for audit trail
-          const goalBefore = await storage.getGoal(updateData.goalId, userId);
+          let goalBefore;
+          let goalId = updateData.goalId;
           
-          if (goalBefore) {
+          // Handle "existing" goalId by finding the goal based on context
+          if (goalId === 'existing') {
+            console.log("📌 Resolving 'existing' goalId based on target type or metric...");
+            const allGoals = await storage.getGoals(userId);
+            
+            // Try to find by metric type if provided
+            if (updateData.metricType) {
+              goalBefore = allGoals.find(g => g.metricType === updateData.metricType && g.status === 'active');
+            } else if (updateData.targetValue !== undefined) {
+              // If we have target_type info, try to match weight/steps/etc
+              // Look for weight goal if updating weight
+              goalBefore = allGoals.find(g => 
+                (g.metricType === 'weight' || g.metricType === 'steps') && g.status === 'active'
+              );
+            }
+            
+            if (!goalBefore && allGoals.length > 0) {
+              // Fallback: use the most recent active goal
+              goalBefore = allGoals.filter(g => g.status === 'active').sort((a, b) => 
+                new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+              )[0];
+            }
+            
+            if (goalBefore) {
+              goalId = goalBefore.id;
+              console.log(`✅ Resolved 'existing' to goal ID: ${goalId}`);
+            }
+          } else {
+            goalBefore = await storage.getGoal(goalId, userId);
+          }
+          
+          if (goalBefore && goalId) {
             // Update goal with new data
-            const updatedGoal = await storage.updateGoal(updateData.goalId, userId, {
+            const updatedGoal = await storage.updateGoal(goalId, userId, {
+              targetValue: updateData.targetValue ?? goalBefore.targetValue,
               currentValue: updateData.currentValue ?? goalBefore.currentValue,
               status: updateData.status ?? goalBefore.status,
               notes: updateData.notes ?? goalBefore.notes,
@@ -3532,7 +3565,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 userId,
                 actionType: 'UPDATE_GOAL',
                 targetTable: 'goals',
-                targetId: updateData.goalId,
+                targetId: goalId,
                 changesBefore: goalBefore,
                 changesAfter: updatedGoal,
                 reasoning: updateData.reasoning || 'AI updated goal based on user conversation',
@@ -3543,6 +3576,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               goalUpdated = true;
               console.log("✨ Goal updated and logged to audit trail!");
             }
+          } else {
+            console.error("❌ Could not find goal to update");
           }
         } catch (e) {
           console.error("❌ Failed to update goal:", e);
