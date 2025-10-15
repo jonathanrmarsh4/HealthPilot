@@ -18,6 +18,7 @@ import HealthRecords from "@/pages/HealthRecords";
 import Biomarkers from "@/pages/Biomarkers";
 import Sleep from "@/pages/Sleep";
 import MealPlans from "@/pages/MealPlans";
+import NutritionProfile from "@/pages/NutritionProfile";
 import Training from "@/pages/Training";
 import ReadinessSettings from "@/pages/ReadinessSettings";
 import FitnessProfile from "@/pages/FitnessProfile";
@@ -46,6 +47,7 @@ function Router() {
       <Route path="/biomarkers" component={Biomarkers} />
       <Route path="/sleep" component={Sleep} />
       <Route path="/meals" component={MealPlans} />
+      <Route path="/meals/nutrition-profile" component={NutritionProfile} />
       <Route path="/training" component={Training} />
       <Route path="/training/readiness-settings" component={ReadinessSettings} />
       <Route path="/training/fitness-profile" component={FitnessProfile} />
@@ -82,6 +84,7 @@ function AppLayout() {
     "/biomarkers": "Biomarkers",
     "/sleep": "Sleep Dashboard",
     "/meals": "Meal Plans",
+    "/meals/nutrition-profile": "Nutrition Profile",
     "/training": "Training",
     "/supplements": "Supplement Stack",
     "/insights": "AI Insights",

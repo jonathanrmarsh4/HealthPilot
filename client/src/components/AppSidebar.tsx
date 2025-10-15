@@ -90,6 +90,7 @@ const menuSections: MenuSection[] = [
     items: [
       { title: "Health Records", url: "/records", icon: FileText },
       { title: "Fitness Profile", url: "/training/fitness-profile", icon: User },
+      { title: "Nutrition Profile", url: "/meals/nutrition-profile", icon: Utensils },
       { title: "Integrations", url: "/apple-health", icon: Smartphone },
     ],
   },

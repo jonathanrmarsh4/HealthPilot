@@ -787,6 +787,7 @@ export async function chatWithHealthCoach(
     readinessScore?: any;
     downvotedProtocols?: string[];
     fitnessProfile?: any;
+    nutritionProfile?: any;
   }
 ) {
   let contextSection = "";
@@ -904,6 +905,40 @@ export async function chatWithHealthCoach(
       contextSection += `- Respect their injuries/limitations when programming\n`;
       contextSection += `- Align workouts with their stated goals and preferences\n`;
       contextSection += `- Schedule workouts on their available days\n`;
+    }
+    
+    if (context.nutritionProfile) {
+      const profile = context.nutritionProfile;
+      contextSection += `\n🍽️ USER'S NUTRITION PROFILE:\n`;
+      
+      if (profile.dietaryPreferences && profile.dietaryPreferences.length > 0) {
+        contextSection += `- Dietary Preferences: ${profile.dietaryPreferences.join(', ')}\n`;
+      }
+      if (profile.allergies && profile.allergies.length > 0) {
+        contextSection += `- Food Allergies: ${profile.allergies.join(', ')}\n`;
+      }
+      if (profile.cuisinePreferences && profile.cuisinePreferences.length > 0) {
+        contextSection += `- Cuisine Preferences: ${profile.cuisinePreferences.join(', ')}\n`;
+      }
+      if (profile.calorieTarget) {
+        contextSection += `- Daily Calorie Target: ${profile.calorieTarget} kcal\n`;
+      }
+      if (profile.proteinTarget) {
+        contextSection += `- Daily Protein Target: ${profile.proteinTarget}g\n`;
+      }
+      if (profile.carbsTarget) {
+        contextSection += `- Daily Carbs Target: ${profile.carbsTarget}g\n`;
+      }
+      if (profile.fatTarget) {
+        contextSection += `- Daily Fat Target: ${profile.fatTarget}g\n`;
+      }
+      
+      contextSection += `\n**IMPORTANT**: Use this nutrition profile to personalize ALL meal and nutrition recommendations:\n`;
+      contextSection += `- ALWAYS respect dietary preferences and allergies - NEVER suggest foods that conflict with these\n`;
+      contextSection += `- Suggest recipes and meal ideas from their preferred cuisines\n`;
+      contextSection += `- Align meal recommendations with their macro targets (protein, carbs, fat)\n`;
+      contextSection += `- When suggesting meal plans, ensure total daily intake matches their calorie target\n`;
+      contextSection += `- If they ask about nutrition or meals, proactively use this profile to give personalized advice\n`;
     }
     
     contextSection += `\nUse this context to provide more personalized and relevant responses. Reference specific metrics or insights when appropriate.`;

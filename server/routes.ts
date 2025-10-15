@@ -946,82 +946,125 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const userId = (req.user as any).claims.sub;
 
     try {
-      const userProfile = req.body;
+      // Step 1: Get user's nutrition profile for dietary preferences
+      const nutritionProfile = await storage.getNutritionProfile(userId);
       
-      // Step 1: Delete past meals to keep only current/future meals
+      // Step 2: Delete past meals to keep only current/future meals
       const deletedCount = await storage.deletePastMealPlans(userId);
       console.log(`🗑️ Deleted ${deletedCount} past meal(s) for user ${userId}`);
       
-      // Step 2: Check existing meals to determine start date
+      // Step 3: Check existing meals to determine start date
       const existingMeals = await storage.getMealPlans(userId);
       let startDate = new Date();
       startDate.setHours(0, 0, 0, 0);
       
       // If there are existing future meals, start from tomorrow
-      // Otherwise, start from today
       if (existingMeals.length > 0) {
         startDate.setDate(startDate.getDate() + 1);
       }
       
-      const chatHistory = await storage.getChatMessages(userId);
-      const chatContext = chatHistory.map(msg => `${msg.role}: ${msg.content}`).join('\n');
-      
-      // Fetch active goals to incorporate into meal planning
-      const allGoals = await storage.getGoals(userId);
-      const activeGoals = allGoals.filter(goal => goal.status === 'active');
-      
-      // Step 3: Generate 4 days of meals (16 total) - fits within Claude Haiku token limit
-      const mealPlans = await generateMealPlan({
-        ...userProfile,
-        chatContext,
-        activeGoals
-      });
-      
-      // Step 4: Assign dates to meals, generate images, and save them
+      // Step 4: Generate meal plan using Spoonacular
       const savedPlans = [];
+      const mealTypes = ['breakfast', 'lunch', 'dinner'];
+      const daysToGenerate = 4; // Generate 4 days of meals
       
-      // Helper to get food image URL with curated food images
-      const getFoodImageUrl = (mealName: string, mealType: string): string => {
-        // Use Unsplash Source API to get real food photos based on meal name
-        // This provides actual food images that match the meal content
-        const searchTerm = mealName
-          .toLowerCase()
-          .replace(/[^a-z0-9\s]/g, '') // Remove special chars
-          .replace(/\s+/g, ','); // Convert spaces to commas for multi-term search
-        
-        // Add 'food' keyword to ensure food-related images
-        return `https://source.unsplash.com/800x600/?food,${searchTerm}`;
-      };
+      // Build dietary restrictions from nutrition profile
+      const diet = nutritionProfile?.dietaryPreferences?.[0]; // Use first preference as main diet
+      const intolerances = nutritionProfile?.allergies?.join(',') || '';
+      const targetCaloriesPerMeal = nutritionProfile?.calorieTarget 
+        ? Math.round(nutritionProfile.calorieTarget / 3) 
+        : undefined;
       
-      for (const plan of mealPlans) {
-        // Calculate scheduled date based on dayNumber (1-7)
-        const dayNumber = (plan as any).dayNumber || 1;
+      console.log(`🍽️ Generating meal plan with diet: ${diet || 'none'}, intolerances: ${intolerances || 'none'}`);
+      
+      for (let day = 0; day < daysToGenerate; day++) {
         const scheduledDate = new Date(startDate);
-        scheduledDate.setDate(startDate.getDate() + (dayNumber - 1));
+        scheduledDate.setDate(startDate.getDate() + day);
         
-        // Get a food image URL that matches the meal
-        const imageUrl = getFoodImageUrl((plan as any).name, (plan as any).mealType);
-        
-        const saved = await storage.createMealPlan({
-          ...plan,
-          userId,
-          scheduledDate,
-          imageUrl,
-        });
-        savedPlans.push(saved);
+        for (const mealType of mealTypes) {
+          try {
+            // Search for recipes matching nutritional requirements
+            const searchResults = await spoonacularService.searchRecipes({
+              type: mealType,
+              diet: diet as string,
+              intolerances: intolerances,
+              maxCalories: targetCaloriesPerMeal ? targetCaloriesPerMeal + 200 : undefined,
+              minCalories: targetCaloriesPerMeal ? targetCaloriesPerMeal - 200 : undefined,
+              number: 5, // Get 5 options
+              sort: 'random',
+              addRecipeInformation: true,
+            });
+
+            if (searchResults.results && searchResults.results.length > 0) {
+              // Pick a random recipe from the results
+              const recipe = searchResults.results[Math.floor(Math.random() * searchResults.results.length)];
+              
+              // Get full recipe details including ingredients and instructions
+              const recipeDetails = await spoonacularService.getRecipeInformation(recipe.id);
+              
+              // Extract ingredients list
+              const ingredients = recipeDetails.extendedIngredients?.map((ing: any) => 
+                ing.original || `${ing.amount} ${ing.unit} ${ing.name}`
+              ) || [];
+              
+              // Extract step-by-step instructions
+              let detailedInstructions = '';
+              if (recipeDetails.analyzedInstructions && recipeDetails.analyzedInstructions.length > 0) {
+                const steps = recipeDetails.analyzedInstructions[0].steps || [];
+                detailedInstructions = steps
+                  .map((step: any, index: number) => `${index + 1}. ${step.step}`)
+                  .join('\n\n');
+              }
+              
+              // Calculate macros from nutrition data
+              const nutrition = recipeDetails.nutrition;
+              const calories = nutrition?.nutrients?.find((n: any) => n.name === 'Calories')?.amount || 0;
+              const protein = nutrition?.nutrients?.find((n: any) => n.name === 'Protein')?.amount || 0;
+              const carbs = nutrition?.nutrients?.find((n: any) => n.name === 'Carbohydrates')?.amount || 0;
+              const fat = nutrition?.nutrients?.find((n: any) => n.name === 'Fat')?.amount || 0;
+              
+              // Save meal plan with Spoonacular data
+              const saved = await storage.createMealPlan({
+                userId,
+                mealType: mealType.charAt(0).toUpperCase() + mealType.slice(1),
+                name: recipeDetails.title,
+                description: recipeDetails.summary?.replace(/<[^>]*>/g, '').substring(0, 200) || '',
+                calories: Math.round(calories),
+                protein: Math.round(protein),
+                carbs: Math.round(carbs),
+                fat: Math.round(fat),
+                prepTime: recipeDetails.readyInMinutes || 30,
+                servings: recipeDetails.servings || 1,
+                ingredients,
+                detailedRecipe: detailedInstructions || recipeDetails.instructions || '',
+                recipe: recipeDetails.instructions || '',
+                tags: recipeDetails.diets || [],
+                imageUrl: recipeDetails.image,
+                recipeId: recipe.id.toString(),
+                scheduledDate,
+              });
+              
+              savedPlans.push(saved);
+              console.log(`✅ Added ${mealType} for day ${day + 1}: ${recipeDetails.title}`);
+            }
+          } catch (error) {
+            console.error(`Error generating ${mealType} for day ${day + 1}:`, error);
+            // Continue with other meals even if one fails
+          }
+        }
       }
       
       // Step 5: Enforce 7-day maximum - delete any meals beyond 7 days from today
       const maxDate = new Date();
       maxDate.setHours(0, 0, 0, 0);
-      maxDate.setDate(maxDate.getDate() + 7); // 7 days from today
+      maxDate.setDate(maxDate.getDate() + 7);
       
       const cappedCount = await storage.deleteFutureMealsBeyondDate(userId, maxDate);
       if (cappedCount > 0) {
         console.log(`🔒 Enforced 7-day cap: deleted ${cappedCount} meal(s) beyond ${maxDate.toISOString().split('T')[0]}`);
       }
       
-      console.log(`✅ Generated ${savedPlans.length} meals for 7 days starting ${startDate.toISOString().split('T')[0]}`);
+      console.log(`✅ Generated ${savedPlans.length} Spoonacular meals for ${daysToGenerate} days starting ${startDate.toISOString().split('T')[0]}`);
       res.json(savedPlans);
     } catch (error: any) {
       console.error("Error generating meal plan:", error);
@@ -2908,6 +2951,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Load user's fitness profile for personalized recommendations
       const fitnessProfile = await storage.getFitnessProfile(userId);
+      
+      // Load user's nutrition profile for personalized meal recommendations
+      const nutritionProfile = await storage.getNutritionProfile(userId);
 
       const context = {
         recentBiomarkers,
@@ -2920,6 +2966,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         readinessScore: readinessScore || undefined,
         downvotedProtocols: downvotedProtocols.length > 0 ? downvotedProtocols : undefined,
         fitnessProfile: fitnessProfile || undefined,
+        nutritionProfile: nutritionProfile || undefined,
       };
 
       const aiResponse = await chatWithHealthCoach(conversationHistory, context);
