@@ -32,6 +32,7 @@ import Chat from "@/pages/Chat";
 import Profile from "@/pages/Profile";
 import Settings from "@/pages/Settings";
 import Admin from "@/pages/Admin";
+import AIAuditLog from "@/pages/AIAuditLog";
 import Login from "@/pages/Login";
 import Logout from "@/pages/Logout";
 import NotFound from "@/pages/not-found";
@@ -61,6 +62,7 @@ function Router() {
       <Route path="/apple-health" component={AppleHealthSetup} />
       <Route path="/settings" component={Settings} />
       <Route path="/admin" component={Admin} />
+      <Route path="/admin/ai-audit" component={AIAuditLog} />
       <Route path="/logged-out" component={Logout} />
       <Route component={NotFound} />
     </Switch>
@@ -95,7 +97,8 @@ function AppLayout() {
     "/profile": "Profile",
     "/apple-health": "Apple Health Setup",
     "/settings": "Settings",
-    "/admin": "Admin Panel"
+    "/admin": "Admin Panel",
+    "/admin/ai-audit": "AI Audit Log"
   };
 
   const currentPage = pageNames[location] || "Unknown Page";

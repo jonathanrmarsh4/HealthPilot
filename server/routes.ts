@@ -3025,6 +3025,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // AI Audit Log endpoints
+  app.get("/api/ai-actions", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
+      const actions = await storage.getAiActions(userId, limit);
+      res.json(actions);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/ai-actions/by-type/:type", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { type } = req.params;
+    try {
+      const actions = await storage.getAiActionsByType(userId, type);
+      res.json(actions);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.post("/api/chat", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
 
@@ -3613,15 +3636,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (biomarkerToUpdate) {
             const biomarkerBefore = { ...biomarkerToUpdate };
             
-            // Update using upsert (since we don't have a direct update method)
-            const updatedBiomarker = await storage.upsertBiomarker({
-              id: biomarkerToUpdate.id,
+            // Create corrected biomarker entry (biomarkers are time-series, we don't update, we create corrections)
+            const correctedBiomarker = await storage.createBiomarker({
               userId,
               type: updateData.type ?? biomarkerToUpdate.type,
               value: updateData.value ?? biomarkerToUpdate.value,
               unit: updateData.unit ?? biomarkerToUpdate.unit,
               recordedAt: updateData.recordedAt ? new Date(updateData.recordedAt) : biomarkerToUpdate.recordedAt,
-              source: updateData.source ?? biomarkerToUpdate.source,
+              source: 'ai_correction',
             });
             
             // Log to audit trail
@@ -3629,16 +3651,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
               userId,
               actionType: 'UPDATE_BIOMARKER',
               targetTable: 'biomarkers',
-              targetId: updatedBiomarker.id,
+              targetId: correctedBiomarker.id,
               changesBefore: biomarkerBefore,
-              changesAfter: updatedBiomarker,
-              reasoning: updateData.reasoning || 'AI updated biomarker based on user conversation',
+              changesAfter: correctedBiomarker,
+              reasoning: updateData.reasoning || 'AI corrected biomarker based on user conversation',
               conversationContext: message,
               success: 1,
             });
             
             biomarkerUpdated = true;
-            console.log("✨ Biomarker updated and logged to audit trail!");
+            console.log("✨ Biomarker correction created and logged to audit trail!");
           }
         } catch (e) {
           console.error("❌ Failed to update biomarker:", e);
