@@ -4169,7 +4169,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   recordedAt: new Date(dataPoint.date),
                 })
               );
-              insertedBiomarkerTypes.add("blood-pressure-systolic");
             }
             if (dataPoint.diastolic) {
               bpPromises.push(
@@ -4182,7 +4181,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   recordedAt: new Date(dataPoint.date),
                 })
               );
-              insertedBiomarkerTypes.add("blood-pressure-diastolic");
             }
           }
           await Promise.all(bpPromises);
@@ -4215,7 +4213,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   recordedAt: new Date(dataPoint.date),
                 })
               );
-              insertedBiomarkerTypes.add(biomarkerType);
             }
           }
           await Promise.all(biomarkerPromises);
@@ -4224,7 +4221,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Auto-calculate body fat percentage if both weight and lean body mass are available
-      let bodyFatCalculations = 0;
       try {
         // Get unique dates where biomarkers were inserted
         const today = new Date();
@@ -4260,6 +4256,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         // Calculate and insert body fat percentage for days with both values
+        let bodyFatCalculations = 0;
         const bodyFatPromises = [];
         
         // Check existing body fat percentage entries to avoid duplicates
@@ -4323,46 +4320,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const activeUserGoals = activeGoals.filter(g => g.status === 'active');
         
         if (activeUserGoals.length > 0) {
+          // Get unique biomarker types that were just inserted or calculated
+          const biomarkerTypes = new Set<string>();
+          insertedBiomarkers.forEach(b => biomarkerTypes.add(b.type));
+          
           // Add body-fat-percentage if it was calculated
           if (bodyFatCalculations > 0) {
-            insertedBiomarkerTypes.add('body-fat-percentage');
+            biomarkerTypes.add('body-fat-percentage');
           }
           
-          // Map biomarker types to goal metric types
-          // This handles cases where multiple biomarker types map to a single goal metric
-          const biomarkerToGoalMetricMap: Record<string, string> = {
-            'blood-pressure-systolic': 'blood-pressure',
-            'blood-pressure-diastolic': 'blood-pressure',
-            // All other biomarker types map 1:1 to goal metrics
-          };
-          
-          // Get unique goal metric types from inserted biomarkers
-          const goalMetricTypes = new Set<string>();
-          const insertedBiomarkerTypesArray = Array.from(insertedBiomarkerTypes);
-          for (const biomarkerType of insertedBiomarkerTypesArray) {
-            const goalMetric = biomarkerToGoalMetricMap[biomarkerType] || biomarkerType;
-            goalMetricTypes.add(goalMetric);
-          }
-          
-          const goalMetricTypesArray = Array.from(goalMetricTypes);
-          console.log(`📊 Goal metric types to check: ${goalMetricTypesArray.join(', ')}`);
+          console.log(`📊 Biomarker types to check: ${Array.from(biomarkerTypes).join(', ')}`);
           
           let updatedGoalsCount = 0;
           
-          // For each goal metric type, check if there's a matching active goal
-          for (const goalMetricType of goalMetricTypesArray) {
-            const matchingGoals = activeUserGoals.filter(g => g.metricType === goalMetricType);
+          // For each biomarker type, check if there's a matching active goal
+          for (const biomarkerType of biomarkerTypes) {
+            const matchingGoals = activeUserGoals.filter(g => g.metricType === biomarkerType);
             
             if (matchingGoals.length > 0) {
-              // Get the appropriate biomarker type for fetching latest value
-              let biomarkerTypeToFetch = goalMetricType;
-              
-              // For blood pressure goals, use systolic value (primary health indicator)
-              if (goalMetricType === 'blood-pressure') {
-                biomarkerTypeToFetch = 'blood-pressure-systolic';
-              }
-              
-              const latestBiomarker = await storage.getLatestBiomarkerByType(userId, biomarkerTypeToFetch);
+              // Get the latest biomarker value for this type
+              const latestBiomarker = await storage.getLatestBiomarkerByType(userId, biomarkerType);
               
               if (latestBiomarker) {
                 // Update each matching goal
