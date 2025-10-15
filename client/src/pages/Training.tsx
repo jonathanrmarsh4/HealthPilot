@@ -303,7 +303,7 @@ export default function Training() {
   const toggleCompleteMutation = useMutation({
     mutationFn: async ({ scheduleId, currentCompleted }: { scheduleId: string; currentCompleted: boolean }) => {
       return apiRequest('PATCH', `/api/training-schedules/${scheduleId}/complete`, { 
-        completed: !currentCompleted 
+        completed: currentCompleted ? 0 : 1 
       });
     },
     onSuccess: () => {
