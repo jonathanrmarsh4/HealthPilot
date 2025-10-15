@@ -3,7 +3,7 @@ import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } f
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Clock, Flame, Beef, Wheat, Droplet, ChefHat, List, Minus, Plus, Users, ThumbsUp, ThumbsDown } from "lucide-react";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { MealPlan } from "@shared/schema";
 
@@ -40,6 +40,10 @@ export function RecipeDetailModal({ meal, open, onOpenChange }: RecipeDetailModa
       });
       
       setFeedback(feedbackType);
+      
+      // Invalidate meal plans cache to refresh the list
+      queryClient.invalidateQueries({ queryKey: ["/api/meal-plans"] });
+      
       toast({
         title: feedbackType === "liked" ? "Thanks for the feedback!" : "Noted!",
         description: feedbackType === "liked" 
