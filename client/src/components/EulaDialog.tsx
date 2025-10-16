@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -8,7 +8,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 
 interface EulaDialogProps {
@@ -45,11 +44,12 @@ export function EulaDialog({ open, onAccept }: EulaDialogProps) {
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea
-          className="flex-1 pr-4 border rounded-md p-4"
-          onScrollCapture={handleScroll}
+        <div
+          className="flex-1 overflow-y-auto border rounded-md p-4 touch-pan-y"
+          onScroll={handleScroll}
+          style={{ WebkitOverflowScrolling: 'touch' }}
         >
-          <div className="space-y-4 text-sm">
+          <div className="space-y-4 text-sm pr-4">
             <div>
               <p className="font-semibold mb-2">
                 Last Updated: 1/08/2025<br />
@@ -210,7 +210,7 @@ export function EulaDialog({ open, onAccept }: EulaDialogProps) {
               </p>
             </div>
           </div>
-        </ScrollArea>
+        </div>
 
         <div className="flex items-center space-x-2 py-4">
           <Checkbox
