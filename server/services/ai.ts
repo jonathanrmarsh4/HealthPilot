@@ -1180,6 +1180,71 @@ export async function chatWithHealthCoach(
     onboardingSection += `- Be conversational and friendly, not robotic\n`;
     onboardingSection += `- After basic info is complete, guide them to explore the app\n`;
   }
+  
+  // Page-specific contextual onboarding
+  else if (context?.currentPage && context?.onboardingStatus) {
+    const page = context.currentPage;
+    const status = context.onboardingStatus;
+    
+    // Training page - needs fitness profile and training plan
+    if (page === 'Training' && !status.trainingSetupComplete) {
+      onboardingSection = `\n\n## 🏋️ TRAINING PAGE SETUP\n`;
+      onboardingSection += `The user is on the Training page for the first time and needs help getting started.\n\n`;
+      onboardingSection += `**Your Goal**: Help them create their first personalized training plan.\n\n`;
+      onboardingSection += `**Approach**:\n`;
+      onboardingSection += `1. Welcome them: "I see you're ready to set up your training! Let me help you create a personalized workout plan."\n`;
+      onboardingSection += `2. If they don't have a fitness profile yet, use UPDATE_FITNESS_PROFILE to collect:\n`;
+      onboardingSection += `   - Fitness level, training experience, equipment access, goals, injuries/limitations\n`;
+      onboardingSection += `3. Then create a training plan using the PERSONALIZED EXERCISE PLAN FRAMEWORK below\n`;
+      onboardingSection += `4. Ask ONE question at a time to gather info\n`;
+      onboardingSection += `5. When you have enough info, create and present the plan with SAVE_TRAINING_PLAN markers\n\n`;
+    }
+    
+    // Meals page - needs nutrition profile and meal plan
+    else if (page === 'Meal Plans' && !status.mealsSetupComplete) {
+      onboardingSection = `\n\n## 🍽️ MEALS PAGE SETUP\n`;
+      onboardingSection += `The user is on the Meals page for the first time and needs help getting started.\n\n`;
+      onboardingSection += `**Your Goal**: Help them create their first personalized meal plan.\n\n`;
+      onboardingSection += `**Approach**:\n`;
+      onboardingSection += `1. Welcome them: "Welcome to meal planning! Let me help you create personalized meal recommendations."\n`;
+      onboardingSection += `2. Ask ONE question at a time about:\n`;
+      onboardingSection += `   - Dietary preferences (vegetarian, keto, paleo, etc.)\n`;
+      onboardingSection += `   - Food allergies or restrictions\n`;
+      onboardingSection += `   - Calorie/macro goals (or suggest based on their goals)\n`;
+      onboardingSection += `   - Meal frequency (3 meals, 5 meals, etc.)\n`;
+      onboardingSection += `3. Then generate a sample meal plan or offer to create one\n`;
+      onboardingSection += `4. Use the meal planning capabilities you have to suggest specific meals\n\n`;
+    }
+    
+    // Biomarkers page - guide them to sync or upload data
+    else if (page === 'Biomarkers' && !status.biomarkersSetupComplete) {
+      onboardingSection = `\n\n## 🔬 BIOMARKERS PAGE SETUP\n`;
+      onboardingSection += `The user is on the Biomarkers page for the first time.\n\n`;
+      onboardingSection += `**Your Goal**: Help them understand how to track biomarkers.\n\n`;
+      onboardingSection += `**Approach**:\n`;
+      onboardingSection += `1. Welcome them: "Ready to track your health metrics? There are a few ways to add biomarker data."\n`;
+      onboardingSection += `2. Explain the options:\n`;
+      onboardingSection += `   - Sync from Apple Health (automatic, best for ongoing tracking)\n`;
+      onboardingSection += `   - Upload health records (lab results, blood work)\n`;
+      onboardingSection += `   - Manual entry (add individual readings)\n`;
+      onboardingSection += `3. Ask which method they prefer\n`;
+      onboardingSection += `4. Guide them to the appropriate section\n`;
+      onboardingSection += `5. Note: You cannot directly add biomarker data - they need to use the UI or webhooks\n\n`;
+    }
+    
+    // Supplements page - guide them to add supplements
+    else if (page === 'Supplement Stack' && !status.supplementsSetupComplete) {
+      onboardingSection = `\n\n## 💊 SUPPLEMENTS PAGE SETUP\n`;
+      onboardingSection += `The user is on the Supplements page for the first time.\n\n`;
+      onboardingSection += `**Your Goal**: Help them set up their supplement tracking.\n\n`;
+      onboardingSection += `**Approach**:\n`;
+      onboardingSection += `1. Welcome them: "Let's set up your supplement stack! I can help you track what you're taking or recommend supplements based on your health data."\n`;
+      onboardingSection += `2. Ask: "Are you currently taking any supplements you'd like to track?"\n`;
+      onboardingSection += `3. If yes: Ask them to list what they're taking, then save with SAVE_SUPPLEMENT markers\n`;
+      onboardingSection += `4. If no: Analyze their biomarker data and suggest relevant supplements with reasoning\n`;
+      onboardingSection += `5. Save recommendations using SAVE_SUPPLEMENT markers when appropriate\n\n`;
+    }
+  }
 
   const systemPrompt = `You are a friendly and knowledgeable health and fitness coach AI. 
 

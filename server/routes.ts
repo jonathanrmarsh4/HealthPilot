@@ -756,6 +756,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId,
       });
       const biomarker = await storage.createBiomarker(validatedData);
+      
+      // Mark biomarkers setup as complete when first biomarker is added
+      const onboardingStatus = await storage.getOnboardingStatus(userId);
+      if (onboardingStatus && !onboardingStatus.biomarkersSetupComplete) {
+        await storage.updateOnboardingFlag(userId, 'biomarkersSetupComplete', true);
+      }
+      
       res.json(biomarker);
     } catch (error: any) {
       res.status(400).json({ error: error.message });
@@ -1910,6 +1917,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId,
         ...req.body
       });
+      
+      // Mark supplements setup as complete when first supplement is added
+      const onboardingStatus = await storage.getOnboardingStatus(userId);
+      if (onboardingStatus && !onboardingStatus.supplementsSetupComplete) {
+        await storage.updateOnboardingFlag(userId, 'supplementsSetupComplete', true);
+      }
+      
       res.json(supplement);
     } catch (error: any) {
       console.error("Error creating supplement:", error);
