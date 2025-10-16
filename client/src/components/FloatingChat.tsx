@@ -164,6 +164,13 @@ export function FloatingChat({ isOpen, onClose, currentPage }: FloatingChatProps
       queryClient.invalidateQueries({ queryKey: ["/api/onboarding/status"] });
       setMessage("");
       
+      // Auto-clear UI when contextual onboarding is triggered
+      if (data.contextualOnboardingTriggered) {
+        const now = new Date().toISOString();
+        setClearedAtTimestamp(now);
+        localStorage.setItem('chatClearedAt', now);
+      }
+      
       // Speak AI response if voice output is enabled
       if (data.reply && voiceEnabled) {
         speakResponse(data.reply);

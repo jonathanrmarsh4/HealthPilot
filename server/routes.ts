@@ -3800,6 +3800,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Contextual onboarding - no automatic step progression
       // Each section handles its own completion flag when relevant data is saved
+      
+      // Detect if contextual onboarding was triggered for UI clearing
+      const contextualOnboardingTriggered = 
+        currentPage && onboardingStatus && (
+          (currentPage === 'Training' && !onboardingStatus.trainingSetupComplete) ||
+          (currentPage === 'Meal Plans' && !onboardingStatus.mealsSetupComplete) ||
+          (currentPage === 'Biomarkers' && !onboardingStatus.biomarkersSetupComplete) ||
+          (currentPage === 'Supplement Stack' && !onboardingStatus.supplementsSetupComplete)
+        );
 
       res.json({
         userMessage,
@@ -3814,6 +3823,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         goalUpdated,
         goalCreated,
         biomarkerUpdated,
+        contextualOnboardingTriggered: contextualOnboardingTriggered || false,
       });
     } catch (error: any) {
       console.error("Error in chat:", error);
