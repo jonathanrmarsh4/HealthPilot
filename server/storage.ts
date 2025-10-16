@@ -56,6 +56,12 @@ import {
   type InsertInsightFeedback,
   type AiAction,
   type InsertAiAction,
+  type MealLibrary,
+  type InsertMealLibrary,
+  type MealFeedback,
+  type InsertMealFeedback,
+  type MealLibrarySettings,
+  type InsertMealLibrarySettings,
   users,
   healthRecords,
   biomarkers,
@@ -84,6 +90,9 @@ import {
   scheduledExerciseRecommendations,
   scheduledInsights,
   insightFeedback,
+  mealLibrary,
+  mealFeedback,
+  mealLibrarySettings,
 } from "@shared/schema";
 import { eq, desc, and, gte, lte, lt, sql, or, like, count, isNull } from "drizzle-orm";
 
@@ -286,6 +295,23 @@ export interface IStorage {
   
   // Insight Feedback methods
   createInsightFeedback(feedback: InsertInsightFeedback): Promise<InsightFeedback>;
+  
+  // Meal Library methods
+  createMealLibraryItem(meal: InsertMealLibrary): Promise<MealLibrary>;
+  getMealLibraryItems(filters?: { status?: string; cuisines?: string[]; diets?: string[]; }): Promise<MealLibrary[]>;
+  getMealLibraryItem(id: string): Promise<MealLibrary | undefined>;
+  updateMealLibraryItem(id: string, updates: Partial<MealLibrary>): Promise<MealLibrary | undefined>;
+  updateMealPerformance(id: string, incrementServed: boolean, feedback?: 'thumbs_up' | 'thumbs_down'): Promise<void>;
+  deleteMealLibraryItem(id: string): Promise<void>;
+  getLowPerformingMeals(threshold: number): Promise<MealLibrary[]>;
+  
+  createMealFeedback(feedback: InsertMealFeedback): Promise<MealFeedback>;
+  getUserMealFeedback(userId: string): Promise<MealFeedback[]>;
+  getMealFeedback(mealLibraryId: string): Promise<MealFeedback[]>;
+  getPremiumUsersWhoLikedMeal(mealLibraryId: string): Promise<string[]>; // Returns user IDs
+  
+  getMealLibrarySettings(userId: string): Promise<MealLibrarySettings | undefined>;
+  upsertMealLibrarySettings(settings: InsertMealLibrarySettings): Promise<MealLibrarySettings>;
 }
 
 export class DbStorage implements IStorage {
@@ -1983,6 +2009,142 @@ export class DbStorage implements IStorage {
   async createInsightFeedback(feedback: InsertInsightFeedback): Promise<InsightFeedback> {
     const result = await db.insert(insightFeedback).values(feedback).returning();
     return result[0];
+  }
+
+  // Meal Library methods
+  async createMealLibraryItem(meal: InsertMealLibrary): Promise<MealLibrary> {
+    const result = await db.insert(mealLibrary).values(meal).returning();
+    return result[0];
+  }
+
+  async getMealLibraryItems(filters?: { status?: string; cuisines?: string[]; diets?: string[]; }): Promise<MealLibrary[]> {
+    let query = db.select().from(mealLibrary);
+    
+    const conditions = [];
+    if (filters?.status) {
+      conditions.push(eq(mealLibrary.status, filters.status));
+    }
+    
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions)) as any;
+    }
+    
+    return await query.orderBy(desc(mealLibrary.importedAt));
+  }
+
+  async getMealLibraryItem(id: string): Promise<MealLibrary | undefined> {
+    const result = await db.select().from(mealLibrary).where(eq(mealLibrary.id, id));
+    return result[0];
+  }
+
+  async updateMealLibraryItem(id: string, updates: Partial<MealLibrary>): Promise<MealLibrary | undefined> {
+    const result = await db
+      .update(mealLibrary)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(mealLibrary.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async updateMealPerformance(id: string, incrementServed: boolean, feedback?: 'thumbs_up' | 'thumbs_down'): Promise<void> {
+    const meal = await this.getMealLibraryItem(id);
+    if (!meal) return;
+
+    const updates: Partial<MealLibrary> = {};
+    
+    if (incrementServed) {
+      updates.totalServed = (meal.totalServed || 0) + 1;
+    }
+    
+    if (feedback === 'thumbs_up') {
+      updates.thumbsUpCount = (meal.thumbsUpCount || 0) + 1;
+    } else if (feedback === 'thumbs_down') {
+      updates.thumbsDownCount = (meal.thumbsDownCount || 0) + 1;
+    }
+
+    // Calculate new conversion rate
+    const totalServed = updates.totalServed || meal.totalServed || 1;
+    const thumbsUp = updates.thumbsUpCount || meal.thumbsUpCount || 0;
+    updates.conversionRate = totalServed > 0 ? thumbsUp / totalServed : 0;
+
+    await this.updateMealLibraryItem(id, updates);
+  }
+
+  async deleteMealLibraryItem(id: string): Promise<void> {
+    await db.delete(mealLibrary).where(eq(mealLibrary.id, id));
+  }
+
+  async getLowPerformingMeals(threshold: number): Promise<MealLibrary[]> {
+    return await db
+      .select()
+      .from(mealLibrary)
+      .where(
+        and(
+          eq(mealLibrary.status, 'active'),
+          sql`${mealLibrary.totalServed} > 0`,
+          sql`${mealLibrary.thumbsDownCount}::float / ${mealLibrary.totalServed} >= ${threshold}`
+        )
+      )
+      .orderBy(desc(sql`${mealLibrary.thumbsDownCount}::float / ${mealLibrary.totalServed}`));
+  }
+
+  async createMealFeedback(feedback: InsertMealFeedback): Promise<MealFeedback> {
+    const result = await db.insert(mealFeedback).values(feedback).returning();
+    return result[0];
+  }
+
+  async getUserMealFeedback(userId: string): Promise<MealFeedback[]> {
+    return await db
+      .select()
+      .from(mealFeedback)
+      .where(eq(mealFeedback.userId, userId))
+      .orderBy(desc(mealFeedback.createdAt));
+  }
+
+  async getMealFeedback(mealLibraryId: string): Promise<MealFeedback[]> {
+    return await db
+      .select()
+      .from(mealFeedback)
+      .where(eq(mealFeedback.mealLibraryId, mealLibraryId))
+      .orderBy(desc(mealFeedback.createdAt));
+  }
+
+  async getPremiumUsersWhoLikedMeal(mealLibraryId: string): Promise<string[]> {
+    const result = await db
+      .select({ userId: mealFeedback.userId })
+      .from(mealFeedback)
+      .where(
+        and(
+          eq(mealFeedback.mealLibraryId, mealLibraryId),
+          eq(mealFeedback.feedback, 'thumbs_up'),
+          eq(mealFeedback.userWasPremium, 1)
+        )
+      );
+    return result.map(r => r.userId);
+  }
+
+  async getMealLibrarySettings(userId: string): Promise<MealLibrarySettings | undefined> {
+    const result = await db
+      .select()
+      .from(mealLibrarySettings)
+      .where(eq(mealLibrarySettings.userId, userId));
+    return result[0];
+  }
+
+  async upsertMealLibrarySettings(settings: InsertMealLibrarySettings): Promise<MealLibrarySettings> {
+    const existing = await this.getMealLibrarySettings(settings.userId);
+    
+    if (existing) {
+      const result = await db
+        .update(mealLibrarySettings)
+        .set({ ...settings, updatedAt: new Date() })
+        .where(eq(mealLibrarySettings.userId, settings.userId))
+        .returning();
+      return result[0];
+    } else {
+      const result = await db.insert(mealLibrarySettings).values(settings).returning();
+      return result[0];
+    }
   }
 }
 

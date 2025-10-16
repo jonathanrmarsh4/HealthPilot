@@ -284,5 +284,121 @@ class SpoonacularService {
   }
 }
 
+/**
+ * Import recipes into meal library with diversity filters
+ */
+export async function bulkImportToMealLibrary(params: {
+  count: number;
+  cuisines?: string[]; // e.g., ['italian', 'asian', 'mexican']
+  diets?: string[]; // e.g., ['vegetarian', 'vegan', 'ketogenic']
+  mealTypes?: string[]; // e.g., ['breakfast', 'lunch', 'dinner']
+  maxReadyTime?: number;
+}) {
+  const service = new SpoonacularService();
+  const importedRecipes: any[] = [];
+  const errors: string[] = [];
+
+  // Calculate recipes per category for diversity
+  const totalCategories = (params.cuisines?.length || 1) * (params.mealTypes?.length || 1);
+  const recipesPerCategory = Math.ceil(params.count / totalCategories);
+
+  // If we have specific filters, use them to ensure diversity
+  if (params.cuisines && params.cuisines.length > 0) {
+    for (const cuisine of params.cuisines) {
+      if (params.mealTypes && params.mealTypes.length > 0) {
+        for (const mealType of params.mealTypes) {
+          try {
+            const searchParams: SpoonacularRecipeSearchParams = {
+              cuisine,
+              type: mealType,
+              number: recipesPerCategory,
+              sort: 'random',
+              diet: params.diets?.[0], // Use first diet if provided
+              maxReadyTime: params.maxReadyTime,
+            };
+
+            const results = await service.searchRecipes(searchParams);
+            
+            // Get full details for each recipe
+            for (const recipe of results.results) {
+              try {
+                const details = await service.getRecipeDetails(recipe.id, true);
+                importedRecipes.push(details);
+                
+                // Stop if we've reached the target count
+                if (importedRecipes.length >= params.count) {
+                  break;
+                }
+              } catch (error) {
+                errors.push(`Failed to get details for recipe ${recipe.id}: ${error}`);
+              }
+            }
+
+            if (importedRecipes.length >= params.count) {
+              break;
+            }
+          } catch (error) {
+            errors.push(`Failed to search ${cuisine} ${mealType}: ${error}`);
+          }
+        }
+        if (importedRecipes.length >= params.count) {
+          break;
+        }
+      } else {
+        // No meal types, just cuisines
+        try {
+          const searchParams: SpoonacularRecipeSearchParams = {
+            cuisine,
+            number: recipesPerCategory,
+            sort: 'random',
+            diet: params.diets?.[0],
+            maxReadyTime: params.maxReadyTime,
+          };
+
+          const results = await service.searchRecipes(searchParams);
+          
+          for (const recipe of results.results) {
+            try {
+              const details = await service.getRecipeDetails(recipe.id, true);
+              importedRecipes.push(details);
+              
+              if (importedRecipes.length >= params.count) {
+                break;
+              }
+            } catch (error) {
+              errors.push(`Failed to get details for recipe ${recipe.id}: ${error}`);
+            }
+          }
+
+          if (importedRecipes.length >= params.count) {
+            break;
+          }
+        } catch (error) {
+          errors.push(`Failed to search ${cuisine}: ${error}`);
+        }
+      }
+    }
+  } else {
+    // No specific filters, get random diverse recipes
+    try {
+      const tags = params.diets?.join(',') || '';
+      const result = await service.getRandomRecipes({
+        number: params.count,
+        tags,
+      });
+      importedRecipes.push(...result.recipes);
+    } catch (error) {
+      errors.push(`Failed to get random recipes: ${error}`);
+    }
+  }
+
+  return {
+    recipes: importedRecipes.slice(0, params.count), // Ensure we don't exceed count
+    errors,
+    imported: importedRecipes.length,
+    requested: params.count,
+  };
+}
+
 export const spoonacularService = new SpoonacularService();
 export type { SpoonacularRecipe, SpoonacularRecipeSearchParams, RecipeSearchResult };
