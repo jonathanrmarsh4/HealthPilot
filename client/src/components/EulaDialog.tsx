@@ -39,9 +39,10 @@ export function EulaDialog({ open, onAccept, isAccepting = false }: EulaDialogPr
   return (
     <Dialog open={open} modal={true}>
       <DialogContent
-        className="max-w-4xl max-h-[90vh] flex flex-col"
+        className="max-w-4xl max-h-[90vh] flex flex-col pointer-events-auto"
         onPointerDownOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
       >
         <DialogHeader>
           <DialogTitle className="text-2xl">End User License Agreement (EULA)</DialogTitle>
@@ -237,19 +238,13 @@ export function EulaDialog({ open, onAccept, isAccepting = false }: EulaDialogPr
           </label>
         </div>
 
-        <DialogFooter className="gap-2">
+        <DialogFooter className="gap-2 pointer-events-auto">
           <Button
             type="button"
             onClick={handleAccept}
-            onTouchEnd={(e) => {
-              e.preventDefault();
-              if (canAccept && !isAccepting) {
-                handleAccept();
-              }
-            }}
             disabled={!canAccept || isAccepting}
             data-testid="button-accept-eula"
-            className="w-full sm:w-auto"
+            className="w-full sm:w-auto pointer-events-auto cursor-pointer"
           >
             {isAccepting ? "Accepting..." : "Accept and Continue"}
           </Button>
