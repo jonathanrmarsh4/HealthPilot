@@ -1,11 +1,13 @@
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Sparkles, TrendingUp, Activity, Brain, AlertTriangle, X, RefreshCw, Target } from "lucide-react";
+import { Sparkles, TrendingUp, Activity, Brain, AlertTriangle, X, RefreshCw, Target, ThumbsUp, ThumbsDown, Calendar } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
+import { InsightSchedulingModal } from "./InsightSchedulingModal";
 
 type InsightType = "daily_summary" | "pattern" | "correlation" | "trend" | "alert" | "goal_progress";
 type InsightCategory = "sleep" | "activity" | "nutrition" | "biomarkers" | "overall" | "goals";
@@ -56,6 +58,7 @@ const categoryColors = {
 
 export function AIInsightsWidget() {
   const { toast } = useToast();
+  const [schedulingInsightId, setSchedulingInsightId] = useState<string | null>(null);
 
   const { data: insights, isLoading } = useQuery<Insight[]>({
     queryKey: ['/api/insights/daily'],
@@ -78,6 +81,39 @@ export function AIInsightsWidget() {
       toast({
         title: "Error",
         description: error.message || "Failed to generate insights",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const feedbackMutation = useMutation({
+    mutationFn: async ({ insightId, feedback }: { insightId: string; feedback: 'thumbs_up' | 'thumbs_down' }) => {
+      const response = await apiRequest('POST', '/api/insights/feedback', {
+        insightId,
+        feedback,
+      });
+      return response.json();
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/insights/daily'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/insights'] });
+      
+      if (variables.feedback === 'thumbs_up') {
+        toast({
+          title: "Thanks for your feedback!",
+          description: "Opening scheduling options...",
+        });
+      } else {
+        toast({
+          title: "Feedback recorded",
+          description: "We'll show fewer insights like this.",
+        });
+      }
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to record feedback",
         variant: "destructive",
       });
     },
@@ -206,6 +242,53 @@ export function AIInsightsWidget() {
                           </p>
                         </div>
                       )}
+                      
+                      {/* Feedback and Schedule Buttons */}
+                      <div className="flex items-center gap-2 mt-3 pt-2 border-t">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 gap-2"
+                          onClick={() => {
+                            feedbackMutation.mutate({ 
+                              insightId: insight.id, 
+                              feedback: 'thumbs_up' 
+                            });
+                            setSchedulingInsightId(insight.id);
+                          }}
+                          disabled={feedbackMutation.isPending}
+                          data-testid={`button-thumbs-up-${insight.id}`}
+                        >
+                          <ThumbsUp className="h-4 w-4" />
+                          Helpful
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 gap-2"
+                          onClick={() => {
+                            feedbackMutation.mutate({ 
+                              insightId: insight.id, 
+                              feedback: 'thumbs_down' 
+                            });
+                          }}
+                          disabled={feedbackMutation.isPending}
+                          data-testid={`button-thumbs-down-${insight.id}`}
+                        >
+                          <ThumbsDown className="h-4 w-4" />
+                          Not helpful
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 gap-2 ml-auto"
+                          onClick={() => setSchedulingInsightId(insight.id)}
+                          data-testid={`button-schedule-${insight.id}`}
+                        >
+                          <Calendar className="h-4 w-4" />
+                          Schedule
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -214,6 +297,12 @@ export function AIInsightsWidget() {
           </div>
         )}
       </CardContent>
+      
+      {/* Scheduling Modal */}
+      <InsightSchedulingModal
+        insightId={schedulingInsightId}
+        onClose={() => setSchedulingInsightId(null)}
+      />
     </Card>
   );
 }
