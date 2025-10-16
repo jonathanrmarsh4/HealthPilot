@@ -3637,14 +3637,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         downvotedProtocols: downvotedProtocols.length > 0 ? downvotedProtocols : undefined,
         fitnessProfile: fitnessProfile || undefined,
         nutritionProfile: nutritionProfile || undefined,
+        
+        // Personal memories for relationship building
+        personalMemories: user?.personalContext || undefined,
       };
 
       const aiResponse = await chatWithHealthCoach(conversationHistory, context);
 
+      // Strip all markers from the response before showing to user
+      let cleanResponse = aiResponse;
+      cleanResponse = cleanResponse.replace(/<<<SAVE_TRAINING_PLAN>>>[\s\S]*?<<<END_SAVE_TRAINING_PLAN>>>/g, '');
+      cleanResponse = cleanResponse.replace(/<<<SAVE_MEAL_PLAN>>>[\s\S]*?<<<END_SAVE_MEAL_PLAN>>>/g, '');
+      cleanResponse = cleanResponse.replace(/<<<SAVE_GOAL>>>[\s\S]*?<<<END_SAVE_GOAL>>>/g, '');
+      cleanResponse = cleanResponse.replace(/<<<SAVE_SUPPLEMENT>>>[\s\S]*?<<<END_SAVE_SUPPLEMENT>>>/g, '');
+      cleanResponse = cleanResponse.replace(/<<<SAVE_EXERCISE>>>[\s\S]*?<<<END_SAVE_EXERCISE>>>/g, '');
+      cleanResponse = cleanResponse.replace(/<<<UPDATE_USER_PROFILE>>>[\s\S]*?<<<END_UPDATE_USER_PROFILE>>>/g, '');
+      cleanResponse = cleanResponse.replace(/<<<UPDATE_FITNESS_PROFILE>>>[\s\S]*?<<<END_UPDATE_FITNESS_PROFILE>>>/g, '');
+      cleanResponse = cleanResponse.replace(/<<<UPDATE_GOAL>>>[\s\S]*?<<<END_UPDATE_GOAL>>>/g, '');
+      cleanResponse = cleanResponse.replace(/<<<CREATE_GOAL>>>[\s\S]*?<<<END_CREATE_GOAL>>>/g, '');
+      cleanResponse = cleanResponse.replace(/<<<UPDATE_BIOMARKER>>>[\s\S]*?<<<END_UPDATE_BIOMARKER>>>/g, '');
+      cleanResponse = cleanResponse.replace(/<<<SAVE_PERSONAL_MEMORY>>>[\s\S]*?<<<END_SAVE_PERSONAL_MEMORY>>>/g, '');
+      cleanResponse = cleanResponse.trim();
+
       const assistantMessage = await storage.createChatMessage({
         userId,
         role: "assistant",
-        content: aiResponse,
+        content: cleanResponse,
       });
 
       // Check if AI response contains a training plan to save
@@ -4210,6 +4228,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // Check if AI response contains personal memory to save
+      let personalMemorySaved = false;
+      const saveMemoryMatch = aiResponse.match(/<<<SAVE_PERSONAL_MEMORY>>>([\s\S]*?)<<<END_SAVE_PERSONAL_MEMORY>>>/);
+      
+      if (saveMemoryMatch) {
+        console.log("🧠 Personal memory markers found! Extracting JSON...");
+        try {
+          const memoryJson = saveMemoryMatch[1].trim();
+          const memoryData = JSON.parse(memoryJson);
+          
+          // Get current user's personal context
+          const currentUser = await storage.getUserById(userId);
+          const currentMemories = currentUser?.personalContext as any[] || [];
+          
+          // Add new memory with timestamp and ID
+          const newMemory = {
+            id: `mem-${Date.now()}`,
+            category: memoryData.category,
+            memory: memoryData.memory,
+            context: memoryData.context,
+            emotionalWeight: memoryData.emotionalWeight,
+            savedAt: new Date().toISOString(),
+          };
+          
+          // Add to memories array
+          const updatedMemories = [...currentMemories, newMemory];
+          
+          // Update user's personal context
+          await storage.updateUser(userId, {
+            personalContext: updatedMemories as any,
+          });
+          
+          // Log to audit trail
+          await storage.createAiAction({
+            userId,
+            actionType: 'SAVE_PERSONAL_MEMORY',
+            targetTable: 'users',
+            targetId: userId,
+            changesBefore: { personalContext: currentMemories },
+            changesAfter: { personalContext: updatedMemories },
+            reasoning: memoryData.reasoning || 'AI saved personal memory to build relationship',
+            conversationContext: message,
+            success: 1,
+          });
+          
+          personalMemorySaved = true;
+          console.log("✨ Personal memory saved and logged to audit trail!");
+        } catch (e) {
+          console.error("❌ Failed to save personal memory:", e);
+          await storage.createAiAction({
+            userId,
+            actionType: 'SAVE_PERSONAL_MEMORY',
+            targetTable: 'users',
+            targetId: userId,
+            changesBefore: null,
+            changesAfter: null,
+            reasoning: 'Failed to save personal memory',
+            conversationContext: message,
+            success: 0,
+            errorMessage: e instanceof Error ? e.message : String(e),
+          });
+        }
+      }
+
       // Contextual onboarding - no automatic step progression
       // Each section handles its own completion flag when relevant data is saved
       
@@ -4235,6 +4317,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         goalUpdated,
         goalCreated,
         biomarkerUpdated,
+        personalMemorySaved,
         contextualOnboardingTriggered: contextualOnboardingTriggered || false,
       });
     } catch (error: any) {
