@@ -336,6 +336,112 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Stripe webhook handler for subscription events
+  app.post("/api/stripe/webhook", async (req, res) => {
+    try {
+      const Stripe = (await import("stripe")).default;
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+        apiVersion: "2024-11-20.acacia",
+      });
+
+      const sig = req.headers["stripe-signature"];
+      if (!sig) {
+        console.error("❌ Missing Stripe signature");
+        return res.status(400).json({ error: "Missing Stripe signature" });
+      }
+
+      const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+      if (!webhookSecret) {
+        console.error("❌ STRIPE_WEBHOOK_SECRET not configured");
+        return res.status(500).json({ error: "Webhook secret not configured" });
+      }
+
+      // Verify webhook signature
+      let event;
+      try {
+        event = stripe.webhooks.constructEvent(
+          req.body,
+          sig,
+          webhookSecret
+        );
+      } catch (err: any) {
+        console.error(`❌ Webhook signature verification failed: ${err.message}`);
+        return res.status(400).json({ error: `Webhook Error: ${err.message}` });
+      }
+
+      console.log(`✅ Received Stripe webhook: ${event.type}`);
+
+      // Handle different event types
+      switch (event.type) {
+        case "checkout.session.completed": {
+          const session = event.data.object as any;
+          const userId = session.client_reference_id || session.metadata?.userId;
+          const tier = session.metadata?.tier;
+
+          if (userId && tier) {
+            await storage.updateUserAdminFields(userId, {
+              subscriptionTier: tier as "premium" | "enterprise",
+              subscriptionStatus: "active",
+            });
+            console.log(`✅ User ${userId} upgraded to ${tier}`);
+          }
+          break;
+        }
+
+        case "customer.subscription.updated": {
+          const subscription = event.data.object as any;
+          const userId = subscription.metadata?.userId;
+
+          if (userId) {
+            const status = subscription.status;
+            await storage.updateUserAdminFields(userId, {
+              subscriptionStatus: status === "active" ? "active" : 
+                                  status === "past_due" ? "past_due" : 
+                                  status === "canceled" ? "cancelled" : "inactive",
+            });
+            console.log(`✅ Updated subscription status for user ${userId}: ${status}`);
+          }
+          break;
+        }
+
+        case "customer.subscription.deleted": {
+          const subscription = event.data.object as any;
+          const userId = subscription.metadata?.userId;
+
+          if (userId) {
+            await storage.updateUserAdminFields(userId, {
+              subscriptionTier: "free",
+              subscriptionStatus: "cancelled",
+            });
+            console.log(`✅ User ${userId} subscription cancelled, downgraded to free`);
+          }
+          break;
+        }
+
+        case "invoice.payment_failed": {
+          const invoice = event.data.object as any;
+          const userId = invoice.subscription_details?.metadata?.userId;
+
+          if (userId) {
+            await storage.updateUserAdminFields(userId, {
+              subscriptionStatus: "past_due",
+            });
+            console.log(`⚠️ Payment failed for user ${userId}, marked as past_due`);
+          }
+          break;
+        }
+
+        default:
+          console.log(`ℹ️ Unhandled event type: ${event.type}`);
+      }
+
+      res.json({ received: true });
+    } catch (error: any) {
+      console.error("Error processing Stripe webhook:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Meal Library Admin Routes
   app.post("/api/admin/meal-library/import", isAdmin, async (req, res) => {
     try {
