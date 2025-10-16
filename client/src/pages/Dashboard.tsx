@@ -47,14 +47,15 @@ interface ChartDataPoint {
 
 const STORAGE_KEY = "dashboard-preferences";
 const STORAGE_VERSION_KEY = "dashboard-preferences-version";
-const CURRENT_VERSION = "4"; // Increment to force localStorage clear
+const CURRENT_VERSION = "5"; // Increment to force localStorage clear
 
 interface DashboardPreferences {
   visible: string[];
   order: string[];
 }
 
-const DEFAULT_WIDGETS = [
+// All available optional widgets (for Manage Widgets)
+const ALL_OPTIONAL_WIDGETS = [
   "quick-stats",
   "next-workout",
   "todays-meals",
@@ -63,6 +64,9 @@ const DEFAULT_WIDGETS = [
   "weight-chart",
   "recommendations"
 ];
+
+// Default visible widgets (empty = clean dashboard by default)
+const DEFAULT_WIDGETS: string[] = [];
 
 const WIDGET_CONFIG: Record<string, { title: string; description: string }> = {
   "quick-stats": { title: "Quick Stats", description: "Daily steps, heart rate, active days, calories" },
@@ -94,10 +98,10 @@ export default function Dashboard() {
       try {
         const parsed = JSON.parse(stored);
         // Safety: Filter out any invalid widget IDs from corrupted cache
-        // Only allow widgets that exist in DEFAULT_WIDGETS or valid biomarker configs
+        // Only allow widgets that exist in ALL_OPTIONAL_WIDGETS or valid biomarker configs
         const validVisible = Array.isArray(parsed.visible) 
           ? parsed.visible.filter((w: string) => {
-              if (DEFAULT_WIDGETS.includes(w)) return true;
+              if (ALL_OPTIONAL_WIDGETS.includes(w)) return true;
               // Allow biomarker widgets only if config exists
               if (w.startsWith('biomarker-')) {
                 const type = w.replace('biomarker-', '');
@@ -108,7 +112,7 @@ export default function Dashboard() {
           : DEFAULT_WIDGETS;
         const validOrder = Array.isArray(parsed.order)
           ? parsed.order.filter((w: string) => {
-              if (DEFAULT_WIDGETS.includes(w)) return true;
+              if (ALL_OPTIONAL_WIDGETS.includes(w)) return true;
               // Allow biomarker widgets only if config exists
               if (w.startsWith('biomarker-')) {
                 const type = w.replace('biomarker-', '');
@@ -116,7 +120,7 @@ export default function Dashboard() {
               }
               return false;
             })
-          : DEFAULT_WIDGETS;
+          : ALL_OPTIONAL_WIDGETS;
         
         // If filtered arrays are empty, use defaults
         return {
@@ -146,7 +150,7 @@ export default function Dashboard() {
       const safePreferences = {
         visible: Array.isArray(savedPreferences.visible) 
           ? savedPreferences.visible.filter((w: string) => {
-              if (DEFAULT_WIDGETS.includes(w)) return true;
+              if (ALL_OPTIONAL_WIDGETS.includes(w)) return true;
               // Allow biomarker widgets only if config exists
               if (w.startsWith('biomarker-')) {
                 const type = w.replace('biomarker-', '');
@@ -157,7 +161,7 @@ export default function Dashboard() {
           : DEFAULT_WIDGETS,
         order: Array.isArray(savedPreferences.order)
           ? savedPreferences.order.filter((w: string) => {
-              if (DEFAULT_WIDGETS.includes(w)) return true;
+              if (ALL_OPTIONAL_WIDGETS.includes(w)) return true;
               // Allow biomarker widgets only if config exists
               if (w.startsWith('biomarker-')) {
                 const type = w.replace('biomarker-', '');
@@ -165,14 +169,12 @@ export default function Dashboard() {
               }
               return false;
             })
-          : DEFAULT_WIDGETS
+          : ALL_OPTIONAL_WIDGETS
       };
       
-      // Only update if we have valid preferences
-      if (safePreferences.visible.length > 0 && safePreferences.order.length > 0) {
-        setPreferences(safePreferences);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(safePreferences));
-      }
+      // Always update with validated preferences (empty visible array is valid)
+      setPreferences(safePreferences);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(safePreferences));
     }
     setIsInitialLoad(false);
   }, [savedPreferences]);
@@ -288,7 +290,7 @@ export default function Dashboard() {
   };
 
   const allAvailableWidgets = [
-    ...DEFAULT_WIDGETS,
+    ...ALL_OPTIONAL_WIDGETS,
     ...availableBiomarkerTypes
       .filter(type => type !== 'blood-glucose' && type !== 'weight')
       .map(type => `biomarker-${type}`)

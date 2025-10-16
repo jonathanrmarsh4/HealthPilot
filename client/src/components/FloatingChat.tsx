@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -23,13 +23,13 @@ export function FloatingChat({ isOpen, onClose, currentPage }: FloatingChatProps
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isMinimized, setIsMinimized] = useState(false);
   const { status: onboardingStatus } = useOnboarding();
-  const [clearedAtTimestamp, setClearedAtTimestamp] = useState<string | null>(() => {
-    // Persist cleared state in localStorage
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('chatClearedAt');
-    }
-    return null;
-  });
+  
+  // Track chat session to reset UI synchronously when opening (prevents flash of old messages)
+  const [sessionId, setSessionId] = useState(0);
+  const clearedAtTimestamp = useMemo(() => {
+    if (!isOpen) return null;
+    return new Date().toISOString();
+  }, [sessionId]);
 
   // Voice recognition state
   const [isListening, setIsListening] = useState(false);
@@ -120,14 +120,10 @@ export function FloatingChat({ isOpen, onClose, currentPage }: FloatingChatProps
     if (!isOpen) {
       setIsMinimized(false);
     } else {
-      // Re-read cleared timestamp from localStorage when chat opens
-      // This ensures sync with Health Coach page clears
-      const stored = localStorage.getItem('chatClearedAt');
-      if (stored !== clearedAtTimestamp) {
-        setClearedAtTimestamp(stored);
-      }
+      // Increment session ID to trigger new timestamp and reset chat UI
+      setSessionId(prev => prev + 1);
     }
-  }, [isOpen, clearedAtTimestamp]);
+  }, [isOpen]);
 
   const { data: messages, isLoading } = useQuery<ChatMessage[]>({
     queryKey: ["/api/chat/history"],
@@ -150,9 +146,7 @@ export function FloatingChat({ isOpen, onClose, currentPage }: FloatingChatProps
       
       // Auto-clear UI when contextual onboarding is triggered
       if (data.contextualOnboardingTriggered) {
-        const now = new Date().toISOString();
-        setClearedAtTimestamp(now);
-        localStorage.setItem('chatClearedAt', now);
+        setSessionId(prev => prev + 1);
       }
       
       // Speak AI response if voice output is enabled
@@ -203,12 +197,10 @@ export function FloatingChat({ isOpen, onClose, currentPage }: FloatingChatProps
   });
 
   const handleClearChat = () => {
-    const now = new Date().toISOString();
-    setClearedAtTimestamp(now);
-    localStorage.setItem('chatClearedAt', now);
+    setSessionId(prev => prev + 1);
     toast({
       title: "Chat cleared",
-      description: "Your conversation history is preserved for context",
+      description: "Your conversation history is preserved for AI context",
     });
   };
 
@@ -236,6 +228,32 @@ export function FloatingChat({ isOpen, onClose, currentPage }: FloatingChatProps
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSubmit(e);
+    }
+  };
+
+  // Generate contextual opening question based on current page
+  const getContextualQuestion = (page?: string): string => {
+    switch (page) {
+      case "Dashboard":
+        return "What would you like to know about your health overview?";
+      case "Training":
+        return "How can I help optimize your training today?";
+      case "Meals":
+        return "What kind of meal plan are you looking for?";
+      case "Biomarkers":
+        return "Would you like help understanding your biomarker data?";
+      case "Supplements":
+        return "Need recommendations for your supplement stack?";
+      case "Sleep":
+        return "Want tips to improve your sleep quality?";
+      case "Goals":
+        return "What health goals would you like to work on?";
+      case "Health Records":
+        return "Would you like me to analyze your health records?";
+      case "Workout History":
+        return "Want to review your workout performance?";
+      default:
+        return "How can I help you with your health journey today?";
     }
   };
 
@@ -338,11 +356,10 @@ export function FloatingChat({ isOpen, onClose, currentPage }: FloatingChatProps
                     </div>
                   ))
                 ) : (
-                  <div className="flex items-center justify-center h-32 text-center text-muted-foreground text-sm">
-                    <div>
-                      <p className="font-medium">Start a conversation</p>
-                      <p className="text-xs mt-1">
-                        Ask about your health, fitness, or nutrition
+                  <div className="flex justify-start">
+                    <div className="max-w-[85%] rounded-lg p-3 bg-muted text-sm">
+                      <p className="whitespace-pre-wrap break-words">
+                        {getContextualQuestion(currentPage)}
                       </p>
                     </div>
                   </div>
