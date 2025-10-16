@@ -10,6 +10,7 @@ import { Link, useLocation } from "wouter";
 import { Send, Trash2, Loader2, Sparkles } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import type { ChatMessage } from "@shared/schema";
+import { ProactiveSuggestionCard } from "@/components/ProactiveSuggestionCard";
 
 export default function Chat() {
   const { toast } = useToast();
@@ -34,6 +35,11 @@ export default function Chat() {
 
   const { data: messageUsage } = useQuery<{ count: number; limit: number }>({
     queryKey: ["/api/chat/usage"],
+  });
+
+  const { data: activeSuggestions } = useQuery<any[]>({
+    queryKey: ["/api/proactive-suggestions/active"],
+    refetchInterval: 30000, // Refresh every 30 seconds
   });
 
   const sendMessageMutation = useMutation({
@@ -177,6 +183,15 @@ export default function Chat() {
 
       <Card className="flex-1 flex flex-col overflow-hidden">
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          {/* Proactive Suggestions */}
+          {activeSuggestions && activeSuggestions.length > 0 && (
+            <div className="space-y-3" data-testid="proactive-suggestions-container">
+              {activeSuggestions.map((suggestion) => (
+                <ProactiveSuggestionCard key={suggestion.id} suggestion={suggestion} />
+              ))}
+            </div>
+          )}
+
           {isLoading ? (
             <div className="space-y-4">
               {[...Array(3)].map((_, i) => (
