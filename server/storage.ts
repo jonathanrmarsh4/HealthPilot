@@ -282,6 +282,7 @@ export interface IStorage {
   // Scheduled Insight methods
   createScheduledInsight(insight: InsertScheduledInsight): Promise<ScheduledInsight>;
   getScheduledInsights(userId: string, status?: string): Promise<ScheduledInsight[]>;
+  updateScheduledInsight(id: string, userId: string, updates: Partial<ScheduledInsight>): Promise<void>;
   
   // Insight Feedback methods
   createInsightFeedback(feedback: InsertInsightFeedback): Promise<InsightFeedback>;
@@ -1964,6 +1965,18 @@ export class DbStorage implements IStorage {
       .from(scheduledInsights)
       .where(eq(scheduledInsights.userId, userId))
       .orderBy(desc(scheduledInsights.recommendedAt));
+  }
+
+  async updateScheduledInsight(id: string, userId: string, updates: Partial<ScheduledInsight>): Promise<void> {
+    await db
+      .update(scheduledInsights)
+      .set(updates)
+      .where(
+        and(
+          eq(scheduledInsights.id, id),
+          eq(scheduledInsights.userId, userId)
+        )
+      );
   }
 
   // Insight Feedback methods

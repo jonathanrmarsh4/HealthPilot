@@ -3199,6 +3199,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Complete a scheduled insight
+  app.post("/api/scheduled-insights/:id/complete", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { id } = req.params;
+    try {
+      await storage.updateScheduledInsight(id, userId, {
+        status: 'completed',
+        completedAt: new Date(),
+      });
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error completing scheduled insight:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // AI Audit Log endpoints
   app.get("/api/ai-actions", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
