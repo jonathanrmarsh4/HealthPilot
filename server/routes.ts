@@ -276,6 +276,183 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Meal Library Admin Routes
+  app.post("/api/admin/meal-library/import", isAdmin, async (req, res) => {
+    try {
+      const { count, cuisines, diets, mealTypes, maxReadyTime } = req.body;
+      
+      // Import recipes from Spoonacular
+      const { bulkImportToMealLibrary } = await import("./spoonacular");
+      const importResult = await bulkImportToMealLibrary({
+        count: count || 100,
+        cuisines,
+        diets,
+        mealTypes,
+        maxReadyTime,
+      });
+
+      // Save recipes to meal library
+      const savedRecipes = [];
+      for (const recipe of importResult.recipes) {
+        const mealData = {
+          spoonacularRecipeId: recipe.id,
+          title: recipe.title,
+          description: recipe.summary?.replace(/<[^>]*>/g, ''), // Strip HTML tags
+          imageUrl: recipe.image,
+          sourceUrl: recipe.sourceUrl,
+          readyInMinutes: recipe.readyInMinutes,
+          servings: recipe.servings,
+          calories: recipe.nutrition?.nutrients?.find(n => n.name === 'Calories')?.amount || null,
+          protein: recipe.nutrition?.nutrients?.find(n => n.name === 'Protein')?.amount || null,
+          carbs: recipe.nutrition?.nutrients?.find(n => n.name === 'Carbohydrates')?.amount || null,
+          fat: recipe.nutrition?.nutrients?.find(n => n.name === 'Fat')?.amount || null,
+          ingredients: recipe.extendedIngredients,
+          instructions: recipe.analyzedInstructions?.[0]?.steps?.map(s => s.step).join(' ') || '',
+          extendedIngredients: recipe.extendedIngredients,
+          cuisines: recipe.cuisines || [],
+          dishTypes: recipe.dishTypes || [],
+          diets: recipe.diets || [],
+          mealTypes: recipe.dishTypes?.filter(t => ['breakfast', 'lunch', 'dinner', 'snack'].includes(t.toLowerCase())) || [],
+          difficulty: recipe.readyInMinutes < 30 ? 'easy' : recipe.readyInMinutes < 60 ? 'medium' : 'hard',
+        };
+
+        try {
+          const saved = await storage.createMealLibraryItem(mealData);
+          savedRecipes.push(saved);
+        } catch (error: any) {
+          console.error(`Failed to save recipe ${recipe.id}:`, error);
+        }
+      }
+
+      res.json({
+        success: true,
+        imported: savedRecipes.length,
+        requested: count,
+        errors: importResult.errors,
+        recipes: savedRecipes,
+      });
+    } catch (error: any) {
+      console.error("Error importing meals:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/admin/meal-library", isAdmin, async (req, res) => {
+    try {
+      const { status, cuisine, diet } = req.query;
+      
+      const meals = await storage.getMealLibraryItems({
+        status: status as string,
+        cuisines: cuisine ? [cuisine as string] : undefined,
+        diets: diet ? [diet as string] : undefined,
+      });
+
+      res.json(meals);
+    } catch (error: any) {
+      console.error("Error getting meal library:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/admin/meal-library/low-performing", isAdmin, async (req, res) => {
+    try {
+      const threshold = parseFloat(req.query.threshold as string) || 0.4;
+      const meals = await storage.getLowPerformingMeals(threshold);
+      
+      // Check for premium user protection
+      const mealsWithProtection = await Promise.all(meals.map(async (meal) => {
+        const premiumUsers = await storage.getPremiumUsersWhoLikedMeal(meal.id);
+        return {
+          ...meal,
+          hasPremiumumUserProtection: premiumUsers.length > 0,
+          premiumUsersCount: premiumUsers.length,
+        };
+      }));
+
+      res.json(mealsWithProtection);
+    } catch (error: any) {
+      console.error("Error getting low performing meals:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/admin/meal-library/:id", isAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteMealLibraryItem(id);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error deleting meal:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.put("/api/admin/meal-library/:id", isAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updates = req.body;
+      const updated = await storage.updateMealLibraryItem(id, updates);
+      res.json(updated);
+    } catch (error: any) {
+      console.error("Error updating meal:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/admin/meal-library/settings", isAdmin, async (req, res) => {
+    try {
+      const userId = (req.user as any).claims.sub;
+      const settings = await storage.getMealLibrarySettings(userId);
+      res.json(settings || null);
+    } catch (error: any) {
+      console.error("Error getting meal library settings:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.put("/api/admin/meal-library/settings", isAdmin, async (req, res) => {
+    try {
+      const userId = (req.user as any).claims.sub;
+      const settings = await storage.upsertMealLibrarySettings({
+        userId,
+        ...req.body,
+      });
+      res.json(settings);
+    } catch (error: any) {
+      console.error("Error updating meal library settings:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // User Meal Feedback Route
+  app.post("/api/meal-feedback", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any).claims.sub;
+      const { mealLibraryId, feedback, notes } = req.body;
+      
+      // Get user subscription status
+      const user = await storage.getUser(userId);
+      const userWasPremium = user?.subscriptionTier === 'premium' || user?.subscriptionTier === 'enterprise' ? 1 : 0;
+      
+      // Create feedback
+      const feedbackRecord = await storage.createMealFeedback({
+        userId,
+        mealLibraryId,
+        feedback,
+        userWasPremium,
+        notes,
+      });
+
+      // Update meal performance metrics
+      await storage.updateMealPerformance(mealLibraryId, true, feedback);
+
+      res.json(feedbackRecord);
+    } catch (error: any) {
+      console.error("Error creating meal feedback:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.get("/api/profile", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
     
