@@ -14,6 +14,8 @@ import { isAuthenticated, isAdmin, webhookAuth } from "./replitAuth";
 import { checkMessageLimit, incrementMessageCount, requirePremium, PremiumFeature } from "./premiumMiddleware";
 import { z } from "zod";
 import { spoonacularService } from "./spoonacular";
+import { WebSocketServer } from "ws";
+import type { IncomingMessage } from "http";
 
 // Zod schema for admin user updates
 const adminUserUpdateSchema = z.object({
@@ -6206,5 +6208,139 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
+
+  // WebSocket server for OpenAI Realtime API (Premium voice chat feature)
+  const wss = new WebSocketServer({ server: httpServer, path: "/api/voice-chat" });
+
+  wss.on("connection", async (clientWs: any, req: IncomingMessage) => {
+    console.log("🎙️ Voice chat WebSocket connection attempt");
+
+    try {
+      // Extract session cookie and verify authentication
+      const cookies = req.headers.cookie?.split(';').reduce((acc, cookie) => {
+        const [key, value] = cookie.trim().split('=');
+        acc[key] = value;
+        return acc;
+      }, {} as Record<string, string>);
+
+      const sessionId = cookies?.['connect.sid'];
+      if (!sessionId) {
+        console.log("❌ No session cookie found");
+        clientWs.close(4001, "Authentication required");
+        return;
+      }
+
+      // Get session from database to verify user
+      const session = await storage.getSession(sessionId.replace(/^s%3A/, '').split('.')[0]);
+      if (!session?.userId) {
+        console.log("❌ Invalid session");
+        clientWs.close(4001, "Invalid session");
+        return;
+      }
+
+      const userId = session.userId;
+      const user = await storage.getUser(userId);
+
+      // Check premium access
+      if (user.subscriptionTier === 'free') {
+        console.log(`❌ User ${userId} attempted voice chat without premium`);
+        clientWs.close(4003, "Voice chat requires Premium subscription");
+        return;
+      }
+
+      console.log(`✅ Voice chat authenticated for user ${userId} (${user.subscriptionTier})`);
+
+      // Import OpenAI dynamically
+      const { default: OpenAI } = await import('openai');
+      const openai = new OpenAI({
+        apiKey: process.env.OPENAI_API_KEY,
+      });
+
+      // Connect to OpenAI Realtime API
+      const url = "wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17";
+      const { default: WebSocket } = await import('ws');
+      
+      const openaiWs = new WebSocket(url, {
+        headers: {
+          "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
+          "OpenAI-Beta": "realtime=v1",
+        },
+      });
+
+      openaiWs.on("open", () => {
+        console.log("🔗 Connected to OpenAI Realtime API");
+        
+        // Configure session with health coach personality
+        const sessionConfig = {
+          type: "session.update",
+          session: {
+            modalities: ["text", "audio"],
+            instructions: `You are a knowledgeable, supportive AI health coach integrated into Health Insights AI. You have access to the user's complete health profile, biomarkers, workout history, sleep data, and goals.
+
+Your role:
+- Provide personalized health and fitness guidance
+- Answer questions about their health data and trends
+- Offer encouragement and motivation
+- Suggest evidence-based interventions
+- Be warm, empathetic, and conversational
+
+Keep responses concise for voice conversations. Speak naturally as if you're their personal coach checking in.`,
+            voice: "alloy",
+            input_audio_format: "pcm16",
+            output_audio_format: "pcm16",
+            input_audio_transcription: {
+              model: "whisper-1",
+            },
+            turn_detection: {
+              type: "server_vad",
+              threshold: 0.5,
+              prefix_padding_ms: 300,
+              silence_duration_ms: 500,
+            },
+            temperature: 0.8,
+          },
+        };
+
+        openaiWs.send(JSON.stringify(sessionConfig));
+      });
+
+      openaiWs.on("message", (data: any) => {
+        // Relay OpenAI messages to client
+        clientWs.send(data.toString());
+      });
+
+      openaiWs.on("error", (error: any) => {
+        console.error("❌ OpenAI WebSocket error:", error);
+        clientWs.close(4000, "OpenAI connection error");
+      });
+
+      openaiWs.on("close", () => {
+        console.log("🔌 OpenAI WebSocket closed");
+        clientWs.close();
+      });
+
+      clientWs.on("message", (data: any) => {
+        // Relay client messages to OpenAI
+        if (openaiWs.readyState === 1) { // OPEN
+          openaiWs.send(data.toString());
+        }
+      });
+
+      clientWs.on("close", () => {
+        console.log("🔌 Client WebSocket closed");
+        openaiWs.close();
+      });
+
+      clientWs.on("error", (error: any) => {
+        console.error("❌ Client WebSocket error:", error);
+        openaiWs.close();
+      });
+
+    } catch (error: any) {
+      console.error("❌ Voice chat WebSocket error:", error);
+      clientWs.close(4000, error.message);
+    }
+  });
+
   return httpServer;
 }

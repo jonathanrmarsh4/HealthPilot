@@ -30,6 +30,7 @@ import Supplements from "@/pages/Supplements";
 import BiologicalAge from "@/pages/BiologicalAge";
 import AppleHealthSetup from "@/pages/AppleHealthSetup";
 import Chat from "@/pages/Chat";
+import VoiceChat from "@/pages/VoiceChat";
 import Profile from "@/pages/Profile";
 import Settings from "@/pages/Settings";
 import Pricing from "@/pages/Pricing";
@@ -61,6 +62,7 @@ function Router() {
       <Route path="/goals" component={Goals} />
       <Route path="/biological-age" component={BiologicalAge} />
       <Route path="/chat" component={Chat} />
+      <Route path="/voice-chat" component={VoiceChat} />
       <Route path="/profile" component={Profile} />
       <Route path="/apple-health" component={AppleHealthSetup} />
       <Route path="/settings" component={Settings} />
@@ -99,6 +101,7 @@ function AppLayout() {
     "/goals": "Health Goals",
     "/biological-age": "Biological Age",
     "/chat": "Health Coach",
+    "/voice-chat": "Voice Chat",
     "/profile": "Profile",
     "/apple-health": "Apple Health Setup",
     "/settings": "Settings",

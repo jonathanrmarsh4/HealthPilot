@@ -22,6 +22,8 @@ import {
   UserCircle,
   Wallet,
   Settings,
+  Mic,
+  MessageSquare,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import {
@@ -77,9 +79,11 @@ const menuSections: MenuSection[] = [
     ],
   },
   {
-    title: "Insights",
+    title: "AI Coach",
     icon: Sparkles,
     items: [
+      { title: "Chat", url: "/chat", icon: MessageSquare },
+      { title: "Voice Chat", url: "/voice-chat", icon: Mic },
       { title: "Recommendations", url: "/insights", icon: Sparkles },
       { title: "Trends", url: "/data-insights", icon: BarChart3 },
     ],
