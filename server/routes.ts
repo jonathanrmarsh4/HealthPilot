@@ -3660,6 +3660,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Proactive Suggestions endpoints
+  
+  // Check metrics and generate suggestions
+  app.post("/api/proactive/check-metrics", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    try {
+      const deficits = await storage.checkUserMetrics(userId);
+      res.json({ deficits });
+    } catch (error: any) {
+      console.error("Error checking metrics:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Generate proactive suggestion
+  app.post("/api/proactive/generate-suggestion", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { metricType, currentValue, targetValue, deficit, priority } = req.body;
+    
+    try {
+      const suggestion = await storage.generateProactiveSuggestion(userId, {
+        metricType,
+        currentValue,
+        targetValue,
+        deficit,
+        priority
+      });
+      res.json(suggestion);
+    } catch (error: any) {
+      console.error("Error generating suggestion:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get active suggestions for user
+  app.get("/api/proactive/suggestions", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    try {
+      const suggestions = await storage.getActiveSuggestions(userId);
+      res.json(suggestions);
+    } catch (error: any) {
+      console.error("Error fetching suggestions:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Respond to suggestion (accept/decline)
+  app.post("/api/proactive/suggestions/:id/respond", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { id } = req.params;
+    const { response, scheduledFor } = req.body; // response: 'accepted' | 'declined'
+    
+    try {
+      const result = await storage.respondToSuggestion(userId, id, response, scheduledFor);
+      res.json(result);
+    } catch (error: any) {
+      console.error("Error responding to suggestion:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // AI Audit Log endpoints
   app.get("/api/ai-actions", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;

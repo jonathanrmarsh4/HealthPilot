@@ -318,6 +318,12 @@ export interface IStorage {
   
   getMealLibrarySettings(userId: string): Promise<MealLibrarySettings | undefined>;
   upsertMealLibrarySettings(settings: InsertMealLibrarySettings): Promise<MealLibrarySettings>;
+  
+  // Proactive Suggestion methods
+  checkUserMetrics(userId: string): Promise<Array<{ metricType: string; currentValue: number; targetValue: number; deficit: number; priority: string }>>;
+  generateProactiveSuggestion(userId: string, deficit: { metricType: string; currentValue: number; targetValue: number; deficit: number; priority: string }): Promise<any>;
+  getActiveSuggestions(userId: string): Promise<any[]>;
+  respondToSuggestion(userId: string, suggestionId: string, response: string, scheduledFor?: Date): Promise<any>;
 }
 
 export class DbStorage implements IStorage {
@@ -2334,6 +2340,144 @@ export class DbStorage implements IStorage {
     }
 
     return selectedMeals;
+  }
+
+  // Proactive Suggestion implementations
+  async checkUserMetrics(userId: string): Promise<Array<{ metricType: string; currentValue: number; targetValue: number; deficit: number; priority: string }>> {
+    const { metricMonitor } = await import("./services/metricMonitor");
+    const deficits = await metricMonitor.checkMetrics(userId);
+    return deficits;
+  }
+
+  async generateProactiveSuggestion(userId: string, deficit: { metricType: string; currentValue: number; targetValue: number; deficit: number; priority: string }): Promise<any> {
+    const { suggestionGenerator } = await import("./services/suggestionGenerator");
+    const { metricMonitor } = await import("./services/metricMonitor");
+    const { proactiveSuggestions, userResponsePatterns } = await import("@shared/schema");
+    
+    // Check if should intervene now
+    const shouldIntervene = await metricMonitor.shouldIntervene(userId, deficit.metricType);
+    if (!shouldIntervene) {
+      return { message: "Not the optimal time to intervene yet" };
+    }
+
+    // Check if already have active suggestion for this metric
+    const hasActive = await metricMonitor.hasActiveSuggestion(userId, deficit.metricType);
+    if (hasActive) {
+      return { message: "Already have an active suggestion for this metric" };
+    }
+
+    // Generate AI suggestion
+    const suggestion = await suggestionGenerator.generateSuggestion(userId, deficit as any);
+    
+    // Calculate expiry (end of day)
+    const now = new Date();
+    const endOfDay = new Date(now);
+    endOfDay.setHours(23, 59, 59, 999);
+    
+    // Save suggestion to database
+    const [saved] = await db.insert(proactiveSuggestions).values({
+      userId,
+      metricType: deficit.metricType,
+      currentValue: deficit.currentValue,
+      targetValue: deficit.targetValue,
+      deficit: deficit.deficit,
+      suggestedActivity: suggestion.suggestedActivity,
+      activityType: suggestion.activityType,
+      duration: suggestion.duration,
+      reasoning: suggestion.reasoning,
+      priority: suggestion.priority,
+      status: 'pending',
+      expiresAt: endOfDay,
+      notifiedAt: new Date(),
+    }).returning();
+
+    return saved;
+  }
+
+  async getActiveSuggestions(userId: string): Promise<any[]> {
+    const { proactiveSuggestions } = await import("@shared/schema");
+    const suggestions = await db.select()
+      .from(proactiveSuggestions)
+      .where(and(
+        eq(proactiveSuggestions.userId, userId),
+        eq(proactiveSuggestions.status, 'pending'),
+        gte(proactiveSuggestions.expiresAt, new Date())
+      ))
+      .orderBy(desc(proactiveSuggestions.createdAt));
+    
+    return suggestions;
+  }
+
+  async respondToSuggestion(userId: string, suggestionId: string, response: string, scheduledFor?: Date): Promise<any> {
+    const { proactiveSuggestions, userResponsePatterns, workoutSessions } = await import("@shared/schema");
+    
+    // Get the suggestion
+    const [suggestion] = await db.select()
+      .from(proactiveSuggestions)
+      .where(and(
+        eq(proactiveSuggestions.id, suggestionId),
+        eq(proactiveSuggestions.userId, userId)
+      ));
+
+    if (!suggestion) {
+      throw new Error("Suggestion not found");
+    }
+
+    // Update suggestion status
+    const newStatus = response === 'accepted' ? 
+      (scheduledFor ? 'scheduled' : 'accepted') : 
+      (response === 'declined' ? 'declined' : 'expired');
+
+    await db.update(proactiveSuggestions)
+      .set({
+        status: newStatus,
+        scheduledFor: scheduledFor || null,
+        respondedAt: new Date(),
+      })
+      .where(eq(proactiveSuggestions.id, suggestionId));
+
+    // Record response pattern for learning
+    const now = new Date();
+    const hour = now.getHours();
+    const timeOfDay = hour >= 6 && hour < 12 ? 'morning' :
+                     hour >= 12 && hour < 17 ? 'afternoon' :
+                     hour >= 17 && hour < 22 ? 'evening' : 'night';
+    const dayOfWeek = now.toLocaleDateString('en-US', { weekday: 'long' });
+
+    await db.insert(userResponsePatterns).values({
+      userId,
+      suggestionId,
+      metricType: suggestion.metricType,
+      timeOfDay,
+      hourOfDay: hour,
+      dayOfWeek,
+      response,
+      deficitAmount: suggestion.deficit,
+      activityType: suggestion.activityType,
+    });
+
+    // If accepted, create the activity/workout session
+    if (response === 'accepted' && scheduledFor) {
+      const startTime = scheduledFor;
+      const endTime = new Date(startTime.getTime() + (suggestion.duration || 30) * 60000);
+      
+      await db.insert(workoutSessions).values({
+        userId,
+        workoutType: suggestion.activityType,
+        sessionType: 'workout',
+        startTime,
+        endTime,
+        duration: suggestion.duration || 30,
+        sourceType: 'ai_suggested',
+        notes: `AI suggested: ${suggestion.suggestedActivity}`,
+      });
+    }
+
+    return {
+      success: true,
+      suggestion: { ...suggestion, status: newStatus },
+      scheduled: response === 'accepted' && scheduledFor
+    };
   }
 }
 
