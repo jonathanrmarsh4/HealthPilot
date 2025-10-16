@@ -13,7 +13,7 @@ import { GoalsSummaryWidget } from "@/components/GoalsSummaryWidget";
 import { DataInsightsWidget } from "@/components/DataInsightsWidget";
 import { BiologicalAgeWidget } from "@/components/BiologicalAgeWidget";
 import { ReadinessScoreWidget } from "@/components/ReadinessScoreWidget";
-import { Heart, Activity, Scale, Droplet, TrendingUp, Zap, Apple, AlertCircle, Dumbbell, Settings2, Eye, EyeOff, ChevronUp, ChevronDown, Dna, TrendingDown, Upload } from "lucide-react";
+import { Heart, Activity, Scale, Droplet, TrendingUp, Zap, Apple, AlertCircle, Dumbbell, Settings2, Eye, EyeOff, ChevronUp, ChevronDown, Dna, TrendingDown, Upload, Shield } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -273,6 +273,12 @@ export default function Dashboard() {
   const { data: allBiomarkers } = useQuery<Array<{ type: string }>>({
     queryKey: ["/api/biomarkers"],
   });
+
+  const { data: currentUser } = useQuery<{ role: string }>({
+    queryKey: ["/api/auth/user"],
+  });
+
+  const isAdmin = currentUser?.role === 'admin';
 
   const availableBiomarkerTypes = Array.from(new Set(allBiomarkers?.map(b => b.type) || []));
 
@@ -588,14 +594,24 @@ export default function Dashboard() {
           </p>
         </div>
         
-        <Sheet>
-          <SheetTrigger asChild>
-            <Button variant="outline" size="default" data-testid="button-manage-dashboard">
-              <Settings2 className="h-4 w-4 mr-2" />
-              Manage Widgets
-            </Button>
-          </SheetTrigger>
-          <SheetContent className="w-[400px] sm:w-[540px]">
+        <div className="flex gap-2">
+          {isAdmin && (
+            <Link href="/admin">
+              <Button variant="outline" size="default" data-testid="button-admin-panel">
+                <Shield className="h-4 w-4 mr-2" />
+                Admin
+              </Button>
+            </Link>
+          )}
+          
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="outline" size="default" data-testid="button-manage-dashboard">
+                <Settings2 className="h-4 w-4 mr-2" />
+                Manage Widgets
+              </Button>
+            </SheetTrigger>
+            <SheetContent className="w-[400px] sm:w-[540px]">
             <SheetHeader>
               <SheetTitle>Manage Dashboard Widgets</SheetTitle>
               <SheetDescription>
@@ -691,8 +707,9 @@ export default function Dashboard() {
                 })}
               </div>
             </div>
-          </SheetContent>
-        </Sheet>
+            </SheetContent>
+          </Sheet>
+        </div>
       </div>
 
       {/* Priority Section - Always Visible */}
