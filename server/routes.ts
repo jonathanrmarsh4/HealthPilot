@@ -277,6 +277,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Stripe Payment Routes
+  app.post("/api/stripe/create-checkout", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any).claims.sub;
+      const { tier } = req.body;
+
+      if (!tier || (tier !== "premium" && tier !== "enterprise")) {
+        return res.status(400).json({ error: "Invalid subscription tier" });
+      }
+
+      const Stripe = (await import("stripe")).default;
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+        apiVersion: "2024-11-20.acacia",
+      });
+
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Create Stripe checkout session
+      const session = await stripe.checkout.sessions.create({
+        customer_email: user.email,
+        client_reference_id: userId,
+        mode: "subscription",
+        payment_method_types: ["card"],
+        line_items: [
+          {
+            price_data: {
+              currency: "usd",
+              product_data: {
+                name: tier === "premium" ? "Health Insights AI Premium" : "Health Insights AI Enterprise",
+                description: tier === "premium" 
+                  ? "Unlimited AI chat, meal plans, biological age, and more"
+                  : "Enterprise features with team management and custom integrations",
+              },
+              recurring: {
+                interval: "month",
+              },
+              unit_amount: tier === "premium" ? 1999 : 9999, // $19.99 or $99.99
+            },
+            quantity: 1,
+          },
+        ],
+        success_url: `${process.env.REPLIT_DOMAINS?.split(',')[0] || 'http://localhost:5000'}/?upgrade=success`,
+        cancel_url: `${process.env.REPLIT_DOMAINS?.split(',')[0] || 'http://localhost:5000'}/pricing?upgrade=cancelled`,
+        metadata: {
+          userId,
+          tier,
+        },
+      });
+
+      res.json({ sessionUrl: session.url });
+    } catch (error: any) {
+      console.error("Error creating checkout session:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Meal Library Admin Routes
   app.post("/api/admin/meal-library/import", isAdmin, async (req, res) => {
     try {
