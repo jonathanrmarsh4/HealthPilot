@@ -600,6 +600,42 @@ export const insightFeedback = pgTable("insight_feedback", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// Proactive Suggestions - AI-generated suggestions when metrics are falling behind
+export const proactiveSuggestions = pgTable("proactive_suggestions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  metricType: text("metric_type").notNull(), // 'steps', 'active_minutes', 'sleep', 'supplements', 'workouts'
+  currentValue: real("current_value").notNull(), // Current metric value
+  targetValue: real("target_value").notNull(), // Goal value
+  deficit: real("deficit").notNull(), // How far behind (targetValue - currentValue)
+  suggestedActivity: text("suggested_activity").notNull(), // e.g., "30-minute evening walk"
+  activityType: text("activity_type").notNull(), // 'walk', 'run', 'workout', 'stretching', etc.
+  duration: integer("duration"), // Activity duration in minutes
+  reasoning: text("reasoning").notNull(), // AI explanation for this suggestion
+  priority: text("priority").notNull().default("medium"), // 'high', 'medium', 'low'
+  status: text("status").notNull().default("pending"), // 'pending', 'accepted', 'declined', 'expired', 'scheduled'
+  scheduledFor: timestamp("scheduled_for"), // When user scheduled the activity for
+  notifiedAt: timestamp("notified_at"), // When user was notified via chat
+  respondedAt: timestamp("responded_at"), // When user responded
+  expiresAt: timestamp("expires_at"), // When this suggestion expires (e.g., end of day)
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// User Response Patterns - Learn optimal intervention timing for each user
+export const userResponsePatterns = pgTable("user_response_patterns", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  suggestionId: varchar("suggestion_id").notNull(), // FK to proactiveSuggestions
+  metricType: text("metric_type").notNull(), // 'steps', 'active_minutes', etc.
+  timeOfDay: text("time_of_day").notNull(), // 'morning', 'afternoon', 'evening', 'night'
+  hourOfDay: integer("hour_of_day").notNull(), // 0-23, exact hour when suggestion was made
+  dayOfWeek: text("day_of_week").notNull(), // 'Monday', 'Tuesday', etc.
+  response: text("response").notNull(), // 'accepted', 'declined', 'ignored'
+  deficitAmount: real("deficit_amount").notNull(), // How far behind they were
+  activityType: text("activity_type").notNull(), // What activity was suggested
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 // Meal Library - Admin-managed recipe database for cost optimization
 export const mealLibrary = pgTable("meal_library", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -699,6 +735,18 @@ export const insertScheduledInsightSchema = createInsertSchema(scheduledInsights
 });
 
 export const insertInsightFeedbackSchema = createInsertSchema(insightFeedback).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertProactiveSuggestionSchema = createInsertSchema(proactiveSuggestions).omit({
+  id: true,
+  createdAt: true,
+  notifiedAt: true,
+  respondedAt: true,
+});
+
+export const insertUserResponsePatternSchema = createInsertSchema(userResponsePatterns).omit({
   id: true,
   createdAt: true,
 });
@@ -803,6 +851,12 @@ export type ScheduledInsight = typeof scheduledInsights.$inferSelect;
 
 export type InsertInsightFeedback = z.infer<typeof insertInsightFeedbackSchema>;
 export type InsightFeedback = typeof insightFeedback.$inferSelect;
+
+export type InsertProactiveSuggestion = z.infer<typeof insertProactiveSuggestionSchema>;
+export type ProactiveSuggestion = typeof proactiveSuggestions.$inferSelect;
+
+export type InsertUserResponsePattern = z.infer<typeof insertUserResponsePatternSchema>;
+export type UserResponsePattern = typeof userResponsePatterns.$inferSelect;
 
 export type InsertMealLibrary = z.infer<typeof insertMealLibrarySchema>;
 export type MealLibrary = typeof mealLibrary.$inferSelect;
