@@ -20,11 +20,11 @@ export default function VoiceChat() {
   const isPlayingRef = useRef(false);
   const mediaStreamRef = useRef<MediaStream | null>(null);
 
-  const { data: user } = useQuery<{ subscriptionTier: string }>({
+  const { data: user } = useQuery<{ subscriptionTier: string; role?: string }>({
     queryKey: ["/api/auth/user"],
   });
 
-  const isPremium = user?.subscriptionTier === 'premium' || user?.subscriptionTier === 'enterprise';
+  const isPremium = user?.subscriptionTier === 'premium' || user?.subscriptionTier === 'enterprise' || user?.role === 'admin';
 
   useEffect(() => {
     return () => {

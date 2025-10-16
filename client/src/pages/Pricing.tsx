@@ -79,7 +79,7 @@ export default function Pricing() {
   const { toast } = useToast();
   const [loadingTier, setLoadingTier] = useState<string | null>(null);
 
-  const { data: user } = useQuery<{ subscriptionTier: string }>({
+  const { data: user } = useQuery<{ subscriptionTier: string; role?: string }>({
     queryKey: ["/api/user"],
   });
 
@@ -119,7 +119,8 @@ export default function Pricing() {
     checkoutMutation.mutate(tier);
   };
 
-  const currentTier = user?.subscriptionTier || "free";
+  // Admins are treated as enterprise tier
+  const currentTier = user?.role === "admin" ? "enterprise" : (user?.subscriptionTier || "free");
 
   return (
     <div className="min-h-screen bg-background">

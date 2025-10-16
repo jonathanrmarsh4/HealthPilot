@@ -23,7 +23,7 @@ export default function MealPlans() {
     queryKey: ["/api/meal-plans"],
   });
 
-  const { data: user } = useQuery<{ subscriptionTier: string }>({
+  const { data: user } = useQuery<{ subscriptionTier: string; role?: string }>({
     queryKey: ["/api/user"],
   });
 
@@ -59,7 +59,7 @@ export default function MealPlans() {
     },
   });
 
-  const isPremium = user?.subscriptionTier === "premium" || user?.subscriptionTier === "enterprise";
+  const isPremium = user?.subscriptionTier === "premium" || user?.subscriptionTier === "enterprise" || user?.role === "admin";
 
   const handleGenerateClick = () => {
     if (!isPremium) {

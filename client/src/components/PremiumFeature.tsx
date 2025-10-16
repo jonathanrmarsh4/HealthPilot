@@ -21,11 +21,11 @@ export function PremiumFeature({
 }: PremiumFeatureProps) {
   const [showUpgrade, setShowUpgrade] = useState(false);
 
-  const { data: user } = useQuery<{ subscriptionTier: string }>({
+  const { data: user } = useQuery<{ subscriptionTier: string; role?: string }>({
     queryKey: ["/api/user"],
   });
 
-  const isPremium = user?.subscriptionTier === "premium" || user?.subscriptionTier === "enterprise";
+  const isPremium = user?.subscriptionTier === "premium" || user?.subscriptionTier === "enterprise" || user?.role === "admin";
 
   if (isPremium) {
     return <>{children}</>;
