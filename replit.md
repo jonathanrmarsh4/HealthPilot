@@ -27,7 +27,7 @@ The application is a full-stack project utilizing React, TypeScript, Tailwind CS
 - **Readiness Score System:** A multi-factor weighted scoring system calculates daily readiness, incorporating sleep quality, HRV, RHR, and workout load. It includes safety-first logic, user-configurable factors, and AI-powered recovery insights, with advanced personal baseline tuning for accurate scoring.
 - **Scheduling & Reminders:** AI insights scheduling system for recommendations, and a supplement tracking and daily reminders system that leverages AI for recommendations and tracks streaks.
 - **User Profiling & Onboarding:** A fitness profile personalization system allows AI to generate calibrated workouts based on user data. A contextual AI onboarding system collects basic user info and provides page-specific setup prompts.
-- **Security & Authentication:** Production-ready security using Replit Auth (OpenID Connect) with role-based access control, IDOR protection, privilege escalation prevention, and Zod schema validation. File upload security with validation for size and types.
+- **Security & Authentication:** Production-ready security using Replit Auth (OpenID Connect) with role-based access control, IDOR protection, privilege escalation prevention, and Zod schema validation. File upload security with validation for size and types. One-time EULA acceptance system with scroll-to-bottom enforcement and mobile-optimized touch event handling.
 - **Payment Processing:** Stripe integration for premium subscription purchases with webhook handling for automated subscription status updates. Premium pricing at $19.99/month for Premium tier and $99.99/month for Enterprise tier. Includes checkout session creation and subscription lifecycle management.
 - **Native iOS App:** Complete native iOS app implementation using Capacitor 7 for 100% code reuse, including direct HealthKit integration for native health data access and syncing.
 
@@ -38,6 +38,15 @@ The application is a full-stack project utilizing React, TypeScript, Tailwind CS
 - Clean dashboard defaults for new users with core widgets and easy customization.
 - Data & Insights Dashboard with AI trend predictions and goal setting.
 - Biological Age calculation using the PhenoAge algorithm (premium feature).
+
+## Recent Technical Updates
+
+**EULA Mobile Fix (October 2025):**
+- Fixed critical touch event blocking issue on iPad/iPhone where Accept button wasn't responding to touch
+- Root cause: Radix Dialog's `onPointerDownOutside` preventDefault() was canceling iOS tap sequence
+- Solution: Replaced preventDefault handlers with `onOpenChange={() => {}}` to maintain non-dismissible behavior while allowing touch events
+- Fixed API request parameter order bug: Changed from `apiRequest(url, {method})` to `apiRequest(method, url)` 
+- Added enhanced logging for easier debugging of scroll state and button enablement
 
 ## External Dependencies
 
