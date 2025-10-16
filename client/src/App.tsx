@@ -13,6 +13,7 @@ import { TimezoneProvider } from "@/contexts/TimezoneContext";
 import { OnboardingProvider, useOnboarding } from "@/contexts/OnboardingContext";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { FloatingChat, FloatingChatTrigger } from "@/components/FloatingChat";
+import { TimezoneDetector } from "@/components/TimezoneDetector";
 import Dashboard from "@/pages/Dashboard";
 import HealthRecords from "@/pages/HealthRecords";
 import Biomarkers from "@/pages/Biomarkers";
@@ -164,6 +165,7 @@ function AuthenticatedApp() {
     <LocaleProvider>
       <TimezoneProvider>
         <OnboardingProvider>
+          <TimezoneDetector />
           <AppLayout />
         </OnboardingProvider>
         <Toaster />

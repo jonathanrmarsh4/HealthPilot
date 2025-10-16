@@ -336,6 +336,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         bloodType: z.string().nullable().optional(),
         activityLevel: z.string().nullable().optional(),
         location: z.string().nullable().optional(),
+        timezone: z.string().nullable().optional(),
       });
 
       const validationResult = profileSchema.safeParse(req.body);
