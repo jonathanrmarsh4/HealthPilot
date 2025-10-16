@@ -36,6 +36,7 @@ export const users = pgTable("users", {
   activityLevel: varchar("activity_level"), // 'sedentary', 'light', 'moderate', 'active', 'very_active'
   location: varchar("location"), // City, Country
   dashboardPreferences: jsonb("dashboard_preferences"), // Widget visibility and order preferences
+  personalContext: jsonb("personal_context"), // AI memories: personal details, motivations, life events, milestones, conversation highlights
   // Onboarding tracking - granular completion flags for contextual onboarding
   onboardingCompleted: integer("onboarding_completed").notNull().default(0), // 0 = false, 1 = true (for compatibility)
   onboardingStep: varchar("onboarding_step"), // Legacy field - kept for compatibility
