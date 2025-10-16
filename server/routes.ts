@@ -291,7 +291,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const Stripe = (await import("stripe")).default;
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-        apiVersion: "2024-11-20.acacia",
+        apiVersion: "2024-11-20",
       });
 
       const user = await storage.getUser(userId);
@@ -343,7 +343,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const Stripe = (await import("stripe")).default;
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-        apiVersion: "2024-11-20.acacia",
+        apiVersion: "2024-11-20",
       });
 
       const sig = req.headers["stripe-signature"];

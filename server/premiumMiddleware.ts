@@ -26,6 +26,9 @@ export async function isPremiumUser(userId: string): Promise<boolean> {
   const user = await storage.getUser(userId);
   if (!user) return false;
   
+  // Admins automatically get premium access
+  if (user.role === "admin") return true;
+  
   return (
     (user.subscriptionTier === "premium" || user.subscriptionTier === "enterprise") &&
     user.subscriptionStatus === "active"
