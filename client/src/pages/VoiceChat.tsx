@@ -33,6 +33,16 @@ export default function VoiceChat() {
   }, []);
 
   const connect = async () => {
+    // Double-check premium status before allowing connection
+    if (!isPremium) {
+      toast({
+        variant: "destructive",
+        title: "Premium Required",
+        description: "Voice chat requires a Premium subscription. Please upgrade to continue.",
+      });
+      return;
+    }
+
     try {
       // Request microphone access
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -120,12 +130,23 @@ export default function VoiceChat() {
         setIsConnected(false);
         setIsListening(false);
         setIsSpeaking(false);
+        setTranscript([]); // Clear transcript on disconnect
         
         if (event.code === 4003) {
           toast({
             variant: "destructive",
             title: "Premium Required",
-            description: "Voice chat requires a Premium subscription",
+            description: "Voice chat requires a Premium subscription. Please upgrade to continue.",
+            action: {
+              label: "Upgrade",
+              onClick: () => window.location.href = "/pricing",
+            },
+          });
+        } else if (event.code === 4001) {
+          toast({
+            variant: "destructive",
+            title: "Authentication Required",
+            description: "Please log in to use voice chat",
           });
         }
       };
@@ -164,7 +185,7 @@ export default function VoiceChat() {
         pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
       }
 
-      const base64 = btoa(String.fromCharCode(...new Uint8Array(pcm16.buffer)));
+      const base64 = btoa(String.fromCharCode.apply(null, Array.from(new Uint8Array(pcm16.buffer))));
       
       wsRef.current.send(JSON.stringify({
         type: 'input_audio_buffer.append',
@@ -234,7 +255,7 @@ export default function VoiceChat() {
 
       <PremiumFeature
         feature="voice_chat"
-        fallbackMessage="Voice chat with your AI health coach is a Premium feature. Upgrade to have natural conversations about your health, get instant feedback, and receive personalized coaching through voice."
+        lockMessage="Voice chat with your AI health coach is a Premium feature. Upgrade to have natural conversations about your health, get instant feedback, and receive personalized coaching through voice."
       >
         <div className="space-y-6">
           {/* Connection Status */}
@@ -255,6 +276,7 @@ export default function VoiceChat() {
                     onClick={connect}
                     size="lg"
                     className="w-full"
+                    disabled={!user}
                     data-testid="button-start-voice-chat"
                   >
                     <Phone className="w-5 h-5 mr-2" />
