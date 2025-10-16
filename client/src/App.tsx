@@ -178,9 +178,7 @@ function AuthenticatedApp() {
   const acceptEulaMutation = useMutation({
     mutationFn: async () => {
       console.log("EULA mutation starting...");
-      const result = await apiRequest("/api/user/accept-eula", {
-        method: "POST",
-      });
+      const result = await apiRequest("POST", "/api/user/accept-eula");
       console.log("EULA mutation completed", result);
       return result;
     },
