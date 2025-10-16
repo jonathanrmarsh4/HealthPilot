@@ -294,6 +294,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Save recipes to meal library
       const savedRecipes = [];
       for (const recipe of importResult.recipes) {
+        // Helper to round nutritional values to integers
+        const roundNutrient = (nutrientName: string): number | null => {
+          const value = recipe.nutrition?.nutrients?.find(n => n.name === nutrientName)?.amount;
+          return value !== undefined ? Math.round(value) : null;
+        };
+
         const mealData = {
           spoonacularRecipeId: recipe.id,
           title: recipe.title,
@@ -302,10 +308,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           sourceUrl: recipe.sourceUrl,
           readyInMinutes: recipe.readyInMinutes,
           servings: recipe.servings,
-          calories: recipe.nutrition?.nutrients?.find(n => n.name === 'Calories')?.amount || null,
-          protein: recipe.nutrition?.nutrients?.find(n => n.name === 'Protein')?.amount || null,
-          carbs: recipe.nutrition?.nutrients?.find(n => n.name === 'Carbohydrates')?.amount || null,
-          fat: recipe.nutrition?.nutrients?.find(n => n.name === 'Fat')?.amount || null,
+          calories: roundNutrient('Calories'),
+          protein: roundNutrient('Protein'),
+          carbs: roundNutrient('Carbohydrates'),
+          fat: roundNutrient('Fat'),
           ingredients: recipe.extendedIngredients,
           instructions: recipe.analyzedInstructions?.[0]?.steps?.map(s => s.step).join(' ') || '',
           extendedIngredients: recipe.extendedIngredients,
