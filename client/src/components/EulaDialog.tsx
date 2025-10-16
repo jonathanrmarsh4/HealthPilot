@@ -20,16 +20,28 @@ export function EulaDialog({ open, onAccept, isAccepting = false }: EulaDialogPr
   const [hasScrolledToBottom, setHasScrolledToBottom] = useState(false);
   const [hasAgreed, setHasAgreed] = useState(false);
 
-  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const target = e.target as HTMLDivElement;
+  const checkIfAtBottom = (element: HTMLDivElement) => {
     const isAtBottom =
-      Math.abs(target.scrollHeight - target.scrollTop - target.clientHeight) < 10;
+      Math.abs(element.scrollHeight - element.scrollTop - element.clientHeight) < 10;
+    console.log("Scroll check:", { 
+      scrollHeight: element.scrollHeight, 
+      scrollTop: element.scrollTop, 
+      clientHeight: element.clientHeight,
+      isAtBottom 
+    });
     if (isAtBottom && !hasScrolledToBottom) {
+      console.log("Setting hasScrolledToBottom to true");
       setHasScrolledToBottom(true);
     }
   };
 
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    checkIfAtBottom(e.target as HTMLDivElement);
+  };
+
   const canAccept = hasScrolledToBottom && hasAgreed;
+  
+  console.log("EULA Dialog state:", { hasScrolledToBottom, hasAgreed, canAccept });
   
   const handleAccept = () => {
     console.log("EULA Accept button clicked", { canAccept, hasScrolledToBottom, hasAgreed });
