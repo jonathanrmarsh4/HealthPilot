@@ -24,7 +24,7 @@ export default function MealPlans() {
   });
 
   const { data: user } = useQuery<{ subscriptionTier: string; role?: string }>({
-    queryKey: ["/api/user"],
+    queryKey: ["/api/auth/user"],
   });
 
   // Calculate date range for scheduled meals

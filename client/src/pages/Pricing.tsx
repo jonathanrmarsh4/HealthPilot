@@ -80,7 +80,7 @@ export default function Pricing() {
   const [loadingTier, setLoadingTier] = useState<string | null>(null);
 
   const { data: user } = useQuery<{ subscriptionTier: string; role?: string }>({
-    queryKey: ["/api/user"],
+    queryKey: ["/api/auth/user"],
   });
 
   const checkoutMutation = useMutation({
