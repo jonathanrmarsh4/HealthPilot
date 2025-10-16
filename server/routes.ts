@@ -6290,10 +6290,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Connect to OpenAI Realtime API
-      const url = "wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17";
+      const realtimeUrl = "wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17";
       const { default: WebSocket } = await import('ws');
       
-      const openaiWs = new WebSocket(url, {
+      const openaiWs = new WebSocket(realtimeUrl, {
         headers: {
           "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
           "OpenAI-Beta": "realtime=v1",
@@ -6335,6 +6335,32 @@ Keep responses concise for voice conversations. Speak naturally as if you're the
         };
 
         openaiWs.send(JSON.stringify(sessionConfig));
+
+        // Send initial greeting after a brief delay to ensure session is configured
+        setTimeout(() => {
+          const userName = user.firstName || 'there';
+          const greeting = {
+            type: "conversation.item.create",
+            item: {
+              type: "message",
+              role: "user",
+              content: [
+                {
+                  type: "input_text",
+                  text: `Say a brief, warm greeting to ${userName}. Welcome them to voice chat and let them know you're here to help with their health and fitness goals. Keep it short and conversational, under 2 sentences.`
+                }
+              ]
+            }
+          };
+
+          const responseCreate = {
+            type: "response.create"
+          };
+
+          openaiWs.send(JSON.stringify(greeting));
+          openaiWs.send(JSON.stringify(responseCreate));
+          console.log(`👋 Sent greeting for ${userName}`);
+        }, 500);
       });
 
       openaiWs.on("message", (data: any) => {
