@@ -69,5 +69,38 @@ app.use((req, res, next) => {
     reusePort: true,
   }, () => {
     log(`serving on port ${port}`);
+    
+    // Start background monitoring for proactive suggestions
+    // Run every 30 minutes
+    const MONITORING_INTERVAL = 30 * 60 * 1000; // 30 minutes in ms
+    
+    setInterval(async () => {
+      try {
+        log('🔄 Running proactive suggestion monitoring...');
+        const response = await fetch(`http://localhost:${port}/api/proactive-suggestions/monitor-all`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        });
+        const result = await response.json();
+        log(`✅ Monitoring complete: ${result.suggestionsGenerated} suggestions generated for ${result.processedUsers} users`);
+      } catch (error: any) {
+        log(`❌ Monitoring error: ${error.message}`);
+      }
+    }, MONITORING_INTERVAL);
+    
+    // Run once on startup after a short delay
+    setTimeout(async () => {
+      try {
+        log('🔄 Running initial proactive suggestion monitoring...');
+        const response = await fetch(`http://localhost:${port}/api/proactive-suggestions/monitor-all`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        });
+        const result = await response.json();
+        log(`✅ Initial monitoring complete: ${result.suggestionsGenerated} suggestions generated for ${result.processedUsers} users`);
+      } catch (error: any) {
+        log(`❌ Initial monitoring error: ${error.message}`);
+      }
+    }, 5000); // Wait 5 seconds after startup
   });
 })();

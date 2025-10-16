@@ -6478,5 +6478,101 @@ Keep responses concise for voice conversations. Speak naturally as if you're the
     }
   });
 
+  // Proactive Suggestion Routes
+  app.get("/api/proactive-suggestions/check-metrics", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any).claims.sub;
+      const deficits = await storage.checkUserMetrics(userId);
+      res.json(deficits);
+    } catch (error: any) {
+      console.error("Error checking metrics:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/proactive-suggestions/generate", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any).claims.sub;
+      const { deficit } = req.body;
+      const suggestion = await storage.generateProactiveSuggestion(userId, deficit);
+      res.json(suggestion);
+    } catch (error: any) {
+      console.error("Error generating suggestion:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/proactive-suggestions/active", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any).claims.sub;
+      const suggestions = await storage.getActiveSuggestions(userId);
+      res.json(suggestions);
+    } catch (error: any) {
+      console.error("Error getting active suggestions:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/proactive-suggestions/:id/respond", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any).claims.sub;
+      const { id } = req.params;
+      const { response, scheduledFor } = req.body;
+      const result = await storage.respondToSuggestion(
+        userId,
+        id,
+        response,
+        scheduledFor ? new Date(scheduledFor) : undefined
+      );
+      res.json(result);
+    } catch (error: any) {
+      console.error("Error responding to suggestion:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Background monitoring endpoint - can be called by cron job
+  app.post("/api/proactive-suggestions/monitor-all", async (req, res) => {
+    try {
+      const results = [];
+      
+      // Get all active users (users with activity in last 7 days)
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      
+      const { users } = await storage.getAllUsers(1000, 0);
+      
+      for (const user of users) {
+        try {
+          // Check metrics for each user
+          const deficits = await storage.checkUserMetrics(user.id);
+          
+          // Generate suggestions for high priority deficits
+          for (const deficit of deficits) {
+            if (deficit.priority === 'high' || deficit.priority === 'medium') {
+              const suggestion = await storage.generateProactiveSuggestion(user.id, deficit);
+              if (suggestion.id) {
+                results.push({ userId: user.id, suggestionId: suggestion.id, deficit: deficit.metricType });
+              }
+            }
+          }
+        } catch (userError: any) {
+          console.error(`Error processing user ${user.id}:`, userError);
+          results.push({ userId: user.id, error: userError.message });
+        }
+      }
+      
+      res.json({ 
+        success: true, 
+        processedUsers: users.length,
+        suggestionsGenerated: results.filter(r => r.suggestionId).length,
+        results 
+      });
+    } catch (error: any) {
+      console.error("Error monitoring all users:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   return httpServer;
 }
