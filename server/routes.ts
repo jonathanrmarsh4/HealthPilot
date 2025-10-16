@@ -6370,11 +6370,14 @@ Keep responses concise for voice conversations. Speak naturally as if you're the
 
       openaiWs.on("error", (error: any) => {
         console.error("❌ OpenAI WebSocket error:", error);
+        console.error("Error details:", JSON.stringify(error, null, 2));
         clientWs.close(4000, "OpenAI connection error");
       });
 
-      openaiWs.on("close", () => {
-        console.log("🔌 OpenAI WebSocket closed");
+      openaiWs.on("close", (code: number, reason: Buffer) => {
+        const reasonStr = reason.toString();
+        console.log(`🔌 OpenAI WebSocket closed - Code: ${code}, Reason: ${reasonStr}`);
+        console.log("Close event details:", { code, reason: reasonStr });
         clientWs.close();
       });
 
