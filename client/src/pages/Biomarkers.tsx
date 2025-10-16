@@ -1,5 +1,6 @@
 import { DataInputForm } from "@/components/DataInputForm";
 import { TrendLineWidget } from "@/components/TrendLineWidget";
+import { HealthKitSync } from "@/components/HealthKitSync";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
@@ -74,6 +75,8 @@ export default function Biomarkers() {
       </div>
 
       <DataInputForm />
+
+      <HealthKitSync />
 
       {biomarkersLoading ? (
         <div className="grid gap-6">

@@ -5290,6 +5290,207 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Capacitor iOS native HealthKit sync endpoint
+  app.post("/api/apple-health/sync", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+
+    try {
+      console.log("📱 Received Capacitor HealthKit sync");
+      const { steps, hrv, restingHR, sleep, workouts, weight, bodyFat, leanMass } = req.body;
+
+      let insertedCount = 0;
+
+      // Process steps data
+      if (steps && steps.length > 0) {
+        console.log(`👟 Processing ${steps.length} step samples`);
+        for (const sample of steps) {
+          await storage.upsertBiomarker({
+            userId,
+            type: "steps",
+            value: sample.value,
+            unit: sample.unit || "count",
+            source: "ios-healthkit",
+            recordedAt: new Date(sample.startDate),
+          });
+          insertedCount++;
+        }
+      }
+
+      // Process HRV data
+      if (hrv && hrv.length > 0) {
+        console.log(`💓 Processing ${hrv.length} HRV samples`);
+        for (const sample of hrv) {
+          await storage.upsertBiomarker({
+            userId,
+            type: "hrv",
+            value: sample.value,
+            unit: sample.unit || "ms",
+            source: "ios-healthkit",
+            recordedAt: new Date(sample.startDate),
+          });
+          insertedCount++;
+        }
+      }
+
+      // Process resting heart rate data
+      if (restingHR && restingHR.length > 0) {
+        console.log(`❤️  Processing ${restingHR.length} resting HR samples`);
+        for (const sample of restingHR) {
+          await storage.upsertBiomarker({
+            userId,
+            type: "heart-rate",
+            value: sample.value,
+            unit: sample.unit || "bpm",
+            source: "ios-healthkit",
+            recordedAt: new Date(sample.startDate),
+          });
+          insertedCount++;
+        }
+      }
+
+      // Process weight data
+      if (weight && weight.length > 0) {
+        console.log(`⚖️  Processing ${weight.length} weight samples`);
+        for (const sample of weight) {
+          await storage.upsertBiomarker({
+            userId,
+            type: "weight",
+            value: sample.value,
+            unit: sample.unit || "kg",
+            source: "ios-healthkit",
+            recordedAt: new Date(sample.startDate),
+          });
+          insertedCount++;
+        }
+      }
+
+      // Process body fat percentage data
+      if (bodyFat && bodyFat.length > 0) {
+        console.log(`📊 Processing ${bodyFat.length} body fat samples`);
+        for (const sample of bodyFat) {
+          await storage.upsertBiomarker({
+            userId,
+            type: "body-fat-percentage",
+            value: sample.value,
+            unit: sample.unit || "%",
+            source: "ios-healthkit",
+            recordedAt: new Date(sample.startDate),
+          });
+          insertedCount++;
+        }
+      }
+
+      // Process lean body mass data
+      if (leanMass && leanMass.length > 0) {
+        console.log(`💪 Processing ${leanMass.length} lean mass samples`);
+        for (const sample of leanMass) {
+          await storage.upsertBiomarker({
+            userId,
+            type: "lean-body-mass",
+            value: sample.value,
+            unit: sample.unit || "kg",
+            source: "ios-healthkit",
+            recordedAt: new Date(sample.startDate),
+          });
+          insertedCount++;
+        }
+      }
+
+      // Process sleep data
+      if (sleep && sleep.length > 0) {
+        console.log(`🛌 Processing ${sleep.length} sleep samples`);
+        // Group sleep segments by date
+        const sleepNights = new Map<string, {
+          bedtime: Date;
+          waketime: Date;
+          totalMinutes: number;
+        }>();
+
+        for (const sample of sleep) {
+          const startTime = new Date(sample.startDate);
+          const endTime = new Date(sample.endDate);
+          const nightKey = startTime.toISOString().split('T')[0];
+          
+          const duration = Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60));
+          
+          if (!sleepNights.has(nightKey)) {
+            sleepNights.set(nightKey, {
+              bedtime: startTime,
+              waketime: endTime,
+              totalMinutes: duration,
+            });
+          } else {
+            const night = sleepNights.get(nightKey)!;
+            if (startTime < night.bedtime) night.bedtime = startTime;
+            if (endTime > night.waketime) night.waketime = endTime;
+            night.totalMinutes += duration;
+          }
+        }
+
+        // Create sleep sessions
+        for (const [nightKey, night] of Array.from(sleepNights.entries())) {
+          const totalMinutes = Math.round((night.waketime.getTime() - night.bedtime.getTime()) / (1000 * 60));
+          const sleepScore = Math.min(100, Math.max(0, 70 + (totalMinutes - 420) / 6));
+          const quality = sleepScore >= 80 ? "excellent" : sleepScore >= 60 ? "good" : sleepScore >= 40 ? "fair" : "poor";
+
+          await storage.createSleepSession({
+            userId,
+            date: nightKey,
+            inBedStart: night.bedtime,
+            inBedEnd: night.waketime,
+            durationMinutes: totalMinutes,
+            sleepScore: Math.round(sleepScore),
+            quality,
+            source: "ios-healthkit",
+          });
+          insertedCount++;
+        }
+      }
+
+      // Process workout data
+      if (workouts && workouts.length > 0) {
+        console.log(`🏃 Processing ${workouts.length} workout samples`);
+        for (const workout of workouts) {
+          const startTime = new Date(workout.startDate);
+          const endTime = new Date(workout.endDate);
+          const duration = Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60));
+
+          // Map workout type from HealthKit
+          const workoutType = workout.workoutActivityType?.toLowerCase() || "other";
+          const calories = workout.totalEnergyBurned || 0;
+
+          await storage.createWorkoutSession({
+            userId,
+            date: startTime.toISOString().split('T')[0],
+            exerciseName: workoutType,
+            sets: 1,
+            reps: null,
+            weight: null,
+            notes: `Distance: ${workout.totalDistance || 0}m`,
+            duration,
+            calories,
+            avgHeartRate: workout.averageHeartRate ? Math.round(workout.averageHeartRate) : null,
+            maxHeartRate: workout.maxHeartRate ? Math.round(workout.maxHeartRate) : null,
+            sourceType: "ios-healthkit",
+            sourceId: workout.uuid || null,
+          });
+          insertedCount++;
+        }
+      }
+
+      console.log(`✅ Capacitor sync complete: ${insertedCount} items inserted/updated`);
+
+      res.json({
+        success: true,
+        message: `Synced ${insertedCount} health data points`,
+        insertedCount,
+      });
+    } catch (error: any) {
+      console.error("Error processing Capacitor HealthKit sync:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Cleanup endpoint to remove old test data
   app.post("/api/cleanup-test-data", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
