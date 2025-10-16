@@ -3097,6 +3097,108 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Insight feedback endpoint
+  app.post("/api/insights/feedback", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    try {
+      const { insightId, feedback } = req.body;
+      
+      if (!insightId || !feedback) {
+        return res.status(400).json({ error: "insightId and feedback are required" });
+      }
+
+      if (feedback !== 'thumbs_up' && feedback !== 'thumbs_down') {
+        return res.status(400).json({ error: "feedback must be 'thumbs_up' or 'thumbs_down'" });
+      }
+
+      await storage.createInsightFeedback({
+        userId,
+        insightId,
+        feedback,
+        context: null,
+      });
+
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error saving insight feedback:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Schedule an insight
+  app.post("/api/insights/schedule", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    try {
+      const { insightId, frequency, scheduledDates } = req.body;
+      
+      if (!insightId || !frequency) {
+        return res.status(400).json({ error: "insightId and frequency are required" });
+      }
+
+      // Get the original insight to extract details
+      const insights = await storage.getInsights(userId, 100);
+      const originalInsight = insights.find(i => i.id === insightId);
+      
+      if (!originalInsight) {
+        return res.status(404).json({ error: "Insight not found" });
+      }
+
+      // Calculate scheduled dates based on frequency
+      let dates: string[] = [];
+      if (frequency === 'custom' && scheduledDates) {
+        dates = scheduledDates;
+      } else if (frequency === 'one_time') {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        dates = [`${year}-${month}-${day}`];
+      } else if (frequency === 'after_workout') {
+        dates = [];
+      } else {
+        dates = calculateScheduledDates(frequency);
+      }
+
+      // Create scheduled insight
+      const scheduledInsight = await storage.createScheduledInsight({
+        userId,
+        insightId,
+        title: originalInsight.title,
+        description: originalInsight.description,
+        category: originalInsight.category || 'wellness',
+        activityType: originalInsight.category || 'general',
+        duration: null,
+        frequency,
+        contextTrigger: frequency === 'after_workout' ? 'after_workout' : null,
+        recommendedBy: 'ai',
+        reason: originalInsight.description,
+        priority: originalInsight.priority || 'medium',
+        status: 'scheduled',
+        scheduledDates: dates,
+        userFeedback: null,
+        feedbackNote: null,
+      });
+
+      res.json({ success: true, scheduledInsight });
+    } catch (error: any) {
+      console.error("Error scheduling insight:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get scheduled insights
+  app.get("/api/scheduled-insights", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    try {
+      const status = req.query.status as string | undefined;
+      const insights = await storage.getScheduledInsights(userId, status);
+      res.json(insights);
+    } catch (error: any) {
+      console.error("Error fetching scheduled insights:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // AI Audit Log endpoints
   app.get("/api/ai-actions", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;

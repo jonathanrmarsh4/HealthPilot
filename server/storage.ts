@@ -50,6 +50,10 @@ import {
   type InsertSupplementRecommendation,
   type ScheduledExerciseRecommendation,
   type InsertScheduledExerciseRecommendation,
+  type ScheduledInsight,
+  type InsertScheduledInsight,
+  type InsightFeedback,
+  type InsertInsightFeedback,
   type AiAction,
   type InsertAiAction,
   users,
@@ -78,6 +82,8 @@ import {
   reminderCompletions,
   supplementRecommendations,
   scheduledExerciseRecommendations,
+  scheduledInsights,
+  insightFeedback,
 } from "@shared/schema";
 import { eq, desc, and, gte, lte, lt, sql, or, like, count, isNull } from "drizzle-orm";
 
@@ -272,6 +278,13 @@ export interface IStorage {
   getScheduledExerciseRecommendations(userId: string, status?: string): Promise<ScheduledExerciseRecommendation[]>;
   updateScheduledExerciseRecommendation(id: string, userId: string, updates: Partial<ScheduledExerciseRecommendation>): Promise<void>;
   getScheduledExercisesForDateRange(userId: string, startDate: Date, endDate: Date): Promise<ScheduledExerciseRecommendation[]>;
+
+  // Scheduled Insight methods
+  createScheduledInsight(insight: InsertScheduledInsight): Promise<ScheduledInsight>;
+  getScheduledInsights(userId: string, status?: string): Promise<ScheduledInsight[]>;
+  
+  // Insight Feedback methods
+  createInsightFeedback(feedback: InsertInsightFeedback): Promise<InsightFeedback>;
 }
 
 export class DbStorage implements IStorage {
@@ -1925,6 +1938,38 @@ export class DbStorage implements IStorage {
     const yearStart = new Date(d.getFullYear(), 0, 1);
     const weekNo = Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
     return `${d.getFullYear()}-W${weekNo.toString().padStart(2, '0')}`;
+  }
+
+  // Scheduled Insight methods
+  async createScheduledInsight(insight: InsertScheduledInsight): Promise<ScheduledInsight> {
+    const result = await db.insert(scheduledInsights).values(insight).returning();
+    return result[0];
+  }
+
+  async getScheduledInsights(userId: string, status?: string): Promise<ScheduledInsight[]> {
+    if (status) {
+      return await db
+        .select()
+        .from(scheduledInsights)
+        .where(
+          and(
+            eq(scheduledInsights.userId, userId),
+            eq(scheduledInsights.status, status)
+          )
+        )
+        .orderBy(desc(scheduledInsights.recommendedAt));
+    }
+    return await db
+      .select()
+      .from(scheduledInsights)
+      .where(eq(scheduledInsights.userId, userId))
+      .orderBy(desc(scheduledInsights.recommendedAt));
+  }
+
+  // Insight Feedback methods
+  async createInsightFeedback(feedback: InsertInsightFeedback): Promise<InsightFeedback> {
+    const result = await db.insert(insightFeedback).values(feedback).returning();
+    return result[0];
   }
 }
 
