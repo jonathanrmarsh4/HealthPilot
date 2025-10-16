@@ -1,22 +1,19 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { queryClient, apiRequest } from '@/lib/queryClient';
+import { createContext, useContext, ReactNode } from 'react';
+import { useQuery } from '@tanstack/react-query';
 
-type OnboardingStep = 'welcome' | 'apple_health' | 'health_records' | 'training_plan' | 'meal_plan';
-
+// Granular onboarding flags for contextual approach
 interface OnboardingStatus {
-  completed: boolean;
-  step: OnboardingStep | null;
+  basicInfoComplete: boolean;
+  trainingSetupComplete: boolean;
+  mealsSetupComplete: boolean;
+  supplementsSetupComplete: boolean;
+  biomarkersSetupComplete: boolean;
   startedAt: Date | null;
-  completedAt: Date | null;
 }
 
 interface OnboardingContextType {
   status: OnboardingStatus | null;
   isLoading: boolean;
-  updateStep: (step: OnboardingStep) => Promise<void>;
-  skipStep: (currentStep: OnboardingStep, nextStep: OnboardingStep) => Promise<void>;
-  completeOnboarding: () => Promise<void>;
   shouldShowOnboarding: boolean;
 }
 
@@ -27,55 +24,14 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     queryKey: ['/api/onboarding/status'],
   });
 
-  const updateStepMutation = useMutation({
-    mutationFn: async (step: OnboardingStep) => {
-      return apiRequest('PATCH', '/api/onboarding/step', { step });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/onboarding/status'] });
-    },
-  });
-
-  const skipStepMutation = useMutation({
-    mutationFn: async ({ currentStep, nextStep }: { currentStep: OnboardingStep; nextStep: OnboardingStep }) => {
-      return apiRequest('POST', '/api/onboarding/skip', { currentStep, nextStep });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/onboarding/status'] });
-    },
-  });
-
-  const completeOnboardingMutation = useMutation({
-    mutationFn: async () => {
-      return apiRequest('POST', '/api/onboarding/complete', {});
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/onboarding/status'] });
-    },
-  });
-
-  const shouldShowOnboarding = Boolean(status && !status.completed);
-
-  const updateStep = async (step: OnboardingStep) => {
-    await updateStepMutation.mutateAsync(step);
-  };
-
-  const skipStep = async (currentStep: OnboardingStep, nextStep: OnboardingStep) => {
-    await skipStepMutation.mutateAsync({ currentStep, nextStep });
-  };
-
-  const completeOnboarding = async () => {
-    await completeOnboardingMutation.mutateAsync();
-  };
+  // User is in onboarding if they haven't completed basic info
+  const shouldShowOnboarding = Boolean(status && !status.basicInfoComplete);
 
   return (
     <OnboardingContext.Provider
       value={{
         status: status ?? null,
         isLoading,
-        updateStep,
-        skipStep,
-        completeOnboarding,
         shouldShowOnboarding,
       }}
     >

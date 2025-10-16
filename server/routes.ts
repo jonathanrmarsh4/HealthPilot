@@ -4274,81 +4274,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Onboarding routes
-  const VALID_ONBOARDING_STEPS = ['welcome', 'apple_health', 'health_records', 'training_plan', 'meal_plan'] as const;
-  
+  // Onboarding routes - using granular contextual flags
   app.get("/api/onboarding/status", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
 
     try {
       const status = await storage.getOnboardingStatus(userId);
-      // Initialize step to 'welcome' in database if onboarding not completed and no step set
-      if (status && !status.completed && !status.step) {
-        await storage.updateOnboardingStep(userId, 'welcome');
-        res.json({ ...status, step: 'welcome' });
-      } else if (!status) {
-        // No onboarding record at all, initialize it
-        await storage.updateOnboardingStep(userId, 'welcome');
-        res.json({ completed: false, step: 'welcome', startedAt: null, completedAt: null });
+      
+      if (!status) {
+        // No onboarding record, create with default flags
+        const defaultStatus = {
+          basicInfoComplete: false,
+          trainingSetupComplete: false,
+          mealsSetupComplete: false,
+          supplementsSetupComplete: false,
+          biomarkersSetupComplete: false,
+          startedAt: new Date(),
+        };
+        res.json(defaultStatus);
       } else {
-        res.json(status);
+        // Return existing status with all granular flags
+        res.json({
+          basicInfoComplete: status.basicInfoComplete || false,
+          trainingSetupComplete: status.trainingSetupComplete || false,
+          mealsSetupComplete: status.mealsSetupComplete || false,
+          supplementsSetupComplete: status.supplementsSetupComplete || false,
+          biomarkersSetupComplete: status.biomarkersSetupComplete || false,
+          startedAt: status.startedAt,
+        });
       }
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
   });
 
-  app.patch("/api/onboarding/step", isAuthenticated, async (req, res) => {
-    const userId = (req.user as any).claims.sub;
-
-    try {
-      const { step } = req.body;
-      if (!step || typeof step !== 'string') {
-        return res.status(400).json({ error: "Step is required" });
-      }
-      // Validate step is one of the allowed values
-      if (!VALID_ONBOARDING_STEPS.includes(step as any)) {
-        return res.status(400).json({ error: `Invalid step. Must be one of: ${VALID_ONBOARDING_STEPS.join(', ')}` });
-      }
-      await storage.updateOnboardingStep(userId, step);
-      res.json({ success: true, step });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  app.post("/api/onboarding/complete", isAuthenticated, async (req, res) => {
-    const userId = (req.user as any).claims.sub;
-
-    try {
-      await storage.completeOnboarding(userId);
-      res.json({ success: true, completed: true });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  app.post("/api/onboarding/skip", isAuthenticated, async (req, res) => {
-    const userId = (req.user as any).claims.sub;
-
-    try {
-      const { currentStep, nextStep } = req.body;
-      if (!currentStep || !nextStep) {
-        return res.status(400).json({ error: "currentStep and nextStep are required" });
-      }
-      // Validate steps are valid
-      if (!VALID_ONBOARDING_STEPS.includes(currentStep as any) || !VALID_ONBOARDING_STEPS.includes(nextStep as any)) {
-        return res.status(400).json({ error: `Invalid step. Must be one of: ${VALID_ONBOARDING_STEPS.join(', ')}` });
-      }
-      const updated = await storage.skipOnboardingStep(userId, currentStep, nextStep);
-      if (!updated) {
-        return res.status(409).json({ error: "Current step does not match. Onboarding state may have changed." });
-      }
-      res.json({ success: true, step: nextStep });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  });
+  // Note: Onboarding now uses granular flags (basicInfoComplete, trainingSetupComplete, etc.)
+  // Completion flags are set automatically when users add data to each section
+  // No manual step progression needed
 
   app.get("/api/user/webhook-credentials", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
