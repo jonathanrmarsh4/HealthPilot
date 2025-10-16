@@ -324,13 +324,17 @@ export class DbStorage implements IStorage {
     // First check if user exists by ID
     const existingById = await db.select().from(users).where(eq(users.id, userData.id));
     if (existingById.length > 0) {
-      // Update existing user by ID
+      // Update existing user by ID - PRESERVE existing role unless explicitly set to admin
+      const updateData: any = { ...userData, updatedAt: new Date() };
+      
+      // Don't overwrite the role if the existing user already has one, unless we're explicitly setting it to admin
+      if (existingById[0].role && userData.role !== 'admin') {
+        updateData.role = existingById[0].role; // Preserve existing role
+      }
+      
       const [user] = await db
         .update(users)
-        .set({
-          ...userData,
-          updatedAt: new Date(),
-        })
+        .set(updateData)
         .where(eq(users.id, userData.id))
         .returning();
       return user;
@@ -340,13 +344,17 @@ export class DbStorage implements IStorage {
     if (userData.email) {
       const existingByEmail = await db.select().from(users).where(eq(users.email, userData.email));
       if (existingByEmail.length > 0) {
-        // Update existing user by email
+        // Update existing user by email - PRESERVE existing role unless explicitly set to admin
+        const updateData: any = { ...userData, updatedAt: new Date() };
+        
+        // Don't overwrite the role if the existing user already has one, unless we're explicitly setting it to admin
+        if (existingByEmail[0].role && userData.role !== 'admin') {
+          updateData.role = existingByEmail[0].role; // Preserve existing role
+        }
+        
         const [user] = await db
           .update(users)
-          .set({
-            ...userData,
-            updatedAt: new Date(),
-          })
+          .set(updateData)
           .where(eq(users.email, userData.email))
           .returning();
         return user;
