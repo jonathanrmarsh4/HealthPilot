@@ -13,9 +13,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 interface EulaDialogProps {
   open: boolean;
   onAccept: () => void;
+  isAccepting?: boolean;
 }
 
-export function EulaDialog({ open, onAccept }: EulaDialogProps) {
+export function EulaDialog({ open, onAccept, isAccepting = false }: EulaDialogProps) {
   const [hasScrolledToBottom, setHasScrolledToBottom] = useState(false);
   const [hasAgreed, setHasAgreed] = useState(false);
 
@@ -29,6 +30,11 @@ export function EulaDialog({ open, onAccept }: EulaDialogProps) {
   };
 
   const canAccept = hasScrolledToBottom && hasAgreed;
+  
+  const handleAccept = () => {
+    console.log("EULA Accept button clicked", { canAccept, hasScrolledToBottom, hasAgreed });
+    onAccept();
+  };
 
   return (
     <Dialog open={open} modal={true}>
@@ -233,12 +239,12 @@ export function EulaDialog({ open, onAccept }: EulaDialogProps) {
 
         <DialogFooter>
           <Button
-            onClick={onAccept}
-            disabled={!canAccept}
+            onClick={handleAccept}
+            disabled={!canAccept || isAccepting}
             data-testid="button-accept-eula"
             className="w-full sm:w-auto"
           >
-            Accept and Continue
+            {isAccepting ? "Accepting..." : "Accept and Continue"}
           </Button>
         </DialogFooter>
       </DialogContent>

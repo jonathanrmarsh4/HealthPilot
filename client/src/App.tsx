@@ -177,16 +177,23 @@ function AuthenticatedApp() {
 
   const acceptEulaMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest("/api/user/accept-eula", {
+      console.log("EULA mutation starting...");
+      const result = await apiRequest("/api/user/accept-eula", {
         method: "POST",
       });
+      console.log("EULA mutation completed", result);
+      return result;
     },
     onSuccess: () => {
+      console.log("EULA mutation onSuccess - updating cache");
       // Immediately update the cache to close the dialog
       queryClient.setQueryData(["/api/profile"], (oldData: any) => ({
         ...oldData,
         eulaAcceptedAt: new Date().toISOString(),
       }));
+    },
+    onError: (error) => {
+      console.error("EULA mutation error:", error);
     },
   });
 
@@ -200,7 +207,11 @@ function AuthenticatedApp() {
           <AppLayout />
           <EulaDialog
             open={showEulaDialog || false}
-            onAccept={() => acceptEulaMutation.mutate()}
+            onAccept={() => {
+              console.log("EULA onAccept called");
+              acceptEulaMutation.mutate();
+            }}
+            isAccepting={acceptEulaMutation.isPending}
           />
         </OnboardingProvider>
         <Toaster />
