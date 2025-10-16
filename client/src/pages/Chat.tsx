@@ -38,6 +38,10 @@ export default function Chat() {
       queryClient.invalidateQueries({ queryKey: ["/api/chat/history"] });
       setMessage("");
       
+      // Reset cleared timestamp so new messages appear (fixes bug where responses were hidden)
+      setClearedAtTimestamp(null);
+      localStorage.removeItem('chatClearedAt');
+      
       // Show success notification if training plan was saved
       if (data.trainingPlanSaved) {
         queryClient.invalidateQueries({ queryKey: ["/api/training-schedules"] });
@@ -69,7 +73,6 @@ export default function Chat() {
           ),
         });
       }
-      // Don't reset cleared state - let new messages appear after the cleared timestamp
     },
     onError: (error: Error) => {
       toast({
