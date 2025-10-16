@@ -1016,7 +1016,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/biological-age", isAuthenticated, async (req, res) => {
+  app.get("/api/biological-age", isAuthenticated, requirePremium(PremiumFeature.BIOLOGICAL_AGE), async (req, res) => {
     const userId = (req.user as any).claims.sub;
 
     try {
@@ -1134,7 +1134,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/meal-plans/generate", isAuthenticated, async (req, res) => {
+  app.post("/api/meal-plans/generate", isAuthenticated, requirePremium(PremiumFeature.MEAL_PLANS), async (req, res) => {
     const userId = (req.user as any).claims.sub;
 
     try {
@@ -5759,8 +5759,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Capacitor iOS native HealthKit sync endpoint
-  app.post("/api/apple-health/sync", isAuthenticated, async (req, res) => {
+  // Capacitor iOS native HealthKit sync endpoint  
+  app.post("/api/apple-health/sync", isAuthenticated, requirePremium(PremiumFeature.APPLE_HEALTH_SYNC), async (req, res) => {
     const userId = (req.user as any).claims.sub;
 
     try {
