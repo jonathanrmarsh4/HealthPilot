@@ -54,7 +54,7 @@ export function EulaDialog({ open, onAccept }: EulaDialogProps) {
               <p className="font-semibold mb-2">
                 Last Updated: 1/08/2025<br />
                 Effective Date: 1/08/2025<br />
-                Owner: Jonathan Marsh ("we," "us," "our")<br />
+                Owner: HealthPilot Pty Ltd ("we," "us," "our")<br />
                 Product: HealthPilot – AI-Driven Health, Fitness and Longevity Application ("the App")
               </p>
             </div>
@@ -130,7 +130,7 @@ export function EulaDialog({ open, onAccept }: EulaDialogProps) {
             <div>
               <h3 className="font-semibold mb-2">7. Intellectual Property</h3>
               <p>
-                All intellectual property rights in the App, algorithms, software, and related materials are and remain the exclusive property of Jonathan Marsh. You may not use our trademarks, trade names, or branding without written consent.
+                All intellectual property rights in the App, algorithms, software, and related materials are and remain the exclusive property of HealthPilot Pty Ltd. You may not use our trademarks, trade names, or branding without written consent.
               </p>
             </div>
 
@@ -196,7 +196,7 @@ export function EulaDialog({ open, onAccept }: EulaDialogProps) {
             <div>
               <h3 className="font-semibold mb-2">15. Entire Agreement</h3>
               <p>
-                This Agreement, together with the Privacy Policy, constitutes the entire understanding between you and Jonathan Marsh regarding your use of HealthPilot and supersedes all prior agreements or communications.
+                This Agreement, together with the Privacy Policy, constitutes the entire understanding between you and HealthPilot Pty Ltd regarding your use of HealthPilot and supersedes all prior agreements or communications.
               </p>
             </div>
 
