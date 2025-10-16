@@ -1,0 +1,80 @@
+End User Licence Agreement (EULA)
+Last Updated: 1/08/2025 Effective Date: 1/08/2025 Owner: Jonathan Marsh (“we,” “us,” “our”) Product: HealthPilot – AI-Driven Health, Fitness and Longevity Application (“the App”)
+
+1. Acceptance of Terms
+By downloading, accessing, or using the App, you (“the User”) agree to be bound by this End User Licence Agreement (“Agreement”). If you do not agree, do not use the App. We may update or amend this Agreement at any time. Continued use after such changes constitutes acceptance of the revised terms.
+
+2. Licence Grant
+We grant you a non-exclusive, non-transferable, revocable licence to use the App for personal, non-commercial purposes, subject to this Agreement. You must not copy, distribute, modify, reverse engineer, or exploit any part of the App or its content.
+
+3. Subscription and Payment
+* The App offers both free and paid subscription tiers.
+* Subscription fees are billed monthly or annually, depending on your selection at sign-up.
+* All payments are processed through secure third-party providers. You authorise recurring charges until you cancel your subscription.
+* Prices and plans may change at our discretion with prior notice.
+
+4. Account Registration
+To use certain features, you must create an account. You agree to:
+* Provide accurate and complete information,
+* Keep your credentials secure, and
+* Accept full responsibility for all activity under your account.
+We reserve the right to suspend or terminate accounts for misuse or breach of this Agreement.
+
+5. Use of AI and Health Data
+The App analyses personal information, including:
+* Uploaded blood work and medical results,
+* Data from connected wearables (e.g., Apple HealthKit, Fitbit, etc.), and
+* Other health-related inputs.
+The App uses artificial intelligence to generate insights, recommendations, and a biological-age assessment. You acknowledge that:
+* Outputs are AI-generated and not medical advice,
+* The App does not diagnose, treat, or prevent disease, and
+* You should always consult a qualified medical professional before acting on any recommendation.
+
+6. Data Collection and Privacy
+We collect and store certain personal information as described in our Privacy Policy. Key points:
+* Health data and other information are stored securely and encrypted.
+* We may use anonymised or aggregated data for analytics, research, or to train AI models.
+* We do not sell identifiable personal data to third parties.
+* By using the App, you consent to the processing and storage of your data in accordance with applicable laws (including the Australian Privacy Act 1988 (Cth), GDPR, and similar international laws where relevant).
+
+7. Intellectual Property
+All intellectual property rights in the App, algorithms, software, and related materials are and remain the exclusive property of Jonathan Marsh. You may not use our trademarks, trade names, or branding without written consent.
+
+8. User Responsibilities
+You agree not to:
+* Use the App for any unlawful purpose or in violation of any local, national, or international law;
+* Attempt to gain unauthorised access to the App or its servers;
+* Input false or misleading data; or
+* Resell, sublicense, or make the App available to others in violation of this Agreement.
+
+9. Disclaimers
+To the maximum extent permitted by law:
+* The App is provided “as is” and “as available.”
+* We make no warranties that the App will be error-free, uninterrupted, or that results will be accurate or reliable.
+* Any reliance on AI-generated recommendations is at your own risk.
+* The App is intended for informational and educational purposes only and not a substitute for professional medical advice, diagnosis, or treatment.
+
+10. Limitation of Liability
+To the fullest extent permitted by law:
+* We are not liable for any indirect, incidental, consequential, or punitive damages, including loss of data, health outcomes, profits, or business interruption.
+* Our total liability for any claim arising from or relating to this Agreement shall not exceed the total amount you paid for the App in the preceding 12-month period.
+
+11. Termination
+We may suspend or terminate your access without notice if you breach this Agreement or misuse the App. Upon termination, your right to use the App immediately ceases. Sections 7, 9, 10, and 13 will survive termination.
+
+12. Third-Party Services
+The App may integrate or interact with third-party services such as Apple HealthKit, Google Fit, or other APIs. We are not responsible for third-party terms, data practices, or service availability.
+
+13. Governing Law and Jurisdiction
+This Agreement is governed by the laws of Western Australia. You agree to submit to the exclusive jurisdiction of the courts of Western Australia to resolve any disputes.
+
+14. Severability
+If any provision of this Agreement is found invalid or unenforceable, the remaining provisions will remain in full effect.
+
+15. Entire Agreement
+This Agreement, together with the Privacy Policy, constitutes the entire understanding between you and Jonathan Marsh regarding your use of HealthPilot and supersedes all prior agreements or communications.
+
+Contact Information
+If you have questions about this Agreement, please contact: Jonathan Marsh Email: jon@healthpilot.pro Location: Perth, Western Australia
+
+Would you like me to also draft the Privacy Policy (it’s legally necessary if you’re collecting and storing user data, especially health data)? I can make it match the tone and coverage of this EULA — including GDPR compliance and Apple HealthKit data disclosure — so it’s launch-ready for your app store submissions.
