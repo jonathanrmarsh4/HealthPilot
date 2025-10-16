@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Shield, Users, TrendingUp, FileText, Activity, Search, Trash2 } from "lucide-react";
+import { Shield, Users, TrendingUp, FileText, Activity, Search, Trash2, ChefHat, ArrowRight } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { User } from "@shared/schema";
@@ -27,6 +28,7 @@ interface UsersResponse {
 }
 
 export default function Admin() {
+  const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(0);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -236,6 +238,28 @@ export default function Admin() {
           </Card>
         </div>
       )}
+
+      <Card data-testid="card-meal-library-link" className="hover-elevate cursor-pointer" onClick={() => setLocation("/admin/meal-library")}>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <ChefHat className="w-6 h-6 text-primary" />
+              <div>
+                <CardTitle data-testid="text-meal-library-link-title">Meal Library Management</CardTitle>
+                <CardDescription data-testid="text-meal-library-link-description">
+                  Manage meal inventory, import from Spoonacular, and optimize costs
+                </CardDescription>
+              </div>
+            </div>
+            <ArrowRight className="w-5 h-5 text-muted-foreground" />
+          </div>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            Import bulk meals, track performance metrics, manage deletion queue with premium user protection, and configure library settings
+          </p>
+        </CardContent>
+      </Card>
 
       <Card data-testid="card-user-management">
         <CardHeader>

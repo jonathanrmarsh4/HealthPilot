@@ -33,6 +33,7 @@ import Chat from "@/pages/Chat";
 import Profile from "@/pages/Profile";
 import Settings from "@/pages/Settings";
 import Admin from "@/pages/Admin";
+import AdminMealLibrary from "@/pages/AdminMealLibrary";
 import AIAuditLog from "@/pages/AIAuditLog";
 import Login from "@/pages/Login";
 import Logout from "@/pages/Logout";
@@ -63,6 +64,7 @@ function Router() {
       <Route path="/apple-health" component={AppleHealthSetup} />
       <Route path="/settings" component={Settings} />
       <Route path="/admin" component={Admin} />
+      <Route path="/admin/meal-library" component={AdminMealLibrary} />
       <Route path="/admin/ai-audit" component={AIAuditLog} />
       <Route path="/logged-out" component={Logout} />
       <Route component={NotFound} />
@@ -99,6 +101,7 @@ function AppLayout() {
     "/apple-health": "Apple Health Setup",
     "/settings": "Settings",
     "/admin": "Admin Panel",
+    "/admin/meal-library": "Meal Library",
     "/admin/ai-audit": "AI Audit Log"
   };
 

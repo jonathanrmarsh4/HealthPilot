@@ -364,7 +364,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const premiumUsers = await storage.getPremiumUsersWhoLikedMeal(meal.id);
         return {
           ...meal,
-          hasPremiumumUserProtection: premiumUsers.length > 0,
+          hasPremiumUserProtection: premiumUsers.length > 0,
           premiumUsersCount: premiumUsers.length,
         };
       }));
