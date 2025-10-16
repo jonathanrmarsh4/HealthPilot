@@ -598,6 +598,70 @@ export const insightFeedback = pgTable("insight_feedback", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// Meal Library - Admin-managed recipe database for cost optimization
+export const mealLibrary = pgTable("meal_library", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  spoonacularRecipeId: integer("spoonacular_recipe_id").unique(), // Original Spoonacular ID
+  title: text("title").notNull(),
+  description: text("description"),
+  imageUrl: varchar("image_url"),
+  sourceUrl: text("source_url"),
+  readyInMinutes: integer("ready_in_minutes"),
+  servings: integer("servings").default(1),
+  // Nutrition
+  calories: integer("calories"),
+  protein: real("protein"),
+  carbs: real("carbs"),
+  fat: real("fat"),
+  // Recipe details
+  ingredients: jsonb("ingredients"), // Array of ingredient objects
+  instructions: text("instructions"),
+  extendedIngredients: jsonb("extended_ingredients"),
+  // Diversity & categorization
+  cuisines: text("cuisines").array(), // 'italian', 'asian', 'mexican', etc.
+  dishTypes: text("dish_types").array(), // 'breakfast', 'main course', 'dessert', etc.
+  diets: text("diets").array(), // 'vegetarian', 'vegan', 'gluten free', etc.
+  mealTypes: text("meal_types").array(), // 'breakfast', 'lunch', 'dinner', 'snack'
+  difficulty: text("difficulty"), // 'easy', 'medium', 'hard'
+  // Performance metrics
+  totalServed: integer("total_served").notNull().default(0), // How many times shown to users
+  thumbsUpCount: integer("thumbs_up_count").notNull().default(0),
+  thumbsDownCount: integer("thumbs_down_count").notNull().default(0),
+  conversionRate: real("conversion_rate").default(0), // thumbsUpCount / totalServed
+  // Status
+  status: text("status").notNull().default("active"), // 'active', 'flagged_for_deletion', 'replaced'
+  flaggedAt: timestamp("flagged_at"),
+  replacedAt: timestamp("replaced_at"),
+  importedAt: timestamp("imported_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Meal Feedback - Track user feedback on library meals
+export const mealFeedback = pgTable("meal_feedback", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  mealLibraryId: varchar("meal_library_id").notNull(), // Reference to meal_library
+  feedback: text("feedback").notNull(), // 'thumbs_up' or 'thumbs_down'
+  // Track premium status at time of feedback (for deletion protection)
+  userWasPremium: integer("user_was_premium").notNull().default(0), // 0 = false, 1 = true
+  notes: text("notes"), // Optional user notes
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Meal Library Settings - Admin configuration for library management
+export const mealLibrarySettings = pgTable("meal_library_settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(), // Admin user who set these
+  librarySizeTarget: integer("library_size_target").notNull().default(100), // Target library size
+  deletionThreshold: real("deletion_threshold").notNull().default(0.40), // 40% thumbs down = deletion
+  replacementFrequency: text("replacement_frequency").notNull().default("monthly"), // 'weekly', 'monthly', 'manual'
+  lastReplacementRun: timestamp("last_replacement_run"),
+  nextReplacementRun: timestamp("next_replacement_run"),
+  autoReplaceEnabled: integer("auto_replace_enabled").notNull().default(1), // 0 = false, 1 = true
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 export const insertSupplementSchema = createInsertSchema(supplements).omit({
   id: true,
   createdAt: true,
@@ -635,6 +699,23 @@ export const insertScheduledInsightSchema = createInsertSchema(scheduledInsights
 export const insertInsightFeedbackSchema = createInsertSchema(insightFeedback).omit({
   id: true,
   createdAt: true,
+});
+
+export const insertMealLibrarySchema = createInsertSchema(mealLibrary).omit({
+  id: true,
+  importedAt: true,
+  updatedAt: true,
+});
+
+export const insertMealFeedbackSchema = createInsertSchema(mealFeedback).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertMealLibrarySettingsSchema = createInsertSchema(mealLibrarySettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
 });
 
 export type UpsertUser = typeof users.$inferInsert;
@@ -720,3 +801,12 @@ export type ScheduledInsight = typeof scheduledInsights.$inferSelect;
 
 export type InsertInsightFeedback = z.infer<typeof insertInsightFeedbackSchema>;
 export type InsightFeedback = typeof insightFeedback.$inferSelect;
+
+export type InsertMealLibrary = z.infer<typeof insertMealLibrarySchema>;
+export type MealLibrary = typeof mealLibrary.$inferSelect;
+
+export type InsertMealFeedback = z.infer<typeof insertMealFeedbackSchema>;
+export type MealFeedback = typeof mealFeedback.$inferSelect;
+
+export type InsertMealLibrarySettings = z.infer<typeof insertMealLibrarySettingsSchema>;
+export type MealLibrarySettings = typeof mealLibrarySettings.$inferSelect;
