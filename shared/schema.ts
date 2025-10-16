@@ -564,6 +564,40 @@ export const scheduledExerciseRecommendations = pgTable("scheduled_exercise_reco
   completedAt: timestamp("completed_at"),
 });
 
+// Scheduled Insights - AI insights with smart recurring scheduling (sauna, meditation, etc.)
+export const scheduledInsights = pgTable("scheduled_insights", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  insightId: varchar("insight_id"), // Reference to original insight if applicable
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  category: text("category").notNull(), // 'recovery', 'wellness', 'nutrition', 'training', etc.
+  activityType: text("activity_type").notNull(), // 'sauna', 'meditation', 'ice_bath', 'stretching', 'mobility', etc.
+  duration: integer("duration"), // in minutes
+  frequency: text("frequency").notNull(), // 'daily', 'after_workout', '3x_week', '5x_week', 'specific_day', 'one_time'
+  contextTrigger: text("context_trigger"), // 'after_workout', 'morning', 'evening', 'before_bed', null for scheduled times
+  recommendedBy: text("recommended_by").notNull().default("ai"), // 'ai' or 'user'
+  reason: text("reason"), // AI explanation for why this was recommended
+  priority: text("priority").notNull().default("medium"), // 'high', 'medium', 'low'
+  status: text("status").notNull().default("pending"), // 'pending', 'scheduled', 'active', 'declined', 'completed'
+  scheduledDates: text("scheduled_dates").array(), // Array of ISO date strings when this is scheduled
+  userFeedback: text("user_feedback"), // 'thumbs_up', 'thumbs_down', null
+  feedbackNote: text("feedback_note"), // Optional note from user about why they liked/disliked
+  recommendedAt: timestamp("recommended_at").notNull().defaultNow(),
+  scheduledAt: timestamp("scheduled_at"),
+  completedAt: timestamp("completed_at"),
+});
+
+// Insight Feedback - Track user feedback on AI insights
+export const insightFeedback = pgTable("insight_feedback", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  insightId: varchar("insight_id").notNull(), // Reference to insights table
+  feedback: text("feedback").notNull(), // 'thumbs_up' or 'thumbs_down'
+  context: jsonb("context"), // stores additional context like category, priority, date, etc.
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const insertSupplementSchema = createInsertSchema(supplements).omit({
   id: true,
   createdAt: true,
@@ -589,6 +623,18 @@ export const insertScheduledExerciseRecommendationSchema = createInsertSchema(sc
   recommendedAt: true,
   scheduledAt: true,
   completedAt: true,
+});
+
+export const insertScheduledInsightSchema = createInsertSchema(scheduledInsights).omit({
+  id: true,
+  recommendedAt: true,
+  scheduledAt: true,
+  completedAt: true,
+});
+
+export const insertInsightFeedbackSchema = createInsertSchema(insightFeedback).omit({
+  id: true,
+  createdAt: true,
 });
 
 export type UpsertUser = typeof users.$inferInsert;
@@ -668,3 +714,9 @@ export type SupplementRecommendation = typeof supplementRecommendations.$inferSe
 
 export type InsertScheduledExerciseRecommendation = z.infer<typeof insertScheduledExerciseRecommendationSchema>;
 export type ScheduledExerciseRecommendation = typeof scheduledExerciseRecommendations.$inferSelect;
+
+export type InsertScheduledInsight = z.infer<typeof insertScheduledInsightSchema>;
+export type ScheduledInsight = typeof scheduledInsights.$inferSelect;
+
+export type InsertInsightFeedback = z.infer<typeof insertInsightFeedbackSchema>;
+export type InsightFeedback = typeof insightFeedback.$inferSelect;
