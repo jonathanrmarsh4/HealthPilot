@@ -128,6 +128,14 @@ class SpoonacularService {
     const response = await fetch(`${BASE_URL}/recipes/complexSearch?${queryParams}`);
     
     if (!response.ok) {
+      // Handle payment required error
+      if (response.status === 402) {
+        throw new Error('SPOONACULAR_PAYMENT_REQUIRED');
+      }
+      // Handle quota exceeded
+      if (response.status === 429) {
+        throw new Error('SPOONACULAR_QUOTA_EXCEEDED');
+      }
       throw new Error(`Spoonacular API error: ${response.statusText}`);
     }
 

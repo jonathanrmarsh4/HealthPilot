@@ -1164,8 +1164,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
               savedPlans.push(saved);
               console.log(`✅ Added ${mealType} for day ${day + 1}: ${recipeDetails.title}`);
             }
-          } catch (error) {
+          } catch (error: any) {
             console.error(`Error generating ${mealType} for day ${day + 1}:`, error);
+            
+            // If it's a Spoonacular API error, log it but continue with other meals
+            if (error.message === 'SPOONACULAR_PAYMENT_REQUIRED' || error.message === 'SPOONACULAR_QUOTA_EXCEEDED') {
+              console.warn('⚠️ Spoonacular API unavailable - meal generation will be limited');
+            }
             // Continue with other meals even if one fails
           }
         }
@@ -1343,6 +1348,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(results);
     } catch (error: any) {
       console.error("Error searching recipes:", error);
+      
+      // Handle Spoonacular payment/quota errors with user-friendly messages
+      if (error.message === 'SPOONACULAR_PAYMENT_REQUIRED') {
+        return res.status(503).json({ 
+          error: "Recipe search is temporarily unavailable. Try asking the AI Health Coach for personalized meal recommendations instead!",
+          errorType: "SPOONACULAR_UNAVAILABLE"
+        });
+      }
+      
+      if (error.message === 'SPOONACULAR_QUOTA_EXCEEDED') {
+        return res.status(503).json({ 
+          error: "Recipe search limit reached. Try asking the AI Health Coach for personalized meal suggestions!",
+          errorType: "SPOONACULAR_UNAVAILABLE"
+        });
+      }
+      
       res.status(500).json({ error: error.message });
     }
   });
@@ -1354,6 +1375,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(recipe);
     } catch (error: any) {
       console.error("Error fetching recipe:", error);
+      
+      // Handle Spoonacular payment/quota errors with user-friendly messages
+      if (error.message === 'SPOONACULAR_PAYMENT_REQUIRED' || error.message === 'SPOONACULAR_QUOTA_EXCEEDED') {
+        return res.status(503).json({ 
+          error: "Recipe details are temporarily unavailable. Try asking the AI Health Coach for meal suggestions!",
+          errorType: "SPOONACULAR_UNAVAILABLE"
+        });
+      }
+      
       res.status(500).json({ error: error.message });
     }
   });
