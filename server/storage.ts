@@ -93,6 +93,7 @@ import {
   mealLibrary,
   mealFeedback,
   mealLibrarySettings,
+  messageUsage,
 } from "@shared/schema";
 import { eq, desc, and, gte, lte, lt, sql, or, like, count, isNull } from "drizzle-orm";
 
@@ -231,6 +232,10 @@ export interface IStorage {
     totalRecords: number;
     totalBiomarkers: number;
   }>;
+  
+  // Message usage tracking for free tier
+  getMessageUsageForDate(userId: string, date: Date): Promise<{ userId: string; messageDate: Date; messageCount: number } | undefined>;
+  incrementMessageUsage(userId: string, date: Date): Promise<void>;
   
   createGoal(goal: InsertGoal): Promise<Goal>;
   getGoals(userId: string): Promise<Goal[]>;
@@ -1234,6 +1239,57 @@ export class DbStorage implements IStorage {
       totalRecords: totalRecordsResult[0]?.count || 0,
       totalBiomarkers: totalBiomarkersResult[0]?.count || 0
     };
+  }
+
+  async getMessageUsageForDate(userId: string, date: Date): Promise<{ userId: string; messageDate: Date; messageCount: number } | undefined> {
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+    
+    const result = await db
+      .select()
+      .from(messageUsage)
+      .where(
+        and(
+          eq(messageUsage.userId, userId),
+          gte(messageUsage.messageDate, startOfDay),
+          lte(messageUsage.messageDate, endOfDay)
+        )
+      )
+      .limit(1);
+    
+    return result[0] as { userId: string; messageDate: Date; messageCount: number } | undefined;
+  }
+
+  async incrementMessageUsage(userId: string, date: Date): Promise<void> {
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    
+    const existing = await this.getMessageUsageForDate(userId, date);
+    
+    if (existing) {
+      // Increment existing count
+      await db
+        .update(messageUsage)
+        .set({ 
+          messageCount: existing.messageCount + 1,
+          updatedAt: new Date()
+        })
+        .where(
+          and(
+            eq(messageUsage.userId, userId),
+            gte(messageUsage.messageDate, startOfDay)
+          )
+        );
+    } else {
+      // Create new record
+      await db.insert(messageUsage).values({
+        userId,
+        messageDate: startOfDay,
+        messageCount: 1,
+      });
+    }
   }
 
   async createInsight(insight: InsertInsight): Promise<Insight> {

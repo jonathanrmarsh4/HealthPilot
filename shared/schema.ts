@@ -811,3 +811,22 @@ export type MealFeedback = typeof mealFeedback.$inferSelect;
 
 export type InsertMealLibrarySettings = z.infer<typeof insertMealLibrarySettingsSchema>;
 export type MealLibrarySettings = typeof mealLibrarySettings.$inferSelect;
+
+// Message usage tracking for free tier limits
+export const messageUsage = pgTable("message_usage", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  messageDate: timestamp("message_date").notNull().defaultNow(), // Date of message (for daily counting)
+  messageCount: integer("message_count").notNull().default(1), // Number of messages sent on this date
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertMessageUsageSchema = createInsertSchema(messageUsage).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertMessageUsage = z.infer<typeof insertMessageUsageSchema>;
+export type MessageUsage = typeof messageUsage.$inferSelect;

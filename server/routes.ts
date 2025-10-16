@@ -11,6 +11,7 @@ import { calculateReadinessScore } from "./services/readiness";
 import { parseISO, isValid, subDays } from "date-fns";
 import { eq, and, gte, or, inArray } from "drizzle-orm";
 import { isAuthenticated, isAdmin, webhookAuth } from "./replitAuth";
+import { checkMessageLimit, incrementMessageCount, requirePremium, PremiumFeature } from "./premiumMiddleware";
 import { z } from "zod";
 import { spoonacularService } from "./spoonacular";
 
@@ -3502,7 +3503,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/chat", isAuthenticated, async (req, res) => {
+  app.post("/api/chat", isAuthenticated, checkMessageLimit, async (req, res) => {
     const userId = (req.user as any).claims.sub;
 
     try {
@@ -3517,6 +3518,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         role: "user",
         content: message,
       });
+      
+      // Increment message count for free tier tracking
+      await incrementMessageCount(userId);
 
       const chatHistory = await storage.getChatMessages(userId);
       
