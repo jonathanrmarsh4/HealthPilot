@@ -238,15 +238,15 @@ export function FloatingChat({ isOpen, onClose, currentPage }: FloatingChatProps
         return "What would you like to know about your health overview?";
       case "Training":
         return "How can I help optimize your training today?";
-      case "Meals":
+      case "Meal Plans":
         return "What kind of meal plan are you looking for?";
       case "Biomarkers":
         return "Would you like help understanding your biomarker data?";
-      case "Supplements":
+      case "Supplement Stack":
         return "Need recommendations for your supplement stack?";
-      case "Sleep":
+      case "Sleep Dashboard":
         return "Want tips to improve your sleep quality?";
-      case "Goals":
+      case "Health Goals":
         return "What health goals would you like to work on?";
       case "Health Records":
         return "Would you like me to analyze your health records?";
