@@ -6207,6 +6207,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Temporary token store for WebSocket authentication
+  const wsTokens = new Map<string, { userId: string, expiresAt: number }>();
+
+  // Generate temporary token for WebSocket authentication
+  app.post("/api/voice-chat/token", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any).claims.sub;
+      const user = await storage.getUser(userId);
+
+      // Check premium access
+      const isPremium = user.subscriptionTier === 'premium' || 
+                       user.subscriptionTier === 'enterprise' || 
+                       user.role === 'admin';
+
+      if (!isPremium) {
+        return res.status(403).json({ error: "Voice chat requires Premium subscription" });
+      }
+
+      // Generate token (simple random string)
+      const token = Math.random().toString(36).substring(2) + Date.now().toString(36);
+      
+      // Token expires in 30 seconds (enough time to establish connection)
+      wsTokens.set(token, {
+        userId,
+        expiresAt: Date.now() + 30000
+      });
+
+      res.json({ token });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
 
   // WebSocket server for OpenAI Realtime API (Premium voice chat feature)
@@ -6216,37 +6249,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log("🎙️ Voice chat WebSocket connection attempt");
 
     try {
-      // Extract session cookie and verify authentication
-      const cookies = req.headers.cookie?.split(';').reduce((acc, cookie) => {
-        const [key, value] = cookie.trim().split('=');
-        acc[key] = value;
-        return acc;
-      }, {} as Record<string, string>);
+      // Extract token from URL query parameter
+      const url = new URL(req.url!, `http://${req.headers.host}`);
+      const token = url.searchParams.get('token');
 
-      const sessionId = cookies?.['connect.sid'];
-      if (!sessionId) {
-        console.log("❌ No session cookie found");
+      if (!token) {
+        console.log("❌ No token provided");
         clientWs.close(4001, "Authentication required");
         return;
       }
 
-      // Get session from database to verify user
-      const session = await storage.getSession(sessionId.replace(/^s%3A/, '').split('.')[0]);
-      if (!session?.userId) {
-        console.log("❌ Invalid session");
-        clientWs.close(4001, "Invalid session");
+      // Verify token
+      const tokenData = wsTokens.get(token);
+      if (!tokenData) {
+        console.log("❌ Invalid token");
+        clientWs.close(4001, "Invalid token");
         return;
       }
 
-      const userId = session.userId;
+      // Check if token expired
+      if (Date.now() > tokenData.expiresAt) {
+        console.log("❌ Token expired");
+        wsTokens.delete(token);
+        clientWs.close(4001, "Token expired");
+        return;
+      }
+
+      // Delete token after use (one-time use)
+      wsTokens.delete(token);
+
+      const userId = tokenData.userId;
       const user = await storage.getUser(userId);
-
-      // Check premium access
-      if (user.subscriptionTier === 'free') {
-        console.log(`❌ User ${userId} attempted voice chat without premium`);
-        clientWs.close(4003, "Voice chat requires Premium subscription");
-        return;
-      }
 
       console.log(`✅ Voice chat authenticated for user ${userId} (${user.subscriptionTier})`);
 

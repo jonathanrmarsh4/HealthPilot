@@ -51,9 +51,21 @@ export default function VoiceChat() {
       // Create audio context
       audioContextRef.current = new AudioContext({ sampleRate: 24000 });
 
-      // Connect to WebSocket
+      // Get authentication token from backend
+      const tokenResponse = await fetch('/api/voice-chat/token', {
+        method: 'POST',
+        credentials: 'include',
+      });
+
+      if (!tokenResponse.ok) {
+        throw new Error('Failed to get authentication token');
+      }
+
+      const { token } = await tokenResponse.json();
+
+      // Connect to WebSocket with token
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const wsUrl = `${protocol}//${window.location.host}/api/voice-chat`;
+      const wsUrl = `${protocol}//${window.location.host}/api/voice-chat?token=${token}`;
       
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
