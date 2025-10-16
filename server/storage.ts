@@ -2146,6 +2146,121 @@ export class DbStorage implements IStorage {
       return result[0];
     }
   }
+
+  async getFilteredMealLibraryItems(userId: string, filters: {
+    mealType?: string;
+    diet?: string;
+    intolerances?: string[];
+    maxCalories?: number;
+    minCalories?: number;
+    maxCarbs?: number;
+    minProtein?: number;
+    cuisines?: string[];
+    count?: number;
+  }): Promise<MealLibrary[]> {
+    // Get user's meal feedback to exclude thumbs down and boost thumbs up
+    const userFeedback = await this.getUserMealFeedback(userId);
+    const thumbsDownIds = userFeedback
+      .filter(f => f.feedback === 'thumbs_down')
+      .map(f => f.mealLibraryId);
+    const thumbsUpIds = userFeedback
+      .filter(f => f.feedback === 'thumbs_up')
+      .map(f => f.mealLibraryId);
+
+    // Get active meals from library
+    let query = db
+      .select()
+      .from(mealLibrary)
+      .where(
+        and(
+          eq(mealLibrary.status, 'active'),
+          // Exclude meals user disliked
+          thumbsDownIds.length > 0 ? sql`${mealLibrary.id} NOT IN (${sql.join(thumbsDownIds.map(id => sql`${id}`), sql`, `)})` : undefined,
+          // Filter out meals with <60% approval (approval = thumbs_up / total_served >= 0.6)
+          sql`(${mealLibrary.totalServed} = 0 OR ${mealLibrary.thumbsUpCount}::float / ${mealLibrary.totalServed} >= 0.6)`
+        )
+      );
+
+    // Apply filters
+    const conditions = [];
+    
+    // Meal type filter (breakfast/lunch/dinner)
+    if (filters.mealType) {
+      conditions.push(
+        sql`${sql.raw(`'${filters.mealType.toLowerCase()}'`)} = ANY(${mealLibrary.mealTypes})`
+      );
+    }
+
+    // Diet filter
+    if (filters.diet) {
+      conditions.push(
+        sql`${sql.raw(`'${filters.diet}'`)} = ANY(${mealLibrary.diets})`
+      );
+    }
+
+    // Calorie filters
+    if (filters.minCalories) {
+      conditions.push(sql`${mealLibrary.calories} >= ${filters.minCalories}`);
+    }
+    if (filters.maxCalories) {
+      conditions.push(sql`${mealLibrary.calories} <= ${filters.maxCalories}`);
+    }
+
+    // Macro filters
+    if (filters.maxCarbs) {
+      conditions.push(sql`${mealLibrary.carbs} <= ${filters.maxCarbs}`);
+    }
+    if (filters.minProtein) {
+      conditions.push(sql`${mealLibrary.protein} >= ${filters.minProtein}`);
+    }
+
+    // Cuisine filter
+    if (filters.cuisines && filters.cuisines.length > 0) {
+      conditions.push(
+        sql`${mealLibrary.cuisines} && ARRAY[${sql.join(filters.cuisines.map(c => sql`${c}`), sql`, `)}]::text[]`
+      );
+    }
+
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions)) as any;
+    }
+
+    // Get all matching meals
+    const allMeals = await query;
+
+    if (allMeals.length === 0) {
+      return [];
+    }
+
+    // Apply rotation weight: thumbs up meals get 2x chance using weighted random selection
+    const requestedCount = filters.count || 5;
+    const selectedMeals: MealLibrary[] = [];
+    const mealPool = [...allMeals]; // Copy array to avoid modifying original
+    
+    // Build weight map: thumbs up meals have weight 2, others have weight 1
+    const weights = mealPool.map(meal => 
+      thumbsUpIds.includes(meal.id) ? 2 : 1
+    );
+    
+    // Select meals using weighted random selection without replacement
+    for (let i = 0; i < Math.min(requestedCount, mealPool.length); i++) {
+      const totalWeight = weights.reduce((sum, w) => sum + w, 0);
+      let random = Math.random() * totalWeight;
+      
+      for (let j = 0; j < mealPool.length; j++) {
+        random -= weights[j];
+        if (random <= 0) {
+          selectedMeals.push(mealPool[j]);
+          // Remove selected meal from pool to avoid duplicates
+          mealPool.splice(j, 1);
+          weights.splice(j, 1);
+          break;
+        }
+      }
+    }
+
+    return selectedMeals;
+  }
 }
 
 export const storage = new DbStorage();

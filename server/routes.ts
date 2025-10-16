@@ -1242,104 +1242,185 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         for (const mealType of mealTypes) {
           try {
-            // Build intelligent search parameters
-            const searchParams: any = {
-              type: mealType,
+            // Build intelligent search parameters for meal library
+            const libraryFilters: any = {
+              mealType,
               diet: diet as string,
-              intolerances: intolerances,
               maxCalories: targetCaloriesPerMeal + 200,
               minCalories: targetCaloriesPerMeal - 200,
-              number: 5,
-              sort: 'random',
-              addRecipeInformation: true,
+              count: 1, // Request only 1 meal - weighted selection happens in storage layer
             };
             
             // Apply health-based filters
             if (latestGlucose && latestGlucose.value > 100) {
-              // High glucose: limit sugar and prefer low-GI foods
-              searchParams.maxSugar = 15; // Max 15g sugar per meal
-            }
-            
-            if (latestCholesterol && latestCholesterol.value > 200) {
-              // High cholesterol: limit saturated fat
-              searchParams.maxSaturatedFat = 5; // Max 5g saturated fat per meal
+              // High glucose: limit carbs (proxy for low-GI)
+              libraryFilters.maxCarbs = Math.round(targetCaloriesPerMeal * 0.40 / 4); // 40% of calories from carbs
             }
             
             if (latestTriglycerides && latestTriglycerides.value > 150) {
               // High triglycerides: lower carbs
-              searchParams.maxCarbs = Math.round(targetCaloriesPerMeal * 0.35 / 4); // 35% of calories from carbs
+              libraryFilters.maxCarbs = Math.round(targetCaloriesPerMeal * 0.35 / 4); // 35% of calories from carbs
             }
             
             // Apply goal-based filters
             if (proteinBoost) {
               // Muscle building: boost protein
-              searchParams.minProtein = Math.round(targetCaloriesPerMeal * 0.30 / 4); // 30% of calories from protein
+              libraryFilters.minProtein = Math.round(targetCaloriesPerMeal * 0.30 / 4); // 30% of calories from protein
             }
             
-            // Search for recipes matching nutritional requirements
-            const searchResults = await spoonacularService.searchRecipes(searchParams);
-
-            if (searchResults.results && searchResults.results.length > 0) {
-              // Pick a random recipe from the results
-              const recipe = searchResults.results[Math.floor(Math.random() * searchResults.results.length)];
+            // First, try to get meals from local library with smart filtering
+            const libraryMeals = await storage.getFilteredMealLibraryItems(userId, libraryFilters);
+            
+            let recipeToUse = null;
+            let isFromLibrary = false;
+            
+            if (libraryMeals.length > 0) {
+              // Use the weighted-selected meal from the library (already weighted by storage layer)
+              recipeToUse = libraryMeals[0];
+              isFromLibrary = true;
+              console.log(`📚 Using meal from library: ${recipeToUse.title}`);
+            } else {
+              console.log(`🌐 No suitable library meals found, falling back to Spoonacular...`);
               
-              // Get full recipe details including ingredients and instructions
-              const recipeDetails = await spoonacularService.getRecipeDetails(recipe.id);
+              // Fall back to Spoonacular API
+              const searchParams: any = {
+                type: mealType,
+                diet: diet as string,
+                intolerances: intolerances,
+                maxCalories: targetCaloriesPerMeal + 200,
+                minCalories: targetCaloriesPerMeal - 200,
+                number: 5,
+                sort: 'random',
+                addRecipeInformation: true,
+              };
               
-              // Extract ingredients list
-              const ingredients = recipeDetails.extendedIngredients?.map((ing: any) => 
-                ing.original || `${ing.amount} ${ing.unit} ${ing.name}`
-              ) || [];
-              
-              // Extract step-by-step instructions
-              let detailedInstructions = '';
-              if (recipeDetails.analyzedInstructions && recipeDetails.analyzedInstructions.length > 0) {
-                const steps = recipeDetails.analyzedInstructions[0].steps || [];
-                detailedInstructions = steps
-                  .map((step: any, index: number) => `${index + 1}. ${step.step}`)
-                  .join('\n\n');
+              // Apply health-based filters for Spoonacular
+              if (latestGlucose && latestGlucose.value > 100) {
+                searchParams.maxSugar = 15; // Max 15g sugar per meal
               }
               
-              // Calculate macros from nutrition data
-              const nutrition = recipeDetails.nutrition;
-              const calories = nutrition?.nutrients?.find((n: any) => n.name === 'Calories')?.amount || 0;
-              const protein = nutrition?.nutrients?.find((n: any) => n.name === 'Protein')?.amount || 0;
-              const carbs = nutrition?.nutrients?.find((n: any) => n.name === 'Carbohydrates')?.amount || 0;
-              const fat = nutrition?.nutrients?.find((n: any) => n.name === 'Fat')?.amount || 0;
+              if (latestCholesterol && latestCholesterol.value > 200) {
+                searchParams.maxSaturatedFat = 5; // Max 5g saturated fat per meal
+              }
               
-              // Save meal plan with Spoonacular data
-              const recipeData = recipeDetails as any; // Type assertion for additional API fields
-              const saved = await storage.createMealPlan({
-                userId,
-                mealType: mealType.charAt(0).toUpperCase() + mealType.slice(1),
-                name: recipeDetails.title,
-                description: recipeDetails.summary?.replace(/<[^>]*>/g, '').substring(0, 200) || '',
-                calories: Math.round(calories),
-                protein: Math.round(protein),
-                carbs: Math.round(carbs),
-                fat: Math.round(fat),
-                prepTime: recipeDetails.readyInMinutes || 30,
-                servings: recipeDetails.servings || 1,
-                ingredients,
-                detailedRecipe: detailedInstructions || recipeData.instructions || '',
-                recipe: recipeData.instructions || '',
-                tags: recipeData.diets || [],
-                imageUrl: recipeDetails.image,
-                spoonacularRecipeId: recipe.id,
-                scheduledDate,
-                sourceUrl: recipeDetails.sourceUrl,
-                readyInMinutes: recipeDetails.readyInMinutes,
-                healthScore: recipeDetails.healthScore,
-                dishTypes: recipeDetails.dishTypes || [],
-                diets: recipeDetails.diets || [],
-                cuisines: recipeDetails.cuisines || [],
-                extendedIngredients: recipeDetails.extendedIngredients || null,
-                analyzedInstructions: recipeDetails.analyzedInstructions || null,
-                nutritionData: recipeDetails.nutrition || null,
-              });
+              if (latestTriglycerides && latestTriglycerides.value > 150) {
+                searchParams.maxCarbs = Math.round(targetCaloriesPerMeal * 0.35 / 4);
+              }
               
-              savedPlans.push(saved);
-              console.log(`✅ Added ${mealType} for day ${day + 1}: ${recipeDetails.title}`);
+              if (proteinBoost) {
+                searchParams.minProtein = Math.round(targetCaloriesPerMeal * 0.30 / 4);
+              }
+              
+              // Search for recipes matching nutritional requirements
+              const searchResults = await spoonacularService.searchRecipes(searchParams);
+
+              if (searchResults.results && searchResults.results.length > 0) {
+                // Pick a random recipe from the results
+                const recipe = searchResults.results[Math.floor(Math.random() * searchResults.results.length)];
+                
+                // Get full recipe details including ingredients and instructions
+                const recipeDetails = await spoonacularService.getRecipeDetails(recipe.id);
+                
+                recipeToUse = recipeDetails;
+                isFromLibrary = false;
+              }
+            }
+            
+            // Process the selected recipe (from library or Spoonacular)
+            if (recipeToUse) {
+              if (isFromLibrary) {
+                // Increment served count for library meal
+                await storage.updateMealPerformance(recipeToUse.id, true);
+                
+                // Save meal plan from library
+                const saved = await storage.createMealPlan({
+                  userId,
+                  mealType: mealType.charAt(0).toUpperCase() + mealType.slice(1),
+                  name: recipeToUse.title,
+                  description: recipeToUse.description || '',
+                  calories: recipeToUse.calories || 0,
+                  protein: recipeToUse.protein || 0,
+                  carbs: recipeToUse.carbs || 0,
+                  fat: recipeToUse.fat || 0,
+                  prepTime: recipeToUse.readyInMinutes || 30,
+                  servings: recipeToUse.servings || 1,
+                  ingredients: Array.isArray(recipeToUse.ingredients) ? recipeToUse.ingredients : [],
+                  detailedRecipe: recipeToUse.instructions || '',
+                  recipe: recipeToUse.instructions || '',
+                  tags: recipeToUse.diets || [],
+                  imageUrl: recipeToUse.imageUrl,
+                  spoonacularRecipeId: recipeToUse.spoonacularRecipeId,
+                  scheduledDate,
+                  sourceUrl: recipeToUse.sourceUrl,
+                  readyInMinutes: recipeToUse.readyInMinutes,
+                  healthScore: recipeToUse.healthScore || null,
+                  dishTypes: recipeToUse.dishTypes || [],
+                  diets: recipeToUse.diets || [],
+                  cuisines: recipeToUse.cuisines || [],
+                  extendedIngredients: recipeToUse.extendedIngredients || null,
+                  analyzedInstructions: recipeToUse.analyzedInstructions || null,
+                  nutritionData: null,
+                  mealLibraryId: recipeToUse.id, // Link to library meal
+                });
+                
+                savedPlans.push(saved);
+                console.log(`✅ Added ${mealType} from library for day ${day + 1}: ${recipeToUse.title}`);
+              } else {
+                // Extract ingredients list from Spoonacular
+                const ingredients = recipeToUse.extendedIngredients?.map((ing: any) => 
+                  ing.original || `${ing.amount} ${ing.unit} ${ing.name}`
+                ) || [];
+                
+                // Extract step-by-step instructions
+                let detailedInstructions = '';
+                if (recipeToUse.analyzedInstructions && recipeToUse.analyzedInstructions.length > 0) {
+                  const steps = recipeToUse.analyzedInstructions[0].steps || [];
+                  detailedInstructions = steps
+                    .map((step: any, index: number) => `${index + 1}. ${step.step}`)
+                    .join('\n\n');
+                }
+                
+                // Calculate macros from nutrition data
+                const nutrition = recipeToUse.nutrition;
+                const calories = nutrition?.nutrients?.find((n: any) => n.name === 'Calories')?.amount || 0;
+                const protein = nutrition?.nutrients?.find((n: any) => n.name === 'Protein')?.amount || 0;
+                const carbs = nutrition?.nutrients?.find((n: any) => n.name === 'Carbohydrates')?.amount || 0;
+                const fat = nutrition?.nutrients?.find((n: any) => n.name === 'Fat')?.amount || 0;
+                
+                // Save meal plan with Spoonacular data
+                const recipeData = recipeToUse as any;
+                const saved = await storage.createMealPlan({
+                  userId,
+                  mealType: mealType.charAt(0).toUpperCase() + mealType.slice(1),
+                  name: recipeToUse.title,
+                  description: recipeToUse.summary?.replace(/<[^>]*>/g, '').substring(0, 200) || '',
+                  calories: Math.round(calories),
+                  protein: Math.round(protein),
+                  carbs: Math.round(carbs),
+                  fat: Math.round(fat),
+                  prepTime: recipeToUse.readyInMinutes || 30,
+                  servings: recipeToUse.servings || 1,
+                  ingredients,
+                  detailedRecipe: detailedInstructions || recipeData.instructions || '',
+                  recipe: recipeData.instructions || '',
+                  tags: recipeData.diets || [],
+                  imageUrl: recipeToUse.image,
+                  spoonacularRecipeId: recipeToUse.id,
+                  scheduledDate,
+                  sourceUrl: recipeToUse.sourceUrl,
+                  readyInMinutes: recipeToUse.readyInMinutes,
+                  healthScore: recipeToUse.healthScore,
+                  dishTypes: recipeToUse.dishTypes || [],
+                  diets: recipeToUse.diets || [],
+                  cuisines: recipeToUse.cuisines || [],
+                  extendedIngredients: recipeToUse.extendedIngredients || null,
+                  analyzedInstructions: recipeToUse.analyzedInstructions || null,
+                  nutritionData: recipeToUse.nutrition || null,
+                });
+                
+                savedPlans.push(saved);
+                console.log(`✅ Added ${mealType} from Spoonacular for day ${day + 1}: ${recipeToUse.title}`);
+              }
             }
           } catch (error: any) {
             console.error(`Error generating ${mealType} for day ${day + 1}:`, error);
