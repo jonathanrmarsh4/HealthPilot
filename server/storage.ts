@@ -105,6 +105,7 @@ export interface IStorage {
   getDashboardPreferences(userId: string): Promise<{ visible: string[], order: string[] } | null>;
   saveDashboardPreferences(userId: string, preferences: { visible: string[], order: string[] }): Promise<void>;
   updateUserProfile(userId: string, profileData: Partial<Pick<User, "firstName" | "lastName" | "height" | "dateOfBirth" | "gender" | "bloodType" | "activityLevel" | "location" | "timezone">>): Promise<User>;
+  acceptEula(userId: string): Promise<void>;
   
   // Onboarding methods - contextual onboarding with granular flags
   getOnboardingStatus(userId: string): Promise<{ 
@@ -425,6 +426,15 @@ export class DbStorage implements IStorage {
     }
     
     return user;
+  }
+
+  async acceptEula(userId: string): Promise<void> {
+    await db
+      .update(users)
+      .set({
+        eulaAcceptedAt: new Date(),
+      })
+      .where(eq(users.id, userId));
   }
 
   // Onboarding methods implementation

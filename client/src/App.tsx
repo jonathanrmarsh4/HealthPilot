@@ -1,6 +1,6 @@
 import { Switch, Route, useLocation } from "wouter";
-import { queryClient } from "./lib/queryClient";
-import { QueryClientProvider, useQuery } from "@tanstack/react-query";
+import { queryClient, apiRequest } from "./lib/queryClient";
+import { QueryClientProvider, useQuery, useMutation } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
@@ -14,6 +14,7 @@ import { OnboardingProvider, useOnboarding } from "@/contexts/OnboardingContext"
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { FloatingChat, FloatingChatTrigger } from "@/components/FloatingChat";
 import { TimezoneDetector } from "@/components/TimezoneDetector";
+import { EulaDialog } from "@/components/EulaDialog";
 import Dashboard from "@/pages/Dashboard";
 import HealthRecords from "@/pages/HealthRecords";
 import Biomarkers from "@/pages/Biomarkers";
@@ -170,12 +171,37 @@ function AppLayout() {
 }
 
 function AuthenticatedApp() {
+  const { data: user } = useQuery<{ eulaAcceptedAt: string | null }>({
+    queryKey: ["/api/profile"],
+  });
+
+  const acceptEulaMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("/api/user/accept-eula", {
+        method: "POST",
+      });
+    },
+    onSuccess: () => {
+      // Immediately update the cache to close the dialog
+      queryClient.setQueryData(["/api/profile"], (oldData: any) => ({
+        ...oldData,
+        eulaAcceptedAt: new Date().toISOString(),
+      }));
+    },
+  });
+
+  const showEulaDialog = user && !user.eulaAcceptedAt;
+
   return (
     <LocaleProvider>
       <TimezoneProvider>
         <OnboardingProvider>
           <TimezoneDetector />
           <AppLayout />
+          <EulaDialog
+            open={showEulaDialog || false}
+            onAccept={() => acceptEulaMutation.mutate()}
+          />
         </OnboardingProvider>
         <Toaster />
       </TimezoneProvider>

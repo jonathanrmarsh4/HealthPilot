@@ -659,6 +659,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         bloodType: user.bloodType,
         activityLevel: user.activityLevel,
         location: user.location,
+        eulaAcceptedAt: user.eulaAcceptedAt,
         latestWeight: latestWeight ? { value: latestWeight.value, unit: latestWeight.unit } : null,
       });
     } catch (error: any) {
@@ -703,6 +704,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(updatedUser);
     } catch (error: any) {
       console.error("Error updating profile:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/user/accept-eula", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    
+    try {
+      await storage.acceptEula(userId);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error accepting EULA:", error);
       res.status(500).json({ error: error.message });
     }
   });

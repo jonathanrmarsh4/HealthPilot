@@ -47,6 +47,7 @@ export const users = pgTable("users", {
   biomarkersSetupComplete: integer("biomarkers_setup_complete").notNull().default(0), // Blood work upload prompted
   onboardingStartedAt: timestamp("onboarding_started_at"),
   onboardingCompletedAt: timestamp("onboarding_completed_at"),
+  eulaAcceptedAt: timestamp("eula_accepted_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
