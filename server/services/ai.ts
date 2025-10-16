@@ -856,8 +856,8 @@ export async function chatWithHealthCoach(
     // User context
     currentPage?: string;
     userTimezone?: string;
-    isOnboarding?: boolean;
-    onboardingStep?: string | null;
+    needsBasicInfo?: boolean;
+    onboardingStatus?: any;
     
     // User preferences
     downvotedProtocols?: string[];
@@ -1140,50 +1140,45 @@ export async function chatWithHealthCoach(
     contextSection += `\nUse this comprehensive health data to provide deeply personalized and context-aware responses. You have complete visibility into the user's health journey - use it to spot patterns, make intelligent recommendations, and provide holistic health coaching.`;
   }
 
-  // Onboarding mode handling
+  // Contextual onboarding - Basic info collection
   let onboardingSection = "";
-  if (context?.isOnboarding && context?.onboardingStep) {
-    onboardingSection = `\n\n## 🎯 ONBOARDING MODE ACTIVE\n`;
-    onboardingSection += `Current Step: ${context.onboardingStep}\n\n`;
+  if (context?.needsBasicInfo) {
+    onboardingSection = `\n\n## 🎯 INITIAL SETUP - COLLECT BASIC INFO\n`;
+    onboardingSection += `The user is new and needs to provide basic health information.\n\n`;
     
-    switch (context.onboardingStep) {
-      case "welcome":
-        onboardingSection += `**Your Goal**: Welcome the user warmly and ask if they use Apple Health to track their health data.\n`;
-        onboardingSection += `- Briefly explain you'll help them set up the platform\n`;
-        onboardingSection += `- Ask: "Do you use Apple Health to track your health data?"\n`;
-        onboardingSection += `- If they say yes → tell them you'll guide them to set it up next\n`;
-        onboardingSection += `- If they say no → tell them that's fine, we can proceed to upload health records\n`;
-        break;
-        
-      case "apple_health":
-        onboardingSection += `**Your Goal**: Guide them to set up Apple Health integration.\n`;
-        onboardingSection += `- Explain they need to go to Apple Health Setup page\n`;
-        onboardingSection += `- Let them know to use the Health Auto Export app\n`;
-        onboardingSection += `- Ask them to confirm when they've completed the setup or if they want to skip this step\n`;
-        break;
-        
-      case "health_records":
-        onboardingSection += `**Your Goal**: Ask if they have any health records to upload.\n`;
-        onboardingSection += `- Ask: "Do you have any recent health records (lab results, test reports) you'd like to upload?"\n`;
-        onboardingSection += `- If yes → guide them to upload files or connect Google Drive\n`;
-        onboardingSection += `- If no → that's fine, move to creating their training plan\n`;
-        break;
-        
-      case "training_plan":
-        onboardingSection += `**Your Goal**: Create a personalized training plan using the standard exercise framework.\n`;
-        onboardingSection += `- Follow the PERSONALIZED EXERCISE PLAN FRAMEWORK below\n`;
-        onboardingSection += `- Ask ONE question at a time to gather info (fitness level, goals, equipment, time)\n`;
-        onboardingSection += `- When you have enough info, create and present the plan\n`;
-        onboardingSection += `- When they confirm → output the JSON with save markers (see framework below)\n`;
-        break;
-        
-      case "meal_plan":
-        onboardingSection += `**Your Goal**: Create a personalized meal plan.\n`;
-        onboardingSection += `- Ask ONE question at a time: dietary preferences, restrictions, goals, meal frequency\n`;
-        onboardingSection += `- When you have enough info, generate a sample meal plan\n`;
-        onboardingSection += `- After presenting the meal plan, tell them setup is complete!\n`;
-        break;
-    }
+    onboardingSection += `**Your Goal**: Warmly welcome them and collect basic info through natural conversation.\n\n`;
+    
+    onboardingSection += `**Step 1 - First Message**:\n`;
+    onboardingSection += `If this is their first message, say:\n`;
+    onboardingSection += `"Welcome to Health Insights AI! I'm your AI health coach, and I'll help you optimize your well-being with personalized insights and recommendations.\n\n`;
+    onboardingSection += `To get started, I'd like to learn a bit about you. What's your current age?"\n\n`;
+    
+    onboardingSection += `**Step 2 - Collect Info (ONE question at a time)**:\n`;
+    onboardingSection += `Ask for the following information ONE question per message:\n`;
+    onboardingSection += `1. Age (then calculate dateOfBirth)\n`;
+    onboardingSection += `2. Height (convert to cm if needed)\n`;
+    onboardingSection += `3. Gender (male/female/other/prefer_not_to_say)\n`;
+    onboardingSection += `4. Activity level (sedentary/light/moderate/active/very_active)\n\n`;
+    
+    onboardingSection += `**Step 3 - Save with UPDATE_USER_PROFILE**:\n`;
+    onboardingSection += `As you collect each piece of info, immediately save it using the UPDATE_USER_PROFILE marker.\n`;
+    onboardingSection += `Don't wait to collect all info - save progressively as you learn each detail.\n\n`;
+    
+    onboardingSection += `**Step 4 - After collecting all basic info**:\n`;
+    onboardingSection += `Once you have age, height, gender, and activity level, say:\n`;
+    onboardingSection += `"Perfect! I've got your basic info saved. Now you're ready to explore:\n\n`;
+    onboardingSection += `📊 **Dashboard** - View your health overview\n`;
+    onboardingSection += `🏋️ **Training** - Get personalized workout plans\n`;
+    onboardingSection += `🍽️ **Meals** - Receive AI-powered meal recommendations\n`;
+    onboardingSection += `💊 **Supplements** - Track your supplement stack\n`;
+    onboardingSection += `🔬 **Biomarkers** - Monitor your health metrics\n\n`;
+    onboardingSection += `Feel free to explore any section, and I'll help you set it up when you get there. What would you like to focus on first?"\n\n`;
+    
+    onboardingSection += `**Important Rules**:\n`;
+    onboardingSection += `- Ask ONE question at a time - never multiple questions\n`;
+    onboardingSection += `- Save info immediately as you collect it using UPDATE_USER_PROFILE\n`;
+    onboardingSection += `- Be conversational and friendly, not robotic\n`;
+    onboardingSection += `- After basic info is complete, guide them to explore the app\n`;
   }
 
   const systemPrompt = `You are a friendly and knowledgeable health and fitness coach AI. 

@@ -3133,16 +3133,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const user = await storage.getUser(userId);
       
-      // Get onboarding status
+      // Get onboarding status - contextual approach with granular flags
       const onboardingStatus = await storage.getOnboardingStatus(userId);
-      const isOnboarding = onboardingStatus ? !onboardingStatus.completed : false;
-      let onboardingStep = onboardingStatus?.step || null;
-      
-      // Initialize onboarding if not completed and step is null
-      if (isOnboarding && !onboardingStep) {
-        await storage.updateOnboardingStep(userId, 'welcome');
-        onboardingStep = 'welcome';
-      }
+      const needsBasicInfo = onboardingStatus ? !onboardingStatus.basicInfoComplete : true;
       
       // Fetch ALL goals (not just active) for complete goal visibility
       const allGoals = await storage.getGoals(userId);
@@ -3208,8 +3201,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Current page and user info
         currentPage,
         userTimezone: user?.timezone || undefined,
-        isOnboarding,
-        onboardingStep,
+        needsBasicInfo,
+        onboardingStatus,
         
         // Today's readiness
         readinessScore: readinessScore || undefined,
@@ -3270,9 +3263,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           trainingPlanSaved = true;
           console.log("✨ Training plan saved successfully!");
           
-          // Auto-advance onboarding step when training plan is saved
-          if (isOnboarding && onboardingStep === 'training_plan') {
-            await storage.updateOnboardingStep(userId, 'meal_plan');
+          // Mark training setup as complete when first training plan is saved
+          if (onboardingStatus && !onboardingStatus.trainingSetupComplete) {
+            await storage.updateOnboardingFlag(userId, 'trainingSetupComplete', true);
           }
         } catch (e) {
           console.error("❌ Failed to parse and save training plan:", e);
@@ -3317,9 +3310,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           mealPlanSaved = true;
           console.log("✨ Meal plan saved successfully!");
           
-          // Auto-advance onboarding step when meal plan is saved (if on meal_plan step)
-          if (isOnboarding && onboardingStep === 'meal_plan') {
-            await storage.completeOnboarding(userId);
+          // Mark meals setup as complete when first meal plan is saved
+          if (onboardingStatus && !onboardingStatus.mealsSetupComplete) {
+            await storage.updateOnboardingFlag(userId, 'mealsSetupComplete', true);
           }
         } catch (e) {
           console.error("❌ Failed to parse and save meal plan:", e);
@@ -3791,22 +3784,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Auto-advance onboarding steps after AI responds (user has engaged with current step)
-      if (isOnboarding && onboardingStep && message.trim().length > 0) {
-        const STEP_PROGRESSION: Record<string, string> = {
-          'welcome': 'apple_health',
-          'apple_health': 'health_records',
-          'health_records': 'training_plan',
-          // training_plan -> meal_plan handled above when plan is saved
-          // meal_plan completion is handled by user clicking skip or completing onboarding
-        };
-
-        const nextStep = STEP_PROGRESSION[onboardingStep];
-        if (nextStep) {
-          // Advance to next step after user message (they've engaged with current step)
-          await storage.updateOnboardingStep(userId, nextStep);
-        }
-      }
+      // Contextual onboarding - no automatic step progression
+      // Each section handles its own completion flag when relevant data is saved
 
       res.json({
         userMessage,
