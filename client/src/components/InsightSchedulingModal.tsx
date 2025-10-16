@@ -31,7 +31,7 @@ export function InsightSchedulingModal({ insightId, onClose }: InsightScheduling
 
   const scheduleMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest('/api/insights/schedule', 'POST', {
+      return apiRequest('POST', '/api/insights/schedule', {
         insightId,
         frequency,
         scheduledDates: frequency === 'custom' ? selectedDates.map(d => d.toISOString()) : undefined,
@@ -40,6 +40,7 @@ export function InsightSchedulingModal({ insightId, onClose }: InsightScheduling
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard/data-insights'] });
       queryClient.invalidateQueries({ queryKey: ['/api/scheduled-insights'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/insights/daily'] });
       toast({
         title: "Scheduled successfully",
         description: "This activity has been added to your schedule",
