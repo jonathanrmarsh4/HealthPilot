@@ -237,9 +237,16 @@ export function EulaDialog({ open, onAccept, isAccepting = false }: EulaDialogPr
           </label>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="gap-2">
           <Button
+            type="button"
             onClick={handleAccept}
+            onTouchEnd={(e) => {
+              e.preventDefault();
+              if (canAccept && !isAccepting) {
+                handleAccept();
+              }
+            }}
             disabled={!canAccept || isAccepting}
             data-testid="button-accept-eula"
             className="w-full sm:w-auto"
