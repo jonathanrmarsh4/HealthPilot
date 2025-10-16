@@ -28,7 +28,7 @@ The application is a full-stack project utilizing React, TypeScript, Tailwind CS
 - **Scheduling & Reminders:** AI insights scheduling system for recommendations, and a supplement tracking and daily reminders system that leverages AI for recommendations and tracks streaks.
 - **User Profiling & Onboarding:** A fitness profile personalization system allows AI to generate calibrated workouts based on user data. A contextual AI onboarding system collects basic user info and provides page-specific setup prompts.
 - **Security & Authentication:** Production-ready security using Replit Auth (OpenID Connect) with role-based access control, IDOR protection, privilege escalation prevention, and Zod schema validation. File upload security with validation for size and types.
-- **Payment Processing:** Stripe integration for premium subscription purchases with webhook handling for automated subscription status updates.
+- **Payment Processing:** Stripe integration for premium subscription purchases with webhook handling for automated subscription status updates. Premium pricing at $19.99/month for Premium tier and $99.99/month for Enterprise tier. Includes checkout session creation and subscription lifecycle management.
 - **Native iOS App:** Complete native iOS app implementation using Capacitor 7 for 100% code reuse, including direct HealthKit integration for native health data access and syncing.
 
 **Feature Specifications:**

@@ -1,12 +1,14 @@
 import { WeeklyMealCalendar } from "@/components/WeeklyMealCalendar";
 import { RecipeDetailModal } from "@/components/RecipeDetailModal";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Loader2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Sparkles, Loader2, Lock } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { UpgradePrompt } from "@/components/UpgradePrompt";
 import type { MealPlan } from "@shared/schema";
 import { useState } from "react";
 import { format, min, max, parseISO } from "date-fns";
@@ -15,9 +17,14 @@ export default function MealPlans() {
   const { toast } = useToast();
   const [selectedMeal, setSelectedMeal] = useState<MealPlan | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [upgradePromptOpen, setUpgradePromptOpen] = useState(false);
   
   const { data: meals, isLoading } = useQuery<MealPlan[]>({
     queryKey: ["/api/meal-plans"],
+  });
+
+  const { data: user } = useQuery<{ subscriptionTier: string }>({
+    queryKey: ["/api/user"],
   });
 
   // Calculate date range for scheduled meals
@@ -52,12 +59,30 @@ export default function MealPlans() {
     },
   });
 
+  const isPremium = user?.subscriptionTier === "premium" || user?.subscriptionTier === "enterprise";
+
+  const handleGenerateClick = () => {
+    if (!isPremium) {
+      setUpgradePromptOpen(true);
+    } else {
+      generateMutation.mutate();
+    }
+  };
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-4xl font-bold tracking-tight">Meal Plans</h1>
-          <p className="text-muted-foreground mt-2">
+        <div className="flex-1">
+          <div className="flex items-center gap-3 mb-2">
+            <h1 className="text-4xl font-bold tracking-tight">Meal Plans</h1>
+            {!isPremium && (
+              <Badge variant="outline" data-testid="badge-premium-feature">
+                <Lock className="w-3 h-3 mr-1" />
+                Premium
+              </Badge>
+            )}
+          </div>
+          <p className="text-muted-foreground">
             {dateRange 
               ? `Your weekly meal plan: ${dateRange}`
               : "AI-generated meal suggestions tailored to your health goals"
@@ -65,7 +90,7 @@ export default function MealPlans() {
           </p>
         </div>
         <Button 
-          onClick={() => generateMutation.mutate()} 
+          onClick={handleGenerateClick} 
           disabled={generateMutation.isPending}
           data-testid="button-generate-plan"
         >
@@ -114,6 +139,13 @@ export default function MealPlans() {
         meal={selectedMeal}
         open={modalOpen}
         onOpenChange={setModalOpen}
+      />
+
+      {/* Upgrade Prompt */}
+      <UpgradePrompt 
+        open={upgradePromptOpen}
+        onOpenChange={setUpgradePromptOpen}
+        feature="mealPlans"
       />
     </div>
   );

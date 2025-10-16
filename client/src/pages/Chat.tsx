@@ -3,15 +3,17 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
-import { Link } from "wouter";
-import { Send, Trash2, Loader2 } from "lucide-react";
+import { Link, useLocation } from "wouter";
+import { Send, Trash2, Loader2, Sparkles } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import type { ChatMessage } from "@shared/schema";
 
 export default function Chat() {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [message, setMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [clearedAtTimestamp, setClearedAtTimestamp] = useState<string | null>(() => {
@@ -24,6 +26,14 @@ export default function Chat() {
 
   const { data: messages, isLoading } = useQuery<ChatMessage[]>({
     queryKey: ["/api/chat/history"],
+  });
+
+  const { data: user } = useQuery<{ subscriptionTier: string }>({
+    queryKey: ["/api/user"],
+  });
+
+  const { data: messageUsage } = useQuery<{ count: number; limit: number }>({
+    queryKey: ["/api/chat/usage"],
   });
 
   const sendMessageMutation = useMutation({
@@ -115,14 +125,43 @@ export default function Chat() {
     }
   };
 
+  const isPremium = user?.subscriptionTier === "premium" || user?.subscriptionTier === "enterprise";
+  const messagesLeft = messageUsage ? messageUsage.limit - messageUsage.count : 0;
+  const isLimitReached = !isPremium && messageUsage && messageUsage.count >= messageUsage.limit;
+
   return (
     <div className="h-full flex flex-col">
       <div className="flex items-center justify-between gap-4 pb-6 flex-wrap">
-        <div>
-          <h1 className="text-4xl font-bold tracking-tight">Health Coach</h1>
-          <p className="text-muted-foreground mt-2">
+        <div className="flex-1">
+          <div className="flex items-center gap-3 mb-2">
+            <h1 className="text-4xl font-bold tracking-tight">Health Coach</h1>
+            {!isPremium && messageUsage && (
+              <Badge variant={messagesLeft <= 2 ? "destructive" : "secondary"} data-testid="badge-message-count">
+                {messagesLeft}/{messageUsage.limit} messages today
+              </Badge>
+            )}
+            {isPremium && (
+              <Badge className="bg-gradient-to-r from-purple-500 to-pink-500" data-testid="badge-premium">
+                <Sparkles className="w-3 h-3 mr-1" />
+                Premium
+              </Badge>
+            )}
+          </div>
+          <p className="text-muted-foreground">
             Chat with AI to discuss your fitness and health goals
           </p>
+          {!isPremium && isLimitReached && (
+            <div className="mt-3 flex items-center gap-2">
+              <p className="text-sm text-destructive font-medium">Daily message limit reached</p>
+              <Button 
+                size="sm" 
+                onClick={() => setLocation("/pricing")}
+                data-testid="button-upgrade-chat"
+              >
+                Upgrade for Unlimited
+              </Button>
+            </div>
+          )}
         </div>
         {messages && messages.length > 0 && (
           <Button

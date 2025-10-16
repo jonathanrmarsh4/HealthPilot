@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CheckCircle2, XCircle, Upload, TrendingDown, TrendingUp, Activity } from "lucide-react";
 import { Link } from "wouter";
+import { PremiumFeature } from "@/components/PremiumFeature";
 
 interface BiologicalAgeData {
   phenoAge: number | null;
@@ -72,6 +73,9 @@ export default function BiologicalAge() {
           Track your biological age using the PhenoAge algorithm
         </p>
       </div>
+
+      <PremiumFeature feature="biologicalAge" lockMessage="Biological age calculation is a premium feature">
+        <div className="space-y-6">
 
       {/* Main Age Display */}
       {canCalculate ? (
@@ -244,16 +248,18 @@ export default function BiologicalAge() {
             <div className="flex-1">
               <h3 className="font-semibold mb-1">Premium Feature</h3>
               <p className="text-sm text-muted-foreground mb-3">
-                Biological Age tracking will be a premium feature when HealthPilot launches.
+                Biological Age tracking is a premium feature.
                 Track changes over time and get personalized recommendations to reduce your biological age.
               </p>
               <Badge variant="outline" className="bg-background">
-                Coming Soon: Historical Trends & Insights
+                Historical Trends & Insights
               </Badge>
             </div>
           </div>
         </CardContent>
       </Card>
+        </div>
+      </PremiumFeature>
     </div>
   );
 }
