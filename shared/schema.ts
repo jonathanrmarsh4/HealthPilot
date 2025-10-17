@@ -331,6 +331,7 @@ export const insights = pgTable("insights", {
   priority: text("priority").notNull().default("medium"), // 'high', 'medium', 'low'
   insightData: jsonb("insight_data"), // stores metrics, trends, correlations
   actionable: integer("actionable").notNull().default(1), // 1 if has actionable advice
+  insightType: text("insight_type").notNull().default("comment"), // 'comment' (informational) or 'actionable' (schedulable)
   dismissed: integer("dismissed").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   relevantDate: timestamp("relevant_date").notNull().defaultNow(), // date this insight is relevant to
@@ -581,6 +582,7 @@ export const scheduledInsights = pgTable("scheduled_insights", {
   recommendedBy: text("recommended_by").notNull().default("ai"), // 'ai' or 'user'
   reason: text("reason"), // AI explanation for why this was recommended
   priority: text("priority").notNull().default("medium"), // 'high', 'medium', 'low'
+  insightType: text("insight_type").notNull().default("actionable"), // 'comment' or 'actionable' - scheduled insights are typically actionable
   status: text("status").notNull().default("pending"), // 'pending', 'scheduled', 'active', 'declined', 'completed'
   scheduledDates: text("scheduled_dates").array(), // Array of ISO date strings when this is scheduled
   userFeedback: text("user_feedback"), // 'thumbs_up', 'thumbs_down', null

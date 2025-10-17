@@ -2091,10 +2091,15 @@ Generate a JSON object with an "insights" array of daily health insights with th
         "comparison": "context or comparison",
         "recommendation": "specific action to take"
       },
-      "actionable": 1 or 0
+      "actionable": 1 or 0,
+      "insightType": "comment" or "actionable"
     }
   ]
 }
+
+## Insight Types:
+- **"comment"**: Informational insights that just need acknowledgment (e.g., "Great sleep streak!", "Your HRV is improving", "Excellent workout consistency")
+- **"actionable"**: Insights that suggest specific activities that can be scheduled (e.g., "Try a 30-minute sauna session", "Add mobility work 3x this week", "Schedule meditation before bed")
 
 ## Focus Areas:
 1. **Daily Summary**: Overall health status for today based on all metrics
