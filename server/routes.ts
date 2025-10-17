@@ -3110,6 +3110,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'Invalid workout plan data' });
       }
       
+      console.log('🏋️ Starting workout session:', {
+        title: workoutPlan.title,
+        exerciseCount: workoutPlan.exercises?.length || 0,
+        exercises: workoutPlan.exercises?.map((e: any) => e.name)
+      });
+      
       const now = new Date();
       
       // Create the workout session
@@ -3126,7 +3132,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Get all exercises from database to match with workout plan
       const allExercises = await storage.getAllExercises();
+      console.log(`📚 Found ${allExercises.length} exercises in database`);
       
+      let setsCreated = 0;
       // Create exercise sets for each exercise in the plan
       for (let i = 0; i < workoutPlan.exercises.length; i++) {
         const planExercise = workoutPlan.exercises[i];
@@ -3137,6 +3145,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         );
         
         if (matchedExercise) {
+          console.log(`✅ Matched "${planExercise.name}" to database exercise "${matchedExercise.name}"`);
+          
           // Parse sets and reps (e.g., "3 sets" -> 3, "8-12 reps" -> 8-12)
           const sets = planExercise.sets || 3;
           const repsMatch = planExercise.reps?.match(/(\d+)-?(\d+)?/);
@@ -3154,10 +3164,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
               targetRepsHigh: repsHigh,
               completed: 0,
             });
+            setsCreated++;
           }
+        } else {
+          console.log(`❌ No match found for "${planExercise.name}" in database`);
         }
       }
       
+      console.log(`📊 Created ${setsCreated} sets for workout session ${session.id}`);
       res.json(session);
     } catch (error: any) {
       console.error("Error starting workout session:", error);
