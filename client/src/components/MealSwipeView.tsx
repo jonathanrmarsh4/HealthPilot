@@ -61,10 +61,10 @@ export function MealSwipeView({ meals, onMealTap, onBackToCalendar }: MealSwipeV
   });
 
   const handleSwipeLeft = (meal: MealPlan) => {
-    // Left swipe = Session skip (not for this meal, but might want later)
+    // Left swipe = Permanent dislike (never show again)
     feedbackMutation.mutate({
       mealPlanId: meal.id,
-      feedback: "session_skip",
+      feedback: "permanent_dislike",
       swipeDirection: "left",
       mealName: meal.name,
       mealType: selectedMealType,
@@ -78,7 +78,7 @@ export function MealSwipeView({ meals, onMealTap, onBackToCalendar }: MealSwipeV
   };
 
   const handleSwipeRight = (meal: MealPlan) => {
-    // Right swipe = Session skip (same as left, just different gesture)
+    // Right swipe = Session skip (temporary pass, might see again in future)
     feedbackMutation.mutate({
       mealPlanId: meal.id,
       feedback: "session_skip",
@@ -209,10 +209,10 @@ export function MealSwipeView({ meals, onMealTap, onBackToCalendar }: MealSwipeV
       {/* Action Hints */}
       <div className="flex items-center justify-center gap-8 text-sm text-muted-foreground">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-            <span>←</span>
+          <div className="w-8 h-8 rounded-full bg-destructive/20 flex items-center justify-center">
+            <span className="text-destructive">←</span>
           </div>
-          <span>Pass</span>
+          <span>Never Again</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">

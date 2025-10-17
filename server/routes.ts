@@ -1675,8 +1675,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
               }
 
               if (searchResults.results && searchResults.results.length > 0) {
-                // Filter results by dish type feedback (post-query filtering)
+                // Filter results by dish type and meal name feedback (post-query filtering)
                 let filteredResults = searchResults.results.filter((recipe: any) => {
+                  // Exclude permanently disliked meals by name
+                  if (recipe.title && dislikedMealNames.has(recipe.title.toLowerCase())) {
+                    return false;
+                  }
                   // Exclude recipes with disliked dish types
                   if (recipe.dishTypes && recipe.dishTypes.some((d: string) => dislikedDishTypes.has(d))) {
                     return false;
