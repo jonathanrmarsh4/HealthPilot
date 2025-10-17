@@ -1430,21 +1430,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const mealFeedback = await storage.getMealFeedback(userId);
       const dislikedCuisines = new Set<string>();
       const dislikedDishTypes = new Set<string>();
+      const dislikedMealNames = new Set<string>();
       const preferredCuisines = new Set<string>();
       const preferredDishTypes = new Set<string>();
       
-      // Analyze feedback patterns
+      // Analyze feedback patterns (only consider permanent feedback, ignore session-based skips)
       mealFeedback.forEach(feedback => {
-        if (feedback.feedback === 'dislike') {
-          // Track what user dislikes to avoid
-          if (feedback.cuisines) {
-            feedback.cuisines.forEach(c => dislikedCuisines.add(c));
-          }
-          if (feedback.dishTypes) {
-            feedback.dishTypes.forEach(d => dislikedDishTypes.add(d));
+        // Only process permanent feedback (ignore session_skip which is temporary)
+        if (feedback.feedbackType === 'permanent') {
+          if (feedback.feedback === 'permanent_dislike') {
+            // Track what user permanently dislikes to never suggest again
+            if (feedback.mealName) {
+              dislikedMealNames.add(feedback.mealName.toLowerCase());
+            }
+            if (feedback.cuisines) {
+              feedback.cuisines.forEach(c => dislikedCuisines.add(c));
+            }
+            if (feedback.dishTypes) {
+              feedback.dishTypes.forEach(d => dislikedDishTypes.add(d));
+            }
+          } else if (feedback.feedback === 'dislike') {
+            // Old dislike feedback (also permanent)
+            if (feedback.cuisines) {
+              feedback.cuisines.forEach(c => dislikedCuisines.add(c));
+            }
+            if (feedback.dishTypes) {
+              feedback.dishTypes.forEach(d => dislikedDishTypes.add(d));
+            }
           }
         } else if (feedback.feedback === 'skip') {
-          // Skipped meals are neutral-positive (good but not now) - slightly prefer these
+          // Old skip feedback (neutral-positive) - slightly prefer these
           if (feedback.cuisines) {
             feedback.cuisines.forEach(c => preferredCuisines.add(c));
           }
@@ -1544,6 +1559,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Apply feedback-based filtering to library meals
             if (libraryMeals.length > 0) {
               const filteredLibraryMeals = libraryMeals.filter(meal => {
+                // Exclude permanently disliked meals by name
+                if (meal.title && dislikedMealNames.has(meal.title.toLowerCase())) {
+                  return false;
+                }
                 // Exclude meals with disliked cuisines
                 if (meal.cuisines && meal.cuisines.some((c: string) => dislikedCuisines.has(c))) {
                   return false;
