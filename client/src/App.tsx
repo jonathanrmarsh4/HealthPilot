@@ -214,7 +214,9 @@ function AuthenticatedApp() {
     },
   });
 
-  const showEulaDialog = user && !user.eulaAcceptedAt;
+  // Development mode: Skip EULA if VITE_SKIP_EULA is set to "true"
+  const skipEulaInDev = import.meta.env.VITE_SKIP_EULA === "true";
+  const showEulaDialog = !skipEulaInDev && user && !user.eulaAcceptedAt;
 
   return (
     <LocaleProvider>
