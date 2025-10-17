@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, integer, real, jsonb, index } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, integer, real, jsonb, index, uniqueIndex } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -61,10 +61,10 @@ export const pageTilePreferences = pgTable("page_tile_preferences", {
   order: text("order").array().notNull().default(sql`ARRAY[]::text[]`), // Array of tile IDs in display order
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-}, (table) => [
+}, (table) => ({
   // Ensure only one preference record per user per page
-  index("page_tile_preferences_user_page_idx").on(table.userId, table.page).unique(),
-]);
+  userPageIdx: uniqueIndex("page_tile_preferences_user_page_idx").on(table.userId, table.page),
+}));
 
 export const healthRecords = pgTable("health_records", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

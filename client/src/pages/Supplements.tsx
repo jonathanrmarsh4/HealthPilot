@@ -16,6 +16,7 @@ import { insertSupplementSchema, type Supplement, type SupplementRecommendation 
 import { z } from "zod";
 import { Plus, Trash2, Check, X, Pill, Clock, Target } from "lucide-react";
 import { useState } from "react";
+import { TileManager, TileConfig } from "@/components/TileManager";
 
 const supplementFormSchema = insertSupplementSchema.omit({ userId: true, active: true });
 
@@ -115,16 +116,13 @@ export default function Supplements() {
     'evening': 'Evening'
   };
 
-  return (
-    <div className="h-full overflow-auto">
-      <div className="container mx-auto p-6 max-w-7xl">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold">Supplement Stack</h1>
-          <p className="text-muted-foreground">
-            Manage your daily supplements and track adherence
-          </p>
-        </div>
-
+  // Define tiles for the Supplements page
+  const tiles: TileConfig[] = [
+    {
+      id: "supplement-management",
+      title: "Supplement Management",
+      description: "Manage your supplement stack, view AI recommendations, and track daily schedule",
+      renderTile: () => (
         <Tabs defaultValue="stack" className="space-y-6">
           <TabsList>
             <TabsTrigger value="stack" data-testid="tab-stack">Current Stack</TabsTrigger>
@@ -414,6 +412,26 @@ export default function Supplements() {
             )}
           </TabsContent>
         </Tabs>
+      ),
+      alwaysVisible: true // Core functionality
+    }
+  ];
+
+  return (
+    <div className="h-full overflow-auto">
+      <div className="container mx-auto p-6 max-w-7xl">
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold">Supplement Stack</h1>
+          <p className="text-muted-foreground">
+            Manage your daily supplements and track adherence
+          </p>
+        </div>
+
+        <TileManager
+          page="supplements"
+          tiles={tiles}
+          defaultVisible={["supplement-management"]}
+        />
       </div>
     </div>
   );
