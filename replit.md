@@ -34,6 +34,7 @@ The application is a full-stack project utilizing React, TypeScript, Tailwind CS
 **Feature Specifications:**
 - Health record upload and AI analysis.
 - Weekly AI-generated personalized meal planning system with a 4-day rolling window.
+- Dating-app style swipe interface for meal feedback: swipe left to skip meals (good but not now), swipe right to dislike, tap to view details.
 - Contextual chat opening questions tailored to the current page.
 - Clean dashboard defaults for new users with core widgets and easy customization.
 - Data & Insights Dashboard with AI trend predictions and goal setting.
@@ -56,6 +57,16 @@ The application is a full-stack project utilizing React, TypeScript, Tailwind CS
 - Solution: Replaced preventDefault handlers with `onOpenChange={() => {}}` to maintain non-dismissible behavior while allowing touch events
 - Fixed API request parameter order bug: Changed from `apiRequest(url, {method})` to `apiRequest(method, url)` 
 - Added enhanced logging for easier debugging of scroll state and button enablement
+
+**Swipe-Based Meal Interface (October 2025):**
+- Implemented dating-app style swipe interface for meal feedback in meal plans
+- Touch-optimized gesture detection with visual feedback: green check for skip (left swipe), red X for dislike (right swipe)
+- Card stack UI shows one meal at a time with smooth animations and next meal preview
+- Integrated undo functionality to restore accidentally swiped cards
+- Database tracks swipe feedback (skip/dislike) with meal metadata for AI learning
+- Made meal_library_id nullable in meal_feedback table to support both library and meal plan feedback
+- Added view toggle between traditional calendar view and swipe view in Meal Plans page
+- Tap/click on cards opens existing RecipeDetailModal for detailed recipe information
 
 ## External Dependencies
 
