@@ -598,11 +598,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // User Meal Feedback Route
+  // User Meal Feedback Route (supports both meal library and meal plan swipe feedback)
   app.post("/api/meal-feedback", isAuthenticated, async (req, res) => {
     try {
       const userId = (req.user as any).claims.sub;
-      const { mealLibraryId, feedback, notes } = req.body;
+      const { 
+        mealLibraryId, 
+        mealPlanId, 
+        feedback, 
+        swipeDirection,
+        notes,
+        mealName,
+        mealType,
+        cuisines,
+        dishTypes,
+        calories
+      } = req.body;
       
       // Get user subscription status
       const user = await storage.getUser(userId);
@@ -612,17 +623,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const feedbackRecord = await storage.createMealFeedback({
         userId,
         mealLibraryId,
+        mealPlanId,
         feedback,
+        swipeDirection,
         userWasPremium,
         notes,
+        mealName,
+        mealType,
+        cuisines,
+        dishTypes,
+        calories,
       });
 
-      // Update meal performance metrics
-      await storage.updateMealPerformance(mealLibraryId, true, feedback);
+      // Update meal performance metrics only for meal library feedback
+      if (mealLibraryId) {
+        await storage.updateMealPerformance(mealLibraryId, true, feedback);
+      }
 
       res.json(feedbackRecord);
     } catch (error: any) {
       console.error("Error creating meal feedback:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get user meal feedback history
+  app.get("/api/meal-feedback", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any).claims.sub;
+      const feedbackHistory = await storage.getUserMealFeedback(userId);
+      res.json(feedbackHistory);
+    } catch (error: any) {
+      console.error("Error getting meal feedback:", error);
       res.status(500).json({ error: error.message });
     }
   });
