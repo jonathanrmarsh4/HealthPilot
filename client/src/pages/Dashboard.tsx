@@ -512,47 +512,6 @@ export default function Dashboard() {
       case "biological-age":
         return <BiologicalAgeWidget key={widget} />;
 
-      case "recommendations":
-        return recommendationsLoading ? (
-          <Card key={widget}>
-            <CardContent className="p-6">
-              <Skeleton className="h-48 w-full" />
-            </CardContent>
-          </Card>
-        ) : recommendations && recommendations.length > 0 ? (
-          <Card key={widget}>
-            <CardHeader>
-              <CardTitle>AI Recommendations</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {recommendations.slice(0, 3).map((rec) => (
-                <div key={rec.id} className="flex items-start gap-3 p-3 rounded-md hover-elevate">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-medium text-sm">{rec.title}</span>
-                      <Badge variant={rec.priority === 'high' ? 'destructive' : rec.priority === 'medium' ? 'default' : 'secondary'} className="text-xs">
-                        {rec.priority}
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-muted-foreground line-clamp-2">{rec.description}</p>
-                  </div>
-                </div>
-              ))}
-              <Link href="/ai-insights">
-                <Button variant="outline" size="sm" className="w-full mt-2" data-testid="button-view-all-recommendations">
-                  View All Insights →
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
-        ) : (
-          <Card key={widget}>
-            <CardContent className="p-6 text-center text-muted-foreground">
-              No recommendations available
-            </CardContent>
-          </Card>
-        );
-
       default:
         if (widget.startsWith('biomarker-')) {
           const type = widget.replace('biomarker-', '');

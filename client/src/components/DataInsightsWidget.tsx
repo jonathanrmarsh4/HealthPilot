@@ -35,13 +35,19 @@ export function DataInsightsWidget() {
 
   const feedbackMutation = useMutation({
     mutationFn: async ({ insightId, feedback }: { insightId: string; feedback: 'thumbs_up' | 'thumbs_down' }) => {
-      return apiRequest('/api/insights/feedback', 'POST', { insightId, feedback });
+      // Save feedback
+      await apiRequest('POST', '/api/insights/feedback', { insightId, feedback });
+      // Dismiss the insight after feedback
+      await apiRequest('PATCH', `/api/insights/${insightId}/dismiss`);
+      return { insightId, feedback };
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard/data-insights'] });
       toast({
-        title: "Feedback saved",
-        description: "Your feedback helps improve recommendations",
+        title: data.feedback === 'thumbs_up' ? "Thanks for your feedback!" : "Noted",
+        description: data.feedback === 'thumbs_up' 
+          ? "We'll show you more insights like this" 
+          : "This insight has been dismissed",
       });
     },
   });
