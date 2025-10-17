@@ -486,11 +486,8 @@ export default function WorkoutSession() {
       return { result, startRest };
     },
     onSuccess: (data) => {
-      console.log('[WorkoutSession] Set update successful, startRest:', data.startRest);
-      
       // Start rest timer BEFORE invalidating queries to prevent race condition
       if (data.startRest) {
-        console.log('[WorkoutSession] Setting rest timer to:', data.startRest.duration);
         setRestTimer(data.startRest.duration);
       }
       
@@ -511,7 +508,6 @@ export default function WorkoutSession() {
   // Complete set and start rest timer
   const handleCompleteSet = (set: ExerciseSet, exercise: Exercise) => {
     const restDuration = exercise.restDefault || 90;
-    console.log('[WorkoutSession] Completing set, rest duration:', restDuration);
     
     updateSetMutation.mutate({
       setId: set.id,
