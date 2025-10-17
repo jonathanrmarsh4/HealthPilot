@@ -47,6 +47,10 @@ export function RecommendationCalendar({ recommendations, insights = [], onDateC
   const [rescheduleDialogOpen, setRescheduleDialogOpen] = useState(false);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [viewingActivity, setViewingActivity] = useState<ScheduledActivity | null>(null);
+  
+  // Touch interaction state
+  const [touchStartTime, setTouchStartTime] = useState<number>(0);
+  const [longPressTimeout, setLongPressTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
 
   // Combine recommendations and insights for calendar display
   const allActivities: ScheduledActivity[] = [...recommendations, ...insights];
@@ -96,6 +100,54 @@ export function RecommendationCalendar({ recommendations, insights = [], onDateC
     setRescheduleDialogOpen(false);
   };
 
+  // Touch event handlers for tap vs long-press
+  const handleActivityTouchStart = (activity: ScheduledActivity, e: React.TouchEvent) => {
+    e.stopPropagation();
+    const startTime = Date.now();
+    setTouchStartTime(startTime);
+
+    // Set timeout for long press (200ms threshold)
+    const timeout = setTimeout(() => {
+      // Long press - select for rescheduling
+      setSelectedActivity(activity);
+    }, 200);
+    setLongPressTimeout(timeout);
+  };
+
+  const handleActivityTouchEnd = (activity: ScheduledActivity, e: React.TouchEvent) => {
+    e.stopPropagation();
+    const touchDuration = Date.now() - touchStartTime;
+
+    // Clear the long press timeout
+    if (longPressTimeout) {
+      clearTimeout(longPressTimeout);
+      setLongPressTimeout(null);
+    }
+
+    // If touch was less than 200ms, it's a tap - show details
+    if (touchDuration < 200) {
+      // If user has already selected an activity for rescheduling, tapping another one should select it
+      if (selectedActivity) {
+        setSelectedActivity(activity);
+      } else {
+        // Otherwise, show details dialog
+        setViewingActivity(activity);
+        setDetailsDialogOpen(true);
+      }
+    }
+    // If >= 200ms, the timeout already fired and selected it for rescheduling
+
+    setTouchStartTime(0);
+  };
+
+  const handleActivityTouchMove = (e: React.TouchEvent) => {
+    // If user moves finger, cancel the long press
+    if (longPressTimeout) {
+      clearTimeout(longPressTimeout);
+      setLongPressTimeout(null);
+    }
+  };
+
   const renderMonthView = () => {
     const monthStart = startOfMonth(currentDate);
     const monthEnd = endOfMonth(monthStart);
@@ -139,6 +191,9 @@ export function RecommendationCalendar({ recommendations, insights = [], onDateC
                 {dayActivities.map(activity => (
                   <div
                     key={activity.id}
+                    onTouchStart={(e) => handleActivityTouchStart(activity, e)}
+                    onTouchEnd={(e) => handleActivityTouchEnd(activity, e)}
+                    onTouchMove={handleActivityTouchMove}
                     onClick={(e) => handleActivityClick(activity, e)}
                     className={cn(
                       "text-[10px] sm:text-xs p-0.5 sm:p-1 rounded flex items-center gap-1 truncate",
@@ -219,6 +274,9 @@ export function RecommendationCalendar({ recommendations, insights = [], onDateC
                 {dayActivities.map(activity => (
                   <div
                     key={activity.id}
+                    onTouchStart={(e) => handleActivityTouchStart(activity, e)}
+                    onTouchEnd={(e) => handleActivityTouchEnd(activity, e)}
+                    onTouchMove={handleActivityTouchMove}
                     onClick={(e) => handleActivityClick(activity, e)}
                     className={cn(
                       "text-xs sm:text-sm p-1 sm:p-2 rounded flex items-center gap-1 sm:gap-2",
