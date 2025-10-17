@@ -2626,14 +2626,14 @@ export class DbStorage implements IStorage {
     // Meal type filter (breakfast/lunch/dinner)
     if (filters.mealType) {
       conditions.push(
-        sql`${sql.raw(`'${filters.mealType.toLowerCase()}'`)} = ANY(${mealLibrary.mealTypes})`
+        sql`${filters.mealType.toLowerCase()} = ANY(${mealLibrary.mealTypes})`
       );
     }
 
     // Diet filter
     if (filters.diet) {
       conditions.push(
-        sql`${sql.raw(`'${filters.diet}'`)} = ANY(${mealLibrary.diets})`
+        sql`${filters.diet} = ANY(${mealLibrary.diets})`
       );
     }
 
