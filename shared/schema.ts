@@ -682,14 +682,15 @@ export const mealFeedback = pgTable("meal_feedback", {
   userId: varchar("user_id").notNull(),
   mealLibraryId: varchar("meal_library_id"), // Reference to meal_library (optional for meal plan feedback)
   mealPlanId: varchar("meal_plan_id"), // Reference to meal_plans (for swipe interface)
-  feedback: text("feedback").notNull(), // 'thumbs_up', 'thumbs_down', 'dislike', 'skip', 'accept'
+  feedback: text("feedback").notNull(), // 'thumbs_up', 'thumbs_down', 'dislike', 'skip', 'accept', 'session_skip', 'permanent_dislike'
+  feedbackType: text("feedback_type").notNull().default("session"), // 'session' (temporary, resets on session end), 'permanent' (never show again)
   swipeDirection: text("swipe_direction"), // 'left', 'right' for tracking actual swipe gesture
   // Track premium status at time of feedback (for deletion protection)
   userWasPremium: integer("user_was_premium").notNull().default(0), // 0 = false, 1 = true
   notes: text("notes"), // Optional user notes / reason for feedback
   // AI learning data (for meal plan swipes)
   mealName: text("meal_name"), // Store for AI learning
-  mealType: text("meal_type"), // breakfast, lunch, dinner
+  mealType: text("meal_type"), // breakfast, lunch, dinner, snack
   cuisines: text("cuisines").array(), // Track cuisine preferences
   dishTypes: text("dish_types").array(), // Track dish type preferences
   calories: integer("calories"),

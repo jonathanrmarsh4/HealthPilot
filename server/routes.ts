@@ -619,12 +619,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await storage.getUser(userId);
       const userWasPremium = user?.subscriptionTier === 'premium' || user?.subscriptionTier === 'enterprise' ? 1 : 0;
       
+      // Determine feedback type: session_skip is temporary, others are permanent
+      const feedbackType = feedback === 'session_skip' ? 'session' : 'permanent';
+      
       // Create feedback
       const feedbackRecord = await storage.createMealFeedback({
         userId,
         mealLibraryId,
         mealPlanId,
         feedback,
+        feedbackType,
         swipeDirection,
         userWasPremium,
         notes,
