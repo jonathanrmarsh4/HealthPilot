@@ -549,32 +549,32 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-4xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground mt-2">
+      <div className="flex items-start justify-between gap-2 md:gap-4">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-muted-foreground mt-1 md:mt-2 text-sm md:text-base">
             Your personalized health insights and metrics
           </p>
         </div>
         
-        <div className="flex gap-2">
+        <div className="flex gap-1 md:gap-2 flex-shrink-0">
           {isAdmin && (
             <Link href="/admin">
-              <Button variant="outline" size="default" data-testid="button-admin-panel">
-                <Shield className="h-4 w-4 mr-2" />
-                Admin
+              <Button variant="outline" size="icon" className="md:w-auto md:px-4" data-testid="button-admin-panel">
+                <Shield className="h-4 w-4" />
+                <span className="hidden md:inline md:ml-2">Admin</span>
               </Button>
             </Link>
           )}
           
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="outline" size="default" data-testid="button-manage-dashboard">
-                <Settings2 className="h-4 w-4 mr-2" />
-                Manage Widgets
+              <Button variant="outline" size="icon" className="md:w-auto md:px-4" data-testid="button-manage-dashboard">
+                <Settings2 className="h-4 w-4" />
+                <span className="hidden md:inline md:ml-2">Manage Widgets</span>
               </Button>
             </SheetTrigger>
-            <SheetContent className="w-[400px] sm:w-[540px]">
+            <SheetContent className="w-full sm:w-[400px] md:w-[540px]">
             <SheetHeader>
               <SheetTitle>Manage Dashboard Widgets</SheetTitle>
               <SheetDescription>
