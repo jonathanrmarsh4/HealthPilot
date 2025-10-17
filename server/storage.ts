@@ -32,6 +32,12 @@ import {
   type InsertWorkoutSession,
   type ExerciseLog,
   type InsertExerciseLog,
+  type Exercise,
+  type InsertExercise,
+  type ExerciseSet,
+  type InsertExerciseSet,
+  type SessionPR,
+  type InsertSessionPR,
   type Goal,
   type InsertGoal,
   type ExerciseFeedback,
@@ -78,6 +84,9 @@ import {
   insights,
   workoutSessions,
   exerciseLogs,
+  exercises,
+  exerciseSets,
+  sessionPRs,
   goals,
   aiActions,
   exerciseFeedback,
@@ -95,7 +104,7 @@ import {
   mealLibrarySettings,
   messageUsage,
 } from "@shared/schema";
-import { eq, desc, and, gte, lte, lt, sql, or, like, count, isNull } from "drizzle-orm";
+import { eq, desc, and, gte, lte, lt, sql, or, like, count, isNull, inArray } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -200,6 +209,10 @@ export interface IStorage {
   
   createExerciseLog(log: InsertExerciseLog): Promise<ExerciseLog>;
   getExerciseLogs(workoutSessionId: string): Promise<ExerciseLog[]>;
+  
+  getExercisesForSession(sessionId: string, userId: string): Promise<Exercise[]>;
+  getSetsForSession(sessionId: string, userId: string): Promise<ExerciseSet[]>;
+  updateExerciseSet(setId: string, userId: string, data: Partial<ExerciseSet>): Promise<ExerciseSet | undefined>;
   
   getTrainingLoad(userId: string, startDate: Date, endDate: Date): Promise<{
     weeklyLoad: number;
@@ -1454,6 +1467,59 @@ export class DbStorage implements IStorage {
       .from(exerciseLogs)
       .where(eq(exerciseLogs.workoutSessionId, workoutSessionId))
       .orderBy(exerciseLogs.createdAt);
+  }
+
+  async getExercisesForSession(sessionId: string, userId: string): Promise<Exercise[]> {
+    // Get unique exercise IDs from sets for this session
+    const sets = await db
+      .select()
+      .from(exerciseSets)
+      .where(
+        and(
+          eq(exerciseSets.workoutSessionId, sessionId),
+          eq(exerciseSets.userId, userId)
+        )
+      );
+    
+    if (sets.length === 0) return [];
+    
+    const exerciseIds = [...new Set(sets.map(s => s.exerciseId))];
+    
+    // Fetch the exercises using inArray
+    const result = await db
+      .select()
+      .from(exercises)
+      .where(inArray(exercises.id, exerciseIds));
+    
+    return result;
+  }
+
+  async getSetsForSession(sessionId: string, userId: string): Promise<ExerciseSet[]> {
+    return await db
+      .select()
+      .from(exerciseSets)
+      .where(
+        and(
+          eq(exerciseSets.workoutSessionId, sessionId),
+          eq(exerciseSets.userId, userId)
+        )
+      )
+      .orderBy(exerciseSets.createdAt);
+  }
+
+  async updateExerciseSet(setId: string, userId: string, data: Partial<ExerciseSet>): Promise<ExerciseSet | undefined> {
+    const result = await db
+      .update(exerciseSets)
+      .set(data)
+      .where(
+        and(
+          eq(exerciseSets.id, setId),
+          eq(exerciseSets.userId, userId)
+        )
+      )
+      .returning();
+    
+    return result[0];
   }
 
   async getTrainingLoad(userId: string, startDate: Date, endDate: Date): Promise<{

@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
 import multer from "multer";
-import { insertBiomarkerSchema, insertHealthRecordSchema, insertScheduledExerciseRecommendationSchema, insertFitnessProfileSchema, biomarkers, sleepSessions, healthRecords, mealPlans, trainingSchedules, recommendations, readinessScores } from "@shared/schema";
+import { insertBiomarkerSchema, insertHealthRecordSchema, insertScheduledExerciseRecommendationSchema, insertFitnessProfileSchema, insertExerciseSetSchema, biomarkers, sleepSessions, healthRecords, mealPlans, trainingSchedules, recommendations, readinessScores } from "@shared/schema";
 import { listHealthDocuments, downloadFile, getFileMetadata } from "./services/googleDrive";
 import { analyzeHealthDocument, generateMealPlan, generateTrainingSchedule, generateHealthRecommendations, chatWithHealthCoach, generateDailyInsights, generateRecoveryInsights, generateTrendPredictions, generatePeriodComparison, generateDailyTrainingRecommendation, generateMacroRecommendations } from "./services/ai";
 import { calculatePhenoAge, getBiomarkerDisplayName, getBiomarkerUnit, getBiomarkerSource } from "./services/phenoAge";
@@ -3114,6 +3114,91 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const sessions = await storage.getWorkoutSessions(userId, startDate, endDate);
       res.json(sessions);
     } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get single workout session
+  app.get("/api/workout-sessions/:id", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { id } = req.params;
+    
+    try {
+      const session = await storage.getWorkoutSession(id, userId);
+      if (!session) {
+        return res.status(404).json({ error: "Workout session not found" });
+      }
+      res.json(session);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get exercises for a workout session
+  app.get("/api/workout-sessions/:id/exercises", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { id } = req.params;
+    
+    try {
+      const exercises = await storage.getExercisesForSession(id, userId);
+      res.json(exercises);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get sets for a workout session
+  app.get("/api/workout-sessions/:id/sets", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { id } = req.params;
+    
+    try {
+      const sets = await storage.getSetsForSession(id, userId);
+      res.json(sets);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Update exercise set
+  app.patch("/api/exercise-sets/:id", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { id } = req.params;
+    
+    try {
+      // Custom validation schema for exercise set updates with proper constraints
+      const updateSetSchema = z.object({
+        weight: z.number().nonnegative().optional(),
+        reps: z.number().int().positive().optional(),
+        rpeLogged: z.number().int().min(1).max(10).nullable().optional(),
+        completed: z.union([z.literal(0), z.literal(1)]).optional(),
+        notes: z.string().nullable().optional(),
+        restStartedAt: z.string().datetime().nullable().optional(),
+        tempo: z.string().nullable().optional(),
+      }).strict(); // Reject unknown fields
+      
+      const validatedData = updateSetSchema.parse(req.body);
+      
+      // Ensure at least one field is being updated
+      if (Object.keys(validatedData).length === 0) {
+        return res.status(400).json({ error: "At least one field must be provided for update" });
+      }
+      
+      // Convert restStartedAt string to Date if present
+      const dataToUpdate = {
+        ...validatedData,
+        restStartedAt: validatedData.restStartedAt ? new Date(validatedData.restStartedAt) : undefined,
+      };
+      
+      const updatedSet = await storage.updateExerciseSet(id, userId, dataToUpdate);
+      if (!updatedSet) {
+        return res.status(404).json({ error: "Exercise set not found" });
+      }
+      res.json(updatedSet);
+    } catch (error: any) {
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ error: "Invalid request body", details: error.errors });
+      }
       res.status(500).json({ error: error.message });
     }
   });

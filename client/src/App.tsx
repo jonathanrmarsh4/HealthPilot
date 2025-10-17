@@ -24,6 +24,7 @@ import NutritionProfile from "@/pages/NutritionProfile";
 import Training from "@/pages/Training";
 import ReadinessSettings from "@/pages/ReadinessSettings";
 import FitnessProfile from "@/pages/FitnessProfile";
+import WorkoutSession from "@/pages/WorkoutSession";
 import AIInsights from "@/pages/AIInsights";
 import Insights from "@/pages/Insights";
 import Goals from "@/pages/Goals";
@@ -57,6 +58,7 @@ function Router() {
       <Route path="/training" component={Training} />
       <Route path="/training/readiness-settings" component={ReadinessSettings} />
       <Route path="/training/fitness-profile" component={FitnessProfile} />
+      <Route path="/workout/:id" component={WorkoutSession} />
       <Route path="/supplements" component={Supplements} />
       <Route path="/insights" component={AIInsights} />
       <Route path="/data-insights" component={Insights} />
