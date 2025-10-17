@@ -27,6 +27,7 @@ interface Insight {
     recommendation?: string;
   };
   actionable: number;
+  insightType: string; // "comment" or "actionable"
   dismissed: number;
   createdAt: string;
   relevantDate: string;
@@ -94,21 +95,9 @@ export function AIInsightsWidget() {
       });
       return response.json();
     },
-    onSuccess: (_, variables) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/insights/daily'] });
       queryClient.invalidateQueries({ queryKey: ['/api/insights'] });
-      
-      if (variables.feedback === 'thumbs_up') {
-        toast({
-          title: "Thanks for your feedback!",
-          description: "Opening scheduling options...",
-        });
-      } else {
-        toast({
-          title: "Feedback recorded",
-          description: "We'll show fewer insights like this.",
-        });
-      }
     },
     onError: (error: any) => {
       toast({
@@ -243,7 +232,7 @@ export function AIInsightsWidget() {
                         </div>
                       )}
                       
-                      {/* Feedback and Schedule Buttons */}
+                      {/* Feedback Buttons */}
                       <div className="flex items-center gap-2 mt-3 pt-2 border-t">
                         <Button
                           variant="ghost"
@@ -254,13 +243,20 @@ export function AIInsightsWidget() {
                               insightId: insight.id, 
                               feedback: 'thumbs_up' 
                             });
-                            setSchedulingInsightId(insight.id);
+                            
+                            // If it's actionable, open scheduling. If it's a comment, it will just dismiss
+                            if (insight.insightType === 'actionable') {
+                              setSchedulingInsightId(insight.id);
+                            } else {
+                              // Dismiss comment insights on thumbs up
+                              dismissMutation.mutate(insight.id);
+                            }
                           }}
                           disabled={feedbackMutation.isPending}
                           data-testid={`button-thumbs-up-${insight.id}`}
                         >
                           <ThumbsUp className="h-4 w-4" />
-                          Helpful
+                          {insight.insightType === 'actionable' ? 'Schedule' : 'Helpful'}
                         </Button>
                         <Button
                           variant="ghost"
@@ -271,22 +267,14 @@ export function AIInsightsWidget() {
                               insightId: insight.id, 
                               feedback: 'thumbs_down' 
                             });
+                            // Thumbs down always dismisses permanently
+                            dismissMutation.mutate(insight.id);
                           }}
                           disabled={feedbackMutation.isPending}
                           data-testid={`button-thumbs-down-${insight.id}`}
                         >
                           <ThumbsDown className="h-4 w-4" />
                           Not helpful
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 gap-2 ml-auto"
-                          onClick={() => setSchedulingInsightId(insight.id)}
-                          data-testid={`button-schedule-${insight.id}`}
-                        >
-                          <Calendar className="h-4 w-4" />
-                          Schedule
                         </Button>
                       </div>
                     </div>
