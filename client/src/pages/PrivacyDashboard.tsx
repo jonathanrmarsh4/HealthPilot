@@ -16,10 +16,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { AuditLogViewer } from "@/components/AuditLogViewer";
+import { ConsentPreferencesDialog } from "@/components/ConsentPreferencesDialog";
 
 export default function PrivacyDashboard() {
   const { toast } = useToast();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showAuditLog, setShowAuditLog] = useState(false);
+  const [showConsentManager, setShowConsentManager] = useState(false);
 
   // Export data mutation
   const exportData = useMutation({
@@ -199,7 +203,11 @@ export default function PrivacyDashboard() {
                 <li>• Authentication and session activity</li>
               </ul>
             </div>
-            <Button variant="outline" data-testid="button-view-audit-log">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowAuditLog(true)}
+              data-testid="button-view-audit-log"
+            >
               <Eye className="h-4 w-4 mr-2" />
               View Audit Log
             </Button>
@@ -225,7 +233,11 @@ export default function PrivacyDashboard() {
               Review and update your privacy consents. You can withdraw consent at any time,
               though this may limit certain features.
             </p>
-            <Button variant="outline" data-testid="button-manage-consent">
+            <Button 
+              variant="outline"
+              onClick={() => setShowConsentManager(true)}
+              data-testid="button-manage-consent"
+            >
               Manage Consent Preferences
             </Button>
           </CardContent>
@@ -358,6 +370,18 @@ export default function PrivacyDashboard() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Audit Log Viewer Dialog */}
+      <AuditLogViewer 
+        open={showAuditLog} 
+        onOpenChange={setShowAuditLog}
+      />
+
+      {/* Consent Preferences Dialog */}
+      <ConsentPreferencesDialog 
+        open={showConsentManager} 
+        onOpenChange={setShowConsentManager}
+      />
     </div>
   );
 }
