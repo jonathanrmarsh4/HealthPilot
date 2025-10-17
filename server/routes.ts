@@ -3035,7 +3035,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
           startTime: new Date(w.startTime),
         }));
       
-      // 3. Generate AI recommendation with safety-first logic
+      // 3. Fetch latest biomarkers for guardrails (last 30 days)
+      const allBiomarkers = await storage.getBiomarkers(userId);
+      const thirtyDaysAgo = new Date(today);
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      
+      // Get most recent values for each biomarker type
+      const biomarkerMap = new Map<string, { value: number; date: Date }>();
+      allBiomarkers
+        .filter(b => new Date(b.recordedAt) >= thirtyDaysAgo)
+        .forEach(b => {
+          const existing = biomarkerMap.get(b.type);
+          if (!existing || new Date(b.recordedAt) > existing.date) {
+            biomarkerMap.set(b.type, { value: b.value, date: new Date(b.recordedAt) });
+          }
+        });
+      
+      const biomarkers = {
+        cortisolAm: biomarkerMap.get('cortisol_am')?.value || biomarkerMap.get('cortisol')?.value,
+        crpHs: biomarkerMap.get('crp_hs')?.value || biomarkerMap.get('crp')?.value,
+        testosteroneTotal: biomarkerMap.get('testosterone_total')?.value || biomarkerMap.get('testosterone')?.value,
+        glucoseFasting: biomarkerMap.get('glucose_fasting')?.value || biomarkerMap.get('glucose')?.value,
+        hba1c: biomarkerMap.get('hba1c')?.value,
+        vitaminD: biomarkerMap.get('vitamin_d')?.value || biomarkerMap.get('vitamin_d_25oh')?.value,
+      };
+      
+      // 4. Get user profile data for guardrails
+      const user = await storage.getUser(userId);
+      const fitnessProfile = await storage.getFitnessProfile(userId);
+      
+      const userProfile = {
+        age: user?.age,
+        trainingAgeYears: fitnessProfile?.trainingAgeYears,
+        injuries: fitnessProfile?.injuries || [],
+        medicalConditions: user?.medicalConditions || [],
+      };
+      
+      // 5. Generate AI recommendation with safety-first logic and guardrails
       const aiRecommendation = await generateDailyTrainingRecommendation({
         readinessScore: readinessData!.score,
         readinessRecommendation: readinessData!.recommendation as "ready" | "caution" | "rest",
@@ -3057,6 +3093,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           },
         },
         recentWorkouts,
+        biomarkers,
+        userProfile,
       });
       
       res.json({

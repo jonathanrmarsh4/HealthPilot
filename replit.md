@@ -1,107 +1,42 @@
 # Health Insights AI - AI-Powered Health Dashboard
 
 ## Overview
-
 Health Insights AI is an AI-powered platform designed to analyze health records, track biomarkers, and deliver personalized health recommendations. It provides AI-generated meal plans, training schedules, and alternative therapy suggestions, empowering users with personalized intelligence and pattern discovery from their health data to optimize well-being. The project's vision is to optimize user well-being through data-driven insights and actionable recommendations, with market potential in personalized health and wellness.
 
 ## User Preferences
-
 I prefer simple language and clear explanations. I want iterative development where I can provide feedback at each stage. Ask before making major changes to the project structure or core functionalities. Do not make changes to the `replit.nix` file. I primarily use iPad and iPhone for my work. All features must be fully functional and properly responsive on mobile/tablet devices.
 
 ## System Architecture
-
 The application is a full-stack project utilizing React, TypeScript, Tailwind CSS, and shadcn/ui for the frontend, and Express.js with TypeScript for the backend. PostgreSQL, accessed via Drizzle ORM, serves as the primary database. AI capabilities are powered by OpenAI GPT-4o.
 
 **UI/UX Decisions:**
 - Dark mode support and responsive design, optimized for mobile/tablet, including PWA support for iOS.
-- Visualizations for biomarker trends, readiness score (semicircle gauge), and health score (three-segment donut chart).
+- Visualizations for biomarker trends, readiness score, and health score.
 - User-customizable dashboard with persistent widget visibility and order preferences.
 - Purple sparkly AI Chat Widget with clear chat feature that preserves history in the database.
 - Redesigned Training Page with a daily-focused UX and organized sidebar navigation.
+- Universal Tile Management System for customizable page layouts with drag-and-drop reordering.
 
 **Technical Implementations:**
-- **AI Intelligence Layer:** Provides daily personalized insights, context-aware chat, multi-metric recommendations, and alternative therapy suggestions with safeguards and goal-driven assistance. Includes AI expanded capabilities for full database visibility and controlled write access (e.g., updating goals, biomarkers, user profiles) with comprehensive audit logging. AI chat now includes immediate response enforcement - all user data is pre-loaded in context, preventing "I'll check and come back" deferral responses. **Intelligent Insight Categorization:** AI automatically categorizes insights as "comment" (informational) or "actionable" (schedulable), with type-specific feedback behaviors: thumbs up on comments dismisses them, thumbs up on actionable insights opens scheduling modal, thumbs down always dismisses permanently. Scheduled insights automatically disappear from active list, and users get a celebration animation when all insights are cleared.
-- **Freemium Model & Premium Features:** Subscription tier system with free/premium/enterprise tiers. Free tier includes 10 AI messages/day, 3 biomarker types, and 7 days of historical data. Premium tier unlocks unlimited AI chat, unlimited biomarkers, full historical data, biological age calculation, Apple Health sync, AI-generated meal plans, and voice chat with AI coach using OpenAI Realtime API.
-- **Data Tracking & Management:** Features biomarker tracking with trend display, reference ranges, unit conversion, and specific support for Australian blood work, HRV, and lean body mass. Includes smart deduplication for sleep data and comprehensive workout tracking from Apple Health.
-- **Personalized Recommendations & Automation:** AI generates personalized meal plans with feedback system, macro recommendations, and exercise recommendations with smart auto-scheduling. An automated goal auto-update system syncs progress with new biomarker data.
-- **Readiness Score System:** A multi-factor weighted scoring system calculates daily readiness, incorporating sleep quality, HRV, RHR, and workout load. It includes safety-first logic, user-configurable factors, and AI-powered recovery insights, with advanced personal baseline tuning for accurate scoring.
-- **Scheduling & Reminders:** AI insights scheduling system for recommendations, and a supplement tracking and daily reminders system that leverages AI for recommendations and tracks streaks.
-- **User Profiling & Onboarding:** A fitness profile personalization system allows AI to generate calibrated workouts based on user data. A contextual AI onboarding system collects basic user info and provides page-specific setup prompts.
-- **Security & Authentication:** Production-ready security using Replit Auth (OpenID Connect) with role-based access control, IDOR protection, privilege escalation prevention, and Zod schema validation. File upload security with validation for size and types. One-time EULA acceptance system with scroll-to-bottom enforcement and mobile-optimized touch event handling.
-- **Payment Processing:** Stripe integration for premium subscription purchases with webhook handling for automated subscription status updates. Premium pricing at $19.99/month for Premium tier and $99.99/month for Enterprise tier. Includes checkout session creation and subscription lifecycle management.
-- **Native iOS App:** Complete native iOS app implementation using Capacitor 7 for 100% code reuse, including direct HealthKit integration for native health data access and syncing.
-- **Universal Tile Management System:** Reusable tile system for customizable page layouts with manual drag-and-drop reordering and visibility controls. Uses @dnd-kit for drag-and-drop, persists user preferences per page in database (pageTilePreferences table with unique index on userId+page), supports alwaysVisible flag for non-hideable tiles, and includes 500ms debounced API saves. Currently implemented on Sleep (3 tiles), Biomarkers (3 tiles), Supplements (1 tile), and Training (7 tiles: readiness score, daily recommendation, recovery protocols, training calendar, today's schedule, scheduled insights, workout history) pages. Dashboard uses existing button-based widget management system. Future: AI-powered tile control via natural language commands.
-
-**Feature Specifications:**
-- Health record upload and AI analysis.
-- Weekly AI-generated personalized meal planning system with a 4-day rolling window.
-- Dating-app style swipe interface for meal feedback: swipe left to skip meals (good but not now), swipe right to dislike, tap to view details.
-- Contextual chat opening questions tailored to the current page.
-- Clean dashboard defaults for new users with core widgets and easy customization.
-- Data & Insights Dashboard with AI trend predictions and goal setting.
-- Biological Age calculation using the PhenoAge algorithm (premium feature).
-- **Progressive Overload Training System:** Double progression algorithm automatically suggests weight increases based on performance. Analyzes previous session data (reps completed, RPE, target ranges) to provide intelligent weight suggestions. Displays "Last: Xkg × Y reps → Try Zkg" in workout session UI with context-aware reasoning (e.g., "Hit 8 reps on all sets with RPE ≤ 7" or "Build reps before adding weight"). Uses exercise-specific increment steps (e.g., 2.5kg for upper body, 5kg for lower body) for safe, sustainable progression.
-
-## Recent Technical Updates
-
-**Intelligent Insight Categorization (October 2025):**
-- Added automatic AI categorization of insights into "comment" (informational) vs "actionable" (schedulable) types
-- Implemented type-specific feedback behaviors: thumbs up on comments dismisses them, thumbs up on actionable insights opens scheduling modal
-- Thumbs down always permanently dismisses insights regardless of type
-- Scheduled insights automatically filter out from active list to prevent duplicates
-- Added gamified completion tracking with celebration animation (trophy icon and "All Caught Up!" message) when all insights are cleared
-- Database schema updated with `insightType` field on both insights and scheduledInsights tables
-- AI prompt enhanced to automatically detect and set insight type during generation
-
-**EULA Mobile Fix (October 2025):**
-- Fixed critical touch event blocking issue on iPad/iPhone where Accept button wasn't responding to touch
-- Root cause: Radix Dialog's `onPointerDownOutside` preventDefault() was canceling iOS tap sequence
-- Solution: Replaced preventDefault handlers with `onOpenChange={() => {}}` to maintain non-dismissible behavior while allowing touch events
-- Fixed API request parameter order bug: Changed from `apiRequest(url, {method})` to `apiRequest(method, url)` 
-- Added enhanced logging for easier debugging of scroll state and button enablement
-
-**Swipe-Based Meal Interface (October 2025):**
-- Implemented dating-app style swipe interface for meal feedback in meal plans
-- Touch-optimized gesture detection with visual feedback: green check for skip (left swipe), red X for dislike (right swipe)
-- Card stack UI shows one meal at a time with smooth animations and next meal preview
-- Integrated undo functionality to restore accidentally swiped cards
-- Database tracks swipe feedback (skip/dislike) with meal metadata for AI learning
-- Made meal_library_id nullable in meal_feedback table to support both library and meal plan feedback
-- Added view toggle between traditional calendar view and swipe view in Meal Plans page
-- Tap/click on cards opens existing RecipeDetailModal for detailed recipe information
-
-**AI Exercise Alternatives & Swap Feature (October 2025):**
-- Added AI-powered exercise alternative suggestions using OpenAI GPT-4o
-- Click "Swap" button on any exercise card in workout session to get 3 AI-recommended alternatives
-- AI prefilters exercises by muscle overlap to reduce token cost and improve response quality
-- Swap functionality replaces exercise sets with alternative exercise, preserving set structure but resetting progress
-- Transaction-wrapped database operations ensure atomic swaps (no data loss on failure)
-- Comprehensive null safety for legacy data (handles missing muscle arrays gracefully)
-- UI includes loading state, error handling with retry, and empty state feedback
-- New API endpoints: GET `/api/exercises/:exerciseId/alternatives` and POST `/api/workout-sessions/:sessionId/swap-exercise`
-- Future enhancements: Alternative result caching, structured logging for OpenAI failures, automated test coverage
-
-**Start Workout Button & Session Creation (October 2025):**
-- Added "Start Workout" button to Training page that creates workout sessions from AI daily recommendations
-- Button appears below selected workout plan (Primary or Alternate, not shown for Rest Day)
-- Backend endpoint POST `/api/workout-sessions/start` creates workout session with exercises and sets
-- Automatically matches exercises from AI plan to database exercises (case-insensitive)
-- Parses sets and reps from plan (e.g., "3 sets × 8-12 reps") and creates target ranges for each set
-- Navigates user to active workout session page (`/workout/:id`) for detailed tracking with swap feature
-- Fixes response parsing bug (added `.json()`) and route mismatch (corrected to `/workout/:id`)
-
-**TileManager Drag-and-Drop Bug Fix (October 2025):**
-- Fixed critical bug where drag-and-drop listeners were blocking tile visibility toggle button clicks
-- Root cause: SortableTileItem was applying drag listeners to entire tile container, capturing all click events
-- Solution: Implemented render props pattern to isolate drag listeners to only the drag handle (GripVertical icon)
-- Toggle buttons now work correctly, visibility changes apply immediately, and state persists to backend
-- Drag-and-drop reordering still fully functional via grip handle
-- All 7 Training page tiles (readiness-score, daily-recommendation, recovery-protocols, scheduled-calendar, today-scheduled, scheduled-insights, workout-history) now support proper visibility control
+- **AI Intelligence Layer:** Provides daily personalized insights, context-aware chat, multi-metric recommendations, and alternative therapy suggestions with safeguards and goal-driven assistance. Includes AI expanded capabilities for full database visibility and controlled write access with comprehensive audit logging. AI chat includes immediate response enforcement and intelligent insight categorization (comment/actionable).
+- **Freemium Model & Premium Features:** Subscription tier system with free/premium/enterprise tiers, offering varying levels of AI messages, biomarker types, historical data access, and advanced features like biological age calculation, Apple Health sync, AI-generated meal plans, and voice chat.
+- **Data Tracking & Management:** Features biomarker tracking with trend display, reference ranges, unit conversion, and support for Australian blood work, HRV, and lean body mass. Includes smart deduplication for sleep data and comprehensive workout tracking from Apple Health.
+- **Personalized Recommendations & Automation:** AI generates personalized meal plans with a feedback system, macro recommendations, and exercise recommendations with smart auto-scheduling. Automated goal auto-update system syncs progress with new biomarker data.
+- **Readiness Score System:** A multi-factor weighted scoring system calculates daily readiness, incorporating sleep quality, HRV, RHR, and workout load, with safety-first logic and AI-powered recovery insights.
+- **Scheduling & Reminders:** AI insights scheduling system for recommendations, and a supplement tracking and daily reminders system.
+- **User Profiling & Onboarding:** A fitness profile personalization system for calibrated workouts and a contextual AI onboarding system.
+- **Security & Authentication:** Production-ready security using Replit Auth (OpenID Connect) with role-based access control, IDOR protection, privilege escalation prevention, and Zod schema validation. File upload security with validation. One-time EULA acceptance system.
+- **Payment Processing:** Stripe integration for premium subscription purchases with webhook handling.
+- **Native iOS App:** Complete native iOS app implementation using Capacitor 7 for 100% code reuse, including direct HealthKit integration.
+- **Progressive Overload Training System:** Double progression algorithm automatically suggests weight increases based on performance and RPE.
+- **HealthPilot Training Operating System v1.0 (AI Guardrails):** Comprehensive evidence-based guardrail system enforcing safety-first training prescription aligned with ACSM, NSCA, and WHO standards. Includes biomarker-driven adjustments, auto-regulation triggers, progression limits, HR max caps, mandatory rest days, deload weeks, and goal-specific programming.
+- **Swipe-Based Meal Interface:** Dating-app style swipe interface for meal feedback in meal plans.
+- **AI Exercise Alternatives & Swap Feature:** AI-powered exercise alternative suggestions with a "Swap" button functionality in workout sessions.
 
 ## External Dependencies
-
 - **Database:** PostgreSQL (via Drizzle ORM)
 - **AI:** OpenAI GPT-4o (via Replit AI Integrations)
 - **Authentication:** Replit Auth (OpenID Connect)
 - **Health Data Integration:** Apple Health via Health Auto Export iOS app webhook (web) and native HealthKit integration via Capacitor (iOS app).
 - **Mobile Platform:** Capacitor 7 for native iOS app.
+- **Payment Processing:** Stripe

@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { buildGuardrailsSystemPrompt, checkAutoRegulation, getGoalGuidance } from "../config/guardrails";
 
 const openai = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
@@ -2411,6 +2412,7 @@ Be specific with numbers and provide meaningful context about what the changes m
 /**
  * Generate daily training recommendation based on readiness score and training plan
  * Safety-first AI logic: respects recovery signals and prioritizes user health
+ * Enforces HealthPilot Training Operating System guardrails (ACSM/NSCA/WHO-aligned)
  */
 export async function generateDailyTrainingRecommendation(data: {
   readinessScore: number;
@@ -2436,17 +2438,40 @@ export async function generateDailyTrainingRecommendation(data: {
     duration: number;
     startTime: Date;
   }>;
+  biomarkers?: {
+    cortisolAm?: number;
+    crpHs?: number;
+    testosteroneTotal?: number;
+    glucoseFasting?: number;
+    hba1c?: number;
+    vitaminD?: number;
+  };
+  userProfile?: {
+    age?: number;
+    trainingAgeYears?: number;
+    injuries?: string[];
+    medicalConditions?: string[];
+  };
 }) {
-  const completion = await retryWithBackoff(() => openai.chat.completions.create({
-    model: "gpt-4o",
-    max_tokens: 2048,
-    response_format: { type: "json_object" },
-    messages: [
-      {
-        role: "system",
-        content: `You are an AI fitness coach specializing in safety-first training recommendations. Your primary responsibility is user health and recovery. 
+  // Check auto-regulation triggers based on biomarkers and recovery metrics
+  const autoRegulationActions = checkAutoRegulation({
+    hrv_rmssd: data.readinessFactors.hrv.value ? {
+      current: data.readinessFactors.hrv.value,
+      baseline: data.readinessFactors.hrv.value // TODO: Get actual baseline from user profile
+    } : undefined,
+    sleep_hours: data.readinessFactors.sleep.value,
+    resting_hr: data.readinessFactors.restingHR.value ? {
+      current: data.readinessFactors.restingHR.value,
+      baseline: data.readinessFactors.restingHR.value // TODO: Get actual baseline from user profile
+    } : undefined
+  });
 
-READINESS-TO-WORKOUT MAPPING (Follow this EXACTLY):
+  // Build guardrails-enforced system prompt
+  const systemPrompt = buildGuardrailsSystemPrompt();
+
+  // Add readiness-specific guidance (supplements the guardrails)
+  const readinessGuidance = `
+READINESS-TO-WORKOUT MAPPING (Supplements guardrails above):
 
 Readiness 75-100: HIGH INTENSITY + 60-75 min primary
 - Heavy compound lifts (80-90% 1RM), sets close to failure
@@ -2472,16 +2497,16 @@ Readiness 40-59: LIGHT-MODERATE INTENSITY + 60 min primary
 Readiness <40: ACTIVE RECOVERY/REST only
 - Mobility work, stretching, gentle movement
 - Primary plan: 20-30 minutes maximum, very low intensity
-- Alternate plan: 15-20 minutes, complete rest option
+- Alternate plan: 15-20 minutes, complete rest option`;
 
-CRITICAL SAFETY RULES:
-1. NEVER recommend high-intensity workouts when readiness <60 or critical markers are low
-2. When sleep score <40, HRV <30, or resting HR elevated: recommend active recovery
-3. Always provide 3 options matching readiness level above
-4. Consider cumulative fatigue from recent workouts
-5. Duration and intensity MUST match the readiness band exactly as specified above
-
-Your recommendations should be specific, actionable, adaptive to recovery state, and include clear reasoning based on the readiness-to-workout mapping above.`
+  const completion = await retryWithBackoff(() => openai.chat.completions.create({
+    model: "gpt-4o",
+    max_tokens: 2048,
+    response_format: { type: "json_object" },
+    messages: [
+      {
+        role: "system",
+        content: systemPrompt + "\n\n" + readinessGuidance
       },
       {
         role: "user",
@@ -2494,6 +2519,13 @@ Your recommendations should be specific, actionable, adaptive to recovery state,
 - Resting Heart Rate: ${data.readinessFactors.restingHR.score}/100${data.readinessFactors.restingHR.value ? ` (${data.readinessFactors.restingHR.value.toFixed(0)} bpm)` : ''}
 - Workout Recovery: ${data.readinessFactors.workloadRecovery.score}/100
 
+${data.biomarkers ? `## Biomarker Data (Apply guardrails adjustments)
+${data.biomarkers.cortisolAm ? `- Cortisol (AM): ${data.biomarkers.cortisolAm} nmol/L\n` : ''}${data.biomarkers.crpHs ? `- CRP (hs): ${data.biomarkers.crpHs} mg/L\n` : ''}${data.biomarkers.testosteroneTotal ? `- Testosterone (Total): ${data.biomarkers.testosteroneTotal} nmol/L\n` : ''}${data.biomarkers.glucoseFasting ? `- Glucose (Fasting): ${data.biomarkers.glucoseFasting} mmol/L\n` : ''}${data.biomarkers.hba1c ? `- HbA1c: ${data.biomarkers.hba1c}%\n` : ''}${data.biomarkers.vitaminD ? `- Vitamin D (25-OH): ${data.biomarkers.vitaminD} nmol/L\n` : ''}` : ''}
+${autoRegulationActions.length > 0 ? `## Auto-Regulation Triggers (MUST APPLY)
+${autoRegulationActions.map(action => `⚠️ ${action}`).join('\n')}
+` : ''}
+${data.userProfile ? `## User Profile
+${data.userProfile.age ? `- Age: ${data.userProfile.age}\n` : ''}${data.userProfile.trainingAgeYears ? `- Training Experience: ${data.userProfile.trainingAgeYears} years\n` : ''}${data.userProfile.injuries && data.userProfile.injuries.length > 0 ? `- Injuries: ${data.userProfile.injuries.join(', ')}\n` : ''}${data.userProfile.medicalConditions && data.userProfile.medicalConditions.length > 0 ? `- Medical Conditions: ${data.userProfile.medicalConditions.join(', ')}\n` : ''}` : ''}
 ## Today's Scheduled Workout
 ${data.scheduledWorkout ? `
 - Type: ${data.scheduledWorkout.type}
