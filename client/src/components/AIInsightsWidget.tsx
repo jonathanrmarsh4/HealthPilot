@@ -126,6 +126,101 @@ export function AIInsightsWidget() {
     },
   });
 
+  const createSupplementMutation = useMutation({
+    mutationFn: async (supplementData: any) => {
+      const response = await apiRequest('POST', '/api/supplements', supplementData);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/supplements'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/daily-reminders/today'] });
+      toast({
+        title: "Supplement Added!",
+        description: "The recommended supplement has been added to your supplements page.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to add supplement",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Detect if insight is a supplement recommendation and extract details
+  const detectAndExtractSupplement = (insight: Insight): { isSupplementRecommendation: boolean; supplementData?: any } => {
+    // Safely get text from all available fields
+    const title = insight.title || '';
+    const description = insight.description || '';
+    const recommendation = insight.insightData?.recommendation || '';
+    const text = `${title} ${description} ${recommendation}`.toLowerCase();
+    
+    // Keywords that indicate supplement recommendation
+    const supplementKeywords = ['supplement', 'vitamin', 'mineral', 'omega', 'magnesium', 'calcium', 
+                                 'zinc', 'iron', 'b12', 'vitamin d', 'vitamin c', 'take', 'dosage', 'mg', 'iu'];
+    
+    const isSupplementRecommendation = supplementKeywords.some(keyword => text.includes(keyword));
+    
+    if (!isSupplementRecommendation) {
+      return { isSupplementRecommendation: false };
+    }
+
+    // Try to extract supplement details using patterns
+    // Prefer recommendation text, fallback to description
+    const recommendationText = recommendation || description || title;
+    
+    // Common patterns: "Take X mg", "X supplement", "vitamin X", etc.
+    let name = '';
+    let dosage = '';
+    let frequency = 'daily'; // Default to daily
+    
+    // Extract supplement name (look for vitamin/mineral/supplement names)
+    const namePatterns = [
+      /(?:vitamin|mineral|omega|take)\s+([a-z0-9\s-]+?)(?:\s+(?:supplement|daily|mg|iu|mcg))/i,
+      /([a-z]+(?:\s+[a-z]+)?)\s+supplement/i,
+      /consider\s+([a-z\s]+?)(?:\s+(?:supplement|for|to))/i,
+    ];
+    
+    for (const pattern of namePatterns) {
+      const match = recommendationText.match(pattern);
+      if (match && match[1]) {
+        name = match[1].trim();
+        break;
+      }
+    }
+    
+    // Extract dosage
+    const dosagePattern = /(\d+(?:\.\d+)?)\s*(mg|iu|mcg|g)/i;
+    const dosageMatch = recommendationText.match(dosagePattern);
+    if (dosageMatch) {
+      dosage = `${dosageMatch[1]}${dosageMatch[2].toLowerCase()}`;
+    }
+    
+    // Extract frequency
+    if (text.includes('twice daily') || text.includes('2x daily')) {
+      frequency = 'twice_daily';
+    } else if (text.includes('once daily') || text.includes('daily')) {
+      frequency = 'daily';
+    }
+    
+    // If we couldn't extract a name, use a fallback from the title
+    if (!name && title) {
+      name = title.replace(/consider\s+/i, '').replace(/supplement.*$/i, '').trim();
+    }
+
+    return {
+      isSupplementRecommendation: true,
+      supplementData: {
+        name: name || 'Recommended Supplement',
+        dosage: dosage || 'As recommended',
+        frequency,
+        reason: recommendationText,
+        active: 1
+      }
+    };
+  };
+
   const dismissMutation = useMutation({
     mutationFn: async (id: string) => {
       const response = await apiRequest('PATCH', `/api/insights/${id}/dismiss`);
@@ -289,19 +384,31 @@ export function AIInsightsWidget() {
                               feedback: 'thumbs_up' 
                             });
                             
-                            // If it's actionable, open scheduling. If it's a comment, it will just dismiss
-                            if (insight.insightType === 'actionable') {
+                            // Check if it's a supplement recommendation
+                            const { isSupplementRecommendation, supplementData } = detectAndExtractSupplement(insight);
+                            
+                            if (isSupplementRecommendation && supplementData) {
+                              // Create supplement and dismiss
+                              createSupplementMutation.mutate(supplementData);
+                              dismissMutation.mutate(insight.id);
+                            } else if (insight.insightType === 'actionable') {
+                              // If it's actionable (not supplement), open scheduling modal
                               setSchedulingInsightId(insight.id);
                             } else {
                               // Dismiss comment insights on thumbs up
                               dismissMutation.mutate(insight.id);
                             }
                           }}
-                          disabled={feedbackMutation.isPending}
+                          disabled={feedbackMutation.isPending || createSupplementMutation.isPending}
                           data-testid={`button-thumbs-up-${insight.id}`}
                         >
                           <ThumbsUp className="h-4 w-4" />
-                          {insight.insightType === 'actionable' ? 'Schedule' : 'Helpful'}
+                          {(() => {
+                            const { isSupplementRecommendation } = detectAndExtractSupplement(insight);
+                            if (isSupplementRecommendation) return 'Add Supplement';
+                            if (insight.insightType === 'actionable') return 'Schedule';
+                            return 'Helpful';
+                          })()}
                         </Button>
                         <Button
                           variant="ghost"

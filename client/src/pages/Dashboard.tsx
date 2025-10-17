@@ -13,6 +13,7 @@ import { GoalsSummaryWidget } from "@/components/GoalsSummaryWidget";
 import { DataInsightsWidget } from "@/components/DataInsightsWidget";
 import { BiologicalAgeWidget } from "@/components/BiologicalAgeWidget";
 import { ReadinessScoreWidget } from "@/components/ReadinessScoreWidget";
+import { DailyRemindersWidget } from "@/components/DailyRemindersWidget";
 import { Heart, Activity, Scale, Droplet, TrendingUp, Zap, Apple, AlertCircle, Dumbbell, Settings2, Eye, EyeOff, ChevronUp, ChevronDown, Dna, TrendingDown, Upload, Shield } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -56,6 +57,7 @@ interface DashboardPreferences {
 
 // All available optional widgets (for Manage Widgets)
 const ALL_OPTIONAL_WIDGETS = [
+  "daily-reminders",
   "quick-stats",
   "next-workout",
   "todays-meals",
@@ -68,6 +70,7 @@ const ALL_OPTIONAL_WIDGETS = [
 const DEFAULT_WIDGETS: string[] = [];
 
 const WIDGET_CONFIG: Record<string, { title: string; description: string }> = {
+  "daily-reminders": { title: "Daily Checklist", description: "Track daily health habits and reminders" },
   "quick-stats": { title: "Quick Stats", description: "Daily steps, heart rate, active days, calories" },
   "next-workout": { title: "Next Workout", description: "Upcoming training session" },
   "todays-meals": { title: "Today's Meals", description: "Daily meal plan overview" },
@@ -367,6 +370,9 @@ export default function Dashboard() {
     if (!isVisible(widget)) return null;
 
     switch (widget) {
+      case "daily-reminders":
+        return <DailyRemindersWidget key={widget} />;
+
       case "quick-stats":
         return statsLoading ? (
           <div key={widget} className="grid gap-6 md:grid-cols-4">

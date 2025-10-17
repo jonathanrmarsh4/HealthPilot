@@ -15,7 +15,6 @@ import { RecoveryProtocols } from "@/components/RecoveryProtocols";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { RecommendationCalendar } from "@/components/RecommendationCalendar";
 import { ScheduledRecommendationsCard } from "@/components/ScheduledRecommendationsCard";
-import { DailyRemindersCard } from "@/components/DailyRemindersCard";
 import { ScheduledInsightsCard } from "@/components/ScheduledInsightsCard";
 
 interface TrainingSchedule {
@@ -887,9 +886,6 @@ export default function Training() {
           )}
         </CardContent>
       </Card>
-
-      {/* Daily Reminders */}
-      <DailyRemindersCard />
 
       {/* Workout History (Collapsible) */}
       <Collapsible open={historyOpen} onOpenChange={setHistoryOpen}>

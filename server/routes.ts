@@ -5519,12 +5519,27 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
     const userId = (req.user as any).claims.sub;
 
     try {
-      const { visible, order } = req.body;
-      if (!Array.isArray(visible) || !Array.isArray(order)) {
-        return res.status(400).json({ error: "visible and order must be arrays" });
+      const { visible, order, ...otherPrefs } = req.body;
+      
+      // Validate visible and order if provided
+      if (visible !== undefined && !Array.isArray(visible)) {
+        return res.status(400).json({ error: "visible must be an array" });
       }
-      await storage.saveDashboardPreferences(userId, { visible, order });
-      res.json({ success: true, visible, order });
+      if (order !== undefined && !Array.isArray(order)) {
+        return res.status(400).json({ error: "order must be an array" });
+      }
+      
+      // Merge with existing preferences to preserve all fields
+      const existingPrefs = await storage.getDashboardPreferences(userId) || {};
+      const updatedPrefs = {
+        ...existingPrefs,
+        ...(visible !== undefined && { visible }),
+        ...(order !== undefined && { order }),
+        ...otherPrefs // Include any additional fields like reminderPreferences
+      };
+      
+      await storage.saveDashboardPreferences(userId, updatedPrefs);
+      res.json({ success: true, ...updatedPrefs });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
