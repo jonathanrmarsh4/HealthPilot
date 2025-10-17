@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { SwipeableMealCard } from "./SwipeableMealCard";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, RotateCcw, Sparkles } from "lucide-react";
@@ -7,6 +7,16 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
+type MealType = "breakfast" | "lunch" | "dinner";
+
+// Auto-detect meal type based on current time
+function getCurrentMealType(): MealType {
+  const hour = new Date().getHours();
+  if (hour >= 5 && hour < 11) return "breakfast";
+  if (hour >= 11 && hour < 16) return "lunch";
+  return "dinner";
+}
+
 interface MealSwipeViewProps {
   meals: MealPlan[];
   onMealTap: (meal: MealPlan) => void;
@@ -14,9 +24,22 @@ interface MealSwipeViewProps {
 }
 
 export function MealSwipeView({ meals, onMealTap, onBackToCalendar }: MealSwipeViewProps) {
+  const [selectedMealType, setSelectedMealType] = useState<MealType>(getCurrentMealType());
   const [currentIndex, setCurrentIndex] = useState(0);
   const [swipedMeals, setSwipedMeals] = useState<string[]>([]);
   const { toast } = useToast();
+
+  // Reset index and swiped meals when meal type changes
+  useEffect(() => {
+    setCurrentIndex(0);
+    setSwipedMeals([]);
+  }, [selectedMealType]);
+
+  // Filter meals by selected meal type
+  const filteredMeals = meals.filter(meal => {
+    const mealType = meal.mealType.toLowerCase();
+    return mealType === selectedMealType || mealType.includes(selectedMealType);
+  });
 
   const feedbackMutation = useMutation({
     mutationFn: async (feedback: {
@@ -38,13 +61,13 @@ export function MealSwipeView({ meals, onMealTap, onBackToCalendar }: MealSwipeV
   });
 
   const handleSwipeLeft = (meal: MealPlan) => {
-    // Left swipe = Skip (good but not now)
+    // Left swipe = Session skip (not for this meal, but might want later)
     feedbackMutation.mutate({
       mealPlanId: meal.id,
-      feedback: "skip",
+      feedback: "session_skip",
       swipeDirection: "left",
       mealName: meal.name,
-      mealType: meal.mealType,
+      mealType: selectedMealType,
       cuisines: meal.cuisines || [],
       dishTypes: meal.dishTypes || [],
       calories: meal.calories,
@@ -55,13 +78,13 @@ export function MealSwipeView({ meals, onMealTap, onBackToCalendar }: MealSwipeV
   };
 
   const handleSwipeRight = (meal: MealPlan) => {
-    // Right swipe = Dislike (bad meal)
+    // Right swipe = Session skip (same as left, just different gesture)
     feedbackMutation.mutate({
       mealPlanId: meal.id,
-      feedback: "dislike",
+      feedback: "session_skip",
       swipeDirection: "right",
       mealName: meal.name,
-      mealType: meal.mealType,
+      mealType: selectedMealType,
       cuisines: meal.cuisines || [],
       dishTypes: meal.dishTypes || [],
       calories: meal.calories,
@@ -84,8 +107,8 @@ export function MealSwipeView({ meals, onMealTap, onBackToCalendar }: MealSwipeV
     setSwipedMeals([]);
   };
 
-  const visibleMeals = meals.slice(currentIndex, currentIndex + 3);
-  const hasMoreMeals = currentIndex < meals.length;
+  const visibleMeals = filteredMeals.slice(currentIndex, currentIndex + 3);
+  const hasMoreMeals = currentIndex < filteredMeals.length;
   const canUndo = currentIndex > 0;
 
   if (!hasMoreMeals) {
@@ -125,7 +148,7 @@ export function MealSwipeView({ meals, onMealTap, onBackToCalendar }: MealSwipeV
           Back to Calendar
         </Button>
         <div className="text-sm text-muted-foreground" data-testid="text-meal-counter">
-          {currentIndex + 1} / {meals.length}
+          {currentIndex + 1} / {filteredMeals.length}
         </div>
         {canUndo && (
           <Button
@@ -138,6 +161,34 @@ export function MealSwipeView({ meals, onMealTap, onBackToCalendar }: MealSwipeV
             Undo
           </Button>
         )}
+      </div>
+
+      {/* Meal Type Selector */}
+      <div className="flex justify-center gap-2" data-testid="container-meal-type-selector">
+        <Button
+          variant={selectedMealType === "breakfast" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setSelectedMealType("breakfast")}
+          data-testid="button-select-breakfast"
+        >
+          Breakfast
+        </Button>
+        <Button
+          variant={selectedMealType === "lunch" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setSelectedMealType("lunch")}
+          data-testid="button-select-lunch"
+        >
+          Lunch
+        </Button>
+        <Button
+          variant={selectedMealType === "dinner" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setSelectedMealType("dinner")}
+          data-testid="button-select-dinner"
+        >
+          Dinner
+        </Button>
       </div>
 
       {/* Swipe Card Stack */}
@@ -158,16 +209,22 @@ export function MealSwipeView({ meals, onMealTap, onBackToCalendar }: MealSwipeV
       {/* Action Hints */}
       <div className="flex items-center justify-center gap-8 text-sm text-muted-foreground">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center">
-            <span className="text-green-500">←</span>
+          <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+            <span>←</span>
           </div>
-          <span>Skip</span>
+          <span>Pass</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center">
-            <span className="text-red-500">→</span>
+          <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+            <span className="text-primary">Tap</span>
           </div>
-          <span>Dislike</span>
+          <span>Select</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+            <span>→</span>
+          </div>
+          <span>Pass</span>
         </div>
       </div>
     </div>
