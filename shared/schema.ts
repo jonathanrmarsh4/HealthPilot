@@ -676,15 +676,23 @@ export const mealLibrary = pgTable("meal_library", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-// Meal Feedback - Track user feedback on library meals
+// Meal Feedback - Track user feedback on library meals and meal plans (swipe interface)
 export const mealFeedback = pgTable("meal_feedback", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull(),
-  mealLibraryId: varchar("meal_library_id").notNull(), // Reference to meal_library
-  feedback: text("feedback").notNull(), // 'thumbs_up' or 'thumbs_down'
+  mealLibraryId: varchar("meal_library_id"), // Reference to meal_library (optional for meal plan feedback)
+  mealPlanId: varchar("meal_plan_id"), // Reference to meal_plans (for swipe interface)
+  feedback: text("feedback").notNull(), // 'thumbs_up', 'thumbs_down', 'dislike', 'skip', 'accept'
+  swipeDirection: text("swipe_direction"), // 'left', 'right' for tracking actual swipe gesture
   // Track premium status at time of feedback (for deletion protection)
   userWasPremium: integer("user_was_premium").notNull().default(0), // 0 = false, 1 = true
-  notes: text("notes"), // Optional user notes
+  notes: text("notes"), // Optional user notes / reason for feedback
+  // AI learning data (for meal plan swipes)
+  mealName: text("meal_name"), // Store for AI learning
+  mealType: text("meal_type"), // breakfast, lunch, dinner
+  cuisines: text("cuisines").array(), // Track cuisine preferences
+  dishTypes: text("dish_types").array(), // Track dish type preferences
+  calories: integer("calories"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
