@@ -114,6 +114,11 @@ function AppLayout() {
 
   const currentPage = pageNames[location] || "Unknown Page";
 
+  // Invalidate all queries on navigation to ensure fresh data
+  useEffect(() => {
+    queryClient.invalidateQueries();
+  }, [location]);
+
   // Auto-open floating chat once on first login if onboarding not completed
   useEffect(() => {
     if (!onboardingLoading && shouldShowOnboarding && location !== "/chat" && !hasAutoOpened) {
