@@ -24,6 +24,8 @@ import {
   Settings,
   Mic,
   MessageSquare,
+  Lock,
+  ShieldCheck,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import {
@@ -96,6 +98,8 @@ const menuSections: MenuSection[] = [
       { title: "Fitness Profile", url: "/training/fitness-profile", icon: User },
       { title: "Nutrition Profile", url: "/meals/nutrition-profile", icon: Utensils },
       { title: "Integrations", url: "/apple-health", icon: Smartphone },
+      { title: "Privacy Policy", url: "/privacy", icon: Lock },
+      { title: "Privacy Dashboard", url: "/privacy-dashboard", icon: ShieldCheck },
     ],
   },
   {

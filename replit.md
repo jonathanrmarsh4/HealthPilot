@@ -26,6 +26,7 @@ The application is a full-stack project utilizing React, TypeScript, Tailwind CS
 - **Scheduling & Reminders:** AI insights scheduling system for recommendations, and a supplement tracking and daily reminders system.
 - **User Profiling & Onboarding:** A fitness profile personalization system for calibrated workouts and a contextual AI onboarding system.
 - **Security & Authentication:** Production-ready security using Replit Auth (OpenID Connect) with role-based access control, IDOR protection, privilege escalation prevention, and Zod schema validation. File upload security with validation. One-time EULA acceptance system.
+- **Privacy & Compliance (Phase 1):** Full international privacy compliance with GDPR, HIPAA, PIPEDA, and Australia Privacy Act requirements. Features: granular consent management (required/optional consents), comprehensive audit logging with IP/user-agent capture, 30-day account deletion grace period, JSON data export, Privacy Policy page, and Privacy Dashboard for user data control. All privacy operations logged to audit trail.
 - **Payment Processing:** Stripe integration for premium subscription purchases with webhook handling.
 - **Native iOS App:** Complete native iOS app implementation using Capacitor 7 for 100% code reuse, including direct HealthKit integration.
 - **Progressive Overload Training System:** Double progression algorithm automatically suggests weight increases based on performance and RPE.
