@@ -36,6 +36,8 @@ import VoiceChat from "@/pages/VoiceChat";
 import Profile from "@/pages/Profile";
 import Settings from "@/pages/Settings";
 import Pricing from "@/pages/Pricing";
+import PrivacyPolicy from "@/pages/PrivacyPolicy";
+import PrivacyDashboard from "@/pages/PrivacyDashboard";
 import Admin from "@/pages/Admin";
 import AdminMealLibrary from "@/pages/AdminMealLibrary";
 import AIAuditLog from "@/pages/AIAuditLog";
@@ -70,6 +72,8 @@ function Router() {
       <Route path="/apple-health" component={AppleHealthSetup} />
       <Route path="/settings" component={Settings} />
       <Route path="/pricing" component={Pricing} />
+      <Route path="/privacy" component={PrivacyPolicy} />
+      <Route path="/privacy-dashboard" component={PrivacyDashboard} />
       <Route path="/admin" component={Admin} />
       <Route path="/admin/meal-library" component={AdminMealLibrary} />
       <Route path="/admin/ai-audit" component={AIAuditLog} />
@@ -109,6 +113,8 @@ function AppLayout() {
     "/apple-health": "Apple Health Setup",
     "/settings": "Settings",
     "/pricing": "Pricing",
+    "/privacy": "Privacy Policy",
+    "/privacy-dashboard": "Privacy & Data Control",
     "/admin": "Admin Panel",
     "/admin/meal-library": "Meal Library",
     "/admin/ai-audit": "AI Audit Log"

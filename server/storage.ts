@@ -342,6 +342,12 @@ export interface IStorage {
   generateProactiveSuggestion(userId: string, deficit: { metricType: string; currentValue: number; targetValue: number; deficit: number; priority: string }): Promise<any>;
   getActiveSuggestions(userId: string): Promise<any[]>;
   respondToSuggestion(userId: string, suggestionId: string, response: string, scheduledFor?: Date): Promise<any>;
+  
+  // Privacy & Compliance methods
+  createUserConsent(consent: { userId: string; consentType: string; consentGiven: boolean; consentText?: string; ipAddress?: string; userAgent?: string }): Promise<any>;
+  getUserConsent(userId: string, consentType?: string): Promise<any[]>;
+  createAuditLog(log: { userId: string; action: string; resourceType?: string; resourceId?: string; details?: any; ipAddress?: string; userAgent?: string }): Promise<void>;
+  getAuditLogsForUser(userId: string, limit?: number): Promise<any[]>;
 }
 
 export class DbStorage implements IStorage {
@@ -2831,6 +2837,67 @@ export class DbStorage implements IStorage {
       suggestion: { ...suggestion, status: newStatus },
       scheduled: response === 'accepted' && scheduledFor
     };
+  }
+
+  // Privacy & Compliance implementations
+  async createUserConsent(consent: { userId: string; consentType: string; consentGiven: boolean; consentText?: string; ipAddress?: string; userAgent?: string }): Promise<any> {
+    const { userConsents } = await import("@shared/schema");
+    
+    const [result] = await db.insert(userConsents).values({
+      userId: consent.userId,
+      consentType: consent.consentType,
+      granted: consent.consentGiven ? 1 : 0, // Convert boolean to integer
+      grantedAt: consent.consentGiven ? new Date() : null,
+      ipAddress: consent.ipAddress || null,
+      userAgent: consent.userAgent || null,
+    }).returning();
+    
+    return result;
+  }
+
+  async getUserConsent(userId: string, consentType?: string): Promise<any[]> {
+    const { userConsents } = await import("@shared/schema");
+    
+    if (consentType) {
+      // Use and() to combine both conditions
+      return await db.select()
+        .from(userConsents)
+        .where(and(
+          eq(userConsents.userId, userId),
+          eq(userConsents.consentType, consentType)
+        ));
+    }
+    
+    // Just user filter if no consent type specified
+    return await db.select()
+      .from(userConsents)
+      .where(eq(userConsents.userId, userId));
+  }
+
+  async createAuditLog(log: { userId: string; action: string; resourceType?: string; resourceId?: string; details?: any; ipAddress?: string; userAgent?: string }): Promise<void> {
+    const { auditLogs } = await import("@shared/schema");
+    
+    await db.insert(auditLogs).values({
+      userId: log.userId,
+      action: log.action,
+      resourceType: log.resourceType || null,
+      resourceId: log.resourceId || null,
+      metadata: log.details || null, // Use 'metadata' column name from schema
+      ipAddress: log.ipAddress || null,
+      userAgent: log.userAgent || null,
+    });
+  }
+
+  async getAuditLogsForUser(userId: string, limit: number = 100): Promise<any[]> {
+    const { auditLogs } = await import("@shared/schema");
+    
+    const logs = await db.select()
+      .from(auditLogs)
+      .where(eq(auditLogs.userId, userId))
+      .orderBy(desc(auditLogs.timestamp))
+      .limit(limit);
+    
+    return logs;
   }
 }
 

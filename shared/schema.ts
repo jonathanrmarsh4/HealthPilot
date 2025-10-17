@@ -48,6 +48,9 @@ export const users = pgTable("users", {
   onboardingStartedAt: timestamp("onboarding_started_at"),
   onboardingCompletedAt: timestamp("onboarding_completed_at"),
   eulaAcceptedAt: timestamp("eula_accepted_at"),
+  // Privacy & Compliance fields
+  consentGivenAt: timestamp("consent_given_at"),
+  deletionScheduledAt: timestamp("deletion_scheduled_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -962,6 +965,51 @@ export type MealFeedback = typeof mealFeedback.$inferSelect;
 
 export type InsertMealLibrarySettings = z.infer<typeof insertMealLibrarySettingsSchema>;
 export type MealLibrarySettings = typeof mealLibrarySettings.$inferSelect;
+
+// User consent tracking for GDPR/HIPAA compliance
+export const userConsents = pgTable("user_consents", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  consentType: varchar("consent_type").notNull(), // 'health_data', 'ai_analysis', 'third_party', 'marketing'
+  granted: integer("granted").notNull().default(0), // 0 = false, 1 = true
+  grantedAt: timestamp("granted_at"),
+  revokedAt: timestamp("revoked_at"),
+  ipAddress: varchar("ip_address"),
+  userAgent: varchar("user_agent"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertUserConsentSchema = createInsertSchema(userConsents).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertUserConsent = z.infer<typeof insertUserConsentSchema>;
+export type UserConsent = typeof userConsents.$inferSelect;
+
+// Comprehensive audit logging for HIPAA/GDPR compliance
+export const auditLogs = pgTable("audit_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  action: varchar("action").notNull(), // 'read', 'create', 'update', 'delete', 'export'
+  resourceType: varchar("resource_type").notNull(), // 'biomarker', 'workout', 'chat_message', etc.
+  resourceId: varchar("resource_id"),
+  ipAddress: varchar("ip_address"),
+  userAgent: varchar("user_agent"),
+  metadata: jsonb("metadata"), // Additional context
+  timestamp: timestamp("timestamp").notNull().defaultNow(),
+}, (table) => [
+  index("audit_logs_user_id_idx").on(table.userId),
+  index("audit_logs_timestamp_idx").on(table.timestamp),
+]);
+
+export const insertAuditLogSchema = createInsertSchema(auditLogs).omit({
+  id: true,
+  timestamp: true,
+});
+
+export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
+export type AuditLog = typeof auditLogs.$inferSelect;
 
 // Message usage tracking for free tier limits
 export const messageUsage = pgTable("message_usage", {

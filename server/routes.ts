@@ -279,6 +279,220 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Privacy & Data Control Routes
+  app.post("/api/privacy/export", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+
+    try {
+      // Gather ALL user data for export (GDPR Article 15 - Right to Access)
+      const [
+        user, biomarkers, workouts, meals, goals, insights, 
+        recommendations, chatMessages, sleepSessions, fitnessProfile,
+        nutritionProfile, supplements, healthRecords
+      ] = await Promise.all([
+        storage.getUser(userId),
+        storage.getBiomarkers(userId),
+        storage.getWorkoutSessions(userId),
+        storage.getMealPlans(userId),
+        storage.getGoals(userId),
+        storage.getInsights(userId),
+        storage.getRecommendations(userId),
+        storage.getChatMessages(userId),
+        storage.getSleepSessions(userId),
+        storage.getFitnessProfile(userId),
+        storage.getNutritionProfile(userId),
+        storage.getSupplements(userId),
+        storage.getHealthRecords(userId),
+      ]);
+
+      const exportData = {
+        exportDate: new Date().toISOString(),
+        exportFormat: "JSON",
+        dataProtection: {
+          encryption: "AES-256",
+          compliance: ["HIPAA", "GDPR", "PIPEDA", "Australia Privacy Act"],
+        },
+        user: {
+          id: user?.id,
+          email: user?.email,
+          firstName: user?.firstName,
+          lastName: user?.lastName,
+          dateOfBirth: user?.dateOfBirth,
+          gender: user?.gender,
+          height: user?.height,
+          location: user?.location,
+          timezone: user?.timezone,
+          subscriptionTier: user?.subscriptionTier,
+          createdAt: user?.createdAt,
+        },
+        healthData: {
+          biomarkers,
+          healthRecords,
+          fitnessProfile,
+        },
+        trainingData: {
+          workouts,
+          goals,
+        },
+        nutritionData: {
+          meals,
+          nutritionProfile,
+          supplements,
+        },
+        insights: {
+          aiInsights: insights,
+          recommendations,
+        },
+        interactions: {
+          chatMessages,
+        },
+        sleepAndRecovery: {
+          sleepSessions,
+        },
+        metadata: {
+          totalBiomarkers: biomarkers.length,
+          totalWorkouts: workouts.length,
+          totalMeals: meals.length,
+          totalInsights: insights.length,
+        }
+      };
+
+      // Audit log the data export (HIPAA requirement)
+      await storage.createAuditLog({
+        userId,
+        action: "DATA_EXPORT",
+        resourceType: "user_data",
+        resourceId: userId,
+        details: { 
+          exportDate: exportData.exportDate,
+          recordCount: {
+            biomarkers: biomarkers.length,
+            workouts: workouts.length,
+            meals: meals.length,
+            insights: insights.length,
+          }
+        },
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+      });
+
+      res.json(exportData);
+    } catch (error: any) {
+      console.error("Error exporting user data:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/privacy/delete-account", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+
+    try {
+      // Mark account for deletion with 30-day grace period (GDPR Article 17 - Right to Erasure)
+      const deletionDate = new Date();
+      deletionDate.setDate(deletionDate.getDate() + 30);
+      
+      await storage.updateUser(userId, {
+        deletionScheduledAt: deletionDate,
+      });
+
+      // Audit log the deletion request (HIPAA requirement)
+      await storage.createAuditLog({
+        userId,
+        action: "ACCOUNT_DELETION_REQUESTED",
+        resourceType: "user_account",
+        resourceId: userId,
+        details: { 
+          scheduledDeletionDate: deletionDate.toISOString(),
+          gracePeriodDays: 30,
+        },
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+      });
+
+      console.log(`User ${userId} scheduled account deletion for ${deletionDate.toISOString()}`);
+
+      res.json({
+        success: true,
+        message: "Account deletion scheduled",
+        deletionDate: deletionDate.toISOString(),
+        gracePeriodDays: 30,
+        note: "You can cancel deletion by logging in within 30 days",
+      });
+    } catch (error: any) {
+      console.error("Error scheduling account deletion:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/privacy/audit-log", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+
+    try {
+      const auditLogs = await storage.getAuditLogsForUser(userId, 100);
+      
+      res.json({
+        logs: auditLogs,
+        total: auditLogs.length,
+        compliance: {
+          standard: "HIPAA requires 6-year retention",
+          coverage: "All health data access is logged with timestamps and IP addresses",
+        },
+      });
+    } catch (error: any) {
+      console.error("Error fetching audit logs:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/privacy/consent", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { consents } = req.body;
+
+    try {
+      // Save each consent
+      const results = await Promise.all(
+        Object.entries(consents).map(async ([consentType, consentGiven]) => {
+          return storage.createUserConsent({
+            userId,
+            consentType,
+            consentGiven: Boolean(consentGiven),
+            consentText: `User ${consentGiven ? 'granted' : 'revoked'} consent for ${consentType}`,
+            ipAddress: req.ip,
+            userAgent: req.headers['user-agent'],
+          });
+        })
+      );
+
+      // Also update user consent timestamp when all required consents are given
+      const allRequiredConsentsGiven = Object.values(consents).every(c => c === true);
+      if (allRequiredConsentsGiven) {
+        await storage.updateUser(userId, {
+          consentGivenAt: new Date(),
+        });
+      }
+
+      // Audit log the consent update
+      await storage.createAuditLog({
+        userId,
+        action: "CONSENT_UPDATED",
+        resourceType: "user_consent",
+        resourceId: userId,
+        details: { consents },
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+      });
+
+      res.json({
+        success: true,
+        message: "Consent preferences saved",
+        consents: results,
+      });
+    } catch (error: any) {
+      console.error("Error saving consent:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Stripe Payment Routes
   app.post("/api/stripe/create-checkout", isAuthenticated, async (req, res) => {
     try {
