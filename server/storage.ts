@@ -1314,12 +1314,26 @@ export class DbStorage implements IStorage {
   }
 
   async getInsights(userId: string, limit: number = 10): Promise<Insight[]> {
-    return await db
+    // Get insights that are not dismissed
+    const allInsights = await db
       .select()
       .from(insights)
       .where(and(eq(insights.userId, userId), eq(insights.dismissed, 0)))
       .orderBy(desc(insights.createdAt))
-      .limit(limit);
+      .limit(limit * 2); // Get more to account for filtering
+
+    // Filter out insights that have been scheduled
+    const scheduledInsightIds = await db
+      .select({ insightId: scheduledInsights.insightId })
+      .from(scheduledInsights)
+      .where(eq(scheduledInsights.userId, userId));
+
+    const scheduledIds = new Set(scheduledInsightIds.map(s => s.insightId).filter(Boolean));
+    
+    const filtered = allInsights.filter(insight => !scheduledIds.has(insight.id));
+    
+    // Return only the requested limit
+    return filtered.slice(0, limit);
   }
 
   async getDailyInsights(userId: string, date: Date): Promise<Insight[]> {
@@ -1328,7 +1342,8 @@ export class DbStorage implements IStorage {
     const endOfDay = new Date(date);
     endOfDay.setHours(23, 59, 59, 999);
 
-    return await db
+    // Get insights that are not dismissed and not scheduled
+    const allInsights = await db
       .select()
       .from(insights)
       .where(
@@ -1340,6 +1355,16 @@ export class DbStorage implements IStorage {
         )
       )
       .orderBy(desc(insights.priority), desc(insights.createdAt));
+
+    // Filter out insights that have been scheduled
+    const scheduledInsightIds = await db
+      .select({ insightId: scheduledInsights.insightId })
+      .from(scheduledInsights)
+      .where(eq(scheduledInsights.userId, userId));
+
+    const scheduledIds = new Set(scheduledInsightIds.map(s => s.insightId).filter(Boolean));
+    
+    return allInsights.filter(insight => !scheduledIds.has(insight.id));
   }
 
   async dismissInsight(id: string, userId: string): Promise<void> {
