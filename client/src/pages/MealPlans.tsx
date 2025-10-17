@@ -1,8 +1,9 @@
 import { WeeklyMealCalendar } from "@/components/WeeklyMealCalendar";
 import { RecipeDetailModal } from "@/components/RecipeDetailModal";
+import { MealSwipeView } from "@/components/MealSwipeView";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, Loader2, Lock } from "lucide-react";
+import { Sparkles, Loader2, Lock, LayoutGrid, Flame } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -13,11 +14,14 @@ import type { MealPlan } from "@shared/schema";
 import { useState } from "react";
 import { format, min, max, parseISO } from "date-fns";
 
+type ViewMode = "calendar" | "swipe";
+
 export default function MealPlans() {
   const { toast } = useToast();
   const [selectedMeal, setSelectedMeal] = useState<MealPlan | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [upgradePromptOpen, setUpgradePromptOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>("calendar");
   
   const { data: meals, isLoading } = useQuery<MealPlan[]>({
     queryKey: ["/api/meal-plans"],
@@ -89,23 +93,47 @@ export default function MealPlans() {
             }
           </p>
         </div>
-        <Button 
-          onClick={handleGenerateClick} 
-          disabled={generateMutation.isPending}
-          data-testid="button-generate-plan"
-        >
-          {generateMutation.isPending ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Generating Meal Plan...
-            </>
-          ) : (
-            <>
-              <Sparkles className="mr-2 h-4 w-4" />
-              Generate Meal Plan
-            </>
+        <div className="flex items-center gap-3">
+          {meals && meals.length > 0 && (
+            <div className="flex items-center gap-1 border rounded-md p-1">
+              <Button
+                variant={viewMode === "calendar" ? "secondary" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode("calendar")}
+                data-testid="button-view-calendar"
+              >
+                <LayoutGrid className="h-4 w-4 mr-2" />
+                Calendar
+              </Button>
+              <Button
+                variant={viewMode === "swipe" ? "secondary" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode("swipe")}
+                data-testid="button-view-swipe"
+              >
+                <Flame className="h-4 w-4 mr-2" />
+                Swipe
+              </Button>
+            </div>
           )}
-        </Button>
+          <Button 
+            onClick={handleGenerateClick} 
+            disabled={generateMutation.isPending}
+            data-testid="button-generate-plan"
+          >
+            {generateMutation.isPending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Generating...
+              </>
+            ) : (
+              <>
+                <Sparkles className="mr-2 h-4 w-4" />
+                Generate
+              </>
+            )}
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -119,17 +147,28 @@ export default function MealPlans() {
           ))}
         </div>
       ) : meals && meals.length > 0 ? (
-        <WeeklyMealCalendar 
-          meals={meals} 
-          onMealClick={(meal) => {
-            setSelectedMeal(meal);
-            setModalOpen(true);
-          }}
-        />
+        viewMode === "calendar" ? (
+          <WeeklyMealCalendar 
+            meals={meals} 
+            onMealClick={(meal) => {
+              setSelectedMeal(meal);
+              setModalOpen(true);
+            }}
+          />
+        ) : (
+          <MealSwipeView
+            meals={meals}
+            onMealTap={(meal) => {
+              setSelectedMeal(meal);
+              setModalOpen(true);
+            }}
+            onBackToCalendar={() => setViewMode("calendar")}
+          />
+        )
       ) : (
         <Card>
           <CardContent className="p-12 text-center text-muted-foreground">
-            No meal plans available. Click "Generate Meal Plan" to create AI-powered meal suggestions.
+            No meal plans available. Click "Generate" to create AI-powered meal suggestions.
           </CardContent>
         </Card>
       )}
