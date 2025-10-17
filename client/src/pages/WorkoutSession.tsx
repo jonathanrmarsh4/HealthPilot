@@ -18,8 +18,6 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { 
   ChevronLeft, 
-  Play, 
-  Pause, 
   CheckCircle2, 
   Circle, 
   Timer, 
@@ -27,9 +25,27 @@ import {
   Dumbbell,
   Trophy,
   Clock,
-  Repeat
+  Repeat,
+  GripVertical
 } from "lucide-react";
 import { format, differenceInSeconds } from "date-fns";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface Exercise {
   id: string;
@@ -53,8 +69,8 @@ interface ExerciseSet {
   setIndex: number;
   targetRepsLow?: number;
   targetRepsHigh?: number;
-  weight?: number;
-  reps?: number;
+  weight?: number | null;
+  reps?: number | null;
   rpeLogged?: number;
   completed: number;
   notes?: string;
@@ -80,6 +96,208 @@ interface ProgressiveOverloadSuggestion {
   lastWeight: number | null;
   lastReps: number | null;
   reason: string;
+}
+
+// Sortable Exercise Card Component
+function SortableExerciseCard({ 
+  exercise, 
+  exerciseSets, 
+  completedSets,
+  exerciseIndex,
+  progressiveSuggestion,
+  updateSetMutation,
+  handleCompleteSet,
+  handleShowAlternatives
+}: {
+  exercise: Exercise;
+  exerciseSets: ExerciseSet[];
+  completedSets: number;
+  exerciseIndex: number;
+  progressiveSuggestion?: ProgressiveOverloadSuggestion;
+  updateSetMutation: any;
+  handleCompleteSet: (set: ExerciseSet, exercise: Exercise) => void;
+  handleShowAlternatives: (exercise: Exercise) => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: exercise.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <Card 
+      ref={setNodeRef} 
+      style={style}
+      className={isDragging ? "shadow-lg" : ""}
+      data-testid={`card-exercise-${exerciseIndex}`}
+    >
+      <CardHeader className="pb-3 space-y-0">
+        <div className="flex items-start gap-3">
+          {/* Drag Handle */}
+          <button
+            className="mt-1 cursor-grab active:cursor-grabbing touch-none p-1 hover-elevate rounded"
+            {...attributes}
+            {...listeners}
+            data-testid={`button-drag-${exerciseIndex}`}
+          >
+            <GripVertical className="h-5 w-5 text-muted-foreground" />
+          </button>
+
+          {/* Exercise Info */}
+          <div className="flex-1 min-w-0">
+            <CardTitle className="text-base leading-tight" data-testid={`text-exercise-name-${exerciseIndex}`}>
+              {exercise.name}
+            </CardTitle>
+            <p className="text-xs text-muted-foreground mt-1 truncate">
+              {exercise.muscles.slice(0, 2).join(", ")} • {exercise.equipment}
+            </p>
+            
+            {/* Progressive Overload Suggestion - Compact */}
+            {progressiveSuggestion?.lastWeight !== null && progressiveSuggestion && (
+              <div className="mt-2 flex items-center gap-1.5 text-xs" data-testid={`suggestion-${exerciseIndex}`}>
+                <TrendingUp className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+                <span className="text-muted-foreground">Last:</span>
+                <span className="font-medium">
+                  {progressiveSuggestion.lastWeight}kg × {progressiveSuggestion.lastReps}
+                </span>
+                {progressiveSuggestion.suggestedWeight !== progressiveSuggestion.lastWeight && (
+                  <span className="text-primary font-semibold">
+                    → {progressiveSuggestion.suggestedWeight}kg
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Actions Column */}
+          <div className="flex flex-col items-end gap-1.5">
+            <Badge variant="outline" className="text-xs" data-testid={`badge-exercise-sets-${exerciseIndex}`}>
+              {completedSets}/{exerciseSets.length}
+            </Badge>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleShowAlternatives(exercise)}
+              data-testid={`button-swap-${exerciseIndex}`}
+              className="h-7 px-2 text-xs"
+            >
+              <Repeat className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </div>
+      </CardHeader>
+
+      <CardContent className="space-y-2 pt-0">
+        {exerciseSets.map((set, setIndex) => (
+          <div
+            key={set.id}
+            className={`p-3 rounded-lg border ${
+              set.completed === 1 ? "bg-green-500/5 border-green-500/20" : "bg-muted/30"
+            }`}
+            data-testid={`set-${exerciseIndex}-${setIndex}`}
+          >
+            {/* Set Header Row */}
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                {set.completed === 1 ? (
+                  <CheckCircle2 className="h-4 w-4 text-green-500" data-testid={`icon-set-complete-${exerciseIndex}-${setIndex}`} />
+                ) : (
+                  <Circle className="h-4 w-4 text-muted-foreground" data-testid={`icon-set-incomplete-${exerciseIndex}-${setIndex}`} />
+                )}
+                <span className="text-sm font-medium">Set {setIndex + 1}</span>
+              </div>
+              {set.targetRepsLow && set.targetRepsHigh && (
+                <span className="text-xs text-muted-foreground">
+                  Target: {set.targetRepsLow}-{set.targetRepsHigh}
+                </span>
+              )}
+            </div>
+
+            {/* Inputs Row - Horizontal Layout */}
+            <div className="flex items-end gap-2">
+              {/* Weight Input */}
+              <div className="flex-1">
+                <label className="text-xs text-muted-foreground block mb-1">Weight (kg)</label>
+                <div className="flex gap-1">
+                  <Input
+                    type="number"
+                    step="0.1"
+                    placeholder="0"
+                    value={set.weight === null ? "" : (set.weight ?? "")}
+                    onChange={(e) =>
+                      updateSetMutation.mutate({
+                        setId: set.id,
+                        data: { weight: e.target.value === "" ? null : parseFloat(e.target.value) },
+                      })
+                    }
+                    disabled={set.completed === 1 || set.weight === null}
+                    className="h-10 text-base flex-1"
+                    data-testid={`input-weight-${exerciseIndex}-${setIndex}`}
+                  />
+                  <Button
+                    size="sm"
+                    variant={set.weight === null ? "default" : "outline"}
+                    onClick={() =>
+                      updateSetMutation.mutate({
+                        setId: set.id,
+                        data: { weight: set.weight === null ? (progressiveSuggestion?.suggestedWeight ?? 0) : null },
+                      })
+                    }
+                    disabled={set.completed === 1}
+                    className="h-10 px-3 text-xs"
+                    data-testid={`button-bodyweight-${exerciseIndex}-${setIndex}`}
+                  >
+                    BW
+                  </Button>
+                </div>
+              </div>
+
+              {/* Reps Input */}
+              <div className="flex-1">
+                <label className="text-xs text-muted-foreground block mb-1">Reps</label>
+                <Input
+                  type="number"
+                  placeholder="0"
+                  value={set.reps ?? ""}
+                  onChange={(e) =>
+                    updateSetMutation.mutate({
+                      setId: set.id,
+                      data: { reps: e.target.value === "" ? null : parseInt(e.target.value) },
+                    })
+                  }
+                  disabled={set.completed === 1}
+                  className="h-10 text-base"
+                  data-testid={`input-reps-${exerciseIndex}-${setIndex}`}
+                />
+              </div>
+
+              {/* Complete Button */}
+              {set.completed === 0 && (
+                <Button
+                  size="default"
+                  onClick={() => handleCompleteSet(set, exercise)}
+                  disabled={set.weight === null ? !set.reps : (!set.weight || !set.reps)}
+                  className="h-10 px-4"
+                  data-testid={`button-complete-set-${exerciseIndex}-${setIndex}`}
+                >
+                  ✓
+                </Button>
+              )}
+            </div>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  );
 }
 
 export default function WorkoutSession() {
@@ -116,17 +334,46 @@ export default function WorkoutSession() {
     enabled: !!sessionId,
   });
 
-  // Store progressive overload suggestions
-  const [progressiveSuggestions, setProgressiveSuggestions] = useState<Map<string, ProgressiveOverloadSuggestion>>(new Map());
+  // Exercise order state (for drag-and-drop)
+  const [exerciseOrder, setExerciseOrder] = useState<string[]>([]);
 
-  // Fetch progressive overload suggestions for all exercises (batched for performance)
+  // Sync exercise order when exercises change (including after swaps)
+  useEffect(() => {
+    if (exercises.length > 0) {
+      const currentIds = exercises.map(e => e.id);
+      const needsUpdate = exerciseOrder.length !== currentIds.length || 
+                         currentIds.some(id => !exerciseOrder.includes(id));
+      
+      if (needsUpdate) {
+        const removedIds = exerciseOrder.filter(id => !currentIds.includes(id));
+        const newIds = currentIds.filter(id => !exerciseOrder.includes(id));
+        
+        // Handle swaps: if one removed and one added, replace at same position
+        if (removedIds.length === 1 && newIds.length === 1) {
+          const removedIndex = exerciseOrder.indexOf(removedIds[0]);
+          const newOrder = [...exerciseOrder];
+          newOrder[removedIndex] = newIds[0];
+          setExerciseOrder(newOrder);
+        } else {
+          // Otherwise preserve existing order and append new IDs
+          const preserved = exerciseOrder.filter(id => currentIds.includes(id));
+          setExerciseOrder([...preserved, ...newIds]);
+        }
+      }
+    }
+  }, [exercises, exerciseOrder]);
+
+  // Store progressive overload suggestions and track auto-populated sets
+  const [progressiveSuggestions, setProgressiveSuggestions] = useState<Map<string, ProgressiveOverloadSuggestion>>(new Map());
+  const [autoPopulatedSetIds, setAutoPopulatedSetIds] = useState<Set<string>>(new Set());
+
+  // Fetch progressive overload suggestions for all exercises
   useEffect(() => {
     if (!exercises.length) return;
 
     const fetchSuggestions = async () => {
       const suggestions = new Map<string, ProgressiveOverloadSuggestion>();
       
-      // Batch all requests with Promise.all to avoid sequential waterfall
       const fetchPromises = exercises.map(async (exercise) => {
         try {
           const response = await fetch(`/api/exercises/${exercise.id}/progressive-overload`, {
@@ -144,7 +391,6 @@ export default function WorkoutSession() {
       
       const results = await Promise.all(fetchPromises);
       
-      // Build suggestions map from results
       results.forEach((result) => {
         if (result) {
           suggestions.set(result.exerciseId, result.suggestion);
@@ -156,6 +402,52 @@ export default function WorkoutSession() {
 
     fetchSuggestions();
   }, [exercises]);
+
+  // Auto-populate weight and reps from progressive overload suggestions (per-set tracking)
+  useEffect(() => {
+    if (!sets.length || !progressiveSuggestions.size) return;
+
+    const updatePromises: Promise<any>[] = [];
+    const newlyPopulatedIds: string[] = [];
+
+    sets.forEach((set) => {
+      // Skip if already auto-populated
+      if (autoPopulatedSetIds.has(set.id)) return;
+      
+      const suggestion = progressiveSuggestions.get(set.exerciseId);
+      if (!suggestion) return;
+
+      // Only auto-populate if the set is empty and not completed
+      if (set.completed === 0 && !set.weight && !set.reps) {
+        const updateData: Partial<ExerciseSet> = {};
+        
+        if (suggestion.suggestedWeight !== null) {
+          updateData.weight = suggestion.suggestedWeight;
+        }
+        if (suggestion.lastReps !== null) {
+          updateData.reps = suggestion.lastReps;
+        }
+
+        if (Object.keys(updateData).length > 0) {
+          newlyPopulatedIds.push(set.id);
+          updatePromises.push(
+            apiRequest("PATCH", `/api/exercise-sets/${set.id}`, updateData)
+          );
+        }
+      }
+    });
+
+    if (updatePromises.length > 0) {
+      Promise.all(updatePromises).then(() => {
+        setAutoPopulatedSetIds(prev => {
+          const updated = new Set(prev);
+          newlyPopulatedIds.forEach(id => updated.add(id));
+          return updated;
+        });
+        queryClient.invalidateQueries({ queryKey: ["/api/workout-sessions", sessionId, "sets"] });
+      });
+    }
+  }, [sets, progressiveSuggestions, autoPopulatedSetIds, sessionId]);
 
   // Timer for elapsed time
   useEffect(() => {
@@ -178,7 +470,6 @@ export default function WorkoutSession() {
         if (interval) clearInterval(interval);
       };
     } else if (restTimer === 0) {
-      // Timer finished, play alert
       toast({
         title: "Rest Complete!",
         description: "Ready for your next set",
@@ -190,11 +481,23 @@ export default function WorkoutSession() {
 
   // Update set mutation
   const updateSetMutation = useMutation({
-    mutationFn: async ({ setId, data }: { setId: string; data: Partial<ExerciseSet> }) => {
-      return apiRequest("PATCH", `/api/exercise-sets/${setId}`, data);
+    mutationFn: async ({ setId, data, startRest }: { setId: string; data: Partial<ExerciseSet>; startRest?: { duration: number } }) => {
+      const result = await apiRequest("PATCH", `/api/exercise-sets/${setId}`, data);
+      return { result, startRest };
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/workout-sessions", sessionId, "sets"] });
+    onSuccess: (data) => {
+      console.log('[WorkoutSession] Set update successful, startRest:', data.startRest);
+      
+      // Start rest timer BEFORE invalidating queries to prevent race condition
+      if (data.startRest) {
+        console.log('[WorkoutSession] Setting rest timer to:', data.startRest.duration);
+        setRestTimer(data.startRest.duration);
+      }
+      
+      // Invalidate queries after a small delay to let state update
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["/api/workout-sessions", sessionId, "sets"] });
+      }, 100);
     },
     onError: (error: Error) => {
       toast({
@@ -207,16 +510,17 @@ export default function WorkoutSession() {
 
   // Complete set and start rest timer
   const handleCompleteSet = (set: ExerciseSet, exercise: Exercise) => {
+    const restDuration = exercise.restDefault || 90;
+    console.log('[WorkoutSession] Completing set, rest duration:', restDuration);
+    
     updateSetMutation.mutate({
       setId: set.id,
       data: {
         completed: 1,
         restStartedAt: new Date().toISOString(),
       },
+      startRest: { duration: restDuration },
     });
-
-    // Start rest timer
-    setRestTimer(exercise.restDefault || 90);
   };
 
   // Cancel rest timer
@@ -229,7 +533,7 @@ export default function WorkoutSession() {
   const handleShowAlternatives = async (exercise: Exercise) => {
     setSelectedExerciseForSwap(exercise);
     setSwapDialogOpen(true);
-    setAlternatives([]); // Reset alternatives to prevent stale data
+    setAlternatives([]);
     setLoadingAlternatives(true);
     setAlternativesError(null);
     
@@ -257,18 +561,16 @@ export default function WorkoutSession() {
     }
   };
 
-  // Swap exercise (replace all sets for this exercise with the alternative)
+  // Swap exercise
   const handleSwapExercise = async (alternativeExercise: Exercise) => {
     if (!selectedExerciseForSwap || !sessionId) return;
 
     try {
-      // Call swap endpoint to replace exercise
       await apiRequest("POST", `/api/workout-sessions/${sessionId}/swap-exercise`, {
         oldExerciseId: selectedExerciseForSwap.id,
         newExerciseId: alternativeExercise.id,
       });
 
-      // Invalidate queries to refetch updated data
       queryClient.invalidateQueries({ queryKey: ["/api/workout-sessions", sessionId, "exercises"] });
       queryClient.invalidateQueries({ queryKey: ["/api/workout-sessions", sessionId, "sets"] });
 
@@ -289,6 +591,35 @@ export default function WorkoutSession() {
       });
     }
   };
+
+  // Drag and drop sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  // Handle drag end
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      setExerciseOrder((items) => {
+        const oldIndex = items.indexOf(active.id as string);
+        const newIndex = items.indexOf(over.id as string);
+        return arrayMove(items, oldIndex, newIndex);
+      });
+    }
+  };
+
+  // Get ordered exercises
+  const orderedExercises = useMemo(() => {
+    if (exerciseOrder.length === 0) return exercises;
+    return exerciseOrder
+      .map(id => exercises.find(e => e.id === id))
+      .filter(Boolean) as Exercise[];
+  }, [exercises, exerciseOrder]);
 
   // Group sets by exercise
   const setsByExercise = useMemo(() => {
@@ -349,8 +680,8 @@ export default function WorkoutSession() {
   return (
     <div className="flex flex-col h-screen">
       {/* Header */}
-      <div className="sticky top-0 z-20 bg-background border-b p-4">
-        <div className="flex items-center justify-between gap-4">
+      <div className="sticky top-0 z-20 bg-background border-b px-4 py-3">
+        <div className="flex items-center gap-3">
           <Button
             variant="ghost"
             size="icon"
@@ -359,221 +690,80 @@ export default function WorkoutSession() {
           >
             <ChevronLeft className="h-5 w-5" />
           </Button>
-          <div className="flex-1 text-center">
-            <h1 className="text-lg font-semibold" data-testid="text-session-title">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-base font-semibold truncate" data-testid="text-session-title">
               {session?.workoutType || "Workout"}
             </h1>
             <p className="text-xs text-muted-foreground" data-testid="text-session-start-time">
               Started {format(new Date(session?.startTime || new Date()), "h:mm a")}
             </p>
           </div>
-          <div className="w-10" /> {/* Spacer for centering */}
         </div>
       </div>
 
-      {/* Hero Metrics */}
-      <div className="p-4 bg-gradient-to-b from-primary/5 to-transparent">
-        <div className="grid grid-cols-3 gap-4">
-          <Card className="text-center" data-testid="card-duration">
-            <CardContent className="p-3">
-              <Clock className="h-5 w-5 mx-auto mb-1 text-primary" />
-              <p className="text-lg font-bold" data-testid="text-elapsed-time">
-                {formatElapsedTime(elapsedTime)}
-              </p>
-              <p className="text-xs text-muted-foreground">Duration</p>
-            </CardContent>
-          </Card>
+      {/* Compact Metrics */}
+      <div className="px-4 py-3 bg-muted/30 border-b">
+        <div className="flex items-center justify-around gap-4">
+          <div className="text-center" data-testid="card-duration">
+            <Clock className="h-4 w-4 mx-auto mb-1 text-primary" />
+            <p className="text-sm font-bold" data-testid="text-elapsed-time">
+              {formatElapsedTime(elapsedTime)}
+            </p>
+          </div>
 
-          <Card className="text-center" data-testid="card-progress">
-            <CardContent className="p-3">
-              <CheckCircle2 className="h-5 w-5 mx-auto mb-1 text-green-500" />
-              <p className="text-lg font-bold" data-testid="text-progress">
-                {sessionProgress}%
-              </p>
-              <p className="text-xs text-muted-foreground">Complete</p>
-            </CardContent>
-          </Card>
+          <div className="h-8 w-px bg-border" />
 
-          <Card className="text-center" data-testid="card-exercises">
-            <CardContent className="p-3">
-              <Dumbbell className="h-5 w-5 mx-auto mb-1 text-blue-500" />
-              <p className="text-lg font-bold" data-testid="text-exercise-count">
-                {exercises.length}
-              </p>
-              <p className="text-xs text-muted-foreground">Exercises</p>
-            </CardContent>
-          </Card>
+          <div className="text-center" data-testid="card-progress">
+            <CheckCircle2 className="h-4 w-4 mx-auto mb-1 text-green-500" />
+            <p className="text-sm font-bold" data-testid="text-progress">
+              {sessionProgress}%
+            </p>
+          </div>
+
+          <div className="h-8 w-px bg-border" />
+
+          <div className="text-center" data-testid="card-exercises">
+            <Dumbbell className="h-4 w-4 mx-auto mb-1 text-blue-500" />
+            <p className="text-sm font-bold" data-testid="text-exercise-count">
+              {exercises.length}
+            </p>
+          </div>
         </div>
-
-        {/* Overall Progress */}
-        <div className="mt-4">
-          <Progress value={sessionProgress} className="h-2" data-testid="progress-session" />
-        </div>
+        <Progress value={sessionProgress} className="h-1.5 mt-3" data-testid="progress-session" />
       </div>
 
-      {/* Exercise List */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-24">
-        {exercises.map((exercise, exerciseIndex) => {
-          const exerciseSets = setsByExercise.get(exercise.id) || [];
-          const completedSets = exerciseSets.filter((s) => s.completed === 1).length;
+      {/* Exercise List with Drag-and-Drop */}
+      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3 pb-24">
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={exerciseOrder}
+            strategy={verticalListSortingStrategy}
+          >
+            {orderedExercises.map((exercise, exerciseIndex) => {
+              const exerciseSets = (setsByExercise.get(exercise.id) || []).sort((a, b) => a.setIndex - b.setIndex);
+              const completedSets = exerciseSets.filter((s) => s.completed === 1).length;
+              const progressiveSuggestion = progressiveSuggestions.get(exercise.id);
 
-          return (
-            <Card key={exercise.id} data-testid={`card-exercise-${exerciseIndex}`}>
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1">
-                    <CardTitle className="text-lg" data-testid={`text-exercise-name-${exerciseIndex}`}>
-                      {exercise.name}
-                    </CardTitle>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {exercise.muscles.join(", ")} • {exercise.equipment}
-                    </p>
-                    
-                    {/* Progressive Overload Suggestion */}
-                    {progressiveSuggestions.get(exercise.id) && (
-                      <div className="mt-2 flex items-center gap-2 p-2 bg-primary/10 rounded-md" data-testid={`suggestion-${exerciseIndex}`}>
-                        <TrendingUp className="h-4 w-4 text-primary" />
-                        <div className="text-xs">
-                          {progressiveSuggestions.get(exercise.id)!.lastWeight !== null ? (
-                            <p>
-                              <span className="text-muted-foreground">Last: </span>
-                              <span className="font-medium">
-                                {progressiveSuggestions.get(exercise.id)!.lastWeight}kg × {progressiveSuggestions.get(exercise.id)!.lastReps}
-                              </span>
-                              {progressiveSuggestions.get(exercise.id)!.suggestedWeight !== progressiveSuggestions.get(exercise.id)!.lastWeight && (
-                                <span className="text-primary font-semibold ml-1">
-                                  → Try {progressiveSuggestions.get(exercise.id)!.suggestedWeight}kg
-                                </span>
-                              )}
-                            </p>
-                          ) : (
-                            <p className="text-muted-foreground">First time - no history</p>
-                          )}
-                          <p className="text-muted-foreground italic mt-0.5">
-                            {progressiveSuggestions.get(exercise.id)!.reason}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex flex-col items-end gap-2">
-                    <Badge variant="outline" data-testid={`badge-exercise-sets-${exerciseIndex}`}>
-                      {completedSets}/{exerciseSets.length} sets
-                    </Badge>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleShowAlternatives(exercise)}
-                      data-testid={`button-swap-${exerciseIndex}`}
-                      className="h-7 px-2"
-                    >
-                      <Repeat className="h-4 w-4 mr-1" />
-                      <span className="text-xs">Swap</span>
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-
-              <CardContent className="space-y-3">
-                {exerciseSets.map((set, setIndex) => (
-                  <div
-                    key={set.id}
-                    className={`p-3 rounded-lg border ${
-                      set.completed === 1 ? "bg-green-500/5 border-green-500/20" : "bg-muted/30"
-                    }`}
-                    data-testid={`set-${exerciseIndex}-${setIndex}`}
-                  >
-                    <div className="flex items-center gap-3">
-                      {/* Set number */}
-                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-background">
-                        {set.completed === 1 ? (
-                          <CheckCircle2 className="h-5 w-5 text-green-500" data-testid={`icon-set-complete-${exerciseIndex}-${setIndex}`} />
-                        ) : (
-                          <Circle className="h-5 w-5 text-muted-foreground" data-testid={`icon-set-incomplete-${exerciseIndex}-${setIndex}`} />
-                        )}
-                      </div>
-
-                      {/* Set inputs */}
-                      <div className="flex-1 grid grid-cols-2 gap-2">
-                        <div>
-                          <label className="text-xs text-muted-foreground">Weight (kg)</label>
-                          <div className="flex gap-1">
-                            <Input
-                              type="number"
-                              step="0.1"
-                              placeholder="0"
-                              value={set.weight === null ? "" : (set.weight || "")}
-                              onChange={(e) =>
-                                updateSetMutation.mutate({
-                                  setId: set.id,
-                                  data: { weight: parseFloat(e.target.value) || 0 },
-                                })
-                              }
-                              disabled={set.completed === 1 || set.weight === null}
-                              className="h-8 text-sm flex-1"
-                              data-testid={`input-weight-${exerciseIndex}-${setIndex}`}
-                            />
-                            <Button
-                              size="sm"
-                              variant={set.weight === null ? "default" : "outline"}
-                              onClick={() =>
-                                updateSetMutation.mutate({
-                                  setId: set.id,
-                                  data: { weight: set.weight === null ? 0 : null },
-                                })
-                              }
-                              disabled={set.completed === 1}
-                              className="h-8 px-2 text-xs"
-                              data-testid={`button-bodyweight-${exerciseIndex}-${setIndex}`}
-                            >
-                              BW
-                            </Button>
-                          </div>
-                        </div>
-                        <div>
-                          <label className="text-xs text-muted-foreground">Reps</label>
-                          <Input
-                            type="number"
-                            placeholder="0"
-                            value={set.reps || ""}
-                            onChange={(e) =>
-                              updateSetMutation.mutate({
-                                setId: set.id,
-                                data: { reps: parseInt(e.target.value) || 0 },
-                              })
-                            }
-                            disabled={set.completed === 1}
-                            className="h-8 text-sm"
-                            data-testid={`input-reps-${exerciseIndex}-${setIndex}`}
-                          />
-                        </div>
-                      </div>
-
-                      {/* Complete button */}
-                      {set.completed === 0 && (
-                        <Button
-                          size="sm"
-                          onClick={() => handleCompleteSet(set, exercise)}
-                          disabled={(set.weight !== null && !set.weight) || !set.reps}
-                          data-testid={`button-complete-set-${exerciseIndex}-${setIndex}`}
-                        >
-                          Complete
-                        </Button>
-                      )}
-                    </div>
-
-                    {/* Target reps */}
-                    {set.targetRepsLow && set.targetRepsHigh && (
-                      <p className="text-xs text-muted-foreground mt-2">
-                        Target: {set.targetRepsLow}-{set.targetRepsHigh} reps
-                      </p>
-                    )}
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          );
-        })}
+              return (
+                <SortableExerciseCard
+                  key={exercise.id}
+                  exercise={exercise}
+                  exerciseSets={exerciseSets}
+                  completedSets={completedSets}
+                  exerciseIndex={exerciseIndex}
+                  progressiveSuggestion={progressiveSuggestion}
+                  updateSetMutation={updateSetMutation}
+                  handleCompleteSet={handleCompleteSet}
+                  handleShowAlternatives={handleShowAlternatives}
+                />
+              );
+            })}
+          </SortableContext>
+        </DndContext>
       </div>
 
       {/* Rest Timer (floating) */}
@@ -628,7 +818,7 @@ export default function WorkoutSession() {
             data-testid="button-finish-workout"
           >
             <Trophy className="mr-2 h-4 w-4" />
-            Finish Workout
+            Finish
           </Button>
         </div>
       </div>
