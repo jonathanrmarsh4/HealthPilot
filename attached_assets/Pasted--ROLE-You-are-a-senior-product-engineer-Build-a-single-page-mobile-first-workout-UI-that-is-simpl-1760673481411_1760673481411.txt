@@ -1,0 +1,114 @@
+[ROLE]
+You are a senior product engineer. Build a single-page, mobile-first workout UI that is simple, fast to log, and AI-smart.
+
+[GOALS]
+- One screen shows the entire workout.
+- Reorder exercises by drag handle.
+- Swipe left for AI alternatives; swipe right for notes/rest.
+- Log weight/reps inline; track RPE optionally.
+- Apply progressive overload automatically across sessions.
+
+[STYLE/TONE]
+- Clean, minimal, high-contrast dark theme.
+- Calm motion (150–200ms), gentle haptics on: reorder, set complete, PR.
+- Color is for state only (active timer, PR, danger).
+
+[LAYOUT]
+- Header:
+  - Left: "Today • {workout_title}" (tap to change day/plan)
+  - Right: [settings] [history]
+- Hero strip:
+  - Progress ring: completed_exercises / total_exercises
+  - Small pills: "Time • {mm:ss}", "Est Vol • {kg}", "RPE • {avg}"
+- Workout list (sortable):
+  - Exercise Card:
+    - drag handle (≡)
+    - title + subtitle (muscles • equipment)
+    - PR badge (optional)
+    - swipe left → AI alternatives bottom sheet (3 items: name, equipment, similarity_score, expected_volume_delta, why; actions: Swap, Preview)
+    - swipe right → notes/rest panel (rest 60/90/120, notes, tempo, RPE slider, pain flag)
+    - Set rows:
+      - "Set N | Weight [num] kg | Reps [num] | [✓]"
+      - ✓ = complete set → start rest timer and focus next set
+      - Long-press weight → "Link remaining sets" (copy weight to remaining)
+      - +Add set, Drop set, Link sets toggle
+      - Suggestion chip: "Next: {suggested_weight} kg" (tap to apply)
+- Sticky footer:
+  - [Finish] • "{active_exercise} · {rest_timer}" • [Auto-progress]
+
+[GESTURES]
+- Drag handle to reorder (haptic tick, autosave order)
+- Swipe left/right on exercise card as above
+
+[LOGIC: PROGRESSIVE OVERLOAD]
+- Method: Double progression
+- Example target: 3×6–8 @ RPE 7–9
+- Increase next session by increment_step if:
+  - top-of-range on all sets for 2 consecutive sessions AND avg_RPE_last_session ≤ 8
+- Deload by one step if:
+  - missed bottom-of-range on >50% sets OR avg_RPE ≥ 9.5
+- Else hold weight
+- Increment steps:
+  - barbell: 2.5 kg
+  - dumbbell pair (total): 2.0 kg
+  - machine/cable: 1.0–2.0 kg
+  - micro-plate option: 1.25 kg
+
+[DATA MODEL]
+Exercise {
+  id: string
+  name: string
+  muscles: string[]
+  equipment: "barbell|dumbbell|machine|cable|bodyweight|kettlebell|band|other"
+  increment_step: number
+  tempo_default?: string
+  rest_default?: number
+}
+ExerciseSet {
+  exercise_id: string
+  set_index: number
+  target_reps_low: number
+  target_reps_high: number
+  weight?: number
+  reps?: number
+  rpe_logged?: number
+  completed: boolean
+  notes?: string
+}
+WorkoutDay { id, date (ISO), title, exercise_order: string[] }
+SessionLog { id, date, workout_day_id, sets: ExerciseSet[], total_volume, duration_sec, prs: [{exercise_id,type,value}] }
+
+[API CONTRACTS (illustrative)]
+PATCH /sessions/{id}/sets
+  { exercise_id, set_index, weight, reps, rpe, completed, rest_started_at }
+POST /ai/alternatives
+  { exercise_id, constraints: { equipment: "csv", avoid?: "csv" }, goal: "match_volume_intensity" }
+→ returns 3 items: { exercise_id, name, equipment, similarity_score, expected_volume_delta, why }
+POST /progressions/apply
+  { session_id, ruleset: "double_progression_v1" }
+
+[BEHAVIORS]
+- Autosave all edits (optimistic UI), offline-first (queue → sync).
+- Equipment profile filters AI swaps to available gear.
+- Timebox mode (remaining minutes) trims accessories, nudges rest down.
+- Warmup sets auto-generated at 40/60/80% of working weight.
+- PR detection: rep PR, est-1RM PR, or volume PR; tiny celebratory feedback.
+
+[ACCESSIBILITY]
+- Touch targets ≥ 44px
+- Dynamic type and high-contrast friendly
+- Numeric pad with nudge buttons (+2.5 / +1.25 / +1.0)
+
+[ACCEPTANCE TESTS]
+- Reorder: Drag exercise #3 above #1 → order persists; progress unchanged.
+- Log set: Enter weight 80, reps 8, tap ✓ → rest timer starts; focus next set.
+- AI swap: Swipe left on Bench, choose DB Bench → swapped; set scheme preserved.
+- Auto-progress: Top-of-range met twice @ avg RPE ≤ 8 → next loads increase by increment_step.
+
+[OUTPUT REQUEST]
+- Provide code in chosen stack (React or Flutter) with:
+  - Sortable list, swipe gestures, rest timer, autosave state store.
+  - Minimal persistence (localStorage/IndexedDB or on-device store).
+  - A seed screen with 5 exercises and 3 sets each.
+  - Unit tests for progression logic and set logging flow.
+- Keep the file structure simple and runnable.
