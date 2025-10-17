@@ -271,14 +271,14 @@ export default function Training() {
       const response = await apiRequest("POST", "/api/workout-sessions/start", { 
         workoutPlan 
       });
-      return response;
+      return await response.json();
     },
     onSuccess: (session) => {
       toast({
         title: "Workout Started!",
         description: "Get ready to train",
       });
-      setLocation(`/training/workout-session/${session.id}`);
+      setLocation(`/workout/${session.id}`);
     },
     onError: (error: Error) => {
       toast({
