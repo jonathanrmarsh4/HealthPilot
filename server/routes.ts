@@ -5545,6 +5545,41 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
     }
   });
 
+  // Page tile preferences routes
+  app.get("/api/user/tile-preferences/:page", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { page } = req.params;
+
+    try {
+      const preferences = await storage.getPageTilePreferences(userId, page);
+      if (!preferences) {
+        // Return default empty preferences
+        return res.json({ visible: [], order: [] });
+      }
+      res.json({ visible: preferences.visible, order: preferences.order });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.patch("/api/user/tile-preferences/:page", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { page } = req.params;
+
+    try {
+      const { visible, order } = req.body;
+      
+      if (!Array.isArray(visible) || !Array.isArray(order)) {
+        return res.status(400).json({ error: "visible and order must be arrays" });
+      }
+
+      const preferences = await storage.savePageTilePreferences(userId, page, { visible, order });
+      res.json({ success: true, visible: preferences.visible, order: preferences.order });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Onboarding routes - using granular contextual flags
   app.get("/api/onboarding/status", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;

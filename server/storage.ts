@@ -68,6 +68,8 @@ import {
   type InsertMealFeedback,
   type MealLibrarySettings,
   type InsertMealLibrarySettings,
+  type PageTilePreferences,
+  type InsertPageTilePreferences,
   users,
   healthRecords,
   biomarkers,
@@ -103,6 +105,7 @@ import {
   mealFeedback,
   mealLibrarySettings,
   messageUsage,
+  pageTilePreferences,
 } from "@shared/schema";
 import { eq, desc, and, gte, lte, lt, sql, or, like, count, isNull, inArray } from "drizzle-orm";
 
@@ -113,6 +116,8 @@ export interface IStorage {
   updateUserSettings(userId: string, settings: { timezone: string }): Promise<void>;
   getDashboardPreferences(userId: string): Promise<{ visible: string[], order: string[] } | null>;
   saveDashboardPreferences(userId: string, preferences: { visible: string[], order: string[] }): Promise<void>;
+  getPageTilePreferences(userId: string, page: string): Promise<PageTilePreferences | null>;
+  savePageTilePreferences(userId: string, page: string, preferences: { visible: string[], order: string[] }): Promise<PageTilePreferences>;
   updateUserProfile(userId: string, profileData: Partial<Pick<User, "firstName" | "lastName" | "height" | "dateOfBirth" | "gender" | "bloodType" | "activityLevel" | "location" | "timezone">>): Promise<User>;
   acceptEula(userId: string): Promise<void>;
   
@@ -428,6 +433,47 @@ export class DbStorage implements IStorage {
     await db.execute(
       sql`UPDATE users SET dashboard_preferences = ${JSON.stringify(preferences)}::jsonb WHERE id = ${userId}`
     );
+  }
+
+  async getPageTilePreferences(userId: string, page: string): Promise<PageTilePreferences | null> {
+    const result = await db.select()
+      .from(pageTilePreferences)
+      .where(and(
+        eq(pageTilePreferences.userId, userId),
+        eq(pageTilePreferences.page, page)
+      ))
+      .limit(1);
+    
+    return result[0] || null;
+  }
+
+  async savePageTilePreferences(userId: string, page: string, preferences: { visible: string[], order: string[] }): Promise<PageTilePreferences> {
+    const existing = await this.getPageTilePreferences(userId, page);
+    
+    if (existing) {
+      const result = await db.update(pageTilePreferences)
+        .set({
+          visible: preferences.visible,
+          order: preferences.order,
+          updatedAt: new Date(),
+        })
+        .where(and(
+          eq(pageTilePreferences.userId, userId),
+          eq(pageTilePreferences.page, page)
+        ))
+        .returning();
+      return result[0];
+    } else {
+      const result = await db.insert(pageTilePreferences)
+        .values({
+          userId,
+          page,
+          visible: preferences.visible,
+          order: preferences.order,
+        })
+        .returning();
+      return result[0];
+    }
   }
 
   async updateUserProfile(userId: string, profileData: Partial<Pick<User, "firstName" | "lastName" | "height" | "dateOfBirth" | "gender" | "bloodType" | "activityLevel" | "location">>): Promise<User> {

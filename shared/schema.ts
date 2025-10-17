@@ -52,6 +52,17 @@ export const users = pgTable("users", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Page tile preferences for customizable layouts across all pages
+export const pageTilePreferences = pgTable("page_tile_preferences", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  page: varchar("page").notNull(), // 'dashboard', 'training', 'sleep', 'biomarkers', 'meal-plans', 'supplements', etc.
+  visible: text("visible").array().notNull().default(sql`ARRAY[]::text[]`), // Array of visible tile IDs
+  order: text("order").array().notNull().default(sql`ARRAY[]::text[]`), // Array of tile IDs in display order
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 export const healthRecords = pgTable("health_records", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull(),
@@ -967,3 +978,13 @@ export const insertMessageUsageSchema = createInsertSchema(messageUsage).omit({
 
 export type InsertMessageUsage = z.infer<typeof insertMessageUsageSchema>;
 export type MessageUsage = typeof messageUsage.$inferSelect;
+
+// Page tile preferences schemas
+export const insertPageTilePreferencesSchema = createInsertSchema(pageTilePreferences).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertPageTilePreferences = z.infer<typeof insertPageTilePreferencesSchema>;
+export type PageTilePreferences = typeof pageTilePreferences.$inferSelect;
