@@ -1,13 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Sparkles, TrendingUp, Activity, Brain, AlertTriangle, X, RefreshCw, Target, ThumbsUp, ThumbsDown, Calendar } from "lucide-react";
+import { Sparkles, TrendingUp, Activity, Brain, AlertTriangle, X, RefreshCw, Target, ThumbsUp, ThumbsDown, Calendar, Trophy } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { InsightSchedulingModal } from "./InsightSchedulingModal";
+import { motion, AnimatePresence } from "framer-motion";
 
 type InsightType = "daily_summary" | "pattern" | "correlation" | "trend" | "alert" | "goal_progress";
 type InsightCategory = "sleep" | "activity" | "nutrition" | "biomarkers" | "overall" | "goals";
@@ -60,10 +61,27 @@ const categoryColors = {
 export function AIInsightsWidget() {
   const { toast } = useToast();
   const [schedulingInsightId, setSchedulingInsightId] = useState<string | null>(null);
+  const [showCelebration, setShowCelebration] = useState(false);
+  const [previousInsightCount, setPreviousInsightCount] = useState<number | null>(null);
 
   const { data: insights, isLoading } = useQuery<Insight[]>({
     queryKey: ['/api/insights/daily'],
   });
+
+  // Check if user just cleared all insights
+  useEffect(() => {
+    if (!isLoading && insights) {
+      const currentCount = insights.length;
+      
+      // If we had insights before and now we have 0, show celebration
+      if (previousInsightCount !== null && previousInsightCount > 0 && currentCount === 0) {
+        setShowCelebration(true);
+        setTimeout(() => setShowCelebration(false), 3000);
+      }
+      
+      setPreviousInsightCount(currentCount);
+    }
+  }, [insights, isLoading, previousInsightCount]);
 
   const generateMutation = useMutation({
     mutationFn: async () => {
@@ -165,6 +183,33 @@ export function AIInsightsWidget() {
         </Button>
       </CardHeader>
       <CardContent>
+        <AnimatePresence>
+          {showCelebration && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.8, y: -20 }}
+              className="text-center py-8 space-y-4 mb-4"
+            >
+              <motion.div
+                animate={{
+                  rotate: [0, -10, 10, -10, 10, 0],
+                  scale: [1, 1.1, 1, 1.1, 1],
+                }}
+                transition={{ duration: 0.5 }}
+              >
+                <Trophy className="h-16 w-16 mx-auto text-primary" />
+              </motion.div>
+              <div>
+                <h3 className="text-lg font-semibold text-primary mb-1">All Caught Up!</h3>
+                <p className="text-sm text-muted-foreground">
+                  You've tackled all your health insights. Great work!
+                </p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        
         {!hasInsights ? (
           <div className="text-center py-8 space-y-4">
             <Brain className="h-12 w-12 mx-auto text-muted-foreground opacity-50" />
