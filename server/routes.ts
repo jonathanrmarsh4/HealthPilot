@@ -444,6 +444,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/privacy/consent", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+
+    try {
+      const consents = await storage.getUserConsent(userId);
+      
+      // Transform to a more frontend-friendly format
+      const consentMap: Record<string, any> = {};
+      consents.forEach((consent: any) => {
+        consentMap[consent.consentType] = {
+          granted: consent.granted === 1,
+          grantedAt: consent.grantedAt,
+          revokedAt: consent.revokedAt,
+          ipAddress: consent.ipAddress,
+          userAgent: consent.userAgent,
+        };
+      });
+
+      res.json({
+        consents: consentMap,
+        total: consents.length,
+      });
+    } catch (error: any) {
+      console.error("Error fetching user consents:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.post("/api/privacy/consent", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
     const { consents } = req.body;
