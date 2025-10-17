@@ -305,8 +305,8 @@ export default function PrivacyDashboard() {
             </a>
             <p className="text-sm text-muted-foreground mt-4">
               Questions? Contact our Privacy Officer at{" "}
-              <a href="mailto:privacy@healthpilot.ai" className="text-primary hover:underline">
-                privacy@healthpilot.ai
+              <a href="mailto:privacy@healthpilot.pro" className="text-primary hover:underline">
+                privacy@healthpilot.pro
               </a>
             </p>
           </CardContent>

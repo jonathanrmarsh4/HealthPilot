@@ -267,7 +267,7 @@ export default function PrivacyPolicy() {
           <CardContent className="space-y-3 text-sm text-muted-foreground">
             <div>
               <p className="font-semibold">Privacy Officer</p>
-              <p>Email: privacy@healthpilot.ai</p>
+              <p>Email: privacy@healthpilot.pro</p>
             </div>
             <div>
               <p className="font-semibold">Data Protection Officer (DPO) - EU Inquiries</p>
