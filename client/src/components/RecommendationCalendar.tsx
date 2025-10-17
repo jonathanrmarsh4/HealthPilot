@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, type MouseEvent } from "react";
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSameMonth, isSameDay, addMonths, subMonths, addWeeks, subWeeks, parseISO } from "date-fns";
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Sparkles, MoveRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -11,33 +12,65 @@ interface ScheduledRecommendation {
   id: string | number;
   title: string;
   scheduledAt: string;
+  type: 'recommendation';
+  description?: string;
+  category?: string;
+  duration?: number;
 }
+
+interface ScheduledInsight {
+  id: string | number;
+  insightId?: string;
+  title: string;
+  scheduledAt: string;
+  type: 'insight';
+  description?: string;
+  category?: string;
+  activityType?: string;
+  duration?: number;
+}
+
+type ScheduledActivity = ScheduledRecommendation | ScheduledInsight;
 
 interface RecommendationCalendarProps {
   recommendations: ScheduledRecommendation[];
+  insights?: ScheduledInsight[];
   onDateClick?: (date: Date) => void;
   onReschedule?: (recommendationId: string | number, newDate: Date) => void;
 }
 
-export function RecommendationCalendar({ recommendations, onDateClick, onReschedule }: RecommendationCalendarProps) {
+export function RecommendationCalendar({ recommendations, insights = [], onDateClick, onReschedule }: RecommendationCalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState<"month" | "week">("week");
-  const [selectedRecommendation, setSelectedRecommendation] = useState<ScheduledRecommendation | null>(null);
+  const [selectedActivity, setSelectedActivity] = useState<ScheduledActivity | null>(null);
   const [targetDate, setTargetDate] = useState<Date | null>(null);
   const [rescheduleDialogOpen, setRescheduleDialogOpen] = useState(false);
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [viewingActivity, setViewingActivity] = useState<ScheduledActivity | null>(null);
 
-  const getRecommendationsForDate = (date: Date) => {
-    return recommendations.filter(rec => 
-      isSameDay(parseISO(rec.scheduledAt), date)
+  // Combine recommendations and insights for calendar display
+  const allActivities: ScheduledActivity[] = [...recommendations, ...insights];
+
+  const getActivitiesForDate = (date: Date) => {
+    return allActivities.filter(activity => 
+      isSameDay(parseISO(activity.scheduledAt), date)
     );
   };
 
-  const handleRecommendationClick = (rec: ScheduledRecommendation) => {
-    setSelectedRecommendation(rec);
+  const handleActivityClick = (activity: ScheduledActivity, e: MouseEvent) => {
+    e.stopPropagation();
+    // If user has already selected an activity for rescheduling, clicking another one should select it
+    if (selectedActivity) {
+      setSelectedActivity(activity);
+    } else {
+      // Otherwise, show details dialog
+      setViewingActivity(activity);
+      setDetailsDialogOpen(true);
+    }
   };
 
   const handleDateClick = (date: Date) => {
-    if (selectedRecommendation) {
+    if (selectedActivity) {
       setTargetDate(date);
       setRescheduleDialogOpen(true);
     } else {
@@ -46,16 +79,19 @@ export function RecommendationCalendar({ recommendations, onDateClick, onResched
   };
 
   const confirmReschedule = () => {
-    if (selectedRecommendation && targetDate && onReschedule) {
-      onReschedule(selectedRecommendation.id, targetDate);
-      setSelectedRecommendation(null);
+    if (selectedActivity && targetDate && onReschedule) {
+      // Only recommendations can be rescheduled (insights have multiple dates)
+      if (selectedActivity.type === 'recommendation') {
+        onReschedule(selectedActivity.id, targetDate);
+      }
+      setSelectedActivity(null);
       setTargetDate(null);
       setRescheduleDialogOpen(false);
     }
   };
 
   const cancelReschedule = () => {
-    setSelectedRecommendation(null);
+    setSelectedActivity(null);
     setTargetDate(null);
     setRescheduleDialogOpen(false);
   };
@@ -76,7 +112,7 @@ export function RecommendationCalendar({ recommendations, onDateClick, onResched
     while (day <= endDate) {
       for (let i = 0; i < 7; i++) {
         const currentDay = day;
-        const dayRecommendations = getRecommendationsForDate(currentDay);
+        const dayActivities = getActivitiesForDate(currentDay);
         const isCurrentMonth = isSameMonth(currentDay, monthStart);
         const isToday = isSameDay(currentDay, new Date());
 
@@ -98,26 +134,23 @@ export function RecommendationCalendar({ recommendations, onDateClick, onResched
             )}>
               {format(currentDay, "d")}
             </div>
-            {dayRecommendations.length > 0 && (
+            {dayActivities.length > 0 && (
               <div className="space-y-0.5 sm:space-y-1">
-                {dayRecommendations.map(rec => (
+                {dayActivities.map(activity => (
                   <div
-                    key={rec.id}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleRecommendationClick(rec);
-                    }}
+                    key={activity.id}
+                    onClick={(e) => handleActivityClick(activity, e)}
                     className={cn(
                       "text-[10px] sm:text-xs p-0.5 sm:p-1 rounded flex items-center gap-1 truncate",
-                      selectedRecommendation?.id === rec.id 
+                      selectedActivity?.id === activity.id 
                         ? "bg-primary text-primary-foreground font-medium" 
                         : "bg-primary/20 text-primary",
                       "hover-elevate active-elevate-2"
                     )}
-                    data-testid={`calendar-recommendation-${rec.id}`}
+                    data-testid={`calendar-activity-${activity.id}`}
                   >
                     <Sparkles className="w-2 h-2 sm:w-3 sm:h-3 flex-shrink-0" />
-                    <span className="truncate">{rec.title}</span>
+                    <span className="truncate">{activity.title}</span>
                   </div>
                 ))}
               </div>
@@ -155,7 +188,7 @@ export function RecommendationCalendar({ recommendations, onDateClick, onResched
 
     for (let i = 0; i < 7; i++) {
       const day = addDays(weekStart, i);
-      const dayRecommendations = getRecommendationsForDate(day);
+      const dayActivities = getActivitiesForDate(day);
       const isToday = isSameDay(day, new Date());
 
       days.push(
@@ -181,26 +214,23 @@ export function RecommendationCalendar({ recommendations, onDateClick, onResched
                 {format(day, "d")}
               </div>
             </div>
-            {dayRecommendations.length > 0 && (
+            {dayActivities.length > 0 && (
               <div className="space-y-1 sm:space-y-2">
-                {dayRecommendations.map(rec => (
+                {dayActivities.map(activity => (
                   <div
-                    key={rec.id}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleRecommendationClick(rec);
-                    }}
+                    key={activity.id}
+                    onClick={(e) => handleActivityClick(activity, e)}
                     className={cn(
                       "text-xs sm:text-sm p-1 sm:p-2 rounded flex items-center gap-1 sm:gap-2",
-                      selectedRecommendation?.id === rec.id 
+                      selectedActivity?.id === activity.id 
                         ? "bg-primary text-primary-foreground font-medium" 
                         : "bg-primary/20 text-primary",
                       "hover-elevate active-elevate-2"
                     )}
-                    data-testid={`calendar-recommendation-${rec.id}`}
+                    data-testid={`calendar-activity-${activity.id}`}
                   >
                     <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
-                    <span className="line-clamp-2">{rec.title}</span>
+                    <span className="line-clamp-2">{activity.title}</span>
                   </div>
                 ))}
               </div>
@@ -259,12 +289,12 @@ export function RecommendationCalendar({ recommendations, onDateClick, onResched
             </Button>
           </div>
           
-          {selectedRecommendation && (
+          {selectedActivity && (
             <div className="p-2 sm:p-3 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 flex-1 min-w-0">
                 <MoveRight className="w-4 h-4 text-primary flex-shrink-0" />
                 <span className="text-xs sm:text-sm font-medium truncate">
-                  Moving: {selectedRecommendation.title}
+                  Moving: {selectedActivity.title}
                 </span>
               </div>
               <Button 
@@ -323,9 +353,9 @@ export function RecommendationCalendar({ recommendations, onDateClick, onResched
       <Dialog open={rescheduleDialogOpen} onOpenChange={setRescheduleDialogOpen}>
         <DialogContent data-testid="dialog-reschedule">
           <DialogHeader>
-            <DialogTitle>Reschedule Workout</DialogTitle>
+            <DialogTitle>Reschedule Activity</DialogTitle>
             <DialogDescription>
-              Move "{selectedRecommendation?.title}" to {targetDate && format(targetDate, "MMMM d, yyyy")}?
+              Move "{selectedActivity?.title}" to {targetDate && format(targetDate, "MMMM d, yyyy")}?
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -334,6 +364,64 @@ export function RecommendationCalendar({ recommendations, onDateClick, onResched
             </Button>
             <Button onClick={confirmReschedule} data-testid="button-confirm-reschedule">
               Confirm
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Activity Details Dialog */}
+      <Dialog open={detailsDialogOpen} onOpenChange={(open) => {
+        setDetailsDialogOpen(open);
+        if (!open) setViewingActivity(null);
+      }}>
+        <DialogContent data-testid="dialog-activity-details" className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{viewingActivity?.title}</DialogTitle>
+            <DialogDescription>
+              Scheduled for {viewingActivity && format(parseISO(viewingActivity.scheduledAt), "MMMM d, yyyy")}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {viewingActivity?.description && (
+              <div>
+                <h4 className="text-sm font-medium mb-2">Description</h4>
+                <p className="text-sm text-muted-foreground">{viewingActivity.description}</p>
+              </div>
+            )}
+            <div className="flex flex-wrap gap-2">
+              {viewingActivity?.category && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium">Category:</span>
+                  <Badge variant="secondary" className="capitalize">
+                    {viewingActivity.category}
+                  </Badge>
+                </div>
+              )}
+              {viewingActivity?.duration && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium">Duration:</span>
+                  <Badge variant="outline">
+                    {viewingActivity.duration} min
+                  </Badge>
+                </div>
+              )}
+              {viewingActivity?.type === 'insight' && (viewingActivity as ScheduledInsight).activityType && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium">Type:</span>
+                  <Badge variant="secondary" className="capitalize">
+                    {(viewingActivity as ScheduledInsight).activityType?.replace('_', ' ')}
+                  </Badge>
+                </div>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setDetailsDialogOpen(false)}
+              data-testid="button-close-details"
+            >
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>

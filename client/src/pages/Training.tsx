@@ -12,7 +12,6 @@ import { format, isToday, startOfDay, endOfDay, subDays } from "date-fns";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import { useLocation } from "wouter";
 import { RecoveryProtocols } from "@/components/RecoveryProtocols";
-import { TrainingScheduleCard } from "@/components/TrainingScheduleCard";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { RecommendationCalendar } from "@/components/RecommendationCalendar";
 import { ScheduledRecommendationsCard } from "@/components/ScheduledRecommendationsCard";
@@ -159,6 +158,10 @@ export default function Training() {
     queryKey: ["/api/recommendations/today"],
   });
 
+  const { data: scheduledInsights = [] } = useQuery<any[]>({
+    queryKey: ["/api/scheduled-insights"],
+  });
+
   const rescheduleRecommendationMutation = useMutation({
     mutationFn: async ({ recommendationId, newDate }: { recommendationId: string | number; newDate: Date }) => {
       return apiRequest("PATCH", `/api/recommendations/${recommendationId}/reschedule`, { 
@@ -189,26 +192,6 @@ export default function Training() {
     return readinessScore.score < readinessSettings.alertThreshold;
   }, [readinessScore, readinessSettings]);
 
-  // Filter training schedules for today only
-  const todaysCustomWorkout = useMemo(() => {
-    if (!trainingSchedules || trainingSchedules.length === 0) return null;
-    
-    const today = format(new Date(), 'EEEE');
-    return trainingSchedules.find(schedule => 
-      schedule.day === today && schedule.completed === 0
-    );
-  }, [trainingSchedules]);
-
-  // Get all uncompleted custom workouts for the week (for displaying full weekly plan)
-  const weeklyCustomWorkouts = useMemo(() => {
-    if (!trainingSchedules || trainingSchedules.length === 0) return [];
-    
-    // Sort by day of week order (Monday first)
-    const dayOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-    return trainingSchedules
-      .filter(schedule => schedule.completed === 0)
-      .sort((a, b) => dayOrder.indexOf(a.day) - dayOrder.indexOf(b.day));
-  }, [trainingSchedules]);
 
   // Filter completed workouts for last 7 days
   const recentWorkouts = useMemo(() => {
@@ -635,7 +618,28 @@ export default function Training() {
           id: rec.id,
           title: rec.title,
           scheduledAt: rec.scheduledAt,
+          type: 'recommendation' as const,
+          description: rec.description,
+          category: rec.category,
+          duration: rec.duration,
         }))}
+        insights={scheduledInsights
+          .filter((insight: any) => 
+            insight.status === 'scheduled' || insight.status === 'active'
+          )
+          .flatMap((insight: any) => 
+            (insight.scheduledDates || []).map((date: string) => ({
+              id: `${insight.id}-${date}`,
+              insightId: insight.id,
+              title: insight.title,
+              scheduledAt: date,
+              type: 'insight' as const,
+              description: insight.description,
+              category: insight.category,
+              activityType: insight.activityType,
+              duration: insight.duration,
+            }))
+          )}
         onReschedule={(recommendationId, newDate) => {
           rescheduleRecommendationMutation.mutate({ recommendationId, newDate });
         }}
@@ -644,48 +648,6 @@ export default function Training() {
       <ScheduledRecommendationsCard recommendations={todayScheduledRecommendations} />
 
       <ScheduledInsightsCard />
-
-      {/* Your Weekly Training Schedule (if exists) - Part of Schedule Section */}
-      {weeklyCustomWorkouts.length > 0 && (
-        <Card data-testid="card-weekly-training">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Dumbbell className="h-5 w-5 text-primary" />
-                <CardTitle>Your Weekly Training Schedule</CardTitle>
-              </div>
-              <Badge variant="outline" className="text-xs">
-                Created in AI Chat
-              </Badge>
-            </div>
-            <CardDescription>
-              Your custom workout plan created through the AI Coach
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {weeklyCustomWorkouts.map((workout) => (
-              <TrainingScheduleCard
-                key={workout.id}
-                id={workout.id}
-                day={workout.day}
-                workoutType={workout.workoutType}
-                duration={workout.duration}
-                intensity={workout.intensity as "Low" | "Moderate" | "High"}
-                exercises={workout.exercises}
-                completed={workout.completed === 1}
-                sessionType={workout.sessionType}
-                onToggleComplete={handleToggleComplete}
-              />
-            ))}
-            {todaysCustomWorkout && (
-              <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
-                <Info className="h-4 w-4" />
-                <span>You can switch between this custom plan and the AI recommendation above</span>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
 
       {/* Today's Recommended Workout */}
       <Card data-testid="card-todays-workout">
