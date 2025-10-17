@@ -382,6 +382,573 @@ export default function Training() {
     return !hasBasicInfo || !hasEquipmentInfo || !hasGoals;
   }, [fitnessProfile]);
 
+  // Define tiles for the Training page
+  const tiles: TileConfig[] = [
+    {
+      id: "readiness-score",
+      title: "Readiness Score",
+      description: "Your current recovery and training readiness",
+      alwaysVisible: true,
+      renderTile: () => (
+        <Card data-testid="card-readiness">
+          <CardHeader>
+            <CardTitle>Readiness Score</CardTitle>
+            <CardDescription>
+              Your current recovery and training readiness
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {readinessLoading ? (
+              <Skeleton className="h-64 w-full" />
+            ) : readinessScore ? (
+              <div className="space-y-6">
+                <div className="flex flex-col md:flex-row gap-6 items-start">
+                  <div className="flex flex-col items-center justify-center gap-2 shrink-0">
+                    <div className="relative">
+                      <ResponsiveContainer width={160} height={160}>
+                        <PieChart>
+                          <Pie
+                            data={[
+                              { value: readinessScore.score },
+                              { value: 100 - readinessScore.score }
+                            ]}
+                            dataKey="value"
+                            startAngle={180}
+                            endAngle={0}
+                            cx="50%"
+                            cy="90%"
+                            innerRadius={50}
+                            outerRadius={70}
+                          >
+                            <Cell
+                              fill={
+                                readinessScore.recommendation === "ready"
+                                  ? "hsl(var(--chart-2))"
+                                  : readinessScore.recommendation === "caution"
+                                  ? "hsl(var(--chart-3))"
+                                  : "hsl(var(--chart-4))"
+                              }
+                            />
+                            <Cell fill="hsl(var(--muted))" />
+                          </Pie>
+                        </PieChart>
+                      </ResponsiveContainer>
+                      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 text-center">
+                        <p className="text-3xl font-bold" data-testid="text-readiness-score">
+                          {Math.round(readinessScore.score)}
+                        </p>
+                        <p className="text-xs text-muted-foreground" data-testid="text-readiness-quality">
+                          {readinessScore.quality}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-6">
+                      <Badge 
+                        variant={
+                          readinessScore.recommendation === "ready" ? "default" :
+                          readinessScore.recommendation === "caution" ? "secondary" :
+                          "destructive"
+                        }
+                        className="text-sm px-3 py-1"
+                        data-testid="badge-recommendation"
+                      >
+                        {readinessScore.recommendation === "ready" && "Ready to Train"}
+                        {readinessScore.recommendation === "caution" && "Train with Caution"}
+                        {readinessScore.recommendation === "rest" && "Rest Recommended"}
+                      </Badge>
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm text-muted-foreground" data-testid="text-readiness-reasoning">
+                      {readinessScore.reasoning}
+                    </p>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="flex items-center gap-2">
+                      <Moon className="h-4 w-4 text-blue-500" />
+                      Sleep Quality
+                      {readinessScore.factors.sleep.value && (
+                        <span className="text-xs text-muted-foreground">
+                          ({Math.round(readinessScore.factors.sleep.value)}h)
+                        </span>
+                      )}
+                    </span>
+                    <span className="font-medium">{Math.round(readinessScore.factors.sleep.score)}/100</span>
+                  </div>
+                  <Progress value={readinessScore.factors.sleep.score} className="h-2" />
+                  
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="flex items-center gap-2">
+                      <Activity className="h-4 w-4 text-green-500" />
+                      HRV
+                    </span>
+                    <span className="font-medium">{Math.round(readinessScore.factors.hrv.score)}/100</span>
+                  </div>
+                  <Progress value={readinessScore.factors.hrv.score} className="h-2" />
+                  
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="flex items-center gap-2">
+                      <Heart className="h-4 w-4 text-red-500" />
+                      Resting HR
+                    </span>
+                    <span className="font-medium">{Math.round(readinessScore.factors.restingHR.score)}/100</span>
+                  </div>
+                  <Progress value={readinessScore.factors.restingHR.score} className="h-2" />
+                  
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="flex items-center gap-2">
+                      <Zap className="h-4 w-4 text-purple-500" />
+                      Recovery
+                    </span>
+                    <span className="font-medium">{Math.round(readinessScore.factors.workloadRecovery.score)}/100</span>
+                  </div>
+                  <Progress value={readinessScore.factors.workloadRecovery.score} className="h-2" />
+
+                  {readinessScore.recoveryEstimate && readinessScore.recoveryEstimate.daysUntilReady > 0 && (
+                    <div className="mt-4 pt-4 border-t">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Recovery Estimate</span>
+                        <Badge variant="outline" data-testid="badge-recovery-estimate">
+                          {readinessScore.recoveryEstimate.daysUntilReady === 1 
+                            ? "1 day" 
+                            : `${readinessScore.recoveryEstimate.daysUntilReady} days`}
+                        </Badge>
+                      </div>
+                      <div className="mt-2 flex items-center gap-2">
+                        <div className="flex-1">
+                          <div className="text-xs text-muted-foreground">
+                            Trend: <span className={
+                              readinessScore.recoveryEstimate.trend === "improving" ? "text-green-600 dark:text-green-400" :
+                              readinessScore.recoveryEstimate.trend === "declining" ? "text-red-600 dark:text-red-400" :
+                              "text-yellow-600 dark:text-yellow-400"
+                            }>{readinessScore.recoveryEstimate.trend}</span>
+                          </div>
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {readinessScore.recoveryEstimate.confidence} confidence
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-center py-8">
+                No readiness data available. Connect Apple Health to start tracking.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )
+    },
+    {
+      id: "recovery-protocols",
+      title: "Recovery Protocols",
+      description: "Personalized recovery suggestions",
+      renderTile: () => <RecoveryProtocols />
+    },
+    {
+      id: "scheduled-calendar",
+      title: "Training Calendar",
+      description: "View and reschedule recommendations",
+      renderTile: () => (
+        <RecommendationCalendar
+          recommendations={scheduledRecommendations.map((rec) => ({
+            id: rec.id,
+            title: rec.title,
+            scheduledAt: rec.scheduledAt,
+            type: 'recommendation' as const,
+            description: rec.description,
+            category: rec.category,
+            duration: rec.duration,
+          }))}
+          insights={scheduledInsights
+            .filter((insight: any) => 
+              insight.status === 'scheduled' || insight.status === 'active'
+            )
+            .flatMap((insight: any) => 
+              (insight.scheduledDates || []).map((date: string) => ({
+                id: `${insight.id}-${date}`,
+                insightId: insight.id,
+                title: insight.title,
+                scheduledAt: date,
+                type: 'insight' as const,
+                description: insight.description,
+                category: insight.category,
+                activityType: insight.activityType,
+                duration: insight.duration,
+              }))
+            )}
+          onReschedule={(recommendationId, newDate) => {
+            rescheduleRecommendationMutation.mutate({ recommendationId, newDate });
+          }}
+        />
+      )
+    },
+    {
+      id: "today-scheduled",
+      title: "Today's Schedule",
+      description: "Scheduled recommendations for today",
+      renderTile: () => <ScheduledRecommendationsCard recommendations={todayScheduledRecommendations} />
+    },
+    {
+      id: "scheduled-insights",
+      title: "Scheduled Insights",
+      description: "Your scheduled health insights",
+      renderTile: () => <ScheduledInsightsCard />
+    },
+    {
+      id: "daily-recommendation",
+      title: "Daily Workout Recommendation",
+      description: "AI-powered workout plan based on readiness",
+      alwaysVisible: true,
+      renderTile: () => (
+        <Card data-testid="card-todays-workout">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              <CardTitle>Today's Recommended Workout</CardTitle>
+            </div>
+            <CardDescription>
+              Personalized workout based on your current readiness level
+            </CardDescription>
+            {dailyRec?.recommendation.safetyNote && (
+              <div className="mt-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                <p className="text-sm text-amber-600 dark:text-amber-400" data-testid="text-safety-note">
+                  ⚠️ {dailyRec.recommendation.safetyNote}
+                </p>
+              </div>
+            )}
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {recLoading ? (
+              <Skeleton className="h-64 w-full" />
+            ) : dailyRec?.recommendation ? (
+              <>
+                <div className="p-4 rounded-lg bg-muted/50">
+                  <p className={`text-sm ${!showFullReasoning ? 'line-clamp-3' : ''}`} data-testid="text-ai-reasoning">
+                    {dailyRec.recommendation.aiReasoning}
+                  </p>
+                  {dailyRec.recommendation.aiReasoning.length > 150 && (
+                    <button
+                      onClick={() => setShowFullReasoning(!showFullReasoning)}
+                      className="text-xs text-primary hover:underline mt-2"
+                      data-testid="button-toggle-reasoning"
+                    >
+                      {showFullReasoning ? 'Read less' : 'Read more'}
+                    </button>
+                  )}
+                </div>
+
+                {dailyRec.recommendation.adjustmentsMade && (
+                  dailyRec.recommendation.adjustmentsMade.intensityReduced || 
+                  dailyRec.recommendation.adjustmentsMade.durationReduced || 
+                  dailyRec.recommendation.adjustmentsMade.exercisesModified
+                ) && (
+                  <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                    <div className="flex items-start gap-3">
+                      <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-blue-600 dark:text-blue-400 mb-1">
+                          Workout Auto-Adjusted Based on Recovery
+                        </p>
+                        <p className={`text-sm text-blue-600/80 dark:text-blue-400/80 ${!showFullAdjustments ? 'line-clamp-3' : ''}`} data-testid="text-adjustments-made">
+                          {dailyRec.recommendation.adjustmentsMade.reason}
+                        </p>
+                        {dailyRec.recommendation.adjustmentsMade.reason.length > 150 && (
+                          <button
+                            onClick={() => setShowFullAdjustments(!showFullAdjustments)}
+                            className="text-xs text-blue-600 dark:text-blue-400 hover:underline mt-2"
+                            data-testid="button-toggle-adjustments"
+                          >
+                            {showFullAdjustments ? 'Read less' : 'Read more'}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex gap-2 flex-wrap">
+                  <Button
+                    variant={selectedPlan === 'primary' ? 'default' : 'outline'}
+                    onClick={() => {
+                      setSelectedPlan('primary');
+                      setExerciseFeedback({});
+                    }}
+                    data-testid="button-plan-primary"
+                  >
+                    <Dumbbell className="mr-2 h-4 w-4" />
+                    Primary Plan
+                  </Button>
+                  <Button
+                    variant={selectedPlan === 'alternate' ? 'default' : 'outline'}
+                    onClick={() => {
+                      setSelectedPlan('alternate');
+                      setExerciseFeedback({});
+                    }}
+                    data-testid="button-plan-alternate"
+                  >
+                    <Activity className="mr-2 h-4 w-4" />
+                    Lighter Alternative
+                  </Button>
+                  <Button
+                    variant={selectedPlan === 'rest' ? 'default' : 'outline'}
+                    onClick={() => {
+                      setSelectedPlan('rest');
+                      setExerciseFeedback({});
+                    }}
+                    data-testid="button-plan-rest"
+                  >
+                    <Moon className="mr-2 h-4 w-4" />
+                    Rest Day
+                  </Button>
+                </div>
+
+                {selectedPlan === 'rest' ? (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-semibold" data-testid="text-rest-title">
+                        {dailyRec.recommendation.restDayOption.title}
+                      </h3>
+                      <Badge variant="outline">{dailyRec.recommendation.restDayOption.duration} min</Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground" data-testid="text-rest-benefits">
+                      {dailyRec.recommendation.restDayOption.benefits}
+                    </p>
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">Suggested Activities:</p>
+                      <ul className="list-disc list-inside space-y-1">
+                        {dailyRec.recommendation.restDayOption.activities.map((activity, idx) => (
+                          <li key={idx} className="text-sm text-muted-foreground" data-testid={`text-rest-activity-${idx}`}>
+                            {activity}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                ) : currentPlan ? (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <h3 className="text-lg font-semibold" data-testid={`text-${selectedPlan}-title`}>
+                        {currentPlan.title}
+                      </h3>
+                      <div className="flex gap-2">
+                        <Badge variant="outline" data-testid={`badge-${selectedPlan}-duration`}>
+                          {currentPlan.totalDuration} min
+                        </Badge>
+                        <Badge variant="outline" data-testid={`badge-${selectedPlan}-intensity`}>
+                          {currentPlan.intensity} intensity
+                        </Badge>
+                        <Badge variant="outline" data-testid={`badge-${selectedPlan}-calories`}>
+                          ~{currentPlan.calorieEstimate} kcal
+                        </Badge>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      {currentPlan.exercises.map((exercise, idx) => (
+                        <div 
+                          key={idx} 
+                          className="p-2.5 rounded-lg border bg-card hover-elevate"
+                          data-testid={`exercise-${selectedPlan}-${idx}`}
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-medium text-sm truncate" data-testid={`text-exercise-name-${idx}`}>
+                                  {exercise.name}
+                                </h4>
+                                <Badge variant="secondary" className="text-xs shrink-0">
+                                  {exercise.intensity}
+                                </Badge>
+                              </div>
+                              <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-2 flex-wrap">
+                                {exercise.sets && exercise.reps && (
+                                  <span data-testid={`text-exercise-sets-${idx}`}>
+                                    {exercise.sets} sets × {exercise.reps}
+                                  </span>
+                                )}
+                                {exercise.duration && (
+                                  <span data-testid={`text-exercise-duration-${idx}`}>
+                                    {exercise.duration}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex gap-1 shrink-0">
+                              <Button
+                                size="icon"
+                                variant={exerciseFeedback[exercise.name] === 'up' ? 'default' : 'ghost'}
+                                onClick={() => handleExerciseFeedback(exercise.name, 'up')}
+                                className="h-7 w-7"
+                                data-testid={`button-feedback-up-${idx}`}
+                              >
+                                <ThumbsUp className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant={exerciseFeedback[exercise.name] === 'down' ? 'destructive' : 'ghost'}
+                                onClick={() => handleExerciseFeedback(exercise.name, 'down')}
+                                className="h-7 w-7"
+                                data-testid={`button-feedback-down-${idx}`}
+                              >
+                                <ThumbsDown className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    {selectedPlan !== 'rest' && (
+                      <div className="pt-4 border-t">
+                        <Button 
+                          className="w-full" 
+                          size="lg"
+                          onClick={() => startWorkoutMutation.mutate(currentPlan)}
+                          disabled={startWorkoutMutation.isPending}
+                          data-testid="button-start-workout"
+                        >
+                          {startWorkoutMutation.isPending ? (
+                            <>
+                              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                              Starting...
+                            </>
+                          ) : (
+                            <>
+                              <Dumbbell className="mr-2 h-5 w-5" />
+                              Start Workout
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                ) : null}
+              </>
+            ) : (
+              <p className="text-muted-foreground text-center py-8">
+                No recommendation available. Ensure you have readiness data and a training plan.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )
+    },
+    {
+      id: "workout-history",
+      title: "Workout History",
+      description: "Your completed workouts from the last 7 days",
+      renderTile: () => (
+        <Collapsible open={historyOpen} onOpenChange={setHistoryOpen}>
+          <Card data-testid="card-workout-history">
+            <CollapsibleTrigger asChild>
+              <CardHeader className="cursor-pointer hover-elevate">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <History className="h-5 w-5 text-primary" />
+                    <CardTitle>Workout History</CardTitle>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {recentWorkouts.length > 0 && (
+                      <Badge variant="secondary">{recentWorkouts.length} recent</Badge>
+                    )}
+                    {historyOpen ? (
+                      <ChevronUp className="h-4 w-4" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4" />
+                    )}
+                  </div>
+                </div>
+                <CardDescription>
+                  Your completed workouts from the last 7 days
+                </CardDescription>
+              </CardHeader>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <CardContent>
+                {workoutsLoading ? (
+                  <div className="space-y-3">
+                    <Skeleton className="h-20 w-full" />
+                    <Skeleton className="h-20 w-full" />
+                  </div>
+                ) : workoutsByDay.length > 0 ? (
+                  <div className="space-y-3">
+                    {workoutsByDay.map((dayGroup) => (
+                      <div
+                        key={dayGroup.dateKey}
+                        className="rounded-lg border bg-card overflow-hidden"
+                        data-testid={`workout-day-${dayGroup.dateKey}`}
+                      >
+                        <button
+                          onClick={() => toggleDayExpansion(dayGroup.dateKey)}
+                          className="w-full flex items-center justify-between p-4 hover-elevate"
+                          data-testid={`button-toggle-day-${dayGroup.dateKey}`}
+                        >
+                          <div className="flex-1 text-left">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h4 className="font-medium">
+                                {format(dayGroup.date, 'EEEE, MMM d')}
+                              </h4>
+                              <Badge variant="secondary" className="text-xs">
+                                {dayGroup.workouts.length} {dayGroup.workouts.length === 1 ? 'activity' : 'activities'}
+                              </Badge>
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              {dayGroup.totalMinutes} min • {dayGroup.totalCalories} kcal
+                            </div>
+                          </div>
+                          {expandedDays.has(dayGroup.dateKey) ? (
+                            <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                          )}
+                        </button>
+
+                        {expandedDays.has(dayGroup.dateKey) && (
+                          <div className="border-t bg-muted/30">
+                            {dayGroup.workouts.map((workout, index) => (
+                              <div
+                                key={workout.id}
+                                className={`flex items-center justify-between p-4 ${
+                                  index !== dayGroup.workouts.length - 1 ? 'border-b' : ''
+                                }`}
+                                data-testid={`workout-activity-${workout.id}`}
+                              >
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-medium text-sm">{workout.workoutType}</span>
+                                    <Badge variant="outline" className="text-xs">
+                                      {workout.intensity}
+                                    </Badge>
+                                  </div>
+                                </div>
+                                <div className="text-right text-sm text-muted-foreground">
+                                  <span>{workout.duration} min • {workout.caloriesEstimate} kcal</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-center text-muted-foreground py-8">
+                    No completed workouts in the last 7 days
+                  </p>
+                )}
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
+      )
+    }
+  ];
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -457,542 +1024,20 @@ export default function Training() {
         </div>
       )}
 
-      {/* Hero Readiness Card */}
-      <Card className="relative overflow-hidden" data-testid="card-readiness-hero">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-primary/20 to-transparent rounded-full blur-3xl -z-10" />
-        <CardHeader>
-          <div className="flex items-start justify-between gap-4 flex-wrap">
-            <div>
-              <CardTitle className="text-2xl">Today's Readiness</CardTitle>
-              <CardDescription className="mt-2">
-                {format(new Date(), "EEEE, MMMM d")}
-              </CardDescription>
-            </div>
-            <div className="flex items-center gap-2">
-              {readinessScore && (
-                <Badge 
-                  variant={getRecommendationBadgeVariant(readinessScore.recommendation)}
-                  className="text-sm px-3 py-1"
-                  data-testid="badge-readiness-status"
-                >
-                  {readinessScore.recommendation.toUpperCase()}
-                </Badge>
-              )}
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setLocation("/training/readiness-settings")}
-                data-testid="button-readiness-settings"
-              >
-                <Settings className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {readinessLoading ? (
-            <Skeleton className="h-32 w-full" />
-          ) : readinessScore ? (
-            <div className="grid md:grid-cols-2 gap-6">
-              <div className="flex items-center gap-6">
-                <div className="relative w-32 h-32">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={readinessChartData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={45}
-                        outerRadius={60}
-                        startAngle={180}
-                        endAngle={0}
-                        dataKey="value"
-                      >
-                        {readinessChartData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                    </PieChart>
-                  </ResponsiveContainer>
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="text-center">
-                      <div className="text-3xl font-bold" data-testid="text-readiness-score">
-                        {readinessScore.score}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {readinessScore.quality}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm text-muted-foreground" data-testid="text-readiness-reasoning">
-                    {readinessScore.reasoning}
-                  </p>
-                </div>
-              </div>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="flex items-center gap-2">
-                    <Moon className="h-4 w-4 text-blue-500" />
-                    Sleep Quality
-                    {readinessScore.factors.sleep.value && (
-                      <span className="text-xs text-muted-foreground">
-                        ({Math.round(readinessScore.factors.sleep.value)}h)
-                      </span>
-                    )}
-                  </span>
-                  <span className="font-medium">{Math.round(readinessScore.factors.sleep.score)}/100</span>
-                </div>
-                <Progress value={readinessScore.factors.sleep.score} className="h-2" />
-                
-                <div className="flex items-center justify-between text-sm">
-                  <span className="flex items-center gap-2">
-                    <Activity className="h-4 w-4 text-green-500" />
-                    HRV
-                  </span>
-                  <span className="font-medium">{Math.round(readinessScore.factors.hrv.score)}/100</span>
-                </div>
-                <Progress value={readinessScore.factors.hrv.score} className="h-2" />
-                
-                <div className="flex items-center justify-between text-sm">
-                  <span className="flex items-center gap-2">
-                    <Heart className="h-4 w-4 text-red-500" />
-                    Resting HR
-                  </span>
-                  <span className="font-medium">{Math.round(readinessScore.factors.restingHR.score)}/100</span>
-                </div>
-                <Progress value={readinessScore.factors.restingHR.score} className="h-2" />
-                
-                <div className="flex items-center justify-between text-sm">
-                  <span className="flex items-center gap-2">
-                    <Zap className="h-4 w-4 text-purple-500" />
-                    Recovery
-                  </span>
-                  <span className="font-medium">{Math.round(readinessScore.factors.workloadRecovery.score)}/100</span>
-                </div>
-                <Progress value={readinessScore.factors.workloadRecovery.score} className="h-2" />
-
-                {/* Recovery Estimate */}
-                {readinessScore.recoveryEstimate && readinessScore.recoveryEstimate.daysUntilReady > 0 && (
-                  <div className="mt-4 pt-4 border-t">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Recovery Estimate</span>
-                      <Badge variant="outline" data-testid="badge-recovery-estimate">
-                        {readinessScore.recoveryEstimate.daysUntilReady === 1 
-                          ? "1 day" 
-                          : `${readinessScore.recoveryEstimate.daysUntilReady} days`}
-                      </Badge>
-                    </div>
-                    <div className="mt-2 flex items-center gap-2">
-                      <div className="flex-1">
-                        <div className="text-xs text-muted-foreground">
-                          Trend: <span className={
-                            readinessScore.recoveryEstimate.trend === "improving" ? "text-green-600 dark:text-green-400" :
-                            readinessScore.recoveryEstimate.trend === "declining" ? "text-red-600 dark:text-red-400" :
-                            "text-yellow-600 dark:text-yellow-400"
-                          }>{readinessScore.recoveryEstimate.trend}</span>
-                        </div>
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {readinessScore.recoveryEstimate.confidence} confidence
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          ) : (
-            <p className="text-muted-foreground text-center py-8">
-              No readiness data available. Connect Apple Health to start tracking.
-            </p>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Schedule Section: Recovery Protocols + Calendar + Today's Scheduled */}
-      <RecoveryProtocols />
-
-      <RecommendationCalendar
-        recommendations={scheduledRecommendations.map((rec) => ({
-          id: rec.id,
-          title: rec.title,
-          scheduledAt: rec.scheduledAt,
-          type: 'recommendation' as const,
-          description: rec.description,
-          category: rec.category,
-          duration: rec.duration,
-        }))}
-        insights={scheduledInsights
-          .filter((insight: any) => 
-            insight.status === 'scheduled' || insight.status === 'active'
-          )
-          .flatMap((insight: any) => 
-            (insight.scheduledDates || []).map((date: string) => ({
-              id: `${insight.id}-${date}`,
-              insightId: insight.id,
-              title: insight.title,
-              scheduledAt: date,
-              type: 'insight' as const,
-              description: insight.description,
-              category: insight.category,
-              activityType: insight.activityType,
-              duration: insight.duration,
-            }))
-          )}
-        onReschedule={(recommendationId, newDate) => {
-          rescheduleRecommendationMutation.mutate({ recommendationId, newDate });
-        }}
+      {/* Training tiles with drag-and-drop reordering */}
+      <TileManager
+        page="training"
+        tiles={tiles}
+        defaultVisible={[
+          "readiness-score",
+          "daily-recommendation",
+          "recovery-protocols",
+          "scheduled-calendar",
+          "today-scheduled",
+          "scheduled-insights",
+          "workout-history"
+        ]}
       />
-
-      <ScheduledRecommendationsCard recommendations={todayScheduledRecommendations} />
-
-      <ScheduledInsightsCard />
-
-      {/* Today's Recommended Workout */}
-      <Card data-testid="card-todays-workout">
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary" />
-            <CardTitle>Today's Recommended Workout</CardTitle>
-          </div>
-          <CardDescription>
-            Personalized workout based on your current readiness level
-          </CardDescription>
-          {dailyRec?.recommendation.safetyNote && (
-            <div className="mt-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
-              <p className="text-sm text-amber-600 dark:text-amber-400" data-testid="text-safety-note">
-                ⚠️ {dailyRec.recommendation.safetyNote}
-              </p>
-            </div>
-          )}
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {recLoading ? (
-            <Skeleton className="h-64 w-full" />
-          ) : dailyRec?.recommendation ? (
-            <>
-              {/* AI Reasoning */}
-              <div className="p-4 rounded-lg bg-muted/50">
-                <p className={`text-sm ${!showFullReasoning ? 'line-clamp-3' : ''}`} data-testid="text-ai-reasoning">
-                  {dailyRec.recommendation.aiReasoning}
-                </p>
-                {dailyRec.recommendation.aiReasoning.length > 150 && (
-                  <button
-                    onClick={() => setShowFullReasoning(!showFullReasoning)}
-                    className="text-xs text-primary hover:underline mt-2"
-                    data-testid="button-toggle-reasoning"
-                  >
-                    {showFullReasoning ? 'Read less' : 'Read more'}
-                  </button>
-                )}
-              </div>
-
-              {/* Adjustments Made (if any) */}
-              {dailyRec.recommendation.adjustmentsMade && (
-                dailyRec.recommendation.adjustmentsMade.intensityReduced || 
-                dailyRec.recommendation.adjustmentsMade.durationReduced || 
-                dailyRec.recommendation.adjustmentsMade.exercisesModified
-              ) && (
-                <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
-                  <div className="flex items-start gap-3">
-                    <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-blue-600 dark:text-blue-400 mb-1">
-                        Workout Auto-Adjusted Based on Recovery
-                      </p>
-                      <p className={`text-sm text-blue-600/80 dark:text-blue-400/80 ${!showFullAdjustments ? 'line-clamp-3' : ''}`} data-testid="text-adjustments-made">
-                        {dailyRec.recommendation.adjustmentsMade.reason}
-                      </p>
-                      {dailyRec.recommendation.adjustmentsMade.reason.length > 150 && (
-                        <button
-                          onClick={() => setShowFullAdjustments(!showFullAdjustments)}
-                          className="text-xs text-blue-600 dark:text-blue-400 hover:underline mt-2"
-                          data-testid="button-toggle-adjustments"
-                        >
-                          {showFullAdjustments ? 'Read less' : 'Read more'}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Plan Selection */}
-              <div className="flex gap-2 flex-wrap">
-                <Button
-                  variant={selectedPlan === 'primary' ? 'default' : 'outline'}
-                  onClick={() => {
-                    setSelectedPlan('primary');
-                    setExerciseFeedback({});
-                  }}
-                  data-testid="button-plan-primary"
-                >
-                  <Dumbbell className="mr-2 h-4 w-4" />
-                  Primary Plan
-                </Button>
-                <Button
-                  variant={selectedPlan === 'alternate' ? 'default' : 'outline'}
-                  onClick={() => {
-                    setSelectedPlan('alternate');
-                    setExerciseFeedback({});
-                  }}
-                  data-testid="button-plan-alternate"
-                >
-                  <Activity className="mr-2 h-4 w-4" />
-                  Lighter Alternative
-                </Button>
-                <Button
-                  variant={selectedPlan === 'rest' ? 'default' : 'outline'}
-                  onClick={() => {
-                    setSelectedPlan('rest');
-                    setExerciseFeedback({});
-                  }}
-                  data-testid="button-plan-rest"
-                >
-                  <Moon className="mr-2 h-4 w-4" />
-                  Rest Day
-                </Button>
-              </div>
-
-              {/* Selected Plan Details */}
-              {selectedPlan === 'rest' ? (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-semibold" data-testid="text-rest-title">
-                      {dailyRec.recommendation.restDayOption.title}
-                    </h3>
-                    <Badge variant="outline">{dailyRec.recommendation.restDayOption.duration} min</Badge>
-                  </div>
-                  <p className="text-sm text-muted-foreground" data-testid="text-rest-benefits">
-                    {dailyRec.recommendation.restDayOption.benefits}
-                  </p>
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium">Suggested Activities:</p>
-                    <ul className="list-disc list-inside space-y-1">
-                      {dailyRec.recommendation.restDayOption.activities.map((activity, idx) => (
-                        <li key={idx} className="text-sm text-muted-foreground" data-testid={`text-rest-activity-${idx}`}>
-                          {activity}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              ) : currentPlan ? (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between flex-wrap gap-2">
-                    <h3 className="text-lg font-semibold" data-testid={`text-${selectedPlan}-title`}>
-                      {currentPlan.title}
-                    </h3>
-                    <div className="flex gap-2">
-                      <Badge variant="outline" data-testid={`badge-${selectedPlan}-duration`}>
-                        {currentPlan.totalDuration} min
-                      </Badge>
-                      <Badge variant="outline" data-testid={`badge-${selectedPlan}-intensity`}>
-                        {currentPlan.intensity} intensity
-                      </Badge>
-                      <Badge variant="outline" data-testid={`badge-${selectedPlan}-calories`}>
-                        ~{currentPlan.calorieEstimate} kcal
-                      </Badge>
-                    </div>
-                  </div>
-
-                  {/* Exercises - Compact Half-Height Tiles */}
-                  <div className="space-y-2">
-                    {currentPlan.exercises.map((exercise, idx) => (
-                      <div 
-                        key={idx} 
-                        className="p-2.5 rounded-lg border bg-card hover-elevate"
-                        data-testid={`exercise-${selectedPlan}-${idx}`}
-                      >
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <h4 className="font-medium text-sm truncate" data-testid={`text-exercise-name-${idx}`}>
-                                {exercise.name}
-                              </h4>
-                              <Badge variant="secondary" className="text-xs shrink-0">
-                                {exercise.intensity}
-                              </Badge>
-                            </div>
-                            <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-2 flex-wrap">
-                              {exercise.sets && exercise.reps && (
-                                <span data-testid={`text-exercise-sets-${idx}`}>
-                                  {exercise.sets} sets × {exercise.reps}
-                                </span>
-                              )}
-                              {exercise.duration && (
-                                <span data-testid={`text-exercise-duration-${idx}`}>
-                                  {exercise.duration}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                          <div className="flex gap-1 shrink-0">
-                            <Button
-                              size="icon"
-                              variant={exerciseFeedback[exercise.name] === 'up' ? 'default' : 'ghost'}
-                              onClick={() => handleExerciseFeedback(exercise.name, 'up')}
-                              className="h-7 w-7"
-                              data-testid={`button-feedback-up-${idx}`}
-                            >
-                              <ThumbsUp className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button
-                              size="icon"
-                              variant={exerciseFeedback[exercise.name] === 'down' ? 'destructive' : 'ghost'}
-                              onClick={() => handleExerciseFeedback(exercise.name, 'down')}
-                              className="h-7 w-7"
-                              data-testid={`button-feedback-down-${idx}`}
-                            >
-                              <ThumbsDown className="h-3.5 w-3.5" />
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  
-                  {/* Start Workout Button */}
-                  {selectedPlan !== 'rest' && (
-                    <div className="pt-4 border-t">
-                      <Button 
-                        className="w-full" 
-                        size="lg"
-                        onClick={() => startWorkoutMutation.mutate(currentPlan)}
-                        disabled={startWorkoutMutation.isPending}
-                        data-testid="button-start-workout"
-                      >
-                        {startWorkoutMutation.isPending ? (
-                          <>
-                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                            Starting...
-                          </>
-                        ) : (
-                          <>
-                            <Dumbbell className="mr-2 h-5 w-5" />
-                            Start Workout
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              ) : null}
-            </>
-          ) : (
-            <p className="text-muted-foreground text-center py-8">
-              No recommendation available. Ensure you have readiness data and a training plan.
-            </p>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Workout History (Collapsible) */}
-      <Collapsible open={historyOpen} onOpenChange={setHistoryOpen}>
-        <Card data-testid="card-workout-history">
-          <CollapsibleTrigger asChild>
-            <CardHeader className="cursor-pointer hover-elevate">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <History className="h-5 w-5 text-primary" />
-                  <CardTitle>Workout History</CardTitle>
-                </div>
-                <div className="flex items-center gap-2">
-                  {recentWorkouts.length > 0 && (
-                    <Badge variant="secondary">{recentWorkouts.length} recent</Badge>
-                  )}
-                  {historyOpen ? (
-                    <ChevronUp className="h-4 w-4" />
-                  ) : (
-                    <ChevronDown className="h-4 w-4" />
-                  )}
-                </div>
-              </div>
-              <CardDescription>
-                Your completed workouts from the last 7 days
-              </CardDescription>
-            </CardHeader>
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <CardContent>
-              {workoutsLoading ? (
-                <div className="space-y-3">
-                  <Skeleton className="h-20 w-full" />
-                  <Skeleton className="h-20 w-full" />
-                </div>
-              ) : workoutsByDay.length > 0 ? (
-                <div className="space-y-3">
-                  {workoutsByDay.map((dayGroup) => (
-                    <div
-                      key={dayGroup.dateKey}
-                      className="rounded-lg border bg-card overflow-hidden"
-                      data-testid={`workout-day-${dayGroup.dateKey}`}
-                    >
-                      {/* Day Header with Totals */}
-                      <button
-                        onClick={() => toggleDayExpansion(dayGroup.dateKey)}
-                        className="w-full flex items-center justify-between p-4 hover-elevate"
-                        data-testid={`button-toggle-day-${dayGroup.dateKey}`}
-                      >
-                        <div className="flex-1 text-left">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h4 className="font-medium">
-                              {format(dayGroup.date, 'EEEE, MMM d')}
-                            </h4>
-                            <Badge variant="secondary" className="text-xs">
-                              {dayGroup.workouts.length} {dayGroup.workouts.length === 1 ? 'activity' : 'activities'}
-                            </Badge>
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            {dayGroup.totalMinutes} min • {dayGroup.totalCalories} kcal
-                          </div>
-                        </div>
-                        {expandedDays.has(dayGroup.dateKey) ? (
-                          <ChevronUp className="h-4 w-4 text-muted-foreground" />
-                        ) : (
-                          <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                        )}
-                      </button>
-
-                      {/* Expandable Activities List */}
-                      {expandedDays.has(dayGroup.dateKey) && (
-                        <div className="border-t bg-muted/30">
-                          {dayGroup.workouts.map((workout, index) => (
-                            <div
-                              key={workout.id}
-                              className={`flex items-center justify-between p-4 ${
-                                index !== dayGroup.workouts.length - 1 ? 'border-b' : ''
-                              }`}
-                              data-testid={`workout-activity-${workout.id}`}
-                            >
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2">
-                                  <span className="font-medium text-sm">{workout.workoutType}</span>
-                                  <Badge variant="outline" className="text-xs">
-                                    {workout.intensity}
-                                  </Badge>
-                                </div>
-                              </div>
-                              <div className="text-right text-sm text-muted-foreground">
-                                <span>{workout.duration} min • {workout.caloriesEstimate} kcal</span>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-center text-muted-foreground py-8">
-                  No completed workouts in the last 7 days
-                </p>
-              )}
-            </CardContent>
-          </CollapsibleContent>
-        </Card>
-      </Collapsible>
     </div>
   );
 }
