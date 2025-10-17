@@ -197,6 +197,53 @@ export const exerciseLogs = pgTable("exercise_logs", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// Exercise library - standardized exercises with metadata
+export const exercises = pgTable("exercises", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull().unique(),
+  muscles: text("muscles").array().notNull(), // ['chest', 'triceps', 'shoulders']
+  equipment: text("equipment").notNull(), // 'barbell', 'dumbbell', 'machine', 'cable', 'bodyweight', 'kettlebell', 'band', 'other'
+  incrementStep: real("increment_step").notNull().default(2.5), // kg to increase by for progressive overload
+  tempoDefault: text("tempo_default"), // e.g., "3-1-1" (eccentric-pause-concentric)
+  restDefault: integer("rest_default").default(90), // default rest in seconds
+  instructions: text("instructions"), // how to perform the exercise
+  videoUrl: text("video_url"), // optional demo video
+  difficulty: text("difficulty").default("intermediate"), // 'beginner', 'intermediate', 'advanced'
+  category: text("category").notNull(), // 'compound', 'isolation', 'cardio', 'flexibility'
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Individual set tracking - one row per set
+export const exerciseSets = pgTable("exercise_sets", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  workoutSessionId: varchar("workout_session_id").notNull(),
+  exerciseId: varchar("exercise_id").notNull(),
+  userId: varchar("user_id").notNull(),
+  setIndex: integer("set_index").notNull(), // 1, 2, 3, etc.
+  targetRepsLow: integer("target_reps_low"), // e.g., 6 for 6-8 reps
+  targetRepsHigh: integer("target_reps_high"), // e.g., 8 for 6-8 reps
+  weight: real("weight"), // in kg
+  reps: integer("reps"), // actual reps completed
+  rpeLogged: integer("rpe_logged"), // Rate of Perceived Exertion 1-10
+  completed: integer("completed").notNull().default(0), // 1 if set was completed
+  notes: text("notes"),
+  restStartedAt: timestamp("rest_started_at"), // when rest timer started after completing this set
+  tempo: text("tempo"), // override default tempo for this set
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Session PRs - track personal records achieved in a session
+export const sessionPRs = pgTable("session_prs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  workoutSessionId: varchar("workout_session_id").notNull(),
+  exerciseId: varchar("exercise_id").notNull(),
+  userId: varchar("user_id").notNull(),
+  prType: text("pr_type").notNull(), // 'rep_pr', 'est_1rm_pr', 'volume_pr'
+  value: real("value").notNull(), // the PR value (weight, reps, or volume)
+  previousBest: real("previous_best"), // previous best for comparison
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const recommendations = pgTable("recommendations", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull(),
@@ -444,6 +491,21 @@ export const insertWorkoutSessionSchema = createInsertSchema(workoutSessions).om
 });
 
 export const insertExerciseLogSchema = createInsertSchema(exerciseLogs).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertExerciseSchema = createInsertSchema(exercises).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertExerciseSetSchema = createInsertSchema(exerciseSets).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertSessionPRSchema = createInsertSchema(sessionPRs).omit({
   id: true,
   createdAt: true,
 });
@@ -826,6 +888,15 @@ export type WorkoutSession = typeof workoutSessions.$inferSelect;
 
 export type InsertExerciseLog = z.infer<typeof insertExerciseLogSchema>;
 export type ExerciseLog = typeof exerciseLogs.$inferSelect;
+
+export type InsertExercise = z.infer<typeof insertExerciseSchema>;
+export type Exercise = typeof exercises.$inferSelect;
+
+export type InsertExerciseSet = z.infer<typeof insertExerciseSetSchema>;
+export type ExerciseSet = typeof exerciseSets.$inferSelect;
+
+export type InsertSessionPR = z.infer<typeof insertSessionPRSchema>;
+export type SessionPR = typeof sessionPRs.$inferSelect;
 
 export type InsertGoal = z.infer<typeof insertGoalSchema>;
 export type Goal = typeof goals.$inferSelect;
