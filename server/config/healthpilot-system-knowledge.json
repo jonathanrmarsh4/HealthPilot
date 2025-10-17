@@ -1,0 +1,570 @@
+{
+  "meta": {
+    "name": "HealthPilot System Knowledge Base",
+    "version": "1.0",
+    "updated": "2025-01-17",
+    "purpose": "Comprehensive system knowledge for AI to understand HealthPilot's architecture, privacy compliance, features, and data handling"
+  },
+  
+  "privacy_and_compliance": {
+    "overview": "HealthPilot is fully compliant with international health data privacy standards including GDPR (EU), HIPAA (USA), PIPEDA (Canada), and Australia Privacy Act",
+    
+    "regulations": {
+      "GDPR": {
+        "jurisdiction": "European Union",
+        "key_requirements": [
+          "Right to access (Article 15) - Users can export all their data in JSON format",
+          "Right to erasure (Article 17) - Users can delete their account with 30-day grace period",
+          "Data portability (Article 20) - Complete data export in machine-readable format",
+          "Consent management - Granular opt-in/opt-out for different data processing types",
+          "Breach notification - All data access logged with IP addresses and timestamps"
+        ],
+        "implementation": "Privacy Dashboard provides full user control over data export, deletion, and consent preferences"
+      },
+      "HIPAA": {
+        "jurisdiction": "United States",
+        "key_requirements": [
+          "Protected Health Information (PHI) - All biomarkers, workouts, sleep data encrypted with AES-256",
+          "Access logging - 6-year retention of all data access with timestamps and IP addresses",
+          "Accounting of disclosures - Audit log shows all data access and sharing events",
+          "Business Associate Agreement (BAA) - OpenAI processes data under BAA with bank-level encryption",
+          "Minimum necessary rule - AI only accesses data needed for requested analysis"
+        ],
+        "implementation": "Comprehensive audit logging system tracks all PHI access with 6-year retention"
+      },
+      "PIPEDA": {
+        "jurisdiction": "Canada",
+        "key_requirements": [
+          "Consent for collection - Users must explicitly consent to health data processing",
+          "Purpose specification - Clear explanations of why each data type is collected",
+          "Individual access - Users can access and correct their personal information",
+          "Safeguards - AES-256 encryption and secure access controls"
+        ],
+        "implementation": "Transparent consent system with clear purpose statements"
+      },
+      "Australia_Privacy_Act": {
+        "jurisdiction": "Australia",
+        "key_requirements": [
+          "Australian Privacy Principles (APPs) - 13 principles governing data handling",
+          "Consent and notification - Users informed of data collection and usage",
+          "Data quality and security - Accurate records with strong encryption",
+          "Access and correction - Users can view and update their data"
+        ],
+        "implementation": "Privacy Policy and Privacy Dashboard comply with all 13 APPs"
+      }
+    },
+    
+    "consent_management": {
+      "overview": "HealthPilot uses a granular consent system with 4 distinct consent types",
+      "consent_types": {
+        "health_data": {
+          "required": true,
+          "description": "Processing of health data including biomarkers, workouts, sleep data, and nutrition information for personalized insights",
+          "cannot_be_revoked": "This is required to use HealthPilot services. Revoking this consent means you cannot use the app.",
+          "legal_basis": "GDPR Article 9(2)(a) - Explicit consent for health data processing"
+        },
+        "ai_analysis": {
+          "required": true,
+          "description": "AI-powered analysis of health data using OpenAI GPT-4o to generate personalized insights, training plans, and nutrition recommendations",
+          "cannot_be_revoked": "This is required to use HealthPilot services. Revoking this consent means you cannot use AI features.",
+          "legal_basis": "GDPR Article 9(2)(a) - Explicit consent; OpenAI processes under BAA for HIPAA compliance",
+          "data_processing": "OpenAI processes data under Business Associate Agreement with bank-level encryption. No data is used for model training."
+        },
+        "third_party": {
+          "required": false,
+          "description": "Integration with third-party services like Apple Health, Google Fit, and wearable devices",
+          "revocable": true,
+          "revocation_effect": "Disables Apple Health sync and other third-party integrations. Existing imported data is retained unless you delete it.",
+          "legal_basis": "GDPR Article 6(1)(a) - Consent for data sharing with third parties"
+        },
+        "marketing": {
+          "required": false,
+          "description": "Receive emails about new features, health tips, and special offers",
+          "revocable": true,
+          "revocation_effect": "You will no longer receive marketing emails. You will still receive essential service emails (password resets, security alerts).",
+          "legal_basis": "GDPR Article 6(1)(a) - Consent for marketing communications"
+        }
+      },
+      "consent_audit_trail": "All consent changes are logged with timestamp, IP address, and user agent for compliance. Audit trail retained for 6 years per HIPAA requirements."
+    },
+    
+    "user_rights": {
+      "data_export": {
+        "description": "Users can download complete copy of all their health data in machine-readable JSON format",
+        "includes": [
+          "Personal profile and settings",
+          "All biomarker readings with timestamps",
+          "Workout and training history",
+          "Sleep and readiness data",
+          "Meal plans and nutrition data",
+          "AI-generated insights and recommendations",
+          "Chat message history",
+          "Supplement tracking data",
+          "Goals and progress tracking"
+        ],
+        "format": "JSON (machine-readable)",
+        "legal_basis": "GDPR Article 15 (Right to Access), GDPR Article 20 (Data Portability)",
+        "implementation": "Privacy Dashboard > Export Data button triggers immediate JSON download"
+      },
+      "account_deletion": {
+        "description": "Permanent deletion of account and all associated health data",
+        "grace_period": "30 days - Users can log back in to cancel deletion request",
+        "deletion_method": "NIST-compliant secure erasure",
+        "includes": [
+          "All biomarker readings",
+          "Workout history",
+          "Sleep data",
+          "Meal plans",
+          "AI insights",
+          "Chat history",
+          "Personal profile",
+          "Supplement data",
+          "Goals and recommendations"
+        ],
+        "legal_basis": "GDPR Article 17 (Right to Erasure/Right to be Forgotten)",
+        "implementation": "Privacy Dashboard > Delete Account button initiates 30-day grace period",
+        "recovery": "Log back in within 30 days to cancel deletion. After 30 days, data is permanently and irreversibly deleted."
+      },
+      "audit_log_access": {
+        "description": "View complete history of all data access and modifications",
+        "retention": "6 years (HIPAA requirement)",
+        "includes": [
+          "Data reads and modifications",
+          "AI analysis operations",
+          "Data exports",
+          "Authentication events",
+          "Consent updates",
+          "Account deletion requests"
+        ],
+        "each_entry_shows": ["Timestamp", "Action type", "IP address", "User agent (device/browser)", "Resource accessed"],
+        "legal_basis": "HIPAA - Accounting of Disclosures",
+        "implementation": "Privacy Dashboard > View Audit Log button opens filterable audit log viewer"
+      }
+    },
+    
+    "data_security": {
+      "encryption": {
+        "at_rest": "AES-256 encryption for all stored health data",
+        "in_transit": "TLS 1.3 for all network communications",
+        "database": "PostgreSQL with encrypted connections"
+      },
+      "access_controls": {
+        "authentication": "OpenID Connect (Replit Auth) with role-based access control",
+        "authorization": "IDOR protection and privilege escalation prevention",
+        "session_management": "Secure session tokens with automatic expiration"
+      },
+      "ai_processing": {
+        "provider": "OpenAI GPT-4o",
+        "compliance": "Business Associate Agreement (BAA) for HIPAA compliance",
+        "encryption": "Bank-level encryption during processing",
+        "data_retention": "OpenAI does not use HealthPilot data for model training",
+        "safeguards": "AI operates under strict guardrails aligned with ACSM, NSCA, WHO, ADA, AND, AHA standards"
+      }
+    }
+  },
+  
+  "system_architecture": {
+    "overview": "HealthPilot is an AI-powered health tracking platform with comprehensive workout capabilities, evidence-based AI training prescription, and international privacy compliance",
+    
+    "technology_stack": {
+      "frontend": "React with TypeScript, Tailwind CSS, shadcn/ui components",
+      "backend": "Express.js with TypeScript",
+      "database": "PostgreSQL accessed via Drizzle ORM",
+      "ai": "OpenAI GPT-4o with custom guardrails system",
+      "authentication": "Replit Auth (OpenID Connect)",
+      "mobile": "Capacitor 7 for native iOS app (100% code reuse)",
+      "health_integration": "Apple Health via webhooks (web) and native HealthKit (iOS app)"
+    },
+    
+    "subscription_model": {
+      "overview": "Freemium model with three tiers: Free, Premium, Enterprise",
+      "tiers": {
+        "free": {
+          "price": "$0/month",
+          "ai_messages": "20 per month",
+          "biomarkers": "5 types",
+          "historical_data": "30 days",
+          "features": [
+            "Basic biomarker tracking (5 types)",
+            "Manual workout logging",
+            "AI chat (20 messages/month)",
+            "Sleep tracking",
+            "Basic insights",
+            "Supplement tracking"
+          ],
+          "limitations": [
+            "Limited AI messages",
+            "Limited biomarker types",
+            "30-day historical data only",
+            "No Apple Health sync",
+            "No biological age calculation",
+            "No AI-generated meal plans"
+          ]
+        },
+        "premium": {
+          "price": "$20/month",
+          "ai_messages": "Unlimited",
+          "biomarkers": "Unlimited types",
+          "historical_data": "Unlimited (full history)",
+          "features": [
+            "Unlimited AI messages",
+            "Unlimited biomarker types",
+            "Full historical data access",
+            "Apple Health sync (automatic workout import)",
+            "Biological age calculation (PhenoAge)",
+            "AI-generated meal plans with feedback",
+            "Advanced insights and recommendations",
+            "Progressive overload training system",
+            "Readiness score calculation",
+            "Voice chat capability",
+            "Priority support"
+          ],
+          "payment": "Stripe integration for secure payment processing"
+        },
+        "enterprise": {
+          "price": "Custom pricing",
+          "contact": "Contact sales",
+          "features": [
+            "All Premium features",
+            "Team management",
+            "Advanced analytics",
+            "Custom integrations",
+            "Dedicated support",
+            "HIPAA BAA if required",
+            "Custom SLA"
+          ]
+        }
+      },
+      "payment_processing": "Stripe with webhook handling for subscription management"
+    },
+    
+    "apple_health_integration": {
+      "web_version": {
+        "method": "Health Auto Export iOS app webhook",
+        "data_types": [
+          "Sleep sessions (auto-deduplicated)",
+          "Workout sessions (comprehensive tracking)",
+          "Heart rate variability (HRV)",
+          "Resting heart rate",
+          "Steps",
+          "Active calories",
+          "Weight",
+          "Body fat percentage",
+          "Lean body mass"
+        ],
+        "requirement": "Premium subscription"
+      },
+      "ios_app": {
+        "method": "Native HealthKit integration via Capacitor 7",
+        "advantages": [
+          "Direct HealthKit access",
+          "Real-time data sync",
+          "100% code reuse from web app",
+          "Native performance"
+        ],
+        "requirement": "Premium subscription"
+      },
+      "smart_deduplication": "Automatic detection and removal of duplicate sleep sessions from overlapping sources"
+    }
+  },
+  
+  "core_features": {
+    "readiness_score": {
+      "description": "Multi-factor weighted scoring system that calculates daily readiness based on sleep, HRV, heart rate, and workout load",
+      "factors": {
+        "sleep_quality": {
+          "weight": 0.35,
+          "measures": "Hours slept and sleep quality score",
+          "optimal": "7-9 hours with good quality"
+        },
+        "hrv": {
+          "weight": 0.30,
+          "measures": "Heart rate variability (RMSSD)",
+          "optimal": "Within 10% of baseline"
+        },
+        "resting_heart_rate": {
+          "weight": 0.20,
+          "measures": "Morning resting heart rate",
+          "optimal": "Within 5% of baseline"
+        },
+        "workout_load": {
+          "weight": 0.15,
+          "measures": "Recent training intensity and volume",
+          "optimal": "Moderate load without overtraining"
+        }
+      },
+      "scale": "0-100 where 100 is optimal readiness",
+      "ai_integration": "AI uses readiness score to auto-adjust training intensity and recommend recovery",
+      "safety_logic": "Readiness score triggers auto-regulation rules per ACSM guidelines"
+    },
+    
+    "biological_age": {
+      "name": "PhenoAge",
+      "description": "Calculates biological age based on biomarkers using the scientifically validated PhenoAge algorithm",
+      "required_biomarkers": [
+        "Albumin",
+        "Creatinine",
+        "Glucose",
+        "C-reactive protein (CRP)",
+        "Lymphocyte percentage",
+        "Mean cell volume (MCV)",
+        "Red cell distribution width (RDW)",
+        "Alkaline phosphatase (ALP)",
+        "White blood cell count (WBC)"
+      ],
+      "output": "Biological age vs chronological age difference",
+      "interpretation": "Negative difference (e.g., -9 years) means you're aging slower than chronological age suggests",
+      "requirement": "Premium subscription",
+      "scientific_basis": "Published peer-reviewed algorithm for biological age estimation"
+    },
+    
+    "progressive_overload_training": {
+      "name": "Double Progression System",
+      "description": "Automatically suggests weight increases based on performance and RPE (Rate of Perceived Exertion)",
+      "algorithm": [
+        "Track reps completed and RPE for each set",
+        "When target reps achieved at comfortable RPE → suggest weight increase",
+        "Progression respects NSCA limits: max 10% intensity increase per week"
+      ],
+      "integration": "Works with workout session tracking and AI training recommendations",
+      "guardrails": "Subject to HealthPilot Training Operating System safety limits"
+    },
+    
+    "ai_training_prescription": {
+      "name": "HealthPilot Training Operating System v1.0",
+      "description": "Evidence-based AI guardrail system that enforces safety-first training prescription aligned with recognized medical and sports science standards",
+      "standards": {
+        "ACSM": "American College of Sports Medicine - Exercise prescription guidelines",
+        "NSCA": "National Strength & Conditioning Association - Progressive overload principles",
+        "WHO": "World Health Organization - Physical activity recommendations",
+        "ADA": "American Diabetes Association - Nutrition guidelines",
+        "AND": "Academy of Nutrition & Dietetics - Sports nutrition standards",
+        "AHA": "American Heart Association - Cardiovascular health guidelines"
+      },
+      "safety_rules": {
+        "hr_max_caps": "85% general, 75% for beginners (ACSM)",
+        "rest_days": "Minimum 1 rest day per week (WHO)",
+        "deload_weeks": "Mandatory every 4-6 weeks (NSCA)",
+        "progression_limits": "Max 15% volume increase, 10% intensity increase per week (NSCA)",
+        "vital_sign_triggers": "Auto-adjust based on blood pressure, resting HR, HRV drops (ACSM)"
+      },
+      "auto_regulation": {
+        "hrv_drop_20pct": "Replace next session with active recovery",
+        "sleep_under_5hrs": "Reduce next session intensity 20%",
+        "resting_hr_rise_10pct": "Delay next high-intensity session",
+        "performance_drop_10pct": "Start deload microcycle"
+      },
+      "biomarker_adjustments": {
+        "high_cortisol": "Reduce intensity 25%, emphasize recovery",
+        "high_crp": "Block high intensity, prescribe mobility and LISS",
+        "low_testosterone": "Reduce volume 15%, focus on sleep hygiene",
+        "high_glucose": "Add zone 2 cardio and NEAT activities"
+      },
+      "evidence_citations": "All AI recommendations include brief citations (e.g., 'ACSM: Recovery intensity <60% when readiness low') to build user confidence"
+    },
+    
+    "meal_planning": {
+      "description": "AI-generated personalized meal plans with feedback system",
+      "features": [
+        "Swipe-based interface (dating-app style) for meal feedback",
+        "Macro recommendations based on goals and biomarkers",
+        "Dietary preference support",
+        "Recipe suggestions with nutritional info",
+        "Feedback influences future meal suggestions"
+      ],
+      "requirement": "Premium subscription for AI-generated plans",
+      "free_tier": "Manual meal logging only"
+    },
+    
+    "supplement_tracking": {
+      "description": "Track supplements with daily reminders",
+      "features": [
+        "Supplement stack management",
+        "Daily reminder system",
+        "Dosage tracking",
+        "AI recommendations based on biomarkers and goals"
+      ],
+      "availability": "All subscription tiers"
+    },
+    
+    "universal_tile_management": {
+      "description": "Customizable page layouts with drag-and-drop tile reordering",
+      "features": [
+        "Drag-and-drop to reorder content tiles",
+        "Toggle tile visibility",
+        "Persistent user preferences",
+        "Available on multiple pages (Dashboard, Training, etc.)"
+      ],
+      "purpose": "Personalize interface to show most relevant information first"
+    },
+    
+    "ai_chat": {
+      "description": "Context-aware AI health coach powered by OpenAI GPT-4o",
+      "capabilities": {
+        "data_visibility": "Full read access to all user health data (biomarkers, workouts, sleep, meals, goals, chat history)",
+        "write_access": "Controlled write access with audit logging for creating goals, training plans, supplement recommendations",
+        "context_awareness": "Knows current page user is on and tailors responses accordingly",
+        "memory": "Maintains conversation history and learns user preferences"
+      },
+      "guardrails": [
+        "Safety-first: Never recommend actions that conflict with medical advice",
+        "Non-diagnostic: Cannot diagnose medical conditions",
+        "Evidence-based: All training recommendations cite ACSM/NSCA/WHO standards",
+        "Transparent: Explains reasoning behind recommendations",
+        "Audit logging: All AI actions logged with timestamps"
+      ],
+      "features": [
+        "Daily personalized insights (proactive suggestions)",
+        "Multi-metric recommendations",
+        "Alternative therapy suggestions",
+        "Goal-driven assistance",
+        "Exercise alternative suggestions with swap functionality",
+        "Immediate response enforcement"
+      ],
+      "limitations": {
+        "free_tier": "20 messages per month",
+        "premium_tier": "Unlimited messages",
+        "voice_chat": "Premium only"
+      }
+    }
+  },
+  
+  "data_handling_policies": {
+    "data_collection": {
+      "what_we_collect": {
+        "required_for_service": [
+          "Email address (for account management)",
+          "Name (for personalization)",
+          "Age and sex (for health calculations)",
+          "Biomarkers (if you choose to track them)",
+          "Workout data (if you log workouts or sync Apple Health)",
+          "Sleep data (if you track sleep or sync Apple Health)",
+          "Goals and preferences (for AI recommendations)"
+        ],
+        "optional_data": [
+          "Apple Health data (requires Premium + explicit consent)",
+          "Chat message history (for AI context)",
+          "Meal plans and feedback (if you use meal planning)",
+          "Supplement tracking (if you track supplements)"
+        ]
+      },
+      "why_we_collect": {
+        "health_data_processing": "To provide personalized health insights, track biomarker trends, and calculate readiness scores",
+        "ai_analysis": "To generate personalized training plans, nutrition recommendations, and alternative therapy suggestions",
+        "third_party_integrations": "To sync data from Apple Health and other wearable devices (Premium only)",
+        "service_improvement": "To understand how features are used and improve the product"
+      },
+      "consent_requirements": {
+        "health_data": "Required - Cannot use HealthPilot without consenting to health data processing",
+        "ai_analysis": "Required - Cannot use AI features without this consent",
+        "third_party": "Optional - Can revoke to disable Apple Health sync",
+        "marketing": "Optional - Can revoke to stop marketing emails"
+      }
+    },
+    
+    "data_storage": {
+      "location": "United States (encrypted at rest and in transit)",
+      "encryption": "AES-256 for all health data",
+      "database": "PostgreSQL with encrypted connections",
+      "retention": {
+        "active_accounts": "Data retained indefinitely while account is active",
+        "deleted_accounts": "30-day grace period, then permanent NIST-compliant deletion",
+        "audit_logs": "6 years (HIPAA requirement)"
+      }
+    },
+    
+    "data_sharing": {
+      "who_we_share_with": {
+        "openai": {
+          "purpose": "AI analysis of health data",
+          "legal_basis": "Business Associate Agreement (BAA) for HIPAA compliance",
+          "safeguards": "Bank-level encryption, no data used for model training",
+          "consent": "Requires 'AI Analysis' consent"
+        },
+        "apple_health": {
+          "purpose": "Import workout and sleep data",
+          "direction": "One-way (from Apple Health to HealthPilot)",
+          "consent": "Requires 'Third-Party Integrations' consent and Premium subscription"
+        },
+        "stripe": {
+          "purpose": "Payment processing for Premium subscriptions",
+          "data_shared": "Email address and payment information",
+          "safeguards": "PCI-DSS compliant"
+        }
+      },
+      "who_we_never_share_with": [
+        "Advertisers",
+        "Data brokers",
+        "Insurance companies",
+        "Employers",
+        "Any third party for marketing purposes without explicit consent"
+      ]
+    },
+    
+    "privacy_dashboard_features": {
+      "location": "/privacy-dashboard page",
+      "capabilities": [
+        "View encryption status (AES-256 Active)",
+        "View compliance status (HIPAA + GDPR Certified)",
+        "Export complete data in JSON format",
+        "View audit log of all data access (6-year retention)",
+        "Manage consent preferences (toggle optional consents)",
+        "Delete account with 30-day grace period",
+        "Access Privacy Policy and Terms of Service",
+        "Contact Privacy Officer (privacy@healthpilot.pro)"
+      ]
+    },
+    
+    "user_control": {
+      "export": "One-click JSON export of all health data",
+      "deletion": "Self-service account deletion with 30-day recovery window",
+      "consent": "Toggle optional consents anytime (third-party integrations, marketing)",
+      "audit": "View complete access history with timestamps and IP addresses",
+      "correction": "Update profile and health data anytime",
+      "portability": "Export data in machine-readable JSON format for use elsewhere"
+    }
+  },
+  
+  "ai_behavior_guidelines": {
+    "when_asked_about_privacy": [
+      "Explain that HealthPilot is fully GDPR, HIPAA, PIPEDA, and Australia Privacy Act compliant",
+      "Mention that data is encrypted with AES-256 at rest and TLS 1.3 in transit",
+      "Explain the 4 consent types (2 required, 2 optional) and what each controls",
+      "Direct users to Privacy Dashboard (/privacy-dashboard) for data export, deletion, consent management",
+      "Explain 6-year audit log retention for HIPAA compliance",
+      "Mention OpenAI processes data under BAA with no model training"
+    ],
+    
+    "when_asked_about_features": [
+      "Check user's subscription tier before suggesting features",
+      "Explain Premium-only features clearly (e.g., 'Apple Health sync requires Premium subscription')",
+      "Mention free tier limitations: 20 AI messages/month, 5 biomarker types, 30-day history",
+      "Explain that biological age (PhenoAge) requires Premium and specific biomarkers",
+      "Guide users on how to access features through the UI"
+    ],
+    
+    "when_asked_about_data_handling": [
+      "Explain what data is collected and why (be transparent)",
+      "Mention that required consents (health_data, ai_analysis) cannot be revoked while using the app",
+      "Explain that optional consents (third_party, marketing) can be toggled anytime",
+      "Direct to Privacy Dashboard to view audit log or manage consents",
+      "Explain 30-day grace period for account deletion"
+    ],
+    
+    "when_asked_about_guardrails": [
+      "Explain that HealthPilot Training Operating System enforces evidence-based safety limits",
+      "Cite specific standards (ACSM, NSCA, WHO) when relevant",
+      "Explain auto-regulation triggers (HRV drop, poor sleep, etc.)",
+      "Mention biomarker-driven adjustments (high cortisol → recovery mode)",
+      "Emphasize safety-first approach: safety overrides goals when in conflict"
+    ],
+    
+    "general_principles": [
+      "Be transparent about limitations and subscription requirements",
+      "Cite evidence-based standards when making recommendations",
+      "Respect user privacy and never ask for data you don't need",
+      "Guide users to appropriate UI features (Privacy Dashboard, Settings, etc.)",
+      "Acknowledge when something requires Premium and explain why"
+    ]
+  }
+}
