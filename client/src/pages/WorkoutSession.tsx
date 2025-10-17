@@ -497,21 +497,38 @@ export default function WorkoutSession() {
                       <div className="flex-1 grid grid-cols-2 gap-2">
                         <div>
                           <label className="text-xs text-muted-foreground">Weight (kg)</label>
-                          <Input
-                            type="number"
-                            step="0.1"
-                            placeholder="0"
-                            value={set.weight || ""}
-                            onChange={(e) =>
-                              updateSetMutation.mutate({
-                                setId: set.id,
-                                data: { weight: parseFloat(e.target.value) || 0 },
-                              })
-                            }
-                            disabled={set.completed === 1}
-                            className="h-8 text-sm"
-                            data-testid={`input-weight-${exerciseIndex}-${setIndex}`}
-                          />
+                          <div className="flex gap-1">
+                            <Input
+                              type="number"
+                              step="0.1"
+                              placeholder="0"
+                              value={set.weight === null ? "" : (set.weight || "")}
+                              onChange={(e) =>
+                                updateSetMutation.mutate({
+                                  setId: set.id,
+                                  data: { weight: parseFloat(e.target.value) || 0 },
+                                })
+                              }
+                              disabled={set.completed === 1 || set.weight === null}
+                              className="h-8 text-sm flex-1"
+                              data-testid={`input-weight-${exerciseIndex}-${setIndex}`}
+                            />
+                            <Button
+                              size="sm"
+                              variant={set.weight === null ? "default" : "outline"}
+                              onClick={() =>
+                                updateSetMutation.mutate({
+                                  setId: set.id,
+                                  data: { weight: set.weight === null ? 0 : null },
+                                })
+                              }
+                              disabled={set.completed === 1}
+                              className="h-8 px-2 text-xs"
+                              data-testid={`button-bodyweight-${exerciseIndex}-${setIndex}`}
+                            >
+                              BW
+                            </Button>
+                          </div>
                         </div>
                         <div>
                           <label className="text-xs text-muted-foreground">Reps</label>
@@ -537,7 +554,7 @@ export default function WorkoutSession() {
                         <Button
                           size="sm"
                           onClick={() => handleCompleteSet(set, exercise)}
-                          disabled={!set.weight || !set.reps}
+                          disabled={(set.weight !== null && !set.weight) || !set.reps}
                           data-testid={`button-complete-set-${exerciseIndex}-${setIndex}`}
                         >
                           Complete

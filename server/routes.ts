@@ -3134,18 +3134,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const allExercises = await storage.getAllExercises();
       console.log(`📚 Found ${allExercises.length} exercises in database`);
       
+      // Fuzzy matching helper function with improved scoring
+      const findBestMatch = (planName: string, dbExercises: any[]) => {
+        const planLower = planName.toLowerCase();
+        
+        // 1. Try exact match first
+        let match = dbExercises.find(ex => ex.name.toLowerCase() === planLower);
+        if (match) return { exercise: match, score: 100 };
+        
+        // 2. Try partial contains match (e.g., "Row" matches "Bent-Over Dumbbell Rows")
+        match = dbExercises.find(ex => ex.name.toLowerCase().includes(planLower) || planLower.includes(ex.name.toLowerCase()));
+        if (match) return { exercise: match, score: 80 };
+        
+        // 3. Try word-based matching with improved scoring
+        const planWords = planLower.split(/[\s-]+/).filter(w => w.length > 2); // Skip short words like "or"
+        
+        const matches = dbExercises.map(ex => {
+          const dbWords = ex.name.toLowerCase().split(/[\s-]+/).filter(w => w.length > 2);
+          
+          // Count matching words (including partial matches)
+          const matchingWords = planWords.filter(pw => dbWords.some(dw => dw.includes(pw) || pw.includes(dw)));
+          
+          // Score based on: 1) number of matching words, 2) percentage of total words
+          const matchCount = matchingWords.length;
+          const matchRatio = matchCount / Math.min(planWords.length, dbWords.length);
+          
+          // Give higher weight to match count to favor exercises with key word matches
+          const score = (matchRatio * 40) + (matchCount * 15);
+          
+          return { exercise: ex, score };
+        });
+        
+        // Return best match if score is decent (> 10 for at least 1 word match)
+        const bestMatch = matches.sort((a, b) => b.score - a.score)[0];
+        return bestMatch && bestMatch.score > 10 ? bestMatch : null;
+      };
+      
       let setsCreated = 0;
       // Create exercise sets for each exercise in the plan
       for (let i = 0; i < workoutPlan.exercises.length; i++) {
         const planExercise = workoutPlan.exercises[i];
         
-        // Find matching exercise in database (case-insensitive search)
-        const matchedExercise = allExercises.find(ex => 
-          ex.name.toLowerCase() === planExercise.name.toLowerCase()
-        );
+        // Find best matching exercise using fuzzy matching
+        const matchResult = findBestMatch(planExercise.name, allExercises);
         
-        if (matchedExercise) {
-          console.log(`✅ Matched "${planExercise.name}" to database exercise "${matchedExercise.name}"`);
+        if (matchResult) {
+          const matchedExercise = matchResult.exercise;
+          console.log(`✅ Matched "${planExercise.name}" to database exercise "${matchedExercise.name}" (score: ${matchResult.score})`);
           
           // Parse sets and reps (e.g., "3 sets" -> 3, "8-12 reps" -> 8-12)
           const sets = planExercise.sets || 3;
@@ -3247,8 +3282,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Custom validation schema for exercise set updates with proper constraints
       const updateSetSchema = z.object({
-        weight: z.number().nonnegative().optional(),
-        reps: z.number().int().positive().optional(),
+        weight: z.union([z.number().nonnegative(), z.null()]).optional(), // Allow null for bodyweight
+        reps: z.union([z.number().int().positive(), z.null()]).optional(), // Allow null for unlogged
         rpeLogged: z.number().int().min(1).max(10).nullable().optional(),
         completed: z.union([z.literal(0), z.literal(1)]).optional(),
         notes: z.string().nullable().optional(),
@@ -3339,7 +3374,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Use AI to select the best alternatives
       const { default: OpenAI } = await import('openai');
-      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+      const openai = new OpenAI({ 
+        apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+        baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+      });
 
       const prompt = `Given the following exercise:
 Name: ${currentExercise.name}
