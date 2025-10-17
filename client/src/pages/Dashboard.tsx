@@ -61,8 +61,7 @@ const ALL_OPTIONAL_WIDGETS = [
   "todays-meals",
   "health-metrics", 
   "blood-glucose-chart",
-  "weight-chart",
-  "recommendations"
+  "weight-chart"
 ];
 
 // Default visible widgets (empty = clean dashboard by default)
@@ -76,8 +75,7 @@ const WIDGET_CONFIG: Record<string, { title: string; description: string }> = {
   "health-metrics": { title: "Health Metrics", description: "Heart rate, blood glucose, weight cards" },
   "blood-glucose-chart": { title: "Blood Glucose Chart", description: "7-day glucose trend" },
   "weight-chart": { title: "Weight Chart", description: "12-month weight tracking" },
-  "biological-age": { title: "Biological Age", description: "PhenoAge longevity biomarker" },
-  "recommendations": { title: "AI Recommendations", description: "Personalized health insights" }
+  "biological-age": { title: "Biological Age", description: "PhenoAge longevity biomarker" }
 };
 
 export default function Dashboard() {
