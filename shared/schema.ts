@@ -61,7 +61,10 @@ export const pageTilePreferences = pgTable("page_tile_preferences", {
   order: text("order").array().notNull().default(sql`ARRAY[]::text[]`), // Array of tile IDs in display order
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+}, (table) => [
+  // Ensure only one preference record per user per page
+  index("page_tile_preferences_user_page_idx").on(table.userId, table.page).unique(),
+]);
 
 export const healthRecords = pgTable("health_records", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

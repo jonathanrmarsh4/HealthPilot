@@ -16,6 +16,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { RecommendationCalendar } from "@/components/RecommendationCalendar";
 import { ScheduledRecommendationsCard } from "@/components/ScheduledRecommendationsCard";
 import { ScheduledInsightsCard } from "@/components/ScheduledInsightsCard";
+import { TileManager, type TileConfig } from "@/components/TileManager";
 
 interface TrainingSchedule {
   id: string;

@@ -448,32 +448,25 @@ export class DbStorage implements IStorage {
   }
 
   async savePageTilePreferences(userId: string, page: string, preferences: { visible: string[], order: string[] }): Promise<PageTilePreferences> {
-    const existing = await this.getPageTilePreferences(userId, page);
-    
-    if (existing) {
-      const result = await db.update(pageTilePreferences)
-        .set({
+    // Use proper upsert with onConflictDoUpdate to handle the unique constraint
+    const result = await db.insert(pageTilePreferences)
+      .values({
+        userId,
+        page,
+        visible: preferences.visible,
+        order: preferences.order,
+      })
+      .onConflictDoUpdate({
+        target: [pageTilePreferences.userId, pageTilePreferences.page],
+        set: {
           visible: preferences.visible,
           order: preferences.order,
           updatedAt: new Date(),
-        })
-        .where(and(
-          eq(pageTilePreferences.userId, userId),
-          eq(pageTilePreferences.page, page)
-        ))
-        .returning();
-      return result[0];
-    } else {
-      const result = await db.insert(pageTilePreferences)
-        .values({
-          userId,
-          page,
-          visible: preferences.visible,
-          order: preferences.order,
-        })
-        .returning();
-      return result[0];
-    }
+        }
+      })
+      .returning();
+    
+    return result[0];
   }
 
   async updateUserProfile(userId: string, profileData: Partial<Pick<User, "firstName" | "lastName" | "height" | "dateOfBirth" | "gender" | "bloodType" | "activityLevel" | "location">>): Promise<User> {
