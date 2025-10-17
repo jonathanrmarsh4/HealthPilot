@@ -1,14 +1,16 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Sparkles, TrendingUp, Activity, Brain, AlertTriangle, X, RefreshCw, Target, ThumbsUp, ThumbsDown, Calendar, Trophy } from "lucide-react";
+import { Sparkles, TrendingUp, Activity, Brain, AlertTriangle, X, RefreshCw, Target, ThumbsUp, ThumbsDown, Calendar, Trophy, Shield } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { InsightSchedulingModal } from "./InsightSchedulingModal";
 import { motion, AnimatePresence } from "framer-motion";
+import { extractCitations, getStandardFullName } from "@/lib/citationUtils";
 
 type InsightType = "daily_summary" | "pattern" | "correlation" | "trend" | "alert" | "goal_progress";
 type InsightCategory = "sleep" | "activity" | "nutrition" | "biomarkers" | "overall" | "goals";
@@ -363,6 +365,35 @@ export function AIInsightsWidget() {
                       <p className="text-sm text-muted-foreground" data-testid={`text-insight-description-${insight.id}`}>
                         {insight.description}
                       </p>
+                      {(() => {
+                        const allText = [insight.description, insight.insightData?.recommendation].filter(Boolean).join(' ');
+                        const citations = extractCitations(allText);
+                        return citations.length > 0 && (
+                          <div className="flex items-center gap-1 flex-wrap mt-2">
+                            <TooltipProvider>
+                              {citations.map((citation, index) => (
+                                <Tooltip key={index}>
+                                  <TooltipTrigger asChild>
+                                    <Badge 
+                                      variant="outline" 
+                                      className="text-xs gap-1 bg-primary/5 border-primary/20 hover:bg-primary/10"
+                                      data-testid={`badge-citation-${citation.standard.toLowerCase()}`}
+                                    >
+                                      <Shield className="h-3 w-3" />
+                                      {citation.standard}
+                                    </Badge>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="bottom" className="max-w-xs">
+                                    <p className="text-xs">
+                                      <strong>{getStandardFullName(citation.standard)}:</strong> {citation.text}
+                                    </p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              ))}
+                            </TooltipProvider>
+                          </div>
+                        );
+                      })()}
                       {insight.insightData?.recommendation && (
                         <div className="bg-muted/50 rounded-md p-3 mt-2">
                           <p className="text-xs font-medium text-primary mb-1">💡 Action</p>

@@ -107,8 +107,27 @@
     "log_rationale_required": true
   },
   "output_contract": {
-    "required_sections": ["phase_overview", "weekly_schedule", "rationale_summary", "monitoring_plan"],
-    "weekly_schedule_item_fields": ["modality", "sets", "reps", "intensity", "rest", "notes"]
+    "required_sections": ["phase_overview", "weekly_schedule", "rationale_summary", "monitoring_plan", "evidence_citations"],
+    "weekly_schedule_item_fields": ["modality", "sets", "reps", "intensity", "rest", "notes"],
+    "citation_requirements": {
+      "format": "Brief inline citations that build user confidence",
+      "examples": [
+        "ACSM: Recovery intensity <60% when readiness low",
+        "NSCA: 15% volume limit for injury prevention",
+        "WHO: Minimum 1 rest day/week for adaptation",
+        "ADA: Low-GI foods for blood glucose >100mg/dL",
+        "AND: 1.6-2.2g protein/kg for muscle building"
+      ],
+      "standards_reference": {
+        "ACSM": "American College of Sports Medicine - Exercise prescription guidelines",
+        "NSCA": "National Strength & Conditioning Association - Progressive overload principles",
+        "WHO": "World Health Organization - Physical activity recommendations",
+        "ADA": "American Diabetes Association - Nutrition guidelines",
+        "AND": "Academy of Nutrition & Dietetics - Sports nutrition standards",
+        "ACSM_HRmax": "ACSM HR max guidelines: 220-age formula, 85% cap general, 75% beginner",
+        "NSCA_progression": "NSCA progression: 15% volume/week, 10% intensity/week max"
+      }
+    }
   },
   "hard_guards": {
     "override_order": ["safety", "compliance", "goal_alignment", "preference"],

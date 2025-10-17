@@ -393,7 +393,28 @@ export async function generateMacroRecommendations(context: {
   dietaryPreferences?: string[];
   mealsPerDay?: number;
   snacksPerDay?: number;
+  biomarkers?: {
+    glucoseFasting?: number;
+    hba1c?: number;
+    ldlCholesterol?: number;
+    hdlCholesterol?: number;
+    triglycerides?: number;
+  };
+  primaryGoal?: string;
 }) {
+  // Get goal-specific guidance from guardrails if available
+  let goalGuidance = '';
+  if (context.primaryGoal) {
+    const guidance = getGoalGuidance(context.primaryGoal);
+    if (guidance) {
+      goalGuidance = `\n\n## Goal-Specific Nutrition Guidance (from guardrails):\nGoal: ${context.primaryGoal}\n- Programming bias: ${guidance.bias.join(', ')}\n- Track metrics: ${guidance.track.join(', ')}\n\nApply these principles to macro targets.`;
+    }
+  }
+
+  const biomarkersSection = context.biomarkers && Object.keys(context.biomarkers).length > 0
+    ? `\n\n## Biomarker Data (Apply nutrition adjustments):\n${Object.entries(context.biomarkers).filter(([_, v]) => v !== undefined).map(([k, v]) => `- ${k}: ${v}`).join('\n')}\n\n**Biomarker-Driven Adjustments:**\n- High glucose/HbA1c → Lower carb target, emphasize low-GI foods (ADA: American Diabetes Association)\n- High LDL/triglycerides → Lower saturated fat, increase omega-3s (AHA: American Heart Association)\n- Low HDL → Increase healthy fats, moderate carbs (AHA)`
+    : '';
+
   const completion = await retryWithBackoff(() => 
     openai.chat.completions.create({
       model: "gpt-4o",
@@ -402,11 +423,11 @@ export async function generateMacroRecommendations(context: {
       messages: [
         {
           role: "system",
-          content: "You are a nutrition expert AI. Respond only with valid JSON in the exact format requested."
+          content: "You are a nutrition expert AI following evidence-based guidelines (AND, ADA, AHA). Include brief citations in your explanations. Respond only with valid JSON in the exact format requested."
         },
         {
           role: "user",
-          content: `You are a nutrition expert AI. Analyze the user's health data and recommend optimal daily macronutrient targets.
+          content: `You are a nutrition expert AI. Analyze the user's health data and recommend optimal daily macronutrient targets following evidence-based standards.
 
 User Data:
 - Active Goals: ${JSON.stringify(context.goals || [], null, 2)}
@@ -414,15 +435,15 @@ User Data:
 - Current Body Fat: ${context.currentBodyFat ? `${context.currentBodyFat.value}%` : 'Not available'}
 - Training Days per Week: ${context.trainingDays || 0}
 - Dietary Preferences: ${context.dietaryPreferences?.join(', ') || 'None specified'}
-- Meals/Snacks per Day: ${context.mealsPerDay || 3} meals, ${context.snacksPerDay || 1} snacks
+- Meals/Snacks per Day: ${context.mealsPerDay || 3} meals, ${context.snacksPerDay || 1} snacks${biomarkersSection}${goalGuidance}
 
 Based on this data, recommend:
 1. Daily calorie target (consider their goals - weight loss, muscle gain, maintenance)
-2. Daily protein target in grams (consider activity level and goals)
-3. Daily carbohydrate target in grams (consider training load)
-4. Daily fat target in grams (for hormonal health and satiety)
+2. Daily protein target in grams (AND: 1.2-2.0g/kg for active individuals, 1.6-2.2g/kg for muscle building)
+3. Daily carbohydrate target in grams (consider training load and biomarkers)
+4. Daily fat target in grams (for hormonal health and satiety, 20-35% of calories per AND)
 
-Provide a brief explanation (2-3 sentences) of your reasoning.
+IMPORTANT: Include 1-2 brief citations in your explanation (e.g., "Protein set at 1.8g/kg per AND guidelines for muscle building").
 
 Respond in this exact JSON format:
 {
@@ -430,7 +451,7 @@ Respond in this exact JSON format:
   "proteinTarget": <number>,
   "carbsTarget": <number>,
   "fatTarget": <number>,
-  "explanation": "<your reasoning here>"
+  "explanation": "<your reasoning with brief citations (AND/ADA/AHA)>"
 }`
         }
       ]
@@ -453,29 +474,51 @@ export async function generateTrainingSchedule(userProfile: {
   recentBiomarkers?: any[];
   chatContext?: string;
   activeGoals?: any[];
+  biomarkers?: {
+    cortisolAm?: number;
+    crpHs?: number;
+    testosteroneTotal?: number;
+    glucoseFasting?: number;
+    hba1c?: number;
+    vitaminD?: number;
+  };
+  userAge?: number;
+  trainingAgeYears?: number;
+  injuries?: string[];
 }) {
   const chatContextSection = userProfile.chatContext 
     ? `\n\n## Conversation History with User:\n${userProfile.chatContext}\n\nUse insights from the conversation to personalize the training schedule based on the user's fitness goals, preferences, and any discussed limitations or interests.`
     : '';
 
   const goalsSection = userProfile.activeGoals && userProfile.activeGoals.length > 0
-    ? `\n\n## ACTIVE HEALTH GOALS - CRITICAL FOR TRAINING PLANNING:\n${JSON.stringify(userProfile.activeGoals, null, 2)}\n\n🎯 IMPORTANT: These are the user's specific, measurable goals. Your training plan MUST actively help achieve these goals:\n- For weight loss goals: Include cardio for calorie burn + strength training to preserve muscle\n- For body fat goals: High-intensity interval training (HIIT) combined with resistance training\n- For heart health goals: Focus on cardiovascular endurance and heart rate training zones\n- For step goals: Incorporate walking, hiking, or active recovery days\n- For sleep improvement: Avoid high-intensity late workouts, include stress-reducing activities\n\nFor each workout, explain HOW it contributes to their specific goals (e.g., "HIIT session burns 400+ calories supporting your 70kg weight goal" or "Zone 2 cardio improves heart health toward your resting HR goal of 60 bpm").`
+    ? `\n\n## ACTIVE HEALTH GOALS - CRITICAL FOR TRAINING PLANNING:\n${JSON.stringify(userProfile.activeGoals, null, 2)}\n\n🎯 IMPORTANT: These are the user's specific, measurable goals. Your training plan MUST actively help achieve these goals:\n- For weight loss goals: Include cardio for calorie burn + strength training to preserve muscle (AND: Academy of Nutrition & Dietetics guidelines)\n- For body fat goals: High-intensity interval training (HIIT) combined with resistance training (NSCA)\n- For heart health goals: Focus on cardiovascular endurance and heart rate training zones (ACSM)\n- For step goals: Incorporate walking, hiking, or active recovery days (WHO: 150min/week moderate activity)\n- For sleep improvement: Avoid high-intensity late workouts, include stress-reducing activities (ACSM)\n\nFor each workout, explain HOW it contributes to their specific goals AND cite the relevant standard (e.g., "HIIT session burns 400+ calories supporting your 70kg weight goal (NSCA: High-intensity for fat loss)" or "Zone 2 cardio improves heart health toward your resting HR goal of 60 bpm (ACSM: 60-70% HRmax for cardiovascular adaptation)").`
     : '';
 
-  const completion = await openai.chat.completions.create({
+  const biomarkersSection = userProfile.biomarkers && Object.keys(userProfile.biomarkers).length > 0
+    ? `\n\n## Biomarker Data (Apply guardrails adjustments):\n${Object.entries(userProfile.biomarkers).filter(([_, v]) => v !== undefined).map(([k, v]) => `- ${k}: ${v}`).join('\n')}\n\nIMPORTANT: Apply biomarker-driven adjustments per guardrails. Cite the reason (e.g., "Cortisol elevated → reduce intensity 25%, focus on recovery (ACSM stress response guidelines)")` 
+    : '';
+
+  const userContextSection = (userProfile.userAge || userProfile.trainingAgeYears || (userProfile.injuries && userProfile.injuries.length > 0))
+    ? `\n\n## User Profile:\n${userProfile.userAge ? `- Age: ${userProfile.userAge}\n` : ''}${userProfile.trainingAgeYears ? `- Training Experience: ${userProfile.trainingAgeYears} years\n` : ''}${userProfile.injuries && userProfile.injuries.length > 0 ? `- Injuries/Limitations: ${userProfile.injuries.join(', ')}\n` : ''}` 
+    : '';
+
+  // Build guardrails system prompt
+  const systemPrompt = buildGuardrailsSystemPrompt();
+
+  const completion = await retryWithBackoff(() => openai.chat.completions.create({
     model: "gpt-4o",
     max_tokens: 4096,
     response_format: { type: "json_object" },
     messages: [
       {
         role: "system",
-        content: "You are a fitness coach AI. You create personalized training schedules. Always respond with valid JSON."
+        content: systemPrompt + "\n\nYou create personalized WEEKLY training schedules following the guardrails above. Include evidence citations in your descriptions."
       },
       {
         role: "user",
         content: `Create a weekly training schedule based on the following user profile:
 
-${JSON.stringify(userProfile, null, 2)}${goalsSection}${chatContextSection}
+${JSON.stringify(userProfile, null, 2)}${biomarkersSection}${userContextSection}${goalsSection}${chatContextSection}
 
 Generate a JSON object with a "schedule" array containing BOTH workouts AND optional recovery sessions (sauna/cold plunge 3-4x per week) with this structure:
 {
@@ -522,7 +565,7 @@ Generate a JSON object with a "schedule" array containing BOTH workouts AND opti
 CRITICAL: If the user has active goals, design workouts specifically to help them reach those targets. Include intensity levels and durations that align with their goal progress.`,
       },
     ],
-  });
+  }));
 
   const content = completion.choices[0].message.content;
   if (content) {
@@ -2175,8 +2218,20 @@ export async function generateRecoveryInsights(data: {
     sleepQuality: { workoutDays: number; nonWorkoutDays: number; improvement: number };
     restingHR: { workoutDays: number; nonWorkoutDays: number; improvement: number };
   };
+  biomarkers?: {
+    hrv?: number;
+    hrvBaseline?: number;
+    restingHR?: number;
+    restingHRBaseline?: number;
+    cortisolAm?: number;
+    crpHs?: number;
+  };
   timeframeDays: number;
 }) {
+  const biomarkersSection = data.biomarkers && Object.keys(data.biomarkers).length > 0
+    ? `\n\n### Biomarker Data (Apply evidence-based recovery protocols):\n${Object.entries(data.biomarkers).filter(([_, v]) => v !== undefined).map(([k, v]) => `- ${k}: ${v}`).join('\n')}\n\n**Biomarker-Driven Recovery Protocols (ACSM/NSCA):**\n${data.biomarkers.hrv && data.biomarkers.hrvBaseline && data.biomarkers.hrv < data.biomarkers.hrvBaseline * 0.8 ? `- HRV suppression detected → Active recovery, reduce intensity 25% (ACSM auto-regulation)\n` : ''}${data.biomarkers.restingHR && data.biomarkers.restingHRBaseline && data.biomarkers.restingHR > data.biomarkers.restingHRBaseline * 1.1 ? `- RHR elevated → Recovery week, parasympathetic restoration (ACSM stress response)\n` : ''}${data.biomarkers.cortisolAm && data.biomarkers.cortisolAm > 20 ? `- Cortisol elevated → Reduce volume 25%, avoid high-intensity (ACSM HPA axis recovery)\n` : ''}${data.biomarkers.crpHs && data.biomarkers.crpHs > 3 ? `- CRP elevated → Anti-inflammatory focus, low-impact exercises (ACSM inflammation protocols)\n` : ''}`
+    : '';
+
   const completion = await retryWithBackoff(() => openai.chat.completions.create({
     model: "gpt-4o",
     max_tokens: 3072,
@@ -2184,11 +2239,11 @@ export async function generateRecoveryInsights(data: {
     messages: [
       {
         role: "system",
-        content: "You are an expert sports science and recovery coach AI. You analyze training data and provide personalized recovery insights. Always respond with valid JSON."
+        content: "You are an expert sports science and recovery coach AI following ACSM, NSCA, and WHO evidence-based protocols. Include brief citations (ACSM/NSCA/WHO) in your insights. Always respond with valid JSON."
       },
       {
         role: "user",
-        content: `Analyze the user's training analytics and provide personalized recovery insights.
+        content: `Analyze the user's training analytics and provide personalized recovery insights with evidence-based citations.
 
 ## Training Analytics Data (Last ${data.timeframeDays} days):
 
@@ -2207,7 +2262,7 @@ ${data.workoutStats.byType.map(stat => `- ${stat.type}: ${stat.count} workouts, 
 
 ### Training Impact on Biomarkers:
 - Sleep Quality: ${(data.correlations.sleepQuality.workoutDays ?? 0).toFixed(1)}% on workout days vs ${(data.correlations.sleepQuality.nonWorkoutDays ?? 0).toFixed(1)}% on rest days (${(data.correlations.sleepQuality.improvement ?? 0) >= 0 ? '+' : ''}${(data.correlations.sleepQuality.improvement ?? 0).toFixed(1)}% improvement)
-- Resting Heart Rate: ${(data.correlations.restingHR.workoutDays ?? 0).toFixed(1)} bpm on workout days vs ${(data.correlations.restingHR.nonWorkoutDays ?? 0).toFixed(1)} bpm on rest days (${(data.correlations.restingHR.improvement ?? 0) >= 0 ? '+' : ''}${(data.correlations.restingHR.improvement ?? 0).toFixed(1)} bpm change)
+- Resting Heart Rate: ${(data.correlations.restingHR.workoutDays ?? 0).toFixed(1)} bpm on workout days vs ${(data.correlations.restingHR.nonWorkoutDays ?? 0).toFixed(1)} bpm on rest days (${(data.correlations.restingHR.improvement ?? 0) >= 0 ? '+' : ''}${(data.correlations.restingHR.improvement ?? 0).toFixed(1)} bpm change)${biomarkersSection}
 
 ## Your Task:
 Generate a JSON object with an "insights" array of recovery insights and recommendations:
@@ -2217,8 +2272,8 @@ Generate a JSON object with an "insights" array of recovery insights and recomme
       "category": "recovery_status" | "training_load" | "workout_balance" | "biomarker_response" | "alternative_therapy",
       "severity": "excellent" | "good" | "caution" | "warning",
       "title": "Short compelling title (max 60 chars)",
-      "description": "Detailed insight with specific numbers and actionable advice (2-3 sentences)",
-      "recommendation": "Specific action to take",
+      "description": "Detailed insight with specific numbers, actionable advice, and brief evidence citation (e.g., 'ACSM recommends...' or 'Per NSCA guidelines...')",
+      "recommendation": "Specific action to take with citation if applicable",
       "metrics": {
         "primary": "main metric discussed",
         "value": "current value",
@@ -2272,13 +2327,14 @@ Only recommend alternative therapies when they align with:
 - Be specific with numbers from the data
 - Prioritize insights by severity (warnings first)
 - Make recommendations actionable and measurable
-- Reference scientific principles when relevant
+- **CRITICAL: Include 1-2 brief evidence citations in descriptions** (ACSM, NSCA, WHO)
+  - Examples: "ACSM recommends active recovery when HRV suppressed", "Per NSCA, reduce volume 15% during high load weeks"
 - Include alternative therapies ONLY when they meaningfully address specific recovery needs shown in the data
-- Explain the mechanism: why a particular therapy helps their specific situation
-- Celebrate positive adaptations (improved sleep, lower HR)
-- Warn about potential overtraining or undertraining
+- Explain the mechanism: why a particular therapy helps their specific situation (cite evidence if applicable)
+- Celebrate positive adaptations (improved sleep, lower HR) with evidence context
+- Warn about potential overtraining or undertraining with protocol references
 
-Generate 3-5 insights, ordered by importance. Focus on actionable recovery strategies that optimize the user's training response.`,
+Generate 3-5 insights, ordered by importance. Focus on actionable recovery strategies with evidence-based citations that build user confidence.`,
       },
     ],
   }));

@@ -140,6 +140,7 @@ export function loadTrainingGuardrails(): TrainingGuardrails {
  */
 export function buildGuardrailsSystemPrompt(): string {
   const guardrails = loadTrainingGuardrails();
+  const contract = guardrails.output_contract as any;
   
   return `${guardrails.embedded_prompts.system_prompt}
 
@@ -149,19 +150,19 @@ CRITICAL GUARDRAILS - YOU MUST FOLLOW THESE RULES:
 ${guardrails.hard_guards.override_order.map((level, i) => `${i + 1}. ${level}`).join('\n')}
 
 ## Safety Rules:
-- General HR max cap: ${guardrails.safety_rules.intensity.hrmax_cap_pct_general}%
-- Beginner HR max cap: ${guardrails.safety_rules.intensity.beginner_hrmax_cap_pct}%
-- Minimum rest days per week: ${guardrails.safety_rules.rest_recovery.min_rest_days_per_week}
-- Mandatory deload weeks: ${guardrails.safety_rules.rest_recovery.mandatory_deload_weeks ? 'YES' : 'NO'}
+- General HR max cap: ${guardrails.safety_rules.intensity.hrmax_cap_pct_general}% (ACSM)
+- Beginner HR max cap: ${guardrails.safety_rules.intensity.beginner_hrmax_cap_pct}% (ACSM)
+- Minimum rest days per week: ${guardrails.safety_rules.rest_recovery.min_rest_days_per_week} (WHO)
+- Mandatory deload weeks: ${guardrails.safety_rules.rest_recovery.mandatory_deload_weeks ? 'YES' : 'NO'} (NSCA)
 
 ## Vital Sign Triggers:
-- BP pause threshold: ${guardrails.safety_rules.vital_flags.bp_pause_threshold.systolic_mmHg}/${guardrails.safety_rules.vital_flags.bp_pause_threshold.diastolic_mmHg} mmHg
-- Resting HR rise for recovery mode: ${guardrails.safety_rules.vital_flags.resting_hr_rise_pct_recovery_mode}%
-- HRV drop for recovery mode: ${guardrails.safety_rules.vital_flags.hrv_drop_pct_recovery_mode}%
+- BP pause threshold: ${guardrails.safety_rules.vital_flags.bp_pause_threshold.systolic_mmHg}/${guardrails.safety_rules.vital_flags.bp_pause_threshold.diastolic_mmHg} mmHg (ACSM)
+- Resting HR rise for recovery mode: ${guardrails.safety_rules.vital_flags.resting_hr_rise_pct_recovery_mode}% (ACSM)
+- HRV drop for recovery mode: ${guardrails.safety_rules.vital_flags.hrv_drop_pct_recovery_mode}% (ACSM)
 
 ## Progression Limits:
-- Max weekly volume increase: ${guardrails.program_structure.progression_limits.weekly_volume_increase_pct_max}%
-- Max weekly intensity increase: ${guardrails.program_structure.progression_limits.weekly_intensity_increase_pct_max}%
+- Max weekly volume increase: ${guardrails.program_structure.progression_limits.weekly_volume_increase_pct_max}% (NSCA)
+- Max weekly intensity increase: ${guardrails.program_structure.progression_limits.weekly_intensity_increase_pct_max}% (NSCA)
 
 ## Auto-Regulation Triggers:
 ${guardrails.auto_regulation.triggers.map(t => {
@@ -170,7 +171,7 @@ ${guardrails.auto_regulation.triggers.map(t => {
       t.delta_pct_vs_baseline_gt ?
       `rises ${t.delta_pct_vs_baseline_gt}%` :
       `< ${t.threshold_lt}`;
-    return `- When ${t.metric} ${condition} → ${t.action}`;
+    return `- When ${t.metric} ${condition} → ${t.action} (ACSM)`;
   }).join('\n')}
 
 ## Biomarker Adjustments:
@@ -180,6 +181,20 @@ ${guardrails.biomarker_adjustments.map(adj =>
 
 ## Forbidden Actions:
 ${guardrails.hard_guards.forbidden.map(f => `- ${f}`).join('\n')}
+
+## Evidence Citation Requirements:
+CRITICAL: Every recommendation MUST include brief, confidence-building citations.
+${contract.citation_requirements ? `
+Format: ${contract.citation_requirements.format}
+
+Examples of good citations:
+${contract.citation_requirements.examples.map((ex: string) => `- "${ex}"`).join('\n')}
+
+Available standards:
+${Object.entries(contract.citation_requirements.standards_reference).map(([key, desc]) => `- ${key}: ${desc}`).join('\n')}
+
+IMPORTANT: Include 1-2 relevant citations in your rationale/reasoning. Keep them brief and user-friendly.
+` : ''}
 
 ## Required Output Sections:
 ${guardrails.output_contract.required_sections.map(s => `- ${s}`).join('\n')}

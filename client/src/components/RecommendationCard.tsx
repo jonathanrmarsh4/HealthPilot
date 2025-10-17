@@ -1,8 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ChevronRight, LucideIcon, ThumbsUp, ThumbsDown } from "lucide-react";
-import { useState } from "react";
+import { ChevronRight, LucideIcon, ThumbsUp, ThumbsDown, Shield } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useState, useMemo } from "react";
+import { extractCitations, getStandardFullName } from "@/lib/citationUtils";
 
 type Priority = "high" | "medium" | "low";
 
@@ -47,6 +49,12 @@ export function RecommendationCard({
   const [expanded, setExpanded] = useState(false);
   const config = priorityConfig[priority] || priorityConfig.medium; // Fallback to medium if invalid
 
+  // Extract citations from description and details
+  const citations = useMemo(() => {
+    const allText = [description, details].filter(Boolean).join(' ');
+    return extractCitations(allText);
+  }, [description, details]);
+
   const handleAction = () => {
     if (onAction) {
       onAction();
@@ -71,6 +79,31 @@ export function RecommendationCard({
                 </Badge>
               </div>
               <p className="text-sm text-muted-foreground">{description}</p>
+              {citations.length > 0 && (
+                <div className="flex items-center gap-1 flex-wrap mt-2">
+                  <TooltipProvider>
+                    {citations.map((citation, index) => (
+                      <Tooltip key={index}>
+                        <TooltipTrigger asChild>
+                          <Badge 
+                            variant="outline" 
+                            className="text-xs gap-1 bg-primary/5 border-primary/20 hover:bg-primary/10"
+                            data-testid={`badge-citation-${citation.standard.toLowerCase()}`}
+                          >
+                            <Shield className="h-3 w-3" />
+                            {citation.standard}
+                          </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" className="max-w-xs">
+                          <p className="text-xs">
+                            <strong>{getStandardFullName(citation.standard)}:</strong> {citation.text}
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    ))}
+                  </TooltipProvider>
+                </div>
+              )}
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
