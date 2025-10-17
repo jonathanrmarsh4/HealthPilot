@@ -118,6 +118,7 @@ export interface TrainingGuardrails {
 }
 
 let cachedGuardrails: TrainingGuardrails | null = null;
+let cachedSystemKnowledge: any = null;
 
 /**
  * Load training guardrails configuration
@@ -136,12 +137,116 @@ export function loadTrainingGuardrails(): TrainingGuardrails {
 }
 
 /**
- * Build a comprehensive AI system prompt that includes guardrails
+ * Load HealthPilot system knowledge (privacy, architecture, features, data handling)
+ * Cached after first load for performance
+ */
+export function loadSystemKnowledge(): any {
+  if (cachedSystemKnowledge) {
+    return cachedSystemKnowledge;
+  }
+
+  const knowledgePath = path.join(__dirname, 'healthpilot-system-knowledge.json');
+  const knowledgeData = fs.readFileSync(knowledgePath, 'utf-8');
+  cachedSystemKnowledge = JSON.parse(knowledgeData);
+  
+  return cachedSystemKnowledge;
+}
+
+/**
+ * Build a comprehensive AI system prompt that includes guardrails and system knowledge
  */
 export function buildGuardrailsSystemPrompt(): string {
   const guardrails = loadTrainingGuardrails();
+  const sk = loadSystemKnowledge();
   const contract = guardrails.output_contract as any;
   
+  // Build privacy & compliance section
+  const privacySection = `## PRIVACY & COMPLIANCE FRAMEWORK
+
+${sk.privacy_and_compliance.overview}
+
+### Data Security:
+- Encryption: ${sk.privacy_and_compliance.data_security.encryption.at_rest} at rest, ${sk.privacy_and_compliance.data_security.encryption.in_transit} in transit
+- AI Processing: ${sk.privacy_and_compliance.data_security.ai_processing.compliance} with ${sk.privacy_and_compliance.data_security.ai_processing.encryption}
+- Access Controls: ${sk.privacy_and_compliance.data_security.access_controls.authentication}
+- Database: ${sk.privacy_and_compliance.data_security.encryption.database}
+
+### Consent Management (4 types):
+${Object.entries(sk.privacy_and_compliance.consent_management.consent_types).map(([key, val]: [string, any]) => 
+  `- **${key}** (${val.required ? 'REQUIRED' : 'OPTIONAL'}): ${val.description}`
+).join('\n')}
+
+### User Rights (accessible via /privacy-dashboard):
+- **Data Export**: ${sk.privacy_and_compliance.user_rights.data_export.description} (${sk.privacy_and_compliance.user_rights.data_export.legal_basis})
+- **Account Deletion**: ${sk.privacy_and_compliance.user_rights.account_deletion.grace_period} grace period (${sk.privacy_and_compliance.user_rights.account_deletion.legal_basis})
+- **Audit Log**: ${sk.privacy_and_compliance.user_rights.audit_log_access.retention} retention (${sk.privacy_and_compliance.user_rights.audit_log_access.legal_basis})
+- **Consent Management**: ${sk.privacy_and_compliance.consent_management.overview}`;
+
+  // Build subscription model section
+  const subscriptionSection = `## SUBSCRIPTION MODEL & FEATURE ACCESS
+
+${Object.entries(sk.system_architecture.subscription_model.tiers).map(([tier, details]: [string, any]) => {
+    const tierName = tier.toUpperCase().replace('_', ' ');
+    return `### ${tierName} TIER${details.price ? ` (${details.price})` : ''}:
+${details.ai_messages ? `- AI Messages: ${details.ai_messages}` : ''}
+${details.biomarkers ? `- Biomarkers: ${details.biomarkers}` : ''}
+${details.historical_data ? `- Historical Data: ${details.historical_data}` : ''}
+${details.features ? `- Features: ${details.features.slice(0, 3).join(', ')}${details.features.length > 3 ? ', ...' : ''}` : ''}
+${details.limitations ? `- LIMITATIONS: ${details.limitations.slice(0, 3).join(', ')}` : ''}`;
+  }).join('\n\n')}`;
+
+  // Build core features section
+  const featuresSection = `## CORE FEATURES & CAPABILITIES
+
+### Readiness Score:
+${sk.core_features.readiness_score.description}
+- Scale: ${sk.core_features.readiness_score.scale}
+- Factors: Sleep (${sk.core_features.readiness_score.factors.sleep_quality.weight * 100}%), HRV (${sk.core_features.readiness_score.factors.hrv.weight * 100}%), RHR (${sk.core_features.readiness_score.factors.resting_heart_rate.weight * 100}%), Load (${sk.core_features.readiness_score.factors.workout_load.weight * 100}%)
+
+### Biological Age (PhenoAge):
+- ${sk.core_features.biological_age.description}
+- Requires: ${sk.core_features.biological_age.requirement}
+- Output: ${sk.core_features.biological_age.output}
+
+### AI Chat Capabilities:
+- Data Visibility: ${sk.core_features.ai_chat.capabilities.data_visibility}
+- Write Access: ${sk.core_features.ai_chat.capabilities.write_access}
+- Guardrails: ${sk.core_features.ai_chat.guardrails.join(', ')}
+- Free tier: ${sk.core_features.ai_chat.limitations.free_tier} | Premium: ${sk.core_features.ai_chat.limitations.premium_tier}
+
+### Other Key Features:
+- Apple Health: ${sk.core_features.apple_health_integration.web_version.method} (Premium required)
+- Progressive Overload: ${sk.core_features.progressive_overload_training.description}
+- Meal Planning: ${sk.core_features.meal_planning.description} (Premium only)
+- Universal Tiles: ${sk.core_features.universal_tile_management.description}`;
+
+  // Build data handling section
+  const dataHandlingSection = `## DATA HANDLING POLICIES
+
+### What We Collect:
+- Required: ${sk.data_handling_policies.data_collection.what_we_collect.required_for_service.slice(0, 4).join(', ')}
+- Optional: ${sk.data_handling_policies.data_collection.what_we_collect.optional_data.slice(0, 3).join(', ')}
+
+### Who We Share With:
+${Object.entries(sk.data_handling_policies.data_sharing.who_we_share_with).map(([party, details]: [string, any]) =>
+  `- **${party}**: ${details.purpose} (${details.safeguards || details.consent})`
+).join('\n')}
+- NEVER: ${sk.data_handling_policies.data_sharing.who_we_never_share_with.join(', ')}
+
+### User Control:
+${Object.entries(sk.data_handling_policies.user_control).map(([key, val]) => `- ${key}: ${val}`).join('\n')}`;
+
+  // Build AI behavior guidelines
+  const behaviorSection = `## AI BEHAVIOR GUIDELINES
+
+${Object.entries(sk.ai_behavior_guidelines).filter(([key]) => key.startsWith('when_')).map(([key, guidelines]: [string, any]) => {
+    const title = key.replace('when_', '').split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    return `### When ${title}:\n${guidelines.map((g: string) => `- ${g}`).join('\n')}`;
+  }).join('\n\n')}
+
+### General Principles:
+${sk.ai_behavior_guidelines.general_principles.map((p: string) => `- ${p}`).join('\n')}`;
+
   return `${guardrails.embedded_prompts.system_prompt}
 
 CRITICAL GUARDRAILS - YOU MUST FOLLOW THESE RULES:
@@ -199,7 +304,25 @@ IMPORTANT: Include 1-2 relevant citations in your rationale/reasoning. Keep them
 ## Required Output Sections:
 ${guardrails.output_contract.required_sections.map(s => `- ${s}`).join('\n')}
 
-${guardrails.embedded_prompts.developer_prompt_template}`;
+${guardrails.embedded_prompts.developer_prompt_template}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+HEALTHPILOT SYSTEM KNOWLEDGE - CRITICAL CONTEXT YOU MUST UNDERSTAND
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+${privacySection}
+
+${subscriptionSection}
+
+${featuresSection}
+
+${dataHandlingSection}
+
+${behaviorSection}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+END OF HEALTHPILOT SYSTEM KNOWLEDGE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
 }
 
 /**
@@ -281,6 +404,7 @@ export function checkAutoRegulation(metrics: {
 
 export default {
   loadTrainingGuardrails,
+  loadSystemKnowledge,
   buildGuardrailsSystemPrompt,
   getGoalGuidance,
   validateProgression,
