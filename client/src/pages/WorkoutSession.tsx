@@ -26,7 +26,9 @@ import {
   Trophy,
   Clock,
   Repeat,
-  GripVertical
+  GripVertical,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
 import { format, differenceInSeconds } from "date-fns";
 import {
@@ -107,7 +109,10 @@ function SortableExerciseCard({
   progressiveSuggestion,
   updateSetMutation,
   handleCompleteSet,
-  handleShowAlternatives
+  handleShowAlternatives,
+  isExpanded,
+  onToggleExpand,
+  wasDragging
 }: {
   exercise: Exercise;
   exerciseSets: ExerciseSet[];
@@ -117,6 +122,9 @@ function SortableExerciseCard({
   updateSetMutation: any;
   handleCompleteSet: (set: ExerciseSet, exercise: Exercise) => void;
   handleShowAlternatives: (exercise: Exercise) => void;
+  isExpanded: boolean;
+  onToggleExpand: () => void;
+  wasDragging: boolean;
 }) {
   const {
     attributes,
@@ -177,15 +185,27 @@ function SortableExerciseCard({
       data-testid={`card-exercise-${exerciseIndex}`}
     >
       <CardHeader className="pb-3 space-y-0">
-        <div className="flex items-start gap-3">
-          {/* Drag Handle */}
+        <div className="flex items-start gap-2">
+          {/* Drag Handle - Click to expand/collapse, drag to reorder */}
           <button
-            className="mt-1 cursor-grab active:cursor-grabbing touch-none p-1 hover-elevate rounded"
+            className="mt-1 cursor-grab active:cursor-grabbing touch-none p-1 hover-elevate rounded flex items-center gap-0.5"
             {...attributes}
             {...listeners}
+            onClick={(e) => {
+              // Only toggle if not currently dragging and wasn't just dragging
+              if (!isDragging && !wasDragging) {
+                e.stopPropagation();
+                onToggleExpand();
+              }
+            }}
             data-testid={`button-drag-${exerciseIndex}`}
           >
-            <GripVertical className="h-5 w-5 text-muted-foreground" />
+            <GripVertical className="h-4 w-4 text-muted-foreground" />
+            {isExpanded ? (
+              <ChevronUp className="h-3 w-3 text-muted-foreground" />
+            ) : (
+              <ChevronDown className="h-3 w-3 text-muted-foreground" />
+            )}
           </button>
 
           {/* Exercise Info */}
@@ -197,8 +217,8 @@ function SortableExerciseCard({
               {exercise.muscles.slice(0, 2).join(", ")} • {exercise.equipment}
             </p>
             
-            {/* Progressive Overload Suggestion - Compact */}
-            {progressiveSuggestion?.lastWeight !== null && progressiveSuggestion && (
+            {/* Progressive Overload Suggestion - Compact - Only show when expanded */}
+            {isExpanded && progressiveSuggestion?.lastWeight !== null && progressiveSuggestion && (
               <div className="mt-2 flex items-center gap-1.5 text-xs" data-testid={`suggestion-${exerciseIndex}`}>
                 <TrendingUp className="h-3.5 w-3.5 text-primary flex-shrink-0" />
                 <span className="text-muted-foreground">Last:</span>
@@ -219,20 +239,23 @@ function SortableExerciseCard({
             <Badge variant="outline" className="text-xs" data-testid={`badge-exercise-sets-${exerciseIndex}`}>
               {completedSets}/{exerciseSets.length}
             </Badge>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => handleShowAlternatives(exercise)}
-              data-testid={`button-swap-${exerciseIndex}`}
-              className="h-7 px-2 text-xs"
-            >
-              <Repeat className="h-3.5 w-3.5" />
-            </Button>
+            {isExpanded && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleShowAlternatives(exercise)}
+                data-testid={`button-swap-${exerciseIndex}`}
+                className="h-7 px-2 text-xs"
+              >
+                <Repeat className="h-3.5 w-3.5" />
+              </Button>
+            )}
           </div>
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-2 pt-0">
+      {isExpanded && (
+        <CardContent className="space-y-2 pt-0">
         {exerciseSets.map((set, setIndex) => (
           <div
             key={set.id}
@@ -323,7 +346,8 @@ function SortableExerciseCard({
             </div>
           </div>
         ))}
-      </CardContent>
+        </CardContent>
+      )}
     </Card>
   );
 }
@@ -364,6 +388,25 @@ export default function WorkoutSession() {
 
   // Exercise order state (for drag-and-drop)
   const [exerciseOrder, setExerciseOrder] = useState<string[]>([]);
+
+  // Expanded state for exercises (collapsed by default)
+  const [expandedExercises, setExpandedExercises] = useState<Set<string>>(new Set());
+  
+  // Track if a drag just completed to prevent unwanted toggle
+  const [wasDragging, setWasDragging] = useState(false);
+
+  // Toggle expand/collapse for an exercise
+  const toggleExpandExercise = (exerciseId: string) => {
+    setExpandedExercises(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(exerciseId)) {
+        newSet.delete(exerciseId);
+      } else {
+        newSet.add(exerciseId);
+      }
+      return newSet;
+    });
+  };
 
   // Sync exercise order when exercises change (including after swaps)
   useEffect(() => {
@@ -626,6 +669,11 @@ export default function WorkoutSession() {
     })
   );
 
+  // Handle drag start
+  const handleDragStart = () => {
+    setWasDragging(true);
+  };
+
   // Handle drag end
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -637,6 +685,9 @@ export default function WorkoutSession() {
         return arrayMove(items, oldIndex, newIndex);
       });
     }
+    
+    // Reset wasDragging after a small delay to allow onClick to check it
+    setTimeout(() => setWasDragging(false), 100);
   };
 
   // Get ordered exercises
@@ -763,6 +814,7 @@ export default function WorkoutSession() {
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
           <SortableContext
@@ -785,6 +837,9 @@ export default function WorkoutSession() {
                   updateSetMutation={updateSetMutation}
                   handleCompleteSet={handleCompleteSet}
                   handleShowAlternatives={handleShowAlternatives}
+                  isExpanded={expandedExercises.has(exercise.id)}
+                  onToggleExpand={() => toggleExpandExercise(exercise.id)}
+                  wasDragging={wasDragging}
                 />
               );
             })}
