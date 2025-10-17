@@ -1422,6 +1422,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       });
       
+      // Step 3.5: Analyze user's meal feedback to learn preferences
+      const mealFeedback = await storage.getMealFeedback(userId);
+      const dislikedCuisines = new Set<string>();
+      const dislikedDishTypes = new Set<string>();
+      const preferredCuisines = new Set<string>();
+      const preferredDishTypes = new Set<string>();
+      
+      // Analyze feedback patterns
+      mealFeedback.forEach(feedback => {
+        if (feedback.feedback === 'dislike') {
+          // Track what user dislikes to avoid
+          if (feedback.cuisines) {
+            feedback.cuisines.forEach(c => dislikedCuisines.add(c));
+          }
+          if (feedback.dishTypes) {
+            feedback.dishTypes.forEach(d => dislikedDishTypes.add(d));
+          }
+        } else if (feedback.feedback === 'skip') {
+          // Skipped meals are neutral-positive (good but not now) - slightly prefer these
+          if (feedback.cuisines) {
+            feedback.cuisines.forEach(c => preferredCuisines.add(c));
+          }
+          if (feedback.dishTypes) {
+            feedback.dishTypes.forEach(d => preferredDishTypes.add(d));
+          }
+        }
+      });
+      
+      // Build feedback context for logging
+      let feedbackContext = '';
+      if (dislikedCuisines.size > 0) {
+        feedbackContext += `🚫 Avoiding cuisines: ${Array.from(dislikedCuisines).join(', ')}\n`;
+      }
+      if (dislikedDishTypes.size > 0) {
+        feedbackContext += `🚫 Avoiding dish types: ${Array.from(dislikedDishTypes).join(', ')}\n`;
+      }
+      if (preferredCuisines.size > 0) {
+        feedbackContext += `👍 Preferring cuisines: ${Array.from(preferredCuisines).join(', ')}\n`;
+      }
+      if (preferredDishTypes.size > 0) {
+        feedbackContext += `👍 Preferring dish types: ${Array.from(preferredDishTypes).join(', ')}\n`;
+      }
+      
       // Step 4: Delete past meals to keep only current/future meals
       const deletedCount = await storage.deletePastMealPlans(userId);
       console.log(`🗑️ Deleted ${deletedCount} past meal(s) for user ${userId}`);
@@ -1454,6 +1497,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`   Diet: ${diet || 'none'}, Intolerances: ${intolerances || 'none'}`);
       console.log(`   Base calories: ${baseCalorieTarget}, Adjusted: ${adjustedDailyCalories} (modifier: ${calorieModifier})`);
       if (healthContext) console.log(`   Health context:\n${healthContext}`);
+      if (feedbackContext) console.log(`   User preferences from feedback:\n${feedbackContext}`);
       
       for (let day = 0; day < daysToGenerate; day++) {
         const scheduledDate = new Date(startDate);
@@ -1493,12 +1537,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
             let recipeToUse = null;
             let isFromLibrary = false;
             
+            // Apply feedback-based filtering to library meals
             if (libraryMeals.length > 0) {
-              // Use the weighted-selected meal from the library (already weighted by storage layer)
-              recipeToUse = libraryMeals[0];
-              isFromLibrary = true;
-              console.log(`📚 Using meal from library: ${recipeToUse.title}`);
-            } else {
+              const filteredLibraryMeals = libraryMeals.filter(meal => {
+                // Exclude meals with disliked cuisines
+                if (meal.cuisines && meal.cuisines.some((c: string) => dislikedCuisines.has(c))) {
+                  return false;
+                }
+                // Exclude meals with disliked dish types
+                if (meal.dishTypes && meal.dishTypes.some((d: string) => dislikedDishTypes.has(d))) {
+                  return false;
+                }
+                return true;
+              });
+              
+              if (filteredLibraryMeals.length > 0) {
+                // Prioritize meals with preferred cuisines/dish types
+                const rankedLibraryMeals = filteredLibraryMeals.sort((a, b) => {
+                  let scoreA = 0;
+                  let scoreB = 0;
+                  
+                  // Boost score for preferred cuisines
+                  if (a.cuisines) {
+                    scoreA += a.cuisines.filter((c: string) => preferredCuisines.has(c)).length * 2;
+                  }
+                  if (b.cuisines) {
+                    scoreB += b.cuisines.filter((c: string) => preferredCuisines.has(c)).length * 2;
+                  }
+                  
+                  // Boost score for preferred dish types
+                  if (a.dishTypes) {
+                    scoreA += a.dishTypes.filter((d: string) => preferredDishTypes.has(d)).length;
+                  }
+                  if (b.dishTypes) {
+                    scoreB += b.dishTypes.filter((d: string) => preferredDishTypes.has(d)).length;
+                  }
+                  
+                  return scoreB - scoreA; // Higher score first
+                });
+                
+                // Use the top-ranked meal from the library
+                recipeToUse = rankedLibraryMeals[0];
+                isFromLibrary = true;
+                console.log(`📚 Using meal from library: ${recipeToUse.title}`);
+              } else {
+                console.log(`🚫 All library meals filtered by user feedback, falling back to Spoonacular...`);
+              }
+            }
+            
+            if (!recipeToUse) {
               console.log(`🌐 No suitable library meals found, falling back to Spoonacular...`);
               
               // Fall back to Spoonacular API
@@ -1508,10 +1595,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 intolerances: intolerances,
                 maxCalories: targetCaloriesPerMeal + 200,
                 minCalories: targetCaloriesPerMeal - 200,
-                number: 5,
+                number: 10, // Request more to allow filtering
                 sort: 'random',
                 addRecipeInformation: true,
               };
+              
+              // Apply user feedback preferences for cuisines
+              if (dislikedCuisines.size > 0) {
+                searchParams.excludeCuisine = Array.from(dislikedCuisines).join(',');
+              }
+              if (preferredCuisines.size > 0) {
+                searchParams.cuisine = Array.from(preferredCuisines).join(',');
+              }
               
               // Apply health-based filters for Spoonacular
               if (latestGlucose && latestGlucose.value > 100) {
@@ -1531,17 +1626,85 @@ export async function registerRoutes(app: Express): Promise<Server> {
               }
               
               // Search for recipes matching nutritional requirements
-              const searchResults = await spoonacularService.searchRecipes(searchParams);
+              let searchResults = await spoonacularService.searchRecipes(searchParams);
+
+              // If feedback filters excluded all results, retry without feedback constraints
+              if (!searchResults.results || searchResults.results.length === 0) {
+                console.log(`⚠️ Feedback filters excluded all Spoonacular results, retrying without cuisine constraints...`);
+                const relaxedParams = { ...searchParams };
+                delete relaxedParams.excludeCuisine;
+                delete relaxedParams.cuisine;
+                searchResults = await spoonacularService.searchRecipes(relaxedParams);
+                
+                // If still no results, do a minimal search with just meal type and calorie range
+                if (!searchResults.results || searchResults.results.length === 0) {
+                  console.log(`⚠️ Still no results, retrying with minimal constraints (type and calories only)...`);
+                  const minimalParams = {
+                    type: mealType,
+                    maxCalories: targetCaloriesPerMeal + 300,
+                    minCalories: targetCaloriesPerMeal - 300,
+                    number: 10,
+                    sort: 'random',
+                    addRecipeInformation: true,
+                  };
+                  searchResults = await spoonacularService.searchRecipes(minimalParams);
+                }
+              }
 
               if (searchResults.results && searchResults.results.length > 0) {
-                // Pick a random recipe from the results
-                const recipe = searchResults.results[Math.floor(Math.random() * searchResults.results.length)];
+                // Filter results by dish type feedback (post-query filtering)
+                let filteredResults = searchResults.results.filter((recipe: any) => {
+                  // Exclude recipes with disliked dish types
+                  if (recipe.dishTypes && recipe.dishTypes.some((d: string) => dislikedDishTypes.has(d))) {
+                    return false;
+                  }
+                  return true;
+                });
+                
+                // If all results were filtered out, fall back to original results
+                if (filteredResults.length === 0) {
+                  console.log(`⚠️ All results filtered by dish type feedback, using original results...`);
+                  filteredResults = searchResults.results;
+                }
+                
+                // Rank results by preferred cuisines and dish types
+                const rankedResults = filteredResults.sort((a: any, b: any) => {
+                  let scoreA = 0;
+                  let scoreB = 0;
+                  
+                  // Boost for preferred cuisines
+                  if (a.cuisines) {
+                    scoreA += a.cuisines.filter((c: string) => preferredCuisines.has(c)).length * 3;
+                  }
+                  if (b.cuisines) {
+                    scoreB += b.cuisines.filter((c: string) => preferredCuisines.has(c)).length * 3;
+                  }
+                  
+                  // Boost for preferred dish types
+                  if (a.dishTypes) {
+                    scoreA += a.dishTypes.filter((d: string) => preferredDishTypes.has(d)).length * 2;
+                  }
+                  if (b.dishTypes) {
+                    scoreB += b.dishTypes.filter((d: string) => preferredDishTypes.has(d)).length * 2;
+                  }
+                  
+                  return scoreB - scoreA; // Higher score first
+                });
+                
+                // Pick top-ranked recipe
+                const recipe = rankedResults[0];
                 
                 // Get full recipe details including ingredients and instructions
                 const recipeDetails = await spoonacularService.getRecipeDetails(recipe.id);
                 
                 recipeToUse = recipeDetails;
                 isFromLibrary = false;
+              } else {
+                console.log(`❌ CRITICAL: All Spoonacular fallback tiers exhausted for ${mealType} on day ${day + 1}`);
+                console.log(`   - Tried with full constraints: 0 results`);
+                console.log(`   - Tried without cuisine constraints: 0 results`);
+                console.log(`   - Tried with minimal constraints: 0 results`);
+                console.log(`   - Skipping this meal slot - user will see incomplete meal plan`);
               }
             }
             
