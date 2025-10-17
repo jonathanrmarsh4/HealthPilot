@@ -153,12 +153,13 @@ export function TileManager({ page, tiles, defaultVisible = [] }: TileManagerPro
     const tile = tiles.find(t => t.id === tileId);
     if (tile?.alwaysVisible) return; // Cannot hide always-visible tiles
 
-    setPreferences(prev => ({
-      ...prev,
-      visible: prev.visible.includes(tileId)
+    setPreferences(prev => {
+      const newVisible = prev.visible.includes(tileId)
         ? prev.visible.filter(id => id !== tileId)
-        : [...prev.visible, tileId]
-    }));
+        : [...prev.visible, tileId];
+      console.log(`[TileManager] Toggling ${tileId}: was ${prev.visible.includes(tileId) ? 'visible' : 'hidden'}, now ${newVisible.includes(tileId) ? 'visible' : 'hidden'}`, { newVisible });
+      return { ...prev, visible: newVisible };
+    });
   };
 
   const showAll = () => {
@@ -190,6 +191,8 @@ export function TileManager({ page, tiles, defaultVisible = [] }: TileManagerPro
   const visibleTiles = sortedTiles.filter(tile => 
     tile.alwaysVisible || preferences.visible.includes(tile.id)
   );
+  
+  console.log(`[TileManager] Rendering. Total tiles: ${tiles.length}, Visible IDs in prefs: ${preferences.visible.join(', ')}, Rendering: ${visibleTiles.map(t => t.id).join(', ')}`);
 
   if (isLoading) {
     return <div>Loading...</div>;
