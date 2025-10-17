@@ -1494,6 +1494,89 @@ export class DbStorage implements IStorage {
     return result;
   }
 
+  async getExerciseById(exerciseId: string): Promise<Exercise | undefined> {
+    const result = await db
+      .select()
+      .from(exercises)
+      .where(eq(exercises.id, exerciseId))
+      .limit(1);
+    
+    return result[0];
+  }
+
+  async getAllExercises(): Promise<Exercise[]> {
+    return await db
+      .select()
+      .from(exercises)
+      .orderBy(exercises.name);
+  }
+
+  async swapExerciseInSession(
+    sessionId: string,
+    userId: string,
+    oldExerciseId: string,
+    newExerciseId: string
+  ): Promise<{ success: boolean; setsUpdated: number }> {
+    // Get all sets for the old exercise in this session
+    const oldSets = await db
+      .select()
+      .from(exerciseSets)
+      .where(
+        and(
+          eq(exerciseSets.workoutSessionId, sessionId),
+          eq(exerciseSets.userId, userId),
+          eq(exerciseSets.exerciseId, oldExerciseId)
+        )
+      );
+
+    if (oldSets.length === 0) {
+      return { success: false, setsUpdated: 0 };
+    }
+
+    // Get the new exercise details
+    const newExercise = await this.getExerciseById(newExerciseId);
+    if (!newExercise) {
+      throw new Error("New exercise not found");
+    }
+
+    // Create new sets with the alternative exercise
+    const newSets = oldSets.map(oldSet => ({
+      workoutSessionId: sessionId,
+      exerciseId: newExerciseId,
+      userId,
+      setIndex: oldSet.setIndex,
+      targetRepsLow: oldSet.targetRepsLow,
+      targetRepsHigh: oldSet.targetRepsHigh,
+      weight: null, // Reset weight for new exercise
+      reps: null, // Reset reps
+      rpeLogged: null,
+      completed: 0, // Reset completion status
+      notes: null,
+      restStartedAt: null,
+      tempo: newExercise.tempoDefault || null,
+    }));
+
+    // Use transaction to ensure atomic swap
+    // Delete first to avoid unique constraint conflicts on (workoutSessionId, setIndex)
+    await db.transaction(async (tx) => {
+      // Delete old sets first to free up setIndex slots
+      await tx
+        .delete(exerciseSets)
+        .where(
+          and(
+            eq(exerciseSets.workoutSessionId, sessionId),
+            eq(exerciseSets.userId, userId),
+            eq(exerciseSets.exerciseId, oldExerciseId)
+          )
+        );
+      
+      // Insert new sets with freed setIndex values
+      await tx.insert(exerciseSets).values(newSets);
+    });
+
+    return { success: true, setsUpdated: newSets.length };
+  }
+
   async getSetsForSession(sessionId: string, userId: string): Promise<ExerciseSet[]> {
     return await db
       .select()

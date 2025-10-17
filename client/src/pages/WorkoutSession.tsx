@@ -7,6 +7,13 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { 
@@ -19,7 +26,8 @@ import {
   TrendingUp,
   Dumbbell,
   Trophy,
-  Clock
+  Clock,
+  Repeat
 } from "lucide-react";
 import { format, differenceInSeconds } from "date-fns";
 
@@ -84,6 +92,11 @@ export default function WorkoutSession() {
   const [restTimerInterval, setRestTimerInterval] = useState<NodeJS.Timeout | null>(null);
   const [sessionStartTime] = useState<Date>(new Date());
   const [elapsedTime, setElapsedTime] = useState(0);
+  const [swapDialogOpen, setSwapDialogOpen] = useState(false);
+  const [selectedExerciseForSwap, setSelectedExerciseForSwap] = useState<Exercise | null>(null);
+  const [alternatives, setAlternatives] = useState<Exercise[]>([]);
+  const [loadingAlternatives, setLoadingAlternatives] = useState(false);
+  const [alternativesError, setAlternativesError] = useState<string | null>(null);
 
   // Fetch workout session
   const { data: session, isLoading: sessionLoading } = useQuery<WorkoutSession>({
@@ -210,6 +223,71 @@ export default function WorkoutSession() {
   const handleCancelRest = () => {
     setRestTimer(null);
     if (restTimerInterval) clearInterval(restTimerInterval);
+  };
+
+  // Show exercise alternatives
+  const handleShowAlternatives = async (exercise: Exercise) => {
+    setSelectedExerciseForSwap(exercise);
+    setSwapDialogOpen(true);
+    setAlternatives([]); // Reset alternatives to prevent stale data
+    setLoadingAlternatives(true);
+    setAlternativesError(null);
+    
+    try {
+      const response = await fetch(`/api/exercises/${exercise.id}/alternatives?limit=3`, {
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to load alternatives: ${response.statusText}`);
+      }
+      
+      const alternativeExercises = await response.json();
+      setAlternatives(alternativeExercises);
+    } catch (error: any) {
+      console.error("Failed to fetch alternatives:", error);
+      setAlternativesError(error.message || "Failed to load exercise alternatives");
+      toast({
+        title: "Error",
+        description: "Failed to load exercise alternatives",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingAlternatives(false);
+    }
+  };
+
+  // Swap exercise (replace all sets for this exercise with the alternative)
+  const handleSwapExercise = async (alternativeExercise: Exercise) => {
+    if (!selectedExerciseForSwap || !sessionId) return;
+
+    try {
+      // Call swap endpoint to replace exercise
+      await apiRequest("POST", `/api/workout-sessions/${sessionId}/swap-exercise`, {
+        oldExerciseId: selectedExerciseForSwap.id,
+        newExerciseId: alternativeExercise.id,
+      });
+
+      // Invalidate queries to refetch updated data
+      queryClient.invalidateQueries({ queryKey: ["/api/workout-sessions", sessionId, "exercises"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/workout-sessions", sessionId, "sets"] });
+
+      toast({
+        title: "Exercise Swapped!",
+        description: `Changed ${selectedExerciseForSwap.name} to ${alternativeExercise.name}`,
+      });
+
+      setSwapDialogOpen(false);
+      setSelectedExerciseForSwap(null);
+      setAlternatives([]);
+    } catch (error) {
+      console.error("Failed to swap exercise:", error);
+      toast({
+        title: "Error",
+        description: "Failed to swap exercise",
+        variant: "destructive",
+      });
+    }
   };
 
   // Group sets by exercise
@@ -378,9 +456,21 @@ export default function WorkoutSession() {
                       </div>
                     )}
                   </div>
-                  <Badge variant="outline" data-testid={`badge-exercise-sets-${exerciseIndex}`}>
-                    {completedSets}/{exerciseSets.length} sets
-                  </Badge>
+                  <div className="flex flex-col items-end gap-2">
+                    <Badge variant="outline" data-testid={`badge-exercise-sets-${exerciseIndex}`}>
+                      {completedSets}/{exerciseSets.length} sets
+                    </Badge>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleShowAlternatives(exercise)}
+                      data-testid={`button-swap-${exerciseIndex}`}
+                      className="h-7 px-2"
+                    >
+                      <Repeat className="h-4 w-4 mr-1" />
+                      <span className="text-xs">Swap</span>
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
 
@@ -525,6 +615,83 @@ export default function WorkoutSession() {
           </Button>
         </div>
       </div>
+
+      {/* Swap Exercise Dialog */}
+      <Dialog open={swapDialogOpen} onOpenChange={setSwapDialogOpen}>
+        <DialogContent className="max-w-md" data-testid="dialog-swap-exercise">
+          <DialogHeader>
+            <DialogTitle>Swap Exercise</DialogTitle>
+            <DialogDescription>
+              Choose an alternative for {selectedExerciseForSwap?.name}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-3 mt-4">
+            {loadingAlternatives ? (
+              <div className="text-center py-8">
+                <p className="text-sm text-muted-foreground">Loading alternatives...</p>
+              </div>
+            ) : alternativesError ? (
+              <div className="text-center py-8">
+                <p className="text-sm text-destructive">{alternativesError}</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-4"
+                  onClick={() => selectedExerciseForSwap && handleShowAlternatives(selectedExerciseForSwap)}
+                  data-testid="button-retry-alternatives"
+                >
+                  Retry
+                </Button>
+              </div>
+            ) : alternatives.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-sm text-muted-foreground">No alternatives found</p>
+              </div>
+            ) : (
+              alternatives.map((alt, index) => (
+                <Card
+                  key={alt.id}
+                  className="cursor-pointer hover-elevate active-elevate-2"
+                  onClick={() => handleSwapExercise(alt)}
+                  data-testid={`alternative-${index}`}
+                >
+                  <CardContent className="p-4">
+                    <h3 className="font-semibold" data-testid={`alternative-name-${index}`}>
+                      {alt.name}
+                    </h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {alt.muscles.join(", ")} • {alt.equipment}
+                    </p>
+                    <div className="flex gap-2 mt-2">
+                      <Badge variant="secondary" className="text-xs">
+                        {alt.category}
+                      </Badge>
+                      <Badge variant="outline" className="text-xs">
+                        {alt.difficulty || "intermediate"}
+                      </Badge>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
+
+          <Button
+            variant="outline"
+            className="w-full mt-4"
+            onClick={() => {
+              setSwapDialogOpen(false);
+              setSelectedExerciseForSwap(null);
+              setAlternatives([]);
+              setAlternativesError(null);
+            }}
+            data-testid="button-cancel-swap"
+          >
+            Cancel
+          </Button>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

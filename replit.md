@@ -69,6 +69,17 @@ The application is a full-stack project utilizing React, TypeScript, Tailwind CS
 - Added view toggle between traditional calendar view and swipe view in Meal Plans page
 - Tap/click on cards opens existing RecipeDetailModal for detailed recipe information
 
+**AI Exercise Alternatives & Swap Feature (October 2025):**
+- Added AI-powered exercise alternative suggestions using OpenAI GPT-4o
+- Click "Swap" button on any exercise card in workout session to get 3 AI-recommended alternatives
+- AI prefilters exercises by muscle overlap to reduce token cost and improve response quality
+- Swap functionality replaces exercise sets with alternative exercise, preserving set structure but resetting progress
+- Transaction-wrapped database operations ensure atomic swaps (no data loss on failure)
+- Comprehensive null safety for legacy data (handles missing muscle arrays gracefully)
+- UI includes loading state, error handling with retry, and empty state feedback
+- New API endpoints: GET `/api/exercises/:exerciseId/alternatives` and POST `/api/workout-sessions/:sessionId/swap-exercise`
+- Future enhancements: Alternative result caching, structured logging for OpenAI failures, automated test coverage
+
 ## External Dependencies
 
 - **Database:** PostgreSQL (via Drizzle ORM)

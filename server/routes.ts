@@ -3216,6 +3216,110 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get AI-suggested exercise alternatives
+  app.get("/api/exercises/:exerciseId/alternatives", isAuthenticated, async (req, res) => {
+    const { exerciseId } = req.params;
+    const { limit = '3' } = req.query;
+    
+    try {
+      // Get the current exercise
+      const currentExercise = await storage.getExerciseById(exerciseId);
+      if (!currentExercise) {
+        return res.status(404).json({ error: "Exercise not found" });
+      }
+
+      // Get all exercises and prefilter for performance
+      const allExercises = await storage.getAllExercises();
+      
+      // Prefilter: Only include exercises that share at least one muscle group
+      // This reduces token cost and improves AI response quality
+      const candidateExercises = allExercises.filter(e => {
+        if (e.id === exerciseId) return false; // Exclude current exercise
+        
+        // Safety check: Ensure muscles arrays exist and are valid
+        if (!Array.isArray(e.muscles) || !Array.isArray(currentExercise.muscles)) {
+          return false;
+        }
+        
+        if (e.muscles.length === 0 || currentExercise.muscles.length === 0) {
+          return false;
+        }
+        
+        // Check if at least one muscle overlaps
+        const hasOverlap = e.muscles.some(muscle => 
+          currentExercise.muscles.includes(muscle)
+        );
+        
+        return hasOverlap;
+      });
+
+      // If prefiltering left us with too few options, fallback to all exercises
+      const otherExercises = candidateExercises.length >= 5 
+        ? candidateExercises 
+        : allExercises.filter(e => e.id !== exerciseId);
+
+      // Use AI to select the best alternatives
+      const { default: OpenAI } = await import('openai');
+      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+      const prompt = `Given the following exercise:
+Name: ${currentExercise.name}
+Muscles: ${Array.isArray(currentExercise.muscles) ? currentExercise.muscles.join(", ") : "unknown"}
+Equipment: ${currentExercise.equipment}
+Category: ${currentExercise.category}
+Difficulty: ${currentExercise.difficulty || "intermediate"}
+
+Suggest ${limit} alternative exercises from this list that work similar muscles and can be used as substitutes:
+
+${otherExercises.map((e, i) => `${i}. ${e.name} (${Array.isArray(e.muscles) ? e.muscles.join(", ") : "unknown"}, ${e.equipment}, ${e.category}, ${e.difficulty || "intermediate"})`).join("\n")}
+
+Return ONLY a JSON array of exercise indices (numbers) from the list above, ordered by how good of an alternative they are. Format: [0, 5, 12]`;
+
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.3,
+      });
+
+      const content = response.choices[0].message.content?.trim() || "[]";
+      let selectedIndices: number[] = [];
+      
+      try {
+        selectedIndices = JSON.parse(content);
+      } catch {
+        // Fallback: extract numbers from response
+        const matches = content.match(/\d+/g);
+        selectedIndices = matches ? matches.map(Number).slice(0, parseInt(limit as string)) : [];
+      }
+
+      // Get the suggested exercises
+      const alternatives = selectedIndices
+        .filter(i => i >= 0 && i < otherExercises.length)
+        .map(i => otherExercises[i])
+        .slice(0, parseInt(limit as string));
+
+      res.json(alternatives);
+    } catch (error: any) {
+      console.error("Error getting exercise alternatives:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Swap exercise in a workout session
+  app.post("/api/workout-sessions/:sessionId/swap-exercise", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { sessionId } = req.params;
+    const { oldExerciseId, newExerciseId } = req.body;
+
+    try {
+      const result = await storage.swapExerciseInSession(sessionId, userId, oldExerciseId, newExerciseId);
+      res.json(result);
+    } catch (error: any) {
+      console.error("Error swapping exercise:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Completed Workouts (Last 7 Days)
   app.get("/api/workouts/completed", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
