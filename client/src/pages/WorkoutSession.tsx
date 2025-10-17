@@ -313,7 +313,7 @@ function SortableExerciseCard({
                 <Button
                   size="default"
                   onClick={() => handleCompleteSet(set, exercise)}
-                  disabled={set.weight === null ? !set.reps : (!set.weight || !set.reps)}
+                  disabled={!set.reps || (set.weight !== null && set.weight !== 0 && !set.weight)}
                   className="h-10 px-4"
                   data-testid={`button-complete-set-${exerciseIndex}-${setIndex}`}
                 >
