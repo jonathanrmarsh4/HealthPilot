@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from "@/components/ui/drawer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Clock, Flame, Beef, Wheat, Droplet, ChefHat, List, Minus, Plus, Users, ThumbsUp, ThumbsDown } from "lucide-react";
+import { Clock, Flame, Beef, Wheat, Droplet, ChefHat, List, Minus, Plus, Users, ThumbsUp, ThumbsDown, Ban } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { MealPlan } from "@shared/schema";
@@ -55,6 +55,44 @@ export function RecipeDetailModal({ meal, open, onOpenChange }: RecipeDetailModa
         variant: "destructive",
         title: "Error",
         description: "Failed to save feedback. Please try again.",
+      });
+    } finally {
+      setIsSubmittingFeedback(false);
+    }
+  };
+
+  const handleNeverSuggest = async () => {
+    if (!meal) return;
+    
+    setIsSubmittingFeedback(true);
+    
+    try {
+      await apiRequest("POST", "/api/meal-feedback", {
+        mealPlanId: meal.id,
+        feedback: "permanent_dislike",
+        feedbackType: "permanent",
+        mealName: meal.name,
+        mealType: meal.mealType,
+        cuisines: meal.cuisines || [],
+        dishTypes: meal.dishTypes || [],
+        calories: meal.calories,
+      });
+      
+      toast({
+        title: "Meal excluded",
+        description: "We'll never suggest this meal again.",
+      });
+      
+      // Close modal after exclusion
+      onOpenChange(false);
+      
+      // Invalidate meal plans cache to refresh the list
+      queryClient.invalidateQueries({ queryKey: ["/api/meal-plans"] });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to save preference. Please try again.",
       });
     } finally {
       setIsSubmittingFeedback(false);
@@ -194,30 +232,47 @@ export function RecipeDetailModal({ meal, open, onOpenChange }: RecipeDetailModa
             </DrawerDescription>
             
             {/* Feedback Buttons */}
-            <div className="flex items-center gap-2 mt-4">
-              <p className="text-sm text-muted-foreground mr-2">How did you like this meal?</p>
-              <div className="flex gap-2">
+            <div className="space-y-3 mt-4">
+              <div className="flex items-center gap-2">
+                <p className="text-sm text-muted-foreground mr-2">How did you like this meal?</p>
+                <div className="flex gap-2">
+                  <Button
+                    variant={feedback === "liked" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => handleFeedback("liked")}
+                    disabled={isSubmittingFeedback}
+                    data-testid="button-like-meal"
+                    className="gap-2"
+                  >
+                    <ThumbsUp className="h-4 w-4" />
+                    {feedback === "liked" && "Liked"}
+                  </Button>
+                  <Button
+                    variant={feedback === "disliked" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => handleFeedback("disliked")}
+                    disabled={isSubmittingFeedback}
+                    data-testid="button-dislike-meal"
+                    className="gap-2"
+                  >
+                    <ThumbsDown className="h-4 w-4" />
+                    {feedback === "disliked" && "Disliked"}
+                  </Button>
+                </div>
+              </div>
+              
+              {/* Never Suggest Button */}
+              <div>
                 <Button
-                  variant={feedback === "liked" ? "default" : "outline"}
+                  variant="ghost"
                   size="sm"
-                  onClick={() => handleFeedback("liked")}
+                  onClick={handleNeverSuggest}
                   disabled={isSubmittingFeedback}
-                  data-testid="button-like-meal"
-                  className="gap-2"
+                  data-testid="button-never-suggest"
+                  className="gap-2 text-muted-foreground hover:text-destructive"
                 >
-                  <ThumbsUp className="h-4 w-4" />
-                  {feedback === "liked" && "Liked"}
-                </Button>
-                <Button
-                  variant={feedback === "disliked" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => handleFeedback("disliked")}
-                  disabled={isSubmittingFeedback}
-                  data-testid="button-dislike-meal"
-                  className="gap-2"
-                >
-                  <ThumbsDown className="h-4 w-4" />
-                  {feedback === "disliked" && "Disliked"}
+                  <Ban className="h-4 w-4" />
+                  Never suggest this meal again
                 </Button>
               </div>
             </div>
