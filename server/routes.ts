@@ -3100,6 +3100,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Start a new workout session from daily recommendation
+  app.post("/api/workout-sessions/start", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    try {
+      const { workoutPlan } = req.body;
+      
+      if (!workoutPlan || !workoutPlan.title || !workoutPlan.exercises) {
+        return res.status(400).json({ error: 'Invalid workout plan data' });
+      }
+      
+      const now = new Date();
+      
+      // Create the workout session
+      const session = await storage.createWorkoutSession({
+        userId,
+        workoutType: workoutPlan.title,
+        sessionType: 'workout',
+        startTime: now,
+        endTime: now, // Will be updated when workout is finished
+        duration: workoutPlan.totalDuration || 60,
+        sourceType: 'manual',
+        notes: '',
+      });
+      
+      // Get all exercises from database to match with workout plan
+      const allExercises = await storage.getAllExercises();
+      
+      // Create exercise sets for each exercise in the plan
+      for (let i = 0; i < workoutPlan.exercises.length; i++) {
+        const planExercise = workoutPlan.exercises[i];
+        
+        // Find matching exercise in database (case-insensitive search)
+        const matchedExercise = allExercises.find(ex => 
+          ex.name.toLowerCase() === planExercise.name.toLowerCase()
+        );
+        
+        if (matchedExercise) {
+          // Parse sets and reps (e.g., "3 sets" -> 3, "8-12 reps" -> 8-12)
+          const sets = planExercise.sets || 3;
+          const repsMatch = planExercise.reps?.match(/(\d+)-?(\d+)?/);
+          const repsLow = repsMatch ? parseInt(repsMatch[1]) : 8;
+          const repsHigh = repsMatch && repsMatch[2] ? parseInt(repsMatch[2]) : repsLow;
+          
+          // Create sets for this exercise
+          for (let setIndex = 0; setIndex < sets; setIndex++) {
+            await db.insert(exerciseSets).values({
+              workoutSessionId: session.id,
+              exerciseId: matchedExercise.id,
+              userId,
+              setIndex: setIndex + 1,
+              targetRepsLow: repsLow,
+              targetRepsHigh: repsHigh,
+              completed: 0,
+            });
+          }
+        }
+      }
+      
+      res.json(session);
+    } catch (error: any) {
+      console.error("Error starting workout session:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Workout Sessions Endpoint
   app.get("/api/workout-sessions", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;

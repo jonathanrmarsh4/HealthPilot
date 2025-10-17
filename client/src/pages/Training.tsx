@@ -266,6 +266,29 @@ export default function Training() {
     });
   };
 
+  const startWorkoutMutation = useMutation({
+    mutationFn: async (workoutPlan: WorkoutPlan) => {
+      const response = await apiRequest("POST", "/api/workout-sessions/start", { 
+        workoutPlan 
+      });
+      return response;
+    },
+    onSuccess: (session) => {
+      toast({
+        title: "Workout Started!",
+        description: "Get ready to train",
+      });
+      setLocation(`/training/workout-session/${session.id}`);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const refreshPlanMutation = useMutation({
     mutationFn: async () => {
       queryClient.invalidateQueries({ queryKey: ["/api/training/daily-recommendation"] });
@@ -814,6 +837,31 @@ export default function Training() {
                       </div>
                     ))}
                   </div>
+                  
+                  {/* Start Workout Button */}
+                  {selectedPlan !== 'rest' && (
+                    <div className="pt-4 border-t">
+                      <Button 
+                        className="w-full" 
+                        size="lg"
+                        onClick={() => startWorkoutMutation.mutate(currentPlan)}
+                        disabled={startWorkoutMutation.isPending}
+                        data-testid="button-start-workout"
+                      >
+                        {startWorkoutMutation.isPending ? (
+                          <>
+                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                            Starting...
+                          </>
+                        ) : (
+                          <>
+                            <Dumbbell className="mr-2 h-5 w-5" />
+                            Start Workout
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  )}
                 </div>
               ) : null}
             </>
