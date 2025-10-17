@@ -80,6 +80,15 @@ The application is a full-stack project utilizing React, TypeScript, Tailwind CS
 - New API endpoints: GET `/api/exercises/:exerciseId/alternatives` and POST `/api/workout-sessions/:sessionId/swap-exercise`
 - Future enhancements: Alternative result caching, structured logging for OpenAI failures, automated test coverage
 
+**Start Workout Button & Session Creation (October 2025):**
+- Added "Start Workout" button to Training page that creates workout sessions from AI daily recommendations
+- Button appears below selected workout plan (Primary or Alternate, not shown for Rest Day)
+- Backend endpoint POST `/api/workout-sessions/start` creates workout session with exercises and sets
+- Automatically matches exercises from AI plan to database exercises (case-insensitive)
+- Parses sets and reps from plan (e.g., "3 sets × 8-12 reps") and creates target ranges for each set
+- Navigates user to active workout session page (`/workout/:id`) for detailed tracking with swap feature
+- Fixes response parsing bug (added `.json()`) and route mismatch (corrected to `/workout/:id`)
+
 ## External Dependencies
 
 - **Database:** PostgreSQL (via Drizzle ORM)
