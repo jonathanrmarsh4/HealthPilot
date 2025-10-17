@@ -135,6 +135,10 @@ function SortableExerciseCard({
     isDragging,
   } = useSortable({ id: exercise.id });
 
+  // Track tap vs longpress for mobile-friendly interaction
+  const [pressStartTime, setPressStartTime] = useState<number | null>(null);
+  const longPressThreshold = 200; // ms - anything less is a tap, more is longpress/drag
+
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -186,25 +190,37 @@ function SortableExerciseCard({
     >
       <CardHeader className="pb-3 space-y-0">
         <div className="flex items-start gap-2">
-          {/* Drag Handle - Click to expand/collapse, drag to reorder */}
+          {/* Drag Handle - Tap to expand/collapse, longpress to reorder */}
           <button
-            className="mt-1 cursor-grab active:cursor-grabbing touch-none p-1 hover-elevate rounded flex items-center gap-0.5"
-            {...attributes}
-            {...listeners}
-            onClick={(e) => {
-              // Only toggle if not currently dragging and wasn't just dragging
-              if (!isDragging && !wasDragging) {
+            className="mt-1 cursor-pointer touch-none p-2 hover-elevate rounded flex items-center gap-1"
+            onPointerDown={(e) => {
+              setPressStartTime(Date.now());
+              // Pass the event to drag listeners for potential drag
+              if (listeners?.onPointerDown) {
+                listeners.onPointerDown(e as any);
+              }
+            }}
+            onPointerUp={(e) => {
+              const pressDuration = pressStartTime ? Date.now() - pressStartTime : 0;
+              setPressStartTime(null);
+              
+              // If it was a quick tap (not dragging and not a longpress), toggle expand
+              if (!isDragging && !wasDragging && pressDuration < longPressThreshold) {
                 e.stopPropagation();
                 onToggleExpand();
               }
             }}
+            onPointerCancel={() => {
+              setPressStartTime(null);
+            }}
+            {...attributes}
             data-testid={`button-drag-${exerciseIndex}`}
           >
-            <GripVertical className="h-4 w-4 text-muted-foreground" />
+            <GripVertical className="h-5 w-5 text-muted-foreground" />
             {isExpanded ? (
-              <ChevronUp className="h-3 w-3 text-muted-foreground" />
+              <ChevronUp className="h-4 w-4 text-muted-foreground" />
             ) : (
-              <ChevronDown className="h-3 w-3 text-muted-foreground" />
+              <ChevronDown className="h-4 w-4 text-muted-foreground" />
             )}
           </button>
 
@@ -661,9 +677,14 @@ export default function WorkoutSession() {
     }
   };
 
-  // Drag and drop sensors
+  // Drag and drop sensors - configured for tap vs longpress
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        delay: 200, // 200ms delay - matches our longpress threshold
+        tolerance: 5, // Allow 5px of movement during the delay
+      },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
