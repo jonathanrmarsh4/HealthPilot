@@ -3286,7 +3286,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       
       // 5. Generate AI recommendation with safety-first logic and guardrails
-      const aiRecommendation = await generateDailyTrainingRecommendation({
+      let aiRecommendation = await generateDailyTrainingRecommendation({
         readinessScore: readinessData!.score,
         readinessRecommendation: readinessData!.recommendation as "ready" | "caution" | "rest",
         readinessFactors: {
@@ -3310,6 +3310,131 @@ export async function registerRoutes(app: Express): Promise<Server> {
         biomarkers,
         userProfile,
       });
+      
+      // Fallback recommendation if AI generation fails
+      if (!aiRecommendation) {
+        console.warn("AI training recommendation generation failed. Providing fallback recommendation.");
+        const readinessScore = readinessData!.score;
+        
+        // Create a simple readiness-based fallback
+        if (readinessScore >= 75) {
+          aiRecommendation = {
+            primaryPlan: {
+              title: "High Intensity Strength Training",
+              exercises: [
+                { name: "Squats", sets: 4, reps: "8-10", duration: null, intensity: "high", notes: "Focus on form and controlled descent" },
+                { name: "Bench Press", sets: 4, reps: "8-10", duration: null, intensity: "high", notes: "Keep core tight throughout" },
+                { name: "Deadlifts", sets: 3, reps: "6-8", duration: null, intensity: "high", notes: "Maintain neutral spine" },
+                { name: "Pull-ups", sets: 3, reps: "8-12", duration: null, intensity: "high", notes: "Full range of motion" }
+              ],
+              totalDuration: 60,
+              intensity: "high",
+              calorieEstimate: 450
+            },
+            alternatePlan: {
+              title: "Moderate Cardio Session",
+              exercises: [
+                { name: "Jogging", sets: null, reps: null, duration: "20 min", intensity: "moderate", notes: "Comfortable pace" },
+                { name: "Cycling", sets: null, reps: null, duration: "10 min", intensity: "moderate", notes: "Steady effort" }
+              ],
+              totalDuration: 30,
+              intensity: "moderate",
+              calorieEstimate: 250
+            },
+            restDayOption: {
+              title: "Active Recovery",
+              activities: ["Gentle stretching", "Light walk", "Foam rolling"],
+              duration: 20,
+              benefits: "Promote recovery while staying active"
+            },
+            aiReasoning: `Your readiness score of ${readinessScore} indicates you're well-recovered and ready for high-intensity training. This workout includes compound movements to maximize strength gains.`,
+            safetyNote: null,
+            adjustmentsMade: {
+              intensityReduced: false,
+              durationReduced: false,
+              exercisesModified: false,
+              reason: "No adjustments needed - excellent recovery state"
+            }
+          };
+        } else if (readinessScore >= 40) {
+          aiRecommendation = {
+            primaryPlan: {
+              title: "Moderate Intensity Training",
+              exercises: [
+                { name: "Bodyweight Squats", sets: 3, reps: "12-15", duration: null, intensity: "moderate", notes: "Focus on form" },
+                { name: "Push-ups", sets: 3, reps: "10-12", duration: null, intensity: "moderate", notes: "Modify as needed" },
+                { name: "Lunges", sets: 3, reps: "10 per leg", duration: null, intensity: "moderate", notes: "Controlled movement" },
+                { name: "Plank", sets: 3, reps: null, duration: "30-45 sec", intensity: "moderate", notes: "Maintain alignment" }
+              ],
+              totalDuration: 60,
+              intensity: "moderate",
+              calorieEstimate: 300
+            },
+            alternatePlan: {
+              title: "Light Cardio",
+              exercises: [
+                { name: "Walking", sets: null, reps: null, duration: "20 min", intensity: "light", notes: "Easy pace" },
+                { name: "Stretching", sets: null, reps: null, duration: "10 min", intensity: "light", notes: "Full body" }
+              ],
+              totalDuration: 30,
+              intensity: "light",
+              calorieEstimate: 150
+            },
+            restDayOption: {
+              title: "Full Rest Day",
+              activities: ["Gentle stretching", "Meditation", "Light walk (optional)"],
+              duration: 15,
+              benefits: "Allow your body to recover fully"
+            },
+            aiReasoning: `Your readiness score of ${readinessScore} suggests moderate recovery. This workout uses lighter intensity to maintain fitness while respecting your recovery needs.`,
+            safetyNote: "Listen to your body - rest if you feel unusually fatigued",
+            adjustmentsMade: {
+              intensityReduced: true,
+              durationReduced: false,
+              exercisesModified: true,
+              reason: "Reduced intensity due to moderate readiness score"
+            }
+          };
+        } else {
+          aiRecommendation = {
+            primaryPlan: {
+              title: "Active Recovery",
+              exercises: [
+                { name: "Light walking", sets: null, reps: null, duration: "15 min", intensity: "light", notes: "Very easy pace" },
+                { name: "Gentle stretching", sets: null, reps: null, duration: "10 min", intensity: "light", notes: "Focus on tight areas" },
+                { name: "Breathing exercises", sets: null, reps: null, duration: "5 min", intensity: "light", notes: "Deep, slow breaths" }
+              ],
+              totalDuration: 30,
+              intensity: "light",
+              calorieEstimate: 100
+            },
+            alternatePlan: {
+              title: "Complete Rest",
+              exercises: [
+                { name: "Meditation", sets: null, reps: null, duration: "10 min", intensity: "light", notes: "Relaxation focus" },
+                { name: "Light stretching", sets: null, reps: null, duration: "5 min", intensity: "light", notes: "Gentle only" }
+              ],
+              totalDuration: 15,
+              intensity: "light",
+              calorieEstimate: 30
+            },
+            restDayOption: {
+              title: "Full Rest Recommended",
+              activities: ["Sleep", "Hydration", "Nutrition focus", "Stress management"],
+              duration: 0,
+              benefits: "Your body needs recovery - take the day off to restore energy"
+            },
+            aiReasoning: `Your readiness score of ${readinessScore} indicates you need rest. Prioritize recovery today to avoid overtraining and allow your body to adapt.`,
+            safetyNote: "Low readiness suggests you need rest. Consider taking a full rest day.",
+            adjustmentsMade: {
+              intensityReduced: true,
+              durationReduced: true,
+              exercisesModified: true,
+              reason: "Low readiness score - prioritizing recovery"
+            }
+          };
+        }
+      }
       
       res.json({
         readinessScore: readinessData!.score,
@@ -4022,21 +4147,49 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
     const userId = (req.user as any).claims.sub;
 
     try {
-      const biomarkers = await storage.getBiomarkers(userId);
+      // Get all biomarkers and filter to most recent value per type to reduce token usage
+      const allBiomarkers = await storage.getBiomarkers(userId);
       
+      // Group by type and keep only the most recent value per type
+      const biomarkersByType = new Map<string, any>();
+      allBiomarkers.forEach(biomarker => {
+        const existing = biomarkersByType.get(biomarker.type);
+        if (!existing || new Date(biomarker.recordedAt) > new Date(existing.recordedAt)) {
+          biomarkersByType.set(biomarker.type, biomarker);
+        }
+      });
+      
+      // Also include previous value for each type for trend analysis
+      const biomarkersWithTrends: any[] = [];
+      Array.from(biomarkersByType.entries()).forEach(([type, latest]) => {
+        // Add the latest value
+        biomarkersWithTrends.push(latest);
+        
+        // Find the second most recent value for trend analysis
+        const typeValues = allBiomarkers
+          .filter(b => b.type === type && b.id !== latest.id)
+          .sort((a, b) => new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime());
+        
+        if (typeValues.length > 0) {
+          biomarkersWithTrends.push(typeValues[0]); // Add second most recent
+        }
+      });
+      
+      // Limit chat context to last 10 messages to reduce tokens
       const chatHistory = await storage.getChatMessages(userId);
-      const chatContext = chatHistory.map(msg => `${msg.role}: ${msg.content}`).join('\n');
+      const recentChatHistory = chatHistory.slice(-10);
+      const chatContext = recentChatHistory.map(msg => `${msg.role}: ${msg.content}`).join('\n');
       
-      // Get recent sleep sessions (last 30 days)
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      const sleepSessions = await storage.getSleepSessions(userId, thirtyDaysAgo, new Date());
+      // Get recent sleep sessions (last 7 days instead of 30 to reduce tokens)
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      const sleepSessions = await storage.getSleepSessions(userId, sevenDaysAgo, new Date());
       
       // Get recent AI insights for context
       const recentInsights = await storage.getInsights(userId, 10);
       
       const recommendations = await generateHealthRecommendations({
-        biomarkers,
+        biomarkers: biomarkersWithTrends,
         sleepSessions,
         recentInsights,
         healthGoals: req.body.healthGoals || [],
