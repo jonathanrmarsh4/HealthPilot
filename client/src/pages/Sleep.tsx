@@ -5,6 +5,7 @@ import { SleepTrendGraph } from "@/components/SleepTrendGraph";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertCircle } from "lucide-react";
+import { TileManager, TileConfig } from "@/components/TileManager";
 
 interface SleepStats {
   hasData: boolean;
@@ -99,6 +100,68 @@ export default function Sleep() {
 
   const { lastNight } = stats;
 
+  // Define tiles for the Sleep page
+  const tiles: TileConfig[] = [
+    {
+      id: "sleep-score",
+      title: "Sleep Score",
+      description: "Your sleep quality score and duration",
+      renderTile: () => lastNight ? (
+        <SleepScoreCard
+          score={lastNight.sleepScore}
+          totalMinutes={lastNight.totalMinutes}
+          quality={stats.quality}
+          bedtime={lastNight.bedtime}
+          waketime={lastNight.waketime}
+          deepMinutes={lastNight.deepMinutes}
+          remMinutes={lastNight.remMinutes}
+        />
+      ) : null
+    },
+    {
+      id: "sleep-stages",
+      title: "Sleep Stages",
+      description: "Breakdown of sleep phases",
+      renderTile: () => lastNight ? (
+        <SleepStagesChart
+          awakeMinutes={lastNight.awakeMinutes}
+          lightMinutes={lastNight.lightMinutes}
+          deepMinutes={lastNight.deepMinutes}
+          remMinutes={lastNight.remMinutes}
+          totalMinutes={lastNight.totalMinutes}
+        />
+      ) : null
+    },
+    {
+      id: "sleep-trends",
+      title: "Sleep Trends",
+      description: "90-day sleep pattern analysis",
+      renderTile: () => {
+        if (sessionsLoading) {
+          return (
+            <Card>
+              <CardContent className="p-6">
+                <Skeleton className="h-64 w-full" />
+              </CardContent>
+            </Card>
+          );
+        }
+        
+        if (sessions && sessions.length > 0) {
+          return <SleepTrendGraph sessions={sessions} />;
+        }
+        
+        return (
+          <Card>
+            <CardContent className="p-8 text-center text-muted-foreground">
+              Not enough sleep data to show trends. Keep tracking your sleep to see patterns over time.
+            </CardContent>
+          </Card>
+        );
+      }
+    }
+  ];
+
   return (
     <div className="space-y-8">
       <div>
@@ -108,42 +171,11 @@ export default function Sleep() {
         </p>
       </div>
 
-      {lastNight && (
-        <div className="grid gap-6 md:grid-cols-2">
-          <SleepScoreCard
-            score={lastNight.sleepScore}
-            totalMinutes={lastNight.totalMinutes}
-            quality={stats.quality}
-            bedtime={lastNight.bedtime}
-            waketime={lastNight.waketime}
-            deepMinutes={lastNight.deepMinutes}
-            remMinutes={lastNight.remMinutes}
-          />
-          <SleepStagesChart
-            awakeMinutes={lastNight.awakeMinutes}
-            lightMinutes={lastNight.lightMinutes}
-            deepMinutes={lastNight.deepMinutes}
-            remMinutes={lastNight.remMinutes}
-            totalMinutes={lastNight.totalMinutes}
-          />
-        </div>
-      )}
-
-      {sessionsLoading ? (
-        <Card>
-          <CardContent className="p-6">
-            <Skeleton className="h-64 w-full" />
-          </CardContent>
-        </Card>
-      ) : sessions && sessions.length > 0 ? (
-        <SleepTrendGraph sessions={sessions} />
-      ) : (
-        <Card>
-          <CardContent className="p-8 text-center text-muted-foreground">
-            Not enough sleep data to show trends. Keep tracking your sleep to see patterns over time.
-          </CardContent>
-        </Card>
-      )}
+      <TileManager
+        page="sleep"
+        tiles={tiles}
+        defaultVisible={["sleep-score", "sleep-stages", "sleep-trends"]}
+      />
     </div>
   );
 }
