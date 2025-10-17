@@ -39,6 +39,7 @@ The application is a full-stack project utilizing React, TypeScript, Tailwind CS
 - Clean dashboard defaults for new users with core widgets and easy customization.
 - Data & Insights Dashboard with AI trend predictions and goal setting.
 - Biological Age calculation using the PhenoAge algorithm (premium feature).
+- **Progressive Overload Training System:** Double progression algorithm automatically suggests weight increases based on performance. Analyzes previous session data (reps completed, RPE, target ranges) to provide intelligent weight suggestions. Displays "Last: Xkg × Y reps → Try Zkg" in workout session UI with context-aware reasoning (e.g., "Hit 8 reps on all sets with RPE ≤ 7" or "Build reps before adding weight"). Uses exercise-specific increment steps (e.g., 2.5kg for upper body, 5kg for lower body) for safe, sustainable progression.
 
 ## Recent Technical Updates
 

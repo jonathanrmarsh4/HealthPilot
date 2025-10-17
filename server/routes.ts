@@ -3203,6 +3203,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get progressive overload suggestion for an exercise
+  app.get("/api/exercises/:exerciseId/progressive-overload", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { exerciseId } = req.params;
+    
+    try {
+      const suggestion = await storage.calculateProgressiveOverload(userId, exerciseId);
+      res.json(suggestion);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Completed Workouts (Last 7 Days)
   app.get("/api/workouts/completed", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;

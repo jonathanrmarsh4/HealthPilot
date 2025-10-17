@@ -67,6 +67,13 @@ interface WorkoutSession {
   perceivedEffort?: number;
 }
 
+interface ProgressiveOverloadSuggestion {
+  suggestedWeight: number | null;
+  lastWeight: number | null;
+  lastReps: number | null;
+  reason: string;
+}
+
 export default function WorkoutSession() {
   const [, navigate] = useLocation();
   const [, params] = useRoute("/workout/:id");
@@ -95,6 +102,47 @@ export default function WorkoutSession() {
     queryKey: ["/api/workout-sessions", sessionId, "sets"],
     enabled: !!sessionId,
   });
+
+  // Store progressive overload suggestions
+  const [progressiveSuggestions, setProgressiveSuggestions] = useState<Map<string, ProgressiveOverloadSuggestion>>(new Map());
+
+  // Fetch progressive overload suggestions for all exercises (batched for performance)
+  useEffect(() => {
+    if (!exercises.length) return;
+
+    const fetchSuggestions = async () => {
+      const suggestions = new Map<string, ProgressiveOverloadSuggestion>();
+      
+      // Batch all requests with Promise.all to avoid sequential waterfall
+      const fetchPromises = exercises.map(async (exercise) => {
+        try {
+          const response = await fetch(`/api/exercises/${exercise.id}/progressive-overload`, {
+            credentials: 'include',
+          });
+          if (response.ok) {
+            const suggestion = await response.json();
+            return { exerciseId: exercise.id, suggestion };
+          }
+        } catch (error) {
+          console.error(`Failed to fetch suggestion for ${exercise.name}:`, error);
+        }
+        return null;
+      });
+      
+      const results = await Promise.all(fetchPromises);
+      
+      // Build suggestions map from results
+      results.forEach((result) => {
+        if (result) {
+          suggestions.set(result.exerciseId, result.suggestion);
+        }
+      });
+      
+      setProgressiveSuggestions(suggestions);
+    };
+
+    fetchSuggestions();
+  }, [exercises]);
 
   // Timer for elapsed time
   useEffect(() => {
@@ -302,6 +350,33 @@ export default function WorkoutSession() {
                     <p className="text-sm text-muted-foreground mt-1">
                       {exercise.muscles.join(", ")} • {exercise.equipment}
                     </p>
+                    
+                    {/* Progressive Overload Suggestion */}
+                    {progressiveSuggestions.get(exercise.id) && (
+                      <div className="mt-2 flex items-center gap-2 p-2 bg-primary/10 rounded-md" data-testid={`suggestion-${exerciseIndex}`}>
+                        <TrendingUp className="h-4 w-4 text-primary" />
+                        <div className="text-xs">
+                          {progressiveSuggestions.get(exercise.id)!.lastWeight !== null ? (
+                            <p>
+                              <span className="text-muted-foreground">Last: </span>
+                              <span className="font-medium">
+                                {progressiveSuggestions.get(exercise.id)!.lastWeight}kg × {progressiveSuggestions.get(exercise.id)!.lastReps}
+                              </span>
+                              {progressiveSuggestions.get(exercise.id)!.suggestedWeight !== progressiveSuggestions.get(exercise.id)!.lastWeight && (
+                                <span className="text-primary font-semibold ml-1">
+                                  → Try {progressiveSuggestions.get(exercise.id)!.suggestedWeight}kg
+                                </span>
+                              )}
+                            </p>
+                          ) : (
+                            <p className="text-muted-foreground">First time - no history</p>
+                          )}
+                          <p className="text-muted-foreground italic mt-0.5">
+                            {progressiveSuggestions.get(exercise.id)!.reason}
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                   <Badge variant="outline" data-testid={`badge-exercise-sets-${exerciseIndex}`}>
                     {completedSets}/{exerciseSets.length} sets

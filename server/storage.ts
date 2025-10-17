@@ -1522,6 +1522,146 @@ export class DbStorage implements IStorage {
     return result[0];
   }
 
+  async getLastCompletedSetsForExercise(userId: string, exerciseId: string, limit: number = 5): Promise<ExerciseSet[]> {
+    // Get the most recent completed workout sessions for this exercise
+    const result = await db
+      .select()
+      .from(exerciseSets)
+      .where(
+        and(
+          eq(exerciseSets.userId, userId),
+          eq(exerciseSets.exerciseId, exerciseId),
+          eq(exerciseSets.completed, 1)
+        )
+      )
+      .orderBy(desc(exerciseSets.createdAt))
+      .limit(limit);
+    
+    return result;
+  }
+
+  async calculateProgressiveOverload(
+    userId: string,
+    exerciseId: string
+  ): Promise<{
+    suggestedWeight: number | null;
+    lastWeight: number | null;
+    lastReps: number | null;
+    reason: string;
+  }> {
+    // Get exercise details for increment step
+    const exercise = await db
+      .select()
+      .from(exercises)
+      .where(eq(exercises.id, exerciseId))
+      .limit(1);
+    
+    if (!exercise[0]) {
+      return {
+        suggestedWeight: null,
+        lastWeight: null,
+        lastReps: null,
+        reason: "Exercise not found"
+      };
+    }
+
+    const incrementStep = exercise[0].incrementStep || 2.5;
+
+    // Get last completed sets for this exercise
+    const lastSets = await this.getLastCompletedSetsForExercise(userId, exerciseId, 10);
+    
+    if (lastSets.length === 0) {
+      return {
+        suggestedWeight: null,
+        lastWeight: null,
+        lastReps: null,
+        reason: "No previous workout data"
+      };
+    }
+
+    // Find the most recent session's sets
+    const lastSessionId = lastSets[0].workoutSessionId;
+    const lastSessionSets = lastSets.filter(s => s.workoutSessionId === lastSessionId);
+
+    // Get the working sets (ignore warm-up sets - typically the heaviest sets)
+    const maxWeight = Math.max(...lastSessionSets.map(s => s.weight || 0));
+    const workingSets = lastSessionSets.filter(s => (s.weight || 0) >= maxWeight - incrementStep);
+
+    if (workingSets.length === 0) {
+      return {
+        suggestedWeight: maxWeight,
+        lastWeight: maxWeight,
+        lastReps: lastSessionSets[0].reps || null,
+        reason: "Use last weight"
+      };
+    }
+
+    // Check if all working sets hit the top of the target range
+    const allHitTopRange = workingSets.every(s => 
+      s.reps !== null && 
+      s.targetRepsHigh !== null && 
+      s.reps >= s.targetRepsHigh
+    );
+
+    // Check average RPE of working sets
+    const setsWithRPE = workingSets.filter(s => s.rpeLogged !== null);
+    const avgRPE = setsWithRPE.length > 0
+      ? setsWithRPE.reduce((sum, s) => sum + (s.rpeLogged || 0), 0) / setsWithRPE.length
+      : null;
+
+    const lastWeight = workingSets[0].weight || 0;
+    const lastReps = workingSets[0].reps || null;
+
+    // Double progression logic:
+    // 1. If hit top of rep range on all sets AND RPE ≤ 8 (or no RPE data but hit top range), increase weight
+    if (allHitTopRange) {
+      if (avgRPE === null) {
+        // No RPE data: use conservative approach - increase weight if hit top range on all sets
+        return {
+          suggestedWeight: lastWeight + incrementStep,
+          lastWeight,
+          lastReps,
+          reason: `Hit ${workingSets[0].targetRepsHigh} reps on all sets`
+        };
+      } else if (avgRPE <= 8) {
+        return {
+          suggestedWeight: lastWeight + incrementStep,
+          lastWeight,
+          lastReps,
+          reason: `Hit ${workingSets[0].targetRepsHigh} reps on all sets with RPE ≤ ${Math.round(avgRPE)}`
+        };
+      }
+    }
+
+    // 2. If struggling (RPE > 9 or not hitting bottom of range), suggest same weight
+    const hitBottomRange = workingSets.some(s => 
+      s.reps !== null && 
+      s.targetRepsLow !== null && 
+      s.reps >= s.targetRepsLow
+    );
+
+    if (!hitBottomRange || (avgRPE !== null && avgRPE > 9)) {
+      return {
+        suggestedWeight: lastWeight,
+        lastWeight,
+        lastReps,
+        reason: avgRPE !== null && avgRPE > 9 
+          ? "RPE too high, consolidate before progressing"
+          : "Build reps before adding weight"
+      };
+    }
+
+    // 3. Default: same weight, build more reps
+    return {
+      suggestedWeight: lastWeight,
+      lastWeight,
+      lastReps,
+      reason: avgRPE === null 
+        ? "Continue building reps in target range"
+        : "Continue building reps in target range"
+    };
+  }
+
   async getTrainingLoad(userId: string, startDate: Date, endDate: Date): Promise<{
     weeklyLoad: number;
     monthlyLoad: number;
