@@ -215,7 +215,7 @@ ${sk.core_features.readiness_score.description}
 - Free tier: ${sk.core_features.ai_chat.limitations.free_tier} | Premium: ${sk.core_features.ai_chat.limitations.premium_tier}
 
 ### Other Key Features:
-- Apple Health: ${sk.core_features.apple_health_integration.web_version.method} (Premium required)
+- Apple Health: ${sk.system_architecture.apple_health_integration.web_version.method} (Premium required)
 - Progressive Overload: ${sk.core_features.progressive_overload_training.description}
 - Meal Planning: ${sk.core_features.meal_planning.description} (Premium only)
 - Universal Tiles: ${sk.core_features.universal_tile_management.description}`;
