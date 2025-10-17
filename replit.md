@@ -90,6 +90,14 @@ The application is a full-stack project utilizing React, TypeScript, Tailwind CS
 - Navigates user to active workout session page (`/workout/:id`) for detailed tracking with swap feature
 - Fixes response parsing bug (added `.json()`) and route mismatch (corrected to `/workout/:id`)
 
+**TileManager Drag-and-Drop Bug Fix (October 2025):**
+- Fixed critical bug where drag-and-drop listeners were blocking tile visibility toggle button clicks
+- Root cause: SortableTileItem was applying drag listeners to entire tile container, capturing all click events
+- Solution: Implemented render props pattern to isolate drag listeners to only the drag handle (GripVertical icon)
+- Toggle buttons now work correctly, visibility changes apply immediately, and state persists to backend
+- Drag-and-drop reordering still fully functional via grip handle
+- All 7 Training page tiles (readiness-score, daily-recommendation, recovery-protocols, scheduled-calendar, today-scheduled, scheduled-insights, workout-history) now support proper visibility control
+
 ## External Dependencies
 
 - **Database:** PostgreSQL (via Drizzle ORM)
