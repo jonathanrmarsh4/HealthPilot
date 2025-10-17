@@ -340,28 +340,30 @@ export default function WorkoutSession() {
   // Sync exercise order when exercises change (including after swaps)
   useEffect(() => {
     if (exercises.length > 0) {
-      const currentIds = exercises.map(e => e.id);
-      const needsUpdate = exerciseOrder.length !== currentIds.length || 
-                         currentIds.some(id => !exerciseOrder.includes(id));
-      
-      if (needsUpdate) {
-        const removedIds = exerciseOrder.filter(id => !currentIds.includes(id));
-        const newIds = currentIds.filter(id => !exerciseOrder.includes(id));
+      setExerciseOrder(prevOrder => {
+        const currentIds = exercises.map(e => e.id);
+        const needsUpdate = prevOrder.length !== currentIds.length || 
+                           currentIds.some(id => !prevOrder.includes(id));
+        
+        if (!needsUpdate) return prevOrder;
+        
+        const removedIds = prevOrder.filter(id => !currentIds.includes(id));
+        const newIds = currentIds.filter(id => !prevOrder.includes(id));
         
         // Handle swaps: if one removed and one added, replace at same position
         if (removedIds.length === 1 && newIds.length === 1) {
-          const removedIndex = exerciseOrder.indexOf(removedIds[0]);
-          const newOrder = [...exerciseOrder];
+          const removedIndex = prevOrder.indexOf(removedIds[0]);
+          const newOrder = [...prevOrder];
           newOrder[removedIndex] = newIds[0];
-          setExerciseOrder(newOrder);
+          return newOrder;
         } else {
           // Otherwise preserve existing order and append new IDs
-          const preserved = exerciseOrder.filter(id => currentIds.includes(id));
-          setExerciseOrder([...preserved, ...newIds]);
+          const preserved = prevOrder.filter(id => currentIds.includes(id));
+          return [...preserved, ...newIds];
         }
-      }
+      });
     }
-  }, [exercises, exerciseOrder]);
+  }, [exercises]);
 
   // Store progressive overload suggestions and track auto-populated sets
   const [progressiveSuggestions, setProgressiveSuggestions] = useState<Map<string, ProgressiveOverloadSuggestion>>(new Map());
