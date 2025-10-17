@@ -38,6 +38,8 @@ import Settings from "@/pages/Settings";
 import Pricing from "@/pages/Pricing";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
 import PrivacyDashboard from "@/pages/PrivacyDashboard";
+import SecurityWhitepaper from "@/pages/SecurityWhitepaper";
+import TermsOfService from "@/pages/TermsOfService";
 import Admin from "@/pages/Admin";
 import AdminMealLibrary from "@/pages/AdminMealLibrary";
 import AIAuditLog from "@/pages/AIAuditLog";
@@ -74,6 +76,8 @@ function Router() {
       <Route path="/pricing" component={Pricing} />
       <Route path="/privacy" component={PrivacyPolicy} />
       <Route path="/privacy-dashboard" component={PrivacyDashboard} />
+      <Route path="/security" component={SecurityWhitepaper} />
+      <Route path="/terms" component={TermsOfService} />
       <Route path="/admin" component={Admin} />
       <Route path="/admin/meal-library" component={AdminMealLibrary} />
       <Route path="/admin/ai-audit" component={AIAuditLog} />
@@ -115,6 +119,8 @@ function AppLayout() {
     "/pricing": "Pricing",
     "/privacy": "Privacy Policy",
     "/privacy-dashboard": "Privacy & Data Control",
+    "/security": "Security & Privacy Whitepaper",
+    "/terms": "Terms of Service",
     "/admin": "Admin Panel",
     "/admin/meal-library": "Meal Library",
     "/admin/ai-audit": "AI Audit Log"
