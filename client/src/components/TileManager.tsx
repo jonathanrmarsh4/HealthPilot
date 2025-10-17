@@ -1,4 +1,4 @@
-import { useState, useEffect, ReactNode } from "react";
+import { useState, useEffect, useRef, ReactNode } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { 
@@ -63,25 +63,40 @@ function SortableTileItem({ id, children }: { id: string; children: ReactNode })
 }
 
 export function TileManager({ page, tiles, defaultVisible = [] }: TileManagerProps) {
+  // Use defaultVisible if provided, otherwise show all tiles by default
+  const initialVisible = defaultVisible.length > 0 ? defaultVisible : tiles.map(t => t.id);
+  
   const [preferences, setPreferences] = useState<TilePreferences>({
-    visible: defaultVisible,
+    visible: initialVisible,
     order: tiles.map(t => t.id)
   });
 
   const [isManageOpen, setIsManageOpen] = useState(false);
+  const lastSavedPreferencesRef = useRef<TilePreferences | null>(null);
+  const isInitializedRef = useRef(false);
 
   // Fetch preferences from API
   const { data: savedPreferences, isLoading } = useQuery<TilePreferences>({
     queryKey: [`/api/user/tile-preferences/${page}`],
   });
 
-  // Sync API preferences with local state
+  // Sync API preferences with local state (only on initial load)
   useEffect(() => {
-    if (savedPreferences) {
-      setPreferences({
-        visible: savedPreferences.visible || defaultVisible,
-        order: savedPreferences.order || tiles.map(t => t.id)
-      });
+    if (savedPreferences && !isInitializedRef.current) {
+      const newPrefs = {
+        visible: savedPreferences.visible?.length > 0 ? savedPreferences.visible : initialVisible,
+        order: savedPreferences.order?.length > 0 ? savedPreferences.order : tiles.map(t => t.id)
+      };
+      setPreferences(newPrefs);
+      lastSavedPreferencesRef.current = newPrefs;
+      isInitializedRef.current = true;
+    } else if (!savedPreferences && !isInitializedRef.current) {
+      // No saved preferences, use initial defaults
+      lastSavedPreferencesRef.current = {
+        visible: initialVisible,
+        order: tiles.map(t => t.id)
+      };
+      isInitializedRef.current = true;
     }
   }, [savedPreferences]);
 
@@ -91,13 +106,21 @@ export function TileManager({ page, tiles, defaultVisible = [] }: TileManagerPro
       const response = await apiRequest("PATCH", `/api/user/tile-preferences/${page}`, prefs);
       return response.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/user/tile-preferences/${page}`] });
+    onSuccess: (data) => {
+      // Update the last saved reference without invalidating (which would cause a refetch)
+      lastSavedPreferencesRef.current = preferences;
     }
   });
 
-  // Debounced save
+  // Debounced save - only when preferences differ from last saved
   useEffect(() => {
+    if (!isInitializedRef.current) return; // Don't save until initialized
+    
+    const prefsChanged = 
+      JSON.stringify(preferences) !== JSON.stringify(lastSavedPreferencesRef.current);
+    
+    if (!prefsChanged) return; // No changes, don't save
+    
     const timeoutId = setTimeout(() => {
       if (preferences.visible.length > 0 || preferences.order.length > 0) {
         savePreferencesMutation.mutate(preferences);
