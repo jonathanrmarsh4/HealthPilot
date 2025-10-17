@@ -122,6 +122,8 @@ export default function Training() {
   const [exerciseFeedback, setExerciseFeedback] = useState<Record<string, 'up' | 'down'>>({});
   const [historyOpen, setHistoryOpen] = useState(false);
   const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set());
+  const [showFullReasoning, setShowFullReasoning] = useState(false);
+  const [showFullAdjustments, setShowFullAdjustments] = useState(false);
 
   const { data: readinessScore, isLoading: readinessLoading } = useQuery<ReadinessScore>({
     queryKey: ["/api/training/readiness"],
@@ -625,10 +627,9 @@ export default function Training() {
         </CardContent>
       </Card>
 
-      {/* Recovery Protocols */}
+      {/* Schedule Section: Recovery Protocols + Calendar + Today's Scheduled */}
       <RecoveryProtocols />
 
-      {/* Calendar View for Scheduled Recommendations */}
       <RecommendationCalendar
         recommendations={scheduledRecommendations.map((rec) => ({
           id: rec.id,
@@ -640,14 +641,51 @@ export default function Training() {
         }}
       />
 
-      {/* Today's Scheduled Recommendations */}
       <ScheduledRecommendationsCard recommendations={todayScheduledRecommendations} />
 
-      {/* Daily Reminders */}
-      <DailyRemindersCard />
-
-      {/* Scheduled Insights */}
       <ScheduledInsightsCard />
+
+      {/* Your Weekly Training Schedule (if exists) - Part of Schedule Section */}
+      {weeklyCustomWorkouts.length > 0 && (
+        <Card data-testid="card-weekly-training">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Dumbbell className="h-5 w-5 text-primary" />
+                <CardTitle>Your Weekly Training Schedule</CardTitle>
+              </div>
+              <Badge variant="outline" className="text-xs">
+                Created in AI Chat
+              </Badge>
+            </div>
+            <CardDescription>
+              Your custom workout plan created through the AI Coach
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {weeklyCustomWorkouts.map((workout) => (
+              <TrainingScheduleCard
+                key={workout.id}
+                id={workout.id}
+                day={workout.day}
+                workoutType={workout.workoutType}
+                duration={workout.duration}
+                intensity={workout.intensity as "Low" | "Moderate" | "High"}
+                exercises={workout.exercises}
+                completed={workout.completed === 1}
+                sessionType={workout.sessionType}
+                onToggleComplete={handleToggleComplete}
+              />
+            ))}
+            {todaysCustomWorkout && (
+              <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
+                <Info className="h-4 w-4" />
+                <span>You can switch between this custom plan and the AI recommendation above</span>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Today's Recommended Workout */}
       <Card data-testid="card-todays-workout">
@@ -674,9 +712,18 @@ export default function Training() {
             <>
               {/* AI Reasoning */}
               <div className="p-4 rounded-lg bg-muted/50">
-                <p className="text-sm" data-testid="text-ai-reasoning">
+                <p className={`text-sm ${!showFullReasoning ? 'line-clamp-3' : ''}`} data-testid="text-ai-reasoning">
                   {dailyRec.recommendation.aiReasoning}
                 </p>
+                {dailyRec.recommendation.aiReasoning.length > 150 && (
+                  <button
+                    onClick={() => setShowFullReasoning(!showFullReasoning)}
+                    className="text-xs text-primary hover:underline mt-2"
+                    data-testid="button-toggle-reasoning"
+                  >
+                    {showFullReasoning ? 'Read less' : 'Read more'}
+                  </button>
+                )}
               </div>
 
               {/* Adjustments Made (if any) */}
@@ -688,13 +735,22 @@ export default function Training() {
                 <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
                   <div className="flex items-start gap-3">
                     <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
-                    <div>
+                    <div className="flex-1">
                       <p className="text-sm font-medium text-blue-600 dark:text-blue-400 mb-1">
                         Workout Auto-Adjusted Based on Recovery
                       </p>
-                      <p className="text-sm text-blue-600/80 dark:text-blue-400/80" data-testid="text-adjustments-made">
+                      <p className={`text-sm text-blue-600/80 dark:text-blue-400/80 ${!showFullAdjustments ? 'line-clamp-3' : ''}`} data-testid="text-adjustments-made">
                         {dailyRec.recommendation.adjustmentsMade.reason}
                       </p>
+                      {dailyRec.recommendation.adjustmentsMade.reason.length > 150 && (
+                        <button
+                          onClick={() => setShowFullAdjustments(!showFullAdjustments)}
+                          className="text-xs text-blue-600 dark:text-blue-400 hover:underline mt-2"
+                          data-testid="button-toggle-adjustments"
+                        >
+                          {showFullAdjustments ? 'Read less' : 'Read more'}
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -779,58 +835,55 @@ export default function Training() {
                     </div>
                   </div>
 
-                  {/* Exercises */}
-                  <div className="space-y-3">
+                  {/* Exercises - Compact Half-Height Tiles */}
+                  <div className="space-y-2">
                     {currentPlan.exercises.map((exercise, idx) => (
                       <div 
                         key={idx} 
-                        className="p-4 rounded-lg border bg-card hover-elevate"
+                        className="p-2.5 rounded-lg border bg-card hover-elevate"
                         data-testid={`exercise-${selectedPlan}-${idx}`}
                       >
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <h4 className="font-medium" data-testid={`text-exercise-name-${idx}`}>
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <h4 className="font-medium text-sm truncate" data-testid={`text-exercise-name-${idx}`}>
                                 {exercise.name}
                               </h4>
-                              <Badge variant="secondary" className="text-xs">
+                              <Badge variant="secondary" className="text-xs shrink-0">
                                 {exercise.intensity}
                               </Badge>
                             </div>
-                            <div className="text-sm text-muted-foreground space-y-1">
+                            <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-2 flex-wrap">
                               {exercise.sets && exercise.reps && (
-                                <p data-testid={`text-exercise-sets-${idx}`}>
+                                <span data-testid={`text-exercise-sets-${idx}`}>
                                   {exercise.sets} sets × {exercise.reps}
-                                </p>
+                                </span>
                               )}
                               {exercise.duration && (
-                                <p data-testid={`text-exercise-duration-${idx}`}>
-                                  Duration: {exercise.duration}
-                                </p>
-                              )}
-                              {exercise.notes && (
-                                <p className="italic" data-testid={`text-exercise-notes-${idx}`}>
-                                  {exercise.notes}
-                                </p>
+                                <span data-testid={`text-exercise-duration-${idx}`}>
+                                  {exercise.duration}
+                                </span>
                               )}
                             </div>
                           </div>
-                          <div className="flex gap-1">
+                          <div className="flex gap-1 shrink-0">
                             <Button
                               size="icon"
                               variant={exerciseFeedback[exercise.name] === 'up' ? 'default' : 'ghost'}
                               onClick={() => handleExerciseFeedback(exercise.name, 'up')}
+                              className="h-7 w-7"
                               data-testid={`button-feedback-up-${idx}`}
                             >
-                              <ThumbsUp className="h-4 w-4" />
+                              <ThumbsUp className="h-3.5 w-3.5" />
                             </Button>
                             <Button
                               size="icon"
                               variant={exerciseFeedback[exercise.name] === 'down' ? 'destructive' : 'ghost'}
                               onClick={() => handleExerciseFeedback(exercise.name, 'down')}
+                              className="h-7 w-7"
                               data-testid={`button-feedback-down-${idx}`}
                             >
-                              <ThumbsDown className="h-4 w-4" />
+                              <ThumbsDown className="h-3.5 w-3.5" />
                             </Button>
                           </div>
                         </div>
@@ -873,47 +926,8 @@ export default function Training() {
         </CardContent>
       </Card>
 
-      {/* Your Weekly Training Schedule (if exists) */}
-      {weeklyCustomWorkouts.length > 0 && (
-        <Card data-testid="card-weekly-training">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Dumbbell className="h-5 w-5 text-primary" />
-                <CardTitle>Your Weekly Training Schedule</CardTitle>
-              </div>
-              <Badge variant="outline" className="text-xs">
-                Created in AI Chat
-              </Badge>
-            </div>
-            <CardDescription>
-              Your custom workout plan created through the AI Coach
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {weeklyCustomWorkouts.map((workout) => (
-              <TrainingScheduleCard
-                key={workout.id}
-                id={workout.id}
-                day={workout.day}
-                workoutType={workout.workoutType}
-                duration={workout.duration}
-                intensity={workout.intensity as "Low" | "Moderate" | "High"}
-                exercises={workout.exercises}
-                completed={workout.completed === 1}
-                sessionType={workout.sessionType}
-                onToggleComplete={handleToggleComplete}
-              />
-            ))}
-            {todaysCustomWorkout && (
-              <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
-                <Info className="h-4 w-4" />
-                <span>You can switch between this custom plan and the AI recommendation above</span>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
+      {/* Daily Reminders */}
+      <DailyRemindersCard />
 
       {/* Workout History (Collapsible) */}
       <Collapsible open={historyOpen} onOpenChange={setHistoryOpen}>
