@@ -55,9 +55,10 @@ function SortableTileItem({ id, children }: { id: string; children: ReactNode })
     transition,
   };
 
+  // Pass drag listeners as prop to children instead of applying to container
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      {children}
+    <div ref={setNodeRef} style={style}>
+      {typeof children === 'function' ? children({ attributes, listeners }) : children}
     </div>
   );
 }
@@ -244,30 +245,34 @@ export function TileManager({ page, tiles, defaultVisible = [] }: TileManagerPro
                       
                       return (
                         <SortableTileItem key={tile.id} id={tile.id}>
-                          <div 
-                            className="flex items-center gap-3 p-3 rounded-lg border bg-card"
-                            data-testid={`tile-config-${tile.id}`}
-                          >
-                            <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab" />
-                            <div className="flex-1 min-w-0">
-                              <h4 className="font-medium text-sm">{tile.title}</h4>
-                              <p className="text-xs text-muted-foreground">{tile.description}</p>
+                          {({ attributes, listeners }) => (
+                            <div 
+                              className="flex items-center gap-3 p-3 rounded-lg border bg-card"
+                              data-testid={`tile-config-${tile.id}`}
+                            >
+                              <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing">
+                                <GripVertical className="h-5 w-5 text-muted-foreground" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-medium text-sm">{tile.title}</h4>
+                                <p className="text-xs text-muted-foreground">{tile.description}</p>
+                              </div>
+                              {canToggle && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => toggleVisibility(tile.id)}
+                                  data-testid={`button-toggle-${tile.id}`}
+                                >
+                                  {isVisible ? (
+                                    <Eye className="h-4 w-4" />
+                                  ) : (
+                                    <EyeOff className="h-4 w-4 text-muted-foreground" />
+                                  )}
+                                </Button>
+                              )}
                             </div>
-                            {canToggle && (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => toggleVisibility(tile.id)}
-                                data-testid={`button-toggle-${tile.id}`}
-                              >
-                                {isVisible ? (
-                                  <Eye className="h-4 w-4" />
-                                ) : (
-                                  <EyeOff className="h-4 w-4 text-muted-foreground" />
-                                )}
-                              </Button>
-                            )}
-                          </div>
+                          )}
                         </SortableTileItem>
                       );
                     })}

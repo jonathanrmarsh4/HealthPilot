@@ -1,0 +1,137 @@
+{
+  "meta": {
+    "name": "AI Guardrail Rules for Dynamic Training Prescription",
+    "short_name": "healthpilot_guardrails",
+    "version": "1.0",
+    "updated_utc": "AUTOSET_ON_SAVE",
+    "owner": "HealthPilot AI",
+    "license": "Proprietary",
+    "notes": [
+      "This config encodes evidence-aligned constraints for dynamic exercise programming.",
+      "Non-diagnostic. For fitness guidance only. Safety overrides goals when in conflict."
+    ]
+  },
+  "standards_alignment": {
+    "references": [
+      "ACSM Guidelines for Exercise Testing & Prescription",
+      "NSCA strength and conditioning principles",
+      "WHO physical activity recommendations"
+    ],
+    "principles": [
+      "Safety first",
+      "Progressive overload and variation",
+      "Individualization/personalization",
+      "Periodization (macro/meso/micro)",
+      "Transparency and auditability"
+    ]
+  },
+  "inputs_schema": {
+    "demographics": ["age", "sex", "height_cm", "weight_kg", "training_age_years", "injuries", "medical_conditions"],
+    "healthkit": ["resting_hr", "hrv_rmssd", "sleep_hours", "sleep_quality_score", "steps", "active_calories", "vo2max", "recent_workouts"],
+    "biomarkers": ["testosterone_total", "cortisol_am", "crp_hs", "glucose_fasting", "hba1c", "lipids_ldl_hdl_trig", "tsh", "vitamin_d_25oh"],
+    "goals": ["primary_goal", "secondary_goal"],
+    "subjective": ["fatigue_1_10", "soreness_1_10", "stress_1_10", "pain_flags"],
+    "context": ["travel", "illness", "time_constraints_min_per_week", "equipment_available"]
+  },
+  "program_structure": {
+    "macrocycle_weeks_range": [12, 24],
+    "mesocycle_weeks_range": [3, 6],
+    "microcycle_weeks": 1,
+    "deload_frequency_weeks": [4, 6],
+    "session_targets_per_week": {"min": 3, "max": 6},
+    "progression_limits": {
+      "weekly_volume_increase_pct_max": 15,
+      "weekly_intensity_increase_pct_max": 10
+    }
+  },
+  "safety_rules": {
+    "intensity": {
+      "hrmax_cap_pct_general": 85,
+      "beginner_hrmax_cap_pct": 75
+    },
+    "rest_recovery": {
+      "min_rest_days_per_week": 1,
+      "mandatory_deload_weeks": true
+    },
+    "vital_flags": {
+      "bp_pause_threshold": {"systolic_mmHg": 160, "diastolic_mmHg": 100},
+      "resting_hr_rise_pct_recovery_mode": 10,
+      "hrv_drop_pct_recovery_mode": 15
+    },
+    "illness_injury": {
+      "fever_or_infection": "activate_recovery_mode",
+      "pain_flag_true": "reduce_intensity_25_pct_and_substitute_safe_variations"
+    }
+  },
+  "biomarker_adjustments": [
+    {"biomarker": "cortisol_am", "condition": "above_reference", "action": {"intensity_pct_change": -25, "emphasis": "recovery_low_intensity"}},
+    {"biomarker": "crp_hs", "condition": "above_reference", "action": {"block": "high_intensity", "emphasis": "mobility_LISS"}},
+    {"biomarker": "testosterone_total", "condition": "below_reference", "action": {"volume_pct_change": -15, "add": ["sleep_hygiene_focus"]}},
+    {"biomarker": "glucose_fasting|hba1c", "condition": "above_reference", "action": {"add": ["LISS_steady_state", "zone2_cardio", "NEAT_15to30_min_daily"]}},
+    {"biomarker": "vitamin_d_25oh", "condition": "below_reference", "action": {"advice_note": "consider_sunlight_or_supplementation_non_medical"}}
+  ],
+  "auto_regulation": {
+    "triggers": [
+      {"metric": "hrv_rmssd", "delta_pct_vs_baseline": -20, "action": "replace_next_session_with_active_recovery"},
+      {"metric": "sleep_hours", "threshold_lt": 5, "action": "reduce_next_session_intensity_20_pct"},
+      {"metric": "performance_vs_prior_week_pct", "threshold_lt": -10, "action": "start_deload_microcycle"},
+      {"metric": "resting_hr", "delta_pct_vs_baseline_gt": 10, "action": "delay_next_intensity_session"}
+    ]
+  },
+  "progression_models": {
+    "beginner": "linear",
+    "intermediate": "undulating",
+    "advanced": "block_wave"
+  },
+  "goal_alignment": {
+    "fat_loss": {"bias": ["aerobic_volume_up", "strength_maintenance"], "track": ["calories", "hrv_rmssd", "sleep_quality_score", "cortisol_am"]},
+    "strength": {"bias": ["intensity_up", "volume_moderate"], "track": ["est_1rm", "hrv_rmssd", "testosterone_total"]},
+    "hypertrophy": {"bias": ["volume_high", "intensity_moderate"], "track": ["total_sets", "weekly_load"]},
+    "endurance": {"bias": ["volume_up", "intensity_low_mod"], "track": ["vo2max", "time_to_fatigue", "hrv_rmssd"]},
+    "longevity": {"bias": ["balanced", "frequent_LISS", "mobility_daily"], "track": ["hrv_rmssd", "glucose_fasting", "crp_hs"]}
+  },
+  "adaptation_feedback_loop": {
+    "steps": [
+      "compare_expected_vs_actual_load_and_performance",
+      "record_biomarkers_and_hrv_weekly",
+      "adjust_next_microcycle_intensity_or_volume_or_rest",
+      "emit_rationale_summary"
+    ],
+    "example_rationale": "HRV decreased 12%. Reducing intensity 10% and adding mobility session midweek."
+  },
+  "ethical_compliance": {
+    "medical_disclaimer": true,
+    "diagnosis_prohibited": true,
+    "data_encryption_required": true,
+    "anonymous_third_party_data_ok": true,
+    "log_rationale_required": true
+  },
+  "output_contract": {
+    "required_sections": ["phase_overview", "weekly_schedule", "rationale_summary", "monitoring_plan"],
+    "weekly_schedule_item_fields": ["modality", "sets", "reps", "intensity", "rest", "notes"]
+  },
+  "hard_guards": {
+    "override_order": ["safety", "compliance", "goal_alignment", "preference"],
+    "forbidden": [
+      "prescribe_when_bp_over_threshold",
+      "high_intensity_when_crp_high",
+      "progression_over_15_pct_per_week",
+      "omit_rest_days"
+    ]
+  },
+  "embedded_prompts": {
+    "system_prompt": "You are an evidence-based exercise prescription engine. Create safe, progressive, personalised training programs that adapt to HealthKit, biomarkers, and goals. Always comply with this guardrails config. Apply ACSM/NSCA/WHO-aligned standards. Explain reasoning briefly with each recommendation. If user goals conflict with safety, safety overrides.",
+    "developer_prompt_template": "Use periodization (macro/meso/micro). Enforce progression caps and recovery rules. Respect auto-regulation triggers. Apply biomarker adjustments. Output sections: phase_overview, weekly_schedule, rationale_summary, monitoring_plan."
+  },
+  "output_example": {
+    "phase_overview": {"macro_weeks": 16, "meso_focus": "strength_foundation", "microcycle": "week_1"},
+    "weekly_schedule": [
+      {"day": "Mon", "modality": "Strength Upper", "sets": 16, "reps": "4x6", "intensity": "70% 1RM", "rest": "2-3m", "notes": "Baseline week"},
+      {"day": "Wed", "modality": "Zone 2 Cardio", "sets": 1, "reps": "40-50min", "intensity": "65-75% HRmax", "rest": "-", "notes": "LISS"},
+      {"day": "Fri", "modality": "Strength Lower", "sets": 16, "reps": "4x6", "intensity": "70% 1RM", "rest": "2-3m", "notes": "Technique focus"},
+      {"day": "Sat", "modality": "Mobility", "sets": 1, "reps": "20-30min", "intensity": "easy", "rest": "-", "notes": "Recovery emphasis"}
+    ],
+    "rationale_summary": "Beginner profile -> linear progression. HRV baseline stable -> proceed. Intensity capped at 75% HRmax. Deload planned in week 4.",
+    "monitoring_plan": ["hrv_rmssd_trend", "resting_hr", "sleep_quality_score", "subjective_fatigue"]
+  }
+}
