@@ -3188,7 +3188,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const repsLow = repsMatch ? parseInt(repsMatch[1]) : 8;
           const repsHigh = repsMatch && repsMatch[2] ? parseInt(repsMatch[2]) : repsLow;
           
-          // Create sets for this exercise
+          // Create sets for this exercise with default values
+          const isBodyweight = matchedExercise.equipment === 'bodyweight';
+          const defaultWeight = isBodyweight ? 0 : 20; // 0kg for bodyweight (BW button unselected), 20kg for weighted
+          
           for (let setIndex = 0; setIndex < sets; setIndex++) {
             await db.insert(exerciseSets).values({
               workoutSessionId: session.id,
@@ -3197,6 +3200,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               setIndex: setIndex + 1,
               targetRepsLow: repsLow,
               targetRepsHigh: repsHigh,
+              weight: defaultWeight,
+              reps: repsHigh, // Prepopulate reps with max target
               completed: 0,
             });
             setsCreated++;

@@ -133,6 +133,42 @@ function SortableExerciseCard({
     opacity: isDragging ? 0.5 : 1,
   };
 
+  // Local state for input values (for responsive typing)
+  const [localValues, setLocalValues] = useState<Map<string, { weight: string; reps: string }>>(new Map());
+
+  // Initialize local values when sets change
+  useEffect(() => {
+    const newValues = new Map<string, { weight: string; reps: string }>();
+    exerciseSets.forEach(set => {
+      newValues.set(set.id, {
+        weight: set.weight !== null && set.weight !== undefined ? set.weight.toString() : '',
+        reps: set.reps !== null && set.reps !== undefined ? set.reps.toString() : ''
+      });
+    });
+    setLocalValues(newValues);
+  }, [exerciseSets]);
+
+  const getLocalValue = (setId: string, field: 'weight' | 'reps') => {
+    return localValues.get(setId)?.[field] ?? '';
+  };
+
+  const setLocalValue = (setId: string, field: 'weight' | 'reps', value: string) => {
+    setLocalValues(prev => {
+      const newMap = new Map(prev);
+      const current = newMap.get(setId) || { weight: '', reps: '' };
+      newMap.set(setId, { ...current, [field]: value });
+      return newMap;
+    });
+  };
+
+  const saveValue = (setId: string, field: 'weight' | 'reps', value: string) => {
+    const numValue = value === '' ? null : (field === 'weight' ? parseFloat(value) : parseInt(value));
+    updateSetMutation.mutate({
+      setId,
+      data: { [field]: numValue },
+    });
+  };
+
   return (
     <Card 
       ref={setNodeRef} 
@@ -232,13 +268,9 @@ function SortableExerciseCard({
                     type="number"
                     step="0.1"
                     placeholder="0"
-                    value={set.weight === null ? "" : (set.weight ?? "")}
-                    onChange={(e) =>
-                      updateSetMutation.mutate({
-                        setId: set.id,
-                        data: { weight: e.target.value === "" ? null : parseFloat(e.target.value) },
-                      })
-                    }
+                    value={getLocalValue(set.id, 'weight')}
+                    onChange={(e) => setLocalValue(set.id, 'weight', e.target.value)}
+                    onBlur={(e) => saveValue(set.id, 'weight', e.target.value)}
                     disabled={set.completed === 1 || set.weight === null}
                     className="h-10 text-base flex-1"
                     data-testid={`input-weight-${exerciseIndex}-${setIndex}`}
@@ -249,7 +281,7 @@ function SortableExerciseCard({
                     onClick={() =>
                       updateSetMutation.mutate({
                         setId: set.id,
-                        data: { weight: set.weight === null ? (progressiveSuggestion?.suggestedWeight ?? 0) : null },
+                        data: { weight: set.weight === null ? (progressiveSuggestion?.suggestedWeight ?? 20) : null },
                       })
                     }
                     disabled={set.completed === 1}
@@ -267,13 +299,9 @@ function SortableExerciseCard({
                 <Input
                   type="number"
                   placeholder="0"
-                  value={set.reps ?? ""}
-                  onChange={(e) =>
-                    updateSetMutation.mutate({
-                      setId: set.id,
-                      data: { reps: e.target.value === "" ? null : parseInt(e.target.value) },
-                    })
-                  }
+                  value={getLocalValue(set.id, 'reps')}
+                  onChange={(e) => setLocalValue(set.id, 'reps', e.target.value)}
+                  onBlur={(e) => saveValue(set.id, 'reps', e.target.value)}
                   disabled={set.completed === 1}
                   className="h-10 text-base"
                   data-testid={`input-reps-${exerciseIndex}-${setIndex}`}
