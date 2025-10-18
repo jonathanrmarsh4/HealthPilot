@@ -393,7 +393,18 @@ export default function Training() {
       renderTile: () => (
         <Card data-testid="card-readiness">
           <CardHeader>
-            <CardTitle>Readiness Score</CardTitle>
+            <CardTitle className="flex items-center justify-between">
+              <span>Readiness Score</span>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => setLocation("/training/readiness-settings")}
+                data-testid="button-readiness-settings"
+              >
+                <Settings className="h-3.5 w-3.5" />
+              </Button>
+            </CardTitle>
             <CardDescription>
               Your current recovery and training readiness
             </CardDescription>
