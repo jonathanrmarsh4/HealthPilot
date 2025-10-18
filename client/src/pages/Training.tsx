@@ -912,14 +912,6 @@ export default function Training() {
                       
                       {/* AI-added workouts for today */}
                       {todayScheduledWorkouts.map((workout) => {
-                        const workoutPlan: WorkoutPlan = {
-                          title: workout.workoutType,
-                          exercises: workout.exercises || [],
-                          totalDuration: workout.duration || 60,
-                          intensity: workout.intensity || 'Moderate',
-                          calorieEstimate: Math.round((workout.duration || 60) * 8)
-                        };
-
                         return (
                           <div 
                             key={workout.id} 
@@ -929,6 +921,7 @@ export default function Training() {
                             <div className="flex items-center justify-between gap-3">
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2">
+                                  <Sparkles className="h-3.5 w-3.5 text-primary shrink-0" data-testid="icon-ai-sparkle" />
                                   <h4 className="font-medium text-sm truncate" data-testid="text-ai-workout-name">
                                     {workout.workoutType}
                                   </h4>
@@ -947,15 +940,6 @@ export default function Training() {
                                   </p>
                                 )}
                               </div>
-                              <Button
-                                size="sm"
-                                onClick={() => startWorkoutMutation.mutate(workoutPlan)}
-                                disabled={startWorkoutMutation.isPending}
-                                data-testid={`button-start-ai-workout-${workout.id}`}
-                              >
-                                <Dumbbell className="mr-1 h-4 w-4" />
-                                Start
-                              </Button>
                             </div>
                           </div>
                         );
@@ -967,7 +951,28 @@ export default function Training() {
                         <Button 
                           className="w-full" 
                           size="lg"
-                          onClick={() => startWorkoutMutation.mutate(currentPlan)}
+                          onClick={() => {
+                            // Merge AI-added exercises with the main workout plan
+                            const aiExercises: Exercise[] = todayScheduledWorkouts.flatMap(workout => 
+                              (workout.exercises || []).map(ex => ({
+                                name: ex.name,
+                                sets: ex.sets,
+                                reps: ex.reps,
+                                duration: ex.duration,
+                                intensity: ex.intensity || 'Moderate',
+                                notes: ex.notes
+                              }))
+                            );
+
+                            const mergedPlan: WorkoutPlan = {
+                              ...currentPlan,
+                              exercises: [...currentPlan.exercises, ...aiExercises],
+                              totalDuration: currentPlan.totalDuration + todayScheduledWorkouts.reduce((sum, w) => sum + (w.duration || 0), 0),
+                              calorieEstimate: currentPlan.calorieEstimate + todayScheduledWorkouts.reduce((sum, w) => sum + Math.round((w.duration || 0) * 8), 0)
+                            };
+
+                            startWorkoutMutation.mutate(mergedPlan);
+                          }}
                           disabled={startWorkoutMutation.isPending}
                           data-testid="button-start-workout"
                         >
@@ -980,6 +985,11 @@ export default function Training() {
                             <>
                               <Dumbbell className="mr-2 h-5 w-5" />
                               Start Workout
+                              {todayScheduledWorkouts.length > 0 && (
+                                <Badge variant="secondary" className="ml-2">
+                                  +{todayScheduledWorkouts.length} AI
+                                </Badge>
+                              )}
                             </>
                           )}
                         </Button>
