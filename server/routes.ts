@@ -3601,15 +3601,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const nameLower = planExercise.name.toLowerCase();
           let equipment = 'other';
           let muscles: string[] = ['full_body'];
+          let category = 'strength';
+          let trackingType: 'weight_reps' | 'bodyweight_reps' | 'distance_duration' | 'duration_only' = 'weight_reps';
           
-          // Equipment detection
-          if (nameLower.includes('barbell')) equipment = 'barbell';
-          else if (nameLower.includes('dumbbell')) equipment = 'dumbbell';
-          else if (nameLower.includes('cable')) equipment = 'cable';
-          else if (nameLower.includes('machine')) equipment = 'machine';
-          else if (nameLower.includes('kettlebell')) equipment = 'kettlebell';
-          else if (nameLower.includes('band')) equipment = 'band';
-          else if (nameLower.includes('bodyweight') || nameLower.includes('push-up') || nameLower.includes('pull-up') || nameLower.includes('chin-up') || nameLower.includes('plank')) equipment = 'bodyweight';
+          // Category and tracking type detection (most specific first)
+          // Cardio exercises (distance_duration)
+          if (nameLower.includes('running') || nameLower.includes('jogging') || nameLower.includes('run') || nameLower.includes('jog')) {
+            category = 'cardio';
+            trackingType = 'distance_duration';
+            equipment = 'bodyweight';
+          }
+          else if (nameLower.includes('cycling') || nameLower.includes('bike') || nameLower.includes('biking')) {
+            category = 'cardio';
+            trackingType = 'distance_duration';
+            equipment = 'machine';
+          }
+          else if (nameLower.includes('rowing') || nameLower.includes('row machine')) {
+            category = 'cardio';
+            trackingType = 'distance_duration';
+            equipment = 'machine';
+          }
+          else if (nameLower.includes('swim')) {
+            category = 'cardio';
+            trackingType = 'distance_duration';
+            equipment = 'other';
+          }
+          // Flexibility exercises (duration_only)
+          else if (nameLower.includes('stretch') || nameLower.includes('yoga') || nameLower.includes('mobility')) {
+            category = 'flexibility';
+            trackingType = 'duration_only';
+            equipment = 'bodyweight';
+          }
+          // Bodyweight strength exercises (bodyweight_reps)
+          else if (nameLower.includes('push-up') || nameLower.includes('pushup') || nameLower.includes('pull-up') || nameLower.includes('pullup') || 
+                   nameLower.includes('chin-up') || nameLower.includes('dip') || nameLower.includes('bodyweight')) {
+            category = 'strength';
+            trackingType = 'bodyweight_reps';
+            equipment = 'bodyweight';
+          }
+          // Weighted strength exercises (weight_reps) - default
+          else {
+            category = 'strength';
+            trackingType = 'weight_reps';
+            
+            // Equipment detection for weighted exercises
+            if (nameLower.includes('barbell')) equipment = 'barbell';
+            else if (nameLower.includes('dumbbell')) equipment = 'dumbbell';
+            else if (nameLower.includes('cable')) equipment = 'cable';
+            else if (nameLower.includes('machine')) equipment = 'machine';
+            else if (nameLower.includes('kettlebell')) equipment = 'kettlebell';
+            else if (nameLower.includes('band')) equipment = 'band';
+            else if (nameLower.includes('plank')) {
+              trackingType = 'duration_only';
+              equipment = 'bodyweight';
+            }
+          }
           
           // Muscle group detection
           if (nameLower.includes('chest') || nameLower.includes('press') || nameLower.includes('push')) muscles = ['chest'];
@@ -3631,7 +3677,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             tempoDefault: '3-1-1',
             restDefault: 90,
             difficulty: 'intermediate',
-            category: 'strength',
+            category,
+            trackingType,
           }).returning();
           
           matchedExercise = newExercise[0];
@@ -3648,22 +3695,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const repsLow = repsMatch ? parseInt(repsMatch[1]) : 8;
         const repsHigh = repsMatch && repsMatch[2] ? parseInt(repsMatch[2]) : repsLow;
         
-        // Create sets for this exercise with default values
-        const isBodyweight = matchedExercise.equipment === 'bodyweight';
-        const defaultWeight = isBodyweight ? 0 : 20; // 0kg for bodyweight (BW button unselected), 20kg for weighted
+        // Create sets for this exercise with values appropriate for tracking type
+        const trackingType = matchedExercise.trackingType || 'weight_reps';
         
         for (let setIndex = 0; setIndex < sets; setIndex++) {
-          await db.insert(exerciseSets).values({
+          // Build set data based on tracking type
+          const setData: any = {
             workoutSessionId: session.id,
             exerciseId: matchedExercise.id,
             userId,
             setIndex: setIndex + 1,
-            targetRepsLow: repsLow,
-            targetRepsHigh: repsHigh,
-            weight: defaultWeight,
-            reps: repsHigh, // Prepopulate reps with max target
             completed: 0,
-          });
+          };
+          
+          // Set type-specific fields
+          if (trackingType === 'weight_reps') {
+            // Strength training with weight
+            const isBodyweight = matchedExercise.equipment === 'bodyweight';
+            setData.weight = isBodyweight ? 0 : 20; // 0kg for bodyweight (BW button), 20kg default for weighted
+            setData.reps = repsHigh;
+            setData.targetRepsLow = repsLow;
+            setData.targetRepsHigh = repsHigh;
+          } else if (trackingType === 'bodyweight_reps') {
+            // Bodyweight exercises - no weight tracking
+            setData.weight = null; // No weight for bodyweight exercises
+            setData.reps = repsHigh;
+            setData.targetRepsLow = repsLow;
+            setData.targetRepsHigh = repsHigh;
+          } else if (trackingType === 'distance_duration') {
+            // Cardio - track distance and duration
+            setData.distance = null; // User will fill in
+            setData.duration = null; // User will fill in (stored as seconds)
+            setData.weight = null;
+            setData.reps = null;
+          } else if (trackingType === 'duration_only') {
+            // Flexibility/stretching - only duration
+            setData.duration = null; // User will fill in (stored as seconds)
+            setData.weight = null;
+            setData.reps = null;
+            setData.distance = null;
+          }
+          
+          await db.insert(exerciseSets).values(setData);
           setsCreated++;
         }
       }
