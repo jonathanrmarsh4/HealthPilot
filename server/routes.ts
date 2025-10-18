@@ -4695,11 +4695,12 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
     }
   });
 
-  // Get scheduled exercise recommendations
+  // Get scheduled exercise recommendations (includes both scheduled and completed)
   app.get("/api/scheduled-exercises", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
     try {
-      const exercises = await storage.getScheduledExerciseRecommendations(userId, 'scheduled');
+      // Don't filter by status - return all scheduled and completed exercises
+      const exercises = await storage.getScheduledExerciseRecommendations(userId);
       res.json(exercises);
     } catch (error: any) {
       console.error("Error fetching scheduled exercises:", error);
