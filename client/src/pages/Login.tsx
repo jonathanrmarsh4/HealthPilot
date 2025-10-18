@@ -10,40 +10,40 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
+    <div className="min-h-screen bg-[#0A0F1F]">
       {/* Hero Section */}
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="flex items-center justify-center gap-3 mb-8">
             <img src={logo} alt="HealthPilot" className="h-16 w-16" />
-            <h1 className="text-5xl font-bold">HealthPilot</h1>
+            <h1 className="text-5xl font-bold text-white">HealthPilot</h1>
           </div>
 
           {/* Main Headline */}
           <div className="text-center mb-12 space-y-4">
-            <h2 className="text-4xl lg:text-5xl font-bold text-foreground max-w-4xl mx-auto leading-tight">
+            <h2 className="text-4xl lg:text-5xl font-bold text-white max-w-4xl mx-auto leading-tight">
               Evidence-Based AI Health Optimization Aligned with Medical Standards
             </h2>
-            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+            <p className="text-xl text-gray-400 max-w-3xl mx-auto">
               Your personal health intelligence system that transforms biomarkers, wearable data, and health records into actionable insights—powered by AI trained on ACSM, NSCA, and WHO guidelines.
             </p>
             
             {/* Trust Badges */}
             <div className="flex flex-wrap items-center justify-center gap-2 pt-4">
-              <Badge variant="outline" className="text-xs">
+              <Badge variant="outline" className="text-xs border-[#00E0C6]/30 bg-[#00E0C6]/5 text-[#00E0C6]">
                 <Shield className="h-3 w-3 mr-1" />
                 ACSM Aligned
               </Badge>
-              <Badge variant="outline" className="text-xs">
+              <Badge variant="outline" className="text-xs border-[#00E0C6]/30 bg-[#00E0C6]/5 text-[#00E0C6]">
                 <Shield className="h-3 w-3 mr-1" />
                 NSCA Standards
               </Badge>
-              <Badge variant="outline" className="text-xs">
+              <Badge variant="outline" className="text-xs border-[#00E0C6]/30 bg-[#00E0C6]/5 text-[#00E0C6]">
                 <Shield className="h-3 w-3 mr-1" />
                 WHO Guidelines
               </Badge>
-              <Badge variant="outline" className="text-xs">
+              <Badge variant="outline" className="text-xs border-[#00E0C6]/30 bg-[#00E0C6]/5 text-[#00E0C6]">
                 <Lock className="h-3 w-3 mr-1" />
                 HIPAA Compliant
               </Badge>
@@ -51,17 +51,17 @@ export default function Login() {
           </div>
 
           {/* Login Card - Centered */}
-          <Card className="w-full max-w-md mx-auto mb-16">
+          <Card className="w-full max-w-md mx-auto mb-16 bg-white/5 backdrop-blur-xl border-white/10">
             <CardHeader className="text-center">
-              <CardTitle className="text-2xl">Start Your Health Journey</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-2xl text-white">Start Your Health Journey</CardTitle>
+              <CardDescription className="text-gray-400">
                 Join thousands optimizing their health with AI-powered insights
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <Button
                 onClick={handleLogin}
-                className="w-full"
+                className="w-full bg-[#00E0C6] text-[#0A0F1F] hover:bg-[#00E0C6]/90 shadow-[0_0_24px_rgba(0,224,198,0.35)] hover:shadow-[0_0_36px_rgba(0,224,198,0.55)]"
                 size="lg"
                 data-testid="button-login"
               >
@@ -69,96 +69,96 @@ export default function Login() {
                 Sign In with Replit
               </Button>
               
-              <p className="text-xs text-center text-muted-foreground">
+              <p className="text-xs text-center text-gray-500">
                 By signing in, you agree to our{" "}
-                <a href="/privacy" className="text-primary hover:underline">Privacy Policy</a>
+                <a href="/privacy" className="text-[#00E0C6] hover:underline">Privacy Policy</a>
                 {" "}and{" "}
-                <a href="/terms" className="text-primary hover:underline">Terms of Service</a>
+                <a href="/terms" className="text-[#00E0C6] hover:underline">Terms of Service</a>
               </p>
             </CardContent>
           </Card>
 
           {/* Core Features Grid */}
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
-            <Card className="hover-elevate">
+            <Card className="bg-white/5 backdrop-blur-xl border-white/10 hover:bg-white/10 transition-colors">
               <CardHeader>
-                <div className="p-3 rounded-lg bg-primary/10 w-fit mb-2">
-                  <Brain className="h-6 w-6 text-primary" />
+                <div className="p-3 rounded-lg bg-[#00E0C6]/10 w-fit mb-2">
+                  <Brain className="h-6 w-6 text-[#00E0C6]" />
                 </div>
-                <CardTitle className="text-lg">AI-Powered Analysis</CardTitle>
+                <CardTitle className="text-lg text-white">AI-Powered Analysis</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-gray-400">
                   Advanced AI analyzes your biomarkers, sleep, HRV, and workout data to deliver personalized daily recommendations with transparent evidence citations.
                 </p>
               </CardContent>
             </Card>
 
-            <Card className="hover-elevate">
+            <Card className="bg-white/5 backdrop-blur-xl border-white/10 hover:bg-white/10 transition-colors">
               <CardHeader>
-                <div className="p-3 rounded-lg bg-primary/10 w-fit mb-2">
-                  <Dumbbell className="h-6 w-6 text-primary" />
+                <div className="p-3 rounded-lg bg-[#00E0C6]/10 w-fit mb-2">
+                  <Dumbbell className="h-6 w-6 text-[#00E0C6]" />
                 </div>
-                <CardTitle className="text-lg">Evidence-Based Training</CardTitle>
+                <CardTitle className="text-lg text-white">Evidence-Based Training</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-gray-400">
                   Training prescriptions aligned with ACSM and NSCA standards. Progressive overload, auto-regulation, and safety-first guardrails built in.
                 </p>
               </CardContent>
             </Card>
 
-            <Card className="hover-elevate">
+            <Card className="bg-white/5 backdrop-blur-xl border-white/10 hover:bg-white/10 transition-colors">
               <CardHeader>
-                <div className="p-3 rounded-lg bg-primary/10 w-fit mb-2">
-                  <Heart className="h-6 w-6 text-primary" />
+                <div className="p-3 rounded-lg bg-[#00E0C6]/10 w-fit mb-2">
+                  <Heart className="h-6 w-6 text-[#00E0C6]" />
                 </div>
-                <CardTitle className="text-lg">Personalized Nutrition</CardTitle>
+                <CardTitle className="text-lg text-white">Personalized Nutrition</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-gray-400">
                   AI-generated meal plans based on ADA and AND guidelines. Macros calculated from your biomarkers, activity level, and health goals.
                 </p>
               </CardContent>
             </Card>
 
-            <Card className="hover-elevate">
+            <Card className="bg-white/5 backdrop-blur-xl border-white/10 hover:bg-white/10 transition-colors">
               <CardHeader>
-                <div className="p-3 rounded-lg bg-primary/10 w-fit mb-2">
-                  <Activity className="h-6 w-6 text-primary" />
+                <div className="p-3 rounded-lg bg-[#00E0C6]/10 w-fit mb-2">
+                  <Activity className="h-6 w-6 text-[#00E0C6]" />
                 </div>
-                <CardTitle className="text-lg">Biomarker Tracking</CardTitle>
+                <CardTitle className="text-lg text-white">Biomarker Tracking</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-gray-400">
                   Track blood work, vitals, and health metrics over time. AI identifies patterns and alerts you to concerning trends before they become problems.
                 </p>
               </CardContent>
             </Card>
 
-            <Card className="hover-elevate">
+            <Card className="bg-white/5 backdrop-blur-xl border-white/10 hover:bg-white/10 transition-colors">
               <CardHeader>
-                <div className="p-3 rounded-lg bg-primary/10 w-fit mb-2">
-                  <Apple className="h-6 w-6 text-primary" />
+                <div className="p-3 rounded-lg bg-[#00E0C6]/10 w-fit mb-2">
+                  <Apple className="h-6 w-6 text-[#00E0C6]" />
                 </div>
-                <CardTitle className="text-lg">Apple Health Integration</CardTitle>
+                <CardTitle className="text-lg text-white">Apple Health Integration</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-gray-400">
                   Seamlessly sync sleep, HRV, workouts, and activity data. Native iOS app with direct HealthKit integration for real-time insights.
                 </p>
               </CardContent>
             </Card>
 
-            <Card className="hover-elevate">
+            <Card className="bg-white/5 backdrop-blur-xl border-white/10 hover:bg-white/10 transition-colors">
               <CardHeader>
-                <div className="p-3 rounded-lg bg-primary/10 w-fit mb-2">
-                  <TrendingUp className="h-6 w-6 text-primary" />
+                <div className="p-3 rounded-lg bg-[#00E0C6]/10 w-fit mb-2">
+                  <TrendingUp className="h-6 w-6 text-[#00E0C6]" />
                 </div>
-                <CardTitle className="text-lg">Readiness Score System</CardTitle>
+                <CardTitle className="text-lg text-white">Readiness Score System</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-gray-400">
                   Multi-factor readiness assessment using sleep quality, HRV, resting heart rate, and workout load to optimize training and recovery.
                 </p>
               </CardContent>
@@ -167,34 +167,34 @@ export default function Login() {
 
           {/* How It Works Section */}
           <div className="mb-16">
-            <h3 className="text-3xl font-bold text-center mb-8">How HealthPilot Works</h3>
+            <h3 className="text-3xl font-bold text-center mb-8 text-white">How HealthPilot Works</h3>
             <div className="grid md:grid-cols-3 gap-8">
               <div className="text-center space-y-3">
-                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
-                  <span className="text-2xl font-bold text-primary">1</span>
+                <div className="w-12 h-12 rounded-full bg-[#00E0C6]/10 flex items-center justify-center mx-auto">
+                  <span className="text-2xl font-bold text-[#00E0C6]">1</span>
                 </div>
-                <h4 className="font-semibold text-lg">Connect Your Data</h4>
-                <p className="text-sm text-muted-foreground">
+                <h4 className="font-semibold text-lg text-white">Connect Your Data</h4>
+                <p className="text-sm text-gray-400">
                   Sync Apple Health, upload blood work, or manually track biomarkers. All data encrypted and HIPAA-compliant.
                 </p>
               </div>
 
               <div className="text-center space-y-3">
-                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
-                  <span className="text-2xl font-bold text-primary">2</span>
+                <div className="w-12 h-12 rounded-full bg-[#00E0C6]/10 flex items-center justify-center mx-auto">
+                  <span className="text-2xl font-bold text-[#00E0C6]">2</span>
                 </div>
-                <h4 className="font-semibold text-lg">AI Analyzes & Learns</h4>
-                <p className="text-sm text-muted-foreground">
+                <h4 className="font-semibold text-lg text-white">AI Analyzes & Learns</h4>
+                <p className="text-sm text-gray-400">
                   Our AI processes your data against medical guidelines, identifies patterns, and learns your unique physiology.
                 </p>
               </div>
 
               <div className="text-center space-y-3">
-                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
-                  <span className="text-2xl font-bold text-primary">3</span>
+                <div className="w-12 h-12 rounded-full bg-[#00E0C6]/10 flex items-center justify-center mx-auto">
+                  <span className="text-2xl font-bold text-[#00E0C6]">3</span>
                 </div>
-                <h4 className="font-semibold text-lg">Get Personalized Plans</h4>
-                <p className="text-sm text-muted-foreground">
+                <h4 className="font-semibold text-lg text-white">Get Personalized Plans</h4>
+                <p className="text-sm text-gray-400">
                   Receive daily training prescriptions, meal plans, and health insights tailored to your current state and goals.
                 </p>
               </div>
@@ -202,60 +202,60 @@ export default function Login() {
           </div>
 
           {/* Health Standards Section */}
-          <Card className="mb-16">
+          <Card className="mb-16 bg-white/5 backdrop-blur-xl border-white/10">
             <CardHeader className="text-center">
-              <CardTitle className="text-2xl">Built on Medical & Scientific Standards</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-2xl text-white">Built on Medical & Scientific Standards</CardTitle>
+              <CardDescription className="text-gray-400">
                 Every recommendation is grounded in peer-reviewed research and clinical guidelines
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="flex items-start gap-3">
-                  <Check className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                  <Check className="h-5 w-5 text-[#00E0C6] mt-0.5 flex-shrink-0" />
                   <div>
-                    <p className="font-semibold">ACSM (American College of Sports Medicine)</p>
-                    <p className="text-sm text-muted-foreground">Exercise prescription, HR max caps, screening guidelines</p>
+                    <p className="font-semibold text-white">ACSM (American College of Sports Medicine)</p>
+                    <p className="text-sm text-gray-400">Exercise prescription, HR max caps, screening guidelines</p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-3">
-                  <Check className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                  <Check className="h-5 w-5 text-[#00E0C6] mt-0.5 flex-shrink-0" />
                   <div>
-                    <p className="font-semibold">NSCA (National Strength & Conditioning)</p>
-                    <p className="text-sm text-muted-foreground">Progressive overload, periodization, volume/intensity limits</p>
+                    <p className="font-semibold text-white">NSCA (National Strength & Conditioning)</p>
+                    <p className="text-sm text-gray-400">Progressive overload, periodization, volume/intensity limits</p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-3">
-                  <Check className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                  <Check className="h-5 w-5 text-[#00E0C6] mt-0.5 flex-shrink-0" />
                   <div>
-                    <p className="font-semibold">WHO (World Health Organization)</p>
-                    <p className="text-sm text-muted-foreground">Physical activity guidelines, minimum rest days</p>
+                    <p className="font-semibold text-white">WHO (World Health Organization)</p>
+                    <p className="text-sm text-gray-400">Physical activity guidelines, minimum rest days</p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-3">
-                  <Check className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                  <Check className="h-5 w-5 text-[#00E0C6] mt-0.5 flex-shrink-0" />
                   <div>
-                    <p className="font-semibold">ADA & AND (Nutrition Standards)</p>
-                    <p className="text-sm text-muted-foreground">Dietary guidelines, macro recommendations</p>
+                    <p className="font-semibold text-white">ADA & AND (Nutrition Standards)</p>
+                    <p className="text-sm text-gray-400">Dietary guidelines, macro recommendations</p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-3">
-                  <Check className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                  <Check className="h-5 w-5 text-[#00E0C6] mt-0.5 flex-shrink-0" />
                   <div>
-                    <p className="font-semibold">AHA (American Heart Association)</p>
-                    <p className="text-sm text-muted-foreground">Cardiovascular health, blood pressure thresholds</p>
+                    <p className="font-semibold text-white">AHA (American Heart Association)</p>
+                    <p className="text-sm text-gray-400">Cardiovascular health, blood pressure thresholds</p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-3">
-                  <Check className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                  <Check className="h-5 w-5 text-[#00E0C6] mt-0.5 flex-shrink-0" />
                   <div>
-                    <p className="font-semibold">Evidence Citations</p>
-                    <p className="text-sm text-muted-foreground">Transparent references for all AI recommendations</p>
+                    <p className="font-semibold text-white">Evidence Citations</p>
+                    <p className="text-sm text-gray-400">Transparent references for all AI recommendations</p>
                   </div>
                 </div>
               </div>
@@ -264,14 +264,14 @@ export default function Login() {
 
           {/* CTA Section */}
           <div className="text-center mb-12">
-            <h3 className="text-3xl font-bold mb-4">Ready to Optimize Your Health?</h3>
-            <p className="text-muted-foreground mb-6">
+            <h3 className="text-3xl font-bold mb-4 text-white">Ready to Optimize Your Health?</h3>
+            <p className="text-gray-400 mb-6">
               Join the future of personalized health intelligence
             </p>
             <Button
               onClick={handleLogin}
               size="lg"
-              className="text-lg px-8"
+              className="text-lg px-8 bg-[#00E0C6] text-[#0A0F1F] hover:bg-[#00E0C6]/90 shadow-[0_0_24px_rgba(0,224,198,0.35)] hover:shadow-[0_0_36px_rgba(0,224,198,0.55)]"
               data-testid="button-login-cta"
             >
               <Sparkles className="h-5 w-5 mr-2" />
@@ -280,41 +280,41 @@ export default function Login() {
           </div>
 
           {/* Privacy & Compliance Footer */}
-          <div className="border-t border-border pt-8">
+          <div className="border-t border-white/10 pt-8">
             <div className="text-center space-y-4">
               <div className="flex items-center justify-center gap-2 flex-wrap">
-                <Badge variant="secondary" className="text-xs">
+                <Badge variant="outline" className="text-xs border-white/20 text-gray-300 bg-white/5">
                   <Lock className="h-3 w-3 mr-1" />
                   HIPAA Compliant
                 </Badge>
-                <Badge variant="secondary" className="text-xs">
+                <Badge variant="outline" className="text-xs border-white/20 text-gray-300 bg-white/5">
                   <Lock className="h-3 w-3 mr-1" />
                   GDPR Compliant
                 </Badge>
-                <Badge variant="secondary" className="text-xs">
+                <Badge variant="outline" className="text-xs border-white/20 text-gray-300 bg-white/5">
                   <Lock className="h-3 w-3 mr-1" />
                   PIPEDA Compliant
                 </Badge>
-                <Badge variant="secondary" className="text-xs">
+                <Badge variant="outline" className="text-xs border-white/20 text-gray-300 bg-white/5">
                   <Lock className="h-3 w-3 mr-1" />
                   Australia Privacy Act
                 </Badge>
               </div>
               
-              <p className="text-xs text-muted-foreground max-w-4xl mx-auto leading-relaxed">
-                <strong>Privacy & Data Protection:</strong> HealthPilot complies with HIPAA (US), GDPR (EU), PIPEDA (Canada), and Australia Privacy Act standards. 
+              <p className="text-xs text-gray-400 max-w-4xl mx-auto leading-relaxed">
+                <strong className="text-white">Privacy & Data Protection:</strong> HealthPilot complies with HIPAA (US), GDPR (EU), PIPEDA (Canada), and Australia Privacy Act standards. 
                 All health data is encrypted at rest and in transit. We provide granular consent management, comprehensive audit logging, 
                 30-day account deletion grace period, and full data export capabilities. Your health data is never sold to third parties. 
                 You maintain complete control over your data through our{" "}
-                <a href="/privacy-dashboard" className="text-primary hover:underline">Privacy Dashboard</a>.
+                <a href="/privacy-dashboard" className="text-[#00E0C6] hover:underline">Privacy Dashboard</a>.
               </p>
               
-              <p className="text-xs text-muted-foreground">
-                <a href="/privacy" className="text-primary hover:underline">Privacy Policy</a>
+              <p className="text-xs text-gray-500">
+                <a href="/privacy" className="text-[#00E0C6] hover:underline">Privacy Policy</a>
                 {" · "}
-                <a href="/terms" className="text-primary hover:underline">Terms of Service</a>
+                <a href="/terms" className="text-[#00E0C6] hover:underline">Terms of Service</a>
                 {" · "}
-                <a href="/privacy-dashboard" className="text-primary hover:underline">Privacy Dashboard</a>
+                <a href="/privacy-dashboard" className="text-[#00E0C6] hover:underline">Privacy Dashboard</a>
               </p>
             </div>
           </div>
