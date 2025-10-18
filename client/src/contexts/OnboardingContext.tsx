@@ -25,8 +25,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
   });
 
   // User is in onboarding if they haven't completed basic info
-  // TEMPORARILY DISABLED FOR DEVELOPMENT/TESTING
-  const shouldShowOnboarding = false; // Set to: Boolean(status && !status.basicInfoComplete) for production
+  const shouldShowOnboarding = Boolean(status && !status.basicInfoComplete);
 
   return (
     <OnboardingContext.Provider
