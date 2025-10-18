@@ -185,6 +185,16 @@ export function FloatingChat({ isOpen, onClose, currentPage }: FloatingChatProps
           ),
         });
       }
+      
+      // Show success notification if exercise was saved
+      if (data.exerciseSaved) {
+        queryClient.invalidateQueries({ queryKey: ["/api/scheduled-exercises"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/exercise-recommendations"] });
+        toast({
+          title: "Exercise Added! 💪",
+          description: "Your exercise has been added to your Training page",
+        });
+      }
       // Don't reset cleared state - let new messages appear after the cleared timestamp
     },
     onError: (error: Error) => {
