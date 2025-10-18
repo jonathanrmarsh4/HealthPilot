@@ -159,7 +159,7 @@ function SortableExerciseCard({
         weight: set.weight !== null && set.weight !== undefined ? set.weight.toString() : '',
         reps: set.reps !== null && set.reps !== undefined ? set.reps.toString() : '',
         distance: set.distance !== null && set.distance !== undefined ? set.distance.toString() : '',
-        duration: set.duration !== null && set.duration !== undefined ? Math.floor(set.duration / 60).toString() : '' // Convert seconds to minutes for display
+        duration: set.duration !== null && set.duration !== undefined ? (set.duration / 60).toString() : '' // Convert seconds to minutes with decimals
       });
     });
     setLocalValues(newValues);
@@ -185,7 +185,7 @@ function SortableExerciseCard({
     } else if (field === 'weight' || field === 'distance') {
       numValue = parseFloat(value);
     } else if (field === 'duration') {
-      numValue = parseInt(value) * 60; // Convert minutes to seconds for storage
+      numValue = parseFloat(value) * 60; // Convert minutes (with decimals) to seconds for storage
     } else {
       numValue = parseInt(value);
     }
@@ -327,7 +327,7 @@ function SortableExerciseCard({
                         value={getLocalValue(set.id, 'weight')}
                         onChange={(e) => setLocalValue(set.id, 'weight', e.target.value)}
                         onBlur={(e) => saveValue(set.id, 'weight', e.target.value)}
-                        disabled={set.completed === 1 || set.weight === null}
+                        disabled={set.completed === 1}
                         className="h-10 text-base flex-1"
                         data-testid={`input-weight-${exerciseIndex}-${setIndex}`}
                       />
@@ -402,6 +402,7 @@ function SortableExerciseCard({
                     <label className="text-xs text-muted-foreground block mb-1">Duration (min)</label>
                     <Input
                       type="number"
+                      step="0.1"
                       placeholder="0"
                       value={getLocalValue(set.id, 'duration')}
                       onChange={(e) => setLocalValue(set.id, 'duration', e.target.value)}
@@ -420,6 +421,7 @@ function SortableExerciseCard({
                   <label className="text-xs text-muted-foreground block mb-1">Duration (min)</label>
                   <Input
                     type="number"
+                    step="0.1"
                     placeholder="0"
                     value={getLocalValue(set.id, 'duration')}
                     onChange={(e) => setLocalValue(set.id, 'duration', e.target.value)}
