@@ -655,6 +655,52 @@ export default function Training() {
             )}
           </CardHeader>
           <CardContent className="space-y-6">
+            {/* AI-Saved Workouts Section */}
+            {trainingSchedules && trainingSchedules.length > 0 && (() => {
+              const today = new Date().toISOString().split('T')[0];
+              const todayWorkouts = trainingSchedules.filter(schedule => 
+                schedule.scheduledFor && new Date(schedule.scheduledFor).toISOString().split('T')[0] === today
+              );
+              
+              if (todayWorkouts.length > 0) {
+                return (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-primary" />
+                      <h4 className="font-semibold text-sm">Your Scheduled Workouts</h4>
+                    </div>
+                    <div className="space-y-2">
+                      {todayWorkouts.map((workout) => (
+                        <div key={workout.id} className="p-3 rounded-lg border bg-card hover-elevate" data-testid={`workout-${workout.id}`}>
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <h5 className="font-medium text-sm" data-testid="text-workout-type">
+                                  {workout.workoutType}
+                                </h5>
+                                {workout.duration && (
+                                  <Badge variant="outline" className="text-xs">
+                                    {workout.duration} min
+                                  </Badge>
+                                )}
+                              </div>
+                              {workout.description && (
+                                <p className="text-xs text-muted-foreground line-clamp-2" data-testid="text-workout-description">
+                                  {workout.description}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="border-t pt-4" />
+                  </div>
+                );
+              }
+              return null;
+            })()}
+            
             {recLoading ? (
               <Skeleton className="h-64 w-full" />
             ) : recError ? (
@@ -669,19 +715,25 @@ export default function Training() {
               </div>
             ) : dailyRec?.recommendation ? (
               <>
-                <div className="p-4 rounded-lg bg-muted/50">
-                  <p className={`text-sm ${!showFullReasoning ? 'line-clamp-3' : ''}`} data-testid="text-ai-reasoning">
-                    {dailyRec.recommendation.aiReasoning}
-                  </p>
-                  {dailyRec.recommendation.aiReasoning.length > 150 && (
-                    <button
-                      onClick={() => setShowFullReasoning(!showFullReasoning)}
-                      className="text-xs text-primary hover:underline mt-2"
-                      data-testid="button-toggle-reasoning"
-                    >
-                      {showFullReasoning ? 'Read less' : 'Read more'}
-                    </button>
-                  )}
+                <div>
+                  <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-primary" />
+                    AI Recommendation
+                  </h4>
+                  <div className="p-4 rounded-lg bg-muted/50">
+                    <p className={`text-sm ${!showFullReasoning ? 'line-clamp-3' : ''}`} data-testid="text-ai-reasoning">
+                      {dailyRec.recommendation.aiReasoning}
+                    </p>
+                    {dailyRec.recommendation.aiReasoning.length > 150 && (
+                      <button
+                        onClick={() => setShowFullReasoning(!showFullReasoning)}
+                        className="text-xs text-primary hover:underline mt-2"
+                        data-testid="button-toggle-reasoning"
+                      >
+                        {showFullReasoning ? 'Read less' : 'Read more'}
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {dailyRec.recommendation.adjustmentsMade && (
