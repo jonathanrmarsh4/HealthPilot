@@ -13,7 +13,7 @@ The application is a full-stack project utilizing React, TypeScript, Tailwind CS
 - Dark mode support and responsive design, optimized for mobile/tablet, including PWA support for iOS.
 - Visualizations for biomarker trends, readiness score, and health score.
 - User-customizable dashboard with persistent widget visibility and order preferences.
-- Purple sparkly AI Chat Widget with clear chat feature that preserves history in the database. Chat bubble is minimized by default for better UX.
+- Purple sparkly AI Chat Widget with clear chat feature that preserves history in the database. Chat bubble is minimized by default for better UX. Users can add exercises via chat which appear in Today's Recommended Workout with Sparkles icons and merge seamlessly into the main workout session.
 - Redesigned Training Page with a daily-focused UX and organized sidebar navigation.
 - Universal Tile Management System for customizable page layouts with drag-and-drop reordering.
 
