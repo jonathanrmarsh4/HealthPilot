@@ -4,7 +4,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   Shield, Activity, Brain, Calendar,
-  TrendingUp, CheckCircle, Star, ArrowRight, Apple, Heart, Target, Zap, Sparkles
+  TrendingUp, CheckCircle, Star, ArrowRight, Apple, Heart, Target, Zap, Sparkles,
+  Lock, FileCheck, Database, Eye, Award
 } from "lucide-react";
 import digitalHumanImage from "@assets/IMG_0088_1760794249248.png";
 import { useLocation } from "wouter";
@@ -63,7 +64,7 @@ export default function LandingPage() {
               <Button
                 size="lg"
                 className="rounded-full px-8 bg-[#00E0C6] text-[#0A0F1F] hover:bg-[#00E0C6]/90 shadow-[0_0_24px_rgba(0,224,198,0.35)] hover:shadow-[0_0_36px_rgba(0,224,198,0.55)] transition-shadow"
-                onClick={() => setLocation("/pricing")}
+                onClick={() => window.location.href = "/api/login"}
               >
                 Start Free
                 <ArrowRight className="ml-2 h-4 w-4" />
@@ -248,6 +249,258 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* === Medical & Scientific Standards === */}
+      <section className="relative px-6 py-16 md:py-24 bg-gradient-to-b from-transparent via-[#00E0C6]/5 to-transparent">
+        <div className="mx-auto max-w-6xl">
+          <div className="text-center mb-10 md:mb-14">
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="inline-flex items-center gap-2 bg-[#00E0C6]/10 border border-[#00E0C6]/30 rounded-full px-4 py-1.5 mb-4"
+            >
+              <Award className="h-4 w-4 text-[#00E0C6]" />
+              <span className="text-sm text-[#00E0C6] font-medium">Evidence-Based Platform</span>
+            </motion.div>
+            <h2 className="text-2xl md:text-4xl font-semibold tracking-tight text-white">
+              Built on <span className="text-[#00E0C6]">Medical Standards</span>
+            </h2>
+            <p className="text-gray-400 mt-3 max-w-2xl mx-auto">
+              Every recommendation is grounded in peer-reviewed research and clinical guidelines from leading health organizations.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[
+              {
+                icon: <Activity className="h-5 w-5" />,
+                org: "ACSM",
+                fullName: "American College of Sports Medicine",
+                standards: ["Exercise prescription", "HR max caps", "Screening guidelines", "Cardiovascular safety"]
+              },
+              {
+                icon: <Zap className="h-5 w-5" />,
+                org: "NSCA",
+                fullName: "National Strength & Conditioning Association",
+                standards: ["Progressive overload", "Periodization", "Volume/intensity limits", "Training frequency"]
+              },
+              {
+                icon: <Heart className="h-5 w-5" />,
+                org: "WHO",
+                fullName: "World Health Organization",
+                standards: ["Physical activity guidelines", "Minimum rest days", "Health protocols", "Recovery standards"]
+              },
+              {
+                icon: <Apple className="h-5 w-5" />,
+                org: "ADA",
+                fullName: "American Diabetes Association",
+                standards: ["Dietary guidelines", "Carbohydrate recommendations", "Blood sugar management", "Nutritional timing"]
+              },
+              {
+                icon: <Target className="h-5 w-5" />,
+                org: "AND",
+                fullName: "Academy of Nutrition and Dietetics",
+                standards: ["Macro recommendations", "Nutrient timing", "Performance nutrition", "Evidence-based diets"]
+              },
+              {
+                icon: <Heart className="h-5 w-5" />,
+                org: "AHA",
+                fullName: "American Heart Association",
+                standards: ["Cardiovascular health", "Blood pressure thresholds", "Heart rate zones", "Cardiac safety"]
+              },
+            ].map((standard, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 12 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.4 }}
+                transition={{ delay: 0.05 * i }}
+              >
+                <Card className="bg-white/5 backdrop-blur-xl border-white/10 h-full">
+                  <CardContent className="p-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="p-2 rounded-lg bg-[#00E0C6]/10 text-[#00E0C6]">{standard.icon}</div>
+                      <div>
+                        <h3 className="font-semibold text-white">{standard.org}</h3>
+                        <p className="text-xs text-gray-500">{standard.fullName}</p>
+                      </div>
+                    </div>
+                    <ul className="space-y-1.5">
+                      {standard.standards.map((item, idx) => (
+                        <li key={idx} className="flex items-start gap-2 text-xs text-gray-400">
+                          <CheckCircle className="h-3.5 w-3.5 text-[#00E0C6] mt-0.5 flex-shrink-0" />
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="mt-8 text-center"
+          >
+            <Card className="bg-white/5 backdrop-blur-xl border-white/10 inline-block">
+              <CardContent className="p-6">
+                <div className="flex items-center gap-3">
+                  <FileCheck className="h-5 w-5 text-[#00E0C6]" />
+                  <p className="text-sm text-gray-300">
+                    <strong className="text-white">Transparent Citations:</strong> All AI recommendations include evidence references
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* === Privacy & Security === */}
+      <section className="relative px-6 py-16 md:py-24">
+        <div className="mx-auto max-w-6xl">
+          <div className="text-center mb-10 md:mb-14">
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="inline-flex items-center gap-2 bg-[#00E0C6]/10 border border-[#00E0C6]/30 rounded-full px-4 py-1.5 mb-4"
+            >
+              <Shield className="h-4 w-4 text-[#00E0C6]" />
+              <span className="text-sm text-[#00E0C6] font-medium">Healthcare-Grade Security</span>
+            </motion.div>
+            <h2 className="text-2xl md:text-4xl font-semibold tracking-tight text-white">
+              Your Privacy, <span className="text-[#00E0C6]">Our Priority</span>
+            </h2>
+            <p className="text-gray-400 mt-3 max-w-2xl mx-auto">
+              Full international compliance with the world's strictest health data protection standards.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-6 mb-8">
+            {[
+              {
+                icon: <Shield className="h-5 w-5" />,
+                title: "International Compliance",
+                description: "Fully compliant with HIPAA, GDPR, PIPEDA, and Australia Privacy Act requirements.",
+                features: [
+                  "Protected Health Information (PHI) safeguards",
+                  "EU data protection standards (GDPR)",
+                  "Canadian privacy requirements (PIPEDA)",
+                  "Australian data handling standards"
+                ]
+              },
+              {
+                icon: <Lock className="h-5 w-5" />,
+                title: "Military-Grade Encryption",
+                description: "Your health data is protected with bank-level security at every layer.",
+                features: [
+                  "AES-256 encryption at rest",
+                  "TLS 1.3 encryption in transit",
+                  "OpenID Connect authentication",
+                  "Zero-trust security architecture"
+                ]
+              },
+              {
+                icon: <Eye className="h-5 w-5" />,
+                title: "Complete Transparency",
+                description: "Full visibility and control over your personal health information.",
+                features: [
+                  "Granular consent management",
+                  "Comprehensive audit logging",
+                  "Real-time access tracking",
+                  "Privacy dashboard for data control"
+                ]
+              },
+              {
+                icon: <Database className="h-5 w-5" />,
+                title: "Your Data, Your Rules",
+                description: "You maintain complete ownership and control of your health data.",
+                features: [
+                  "Export your data anytime (JSON format)",
+                  "30-day account deletion grace period",
+                  "Right to be forgotten compliance",
+                  "No third-party data selling, ever"
+                ]
+              }
+            ].map((item, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 12 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.3 }}
+                transition={{ delay: 0.05 * i }}
+              >
+                <Card className="bg-white/5 backdrop-blur-xl border-white/10 h-full">
+                  <CardContent className="p-6">
+                    <div className="flex items-start gap-4 mb-4">
+                      <div className="p-2 rounded-lg bg-[#00E0C6]/10 text-[#00E0C6] flex-shrink-0">
+                        {item.icon}
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-white mb-1">{item.title}</h3>
+                        <p className="text-sm text-gray-400 mb-3">{item.description}</p>
+                        <ul className="space-y-2">
+                          {item.features.map((feature, idx) => (
+                            <li key={idx} className="flex items-start gap-2 text-xs text-gray-400">
+                              <div className="w-1 h-1 rounded-full bg-[#00E0C6] mt-1.5 flex-shrink-0" />
+                              <span>{feature}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Compliance Badges */}
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="flex flex-wrap justify-center gap-3"
+          >
+            {["HIPAA Compliant", "GDPR Compliant", "PIPEDA Compliant", "Australia Privacy Act", "SOC 2 Type II"].map((badge, i) => (
+              <Badge key={i} variant="outline" className="py-2 px-4 border-white/20 text-gray-300 bg-white/5">
+                {badge}
+              </Badge>
+            ))}
+          </motion.div>
+
+          {/* Additional Privacy Info */}
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="mt-8 max-w-3xl mx-auto"
+          >
+            <Card className="bg-white/5 backdrop-blur-xl border-white/10">
+              <CardContent className="p-6 text-center">
+                <p className="text-sm text-gray-300 leading-relaxed">
+                  <strong className="text-white">Privacy Commitment:</strong> HealthPilot never sells your data to third parties. 
+                  You maintain complete control through our Privacy Dashboard, where you can view all data access, 
+                  manage consents, export your information, and request account deletion at any time. All health data 
+                  operations are logged in our comprehensive audit trail for full transparency.
+                </p>
+                <Button
+                  variant="outline"
+                  className="mt-4 border-[#00E0C6]/30 text-[#00E0C6] hover:bg-[#00E0C6]/10"
+                  onClick={() => setLocation("/privacy")}
+                >
+                  Read Full Privacy Policy
+                </Button>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+      </section>
+
       {/* === Testimonials === */}
       <section className="relative px-6 py-16 md:py-24">
         <div className="mx-auto max-w-6xl">
@@ -311,7 +564,7 @@ export default function LandingPage() {
                   <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-[#00E0C6]" /> HealthKit sync</li>
                   <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-[#00E0C6]" /> Basic insights</li>
                 </ul>
-                <Button className="w-full rounded-full bg-white/10 text-white hover:bg-white/20 border border-white/20" onClick={() => setLocation("/pricing")}>
+                <Button className="w-full rounded-full bg-white/10 text-white hover:bg-white/20 border border-white/20" onClick={() => window.location.href = "/api/login"}>
                   Try Free
                 </Button>
               </CardContent>
@@ -330,7 +583,7 @@ export default function LandingPage() {
                 </ul>
                 <Button
                   className="w-full rounded-full bg-[#00E0C6] text-[#0A0F1F] hover:bg-[#00E0C6]/90 shadow-[0_0_24px_rgba(0,224,198,0.35)] hover:shadow-[0_0_36px_rgba(0,224,198,0.55)]"
-                  onClick={() => setLocation("/pricing")}
+                  onClick={() => window.location.href = "/api/login"}
                 >
                   Upgrade
                 </Button>
@@ -353,7 +606,7 @@ export default function LandingPage() {
           <Button
             size="lg"
             className="mt-8 rounded-full px-10 bg-[#00E0C6] text-[#0A0F1F] hover:bg-[#00E0C6]/90 shadow-[0_0_24px_rgba(0,224,198,0.35)] hover:shadow-[0_0_36px_rgba(0,224,198,0.55)] relative z-10"
-            onClick={() => setLocation("/pricing")}
+            onClick={() => window.location.href = "/api/login"}
           >
             Launch HealthPilot
             <ArrowRight className="ml-2 h-4 w-4" />
