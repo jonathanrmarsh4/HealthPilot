@@ -264,6 +264,21 @@ export const sessionPRs = pgTable("session_prs", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// Muscle Group Engagements - track which muscle groups were worked in each workout
+export const muscleGroupEngagements = pgTable("muscle_group_engagements", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  workoutSessionId: varchar("workout_session_id").notNull(),
+  muscleGroup: text("muscle_group").notNull(), // 'chest', 'back', 'legs', 'shoulders', 'arms', 'core', 'glutes', 'calves'
+  engagementLevel: text("engagement_level").notNull(), // 'primary' (main focus), 'secondary' (supporting muscle)
+  totalSets: integer("total_sets").notNull().default(0), // Total sets targeting this muscle group
+  totalVolume: real("total_volume"), // Total volume (weight * reps) for this muscle group (optional, null for cardio)
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => [
+  // Index for fast queries by user and date range
+  index("muscle_group_engagements_user_created_idx").on(table.userId, table.createdAt),
+]);
+
 export const recommendations = pgTable("recommendations", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull(),
@@ -526,6 +541,11 @@ export const insertExerciseSetSchema = createInsertSchema(exerciseSets).omit({
 });
 
 export const insertSessionPRSchema = createInsertSchema(sessionPRs).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertMuscleGroupEngagementSchema = createInsertSchema(muscleGroupEngagements).omit({
   id: true,
   createdAt: true,
 });
@@ -918,6 +938,9 @@ export type ExerciseSet = typeof exerciseSets.$inferSelect;
 
 export type InsertSessionPR = z.infer<typeof insertSessionPRSchema>;
 export type SessionPR = typeof sessionPRs.$inferSelect;
+
+export type InsertMuscleGroupEngagement = z.infer<typeof insertMuscleGroupEngagementSchema>;
+export type MuscleGroupEngagement = typeof muscleGroupEngagements.$inferSelect;
 
 export type InsertGoal = z.infer<typeof insertGoalSchema>;
 export type Goal = typeof goals.$inferSelect;

@@ -3314,7 +3314,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         medicalConditions: user?.medicalConditions || [],
       };
       
-      // 5. Generate AI recommendation with safety-first logic and guardrails
+      // 5. Fetch muscle group frequency data (last 14 days) for balanced training
+      let muscleGroupFrequency;
+      try {
+        muscleGroupFrequency = await storage.getMuscleGroupFrequency(userId, 14);
+        console.log(`📊 Fetched muscle group frequency for user ${userId}:`, muscleGroupFrequency.length, 'muscle groups');
+      } catch (error) {
+        console.error("Error fetching muscle group frequency:", error);
+        muscleGroupFrequency = undefined;
+      }
+      
+      // 6. Generate AI recommendation with safety-first logic and guardrails
       let aiRecommendation = await generateDailyTrainingRecommendation({
         readinessScore: readinessData!.score,
         readinessRecommendation: readinessData!.recommendation as "ready" | "caution" | "rest",
@@ -3338,6 +3348,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         recentWorkouts,
         biomarkers,
         userProfile,
+        muscleGroupFrequency,
       });
       
       // Fallback recommendation if AI generation fails
@@ -3813,6 +3824,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Finish a workout session
+  app.post("/api/workout-sessions/:id/finish", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { id } = req.params;
+    
+    try {
+      // Get the workout session to ensure it exists
+      const session = await storage.getWorkoutSession(id, userId);
+      if (!session) {
+        return res.status(404).json({ error: "Workout session not found" });
+      }
+      
+      // Import muscle group tracking utility
+      const { recordWorkoutMuscleGroupEngagements } = await import("./utils/muscleGroupTracking");
+      
+      // Record muscle group engagements based on completed exercises
+      await recordWorkoutMuscleGroupEngagements(storage, userId, id);
+      
+      console.log(`✅ Workout session ${id} finished and muscle groups recorded`);
+      
+      res.json({ success: true, message: "Workout finished and muscle groups recorded" });
+    } catch (error: any) {
+      console.error("Error finishing workout session:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Update exercise set
   app.patch("/api/exercise-sets/:id", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
@@ -4044,6 +4082,35 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
       const correlations = await storage.getWorkoutBiomarkerCorrelations(userId, startDate, endDate);
       res.json(correlations);
     } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Muscle Group Frequency Analytics
+  app.get("/api/analytics/muscle-group-frequency", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    try {
+      const { daysBack = '14' } = req.query;
+      const frequency = await storage.getMuscleGroupFrequency(userId, parseInt(daysBack as string));
+      res.json(frequency);
+    } catch (error: any) {
+      console.error("Error fetching muscle group frequency:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/analytics/muscle-group-engagements", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    try {
+      const { days = '30' } = req.query;
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - parseInt(days as string));
+      
+      const engagements = await storage.getMuscleGroupEngagements(userId, startDate, endDate);
+      res.json(engagements);
+    } catch (error: any) {
+      console.error("Error fetching muscle group engagements:", error);
       res.status(500).json({ error: error.message });
     }
   });

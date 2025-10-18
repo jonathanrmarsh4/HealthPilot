@@ -38,6 +38,8 @@ import {
   type InsertExerciseSet,
   type SessionPR,
   type InsertSessionPR,
+  type MuscleGroupEngagement,
+  type InsertMuscleGroupEngagement,
   type Goal,
   type InsertGoal,
   type ExerciseFeedback,
@@ -89,6 +91,7 @@ import {
   exercises,
   exerciseSets,
   sessionPRs,
+  muscleGroupEngagements,
   goals,
   aiActions,
   exerciseFeedback,
@@ -235,6 +238,12 @@ export interface IStorage {
     sleepQuality: { workoutDays: number; nonWorkoutDays: number; improvement: number };
     restingHR: { workoutDays: number; nonWorkoutDays: number; improvement: number };
   }>;
+  
+  // Muscle Group Frequency Tracking methods
+  recordMuscleGroupEngagement(userId: string, workoutSessionId: string, muscleGroup: string, engagementLevel: 'primary' | 'secondary', totalSets: number, totalVolume?: number): Promise<void>;
+  getMuscleGroupEngagements(userId: string, startDate: Date, endDate: Date): Promise<Array<{ muscleGroup: string; engagementLevel: string; totalSets: number; totalVolume: number | null; createdAt: Date }>>;
+  getMuscleGroupFrequency(userId: string, daysBack?: number): Promise<Array<{ muscleGroup: string; lastTrained: Date | null; timesTrainedInPeriod: number; totalSets: number; totalVolume: number }>>;
+  getMuscleGroupLastTrainedDate(userId: string, muscleGroup: string): Promise<Date | null>;
   
   getAllUsers(limit: number, offset: number, search?: string): Promise<{ users: User[], total: number }>;
   updateUser(id: string, updates: Partial<User>): Promise<User>;
@@ -1980,6 +1989,125 @@ export class DbStorage implements IStorage {
         improvement: hrImprovement
       }
     };
+  }
+
+  // Muscle Group Frequency Tracking implementation
+  async recordMuscleGroupEngagement(
+    userId: string,
+    workoutSessionId: string,
+    muscleGroup: string,
+    engagementLevel: 'primary' | 'secondary',
+    totalSets: number,
+    totalVolume?: number
+  ): Promise<void> {
+    await db.insert(muscleGroupEngagements).values({
+      userId,
+      workoutSessionId,
+      muscleGroup,
+      engagementLevel,
+      totalSets,
+      totalVolume: totalVolume || null,
+    });
+  }
+
+  async getMuscleGroupEngagements(
+    userId: string,
+    startDate: Date,
+    endDate: Date
+  ): Promise<Array<{ muscleGroup: string; engagementLevel: string; totalSets: number; totalVolume: number | null; createdAt: Date }>> {
+    const results = await db
+      .select()
+      .from(muscleGroupEngagements)
+      .where(
+        and(
+          eq(muscleGroupEngagements.userId, userId),
+          gte(muscleGroupEngagements.createdAt, startDate),
+          lte(muscleGroupEngagements.createdAt, endDate)
+        )
+      )
+      .orderBy(desc(muscleGroupEngagements.createdAt));
+    
+    return results.map(r => ({
+      muscleGroup: r.muscleGroup,
+      engagementLevel: r.engagementLevel,
+      totalSets: r.totalSets,
+      totalVolume: r.totalVolume,
+      createdAt: r.createdAt,
+    }));
+  }
+
+  async getMuscleGroupFrequency(
+    userId: string,
+    daysBack: number = 14
+  ): Promise<Array<{ muscleGroup: string; lastTrained: Date | null; timesTrainedInPeriod: number; totalSets: number; totalVolume: number }>> {
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(endDate.getDate() - daysBack);
+    
+    const engagements = await db
+      .select()
+      .from(muscleGroupEngagements)
+      .where(
+        and(
+          eq(muscleGroupEngagements.userId, userId),
+          gte(muscleGroupEngagements.createdAt, startDate),
+          lte(muscleGroupEngagements.createdAt, endDate)
+        )
+      )
+      .orderBy(desc(muscleGroupEngagements.createdAt));
+    
+    // Group by muscle group, tracking distinct workout sessions
+    const frequencyMap = new Map<string, { 
+      lastTrained: Date; 
+      workoutSessionIds: Set<string>; 
+      sets: number; 
+      volume: number 
+    }>();
+    
+    engagements.forEach(eng => {
+      const current = frequencyMap.get(eng.muscleGroup);
+      if (!current) {
+        frequencyMap.set(eng.muscleGroup, {
+          lastTrained: eng.createdAt,
+          workoutSessionIds: new Set([eng.workoutSessionId]),
+          sets: eng.totalSets,
+          volume: eng.totalVolume || 0,
+        });
+      } else {
+        // Update if this is more recent
+        if (eng.createdAt > current.lastTrained) {
+          current.lastTrained = eng.createdAt;
+        }
+        // Track distinct workout sessions (avoid double-counting primary + secondary from same workout)
+        current.workoutSessionIds.add(eng.workoutSessionId);
+        current.sets += eng.totalSets;
+        current.volume += (eng.totalVolume || 0);
+      }
+    });
+    
+    return Array.from(frequencyMap.entries()).map(([muscleGroup, data]) => ({
+      muscleGroup,
+      lastTrained: data.lastTrained,
+      timesTrainedInPeriod: data.workoutSessionIds.size, // Count distinct sessions, not engagement records
+      totalSets: data.sets,
+      totalVolume: data.volume,
+    }));
+  }
+
+  async getMuscleGroupLastTrainedDate(userId: string, muscleGroup: string): Promise<Date | null> {
+    const result = await db
+      .select()
+      .from(muscleGroupEngagements)
+      .where(
+        and(
+          eq(muscleGroupEngagements.userId, userId),
+          eq(muscleGroupEngagements.muscleGroup, muscleGroup)
+        )
+      )
+      .orderBy(desc(muscleGroupEngagements.createdAt))
+      .limit(1);
+    
+    return result[0]?.createdAt || null;
   }
 
   async createGoal(goal: InsertGoal): Promise<Goal> {

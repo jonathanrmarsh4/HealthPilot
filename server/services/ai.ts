@@ -2676,6 +2676,13 @@ export async function generateDailyTrainingRecommendation(data: {
     injuries?: string[];
     medicalConditions?: string[];
   };
+  muscleGroupFrequency?: Array<{
+    muscleGroup: string;
+    lastTrained: Date | null;
+    timesTrainedInPeriod: number;
+    totalSets: number;
+    totalVolume: number;
+  }>;
 }) {
   // Check auto-regulation triggers based on biomarkers and recovery metrics
   const autoRegulationActions = checkAutoRegulation({
@@ -2765,6 +2772,34 @@ ${data.trainingPlan?.goal || 'No specific goal set'}
 ${data.recentWorkouts && data.recentWorkouts.length > 0 ? 
   data.recentWorkouts.map(w => `- ${w.type}: ${w.duration} min (${new Date(w.startTime).toLocaleDateString()})`).join('\n') 
   : 'No recent workouts'}
+
+## Muscle Group Training Frequency (last 14 days)
+${data.muscleGroupFrequency && data.muscleGroupFrequency.length > 0 ? `
+EVIDENCE-BASED FREQUENCY GUIDELINES (ACSM/NSCA):
+- Each major muscle group should be trained 2-3x per week for optimal hypertrophy and strength
+- Minimum 48-72 hours recovery between sessions targeting the same muscle group
+- Lagging muscle groups (trained <2x in period) should be prioritized
+- Overtrained groups (trained >4x in period or <48hrs since last session) should be avoided
+
+Current Training Frequency:
+${data.muscleGroupFrequency.map(mf => {
+  const daysSinceLastTrained = mf.lastTrained 
+    ? Math.floor((Date.now() - new Date(mf.lastTrained).getTime()) / (1000 * 60 * 60 * 24))
+    : 999;
+  const status = daysSinceLastTrained < 2 ? '⚠️ AVOID (trained <48hrs ago)' 
+    : mf.timesTrainedInPeriod === 0 ? '🎯 PRIORITIZE (untrained)' 
+    : mf.timesTrainedInPeriod < 2 ? '🎯 PRIORITIZE (undertrained)' 
+    : mf.timesTrainedInPeriod > 4 ? '⚠️ REDUCE (overtrained)' 
+    : '✅ BALANCED';
+  return `- ${mf.muscleGroup}: ${mf.timesTrainedInPeriod}x trained, ${mf.totalSets} total sets, last: ${daysSinceLastTrained < 999 ? daysSinceLastTrained + ' days ago' : 'never'} ${status}`;
+}).join('\n')}
+
+INSTRUCTIONS:
+1. AVOID muscle groups trained within last 48 hours (marked ⚠️ AVOID)
+2. PRIORITIZE untrained or undertrained muscle groups (marked 🎯 PRIORITIZE)
+3. REDUCE volume for overtrained groups (marked ⚠️ REDUCE)
+4. Aim for balanced training ensuring all major groups hit 2-3x per week
+` : 'No muscle group frequency data available - design balanced workout hitting major muscle groups'}
 
 Generate a recommendation with this JSON structure:
 {
