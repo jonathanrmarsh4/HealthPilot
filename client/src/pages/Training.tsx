@@ -137,9 +137,10 @@ export default function Training() {
     queryKey: ["/api/training/readiness/settings"],
   });
 
-  const { data: dailyRec, isLoading: recLoading, refetch: refetchRec } = useQuery<DailyRecommendation>({
+  const { data: dailyRec, isLoading: recLoading, error: recError, refetch: refetchRec } = useQuery<DailyRecommendation>({
     queryKey: ["/api/training/daily-recommendation"],
     staleTime: 5 * 60 * 1000,
+    retry: 1,
   });
 
   const { data: trainingSchedules, isLoading: schedulesLoading } = useQuery<TrainingSchedule[]>({
@@ -625,6 +626,16 @@ export default function Training() {
           <CardContent className="space-y-6">
             {recLoading ? (
               <Skeleton className="h-64 w-full" />
+            ) : recError ? (
+              <div className="text-center py-8 space-y-4">
+                <p className="text-muted-foreground">
+                  Unable to load workout recommendation. Please try again.
+                </p>
+                <Button onClick={() => refetchRec()} variant="outline" data-testid="button-retry-recommendation">
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Retry
+                </Button>
+              </div>
             ) : dailyRec?.recommendation ? (
               <>
                 <div className="p-4 rounded-lg bg-muted/50">
