@@ -227,6 +227,7 @@ export const exercises = pgTable("exercises", {
   videoUrl: text("video_url"), // optional demo video
   difficulty: text("difficulty").default("intermediate"), // 'beginner', 'intermediate', 'advanced'
   category: text("category").notNull(), // 'compound', 'isolation', 'cardio', 'flexibility'
+  trackingType: text("tracking_type").notNull().default("weight_reps"), // 'weight_reps', 'bodyweight_reps', 'distance_duration', 'duration_only'
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -239,8 +240,10 @@ export const exerciseSets = pgTable("exercise_sets", {
   setIndex: integer("set_index").notNull(), // 1, 2, 3, etc.
   targetRepsLow: integer("target_reps_low"), // e.g., 6 for 6-8 reps
   targetRepsHigh: integer("target_reps_high"), // e.g., 8 for 6-8 reps
-  weight: real("weight"), // in kg
-  reps: integer("reps"), // actual reps completed
+  weight: real("weight"), // in kg (for strength exercises)
+  reps: integer("reps"), // actual reps completed (for strength exercises)
+  distance: real("distance"), // in km (for cardio exercises like running, cycling)
+  duration: integer("duration"), // in seconds (for cardio/flexibility exercises)
   rpeLogged: integer("rpe_logged"), // Rate of Perceived Exertion 1-10
   completed: integer("completed").notNull().default(0), // 1 if set was completed
   notes: text("notes"),
