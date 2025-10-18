@@ -5178,40 +5178,77 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
           console.log("📋 Exercise JSON:", exerciseJson);
           const exercise = JSON.parse(exerciseJson);
           
-          // Determine intent: 'user_task' (direct request with specific days) or 'proactive_insight' (AI suggestion)
-          const intent = exercise.intent || 'proactive_insight';
-          const isUserTask = intent === 'user_task' && exercise.scheduledDates && Array.isArray(exercise.scheduledDates) && exercise.scheduledDates.length > 0;
+          // Classify exercise: workout (training plan) vs recovery (schedule calendar)
+          // Recovery types: mobility, stretching, yoga, sauna, cold plunge, meditation, etc.
+          const exerciseTypeLower = (exercise.exerciseType || '').toLowerCase();
+          const exerciseNameLower = (exercise.exerciseName || '').toLowerCase();
           
-          console.log("💾 Saving exercise recommendation:", exercise.exerciseName, "| Intent:", intent, "| User Task:", isUserTask);
+          const recoveryTypes = ['mobility', 'stretching', 'recovery', 'yoga', 'sauna', 'cold_plunge', 'cold plunge', 'meditation', 'foam_rolling', 'ice_bath', 'ice bath'];
+          const isRecoveryActivity = recoveryTypes.includes(exerciseTypeLower) || 
+                                    exerciseNameLower.includes('sauna') || 
+                                    exerciseNameLower.includes('cold plunge') || 
+                                    exerciseNameLower.includes('ice bath') ||
+                                    exerciseNameLower.includes('meditation') ||
+                                    exerciseNameLower.includes('foam roll');
           
-          const createdExercise = await storage.createScheduledExerciseRecommendation({
-            userId,
-            exerciseName: exercise.exerciseName,
-            exerciseType: exercise.exerciseType,
-            description: exercise.description,
-            duration: exercise.duration || null,
-            frequency: exercise.frequency,
-            recommendedBy: 'ai',
-            reason: exercise.reason,
-            isSupplementary: 1, // Always supplementary from AI
-            intent: intent,
-            status: isUserTask ? 'scheduled' : 'pending', // Auto-schedule user tasks
-            scheduledDates: isUserTask ? exercise.scheduledDates : null,
-            userFeedback: isUserTask ? 'accepted_auto' : null,
-            declineReason: null,
-          });
+          console.log("🔍 Exercise type:", exercise.exerciseType, "| Is recovery:", isRecoveryActivity);
           
-          // If user task with scheduled dates, auto-schedule immediately
-          if (isUserTask) {
-            console.log("🗓️ Auto-scheduling user task exercise for dates:", exercise.scheduledDates);
-            await storage.autoScheduleUserTaskExercise(createdExercise.id, userId, exercise.scheduledDates);
-            console.log("✨ User task exercise auto-scheduled and ready in Training page!");
+          if (isRecoveryActivity) {
+            // Recovery activities go to schedule calendar (scheduled_exercise_recommendations)
+            console.log("🧘 Routing to schedule calendar (recovery)");
+            
+            const intent = exercise.intent || 'proactive_insight';
+            const isUserTask = intent === 'user_task' && exercise.scheduledDates && Array.isArray(exercise.scheduledDates) && exercise.scheduledDates.length > 0;
+            
+            const createdExercise = await storage.createScheduledExerciseRecommendation({
+              userId,
+              exerciseName: exercise.exerciseName,
+              exerciseType: exercise.exerciseType,
+              description: exercise.description,
+              duration: exercise.duration || null,
+              frequency: exercise.frequency,
+              recommendedBy: 'ai',
+              reason: exercise.reason,
+              isSupplementary: 1,
+              intent: intent,
+              status: isUserTask ? 'scheduled' : 'pending',
+              scheduledDates: isUserTask ? exercise.scheduledDates : null,
+              userFeedback: isUserTask ? 'accepted_auto' : null,
+              declineReason: null,
+            });
+            
+            if (isUserTask) {
+              await storage.autoScheduleUserTaskExercise(createdExercise.id, userId, exercise.scheduledDates);
+              console.log("✨ Recovery activity auto-scheduled in schedule calendar!");
+            }
+          } else {
+            // Workout exercises go to training plan (trainingSchedules)
+            console.log("💪 Routing to workout plan (exercise)");
+            
+            // Parse scheduled date from scheduledDates array (normalize string to Date)
+            let scheduledDate: Date | undefined;
+            if (exercise.scheduledDates && Array.isArray(exercise.scheduledDates) && exercise.scheduledDates.length > 0) {
+              const dateStr = exercise.scheduledDates[0];
+              scheduledDate = typeof dateStr === 'string' ? new Date(dateStr) : dateStr;
+              console.log("📅 Parsed scheduled date:", scheduledDate);
+            }
+            
+            await storage.saveWorkoutExerciseFromAI(userId, {
+              exerciseName: exercise.exerciseName,
+              exerciseType: exercise.exerciseType,
+              description: exercise.description,
+              duration: exercise.duration,
+              scheduledDate,
+              intensity: exercise.intensity || 'moderate',
+            });
+            
+            console.log("✨ Workout exercise saved to training plan!");
           }
           
           exerciseSaved = true;
-          console.log("✨ Exercise recommendation saved successfully!");
+          console.log("✨ Exercise saved successfully!");
         } catch (e) {
-          console.error("❌ Failed to parse and save exercise recommendation:", e);
+          console.error("❌ Failed to parse and save exercise:", e);
         }
       } else {
         console.log("ℹ️ No exercise markers found in AI response");

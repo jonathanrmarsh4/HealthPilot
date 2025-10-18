@@ -190,6 +190,7 @@ export function FloatingChat({ isOpen, onClose, currentPage }: FloatingChatProps
       if (data.exerciseSaved) {
         queryClient.invalidateQueries({ queryKey: ["/api/scheduled-exercises"] });
         queryClient.invalidateQueries({ queryKey: ["/api/exercise-recommendations"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/training-schedules"] });
         toast({
           title: "Exercise Added! 💪",
           description: "Your exercise has been added to your Training page",

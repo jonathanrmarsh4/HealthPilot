@@ -171,6 +171,7 @@ export interface IStorage {
   createTrainingSchedule(schedule: InsertTrainingSchedule): Promise<TrainingSchedule>;
   getTrainingSchedules(userId: string): Promise<TrainingSchedule[]>;
   updateTrainingSchedule(id: string, userId: string, data: Partial<TrainingSchedule>): Promise<TrainingSchedule | undefined>;
+  saveWorkoutExerciseFromAI(userId: string, exercise: { exerciseName: string, exerciseType: string, description: string, duration?: number, scheduledDate?: Date, intensity?: string }): Promise<TrainingSchedule>;
   
   createRecommendation(recommendation: InsertRecommendation): Promise<Recommendation>;
   getRecommendations(userId: string): Promise<Recommendation[]>;
@@ -901,6 +902,37 @@ export class DbStorage implements IStorage {
       .set(data)
       .where(and(eq(trainingSchedules.id, id), eq(trainingSchedules.userId, userId)))
       .returning();
+    return result[0];
+  }
+
+  async saveWorkoutExerciseFromAI(userId: string, exercise: { 
+    exerciseName: string, 
+    exerciseType: string, 
+    description: string, 
+    duration?: number, 
+    scheduledDate?: Date,
+    intensity?: string 
+  }): Promise<TrainingSchedule> {
+    // Convert exercise to training schedule format
+    // Normalize scheduledDate to ensure it's a Date object
+    const normalizedDate = exercise.scheduledDate ? new Date(exercise.scheduledDate) : new Date();
+    
+    const schedule: InsertTrainingSchedule = {
+      userId,
+      day: normalizedDate.toISOString().split('T')[0],
+      workoutType: exercise.exerciseType,
+      sessionType: 'workout',
+      duration: exercise.duration || 30,
+      intensity: exercise.intensity || 'moderate',
+      description: exercise.description,
+      exercises: [{ name: exercise.exerciseName, type: exercise.exerciseType }],
+      scheduledFor: exercise.scheduledDate || null,
+      coreProgram: 0,
+      isOptional: 0,
+      completed: 0,
+    };
+
+    const result = await db.insert(trainingSchedules).values(schedule).returning();
     return result[0];
   }
 
