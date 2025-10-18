@@ -387,6 +387,15 @@ export default function Training() {
     return !hasBasicInfo || !hasEquipmentInfo || !hasGoals;
   }, [fitnessProfile]);
 
+  // Get today's AI-saved workouts
+  const todayScheduledWorkouts = useMemo(() => {
+    if (!trainingSchedules) return [];
+    const today = new Date().toISOString().split('T')[0];
+    return trainingSchedules.filter(schedule => 
+      schedule.scheduledFor && new Date(schedule.scheduledFor).toISOString().split('T')[0] === today
+    );
+  }, [trainingSchedules]);
+
   // Define tiles for the Training page
   const tiles: TileConfig[] = [
     {
@@ -560,6 +569,98 @@ export default function Training() {
       )
     },
     {
+      id: "ai-saved-workouts",
+      title: "Today's Workouts",
+      description: "AI-scheduled workouts for today",
+      alwaysVisible: todayScheduledWorkouts.length > 0,
+      renderTile: () => {
+        if (todayScheduledWorkouts.length === 0) return null;
+        
+        return (
+          <Card data-testid="card-ai-saved-workouts">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Dumbbell className="h-5 w-5 text-primary" />
+                <CardTitle>Today's Workouts</CardTitle>
+              </div>
+              <CardDescription>
+                AI-scheduled workouts ready to start
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {todayScheduledWorkouts.map((workout) => {
+                // Convert TrainingSchedule to WorkoutPlan format
+                const workoutPlan: WorkoutPlan = {
+                  title: workout.workoutType,
+                  exercises: workout.exercises || [],
+                  totalDuration: workout.duration || 60,
+                  intensity: workout.intensity || 'Moderate',
+                  calorieEstimate: Math.round((workout.duration || 60) * 8)
+                };
+
+                return (
+                  <div 
+                    key={workout.id} 
+                    className="p-4 rounded-lg border bg-card hover-elevate" 
+                    data-testid={`ai-workout-${workout.id}`}
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0 space-y-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className="font-semibold text-lg" data-testid="text-workout-title">
+                            {workout.workoutType}
+                          </h3>
+                          {workout.duration && (
+                            <Badge variant="outline">
+                              {workout.duration} min
+                            </Badge>
+                          )}
+                          {workout.intensity && (
+                            <Badge variant="secondary">
+                              {workout.intensity}
+                            </Badge>
+                          )}
+                        </div>
+                        
+                        {workout.description && (
+                          <p className="text-sm text-muted-foreground" data-testid="text-workout-description">
+                            {workout.description}
+                          </p>
+                        )}
+                        
+                        {workout.exercises && workout.exercises.length > 0 && (
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Zap className="h-4 w-4" />
+                            <span>{workout.exercises.length} exercises</span>
+                          </div>
+                        )}
+                      </div>
+                      
+                      <Button
+                        size="lg"
+                        onClick={() => startWorkoutMutation.mutate(workoutPlan)}
+                        disabled={startWorkoutMutation.isPending}
+                        data-testid={`button-start-ai-workout-${workout.id}`}
+                      >
+                        {startWorkoutMutation.isPending ? (
+                          <Loader2 className="h-5 w-5 animate-spin" />
+                        ) : (
+                          <>
+                            <Dumbbell className="mr-2 h-5 w-5" />
+                            Start Workout
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </CardContent>
+          </Card>
+        );
+      }
+    },
+    {
       id: "recovery-protocols",
       title: "Recovery Protocols",
       description: "Personalized recovery suggestions",
@@ -655,89 +756,6 @@ export default function Training() {
             )}
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* AI-Saved Workouts Section */}
-            {trainingSchedules && trainingSchedules.length > 0 && (() => {
-              const today = new Date().toISOString().split('T')[0];
-              const todayWorkouts = trainingSchedules.filter(schedule => 
-                schedule.scheduledFor && new Date(schedule.scheduledFor).toISOString().split('T')[0] === today
-              );
-              
-              if (todayWorkouts.length > 0) {
-                return (
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-primary" />
-                      <h4 className="font-semibold text-sm">Your Scheduled Workouts</h4>
-                    </div>
-                    <div className="space-y-2">
-                      {todayWorkouts.map((workout) => {
-                        // Convert TrainingSchedule to WorkoutPlan format
-                        const workoutPlan: WorkoutPlan = {
-                          title: workout.workoutType,
-                          exercises: workout.exercises || [],
-                          totalDuration: workout.duration || 60,
-                          intensity: workout.intensity || 'Moderate',
-                          calorieEstimate: Math.round((workout.duration || 60) * 8) // Rough estimate
-                        };
-
-                        return (
-                          <div key={workout.id} className="p-3 rounded-lg border bg-card hover-elevate" data-testid={`workout-${workout.id}`}>
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <h5 className="font-medium text-sm" data-testid="text-workout-type">
-                                    {workout.workoutType}
-                                  </h5>
-                                  {workout.duration && (
-                                    <Badge variant="outline" className="text-xs">
-                                      {workout.duration} min
-                                    </Badge>
-                                  )}
-                                  {workout.intensity && (
-                                    <Badge variant="secondary" className="text-xs">
-                                      {workout.intensity}
-                                    </Badge>
-                                  )}
-                                </div>
-                                {workout.description && (
-                                  <p className="text-xs text-muted-foreground line-clamp-2" data-testid="text-workout-description">
-                                    {workout.description}
-                                  </p>
-                                )}
-                                {workout.exercises && workout.exercises.length > 0 && (
-                                  <div className="text-xs text-muted-foreground mt-1">
-                                    <Zap className="h-3 w-3 inline mr-1" />
-                                    {workout.exercises.length} exercises
-                                  </div>
-                                )}
-                              </div>
-                              <Button
-                                size="sm"
-                                onClick={() => startWorkoutMutation.mutate(workoutPlan)}
-                                disabled={startWorkoutMutation.isPending}
-                                data-testid={`button-start-workout-${workout.id}`}
-                              >
-                                {startWorkoutMutation.isPending ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  <>
-                                    <Dumbbell className="mr-1 h-4 w-4" />
-                                    Start
-                                  </>
-                                )}
-                              </Button>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                    <div className="border-t pt-4" />
-                  </div>
-                );
-              }
-              return null;
-            })()}
-            
             {recLoading ? (
               <Skeleton className="h-64 w-full" />
             ) : recError ? (
@@ -1161,6 +1179,7 @@ export default function Training() {
         tiles={tiles}
         defaultVisible={[
           "readiness-score",
+          "ai-saved-workouts",
           "daily-recommendation",
           "recovery-protocols",
           "scheduled-calendar",
