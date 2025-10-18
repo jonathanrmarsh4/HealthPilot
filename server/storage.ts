@@ -312,6 +312,7 @@ export interface IStorage {
   getScheduledExerciseRecommendations(userId: string, status?: string): Promise<ScheduledExerciseRecommendation[]>;
   getScheduledExerciseRecommendationsByIntent(userId: string, intent: string, status?: string): Promise<ScheduledExerciseRecommendation[]>;
   updateScheduledExerciseRecommendation(id: string, userId: string, updates: Partial<ScheduledExerciseRecommendation>): Promise<void>;
+  deleteScheduledExerciseRecommendation(id: string, userId: string): Promise<void>;
   autoScheduleUserTaskExercise(id: string, userId: string, scheduledDates: string[]): Promise<void>;
   getScheduledExercisesForDateRange(userId: string, startDate: Date, endDate: Date): Promise<ScheduledExerciseRecommendation[]>;
 
@@ -319,6 +320,7 @@ export interface IStorage {
   createScheduledInsight(insight: InsertScheduledInsight): Promise<ScheduledInsight>;
   getScheduledInsights(userId: string, status?: string): Promise<ScheduledInsight[]>;
   updateScheduledInsight(id: string, userId: string, updates: Partial<ScheduledInsight>): Promise<void>;
+  deleteScheduledInsight(id: string, userId: string): Promise<void>;
   
   // Insight Feedback methods
   createInsightFeedback(feedback: InsertInsightFeedback): Promise<InsightFeedback>;
@@ -2405,6 +2407,17 @@ export class DbStorage implements IStorage {
       );
   }
 
+  async deleteScheduledExerciseRecommendation(id: string, userId: string): Promise<void> {
+    await db
+      .delete(scheduledExerciseRecommendations)
+      .where(
+        and(
+          eq(scheduledExerciseRecommendations.id, id),
+          eq(scheduledExerciseRecommendations.userId, userId)
+        )
+      );
+  }
+
   async getScheduledExerciseRecommendationsByIntent(userId: string, intent: string, status?: string): Promise<ScheduledExerciseRecommendation[]> {
     const conditions = [
       eq(scheduledExerciseRecommendations.userId, userId),
@@ -2504,6 +2517,17 @@ export class DbStorage implements IStorage {
     await db
       .update(scheduledInsights)
       .set(updates)
+      .where(
+        and(
+          eq(scheduledInsights.id, id),
+          eq(scheduledInsights.userId, userId)
+        )
+      );
+  }
+
+  async deleteScheduledInsight(id: string, userId: string): Promise<void> {
+    await db
+      .delete(scheduledInsights)
       .where(
         and(
           eq(scheduledInsights.id, id),

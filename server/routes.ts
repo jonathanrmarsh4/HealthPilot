@@ -4707,6 +4707,48 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
     }
   });
 
+  // Complete a scheduled exercise
+  app.post("/api/scheduled-exercises/:id/complete", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { id } = req.params;
+    try {
+      await storage.updateScheduledExerciseRecommendation(id, userId, {
+        status: 'completed',
+        completedAt: new Date(),
+      });
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error completing scheduled exercise:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Delete a scheduled exercise
+  app.delete("/api/scheduled-exercises/:id", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { id } = req.params;
+    try {
+      await storage.deleteScheduledExerciseRecommendation(id, userId);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error deleting scheduled exercise:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Delete a scheduled insight
+  app.delete("/api/scheduled-insights/:id", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { id } = req.params;
+    try {
+      await storage.deleteScheduledInsight(id, userId);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error deleting scheduled insight:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Proactive Suggestions endpoints
   
   // Check metrics and generate suggestions
