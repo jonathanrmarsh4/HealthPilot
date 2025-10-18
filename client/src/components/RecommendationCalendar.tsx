@@ -1,12 +1,15 @@
 import { useState, type MouseEvent } from "react";
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSameMonth, isSameDay, addMonths, subMonths, addWeeks, subWeeks, parseISO } from "date-fns";
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Sparkles, MoveRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Sparkles, MoveRight, Check, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 interface ScheduledRecommendation {
   id: string | number;
@@ -51,6 +54,99 @@ export function RecommendationCalendar({ recommendations, insights = [], onDateC
   // Touch interaction state
   const [touchStartTime, setTouchStartTime] = useState<number>(0);
   const [longPressTimeout, setLongPressTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
+  
+  const { toast } = useToast();
+
+  // Complete scheduled exercise mutation
+  const completeExerciseMutation = useMutation({
+    mutationFn: async (id: string | number) => {
+      return await apiRequest(`/api/scheduled-exercises/${id}/complete`, {
+        method: 'POST',
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/scheduled-exercises'] });
+      toast({
+        title: "Exercise completed",
+        description: "Great job! The exercise has been marked as complete.",
+      });
+      setDetailsDialogOpen(false);
+      setViewingActivity(null);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to complete exercise",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Delete scheduled exercise mutation
+  const deleteExerciseMutation = useMutation({
+    mutationFn: async (id: string | number) => {
+      return await apiRequest(`/api/scheduled-exercises/${id}`, {
+        method: 'DELETE',
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/scheduled-exercises'] });
+      toast({
+        title: "Exercise removed",
+        description: "The exercise has been removed from your schedule.",
+      });
+      setDetailsDialogOpen(false);
+      setViewingActivity(null);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete exercise",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Delete scheduled insight mutation
+  const deleteInsightMutation = useMutation({
+    mutationFn: async (id: string | number) => {
+      return await apiRequest(`/api/scheduled-insights/${id}`, {
+        method: 'DELETE',
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/scheduled-insights'] });
+      toast({
+        title: "Insight dismissed",
+        description: "The insight has been removed from your schedule.",
+      });
+      setDetailsDialogOpen(false);
+      setViewingActivity(null);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to dismiss insight",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleComplete = () => {
+    if (viewingActivity && viewingActivity.type === 'recommendation') {
+      completeExerciseMutation.mutate(viewingActivity.id);
+    }
+  };
+
+  const handleDelete = () => {
+    if (viewingActivity) {
+      if (viewingActivity.type === 'recommendation') {
+        deleteExerciseMutation.mutate(viewingActivity.id);
+      } else {
+        deleteInsightMutation.mutate(viewingActivity.id);
+      }
+    }
+  };
 
   // Combine recommendations and insights for calendar display
   const allActivities: ScheduledActivity[] = [...recommendations, ...insights];
@@ -473,11 +569,34 @@ export function RecommendationCalendar({ recommendations, insights = [], onDateC
               )}
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            {viewingActivity?.type === 'recommendation' && (
+              <Button 
+                variant="default" 
+                onClick={handleComplete}
+                disabled={completeExerciseMutation.isPending}
+                data-testid="button-complete-exercise"
+                className="w-full sm:w-auto"
+              >
+                <Check className="w-4 h-4 mr-2" />
+                {completeExerciseMutation.isPending ? "Completing..." : "Complete"}
+              </Button>
+            )}
+            <Button 
+              variant="destructive" 
+              onClick={handleDelete}
+              disabled={deleteExerciseMutation.isPending || deleteInsightMutation.isPending}
+              data-testid="button-delete-activity"
+              className="w-full sm:w-auto"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              {(deleteExerciseMutation.isPending || deleteInsightMutation.isPending) ? "Deleting..." : "Delete"}
+            </Button>
             <Button 
               variant="outline" 
               onClick={() => setDetailsDialogOpen(false)}
               data-testid="button-close-details"
+              className="w-full sm:w-auto"
             >
               Close
             </Button>
