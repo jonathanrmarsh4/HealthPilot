@@ -163,6 +163,10 @@ export default function Training() {
     queryKey: ["/api/scheduled-insights"],
   });
 
+  const { data: scheduledExercises = [] } = useQuery<any[]>({
+    queryKey: ["/api/scheduled-exercises"],
+  });
+
   const rescheduleRecommendationMutation = useMutation({
     mutationFn: async ({ recommendationId, newDate }: { recommendationId: string | number; newDate: Date }) => {
       return apiRequest("PATCH", `/api/recommendations/${recommendationId}/reschedule`, { 
@@ -576,23 +580,39 @@ export default function Training() {
             category: rec.category,
             duration: rec.duration,
           }))}
-          insights={scheduledInsights
-            .filter((insight: any) => 
-              insight.status === 'scheduled' || insight.status === 'active'
-            )
-            .flatMap((insight: any) => 
-              (insight.scheduledDates || []).map((date: string) => ({
-                id: `${insight.id}-${date}`,
-                insightId: insight.id,
-                title: insight.title,
-                scheduledAt: date,
-                type: 'insight' as const,
-                description: insight.description,
-                category: insight.category,
-                activityType: insight.activityType,
-                duration: insight.duration,
-              }))
-            )}
+          insights={[
+            ...scheduledInsights
+              .filter((insight: any) => 
+                insight.status === 'scheduled' || insight.status === 'active'
+              )
+              .flatMap((insight: any) => 
+                (insight.scheduledDates || []).map((date: string) => ({
+                  id: `${insight.id}-${date}`,
+                  insightId: insight.id,
+                  title: insight.title,
+                  scheduledAt: date,
+                  type: 'insight' as const,
+                  description: insight.description,
+                  category: insight.category,
+                  activityType: insight.activityType,
+                  duration: insight.duration,
+                }))
+              ),
+            ...scheduledExercises
+              .flatMap((exercise: any) => 
+                (exercise.scheduledDates || []).map((date: string) => ({
+                  id: `${exercise.id}-${date}`,
+                  insightId: exercise.id,
+                  title: exercise.exerciseName,
+                  scheduledAt: date,
+                  type: 'insight' as const,
+                  description: exercise.description,
+                  category: exercise.exerciseType,
+                  activityType: exercise.exerciseType,
+                  duration: exercise.duration,
+                }))
+              )
+          ]}
           onReschedule={(recommendationId, newDate) => {
             rescheduleRecommendationMutation.mutate({ recommendationId, newDate });
           }}

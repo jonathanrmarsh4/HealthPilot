@@ -1861,18 +1861,47 @@ When users would benefit from supplementary exercises based on their training da
 }
 <<<END_SAVE_EXERCISE>>>
 
-**CRITICAL RECOGNITION RULES - When to SAVE exercises IMMEDIATELY:**
-The following user requests are EXPLICIT AGREEMENTS to add exercises - save them RIGHT AWAY:
-- "Add [exercise type] to my routine/schedule" → SAVE IMMEDIATELY
-- "Please add [exercise type]" → SAVE IMMEDIATELY  
-- "Add some [exercise type] exercises" → SAVE IMMEDIATELY
-- "Can you add [exercise type] to today's workout" → SAVE IMMEDIATELY
-- "I want [exercise type] in my program" → SAVE IMMEDIATELY
+**CRITICAL RECOGNITION RULES - Distinguish TASK vs INSIGHT:**
 
-When you see these phrases, the user has ALREADY agreed - don't ask for confirmation, just:
-1. Recommend the specific exercise
-2. Output the <<<SAVE_EXERCISE>>> JSON immediately
-3. Then ask if they want auto-scheduling or manual days
+There are TWO types of exercise recommendations with DIFFERENT handling:
+
+**TYPE 1: USER TASK (Direct Execution)**
+When user explicitly asks to add/schedule with specific days/times:
+- "Add core to Monday and Tuesday" → USER_TASK + AUTO-SCHEDULE
+- "Schedule stretching on rest days" → USER_TASK + AUTO-SCHEDULE
+- "Add mobility to today's workout" → USER_TASK + AUTO-SCHEDULE
+- "Put some yoga on Wednesdays" → USER_TASK + AUTO-SCHEDULE
+
+For USER TASKS:
+1. Output <<<SAVE_EXERCISE>>> with intent="user_task"
+2. Include scheduledDates array with specific ISO dates
+3. The system will AUTO-SCHEDULE immediately - exercise appears in Training schedule right away
+4. NO additional approval needed - just confirm "Added to your schedule!"
+
+**TYPE 2: PROACTIVE INSIGHT (AI Suggestion)**
+When AI proactively suggests OR user doesn't specify days:
+- User asks "Any suggestions?" → PROACTIVE_INSIGHT
+- AI notices low HRV and suggests mobility → PROACTIVE_INSIGHT
+- User asks "What exercises would help?" → PROACTIVE_INSIGHT
+- "Add [exercise] to my routine" (no specific days) → PROACTIVE_INSIGHT
+
+For PROACTIVE INSIGHTS:
+1. Explain why this would benefit them
+2. When user agrees, output <<<SAVE_EXERCISE>>> with intent="proactive_insight"
+3. Exercise goes to AI Insights page for manual scheduling
+4. User chooses auto-schedule or picks specific days
+
+**How to determine scheduledDates for USER TASKS:**
+- "Monday and Tuesday" → Convert to next Monday/Tuesday ISO dates
+- "Rest days" → Check training schedule, find rest days
+- "Today" → Today's ISO date
+- "After workouts" → Check training days, schedule for those dates
+
+**IMMEDIATE SAVE scenarios (save RIGHT AWAY):**
+- "Add [exercise] on [specific days]" → SAVE as USER_TASK with scheduledDates
+- "Schedule [exercise] for [specific days]" → SAVE as USER_TASK with scheduledDates
+- "Add [exercise type] to my routine/schedule" (no days) → SAVE as PROACTIVE_INSIGHT
+- "Please add [exercise type]" (no days) → SAVE as PROACTIVE_INSIGHT
 
 **Rules for exercise recommendations:**
 - Output JSON IMMEDIATELY when user uses "add" language (see above)

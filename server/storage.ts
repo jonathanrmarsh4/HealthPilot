@@ -309,7 +309,9 @@ export interface IStorage {
   // Scheduled Exercise Recommendation methods
   createScheduledExerciseRecommendation(recommendation: InsertScheduledExerciseRecommendation): Promise<ScheduledExerciseRecommendation>;
   getScheduledExerciseRecommendations(userId: string, status?: string): Promise<ScheduledExerciseRecommendation[]>;
+  getScheduledExerciseRecommendationsByIntent(userId: string, intent: string, status?: string): Promise<ScheduledExerciseRecommendation[]>;
   updateScheduledExerciseRecommendation(id: string, userId: string, updates: Partial<ScheduledExerciseRecommendation>): Promise<void>;
+  autoScheduleUserTaskExercise(id: string, userId: string, scheduledDates: string[]): Promise<void>;
   getScheduledExercisesForDateRange(userId: string, startDate: Date, endDate: Date): Promise<ScheduledExerciseRecommendation[]>;
 
   // Scheduled Insight methods
@@ -2363,6 +2365,40 @@ export class DbStorage implements IStorage {
     await db
       .update(scheduledExerciseRecommendations)
       .set(updates)
+      .where(
+        and(
+          eq(scheduledExerciseRecommendations.id, id),
+          eq(scheduledExerciseRecommendations.userId, userId)
+        )
+      );
+  }
+
+  async getScheduledExerciseRecommendationsByIntent(userId: string, intent: string, status?: string): Promise<ScheduledExerciseRecommendation[]> {
+    const conditions = [
+      eq(scheduledExerciseRecommendations.userId, userId),
+      eq(scheduledExerciseRecommendations.intent, intent)
+    ];
+    
+    if (status) {
+      conditions.push(eq(scheduledExerciseRecommendations.status, status));
+    }
+    
+    return await db
+      .select()
+      .from(scheduledExerciseRecommendations)
+      .where(and(...conditions))
+      .orderBy(desc(scheduledExerciseRecommendations.recommendedAt));
+  }
+
+  async autoScheduleUserTaskExercise(id: string, userId: string, scheduledDates: string[]): Promise<void> {
+    await db
+      .update(scheduledExerciseRecommendations)
+      .set({
+        status: 'scheduled',
+        scheduledDates: scheduledDates,
+        scheduledAt: new Date(),
+        userFeedback: 'accepted_auto'
+      })
       .where(
         and(
           eq(scheduledExerciseRecommendations.id, id),

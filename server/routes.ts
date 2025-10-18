@@ -3068,12 +3068,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get all exercise recommendations
+  // Get all exercise recommendations (AI Insights page - only proactive insights)
   app.get("/api/exercise-recommendations", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
     const status = req.query.status as string | undefined;
     try {
-      const recommendations = await storage.getScheduledExerciseRecommendations(userId, status);
+      // Only show proactive insights on AI Insights page (user tasks go directly to Training page)
+      const recommendations = await storage.getScheduledExerciseRecommendationsByIntent(userId, 'proactive_insight', status);
       res.json(recommendations);
     } catch (error: any) {
       console.error("Error fetching exercise recommendations:", error);
@@ -4694,6 +4695,18 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
     }
   });
 
+  // Get scheduled exercise recommendations
+  app.get("/api/scheduled-exercises", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    try {
+      const exercises = await storage.getScheduledExerciseRecommendations(userId, 'scheduled');
+      res.json(exercises);
+    } catch (error: any) {
+      console.error("Error fetching scheduled exercises:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Proactive Suggestions endpoints
   
   // Check metrics and generate suggestions
@@ -5161,9 +5174,13 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
           console.log("📋 Exercise JSON:", exerciseJson);
           const exercise = JSON.parse(exerciseJson);
           
-          console.log("💾 Saving exercise recommendation:", exercise.exerciseName);
+          // Determine intent: 'user_task' (direct request with specific days) or 'proactive_insight' (AI suggestion)
+          const intent = exercise.intent || 'proactive_insight';
+          const isUserTask = intent === 'user_task' && exercise.scheduledDates && Array.isArray(exercise.scheduledDates) && exercise.scheduledDates.length > 0;
           
-          await storage.createScheduledExerciseRecommendation({
+          console.log("💾 Saving exercise recommendation:", exercise.exerciseName, "| Intent:", intent, "| User Task:", isUserTask);
+          
+          const createdExercise = await storage.createScheduledExerciseRecommendation({
             userId,
             exerciseName: exercise.exerciseName,
             exerciseType: exercise.exerciseType,
@@ -5173,11 +5190,19 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
             recommendedBy: 'ai',
             reason: exercise.reason,
             isSupplementary: 1, // Always supplementary from AI
-            status: 'pending',
-            scheduledDates: null,
-            userFeedback: null,
+            intent: intent,
+            status: isUserTask ? 'scheduled' : 'pending', // Auto-schedule user tasks
+            scheduledDates: isUserTask ? exercise.scheduledDates : null,
+            userFeedback: isUserTask ? 'accepted_auto' : null,
             declineReason: null,
           });
+          
+          // If user task with scheduled dates, auto-schedule immediately
+          if (isUserTask) {
+            console.log("🗓️ Auto-scheduling user task exercise for dates:", exercise.scheduledDates);
+            await storage.autoScheduleUserTaskExercise(createdExercise.id, userId, exercise.scheduledDates);
+            console.log("✨ User task exercise auto-scheduled and ready in Training page!");
+          }
           
           exerciseSaved = true;
           console.log("✨ Exercise recommendation saved successfully!");

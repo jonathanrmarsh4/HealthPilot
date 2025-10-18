@@ -523,7 +523,7 @@ export default function TermsOfService() {
             </div>
             <div>
               <p className="font-semibold text-foreground">Legal Inquiries</p>
-              <p>Email: <a href="mailto:legal@healthpilot.ai" className="text-primary hover:underline">legal@healthpilot.ai</a></p>
+              <p>Email: <a href="mailto:legal@healthpilot.pro" className="text-primary hover:underline">legal@healthpilot.pro</a></p>
             </div>
             <div className="mt-4">
               <p className="font-semibold text-foreground">Additional Resources</p>

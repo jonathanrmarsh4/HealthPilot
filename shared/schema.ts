@@ -638,6 +638,7 @@ export const scheduledExerciseRecommendations = pgTable("scheduled_exercise_reco
   reason: text("reason").notNull(), // AI explanation for why this exercise was recommended
   isSupplementary: integer("is_supplementary").notNull().default(1), // 1 = supplementary (won't override core workouts), 0 = can be core
   status: text("status").notNull().default("pending"), // 'pending', 'scheduled', 'declined', 'completed'
+  intent: text("intent").notNull().default("proactive_insight"), // 'proactive_insight' (AI suggestion requiring approval) or 'user_task' (direct user request - auto-scheduled)
   scheduledDates: text("scheduled_dates").array(), // Array of ISO date strings when this is scheduled
   userFeedback: text("user_feedback"), // 'accepted_auto', 'accepted_manual', 'declined'
   declineReason: text("decline_reason"),
