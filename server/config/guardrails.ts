@@ -133,8 +133,25 @@ export function loadTrainingGuardrails(): TrainingGuardrails {
     return cachedGuardrails;
   }
 
-  const guardrailsPath = path.join(__dirname, 'training-guardrails.json');
-  const guardrailsData = fs.readFileSync(guardrailsPath, 'utf-8');
+  // Try multiple paths for development and production environments
+  const possiblePaths = [
+    path.join(__dirname, 'training-guardrails.json'),  // Development
+    path.join(__dirname, 'config', 'training-guardrails.json'),  // Production (dist/)
+    path.join(process.cwd(), 'server', 'config', 'training-guardrails.json'),  // Fallback to project root
+  ];
+
+  let guardrailsData: string | null = null;
+  for (const guardrailsPath of possiblePaths) {
+    if (fs.existsSync(guardrailsPath)) {
+      guardrailsData = fs.readFileSync(guardrailsPath, 'utf-8');
+      break;
+    }
+  }
+
+  if (!guardrailsData) {
+    throw new Error(`Could not find training-guardrails.json in any of the following paths: ${possiblePaths.join(', ')}`);
+  }
+
   cachedGuardrails = JSON.parse(guardrailsData);
   
   return cachedGuardrails;
@@ -149,8 +166,25 @@ export function loadSystemKnowledge(): any {
     return cachedSystemKnowledge;
   }
 
-  const knowledgePath = path.join(__dirname, 'healthpilot-system-knowledge.json');
-  const knowledgeData = fs.readFileSync(knowledgePath, 'utf-8');
+  // Try multiple paths for development and production environments
+  const possiblePaths = [
+    path.join(__dirname, 'healthpilot-system-knowledge.json'),  // Development
+    path.join(__dirname, 'config', 'healthpilot-system-knowledge.json'),  // Production (dist/)
+    path.join(process.cwd(), 'server', 'config', 'healthpilot-system-knowledge.json'),  // Fallback to project root
+  ];
+
+  let knowledgeData: string | null = null;
+  for (const knowledgePath of possiblePaths) {
+    if (fs.existsSync(knowledgePath)) {
+      knowledgeData = fs.readFileSync(knowledgePath, 'utf-8');
+      break;
+    }
+  }
+
+  if (!knowledgeData) {
+    throw new Error(`Could not find healthpilot-system-knowledge.json in any of the following paths: ${possiblePaths.join(', ')}`);
+  }
+
   cachedSystemKnowledge = JSON.parse(knowledgeData);
   
   return cachedSystemKnowledge;
