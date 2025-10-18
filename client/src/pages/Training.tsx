@@ -670,29 +670,66 @@ export default function Training() {
                       <h4 className="font-semibold text-sm">Your Scheduled Workouts</h4>
                     </div>
                     <div className="space-y-2">
-                      {todayWorkouts.map((workout) => (
-                        <div key={workout.id} className="p-3 rounded-lg border bg-card hover-elevate" data-testid={`workout-${workout.id}`}>
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-1">
-                                <h5 className="font-medium text-sm" data-testid="text-workout-type">
-                                  {workout.workoutType}
-                                </h5>
-                                {workout.duration && (
-                                  <Badge variant="outline" className="text-xs">
-                                    {workout.duration} min
-                                  </Badge>
+                      {todayWorkouts.map((workout) => {
+                        // Convert TrainingSchedule to WorkoutPlan format
+                        const workoutPlan: WorkoutPlan = {
+                          title: workout.workoutType,
+                          exercises: workout.exercises || [],
+                          totalDuration: workout.duration || 60,
+                          intensity: workout.intensity || 'Moderate',
+                          calorieEstimate: Math.round((workout.duration || 60) * 8) // Rough estimate
+                        };
+
+                        return (
+                          <div key={workout.id} className="p-3 rounded-lg border bg-card hover-elevate" data-testid={`workout-${workout.id}`}>
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <h5 className="font-medium text-sm" data-testid="text-workout-type">
+                                    {workout.workoutType}
+                                  </h5>
+                                  {workout.duration && (
+                                    <Badge variant="outline" className="text-xs">
+                                      {workout.duration} min
+                                    </Badge>
+                                  )}
+                                  {workout.intensity && (
+                                    <Badge variant="secondary" className="text-xs">
+                                      {workout.intensity}
+                                    </Badge>
+                                  )}
+                                </div>
+                                {workout.description && (
+                                  <p className="text-xs text-muted-foreground line-clamp-2" data-testid="text-workout-description">
+                                    {workout.description}
+                                  </p>
+                                )}
+                                {workout.exercises && workout.exercises.length > 0 && (
+                                  <div className="text-xs text-muted-foreground mt-1">
+                                    <Zap className="h-3 w-3 inline mr-1" />
+                                    {workout.exercises.length} exercises
+                                  </div>
                                 )}
                               </div>
-                              {workout.description && (
-                                <p className="text-xs text-muted-foreground line-clamp-2" data-testid="text-workout-description">
-                                  {workout.description}
-                                </p>
-                              )}
+                              <Button
+                                size="sm"
+                                onClick={() => startWorkoutMutation.mutate(workoutPlan)}
+                                disabled={startWorkoutMutation.isPending}
+                                data-testid={`button-start-workout-${workout.id}`}
+                              >
+                                {startWorkoutMutation.isPending ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <>
+                                    <Dumbbell className="mr-1 h-4 w-4" />
+                                    Start
+                                  </>
+                                )}
+                              </Button>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                     <div className="border-t pt-4" />
                   </div>
