@@ -61,6 +61,7 @@ interface Exercise {
   videoUrl?: string;
   difficulty?: string;
   category: string;
+  trackingType: string; // 'weight_reps', 'bodyweight_reps', 'distance_duration', 'duration_only'
 }
 
 interface ExerciseSet {
@@ -73,6 +74,8 @@ interface ExerciseSet {
   targetRepsHigh?: number;
   weight?: number | null;
   reps?: number | null;
+  distance?: number | null; // in km for cardio
+  duration?: number | null; // in seconds for cardio/flexibility
   rpeLogged?: number;
   completed: number;
   notes?: string;
@@ -146,35 +149,47 @@ function SortableExerciseCard({
   };
 
   // Local state for input values (for responsive typing)
-  const [localValues, setLocalValues] = useState<Map<string, { weight: string; reps: string }>>(new Map());
+  const [localValues, setLocalValues] = useState<Map<string, { weight: string; reps: string; distance: string; duration: string }>>(new Map());
 
   // Initialize local values when sets change
   useEffect(() => {
-    const newValues = new Map<string, { weight: string; reps: string }>();
+    const newValues = new Map<string, { weight: string; reps: string; distance: string; duration: string }>();
     exerciseSets.forEach(set => {
       newValues.set(set.id, {
         weight: set.weight !== null && set.weight !== undefined ? set.weight.toString() : '',
-        reps: set.reps !== null && set.reps !== undefined ? set.reps.toString() : ''
+        reps: set.reps !== null && set.reps !== undefined ? set.reps.toString() : '',
+        distance: set.distance !== null && set.distance !== undefined ? set.distance.toString() : '',
+        duration: set.duration !== null && set.duration !== undefined ? Math.floor(set.duration / 60).toString() : '' // Convert seconds to minutes for display
       });
     });
     setLocalValues(newValues);
   }, [exerciseSets]);
 
-  const getLocalValue = (setId: string, field: 'weight' | 'reps') => {
+  const getLocalValue = (setId: string, field: 'weight' | 'reps' | 'distance' | 'duration') => {
     return localValues.get(setId)?.[field] ?? '';
   };
 
-  const setLocalValue = (setId: string, field: 'weight' | 'reps', value: string) => {
+  const setLocalValue = (setId: string, field: 'weight' | 'reps' | 'distance' | 'duration', value: string) => {
     setLocalValues(prev => {
       const newMap = new Map(prev);
-      const current = newMap.get(setId) || { weight: '', reps: '' };
+      const current = newMap.get(setId) || { weight: '', reps: '', distance: '', duration: '' };
       newMap.set(setId, { ...current, [field]: value });
       return newMap;
     });
   };
 
-  const saveValue = (setId: string, field: 'weight' | 'reps', value: string) => {
-    const numValue = value === '' ? null : (field === 'weight' ? parseFloat(value) : parseInt(value));
+  const saveValue = (setId: string, field: 'weight' | 'reps' | 'distance' | 'duration', value: string) => {
+    let numValue: number | null;
+    if (value === '') {
+      numValue = null;
+    } else if (field === 'weight' || field === 'distance') {
+      numValue = parseFloat(value);
+    } else if (field === 'duration') {
+      numValue = parseInt(value) * 60; // Convert minutes to seconds for storage
+    } else {
+      numValue = parseInt(value);
+    }
+    
     updateSetMutation.mutate({
       setId,
       data: { [field]: numValue },
@@ -297,62 +312,136 @@ function SortableExerciseCard({
               )}
             </div>
 
-            {/* Inputs Row - Horizontal Layout */}
+            {/* Inputs Row - Conditional based on exercise tracking type */}
             <div className="flex items-end gap-2">
-              {/* Weight Input */}
-              <div className="flex-1">
-                <label className="text-xs text-muted-foreground block mb-1">Weight (kg)</label>
-                <div className="flex gap-1">
+              {/* Weight + Reps (for strength training) */}
+              {exercise.trackingType === 'weight_reps' && (
+                <>
+                  <div className="flex-1">
+                    <label className="text-xs text-muted-foreground block mb-1">Weight (kg)</label>
+                    <div className="flex gap-1">
+                      <Input
+                        type="number"
+                        step="0.1"
+                        placeholder="0"
+                        value={getLocalValue(set.id, 'weight')}
+                        onChange={(e) => setLocalValue(set.id, 'weight', e.target.value)}
+                        onBlur={(e) => saveValue(set.id, 'weight', e.target.value)}
+                        disabled={set.completed === 1 || set.weight === null}
+                        className="h-10 text-base flex-1"
+                        data-testid={`input-weight-${exerciseIndex}-${setIndex}`}
+                      />
+                      <Button
+                        size="sm"
+                        variant={set.weight === null ? "default" : "outline"}
+                        onClick={() =>
+                          updateSetMutation.mutate({
+                            setId: set.id,
+                            data: { weight: set.weight === null ? (progressiveSuggestion?.suggestedWeight ?? 20) : null },
+                          })
+                        }
+                        disabled={set.completed === 1}
+                        className="h-10 px-3 text-xs"
+                        data-testid={`button-bodyweight-${exerciseIndex}-${setIndex}`}
+                      >
+                        BW
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <label className="text-xs text-muted-foreground block mb-1">Reps</label>
+                    <Input
+                      type="number"
+                      placeholder="0"
+                      value={getLocalValue(set.id, 'reps')}
+                      onChange={(e) => setLocalValue(set.id, 'reps', e.target.value)}
+                      onBlur={(e) => saveValue(set.id, 'reps', e.target.value)}
+                      disabled={set.completed === 1}
+                      className="h-10 text-base"
+                      data-testid={`input-reps-${exerciseIndex}-${setIndex}`}
+                    />
+                  </div>
+                </>
+              )}
+
+              {/* Reps only (for bodyweight exercises) */}
+              {exercise.trackingType === 'bodyweight_reps' && (
+                <div className="flex-1">
+                  <label className="text-xs text-muted-foreground block mb-1">Reps</label>
                   <Input
                     type="number"
-                    step="0.1"
                     placeholder="0"
-                    value={getLocalValue(set.id, 'weight')}
-                    onChange={(e) => setLocalValue(set.id, 'weight', e.target.value)}
-                    onBlur={(e) => saveValue(set.id, 'weight', e.target.value)}
-                    disabled={set.completed === 1 || set.weight === null}
-                    className="h-10 text-base flex-1"
-                    data-testid={`input-weight-${exerciseIndex}-${setIndex}`}
-                  />
-                  <Button
-                    size="sm"
-                    variant={set.weight === null ? "default" : "outline"}
-                    onClick={() =>
-                      updateSetMutation.mutate({
-                        setId: set.id,
-                        data: { weight: set.weight === null ? (progressiveSuggestion?.suggestedWeight ?? 20) : null },
-                      })
-                    }
+                    value={getLocalValue(set.id, 'reps')}
+                    onChange={(e) => setLocalValue(set.id, 'reps', e.target.value)}
+                    onBlur={(e) => saveValue(set.id, 'reps', e.target.value)}
                     disabled={set.completed === 1}
-                    className="h-10 px-3 text-xs"
-                    data-testid={`button-bodyweight-${exerciseIndex}-${setIndex}`}
-                  >
-                    BW
-                  </Button>
+                    className="h-10 text-base"
+                    data-testid={`input-reps-${exerciseIndex}-${setIndex}`}
+                  />
                 </div>
-              </div>
+              )}
 
-              {/* Reps Input */}
-              <div className="flex-1">
-                <label className="text-xs text-muted-foreground block mb-1">Reps</label>
-                <Input
-                  type="number"
-                  placeholder="0"
-                  value={getLocalValue(set.id, 'reps')}
-                  onChange={(e) => setLocalValue(set.id, 'reps', e.target.value)}
-                  onBlur={(e) => saveValue(set.id, 'reps', e.target.value)}
-                  disabled={set.completed === 1}
-                  className="h-10 text-base"
-                  data-testid={`input-reps-${exerciseIndex}-${setIndex}`}
-                />
-              </div>
+              {/* Distance + Duration (for cardio like running, cycling) */}
+              {exercise.trackingType === 'distance_duration' && (
+                <>
+                  <div className="flex-1">
+                    <label className="text-xs text-muted-foreground block mb-1">Distance (km)</label>
+                    <Input
+                      type="number"
+                      step="0.1"
+                      placeholder="0"
+                      value={getLocalValue(set.id, 'distance')}
+                      onChange={(e) => setLocalValue(set.id, 'distance', e.target.value)}
+                      onBlur={(e) => saveValue(set.id, 'distance', e.target.value)}
+                      disabled={set.completed === 1}
+                      className="h-10 text-base"
+                      data-testid={`input-distance-${exerciseIndex}-${setIndex}`}
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="text-xs text-muted-foreground block mb-1">Duration (min)</label>
+                    <Input
+                      type="number"
+                      placeholder="0"
+                      value={getLocalValue(set.id, 'duration')}
+                      onChange={(e) => setLocalValue(set.id, 'duration', e.target.value)}
+                      onBlur={(e) => saveValue(set.id, 'duration', e.target.value)}
+                      disabled={set.completed === 1}
+                      className="h-10 text-base"
+                      data-testid={`input-duration-${exerciseIndex}-${setIndex}`}
+                    />
+                  </div>
+                </>
+              )}
 
-              {/* Complete Button */}
+              {/* Duration only (for flexibility/stretching) */}
+              {exercise.trackingType === 'duration_only' && (
+                <div className="flex-1">
+                  <label className="text-xs text-muted-foreground block mb-1">Duration (min)</label>
+                  <Input
+                    type="number"
+                    placeholder="0"
+                    value={getLocalValue(set.id, 'duration')}
+                    onChange={(e) => setLocalValue(set.id, 'duration', e.target.value)}
+                    onBlur={(e) => saveValue(set.id, 'duration', e.target.value)}
+                    disabled={set.completed === 1}
+                    className="h-10 text-base"
+                    data-testid={`input-duration-${exerciseIndex}-${setIndex}`}
+                  />
+                </div>
+              )}
+
+              {/* Complete Button - Validation based on tracking type */}
               {set.completed === 0 && (
                 <Button
                   size="default"
                   onClick={() => handleCompleteSet(set, exercise)}
-                  disabled={!set.reps || (set.weight !== null && set.weight !== 0 && !set.weight)}
+                  disabled={
+                    (exercise.trackingType === 'weight_reps' && (!set.reps || (set.weight !== null && set.weight !== 0 && !set.weight))) ||
+                    (exercise.trackingType === 'bodyweight_reps' && !set.reps) ||
+                    (exercise.trackingType === 'distance_duration' && (!set.distance || !set.duration)) ||
+                    (exercise.trackingType === 'duration_only' && !set.duration)
+                  }
                   className="h-10 px-4"
                   data-testid={`button-complete-set-${exerciseIndex}-${setIndex}`}
                 >
