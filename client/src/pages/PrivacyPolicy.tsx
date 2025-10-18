@@ -271,11 +271,11 @@ export default function PrivacyPolicy() {
             </div>
             <div>
               <p className="font-semibold">Data Protection Officer (DPO) - EU Inquiries</p>
-              <p>Email: dpo@healthpilot.ai</p>
+              <p>Email: dpo@healthpilot.pro</p>
             </div>
             <div>
               <p className="font-semibold">Security Concerns</p>
-              <p>Email: security@healthpilot.ai</p>
+              <p>Email: security@healthpilot.pro</p>
             </div>
             <div>
               <p className="font-semibold">Supervisory Authority (GDPR)</p>

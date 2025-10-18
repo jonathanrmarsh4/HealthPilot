@@ -457,7 +457,7 @@ export default function SecurityWhitepaper() {
 
             <div>
               <h4 className="font-semibold text-foreground mb-2">8.4 Security Contact</h4>
-              <p>Report security vulnerabilities to: <a href="mailto:security@healthpilot.ai" className="text-primary hover:underline">security@healthpilot.ai</a></p>
+              <p>Report security vulnerabilities to: <a href="mailto:security@healthpilot.pro" className="text-primary hover:underline">security@healthpilot.pro</a></p>
               <p className="mt-2">We appreciate responsible disclosure and will respond within 48 hours.</p>
             </div>
           </CardContent>
@@ -558,12 +558,12 @@ export default function SecurityWhitepaper() {
             </div>
             <div>
               <p className="font-semibold text-foreground">Data Protection Officer (DPO) - EU Inquiries</p>
-              <p>Email: <a href="mailto:dpo@healthpilot.ai" className="text-primary hover:underline">dpo@healthpilot.ai</a></p>
+              <p>Email: <a href="mailto:dpo@healthpilot.pro" className="text-primary hover:underline">dpo@healthpilot.pro</a></p>
               <p className="text-xs mt-1">For GDPR-related questions and EU privacy matters</p>
             </div>
             <div>
               <p className="font-semibold text-foreground">Security Team</p>
-              <p>Email: <a href="mailto:security@healthpilot.ai" className="text-primary hover:underline">security@healthpilot.ai</a></p>
+              <p>Email: <a href="mailto:security@healthpilot.pro" className="text-primary hover:underline">security@healthpilot.pro</a></p>
               <p className="text-xs mt-1">For security vulnerabilities and incident reports</p>
             </div>
           </CardContent>
