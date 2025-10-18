@@ -1,0 +1,55 @@
+"use client";
+import { motion } from "framer-motion";
+import Image from "next/image";
+import { Button } from "@/components/ui/button";
+
+export default function Hero() {
+  return (
+    <section className="relative isolate px-6 pt-24 pb-24 md:pb-40">
+      {/* gradient aura */}
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(70%_50%_at_70%_20%,rgba(0,224,198,0.20),transparent_60%)]" />
+      <div className="mx-auto max-w-6xl grid md:grid-cols-2 gap-10 items-center">
+        <div>
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+            className="text-4xl md:text-6xl font-semibold leading-tight"
+          >
+            Your AI Copilot for <span className="text-[#00E0C6]">Health, Fitness & Longevity</span>
+          </motion.h1>
+          <p className="mt-5 text-white/70 max-w-xl">
+            Connect HealthKit, wearables, and blood work to get real-time insights, adaptive training, and evidence-based nutrition.
+          </p>
+          <div className="mt-8 flex gap-3">
+            <Button className="rounded-full h-12 px-6 text-base bg-[#00E0C6] text-black hover:brightness-110">
+              Start Free
+            </Button>
+            <Button variant="outline" className="rounded-full h-12 px-6 text-base border-white/20 hover:bg-white/10">
+              Watch Demo
+            </Button>
+          </div>
+          <div className="mt-8 flex items-center gap-6 opacity-70">
+            <Image src="/images/logos/apple.svg" alt="Apple Health" width={80} height={18}/>
+            <Image src="/images/logos/garmin.svg" alt="Garmin" width={80} height={18}/>
+            <Image src="/images/logos/oura.svg" alt="Oura" width={80} height={18}/>
+            <Image src="/images/logos/whoop.svg" alt="Whoop" width={80} height={18}/>
+          </div>
+        </div>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.2 }}
+          className="relative"
+        >
+          <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur p-4">
+            <Image
+              src="/images/dashboard-desktop.png"
+              alt="HealthPilot dashboard"
+              width={900}
+              height={580}
+              className="rounded-xl"
+            />
+          </div>
+        </motion.div>
+      </div>
+    </section>
+  );
+}
