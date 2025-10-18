@@ -3,52 +3,23 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-  Shield, Lock, Database, Activity, Brain, Calendar,
-  TrendingUp, CheckCircle, Star, Users, Zap, Sparkles,
-  ArrowRight, Apple,
-  Heart, Clock, Target
+  Shield, Activity, Brain, Calendar,
+  TrendingUp, CheckCircle, Star, ArrowRight, Apple, Heart, Target, Zap, Sparkles
 } from "lucide-react";
-import digitalHumanImage from "@assets/stock_images/futuristic_digital_h_79a07a7b.jpg";
+import digitalHumanImage from "@assets/IMG_0088_1760794249248.png";
 import { useLocation } from "wouter";
-
-/**
- * Notes:
- * - Dark "nebula" gradient + cyan aura to mirror the mockup.
- * - Glassmorphism panels, subtle borders (border-border/50), backdrop-blur.
- * - Digital person image with radial mask + cyan rim light glow.
- * - Floating stat chips, partner logos, CTA with glow.
- * - Compact sections for How It Works, Features, Testimonials, Pricing.
- *
- * Tailwind assumptions: shadcn/ui theme tokens (bg-background, text-foreground, bg-card, border-border, text-muted-foreground, primary).
- */
 
 export default function LandingPage() {
   const [, setLocation] = useLocation();
 
   return (
-    <div className="min-h-screen bg-[#0A0F1F] text-foreground antialiased">
-      {/* === Global Background Effects === */}
-      <div className="pointer-events-none fixed inset-0 -z-20">
-        {/* Deep gradient backdrop */}
-        <div className="absolute inset-0 bg-[radial-gradient(1200px_600px_at_70%_10%,rgba(0,224,198,0.14),transparent_60%),radial-gradient(800px_400px_at_10%_20%,rgba(0,224,198,0.08),transparent_50%),linear-gradient(180deg,#0A0F1F_0%,#0A0F1F_40%,#0B132B_100%)]" />
-        {/* Soft grid lines for depth */}
-        <div
-          className="absolute inset-0 opacity-[0.08] [mask-image:radial-gradient(70%_60%_at_50%_30%,black,transparent)]"
-          style={{
-            backgroundImage:
-              "linear-gradient(to right,#fff1 1px,transparent 1px),linear-gradient(to bottom,#fff1 1px,transparent 1px)",
-            backgroundSize: "48px 48px",
-          }}
-        />
-        {/* Noise sprinkle */}
-        <div className="absolute inset-0 opacity-[0.04] mix-blend-overlay bg-[url('data:image/svg+xml;utf8,<svg xmlns=%27http://www.w3.org/2000/svg%27 width=%27120%27 height=%27120%27><filter id=%27n%27 x=%270%27 y=%270%27><feTurbulence type=%27fractalNoise%27 baseFrequency=%270.8%27 numOctaves=%271%27 stitchTiles=%27stitch%27/></filter><rect width=%27100%25%27 height=%27100%25%27 filter=%27url(%23n)%27 opacity=%270.35%27/></svg>')]" />
-      </div>
-
+    <div className="min-h-screen bg-[#0A0F1F]">
       {/* === Hero Section === */}
-      <section className="relative isolate px-6 pt-28 md:pt-36 pb-20 md:pb-36">
-        {/* Cyan aura behind hero */}
-        <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(60%_40%_at_75%_25%,rgba(0,224,198,0.25),transparent_60%)]" />
-        <div className="mx-auto max-w-6xl grid md:grid-cols-2 gap-10 items-center">
+      <section className="relative px-6 pt-28 md:pt-36 pb-20 md:pb-36">
+        {/* Subtle cyan glow */}
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_40%_at_70%_25%,rgba(0,224,198,0.15),transparent_60%)]" />
+        
+        <div className="mx-auto max-w-6xl grid md:grid-cols-2 gap-10 items-center relative z-10">
           {/* Left: Copy / CTA */}
           <div>
             <motion.div
@@ -58,7 +29,7 @@ export default function LandingPage() {
             >
               <Badge
                 variant="outline"
-                className="border-primary/30 bg-primary/5 text-primary px-4 py-1.5"
+                className="border-[#00E0C6]/30 bg-[#00E0C6]/5 text-[#00E0C6] px-4 py-1.5"
               >
                 AI-Powered Health Intelligence
               </Badge>
@@ -68,16 +39,16 @@ export default function LandingPage() {
               initial={{ opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.06 }}
-              className="text-4xl md:text-6xl font-semibold leading-tight mb-6 tracking-tight"
+              className="text-4xl md:text-6xl font-semibold leading-tight mb-6 tracking-tight text-white"
             >
-              Your Body, <span className="text-primary">Decoded</span>
+              Your Body, <span className="text-[#00E0C6]">Decoded</span>
             </motion.h1>
 
             <motion.p
               initial={{ opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.12 }}
-              className="text-lg text-muted-foreground max-w-xl mb-8"
+              className="text-lg text-gray-400 max-w-xl mb-8"
             >
               Connect HealthKit, wearables, and blood work to get real-time insights,
               adaptive training, and evidence-based nutrition powered by AI.
@@ -91,7 +62,7 @@ export default function LandingPage() {
             >
               <Button
                 size="lg"
-                className="rounded-full px-8 shadow-[0_0_24px_rgba(0,224,198,0.35)] hover:shadow-[0_0_36px_rgba(0,224,198,0.55)] transition-shadow"
+                className="rounded-full px-8 bg-[#00E0C6] text-[#0A0F1F] hover:bg-[#00E0C6]/90 shadow-[0_0_24px_rgba(0,224,198,0.35)] hover:shadow-[0_0_36px_rgba(0,224,198,0.55)] transition-shadow"
                 onClick={() => setLocation("/pricing")}
               >
                 Start Free
@@ -100,7 +71,7 @@ export default function LandingPage() {
               <Button
                 size="lg"
                 variant="outline"
-                className="rounded-full px-8 backdrop-blur-sm border-primary/30 text-primary hover:bg-primary/10"
+                className="rounded-full px-8 border-[#00E0C6]/30 text-[#00E0C6] hover:bg-[#00E0C6]/10"
                 onClick={() => setLocation("/security")}
               >
                 Watch Demo
@@ -112,7 +83,7 @@ export default function LandingPage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.24 }}
-              className="flex items-center gap-6 opacity-80"
+              className="flex items-center gap-6 text-gray-500"
             >
               <div className="flex items-center gap-2">
                 <Apple className="h-5 w-5" />
@@ -136,87 +107,62 @@ export default function LandingPage() {
             transition={{ delay: 0.12 }}
             className="relative"
           >
-            {/* Cyan rim light glow */}
+            {/* Cyan glow behind image */}
             <div className="absolute -inset-6 -z-10 rounded-[28px] opacity-70 blur-2xl bg-[radial-gradient(40%_30%_at_70%_20%,rgba(0,224,198,0.25),transparent_60%)]" />
-            <div className="rounded-[22px] border border-border/50 bg-card/30 backdrop-blur-xl p-4">
-              {/* Image wrapper adds radial mask for the right edge to fade into bg */}
+            
+            <div className="rounded-[22px] border border-white/10 bg-white/5 backdrop-blur-xl p-4">
               <div className="relative overflow-hidden rounded-xl">
                 <img
                   src={digitalHumanImage}
                   alt="Digital human body visualization"
                   className="w-full h-auto rounded-xl"
-                  style={{
-                    WebkitMaskImage:
-                      "radial-gradient(120% 100% at 85% 50%, black 65%, transparent 100%)",
-                    maskImage:
-                      "radial-gradient(120% 100% at 85% 50%, black 65%, transparent 100%)",
-                  }}
-                />
-                {/* Subtle scanline / data pulse */}
-                <motion.div
-                  aria-hidden
-                  initial={{ y: "-100%" }}
-                  animate={{ y: "100%" }}
-                  transition={{ duration: 2.6, repeat: Infinity, ease: "linear" }}
-                  className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-cyan-300/10 via-cyan-300/0 to-transparent"
                 />
               </div>
             </div>
 
-            {/* Floating stats */}
+            {/* Floating stat - Readiness */}
             <motion.div
               initial={{ opacity: 0, x: -18 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.45 }}
-              className="absolute -left-4 top-1/4 bg-card/80 backdrop-blur-xl border border-border/50 rounded-xl p-4 shadow-lg"
+              className="absolute -left-4 top-1/4 bg-[#1A2332]/80 backdrop-blur-xl border border-white/10 rounded-xl p-4 shadow-lg"
             >
               <div className="flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-primary" />
+                <TrendingUp className="h-5 w-5 text-[#00E0C6]" />
                 <div>
-                  <div className="font-semibold">95% Readiness</div>
-                  <div className="text-xs text-muted-foreground">Peak performance</div>
+                  <div className="font-semibold text-white">95% Readiness</div>
+                  <div className="text-xs text-gray-400">Peak performance</div>
                 </div>
               </div>
             </motion.div>
 
+            {/* Floating stat - AI Insights */}
             <motion.div
               initial={{ opacity: 0, x: 18 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.6 }}
-              className="absolute -right-4 bottom-1/4 bg-card/80 backdrop-blur-xl border border-border/50 rounded-xl p-4 shadow-lg"
+              className="absolute -right-4 bottom-1/4 bg-[#1A2332]/80 backdrop-blur-xl border border-white/10 rounded-xl p-4 shadow-lg"
             >
               <div className="flex items-center gap-2">
-                <Brain className="h-5 w-5 text-primary" />
+                <Brain className="h-5 w-5 text-[#00E0C6]" />
                 <div>
-                  <div className="font-semibold">AI Insights</div>
-                  <div className="text-xs text-muted-foreground">Updated daily</div>
+                  <div className="font-semibold text-white">AI Insights</div>
+                  <div className="text-xs text-gray-400">Updated daily</div>
                 </div>
               </div>
             </motion.div>
-          </motion.div>
-        </div>
-
-        {/* Scroll hint */}
-        <div className="mt-10 md:mt-16 flex justify-center">
-          <motion.div
-            initial={{ opacity: 0, y: -4 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.8 }}
-            className="text-xs uppercase tracking-widest text-muted-foreground/80"
-          >
-            Scroll to see how it works
           </motion.div>
         </div>
       </section>
 
       {/* === How It Works === */}
-      <section className="relative isolate px-6 py-16 md:py-24">
+      <section className="relative px-6 py-16 md:py-24">
         <div className="mx-auto max-w-6xl">
           <div className="mb-10 md:mb-14">
-            <h2 className="text-2xl md:text-4xl font-semibold tracking-tight">
-              How It <span className="text-primary">Works</span>
+            <h2 className="text-2xl md:text-4xl font-semibold tracking-tight text-white">
+              How It <span className="text-[#00E0C6]">Works</span>
             </h2>
-            <p className="text-muted-foreground mt-3 max-w-2xl">
+            <p className="text-gray-400 mt-3 max-w-2xl">
               Three steps from data to daily action.
             </p>
           </div>
@@ -224,7 +170,7 @@ export default function LandingPage() {
           <div className="grid gap-6 md:grid-cols-3">
             {[
               {
-                icon: <Database className="h-5 w-5" />,
+                icon: <Activity className="h-5 w-5" />,
                 title: "Sync Your Data",
                 desc: "Connect HealthKit, wearables and blood results securely.",
               },
@@ -246,13 +192,13 @@ export default function LandingPage() {
                 viewport={{ once: true, amount: 0.4 }}
                 transition={{ delay: 0.06 * i }}
               >
-                <Card className="bg-card/40 backdrop-blur-xl border-border/50">
+                <Card className="bg-white/5 backdrop-blur-xl border-white/10 h-full">
                   <CardContent className="p-6">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-primary/10 text-primary">{item.icon}</div>
-                      <h3 className="font-semibold">{item.title}</h3>
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="p-2 rounded-lg bg-[#00E0C6]/10 text-[#00E0C6]">{item.icon}</div>
+                      <h3 className="font-semibold text-white">{item.title}</h3>
                     </div>
-                    <p className="text-sm text-muted-foreground mt-3">{item.desc}</p>
+                    <p className="text-sm text-gray-400">{item.desc}</p>
                   </CardContent>
                 </Card>
               </motion.div>
@@ -261,8 +207,8 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* === Feature Grid === */}
-      <section className="relative isolate px-6 py-16 md:py-24">
+      {/* === Features === */}
+      <section className="relative px-6 py-16 md:py-24">
         <div className="mx-auto max-w-6xl grid md:grid-cols-2 gap-6">
           {[
             {
@@ -288,14 +234,14 @@ export default function LandingPage() {
           ].map((f, i) => (
             <Card
               key={i}
-              className="bg-card/40 backdrop-blur-xl border-border/50 hover:bg-card/60 transition-colors"
+              className="bg-white/5 backdrop-blur-xl border-white/10 hover:bg-white/10 transition-colors"
             >
               <CardContent className="p-6">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-primary/10 text-primary">{f.icon}</div>
-                  <h3 className="font-semibold">{f.title}</h3>
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="p-2 rounded-lg bg-[#00E0C6]/10 text-[#00E0C6]">{f.icon}</div>
+                  <h3 className="font-semibold text-white">{f.title}</h3>
                 </div>
-                <p className="text-sm text-muted-foreground mt-3">{f.desc}</p>
+                <p className="text-sm text-gray-400">{f.desc}</p>
               </CardContent>
             </Card>
           ))}
@@ -303,34 +249,34 @@ export default function LandingPage() {
       </section>
 
       {/* === Testimonials === */}
-      <section className="relative isolate px-6 py-16 md:py-24">
+      <section className="relative px-6 py-16 md:py-24">
         <div className="mx-auto max-w-6xl">
           <div className="mb-10 md:mb-14">
-            <h2 className="text-2xl md:text-4xl font-semibold tracking-tight">
-              Built for <span className="text-primary">Everyone</span>
+            <h2 className="text-2xl md:text-4xl font-semibold tracking-tight text-white">
+              Built for <span className="text-[#00E0C6]">Everyone</span>
             </h2>
-            <p className="text-muted-foreground mt-3 max-w-2xl">
+            <p className="text-gray-400 mt-3 max-w-2xl">
               Join thousands optimizing their health with AI.
             </p>
           </div>
 
           <div className="grid gap-6 md:grid-cols-3">
             {[1, 2, 3].map((i) => (
-              <Card key={i} className="bg-card/40 backdrop-blur-xl border-border/50">
+              <Card key={i} className="bg-white/5 backdrop-blur-xl border-white/10">
                 <CardContent className="p-6">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-primary/15" />
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="h-10 w-10 rounded-full bg-[#00E0C6]/15" />
                     <div className="flex-1">
-                      <div className="font-semibold">User {i}</div>
-                      <div className="text-xs text-muted-foreground">Verified</div>
+                      <div className="font-semibold text-white">User {i}</div>
+                      <div className="text-xs text-gray-400">Verified</div>
                     </div>
-                    <div className="flex items-center gap-1 text-primary">
+                    <div className="flex items-center gap-1 text-[#00E0C6]">
                       {[...Array(5)].map((_, s) => (
                         <Star key={s} className="h-4 w-4 fill-current" />
                       ))}
                     </div>
                   </div>
-                  <p className="mt-4 text-sm text-muted-foreground">
+                  <p className="text-sm text-gray-300">
                     "HealthPilot turned confusing metrics into daily actions. I feel better,
                     lift more, and recover faster."
                   </p>
@@ -342,48 +288,48 @@ export default function LandingPage() {
       </section>
 
       {/* === Pricing === */}
-      <section className="relative isolate px-6 pb-24">
+      <section className="relative px-6 pb-24">
         <div className="mx-auto max-w-6xl">
           <div className="mb-10 md:mb-14 text-center">
-            <h2 className="text-2xl md:text-4xl font-semibold tracking-tight">
-              Simple <span className="text-primary">Pricing</span>
+            <h2 className="text-2xl md:text-4xl font-semibold tracking-tight text-white">
+              Simple <span className="text-[#00E0C6]">Pricing</span>
             </h2>
-            <p className="text-muted-foreground mt-3 max-w-xl mx-auto">
+            <p className="text-gray-400 mt-3 max-w-xl mx-auto">
               Start free. Upgrade any time.
             </p>
           </div>
 
-          <div className="grid gap-6 md:grid-cols-2">
-            <Card className="bg-card/40 backdrop-blur-xl border-border/50">
+          <div className="grid gap-6 md:grid-cols-2 max-w-4xl mx-auto">
+            <Card className="bg-white/5 backdrop-blur-xl border-white/10">
               <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold">Free</h3>
-                  <span className="text-2xl font-semibold">$0</span>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-white">Free</h3>
+                  <span className="text-2xl font-semibold text-white">$0</span>
                 </div>
-                <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
-                  <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary" /> Core dashboard</li>
-                  <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary" /> HealthKit sync</li>
-                  <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary" /> Basic insights</li>
+                <ul className="space-y-2 text-sm text-gray-300 mb-6">
+                  <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-[#00E0C6]" /> Core dashboard</li>
+                  <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-[#00E0C6]" /> HealthKit sync</li>
+                  <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-[#00E0C6]" /> Basic insights</li>
                 </ul>
-                <Button className="mt-6 w-full rounded-full" onClick={() => setLocation("/pricing")}>
+                <Button className="w-full rounded-full bg-white/10 text-white hover:bg-white/20 border border-white/20" onClick={() => setLocation("/pricing")}>
                   Try Free
                 </Button>
               </CardContent>
             </Card>
 
-            <Card className="bg-card/40 backdrop-blur-xl border border-primary/30 shadow-[0_0_24px_rgba(0,224,198,0.25)]">
+            <Card className="bg-white/5 backdrop-blur-xl border border-[#00E0C6]/30 shadow-[0_0_24px_rgba(0,224,198,0.25)]">
               <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold">Pro</h3>
-                  <span className="text-2xl font-semibold">$19/mo</span>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-white">Pro</h3>
+                  <span className="text-2xl font-semibold text-white">$19/mo</span>
                 </div>
-                <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
-                  <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary" /> AI coaching & training</li>
-                  <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary" /> Blood work insights</li>
-                  <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary" /> Adaptive nutrition</li>
+                <ul className="space-y-2 text-sm text-gray-300 mb-6">
+                  <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-[#00E0C6]" /> AI coaching & training</li>
+                  <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-[#00E0C6]" /> Blood work insights</li>
+                  <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-[#00E0C6]" /> Adaptive nutrition</li>
                 </ul>
                 <Button
-                  className="mt-6 w-full rounded-full shadow-[0_0_24px_rgba(0,224,198,0.35)] hover:shadow-[0_0_36px_rgba(0,224,198,0.55)]"
+                  className="w-full rounded-full bg-[#00E0C6] text-[#0A0F1F] hover:bg-[#00E0C6]/90 shadow-[0_0_24px_rgba(0,224,198,0.35)] hover:shadow-[0_0_36px_rgba(0,224,198,0.55)]"
                   onClick={() => setLocation("/pricing")}
                 >
                   Upgrade
@@ -395,36 +341,36 @@ export default function LandingPage() {
       </section>
 
       {/* === Final CTA === */}
-      <section className="relative isolate px-6 pb-24">
+      <section className="relative px-6 pb-24">
         <div className="mx-auto max-w-4xl text-center">
-          <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(40%_35%_at_50%_20%,rgba(0,224,198,0.18),transparent_60%)]" />
-          <h3 className="text-3xl md:text-5xl font-semibold tracking-tight">
-            Your Health, <span className="text-primary">Optimized by AI</span>
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(40%_35%_at_50%_20%,rgba(0,224,198,0.18),transparent_60%)]" />
+          <h3 className="text-3xl md:text-5xl font-semibold tracking-tight text-white relative z-10">
+            Your Health, <span className="text-[#00E0C6]">Optimized by AI</span>
           </h3>
-          <p className="text-muted-foreground mt-4 max-w-2xl mx-auto">
+          <p className="text-gray-400 mt-4 max-w-2xl mx-auto relative z-10">
             Start your journey today and see measurable improvement in 30 days.
           </p>
           <Button
             size="lg"
-            className="mt-8 rounded-full px-10 shadow-[0_0_24px_rgba(0,224,198,0.35)] hover:shadow-[0_0_36px_rgba(0,224,198,0.55)]"
+            className="mt-8 rounded-full px-10 bg-[#00E0C6] text-[#0A0F1F] hover:bg-[#00E0C6]/90 shadow-[0_0_24px_rgba(0,224,198,0.35)] hover:shadow-[0_0_36px_rgba(0,224,198,0.55)] relative z-10"
             onClick={() => setLocation("/pricing")}
           >
             Launch HealthPilot
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
-          <div className="text-xs text-muted-foreground mt-3">No credit card required. Cancel anytime.</div>
+          <div className="text-xs text-gray-500 mt-3 relative z-10">No credit card required. Cancel anytime.</div>
         </div>
       </section>
 
       {/* === Footer === */}
       <footer className="px-6 pb-12">
-        <div className="mx-auto max-w-6xl border-t border-border/40 pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
+        <div className="mx-auto max-w-6xl border-t border-white/10 pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-gray-500">
           <div>© {new Date().getFullYear()} HealthPilot by Jonathan Marsh</div>
           <nav className="flex gap-6">
-            <button onClick={() => setLocation("/security")} className="hover:text-foreground">About</button>
-            <button onClick={() => setLocation("/terms")} className="hover:text-foreground">Terms</button>
-            <button onClick={() => setLocation("/privacy")} className="hover:text-foreground">Privacy</button>
-            <button onClick={() => setLocation("/security")} className="hover:text-foreground">Support</button>
+            <button onClick={() => setLocation("/security")} className="hover:text-white transition-colors">About</button>
+            <button onClick={() => setLocation("/terms")} className="hover:text-white transition-colors">Terms</button>
+            <button onClick={() => setLocation("/privacy")} className="hover:text-white transition-colors">Privacy</button>
+            <button onClick={() => setLocation("/security")} className="hover:text-white transition-colors">Support</button>
           </nav>
         </div>
       </footer>
