@@ -267,7 +267,15 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
     const config = await getOidcConfig();
     const tokenResponse = await client.refreshTokenGrant(config, refreshToken);
     updateUserSession(user, tokenResponse);
-    return next();
+    
+    // Save the updated session
+    req.login(user, (err) => {
+      if (err) {
+        console.log("❌ Failed to save updated session after token refresh");
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      return next();
+    });
   } catch (error) {
     console.log("❌ Token refresh failed - destroying session");
     req.logout(() => {
