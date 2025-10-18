@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Dumbbell, Clock, Flame, ChevronRight } from "lucide-react";
+import { Dumbbell, Clock, Flame, ChevronRight, Sparkles } from "lucide-react";
 import { Link } from "wouter";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -21,12 +21,29 @@ interface TrainingSchedule {
   completed: number;
 }
 
+interface ScheduledExercise {
+  id: string;
+  exerciseName: string;
+  exerciseType: string;
+  description: string;
+  duration: number | null;
+  frequency: string;
+  status: string;
+  scheduledDates: string[] | null;
+}
+
 const DAYS_ORDER = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
 export function NextWorkoutWidget() {
-  const { data: schedules, isLoading } = useQuery<TrainingSchedule[]>({
+  const { data: schedules, isLoading: schedulesLoading } = useQuery<TrainingSchedule[]>({
     queryKey: ["/api/training-schedules"],
   });
+  
+  const { data: scheduledExercises, isLoading: exercisesLoading } = useQuery<ScheduledExercise[]>({
+    queryKey: ["/api/exercise-recommendations"],
+  });
+  
+  const isLoading = schedulesLoading || exercisesLoading;
 
   if (isLoading) {
     return (
@@ -70,6 +87,13 @@ export function NextWorkoutWidget() {
   const today = new Date().toLocaleDateString("en-US", { weekday: "long" });
   const todayIndex = DAYS_ORDER.indexOf(today);
   
+  // Use local date format to match backend (YYYY-MM-DD in local timezone)
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const todayDateStr = `${year}-${month}-${day}`;
+  
   // Find next workout: either today (if not completed) or next upcoming day
   let nextWorkout = schedules.find(s => s.day === today && s.completed === 0);
   
@@ -86,6 +110,17 @@ export function NextWorkoutWidget() {
   if (!nextWorkout && schedules.length > 0) {
     nextWorkout = schedules[0];
   }
+  
+  // Find AI-added exercises scheduled for today only (not all pending)
+  const todayAiExercises = (scheduledExercises || []).filter(ex => {
+    // Show only exercises explicitly scheduled for today
+    if (ex.scheduledDates && ex.scheduledDates.includes(todayDateStr)) return true;
+    
+    // Or pending/scheduled exercises without specific dates (show as "for today")
+    if ((ex.status === 'pending' || ex.status === 'scheduled') && !ex.scheduledDates) return true;
+    
+    return false;
+  });
 
   if (!nextWorkout) {
     return (
@@ -155,6 +190,28 @@ export function NextWorkoutWidget() {
                 </span>
               </div>
             ))}
+          </div>
+        )}
+        
+        {todayAiExercises.length > 0 && (
+          <div className="space-y-2 pt-3 border-t">
+            <div className="flex items-center gap-1.5">
+              <Sparkles className="h-3.5 w-3.5 text-primary" />
+              <p className="text-xs font-medium text-muted-foreground">AI-Added Exercises:</p>
+            </div>
+            {todayAiExercises.slice(0, 2).map((exercise, idx) => (
+              <div key={`ai-${idx}`} className="flex items-center justify-between text-sm">
+                <span className="truncate flex-1" data-testid={`text-ai-exercise-${idx}`}>{exercise.exerciseName}</span>
+                {exercise.duration && (
+                  <span className="text-muted-foreground ml-2" data-testid={`text-ai-exercise-duration-${idx}`}>
+                    {exercise.duration} min
+                  </span>
+                )}
+              </div>
+            ))}
+            {todayAiExercises.length > 2 && (
+              <p className="text-xs text-muted-foreground">+{todayAiExercises.length - 2} more</p>
+            )}
           </div>
         )}
 

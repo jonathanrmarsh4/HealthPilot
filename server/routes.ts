@@ -3576,6 +3576,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       
       let setsCreated = 0;
+      let exercisesNotFound: string[] = [];
+      let exercisesCreated: string[] = [];
+      
       // Create exercise sets for each exercise in the plan
       for (let i = 0; i < workoutPlan.exercises.length; i++) {
         const planExercise = workoutPlan.exercises[i];
@@ -3583,37 +3586,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Find best matching exercise using fuzzy matching
         const matchResult = findBestMatch(planExercise.name, allExercises);
         
-        if (matchResult) {
-          const matchedExercise = matchResult.exercise;
+        let matchedExercise;
+        
+        if (matchResult && matchResult.score >= 30) {
+          // Good match found
+          matchedExercise = matchResult.exercise;
           console.log(`✅ Matched "${planExercise.name}" to database exercise "${matchedExercise.name}" (score: ${matchResult.score})`);
-          
-          // Parse sets and reps (e.g., "3 sets" -> 3, "8-12 reps" -> 8-12)
-          const sets = planExercise.sets || 3;
-          const repsMatch = planExercise.reps?.match(/(\d+)-?(\d+)?/);
-          const repsLow = repsMatch ? parseInt(repsMatch[1]) : 8;
-          const repsHigh = repsMatch && repsMatch[2] ? parseInt(repsMatch[2]) : repsLow;
-          
-          // Create sets for this exercise with default values
-          const isBodyweight = matchedExercise.equipment === 'bodyweight';
-          const defaultWeight = isBodyweight ? 0 : 20; // 0kg for bodyweight (BW button unselected), 20kg for weighted
-          
-          for (let setIndex = 0; setIndex < sets; setIndex++) {
-            await db.insert(exerciseSets).values({
-              workoutSessionId: session.id,
-              exerciseId: matchedExercise.id,
-              userId,
-              setIndex: setIndex + 1,
-              targetRepsLow: repsLow,
-              targetRepsHigh: repsHigh,
-              weight: defaultWeight,
-              reps: repsHigh, // Prepopulate reps with max target
-              completed: 0,
-            });
-            setsCreated++;
-          }
         } else {
-          console.log(`❌ No match found for "${planExercise.name}" in database`);
+          // No good match - create exercise on-the-fly
+          console.log(`⚠️ No good match for "${planExercise.name}" (best score: ${matchResult?.score || 0}). Creating new exercise...`);
+          
+          // Determine likely equipment and muscle groups based on exercise name
+          const nameLower = planExercise.name.toLowerCase();
+          let equipment = 'other';
+          let muscles: string[] = ['full_body'];
+          
+          // Equipment detection
+          if (nameLower.includes('barbell')) equipment = 'barbell';
+          else if (nameLower.includes('dumbbell')) equipment = 'dumbbell';
+          else if (nameLower.includes('cable')) equipment = 'cable';
+          else if (nameLower.includes('machine')) equipment = 'machine';
+          else if (nameLower.includes('kettlebell')) equipment = 'kettlebell';
+          else if (nameLower.includes('band')) equipment = 'band';
+          else if (nameLower.includes('bodyweight') || nameLower.includes('push-up') || nameLower.includes('pull-up') || nameLower.includes('chin-up') || nameLower.includes('plank')) equipment = 'bodyweight';
+          
+          // Muscle group detection
+          if (nameLower.includes('chest') || nameLower.includes('press') || nameLower.includes('push')) muscles = ['chest'];
+          else if (nameLower.includes('back') || nameLower.includes('row') || nameLower.includes('pull')) muscles = ['back'];
+          else if (nameLower.includes('shoulder') || nameLower.includes('lateral') || nameLower.includes('overhead')) muscles = ['shoulders'];
+          else if (nameLower.includes('bicep') || nameLower.includes('curl')) muscles = ['biceps'];
+          else if (nameLower.includes('tricep') || nameLower.includes('extension')) muscles = ['triceps'];
+          else if (nameLower.includes('leg') || nameLower.includes('squat') || nameLower.includes('lunge')) muscles = ['legs'];
+          else if (nameLower.includes('quad')) muscles = ['quadriceps'];
+          else if (nameLower.includes('hamstring') || nameLower.includes('deadlift')) muscles = ['hamstrings'];
+          else if (nameLower.includes('calf')) muscles = ['calves'];
+          else if (nameLower.includes('ab') || nameLower.includes('core') || nameLower.includes('plank')) muscles = ['abs'];
+          
+          const newExercise = await db.insert(exercises).values({
+            name: planExercise.name,
+            muscles,
+            equipment,
+            incrementStep: equipment === 'bodyweight' ? 0 : 2.5,
+            tempoDefault: '3-1-1',
+            restDefault: 90,
+            difficulty: 'intermediate',
+            category: 'strength',
+          }).returning();
+          
+          matchedExercise = newExercise[0];
+          exercisesCreated.push(planExercise.name);
+          console.log(`✨ Created new exercise: "${planExercise.name}" (equipment: ${equipment}, muscles: ${muscles.join(', ')})`);
+          
+          // Add to allExercises for subsequent matches
+          allExercises.push(matchedExercise);
         }
+        
+        // Parse sets and reps (e.g., "3 sets" -> 3, "8-12 reps" -> 8-12)
+        const sets = planExercise.sets || 3;
+        const repsMatch = planExercise.reps?.match(/(\d+)-?(\d+)?/);
+        const repsLow = repsMatch ? parseInt(repsMatch[1]) : 8;
+        const repsHigh = repsMatch && repsMatch[2] ? parseInt(repsMatch[2]) : repsLow;
+        
+        // Create sets for this exercise with default values
+        const isBodyweight = matchedExercise.equipment === 'bodyweight';
+        const defaultWeight = isBodyweight ? 0 : 20; // 0kg for bodyweight (BW button unselected), 20kg for weighted
+        
+        for (let setIndex = 0; setIndex < sets; setIndex++) {
+          await db.insert(exerciseSets).values({
+            workoutSessionId: session.id,
+            exerciseId: matchedExercise.id,
+            userId,
+            setIndex: setIndex + 1,
+            targetRepsLow: repsLow,
+            targetRepsHigh: repsHigh,
+            weight: defaultWeight,
+            reps: repsHigh, // Prepopulate reps with max target
+            completed: 0,
+          });
+          setsCreated++;
+        }
+      }
+      
+      if (exercisesCreated.length > 0) {
+        console.log(`✨ Created ${exercisesCreated.length} new exercises: ${exercisesCreated.join(', ')}`);
       }
       
       console.log(`📊 Created ${setsCreated} sets for workout session ${session.id}`);
