@@ -45,6 +45,7 @@ import AdminMealLibrary from "@/pages/AdminMealLibrary";
 import AIAuditLog from "@/pages/AIAuditLog";
 import Login from "@/pages/Login";
 import Logout from "@/pages/Logout";
+import LandingPage from "@/pages/LandingPage";
 import NotFound from "@/pages/not-found";
 import { Loader2, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -244,8 +245,14 @@ function AppContent() {
     retry: false,
   });
 
-  // Check if on logged-out page
-  const isLoggedOutPage = window.location.pathname === "/logged-out";
+  // Check current path
+  const currentPath = window.location.pathname;
+  const isLoggedOutPage = currentPath === "/logged-out";
+  const isLoginPage = currentPath === "/login";
+  
+  // Public routes that don't require authentication
+  const publicRoutes = ["/pricing", "/privacy", "/security", "/terms"];
+  const isPublicRoute = publicRoutes.includes(currentPath);
 
   if (isLoading) {
     return (
@@ -261,7 +268,25 @@ function AppContent() {
 
   // Treat auth errors same as not logged in (Safari caching issues) 
   if (!user || isError) {
-    return <Login />;
+    // Show Login page if explicitly on /login route
+    if (isLoginPage) {
+      return <Login />;
+    }
+    // Show public route content if on a public route
+    if (isPublicRoute) {
+      return (
+        <div className="min-h-screen">
+          <Switch>
+            <Route path="/pricing" component={Pricing} />
+            <Route path="/privacy" component={PrivacyPolicy} />
+            <Route path="/security" component={SecurityWhitepaper} />
+            <Route path="/terms" component={TermsOfService} />
+          </Switch>
+        </div>
+      );
+    }
+    // Show LandingPage for home page when not authenticated
+    return <LandingPage />;
   }
 
   return <AuthenticatedApp />;
