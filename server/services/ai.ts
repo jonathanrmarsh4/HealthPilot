@@ -2832,6 +2832,11 @@ Generate a recommendation with this JSON structure:
     "duration": number (10-20 minutes),
     "benefits": "Why rest might be better today"
   },
+  "muscleGroupTargeting": {
+    "prioritized": ["muscle_group_name"],
+    "avoided": ["muscle_group_name"],
+    "rationale": "Brief explanation of why these specific muscle groups were chosen based on training frequency data and ACSM/NSCA guidelines (2-3x per week optimal, 48-72hr recovery)"
+  },
   "aiReasoning": "Clear explanation of why these recommendations make sense based on readiness score and recovery markers. Explain how the intensity and duration were calibrated to the readiness score.",
   "safetyNote": "Any important warnings or cautions (only if readiness is concerning)",
   "adjustmentsMade": {

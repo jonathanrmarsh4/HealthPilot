@@ -17,6 +17,7 @@ import { RecommendationCalendar } from "@/components/RecommendationCalendar";
 import { ScheduledRecommendationsCard } from "@/components/ScheduledRecommendationsCard";
 import { ScheduledInsightsCard } from "@/components/ScheduledInsightsCard";
 import { TileManager, type TileConfig } from "@/components/TileManager";
+import { MuscleGroupHeatmap } from "@/components/MuscleGroupHeatmap";
 
 interface TrainingSchedule {
   id: string;
@@ -87,6 +88,12 @@ interface AdjustmentsMade {
   reason: string;
 }
 
+interface MuscleGroupTargeting {
+  prioritized: string[];
+  avoided: string[];
+  rationale: string;
+}
+
 interface DailyRecommendation {
   readinessScore: number;
   readinessRecommendation: "ready" | "caution" | "rest";
@@ -99,6 +106,7 @@ interface DailyRecommendation {
       duration: number;
       benefits: string;
     };
+    muscleGroupTargeting?: MuscleGroupTargeting;
     aiReasoning: string;
     safetyNote?: string;
     adjustmentsMade?: AdjustmentsMade;
@@ -699,6 +707,49 @@ export default function Training() {
                   </div>
                 </div>
 
+                {/* Muscle Group Targeting Panel - Why This Workout */}
+                {dailyRec.recommendation.muscleGroupTargeting && (
+                  <div className="p-4 rounded-lg bg-primary/5 border border-primary/10">
+                    <div className="flex items-start gap-3">
+                      <Activity className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-primary mb-2">
+                          Why This Workout?
+                        </p>
+                        <p className="text-sm text-muted-foreground mb-3" data-testid="text-muscle-targeting-rationale">
+                          {dailyRec.recommendation.muscleGroupTargeting.rationale}
+                        </p>
+                        <div className="flex gap-4 flex-wrap">
+                          {dailyRec.recommendation.muscleGroupTargeting.prioritized.length > 0 && (
+                            <div>
+                              <p className="text-xs font-medium text-muted-foreground mb-1.5">Targeting:</p>
+                              <div className="flex gap-1.5 flex-wrap">
+                                {dailyRec.recommendation.muscleGroupTargeting.prioritized.map((muscle) => (
+                                  <Badge key={muscle} variant="outline" className="text-xs bg-green-500/10 border-green-500/20 text-green-600 dark:text-green-400" data-testid={`badge-targeting-${muscle}`}>
+                                    {muscle}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {dailyRec.recommendation.muscleGroupTargeting.avoided.length > 0 && (
+                            <div>
+                              <p className="text-xs font-medium text-muted-foreground mb-1.5">Avoiding:</p>
+                              <div className="flex gap-1.5 flex-wrap">
+                                {dailyRec.recommendation.muscleGroupTargeting.avoided.map((muscle) => (
+                                  <Badge key={muscle} variant="outline" className="text-xs bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400" data-testid={`badge-avoiding-${muscle}`}>
+                                    {muscle}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {dailyRec.recommendation.adjustmentsMade && (
                   dailyRec.recommendation.adjustmentsMade.intensityReduced || 
                   dailyRec.recommendation.adjustmentsMade.durationReduced || 
@@ -947,6 +998,12 @@ export default function Training() {
       )
     },
     {
+      id: "muscle-group-balance",
+      title: "Muscle Group Training Balance",
+      description: "Track training frequency across all muscle groups",
+      renderTile: () => <MuscleGroupHeatmap />
+    },
+    {
       id: "workout-history",
       title: "Workout History",
       description: "Your completed workouts from the last 7 days",
@@ -1139,6 +1196,7 @@ export default function Training() {
         defaultVisible={[
           "readiness-score",
           "daily-recommendation",
+          "muscle-group-balance",
           "recovery-protocols",
           "scheduled-calendar",
           "today-scheduled",

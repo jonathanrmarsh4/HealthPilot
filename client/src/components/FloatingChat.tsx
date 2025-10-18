@@ -21,7 +21,7 @@ export function FloatingChat({ isOpen, onClose, currentPage }: FloatingChatProps
   const { toast } = useToast();
   const [message, setMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [isMinimized, setIsMinimized] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(true);
   const { status: onboardingStatus } = useOnboarding();
   
   // Track chat session to reset UI synchronously when opening (prevents flash of old messages)
