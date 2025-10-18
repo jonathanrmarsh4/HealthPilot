@@ -4936,6 +4936,10 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
 
       const aiResponse = await chatWithHealthCoach(conversationHistory, context);
 
+      // 🐛 DEBUG: Log full AI response to see if markers are being generated
+      console.log("🤖 FULL AI RESPONSE (first 1000 chars):", aiResponse.substring(0, 1000));
+      console.log("🔍 Searching for SAVE_EXERCISE markers...");
+
       // Strip all markers from the response before showing to user
       let cleanResponse = aiResponse;
       cleanResponse = cleanResponse.replace(/<<<SAVE_TRAINING_PLAN>>>[\s\S]*?<<<END_SAVE_TRAINING_PLAN>>>/g, '');
