@@ -13,7 +13,7 @@ The application is a full-stack project utilizing React, TypeScript, Tailwind CS
 - Dark mode support and responsive design, optimized for mobile/tablet, including PWA support for iOS.
 - Visualizations for biomarker trends, readiness score, and health score.
 - User-customizable dashboard with persistent widget visibility and order preferences.
-- Purple sparkly AI Chat Widget with clear chat feature that preserves history in the database.
+- Purple sparkly AI Chat Widget with clear chat feature that preserves history in the database. Chat bubble is minimized by default for better UX.
 - Redesigned Training Page with a daily-focused UX and organized sidebar navigation.
 - Universal Tile Management System for customizable page layouts with drag-and-drop reordering.
 
@@ -34,6 +34,7 @@ The application is a full-stack project utilizing React, TypeScript, Tailwind CS
 - **Swipe-Based Meal Interface:** Dating-app style swipe interface for meal feedback in meal plans.
 - **AI Exercise Alternatives & Swap Feature:** AI-powered exercise alternative suggestions with a "Swap" button functionality in workout sessions.
 - **Intelligent Exercise-Specific Tracking (October 2025):** Smart exercise classification system that automatically determines appropriate tracking fields based on exercise type. Supports 4 tracking types: `weight_reps` (traditional strength training with weight + reps), `bodyweight_reps` (bodyweight exercises like push-ups with reps only), `distance_duration` (cardio exercises like cycling/running with distance in km + duration in minutes with decimal precision), and `duration_only` (flexibility exercises like yoga/stretching with duration only). UI conditionally renders appropriate input fields based on exercise type, with validation logic that enforces required fields. AI workout generation intelligently classifies exercises using keyword matching to assign correct tracking types. Duration values stored as seconds in database, displayed as minutes in UI for better UX.
+- **Muscle Group Frequency Tracking System (October 2025):** Comprehensive system tracking training frequency across 8 major muscle groups (chest, back, legs, shoulders, arms, core, glutes, calves) to ensure balanced training and optimal recovery. System automatically records muscle group engagement (primary/secondary) when workouts are completed, calculates 14-day rolling frequency windows, and provides visual heatmap displaying training status with color-coded indicators (undertrained/optimal/overtrained based on ACSM 2-3x per week guidelines). AI workout generation receives frequency data to intelligently prioritize undertrained muscle groups and avoid overtraining with <48hr recovery windows. "Why This Workout?" panel displays AI's muscle group targeting rationale with evidence-based reasoning. Includes robust deduplication logic using Set to prevent double-counting of primary+secondary engagements, and handles both boolean/numeric completion values. Frontend displays last trained timestamps, total sets per muscle group, and summary statistics with error handling.
 
 ## External Dependencies
 - **Database:** PostgreSQL (via Drizzle ORM)
