@@ -60,9 +60,7 @@ export function RecommendationCalendar({ recommendations, insights = [], onDateC
   // Complete scheduled exercise mutation
   const completeExerciseMutation = useMutation({
     mutationFn: async (id: string | number) => {
-      return await apiRequest(`/api/scheduled-exercises/${id}/complete`, {
-        method: 'POST',
-      });
+      return await apiRequest('POST', `/api/scheduled-exercises/${id}/complete`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/scheduled-exercises'] });
