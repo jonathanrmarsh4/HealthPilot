@@ -246,6 +246,12 @@ export interface IStorage {
     painOrDiscomfort: string;
     feedbackNotes: string;
   }): Promise<void>;
+  getLastExerciseValues(userId: string, exerciseId: string): Promise<{
+    weight: number | null;
+    reps: number | null;
+    distance: number | null;
+    duration: number | null;
+  } | null>;
   
   createExerciseLog(log: InsertExerciseLog): Promise<ExerciseLog>;
   getExerciseLogs(workoutSessionId: string): Promise<ExerciseLog[]>;
@@ -1713,6 +1719,40 @@ export class DbStorage implements IStorage {
     }
   }
 
+  async getLastExerciseValues(userId: string, exerciseId: string): Promise<{
+    weight: number | null;
+    reps: number | null;
+    distance: number | null;
+    duration: number | null;
+  } | null> {
+    // Query the most recent completed set for this exercise by this user
+    // Use the index on (userId, exerciseId, createdAt) for efficient lookup
+    const lastSet = await db
+      .select()
+      .from(exerciseSets)
+      .where(
+        and(
+          eq(exerciseSets.userId, userId),
+          eq(exerciseSets.exerciseId, exerciseId),
+          eq(exerciseSets.completed, 1) // Only consider completed sets
+        )
+      )
+      .orderBy(desc(exerciseSets.createdAt))
+      .limit(1);
+
+    if (lastSet.length === 0) {
+      return null; // No previous data for this exercise
+    }
+
+    const set = lastSet[0];
+    return {
+      weight: set.weight,
+      reps: set.reps,
+      distance: set.distance,
+      duration: set.duration,
+    };
+  }
+
   async createExerciseLog(log: InsertExerciseLog): Promise<ExerciseLog> {
     const result = await db.insert(exerciseLogs).values(log).returning();
     return result[0];
@@ -1889,6 +1929,9 @@ export class DbStorage implements IStorage {
     
     const nextSetIndex = existingSets.length > 0 ? existingSets[0].setIndex + 1 : 1;
     
+    // Fetch last used values for this exercise to enable weight memory (progressive overload)
+    const lastValues = await this.getLastExerciseValues(userId, exerciseId);
+    
     // Build set data based on tracking type
     const trackingType = exercise[0].trackingType || 'weight_reps';
     const setData: any = {
@@ -1899,25 +1942,32 @@ export class DbStorage implements IStorage {
       completed: 0,
     };
     
-    // Set type-specific fields - match the logic from workout session creation
+    // Set type-specific fields - use last values if available, otherwise use defaults
     if (trackingType === 'weight_reps') {
       const isBodyweight = exercise[0].equipment === 'bodyweight';
-      setData.weight = isBodyweight ? 0 : 20; // 0kg for bodyweight, 20kg default for weighted
-      setData.reps = 8; // Default reps
+      // Use last weight if available, otherwise default
+      setData.weight = lastValues?.weight !== null && lastValues?.weight !== undefined 
+        ? lastValues.weight 
+        : (isBodyweight ? 0 : 20); 
+      // Use last reps if available, otherwise default to 8
+      setData.reps = lastValues?.reps ?? 8;
       setData.targetRepsLow = 6;
       setData.targetRepsHigh = 12;
     } else if (trackingType === 'bodyweight_reps') {
       setData.weight = null;
-      setData.reps = 8;
+      // Use last reps if available, otherwise default to 8
+      setData.reps = lastValues?.reps ?? 8;
       setData.targetRepsLow = 6;
       setData.targetRepsHigh = 12;
     } else if (trackingType === 'distance_duration') {
-      setData.distance = null;
-      setData.duration = null;
+      // Use last values if available for cardio
+      setData.distance = lastValues?.distance ?? null;
+      setData.duration = lastValues?.duration ?? null;
       setData.weight = null;
       setData.reps = null;
     } else if (trackingType === 'duration_only') {
-      setData.duration = null;
+      // Use last duration if available for holds
+      setData.duration = lastValues?.duration ?? null;
       setData.weight = null;
       setData.reps = null;
       setData.distance = null;

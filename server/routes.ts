@@ -4796,6 +4796,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get last used values for an exercise (weight memory for progressive overload)
+  app.get("/api/exercises/:exerciseId/last-values", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { exerciseId } = req.params;
+    
+    try {
+      const lastValues = await storage.getLastExerciseValues(userId, exerciseId);
+      res.json(lastValues || { weight: null, reps: null, distance: null, duration: null });
+    } catch (error: any) {
+      console.error("Error fetching last exercise values:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Get progressive overload suggestion for an exercise
   app.get("/api/exercises/:exerciseId/progressive-overload", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
