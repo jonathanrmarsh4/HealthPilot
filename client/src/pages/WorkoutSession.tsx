@@ -727,7 +727,7 @@ export default function WorkoutSession() {
         description: "New set added to exercise",
       });
     },
-    onError: (error: Error) {
+    onError: (error: Error) => {
       toast({
         title: "Error",
         description: error.message,
