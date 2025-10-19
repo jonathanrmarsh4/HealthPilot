@@ -525,10 +525,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/stripe/create-checkout", isAuthenticated, async (req, res) => {
     try {
       const userId = (req.user as any).claims.sub;
-      const { tier } = req.body;
+      const { tier, billingCycle, promoCode } = req.body;
 
       if (!tier || (tier !== "premium" && tier !== "enterprise")) {
         return res.status(400).json({ error: "Invalid subscription tier" });
+      }
+
+      if (!billingCycle || (billingCycle !== "monthly" && billingCycle !== "annual")) {
+        return res.status(400).json({ error: "Invalid billing cycle. Must be 'monthly' or 'annual'" });
       }
 
       const Stripe = (await import("stripe")).default;
@@ -541,26 +545,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "User not found" });
       }
 
+      // Pricing structure with 20% annual discount
+      const pricing = {
+        premium: {
+          monthly: 1999,  // $19.99/month
+          annual: 19188,  // $191.88/year (20% off $239.88)
+        },
+        enterprise: {
+          monthly: 9999,  // $99.99/month
+          annual: 95988,  // $959.88/year (20% off $1199.88)
+        },
+      };
+
+      const unitAmount = pricing[tier as "premium" | "enterprise"][billingCycle as "monthly" | "annual"];
+      const interval = billingCycle === "monthly" ? "month" : "year";
+
+      // Product description with billing cycle info
+      const description = tier === "premium" 
+        ? `Unlimited AI chat, meal plans, biological age, and more${billingCycle === "annual" ? " (20% off annual)" : ""}`
+        : `Enterprise features with team management and custom integrations${billingCycle === "annual" ? " (20% off annual)" : ""}`;
+
       // Create Stripe checkout session
       const session = await stripe.checkout.sessions.create({
         customer_email: user.email,
         client_reference_id: userId,
         mode: "subscription",
         payment_method_types: ["card"],
+        allow_promotion_codes: true, // Enable Stripe's built-in promo code input
         line_items: [
           {
             price_data: {
               currency: "usd",
               product_data: {
-                name: tier === "premium" ? "Health Insights AI Premium" : "Health Insights AI Enterprise",
-                description: tier === "premium" 
-                  ? "Unlimited AI chat, meal plans, biological age, and more"
-                  : "Enterprise features with team management and custom integrations",
+                name: tier === "premium" ? "HealthPilot Premium" : "HealthPilot Enterprise",
+                description,
               },
               recurring: {
-                interval: "month",
+                interval,
               },
-              unit_amount: tier === "premium" ? 1999 : 9999, // $19.99 or $99.99
+              unit_amount: unitAmount,
             },
             quantity: 1,
           },
@@ -570,6 +593,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         metadata: {
           userId,
           tier,
+          billingCycle,
         },
       });
 
