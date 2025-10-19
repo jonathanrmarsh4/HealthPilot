@@ -5130,6 +5130,7 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
       cleanResponse = cleanResponse.replace(/<<<SAVE_GOAL>>>[\s\S]*?<<<END_SAVE_GOAL>>>/g, '');
       cleanResponse = cleanResponse.replace(/<<<SAVE_SUPPLEMENT>>>[\s\S]*?<<<END_SAVE_SUPPLEMENT>>>/g, '');
       cleanResponse = cleanResponse.replace(/<<<SAVE_EXERCISE>>>[\s\S]*?<<<END_SAVE_EXERCISE>>>/g, '');
+      cleanResponse = cleanResponse.replace(/<<<SAVE_RECOVERY_PROTOCOL>>>[\s\S]*?<<<END_SAVE_RECOVERY_PROTOCOL>>>/g, '');
       cleanResponse = cleanResponse.replace(/<<<UPDATE_USER_PROFILE>>>[\s\S]*?<<<END_UPDATE_USER_PROFILE>>>/g, '');
       cleanResponse = cleanResponse.replace(/<<<UPDATE_FITNESS_PROFILE>>>[\s\S]*?<<<END_UPDATE_FITNESS_PROFILE>>>/g, '');
       cleanResponse = cleanResponse.replace(/<<<UPDATE_GOAL>>>[\s\S]*?<<<END_UPDATE_GOAL>>>/g, '');
@@ -5435,6 +5436,40 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
         }
       } else {
         console.log("ℹ️ No exercise markers found in AI response");
+      }
+
+      // Check if AI response contains recovery protocol to save
+      let recoveryProtocolSaved = false;
+      const recoveryProtocolMatch = aiResponse.match(/<<<SAVE_RECOVERY_PROTOCOL>>>([\s\S]*?)<<<END_SAVE_RECOVERY_PROTOCOL>>>/);
+      
+      if (recoveryProtocolMatch) {
+        console.log("🧘 Recovery protocol markers found! Extracting JSON...");
+        try {
+          const protocolJson = recoveryProtocolMatch[1].trim();
+          console.log("📋 Recovery protocol JSON:", protocolJson);
+          const protocol = JSON.parse(protocolJson);
+          
+          console.log("💾 Saving recovery protocol:", protocol.name);
+          
+          await storage.createRecoveryProtocol({
+            name: protocol.name,
+            category: protocol.category,
+            description: protocol.description,
+            duration: protocol.duration || null,
+            difficulty: protocol.difficulty || 'beginner',
+            benefits: protocol.benefits || [],
+            instructions: protocol.instructions || null,
+            targetFactors: protocol.targetFactors || [],
+            tags: protocol.tags || [],
+          });
+          
+          recoveryProtocolSaved = true;
+          console.log("✨ Recovery protocol saved successfully!");
+        } catch (e) {
+          console.error("❌ Failed to parse and save recovery protocol:", e);
+        }
+      } else {
+        console.log("ℹ️ No recovery protocol markers found in AI response");
       }
 
       // Check if AI response contains fitness profile updates
