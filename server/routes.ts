@@ -3393,10 +3393,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const userProfile = {
         age: user?.age,
-        trainingAgeYears: fitnessProfile?.trainingAgeYears,
+        trainingAgeYears: fitnessProfile?.trainingExperience,
         injuries: fitnessProfile?.injuries || [],
         medicalConditions: user?.medicalConditions || [],
       };
+      
+      // Pass complete fitness profile to AI for personalized recommendations
+      const fullFitnessProfile = fitnessProfile ? {
+        fitnessLevel: fitnessProfile.fitnessLevel,
+        trainingExperience: fitnessProfile.trainingExperience,
+        currentTrainingFrequency: fitnessProfile.currentTrainingFrequency,
+        hasGymAccess: fitnessProfile.hasGymAccess,
+        gymType: fitnessProfile.gymType,
+        homeEquipment: fitnessProfile.homeEquipment,
+        specialFacilities: fitnessProfile.specialFacilities,
+        recoveryEquipment: fitnessProfile.recoveryEquipment,
+        primaryGoal: fitnessProfile.primaryGoal,
+        secondaryGoals: fitnessProfile.secondaryGoals,
+        preferredWorkoutTypes: fitnessProfile.preferredWorkoutTypes,
+        preferredDuration: fitnessProfile.preferredDuration,
+        preferredIntensity: fitnessProfile.preferredIntensity,
+        availableDays: fitnessProfile.availableDays,
+        injuries: fitnessProfile.injuries,
+        movementLimitations: fitnessProfile.movementLimitations,
+      } : undefined;
       
       // 5. Fetch muscle group frequency data (last 14 days) for balanced training
       let muscleGroupFrequency;
@@ -3432,6 +3452,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         recentWorkouts,
         biomarkers,
         userProfile,
+        fitnessProfile: fullFitnessProfile,
         muscleGroupFrequency,
       });
       

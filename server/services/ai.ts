@@ -2785,6 +2785,24 @@ export async function generateDailyTrainingRecommendation(data: {
     injuries?: string[];
     medicalConditions?: string[];
   };
+  fitnessProfile?: {
+    fitnessLevel?: string;
+    trainingExperience?: number;
+    currentTrainingFrequency?: number;
+    hasGymAccess?: number;
+    gymType?: string;
+    homeEquipment?: string[];
+    specialFacilities?: string[];
+    recoveryEquipment?: string[];
+    primaryGoal?: string;
+    secondaryGoals?: string[];
+    preferredWorkoutTypes?: string[];
+    preferredDuration?: number;
+    preferredIntensity?: string;
+    availableDays?: string[];
+    injuries?: string[];
+    movementLimitations?: string[];
+  };
   muscleGroupFrequency?: Array<{
     muscleGroup: string;
     lastTrained: Date | null;
@@ -2810,34 +2828,42 @@ export async function generateDailyTrainingRecommendation(data: {
   const systemPrompt = buildGuardrailsSystemPrompt();
 
   // Add readiness-specific guidance (supplements the guardrails)
+  // UPDATED: Less restrictive thresholds to allow user autonomy while providing safety guidance
   const readinessGuidance = `
 READINESS-TO-WORKOUT MAPPING (Supplements guardrails above):
 
-Readiness 75-100: HIGH INTENSITY + 60-75 min primary
+Readiness 70-100: FULL INTENSITY ALLOWED
+- All workout types available based on user preferences
 - Heavy compound lifts (80-90% 1RM), sets close to failure
 - Higher volume: 4-5 sets per exercise  
 - Intense cardio: HIIT, sprints, max effort intervals
-- Primary plan: 60-75 minutes
+- Primary plan: Match user's preferred duration (or 60-75 min default)
 - Alternate plan: 30 minutes, lighter intensity
 
-Readiness 60-74: MODERATE-HIGH INTENSITY + 60 min primary
-- Moderate weights (70-80% 1RM), controlled effort
+Readiness 50-69: MODERATE-HIGH INTENSITY ALLOWED
+- User can still train challenging workouts with slight modifications
+- Moderate weights (70-85% 1RM), controlled effort
 - Moderate volume: 3-4 sets per exercise
 - Steady-state cardio with tempo intervals
-- Primary plan: 60 minutes minimum
+- Primary plan: Match user's preferred duration (or 60 min default)
 - Alternate plan: 30 minutes, lighter intensity
+- NOTE: Provide safety reminder to listen to body signals
 
-Readiness 40-59: LIGHT-MODERATE INTENSITY + 60 min primary
-- Light-moderate weights (60-70% 1RM), technique focus
+Readiness 40-49: LIGHT-MODERATE INTENSITY RECOMMENDED
+- User can choose moderate intensity if feeling good
+- Light-moderate weights (60-75% 1RM), technique focus
 - Lower volume: 2-3 sets per exercise
 - Easy cardio, zone 2 heart rate
-- Primary plan: 60 minutes with more rest between sets
+- Primary plan: 45-60 minutes with more rest between sets
 - Alternate plan: 30 minutes, very light intensity
+- NOTE: Suggest considering rest day or active recovery
 
-Readiness <40: ACTIVE RECOVERY/REST only
-- Mobility work, stretching, gentle movement
+Readiness <40: ACTIVE RECOVERY STRONGLY RECOMMENDED
+- Mobility work, stretching, gentle movement, yoga
+- Light cardio if user chooses to move
 - Primary plan: 20-30 minutes maximum, very low intensity
-- Alternate plan: 15-20 minutes, complete rest option`;
+- Alternate plan: Complete rest day
+- NOTE: Clearly warn about overtraining risk, but respect user choice`;
 
   const completion = await retryWithBackoff(() => openai.chat.completions.create({
     model: "gpt-4o",
@@ -2866,6 +2892,18 @@ ${autoRegulationActions.map(action => `⚠️ ${action}`).join('\n')}
 ` : ''}
 ${data.userProfile ? `## User Profile
 ${data.userProfile.age ? `- Age: ${data.userProfile.age}\n` : ''}${data.userProfile.trainingAgeYears ? `- Training Experience: ${data.userProfile.trainingAgeYears} years\n` : ''}${data.userProfile.injuries && data.userProfile.injuries.length > 0 ? `- Injuries: ${data.userProfile.injuries.join(', ')}\n` : ''}${data.userProfile.medicalConditions && data.userProfile.medicalConditions.length > 0 ? `- Medical Conditions: ${data.userProfile.medicalConditions.join(', ')}\n` : ''}` : ''}
+${data.fitnessProfile ? `## 🎯 FITNESS PREFERENCES & GOALS (PRIORITIZE THESE!)
+**⚠️ IMPORTANT: These are the user's explicitly stated preferences. Your workout MUST align with these preferences while respecting readiness score.**
+
+${data.fitnessProfile.primaryGoal ? `### Primary Goal: ${data.fitnessProfile.primaryGoal}\n` : ''}${data.fitnessProfile.secondaryGoals && data.fitnessProfile.secondaryGoals.length > 0 ? `### Secondary Goals: ${data.fitnessProfile.secondaryGoals.join(', ')}\n` : ''}
+${data.fitnessProfile.preferredWorkoutTypes && data.fitnessProfile.preferredWorkoutTypes.length > 0 ? `### Preferred Workout Types: ${data.fitnessProfile.preferredWorkoutTypes.join(', ')}\n**ACTION: Strongly favor these workout types when designing the plan**\n` : ''}
+${data.fitnessProfile.preferredDuration ? `### Preferred Duration: ${data.fitnessProfile.preferredDuration} minutes per workout\n**ACTION: Target this duration for primary plan (adjust only if readiness is very low)**\n` : ''}
+${data.fitnessProfile.preferredIntensity ? `### Preferred Intensity: ${data.fitnessProfile.preferredIntensity}\n**ACTION: Match this intensity level when readiness allows**\n` : ''}
+${data.fitnessProfile.fitnessLevel ? `### Fitness Level: ${data.fitnessProfile.fitnessLevel}\n` : ''}
+${data.fitnessProfile.currentTrainingFrequency ? `### Current Training Frequency: ${data.fitnessProfile.currentTrainingFrequency} days/week\n` : ''}
+${data.fitnessProfile.hasGymAccess ? `### Equipment Access: ${data.fitnessProfile.hasGymAccess === 1 ? 'Gym Access' : 'Home/Limited Equipment'}\n` : ''}${data.fitnessProfile.gymType ? `- Gym Type: ${data.fitnessProfile.gymType}\n` : ''}${data.fitnessProfile.homeEquipment && data.fitnessProfile.homeEquipment.length > 0 ? `- Home Equipment: ${data.fitnessProfile.homeEquipment.join(', ')}\n**ACTION: Only suggest exercises compatible with this equipment**\n` : ''}${data.fitnessProfile.specialFacilities && data.fitnessProfile.specialFacilities.length > 0 ? `- Special Facilities: ${data.fitnessProfile.specialFacilities.join(', ')}\n` : ''}${data.fitnessProfile.recoveryEquipment && data.fitnessProfile.recoveryEquipment.length > 0 ? `- Recovery Equipment: ${data.fitnessProfile.recoveryEquipment.join(', ')}\n` : ''}
+${data.fitnessProfile.availableDays && data.fitnessProfile.availableDays.length > 0 ? `### Available Training Days: ${data.fitnessProfile.availableDays.join(', ')}\n` : ''}${data.fitnessProfile.movementLimitations && data.fitnessProfile.movementLimitations.length > 0 ? `### Movement Limitations: ${data.fitnessProfile.movementLimitations.join(', ')}\n**ACTION: Avoid exercises that conflict with these limitations**\n` : ''}
+` : ''}
 ## Today's Scheduled Workout
 ${data.scheduledWorkout ? `
 - Type: ${data.scheduledWorkout.type}
