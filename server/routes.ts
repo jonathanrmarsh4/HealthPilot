@@ -8016,6 +8016,139 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
 
       console.log(`✅ Voice chat authenticated for user ${userId} (${user.subscriptionTier})`);
 
+      // Fetch comprehensive user data (EXACTLY matching regular chat)
+      const now = new Date();
+      
+      // Get ALL historical data for complete context
+      const [
+        allBiomarkers,
+        allSleepSessions,
+        allWorkoutSessions,
+        allTrainingSchedules,
+        healthRecords,
+        supplements,
+        mealPlans,
+        allGoals,
+        fitnessProfile,
+        nutritionProfile,
+        onboardingStatus
+      ] = await Promise.all([
+        storage.getBiomarkers(userId),
+        storage.getSleepSessions(userId),
+        storage.getWorkoutSessions(userId),
+        storage.getTrainingSchedules(userId),
+        storage.getHealthRecords(userId),
+        storage.getSupplements(userId),
+        storage.getMealPlans(userId),
+        storage.getGoals(userId),
+        storage.getFitnessProfile(userId),
+        storage.getNutritionProfile(userId),
+        storage.getOnboardingStatus(userId)
+      ]);
+
+      // Get historical readiness scores (last 30 days)
+      const today = new Date();
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const historicalReadiness = await storage.getReadinessScores(userId, thirtyDaysAgo, now);
+      
+      // Get latest readiness score
+      const readinessScore = await storage.getReadinessScoreForDate(userId, today);
+      
+      // Get recent insights for comprehensive context
+      const recentInsights = await storage.getInsights(userId, 20);
+      
+      // Get downvoted recovery protocols to avoid suggesting them
+      const downvotedProtocolIds = await storage.getDownvotedProtocols(userId);
+      const downvotedProtocols: string[] = [];
+      if (downvotedProtocolIds.length > 0) {
+        for (const protocolId of downvotedProtocolIds) {
+          const protocol = await storage.getRecoveryProtocol(protocolId);
+          if (protocol) {
+            downvotedProtocols.push(protocol.name);
+          }
+        }
+      }
+
+      // Format latest key biomarkers
+      const latestWeight = allBiomarkers
+        .filter(b => b.type === 'weight')
+        .sort((a, b) => new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime())[0];
+      
+      const latestHRV = allBiomarkers
+        .filter(b => b.type === 'hrv')
+        .sort((a, b) => new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime())[0];
+      
+      const latestRHR = allBiomarkers
+        .filter(b => b.type === 'resting-heart-rate')
+        .sort((a, b) => new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime())[0];
+
+      // Build comprehensive user context (matching regular chat)
+      const personalMemories = user?.personalContext || null;
+      const activeGoals = allGoals.filter(g => g.status === 'active');
+      
+      // Format latest sleep data
+      const latestSleep = allSleepSessions.length > 0 
+        ? allSleepSessions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]
+        : null;
+      
+      // Format readiness trend
+      const readinessTrend = historicalReadiness.length > 0
+        ? `Average last 7 days: ${Math.round(historicalReadiness.slice(-7).reduce((sum, r) => sum + r.score, 0) / Math.min(7, historicalReadiness.length))}/100`
+        : 'No history';
+      
+      // Build comprehensive context for AI
+      const userContextData = {
+        // User profile
+        name: user.firstName || 'User',
+        age: user.dateOfBirth ? Math.floor((now.getTime() - new Date(user.dateOfBirth).getTime()) / (365.25 * 24 * 60 * 60 * 1000)) : null,
+        gender: user.gender,
+        height: user.height,
+        activityLevel: user.activityLevel,
+        timezone: user.timezone,
+        
+        // Latest metrics
+        weight: latestWeight ? `${latestWeight.value} ${latestWeight.unit} (${new Date(latestWeight.recordedAt).toLocaleDateString()})` : 'Not recorded',
+        hrv: latestHRV ? `${latestHRV.value} ms (${new Date(latestHRV.recordedAt).toLocaleDateString()})` : 'Not recorded',
+        restingHR: latestRHR ? `${latestRHR.value} bpm (${new Date(latestRHR.recordedAt).toLocaleDateString()})` : 'Not recorded',
+        
+        // Readiness & Recovery
+        todayReadiness: readinessScore ? `${readinessScore.score}/100 (${readinessScore.quality}) - ${readinessScore.recommendation}` : 'Not available',
+        readinessTrend,
+        
+        // Sleep
+        lastNightSleep: latestSleep ? `${Math.round(latestSleep.totalMinutes / 60)}h ${latestSleep.totalMinutes % 60}m, Quality: ${latestSleep.sleepScore || 'N/A'}/100` : 'No data',
+        
+        // Workouts
+        recentWorkouts: allWorkoutSessions.slice(-5).map(w => `${w.name} (${new Date(w.date).toLocaleDateString()}, ${w.duration}min)`).join('\n'),
+        totalWorkouts: allWorkoutSessions.length,
+        
+        // Goals
+        activeGoals: activeGoals.map(g => `${g.metricType}: ${g.currentValue} → ${g.targetValue} ${g.unit}`).join('\n'),
+        
+        // Fitness profile
+        fitnessGoal: fitnessProfile?.primaryGoal || 'Not set',
+        experience: fitnessProfile?.experienceLevel || 'Not set',
+        exercisePreferences: fitnessProfile?.exercisePreferences?.join(', ') || 'Not set',
+        
+        // Nutrition
+        dietPreferences: nutritionProfile?.dietaryPreferences?.join(', ') || 'Not set',
+        mealsPerDay: nutritionProfile?.mealsPerDay || 'Not set',
+        
+        // Data availability
+        totalBiomarkers: allBiomarkers.length,
+        totalSleepSessions: allSleepSessions.length,
+        
+        // Personal memories
+        memories: personalMemories,
+        
+        // Preferences
+        downvotedProtocols: downvotedProtocols.length > 0 ? downvotedProtocols.join(', ') : 'None',
+        
+        // Recent AI insights
+        recentInsights: recentInsights.slice(0, 3).map(i => `- ${i.message}`).join('\n')
+      };
+
       // Import OpenAI dynamically
       const { default: OpenAI } = await import('openai');
       const openai = new OpenAI({
@@ -8036,21 +8169,70 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
       openaiWs.on("open", () => {
         console.log("🔗 Connected to OpenAI Realtime API");
         
-        // Configure session with health coach personality
+        // Configure session with comprehensive user data
         const sessionConfig = {
           type: "session.update",
           session: {
             modalities: ["text", "audio"],
-            instructions: `You are a knowledgeable, supportive AI health coach integrated into Health Insights AI. You have access to the user's complete health profile, biomarkers, workout history, sleep data, and goals.
+            instructions: `You are a knowledgeable, supportive AI health coach for HealthPilot. You have complete access to the user's health data and history.
+
+## USER PROFILE:
+Name: ${userContextData.name}
+Age: ${userContextData.age || 'Not provided'}
+Gender: ${userContextData.gender || 'Not provided'}
+Height: ${userContextData.height ? userContextData.height + ' cm' : 'Not provided'}
+Activity Level: ${userContextData.activityLevel || 'Not provided'}
+
+## LATEST METRICS:
+Weight: ${userContextData.weight}
+HRV: ${userContextData.hrv}
+Resting Heart Rate: ${userContextData.restingHR}
+
+## READINESS & RECOVERY:
+Today's Readiness: ${userContextData.todayReadiness}
+Readiness Trend: ${userContextData.readinessTrend}
+Avoid These Recovery Protocols: ${userContextData.downvotedProtocols}
+
+## SLEEP:
+Last Night: ${userContextData.lastNightSleep}
+
+## WORKOUTS:
+Recent Training:
+${userContextData.recentWorkouts || 'No recent workouts'}
+Total Workouts Tracked: ${userContextData.totalWorkouts}
+
+## ACTIVE GOALS:
+${userContextData.activeGoals || 'No active goals set'}
+
+## FITNESS PROFILE:
+Primary Goal: ${userContextData.fitnessGoal}
+Experience Level: ${userContextData.experience}
+Exercise Preferences: ${userContextData.exercisePreferences}
+
+## NUTRITION:
+Dietary Preferences: ${userContextData.dietPreferences}
+Meals Per Day: ${userContextData.mealsPerDay}
+
+## RECENT AI INSIGHTS:
+${userContextData.recentInsights || 'No recent insights'}
+
+## PERSONAL MEMORIES:
+${userContextData.memories || 'No personal context saved yet'}
+
+## DATA AVAILABILITY:
+- Total Biomarkers: ${userContextData.totalBiomarkers}
+- Total Sleep Sessions: ${userContextData.totalSleepSessions}
+- Total Workouts: ${userContextData.totalWorkouts}
 
 Your role:
-- Provide personalized health and fitness guidance
-- Answer questions about their health data and trends
-- Offer encouragement and motivation
-- Suggest evidence-based interventions
+- Provide personalized guidance based on THEIR ACTUAL DATA above
+- Answer questions using SPECIFIC VALUES from their metrics
+- Reference their goals, preferences, and personal memories when appropriate
 - Be warm, empathetic, and conversational
+- Keep responses concise for voice - aim for 2-3 sentences unless asked for detail
+- Speak naturally as their personal health coach
 
-Keep responses concise for voice conversations. Speak naturally as if you're their personal coach checking in.`,
+IMPORTANT: When discussing metrics like weight, HRV, sleep, etc., always use the EXACT values provided above, not generic estimates.`,
             voice: "alloy",
             input_audio_format: "pcm16",
             output_audio_format: "pcm16",
