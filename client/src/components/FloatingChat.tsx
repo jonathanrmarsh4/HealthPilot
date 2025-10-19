@@ -19,325 +19,260 @@ interface VoiceChatModalProps {
   onClose: () => void;
 }
 
-interface TranscriptMessage {
-  id: string;
-  messageId?: number;
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: Date;
-}
-
-// Utility: Detect Safari on iOS (including iPadOS)
-const isSafariIOS = (): boolean => {
-  const ua = navigator.userAgent;
-  // Modern iPadOS reports as "Macintosh" with touch points
-  const isIOS = /iPad|iPhone|iPod/.test(ua) || 
-    (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
-  const isSafari = /Safari/.test(ua) && !/Chrome|CriOS|FxiOS|EdgiOS/.test(ua);
-  return isIOS && isSafari;
-};
-
 export function VoiceChatModal({ isOpen, onClose }: VoiceChatModalProps) {
   const { toast } = useToast();
-  const [isRecording, setIsRecording] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [transcript, setTranscript] = useState<TranscriptMessage[]>([]);
-  const [currentUserInput, setCurrentUserInput] = useState("");
-  const [hasShownDisclosure, setHasShownDisclosure] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
+  const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const recognitionRef = useRef<any>(null);
+  const [transcript, setTranscript] = useState<Array<{ role: 'user' | 'assistant', text: string }>>([]);
+  const wsRef = useRef<WebSocket | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const audioQueueRef = useRef<Float32Array[]>([]);
+  const isPlayingRef = useRef(false);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
   const transcriptEndRef = useRef<HTMLDivElement>(null);
-  const speechTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const lastTranscriptRef = useRef<string>("");
-  const isRecordingRef = useRef<boolean>(false);
-  const currentUserInputRef = useRef<string>("");
-  const isTTSPrimedRef = useRef<boolean>(false);
-  
-  // Check if AI disclosure has been shown before
-  useEffect(() => {
-    const disclosureShown = localStorage.getItem('healthpilot_voice_disclosure_shown');
-    setHasShownDisclosure(disclosureShown === 'true');
-  }, []);
 
-  // Initialize speech recognition
-  useEffect(() => {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    
-    if (SpeechRecognition) {
-      const recognition = new SpeechRecognition();
-      const isSafariOnIOS = isSafariIOS();
-      
-      // Safari iOS has buggy continuous mode - use false to prevent failures
-      recognition.continuous = !isSafariOnIOS;
-      recognition.interimResults = true;
-      recognition.lang = 'en-US';
-      
-      recognition.onresult = (event: any) => {
-        let interimTranscript = '';
-        let finalTranscript = '';
-        
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const transcript = event.results[i][0].transcript;
-          if (event.results[i].isFinal) {
-            finalTranscript += transcript + ' ';
-          } else {
-            interimTranscript += transcript;
-          }
-        }
-        
-        const currentTranscript = finalTranscript || interimTranscript;
-        
-        // Safari iOS bug: Prevent text duplication
-        if (isSafariOnIOS && currentTranscript === lastTranscriptRef.current) {
-          return;
-        }
-        lastTranscriptRef.current = currentTranscript;
-        
-        setCurrentUserInput(currentTranscript);
-        currentUserInputRef.current = currentTranscript;
-        
-        // Safari iOS workaround: Auto-stop after 500ms of silence
-        if (isSafariOnIOS && speechTimeoutRef.current) {
-          clearTimeout(speechTimeoutRef.current);
-        }
-        
-        if (isSafariOnIOS) {
-          speechTimeoutRef.current = setTimeout(() => {
-            if (recognitionRef.current && isRecordingRef.current) {
-              recognitionRef.current.stop();
-            }
-          }, 500);
-        }
-      };
-      
-      recognition.onerror = (event: any) => {
-        console.error('Speech recognition error:', event.error);
-        
-        // Safari iOS specific: Helpful message for dictation not enabled
-        if (event.error === 'service-not-allowed' && isSafariOnIOS) {
-          toast({
-            title: "Enable Dictation",
-            description: "Go to Settings → General → Keyboard and enable Dictation to use voice chat.",
-            variant: "destructive",
-          });
-        } else if (event.error !== 'no-speech' && event.error !== 'aborted') {
-          toast({
-            title: "Voice Error",
-            description: "Could not understand speech. Please try again.",
-            variant: "destructive",
-          });
-        }
-        setIsRecording(false);
-      };
-      
-      recognition.onend = () => {
-        if (speechTimeoutRef.current) {
-          clearTimeout(speechTimeoutRef.current);
-        }
-        
-        if (isRecordingRef.current && currentUserInputRef.current.trim()) {
-          handleUserInputComplete(currentUserInputRef.current.trim());
-        }
-        setIsRecording(false);
-        isRecordingRef.current = false;
-        lastTranscriptRef.current = "";
-      };
-      
-      recognitionRef.current = recognition;
-    }
-    
-    return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
-      if (speechTimeoutRef.current) {
-        clearTimeout(speechTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  // Prime TTS for iOS Safari - must be called from user gesture
-  const primeTTS = () => {
-    if (!isTTSPrimedRef.current && 'speechSynthesis' in window) {
-      // Speak empty utterance to enable TTS on iOS
-      const primeUtterance = new SpeechSynthesisUtterance('');
-      window.speechSynthesis.speak(primeUtterance);
-      isTTSPrimedRef.current = true;
-    }
-  };
-
-  // Speak text with iOS Safari compatibility
-  const speakText = (text: string) => {
-    if (!('speechSynthesis' in window) || !text) return;
-
-    // Cancel any ongoing speech
-    window.speechSynthesis.cancel();
-    setIsSpeaking(true);
-
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 0.95;
-    utterance.pitch = 1;
-    utterance.volume = 1;
-    
-    utterance.onend = () => {
-      setIsSpeaking(false);
-    };
-    
-    utterance.onerror = () => {
-      setIsSpeaking(false);
-    };
-
-    // Small delay for iOS Safari compatibility
-    setTimeout(() => {
-      window.speechSynthesis.speak(utterance);
-    }, 100);
-  };
-
-  const handleUserInputComplete = async (userMessage: string) => {
-    if (!userMessage.trim()) return;
-
-    /**
-     * PRIVACY & DATA DELETION POLICY:
-     * 
-     * Voice chat implements strict data minimization principles:
-     * 
-     * 1. NO RAW AUDIO STORAGE: Raw audio data is NEVER stored. Web Speech API 
-     *    processes speech client-side and only text transcripts are transmitted.
-     * 
-     * 2. TRANSCRIPT RETENTION: Text transcripts are stored temporarily in memory 
-     *    (React state) for the duration of the voice chat session only. When the
-     *    modal closes, all transcript data is cleared.
-     * 
-     * 3. SUMMARIZATION ONLY: After each interaction, only high-level summaries
-     *    (preferences, progress, concerns) are stored in the database via the
-     *    coach_memory table. Full transcript text is NOT persisted.
-     * 
-     * 4. VECTOR EMBEDDINGS: Summaries are converted to embeddings for semantic
-     *    search. Original summary text is stored, but raw transcripts are not.
-     * 
-     * 5. USER CONTROL: Users can delete all coaching memories via the "Forget Me"
-     *    feature in Privacy Dashboard, which removes summaries and embeddings.
-     * 
-     * This approach complies with GDPR, HIPAA, PIPEDA, and Australia Privacy Act
-     * data minimization requirements.
-     */
-
-    // Add user message to transcript (in-memory only, cleared on modal close)
-    const userMsg: TranscriptMessage = {
-      id: `user-${Date.now()}`,
-      role: 'user',
-      content: userMessage,
-      timestamp: new Date(),
-    };
-    
-    setTranscript(prev => [...prev, userMsg]);
-    setCurrentUserInput("");
-    currentUserInputRef.current = "";
-    setIsProcessing(true);
-
+  const connect = async () => {
     try {
-      // Send to AI chat endpoint
-      const res = await apiRequest("POST", "/api/chat", { 
-        message: userMessage,
-        currentPage: "Voice Chat"
-      });
-      const data = await res.json();
+      // Request microphone access
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaStreamRef.current = stream;
 
-      // Prepend AI disclosure on first voice interaction
-      const aiDisclosure = "Hello! I'm your HealthPilot Coach, an AI assistant powered by OpenAI. I'm here to help with fitness and wellness guidance, but I'm not a medical professional. Always consult qualified healthcare providers for medical advice.\n\n";
-      
-      let aiResponse = data.reply || "I'm sorry, I couldn't process that.";
-      
-      // Add disclosure if this is the first voice interaction
-      // Check against !hasShownDisclosure flag, not stale transcript.length
-      if (!hasShownDisclosure) {
-        aiResponse = aiDisclosure + aiResponse;
-        setHasShownDisclosure(true);
-        localStorage.setItem('healthpilot_voice_disclosure_shown', 'true');
+      // Create audio context
+      audioContextRef.current = new AudioContext({ sampleRate: 24000 });
+
+      // Get authentication token from backend
+      console.log("🔑 Requesting authentication token...");
+      const tokenResponse = await fetch('/api/voice-chat/token', {
+        method: 'POST',
+        credentials: 'include',
+      });
+
+      if (!tokenResponse.ok) {
+        throw new Error('Failed to get authentication token');
       }
 
-      // Add AI response to transcript
-      const aiMsg: TranscriptMessage = {
-        id: `ai-${Date.now()}`,
-        messageId: data.messageId,
-        role: 'assistant',
-        content: aiResponse,
-        timestamp: new Date(),
-      };
+      const { token } = await tokenResponse.json();
+      console.log("✅ Got token, connecting to WebSocket...");
+
+      // Connect to WebSocket with token
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${protocol}//${window.location.host}/api/voice-chat?token=${token}`;
       
-      setTranscript(prev => [...prev, aiMsg]);
+      console.log(`🔌 Connecting to: ${wsUrl}`);
+      const ws = new WebSocket(wsUrl);
+      wsRef.current = ws;
 
-      // Speak the AI response with iOS Safari compatibility
-      speakText(aiResponse);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to get AI response",
-        variant: "destructive",
-      });
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const toggleRecording = () => {
-    if (!recognitionRef.current) {
-      toast({
-        title: "Not Supported",
-        description: "Voice input is not supported in your browser",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (isRecording) {
-      recognitionRef.current.stop();
-      setIsRecording(false);
-      isRecordingRef.current = false;
-    } else {
-      // Prime TTS on first user interaction (iOS Safari requirement)
-      primeTTS();
-      
-      try {
-        recognitionRef.current.start();
-        setIsRecording(true);
-        isRecordingRef.current = true;
-      } catch (error) {
-        console.error('Error starting speech recognition:', error);
+      ws.onopen = () => {
+        console.log("✅ Voice chat connected");
+        setIsConnected(true);
         toast({
-          title: "Error",
-          description: "Could not start voice input",
-          variant: "destructive",
+          title: "Voice Chat Connected",
+          description: "Your AI health coach is ready to chat!",
         });
-      }
+      };
+
+      ws.onmessage = async (event) => {
+        const data = JSON.parse(event.data);
+        
+        // Handle different event types
+        if (data.type === 'session.created' || data.type === 'session.updated') {
+          console.log("Session configured:", data);
+        } else if (data.type === 'input_audio_buffer.speech_started') {
+          setIsListening(true);
+        } else if (data.type === 'input_audio_buffer.speech_stopped') {
+          setIsListening(false);
+          // Commit the audio buffer and request response
+          if (wsRef.current?.readyState === WebSocket.OPEN) {
+            wsRef.current.send(JSON.stringify({type: "input_audio_buffer.commit"}));
+            wsRef.current.send(JSON.stringify({type: "response.create"}));
+          }
+        } else if (data.type === 'conversation.item.input_audio_transcription.completed') {
+          // User's speech was transcribed
+          setTranscript(prev => [...prev, { role: 'user', text: data.transcript }]);
+        } else if (data.type === 'response.audio_transcript.delta') {
+          // Assistant's speech transcription
+          setTranscript(prev => {
+            const lastItem = prev[prev.length - 1];
+            if (lastItem?.role === 'assistant') {
+              return [...prev.slice(0, -1), { role: 'assistant', text: lastItem.text + data.delta }];
+            } else {
+              return [...prev, { role: 'assistant', text: data.delta }];
+            }
+          });
+        } else if (data.type === 'response.audio.delta') {
+          // Play audio
+          setIsSpeaking(true);
+          const audioData = atob(data.delta);
+          const audioArray = new Int16Array(audioData.length / 2);
+          for (let i = 0; i < audioData.length; i += 2) {
+            audioArray[i / 2] = (audioData.charCodeAt(i + 1) << 8) | audioData.charCodeAt(i);
+          }
+          const floatArray = new Float32Array(audioArray.length);
+          for (let i = 0; i < audioArray.length; i++) {
+            floatArray[i] = audioArray[i] / 32768.0;
+          }
+          audioQueueRef.current.push(floatArray);
+          playAudioQueue();
+        } else if (data.type === 'response.audio.done') {
+          setIsSpeaking(false);
+        } else if (data.type === 'error') {
+          console.error("Voice chat error:", data.error);
+          toast({
+            variant: "destructive",
+            title: "Voice Chat Error",
+            description: data.error.message,
+          });
+        }
+      };
+
+      ws.onerror = (error) => {
+        console.error("WebSocket error:", error);
+        toast({
+          variant: "destructive",
+          title: "Connection Error",
+          description: "Failed to connect to voice chat",
+        });
+      };
+
+      ws.onclose = (event) => {
+        console.log("WebSocket closed:", event.code, event.reason);
+        setIsConnected(false);
+        setIsListening(false);
+        setIsSpeaking(false);
+        setTranscript([]);
+        
+        if (event.code === 4003) {
+          toast({
+            variant: "destructive",
+            title: "Premium Required",
+            description: "Voice chat requires a Premium subscription. Please upgrade to continue.",
+          });
+        } else if (event.code === 4001) {
+          toast({
+            variant: "destructive",
+            title: "Authentication Required",
+            description: "Please log in to use voice chat",
+          });
+        }
+      };
+
+      // Start capturing audio
+      startAudioCapture(stream, ws);
+
+    } catch (error: any) {
+      console.error("Failed to connect:", error);
+      toast({
+        variant: "destructive",
+        title: "Microphone Access Required",
+        description: "Please allow microphone access to use voice chat",
+      });
     }
   };
+
+  const startAudioCapture = (stream: MediaStream, ws: WebSocket) => {
+    if (!audioContextRef.current) return;
+
+    const audioContext = audioContextRef.current;
+    const source = audioContext.createMediaStreamSource(stream);
+    const processor = audioContext.createScriptProcessor(4096, 1, 1);
+
+    source.connect(processor);
+    processor.connect(audioContext.destination);
+
+    processor.onaudioprocess = (e) => {
+      if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
+
+      const inputData = e.inputBuffer.getChannelData(0);
+      const pcm16 = new Int16Array(inputData.length);
+      
+      for (let i = 0; i < inputData.length; i++) {
+        const s = Math.max(-1, Math.min(1, inputData[i]));
+        pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+      }
+
+      const base64 = btoa(String.fromCharCode.apply(null, Array.from(new Uint8Array(pcm16.buffer))));
+      
+      wsRef.current.send(JSON.stringify({
+        type: 'input_audio_buffer.append',
+        audio: base64,
+      }));
+    };
+  };
+
+  const playAudioQueue = async () => {
+    if (isPlayingRef.current || !audioContextRef.current) return;
+    if (audioQueueRef.current.length === 0) return;
+
+    isPlayingRef.current = true;
+
+    while (audioQueueRef.current.length > 0) {
+      const audioData = audioQueueRef.current.shift()!;
+      const audioBuffer = audioContextRef.current.createBuffer(1, audioData.length, 24000);
+      audioBuffer.getChannelData(0).set(audioData);
+
+      const source = audioContextRef.current.createBufferSource();
+      source.buffer = audioBuffer;
+      source.connect(audioContextRef.current.destination);
+      
+      await new Promise<void>((resolve) => {
+        source.onended = () => resolve();
+        source.start();
+      });
+    }
+
+    isPlayingRef.current = false;
+  };
+
+  const disconnect = () => {
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach(track => track.stop());
+      mediaStreamRef.current = null;
+    }
+    if (audioContextRef.current) {
+      audioContextRef.current.close();
+      audioContextRef.current = null;
+    }
+    setIsConnected(false);
+    setIsListening(false);
+    setIsSpeaking(false);
+  };
+
+  // Auto-connect when modal opens
+  useEffect(() => {
+    if (isOpen && !isConnected) {
+      connect();
+    }
+  }, [isOpen]);
+
+  // Cleanup on close
+  useEffect(() => {
+    if (!isOpen) {
+      disconnect();
+    }
+  }, [isOpen]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      disconnect();
+    };
+  }, []);
+
+  // Auto-scroll transcript
+  useEffect(() => {
+    transcriptEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [transcript]);
 
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
       onClose();
     }
   };
-
-  useEffect(() => {
-    transcriptEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [transcript]);
-
-  // Close and cleanup on unmount
-  useEffect(() => {
-    if (!isOpen) {
-      if (recognitionRef.current && isRecording) {
-        recognitionRef.current.stop();
-      }
-      if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-      }
-      setIsRecording(false);
-      isRecordingRef.current = false;
-      setCurrentUserInput("");
-      currentUserInputRef.current = "";
-    }
-  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -373,206 +308,129 @@ export function VoiceChatModal({ isOpen, onClose }: VoiceChatModalProps) {
           <div className="flex-1 overflow-y-auto p-6 space-y-4">
             {transcript.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-center space-y-4">
-                <div className="p-6 rounded-full bg-primary/10">
-                  <Mic className="h-12 w-12 text-primary" />
-                </div>
-                <div>
-                  <h4 className="font-semibold text-lg mb-2">Ready to chat!</h4>
-                  <p className="text-muted-foreground text-sm max-w-sm">
-                    Tap the microphone button below to start your voice conversation with your AI health coach.
-                  </p>
-                </div>
-              </div>
-            ) : (
-              transcript.map((msg) => {
-                // Extract citations from AI messages
-                const citations = msg.role === 'assistant' ? extractCitations(msg.content) : [];
-                
-                return (
-                  <div
-                    key={msg.id}
-                    className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                    data-testid={`voice-transcript-${msg.role}`}
-                  >
-                    <div className="flex flex-col gap-2 max-w-[80%]">
-                      <div
-                        className={`rounded-lg p-4 ${
-                          msg.role === 'user'
-                            ? 'bg-primary text-primary-foreground'
-                            : 'bg-muted'
-                        }`}
-                      >
-                        <p className="whitespace-pre-wrap break-words text-sm">
-                          {msg.content}
-                        </p>
-                        <p className="text-xs opacity-70 mt-2">
-                          {msg.timestamp.toLocaleTimeString()}
+                {isConnected ? (
+                  <>
+                    <div className="flex items-center justify-center gap-8">
+                      {/* Listening indicator */}
+                      <div className="flex flex-col items-center gap-2">
+                        <div className={`p-4 rounded-full ${isListening ? 'bg-green-500/20' : 'bg-muted'}`}>
+                          {isListening ? (
+                            <Mic className="w-12 h-12 text-green-500 animate-pulse" data-testid="icon-mic-active" />
+                          ) : (
+                            <MicOff className="w-12 h-12 text-muted-foreground" data-testid="icon-mic-inactive" />
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          {isListening ? "Listening..." : "Ready"}
                         </p>
                       </div>
-                      
-                      {/* Citation badges for AI messages */}
-                      {citations.length > 0 && (
-                        <div className="flex items-center gap-1 flex-wrap px-1">
-                          <TooltipProvider>
-                            {citations.map((citation, index) => {
-                              const url = getStandardUrl(citation.standard);
-                              const badgeContent = (
-                                <Badge 
-                                  variant="outline" 
-                                  className="text-xs gap-1 bg-primary/5 border-primary/20 hover:bg-primary/10 cursor-pointer"
-                                  data-testid={`badge-voice-citation-${citation.standard.toLowerCase()}`}
-                                >
-                                  <Shield className="h-3 w-3" />
-                                  {citation.standard}
-                                  {url && <ExternalLink className="h-3 w-3 ml-0.5" />}
-                                </Badge>
-                              );
 
-                              return (
-                                <Tooltip key={index}>
-                                  <TooltipTrigger asChild>
-                                    {url ? (
-                                      <a 
-                                        href={url} 
-                                        target="_blank" 
-                                        rel="noopener noreferrer"
-                                        className="inline-flex"
-                                        data-testid={`link-voice-citation-${citation.standard.toLowerCase()}`}
-                                      >
-                                        {badgeContent}
-                                      </a>
-                                    ) : (
-                                      badgeContent
-                                    )}
-                                  </TooltipTrigger>
-                                  <TooltipContent side="bottom" className="max-w-xs">
-                                    <p className="text-xs">
-                                      <strong>{getStandardFullName(citation.standard)}:</strong> {citation.text}
-                                      {url && <span className="block mt-1 text-primary">Click to learn more →</span>}
-                                    </p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              );
-                            })}
-                          </TooltipProvider>
+                      {/* Speaking indicator */}
+                      <div className="flex flex-col items-center gap-2">
+                        <div className={`p-4 rounded-full ${isSpeaking ? 'bg-primary/20' : 'bg-muted'}`}>
+                          <Sparkles className={`w-12 h-12 ${isSpeaking ? 'text-primary animate-pulse' : 'text-muted-foreground'}`} data-testid="icon-ai-speaking" />
                         </div>
-                      )}
-                      
-                      {msg.role === 'assistant' && msg.messageId && (
-                        <div className="flex justify-end">
-                          <ChatFeedback 
-                            messageId={msg.messageId} 
-                            conversationType="voice"
-                          />
-                        </div>
-                      )}
+                        <p className="text-sm text-muted-foreground">
+                          {isSpeaking ? "AI Speaking..." : "Idle"}
+                        </p>
+                      </div>
+                    </div>
+                    <p className="text-sm text-muted-foreground max-w-sm mt-4">
+                      Start speaking! Your AI health coach is listening and will respond naturally.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <div className="p-6 rounded-full bg-primary/10">
+                      <Loader2 className="h-12 w-12 text-primary animate-spin" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-lg mb-2">Connecting...</h4>
+                      <p className="text-muted-foreground text-sm max-w-sm">
+                        Setting up your voice connection with the AI health coach.
+                      </p>
+                    </div>
+                  </>
+                )}
+              </div>
+            ) : (
+              <>
+                {transcript.map((item, index) => (
+                  <div
+                    key={index}
+                    className={`flex ${item.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div
+                      className={`rounded-lg p-4 max-w-[80%] ${
+                        item.role === 'user'
+                          ? 'bg-primary/10'
+                          : 'bg-muted'
+                      }`}
+                      data-testid={`transcript-${item.role}-${index}`}
+                    >
+                      <p className="text-xs text-muted-foreground mb-1">
+                        {item.role === 'user' ? 'You' : 'AI Coach'}
+                      </p>
+                      <p className="whitespace-pre-wrap">{item.text}</p>
                     </div>
                   </div>
-                );
-              })
-            )}
-
-            {/* Current user input preview */}
-            {currentUserInput && (
-              <div className="flex justify-end">
-                <div className="max-w-[80%] rounded-lg p-4 bg-primary/50 text-primary-foreground border-2 border-primary border-dashed">
-                  <p className="whitespace-pre-wrap break-words text-sm">
-                    {currentUserInput}
-                  </p>
-                  <p className="text-xs opacity-70 mt-2">Listening...</p>
-                </div>
-              </div>
-            )}
-
-            {/* Processing indicator */}
-            {isProcessing && (
-              <div className="flex justify-start">
-                <div className="max-w-[80%] rounded-lg p-4 bg-muted">
-                  <div className="flex items-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <p className="text-sm">AI is thinking...</p>
-                  </div>
-                </div>
-              </div>
+                ))}
+              </>
             )}
 
             <div ref={transcriptEndRef} />
           </div>
 
-          {/* Voice Controls */}
-          <div className="border-t p-6 bg-muted/30">
-            <div className="flex flex-col items-center gap-4">
-              {/* Waveform Visualization - Recording */}
-              {isRecording && (
-                <div className="flex items-center gap-1 h-12" data-testid="waveform-visualization">
-                  {[...Array(8)].map((_, i) => (
-                    <div
-                      key={i}
-                      className="w-1 bg-primary rounded-full animate-pulse"
-                      style={{
-                        height: `${20 + Math.random() * 30}px`,
-                        animationDelay: `${i * 0.1}s`,
-                        animationDuration: '0.8s',
-                      }}
-                    />
-                  ))}
-                </div>
-              )}
-
-              {/* AI Speaking Indicator */}
-              {isSpeaking && (
-                <div className="flex flex-col items-center gap-2" data-testid="ai-speaking-indicator">
-                  <div className="flex items-center gap-1 h-12">
-                    {[...Array(6)].map((_, i) => (
-                      <div
-                        key={i}
-                        className="w-1.5 bg-green-500 rounded-full animate-pulse"
-                        style={{
-                          height: `${15 + Math.random() * 25}px`,
-                          animationDelay: `${i * 0.15}s`,
-                          animationDuration: '1s',
-                        }}
-                      />
-                    ))}
+          {/* Audio Status Footer */}
+          {isConnected && (
+            <div className="border-t p-4 bg-muted/30">
+              <div className="flex items-center justify-center gap-8">
+                {/* Listening visual */}
+                {isListening && (
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
+                      {[...Array(5)].map((_, i) => (
+                        <div
+                          key={i}
+                          className="w-1 bg-green-500 rounded-full animate-pulse"
+                          style={{
+                            height: `${12 + Math.random() * 16}px`,
+                            animationDelay: `${i * 0.1}s`,
+                            animationDuration: '0.8s',
+                          }}
+                        />
+                      ))}
+                    </div>
+                    <span className="text-sm text-green-600 dark:text-green-400">Listening...</span>
                   </div>
-                  <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
-                    <Volume2 className="h-4 w-4" />
-                    <span>AI is speaking...</span>
-                  </div>
-                </div>
-              )}
+                )}
 
-              {/* Mic Button */}
-              <div className="flex items-center gap-4">
-                <Button
-                  size="lg"
-                  variant={isRecording ? "default" : "outline"}
-                  onClick={toggleRecording}
-                  disabled={isProcessing}
-                  className={`h-16 w-16 rounded-full ${
-                    isRecording
-                      ? 'bg-red-500 hover:bg-red-600 border-red-400 animate-pulse'
-                      : 'bg-primary hover:bg-primary/90'
-                  }`}
-                  data-testid="button-toggle-voice-recording"
-                >
-                  {isRecording ? (
-                    <MicOff className="h-8 w-8 text-white" />
-                  ) : (
-                    <Mic className="h-8 w-8 text-white" />
-                  )}
-                </Button>
+                {/* Speaking visual */}
+                {isSpeaking && (
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
+                      {[...Array(5)].map((_, i) => (
+                        <div
+                          key={i}
+                          className="w-1 bg-primary rounded-full animate-pulse"
+                          style={{
+                            height: `${12 + Math.random() * 16}px`,
+                            animationDelay: `${i * 0.1}s`,
+                            animationDuration: '1s',
+                          }}
+                        />
+                      ))}
+                    </div>
+                    <span className="text-sm text-primary">AI Speaking...</span>
+                  </div>
+                )}
+
+                {!isListening && !isSpeaking && (
+                  <p className="text-sm text-muted-foreground">Speak naturally - I'm listening!</p>
+                )}
               </div>
-
-              <p className="text-sm text-muted-foreground text-center">
-                {isRecording
-                  ? "Tap to stop recording"
-                  : isProcessing
-                  ? "Processing your message..."
-                  : "Tap to start talking"}
-              </p>
             </div>
-          </div>
+          )}
         </div>
       </Card>
     </div>
