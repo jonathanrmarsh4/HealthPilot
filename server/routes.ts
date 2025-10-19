@@ -687,6 +687,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             quantity: 1,
           },
         ],
+        subscription_data: {
+          trial_period_days: 7, // 7-day free trial for all new subscriptions
+        },
         success_url: `${process.env.REPLIT_DOMAINS?.split(',')[0] || 'http://localhost:5000'}/?upgrade=success`,
         cancel_url: `${process.env.REPLIT_DOMAINS?.split(',')[0] || 'http://localhost:5000'}/pricing?upgrade=cancelled`,
         metadata: {
