@@ -6,15 +6,17 @@ import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { Loader2, Save, RotateCcw, AlertCircle, Info, Sparkles } from "lucide-react";
+import { Loader2, Save, RotateCcw, AlertCircle, Info, Sparkles, ArrowLeft } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
 
 export default function ReadinessSettings() {
   const { toast } = useToast();
+  const [, navigate] = useLocation();
   
   // Fetch current settings
   const { data: settings, isLoading } = useQuery({
@@ -502,7 +504,7 @@ export default function ReadinessSettings() {
         </AlertDescription>
       </Alert>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 flex-wrap">
         <Button
           onClick={() => saveMutation.mutate()}
           disabled={!hasChanges || !isValidWeight || saveMutation.isPending}
@@ -527,6 +529,14 @@ export default function ReadinessSettings() {
         >
           <RotateCcw className="mr-2 h-4 w-4" />
           Reset to Defaults
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() => navigate("/training")}
+          data-testid="button-back-to-training"
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Training
         </Button>
       </div>
     </div>
