@@ -28,6 +28,7 @@ export const users = pgTable("users", {
   subscriptionTier: varchar("subscription_tier").notNull().default("free"), // 'free', 'premium', 'enterprise'
   subscriptionStatus: varchar("subscription_status").default("active"), // 'active', 'cancelled', 'past_due'
   stripeCustomerId: varchar("stripe_customer_id"),
+  referralCode: varchar("referral_code").unique(), // Unique referral code for this user
   // Health profile fields
   height: real("height"), // in cm
   dateOfBirth: timestamp("date_of_birth"),
@@ -1037,6 +1038,91 @@ export const insertAuditLogSchema = createInsertSchema(auditLogs).omit({
 
 export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
 export type AuditLog = typeof auditLogs.$inferSelect;
+
+// Subscription tracking - detailed Stripe subscription data
+export const subscriptions = pgTable("subscriptions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  stripeSubscriptionId: varchar("stripe_subscription_id").unique().notNull(),
+  stripePriceId: varchar("stripe_price_id").notNull(), // Stripe price ID for this subscription
+  tier: varchar("tier").notNull(), // 'premium', 'enterprise'
+  billingCycle: varchar("billing_cycle").notNull(), // 'monthly', 'annual'
+  status: varchar("status").notNull(), // 'active', 'canceled', 'past_due', 'trialing', 'incomplete'
+  currentPeriodStart: timestamp("current_period_start").notNull(),
+  currentPeriodEnd: timestamp("current_period_end").notNull(),
+  cancelAtPeriodEnd: integer("cancel_at_period_end").notNull().default(0), // 1 if user canceled but still has access until period end
+  canceledAt: timestamp("canceled_at"),
+  trialStart: timestamp("trial_start"),
+  trialEnd: timestamp("trial_end"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => [
+  index("subscriptions_user_id_idx").on(table.userId),
+  index("subscriptions_stripe_id_idx").on(table.stripeSubscriptionId),
+]);
+
+export const insertSubscriptionSchema = createInsertSchema(subscriptions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertSubscription = z.infer<typeof insertSubscriptionSchema>;
+export type Subscription = typeof subscriptions.$inferSelect;
+
+// Promo codes for marketing campaigns
+export const promoCodes = pgTable("promo_codes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  code: varchar("code").notNull().unique(), // e.g., "NEWYEAR2025", case-insensitive
+  discountPercent: integer("discount_percent").notNull(), // 10 = 10% off, 20 = 20% off, etc.
+  validFrom: timestamp("valid_from").notNull(),
+  validUntil: timestamp("valid_until").notNull(),
+  maxUses: integer("max_uses"), // null = unlimited
+  currentUses: integer("current_uses").notNull().default(0),
+  allowedTiers: text("allowed_tiers").array(), // ['premium', 'enterprise'] or null for all tiers
+  isActive: integer("is_active").notNull().default(1), // 1 = active, 0 = disabled
+  createdBy: varchar("created_by").notNull(), // admin user ID who created this
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => [
+  index("promo_codes_code_idx").on(table.code),
+]);
+
+export const insertPromoCodeSchema = createInsertSchema(promoCodes).omit({
+  id: true,
+  currentUses: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertPromoCode = z.infer<typeof insertPromoCodeSchema>;
+export type PromoCode = typeof promoCodes.$inferSelect;
+
+// Referral program tracking
+export const referrals = pgTable("referrals", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  referrerUserId: varchar("referrer_user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  referredUserId: varchar("referred_user_id").references(() => users.id, { onDelete: "set null" }), // null if not signed up yet
+  referralCode: varchar("referral_code").notNull().unique(), // unique code per user, e.g., "JOHN-2BA4"
+  status: varchar("status").notNull().default("pending"), // 'pending', 'converted', 'rewarded'
+  convertedAt: timestamp("converted_at"), // When referred user subscribed
+  rewardGranted: integer("reward_granted").notNull().default(0), // 1 if referrer was rewarded
+  rewardedAt: timestamp("rewarded_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => [
+  index("referrals_referrer_idx").on(table.referrerUserId),
+  index("referrals_code_idx").on(table.referralCode),
+]);
+
+export const insertReferralSchema = createInsertSchema(referrals).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertReferral = z.infer<typeof insertReferralSchema>;
+export type Referral = typeof referrals.$inferSelect;
 
 // Message usage tracking for free tier limits
 export const messageUsage = pgTable("message_usage", {
