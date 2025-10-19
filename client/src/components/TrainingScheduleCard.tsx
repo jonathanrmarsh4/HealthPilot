@@ -11,6 +11,107 @@ interface Exercise {
   duration?: string;
 }
 
+// Muscle group classification helper
+function getExerciseMuscleGroups(exerciseName: string): string[] {
+  const nameLower = exerciseName.toLowerCase();
+  
+  // Chest exercises
+  if (nameLower.includes('bench press') || nameLower.includes('chest press') || 
+      nameLower.includes('chest fly') || nameLower.includes('pec fly') || 
+      nameLower.includes('cable crossover') || nameLower.includes('push-up') || 
+      nameLower.includes('pushup') || nameLower.includes('push up')) {
+    return ['Chest'];
+  }
+  
+  // Back exercises
+  if (nameLower.includes('pull-up') || nameLower.includes('pullup') || 
+      nameLower.includes('chin-up') || nameLower.includes('chinup') ||
+      nameLower.includes('row') || nameLower.includes('lat pulldown') || 
+      nameLower.includes('lat pull') || nameLower.includes('pullover')) {
+    return ['Back'];
+  }
+  if (nameLower.includes('deadlift')) {
+    return ['Back', 'Legs'];
+  }
+  
+  // Leg exercises
+  if (nameLower.includes('squat') || nameLower.includes('leg press')) {
+    return ['Legs', 'Glutes'];
+  }
+  if (nameLower.includes('leg curl') || nameLower.includes('leg extension') || 
+      nameLower.includes('lunge') || nameLower.includes('step-up')) {
+    return ['Legs'];
+  }
+  if (nameLower.includes('calf raise') || nameLower.includes('calf press')) {
+    return ['Calves'];
+  }
+  
+  // Shoulder exercises
+  if (nameLower.includes('shoulder press') || nameLower.includes('military press') ||
+      nameLower.includes('overhead press') || nameLower.includes('lateral raise') ||
+      nameLower.includes('front raise') || nameLower.includes('rear delt')) {
+    return ['Shoulders'];
+  }
+  
+  // Arm exercises
+  if (nameLower.includes('bicep curl') || nameLower.includes('hammer curl') || 
+      nameLower.includes('preacher curl')) {
+    return ['Arms'];
+  }
+  if (nameLower.includes('tricep') || nameLower.includes('skull crusher') || 
+      nameLower.includes('close grip')) {
+    return ['Arms'];
+  }
+  if (nameLower.includes('dip') && !nameLower.includes('hip')) {
+    return ['Chest', 'Arms'];
+  }
+  
+  // Core exercises
+  if (nameLower.includes('plank') || nameLower.includes('crunch') || 
+      nameLower.includes('sit-up') || nameLower.includes('ab') || 
+      nameLower.includes('core') || nameLower.includes('russian twist') ||
+      nameLower.includes('hanging leg raise')) {
+    return ['Core'];
+  }
+  
+  // Glute-specific exercises
+  if (nameLower.includes('hip thrust') || nameLower.includes('glute bridge') || 
+      nameLower.includes('kickback')) {
+    return ['Glutes'];
+  }
+  
+  // Cardio exercises
+  if (nameLower.includes('run') || nameLower.includes('cycle') || 
+      nameLower.includes('bike') || nameLower.includes('rowing') || 
+      nameLower.includes('swim') || nameLower.includes('elliptical') || 
+      nameLower.includes('walk')) {
+    return ['Cardio'];
+  }
+  
+  // Flexibility
+  if (nameLower.includes('stretch') || nameLower.includes('yoga') || 
+      nameLower.includes('mobility')) {
+    return ['Flexibility'];
+  }
+  
+  // Default
+  return ['Full Body'];
+}
+
+const muscleGroupColors: Record<string, string> = {
+  'Chest': 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
+  'Back': 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20',
+  'Legs': 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20',
+  'Shoulders': 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20',
+  'Arms': 'bg-pink-500/10 text-pink-600 dark:text-pink-400 border-pink-500/20',
+  'Core': 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/20',
+  'Glutes': 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20',
+  'Calves': 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20',
+  'Cardio': 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/20',
+  'Flexibility': 'bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/20',
+  'Full Body': 'bg-gray-500/10 text-gray-600 dark:text-gray-400 border-gray-500/20',
+};
+
 interface TrainingScheduleCardProps {
   id?: string;
   day: string;
@@ -126,18 +227,36 @@ export function TrainingScheduleCard({
           <div className="space-y-2">
             <div className="text-xs font-medium text-muted-foreground">Exercises</div>
             <div className="space-y-1">
-              {exercises.map((exercise, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-center justify-between rounded-md bg-muted/50 px-3 py-2 text-sm"
-                >
-                  <span className="font-medium">{exercise.name}</span>
-                  <span className="font-mono text-xs text-muted-foreground">
-                    {exercise.sets && exercise.reps && `${exercise.sets}x${exercise.reps}`}
-                    {exercise.duration}
-                  </span>
-                </div>
-              ))}
+              {exercises.map((exercise, idx) => {
+                const muscleGroups = getExerciseMuscleGroups(exercise.name);
+                return (
+                  <div
+                    key={idx}
+                    className="rounded-md bg-muted/50 px-3 py-2"
+                    data-testid={`exercise-item-${idx}`}
+                  >
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="font-medium text-sm">{exercise.name}</span>
+                      <span className="font-mono text-xs text-muted-foreground">
+                        {exercise.sets && exercise.reps && `${exercise.sets}x${exercise.reps}`}
+                        {exercise.duration}
+                      </span>
+                    </div>
+                    <div className="flex gap-1 flex-wrap">
+                      {muscleGroups.map((group) => (
+                        <Badge
+                          key={group}
+                          variant="outline"
+                          className={`text-[10px] px-1.5 py-0 h-4 ${muscleGroupColors[group] || muscleGroupColors['Full Body']}`}
+                          data-testid={`badge-muscle-${group.toLowerCase()}`}
+                        >
+                          {group}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
