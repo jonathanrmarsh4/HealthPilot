@@ -631,7 +631,7 @@ export default function LandingPage() {
       {/* === Footer === */}
       <footer className="px-6 pb-12">
         <div className="mx-auto max-w-6xl border-t border-white/10 pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-gray-500">
-          <div>© {new Date().getFullYear()} HealthPilot by Jonathan Marsh</div>
+          <div>© {new Date().getFullYear()} HealthPilot by Nuvitae Labs</div>
           <nav className="flex gap-6">
             <button onClick={() => setLocation("/security")} className="hover:text-white transition-colors">About</button>
             <button onClick={() => setLocation("/terms")} className="hover:text-white transition-colors">Terms</button>

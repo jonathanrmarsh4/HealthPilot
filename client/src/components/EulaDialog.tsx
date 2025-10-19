@@ -71,7 +71,7 @@ export function EulaDialog({ open, onAccept, isAccepting = false }: EulaDialogPr
               <p className="font-semibold mb-2">
                 Last Updated: 1/08/2025<br />
                 Effective Date: 1/08/2025<br />
-                Owner: HealthPilot Pty Ltd ("we," "us," "our")<br />
+                Owner: Nuvitae Labs ("we," "us," "our")<br />
                 Product: HealthPilot – AI-Driven Health, Fitness and Longevity Application ("the App")
               </p>
             </div>
@@ -147,7 +147,7 @@ export function EulaDialog({ open, onAccept, isAccepting = false }: EulaDialogPr
             <div>
               <h3 className="font-semibold mb-2">7. Intellectual Property</h3>
               <p>
-                All intellectual property rights in the App, algorithms, software, and related materials are and remain the exclusive property of HealthPilot Pty Ltd. You may not use our trademarks, trade names, or branding without written consent.
+                All intellectual property rights in the App, algorithms, software, and related materials are and remain the exclusive property of Nuvitae Labs. You may not use our trademarks, trade names, or branding without written consent.
               </p>
             </div>
 
@@ -213,7 +213,7 @@ export function EulaDialog({ open, onAccept, isAccepting = false }: EulaDialogPr
             <div>
               <h3 className="font-semibold mb-2">15. Entire Agreement</h3>
               <p>
-                This Agreement, together with the Privacy Policy, constitutes the entire understanding between you and HealthPilot Pty Ltd regarding your use of HealthPilot and supersedes all prior agreements or communications.
+                This Agreement, together with the Privacy Policy, constitutes the entire understanding between you and Nuvitae Labs regarding your use of HealthPilot and supersedes all prior agreements or communications.
               </p>
             </div>
 
@@ -221,8 +221,9 @@ export function EulaDialog({ open, onAccept, isAccepting = false }: EulaDialogPr
               <h3 className="font-semibold mb-2">Contact Information</h3>
               <p>
                 If you have questions about this Agreement, please contact:<br />
-                Jonathan Marsh<br />
-                Email: jon@healthpilot.pro<br />
+                Nuvitae Labs<br />
+                Email: support@nuvitaelabs.com<br />
+                Website: nuvitaelabs.com<br />
                 Location: Perth, Western Australia
               </p>
             </div>
