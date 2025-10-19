@@ -131,6 +131,7 @@ export default function Training() {
   const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set());
   const [showFullReasoning, setShowFullReasoning] = useState(false);
   const [showFullAdjustments, setShowFullAdjustments] = useState(false);
+  const [acknowledgedOverride, setAcknowledgedOverride] = useState(false);
 
   const { data: readinessScore, isLoading: readinessLoading } = useQuery<ReadinessScore>({
     queryKey: ["/api/training/readiness"],
@@ -683,6 +684,46 @@ export default function Training() {
                 <p className="text-sm text-amber-600 dark:text-amber-400" data-testid="text-safety-note">
                   ⚠️ {dailyRec.recommendation.safetyNote}
                 </p>
+              </div>
+            )}
+            
+            {/* Override Option for Low Readiness (below 50) */}
+            {dailyRec && dailyRec.readinessScore < 50 && !acknowledgedOverride && (
+              <div className="mt-2 p-4 rounded-lg bg-orange-500/10 border border-orange-500/20">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="h-5 w-5 text-orange-600 dark:text-orange-400 shrink-0 mt-0.5" />
+                  <div className="flex-1 space-y-3">
+                    <div>
+                      <p className="text-sm font-semibold text-orange-600 dark:text-orange-400 mb-1">
+                        Low Readiness Detected (Score: {dailyRec.readinessScore})
+                      </p>
+                      <p className="text-sm text-orange-600/90 dark:text-orange-400/90">
+                        Your body is showing signs of fatigue. Training at low readiness increases injury risk and reduces workout effectiveness. We recommend the alternate or rest option.
+                      </p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setAcknowledgedOverride(true)}
+                      className="bg-orange-500/5 hover:bg-orange-500/15 border-orange-500/30 text-orange-600 dark:text-orange-400"
+                      data-testid="button-acknowledge-override"
+                    >
+                      I Understand - Train Anyway
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Acknowledged Override Confirmation */}
+            {dailyRec && dailyRec.readinessScore < 50 && acknowledgedOverride && (
+              <div className="mt-2 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                <div className="flex items-center gap-2">
+                  <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  <p className="text-sm text-blue-600 dark:text-blue-400">
+                    Override acknowledged. Please listen to your body and stop if you feel any pain or excessive fatigue.
+                  </p>
+                </div>
               </div>
             )}
           </CardHeader>
