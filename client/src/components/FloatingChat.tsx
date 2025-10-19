@@ -27,6 +27,16 @@ interface TranscriptMessage {
   timestamp: Date;
 }
 
+// Utility: Detect Safari on iOS (including iPadOS)
+const isSafariIOS = (): boolean => {
+  const ua = navigator.userAgent;
+  // Modern iPadOS reports as "Macintosh" with touch points
+  const isIOS = /iPad|iPhone|iPod/.test(ua) || 
+    (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+  const isSafari = /Safari/.test(ua) && !/Chrome|CriOS|FxiOS|EdgiOS/.test(ua);
+  return isIOS && isSafari;
+};
+
 export function VoiceChatModal({ isOpen, onClose }: VoiceChatModalProps) {
   const { toast } = useToast();
   const [isRecording, setIsRecording] = useState(false);
@@ -36,6 +46,10 @@ export function VoiceChatModal({ isOpen, onClose }: VoiceChatModalProps) {
   const [hasShownDisclosure, setHasShownDisclosure] = useState(false);
   const recognitionRef = useRef<any>(null);
   const transcriptEndRef = useRef<HTMLDivElement>(null);
+  const speechTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastTranscriptRef = useRef<string>("");
+  const isRecordingRef = useRef<boolean>(false);
+  const currentUserInputRef = useRef<string>("");
   
   // Check if AI disclosure has been shown before
   useEffect(() => {
@@ -49,7 +63,10 @@ export function VoiceChatModal({ isOpen, onClose }: VoiceChatModalProps) {
     
     if (SpeechRecognition) {
       const recognition = new SpeechRecognition();
-      recognition.continuous = true;
+      const isSafariOnIOS = isSafariIOS();
+      
+      // Safari iOS has buggy continuous mode - use false to prevent failures
+      recognition.continuous = !isSafariOnIOS;
       recognition.interimResults = true;
       recognition.lang = 'en-US';
       
@@ -66,12 +83,42 @@ export function VoiceChatModal({ isOpen, onClose }: VoiceChatModalProps) {
           }
         }
         
-        setCurrentUserInput(finalTranscript || interimTranscript);
+        const currentTranscript = finalTranscript || interimTranscript;
+        
+        // Safari iOS bug: Prevent text duplication
+        if (isSafariOnIOS && currentTranscript === lastTranscriptRef.current) {
+          return;
+        }
+        lastTranscriptRef.current = currentTranscript;
+        
+        setCurrentUserInput(currentTranscript);
+        currentUserInputRef.current = currentTranscript;
+        
+        // Safari iOS workaround: Auto-stop after 500ms of silence
+        if (isSafariOnIOS && speechTimeoutRef.current) {
+          clearTimeout(speechTimeoutRef.current);
+        }
+        
+        if (isSafariOnIOS) {
+          speechTimeoutRef.current = setTimeout(() => {
+            if (recognitionRef.current && isRecordingRef.current) {
+              recognitionRef.current.stop();
+            }
+          }, 500);
+        }
       };
       
       recognition.onerror = (event: any) => {
         console.error('Speech recognition error:', event.error);
-        if (event.error !== 'no-speech' && event.error !== 'aborted') {
+        
+        // Safari iOS specific: Helpful message for dictation not enabled
+        if (event.error === 'service-not-allowed' && isSafariOnIOS) {
+          toast({
+            title: "Enable Dictation",
+            description: "Go to Settings → General → Keyboard and enable Dictation to use voice chat.",
+            variant: "destructive",
+          });
+        } else if (event.error !== 'no-speech' && event.error !== 'aborted') {
           toast({
             title: "Voice Error",
             description: "Could not understand speech. Please try again.",
@@ -82,10 +129,16 @@ export function VoiceChatModal({ isOpen, onClose }: VoiceChatModalProps) {
       };
       
       recognition.onend = () => {
-        if (isRecording && currentUserInput.trim()) {
-          handleUserInputComplete(currentUserInput.trim());
+        if (speechTimeoutRef.current) {
+          clearTimeout(speechTimeoutRef.current);
+        }
+        
+        if (isRecordingRef.current && currentUserInputRef.current.trim()) {
+          handleUserInputComplete(currentUserInputRef.current.trim());
         }
         setIsRecording(false);
+        isRecordingRef.current = false;
+        lastTranscriptRef.current = "";
       };
       
       recognitionRef.current = recognition;
@@ -94,6 +147,9 @@ export function VoiceChatModal({ isOpen, onClose }: VoiceChatModalProps) {
     return () => {
       if (recognitionRef.current) {
         recognitionRef.current.stop();
+      }
+      if (speechTimeoutRef.current) {
+        clearTimeout(speechTimeoutRef.current);
       }
     };
   }, []);
@@ -137,6 +193,7 @@ export function VoiceChatModal({ isOpen, onClose }: VoiceChatModalProps) {
     
     setTranscript(prev => [...prev, userMsg]);
     setCurrentUserInput("");
+    currentUserInputRef.current = "";
     setIsProcessing(true);
 
     try {
@@ -204,10 +261,12 @@ export function VoiceChatModal({ isOpen, onClose }: VoiceChatModalProps) {
     if (isRecording) {
       recognitionRef.current.stop();
       setIsRecording(false);
+      isRecordingRef.current = false;
     } else {
       try {
         recognitionRef.current.start();
         setIsRecording(true);
+        isRecordingRef.current = true;
       } catch (error) {
         console.error('Error starting speech recognition:', error);
         toast({
@@ -239,7 +298,9 @@ export function VoiceChatModal({ isOpen, onClose }: VoiceChatModalProps) {
         window.speechSynthesis.cancel();
       }
       setIsRecording(false);
+      isRecordingRef.current = false;
       setCurrentUserInput("");
+      currentUserInputRef.current = "";
     }
   }, [isOpen]);
 
