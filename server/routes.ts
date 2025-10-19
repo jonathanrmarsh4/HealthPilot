@@ -1813,6 +1813,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 if (meal.dishTypes && meal.dishTypes.some((d: string) => dislikedDishTypes.has(d))) {
                   return false;
                 }
+                
+                // CRITICAL: Validate dietary restrictions (vegetarian/vegan)
+                if (diet) {
+                  const meatTerms = ['chicken', 'beef', 'pork', 'lamb', 'turkey', 'fish', 'salmon', 'tuna', 'shrimp', 'steak', 'bacon', 'sausage', 'ham', 'duck', 'veal', 'meat', 'seafood', 'prosciutto', 'pepperoni', 'anchovy', 'cod', 'tilapia', 'mahi', 'halibut'];
+                  const animalProductTerms = ['milk', 'cheese', 'butter', 'egg', 'cream', 'yogurt', 'honey'];
+                  
+                  const textToCheck = `${meal.title || ''} ${JSON.stringify(meal.ingredients || [])}`.toLowerCase();
+                  
+                  if (diet === 'vegetarian' || diet === 'vegan') {
+                    // Check for meat in title or ingredients
+                    const hasMeat = meatTerms.some(term => textToCheck.includes(term));
+                    if (hasMeat) {
+                      console.log(`🚫 Filtered out non-vegetarian library meal: ${meal.title} (contains meat)`);
+                      return false;
+                    }
+                  }
+                  
+                  if (diet === 'vegan') {
+                    // Additionally check for animal products
+                    const hasAnimalProducts = animalProductTerms.some(term => textToCheck.includes(term));
+                    if (hasAnimalProducts) {
+                      console.log(`🚫 Filtered out non-vegan library meal: ${meal.title} (contains animal products)`);
+                      return false;
+                    }
+                  }
+                }
+                
                 return true;
               });
               
@@ -1936,6 +1963,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   if (recipe.dishTypes && recipe.dishTypes.some((d: string) => dislikedDishTypes.has(d))) {
                     return false;
                   }
+                  
+                  // CRITICAL: Validate dietary restrictions (vegetarian/vegan)
+                  // Spoonacular's API sometimes returns non-compliant meals, so we must validate
+                  if (diet) {
+                    const meatTerms = ['chicken', 'beef', 'pork', 'lamb', 'turkey', 'fish', 'salmon', 'tuna', 'shrimp', 'steak', 'bacon', 'sausage', 'ham', 'duck', 'veal', 'meat', 'seafood', 'prosciutto', 'pepperoni', 'anchovy', 'cod', 'tilapia', 'mahi', 'halibut'];
+                    const animalProductTerms = ['milk', 'cheese', 'butter', 'egg', 'cream', 'yogurt', 'honey'];
+                    
+                    const textToCheck = `${recipe.title || ''} ${JSON.stringify(recipe.extendedIngredients || [])}`.toLowerCase();
+                    
+                    if (diet === 'vegetarian' || diet === 'vegan') {
+                      // Check for meat in title or ingredients
+                      const hasMeat = meatTerms.some(term => textToCheck.includes(term));
+                      if (hasMeat) {
+                        console.log(`🚫 Filtered out non-vegetarian meal: ${recipe.title} (contains meat)`);
+                        return false;
+                      }
+                    }
+                    
+                    if (diet === 'vegan') {
+                      // Additionally check for animal products
+                      const hasAnimalProducts = animalProductTerms.some(term => textToCheck.includes(term));
+                      if (hasAnimalProducts) {
+                        console.log(`🚫 Filtered out non-vegan meal: ${recipe.title} (contains animal products)`);
+                        return false;
+                      }
+                    }
+                  }
+                  
                   return true;
                 });
                 
