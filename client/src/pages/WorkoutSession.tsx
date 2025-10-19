@@ -725,14 +725,24 @@ export default function WorkoutSession() {
     mutationFn: async () => {
       return await apiRequest("POST", `/api/workout-sessions/${sessionId}/finish`, {});
     },
-    onSuccess: () => {
-      // Invalidate relevant queries
-      queryClient.invalidateQueries({ queryKey: ["/api/analytics/muscle-group-frequency"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/workouts/completed"] });
+    onSuccess: async () => {
+      // Invalidate and refetch all relevant data to ensure fresh state on Training page
+      await queryClient.invalidateQueries({ queryKey: ["/api/analytics/muscle-group-frequency"] });
+      await queryClient.refetchQueries({ queryKey: ["/api/analytics/muscle-group-frequency"] });
+      
+      // Refetch daily recommendation to show "Workout Complete" state immediately
+      await queryClient.invalidateQueries({ queryKey: ["/api/training/daily-recommendation"] });
+      await queryClient.refetchQueries({ queryKey: ["/api/training/daily-recommendation"] });
+      
+      // Invalidate other related queries
+      await queryClient.invalidateQueries({ queryKey: ["/api/workouts/completed"] });
+      
       toast({
         title: "Workout Complete!",
         description: "Great job on your workout. Muscle group progress tracked.",
       });
+      
+      // Navigate after all data is refreshed
       navigate("/training");
     },
     onError: (error: Error) => {

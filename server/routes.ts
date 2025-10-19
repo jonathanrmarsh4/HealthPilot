@@ -3350,11 +3350,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // 2. Get recent workout history (last 7 days)
-      const workoutSessions = await storage.getWorkoutSessions(userId);
+      // 2. Check if user has already completed a workout today
+      const allWorkoutSessions = await storage.getWorkoutSessions(userId);
+      const todayEnd = new Date(today);
+      todayEnd.setHours(23, 59, 59, 999);
+      
+      const completedTodayWorkouts = allWorkoutSessions.filter(w => {
+        if (w.completed !== 1 || !w.completedAt) return false;
+        const completedDate = new Date(w.completedAt);
+        return completedDate >= today && completedDate <= todayEnd;
+      });
+      
+      const hasCompletedWorkoutToday = completedTodayWorkouts.length > 0;
+      
+      // 3. Get recent workout history (last 7 days) for AI context
       const sevenDaysAgo = new Date(today);
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-      const recentWorkouts = workoutSessions
+      const recentWorkouts = allWorkoutSessions
         .filter(w => new Date(w.startTime) >= sevenDaysAgo && new Date(w.startTime) < today)
         .map(w => ({
           type: w.workoutType,
@@ -3362,7 +3374,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           startTime: new Date(w.startTime),
         }));
       
-      // 3. Fetch latest biomarkers for guardrails (last 30 days)
+      // 4. Fetch latest biomarkers for guardrails (last 30 days)
       const allBiomarkers = await storage.getBiomarkers(userId);
       const thirtyDaysAgo = new Date(today);
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -3387,7 +3399,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         vitaminD: biomarkerMap.get('vitamin_d')?.value || biomarkerMap.get('vitamin_d_25oh')?.value,
       };
       
-      // 4. Get user profile data for guardrails
+      // 5. Get user profile data for guardrails
       const user = await storage.getUser(userId);
       const fitnessProfile = await storage.getFitnessProfile(userId);
       
@@ -3418,7 +3430,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         movementLimitations: fitnessProfile.movementLimitations,
       } : undefined;
       
-      // 5. Fetch muscle group frequency data (last 14 days) for balanced training
+      // 6. Fetch muscle group frequency data (last 14 days) for balanced training
       let muscleGroupFrequency;
       try {
         muscleGroupFrequency = await storage.getMuscleGroupFrequency(userId, 14);
@@ -3428,7 +3440,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         muscleGroupFrequency = undefined;
       }
       
-      // 6. Generate AI recommendation with safety-first logic and guardrails
+      // 7. Generate AI recommendation with safety-first logic and guardrails
       let aiRecommendation = await generateDailyTrainingRecommendation({
         readinessScore: readinessData!.score,
         readinessRecommendation: readinessData!.recommendation as "ready" | "caution" | "rest",
@@ -3585,6 +3597,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         readinessScore: readinessData!.score,
         readinessRecommendation: readinessData!.recommendation,
         recommendation: aiRecommendation,
+        hasCompletedWorkoutToday,
+        completedWorkoutsToday: completedTodayWorkouts.map(w => ({
+          id: w.id,
+          workoutType: w.workoutType,
+          completedAt: w.completedAt,
+          duration: w.duration
+        }))
       });
     } catch (error: any) {
       console.error("Error generating daily training recommendation:", error);

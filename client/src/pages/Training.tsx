@@ -94,6 +94,13 @@ interface MuscleGroupTargeting {
   rationale: string;
 }
 
+interface CompletedWorkoutToday {
+  id: string;
+  workoutType: string;
+  completedAt: string;
+  duration?: number;
+}
+
 interface DailyRecommendation {
   readinessScore: number;
   readinessRecommendation: "ready" | "caution" | "rest";
@@ -111,6 +118,8 @@ interface DailyRecommendation {
     safetyNote?: string;
     adjustmentsMade?: AdjustmentsMade;
   };
+  hasCompletedWorkoutToday: boolean;
+  completedWorkoutsToday: CompletedWorkoutToday[];
 }
 
 interface CompletedWorkout {
@@ -739,6 +748,70 @@ export default function Training() {
                   <RefreshCw className="mr-2 h-4 w-4" />
                   Retry
                 </Button>
+              </div>
+            ) : dailyRec?.hasCompletedWorkoutToday ? (
+              <div className="space-y-6">
+                {/* Workout Complete State */}
+                <div className="p-6 rounded-lg bg-green-500/10 border-2 border-green-500/20 text-center space-y-4">
+                  <div className="flex justify-center">
+                    <div className="rounded-full bg-green-500/20 p-4">
+                      <Dumbbell className="h-8 w-8 text-green-600 dark:text-green-400" />
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-green-600 dark:text-green-400 mb-2" data-testid="text-workout-complete-title">
+                      Workout Complete! 🎉
+                    </h3>
+                    <p className="text-sm text-green-600/80 dark:text-green-400/80" data-testid="text-workout-complete-message">
+                      Great job! You've already completed {dailyRec.completedWorkoutsToday.length} workout{dailyRec.completedWorkoutsToday.length > 1 ? 's' : ''} today. 
+                      Take the rest of the day to recover, or click below to generate an additional workout.
+                    </p>
+                  </div>
+                  
+                  {/* Show completed workout details */}
+                  <div className="space-y-2">
+                    {dailyRec.completedWorkoutsToday.map((workout, idx) => (
+                      <div key={workout.id} className="p-3 rounded-lg bg-green-500/5 border border-green-500/10">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="bg-green-500/10 border-green-500/20 text-green-600 dark:text-green-400">
+                              ✓ Completed
+                            </Badge>
+                            <span className="text-sm font-medium">{workout.workoutType}</span>
+                          </div>
+                          <span className="text-xs text-muted-foreground">
+                            {format(new Date(workout.completedAt), 'h:mm a')}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="pt-2">
+                    <Button
+                      onClick={() => refreshPlanMutation.mutate()}
+                      disabled={refreshPlanMutation.isPending}
+                      variant="outline"
+                      className="w-full"
+                      data-testid="button-generate-new-plan"
+                    >
+                      {refreshPlanMutation.isPending ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="mr-2 h-4 w-4" />
+                          Generate New Workout Plan
+                        </>
+                      )}
+                    </Button>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      New workouts automatically appear after midnight
+                    </p>
+                  </div>
+                </div>
               </div>
             ) : dailyRec?.recommendation ? (
               <>
