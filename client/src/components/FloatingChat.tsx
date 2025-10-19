@@ -7,10 +7,12 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import { Link } from "wouter";
-import { Send, X, MessageCircle, Loader2, Minimize2, Sparkles, Trash2, Mic, MicOff, Volume2, VolumeX, Activity } from "lucide-react";
+import { Send, X, MessageCircle, Loader2, Minimize2, Sparkles, Trash2, Mic, MicOff, Volume2, VolumeX, Activity, Shield, ExternalLink } from "lucide-react";
 import { useOnboarding } from "@/contexts/OnboardingContext";
 import type { ChatMessage } from "@shared/schema";
 import { ChatFeedback } from "@/components/ChatFeedback";
+import { extractCitations, getStandardFullName, getStandardUrl } from "@/lib/citationUtils";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface VoiceChatModalProps {
   isOpen: boolean;
@@ -286,38 +288,92 @@ export function VoiceChatModal({ isOpen, onClose }: VoiceChatModalProps) {
                 </div>
               </div>
             ) : (
-              transcript.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                  data-testid={`voice-transcript-${msg.role}`}
-                >
-                  <div className="flex flex-col gap-2 max-w-[80%]">
-                    <div
-                      className={`rounded-lg p-4 ${
-                        msg.role === 'user'
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-muted'
-                      }`}
-                    >
-                      <p className="whitespace-pre-wrap break-words text-sm">
-                        {msg.content}
-                      </p>
-                      <p className="text-xs opacity-70 mt-2">
-                        {msg.timestamp.toLocaleTimeString()}
-                      </p>
-                    </div>
-                    {msg.role === 'assistant' && msg.messageId && (
-                      <div className="flex justify-end">
-                        <ChatFeedback 
-                          messageId={msg.messageId} 
-                          conversationType="voice"
-                        />
+              transcript.map((msg) => {
+                // Extract citations from AI messages
+                const citations = msg.role === 'assistant' ? extractCitations(msg.content) : [];
+                
+                return (
+                  <div
+                    key={msg.id}
+                    className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                    data-testid={`voice-transcript-${msg.role}`}
+                  >
+                    <div className="flex flex-col gap-2 max-w-[80%]">
+                      <div
+                        className={`rounded-lg p-4 ${
+                          msg.role === 'user'
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-muted'
+                        }`}
+                      >
+                        <p className="whitespace-pre-wrap break-words text-sm">
+                          {msg.content}
+                        </p>
+                        <p className="text-xs opacity-70 mt-2">
+                          {msg.timestamp.toLocaleTimeString()}
+                        </p>
                       </div>
-                    )}
+                      
+                      {/* Citation badges for AI messages */}
+                      {citations.length > 0 && (
+                        <div className="flex items-center gap-1 flex-wrap px-1">
+                          <TooltipProvider>
+                            {citations.map((citation, index) => {
+                              const url = getStandardUrl(citation.standard);
+                              const badgeContent = (
+                                <Badge 
+                                  variant="outline" 
+                                  className="text-xs gap-1 bg-primary/5 border-primary/20 hover:bg-primary/10 cursor-pointer"
+                                  data-testid={`badge-voice-citation-${citation.standard.toLowerCase()}`}
+                                >
+                                  <Shield className="h-3 w-3" />
+                                  {citation.standard}
+                                  {url && <ExternalLink className="h-3 w-3 ml-0.5" />}
+                                </Badge>
+                              );
+
+                              return (
+                                <Tooltip key={index}>
+                                  <TooltipTrigger asChild>
+                                    {url ? (
+                                      <a 
+                                        href={url} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer"
+                                        className="inline-flex"
+                                        data-testid={`link-voice-citation-${citation.standard.toLowerCase()}`}
+                                      >
+                                        {badgeContent}
+                                      </a>
+                                    ) : (
+                                      badgeContent
+                                    )}
+                                  </TooltipTrigger>
+                                  <TooltipContent side="bottom" className="max-w-xs">
+                                    <p className="text-xs">
+                                      <strong>{getStandardFullName(citation.standard)}:</strong> {citation.text}
+                                      {url && <span className="block mt-1 text-primary">Click to learn more →</span>}
+                                    </p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              );
+                            })}
+                          </TooltipProvider>
+                        </div>
+                      )}
+                      
+                      {msg.role === 'assistant' && msg.messageId && (
+                        <div className="flex justify-end">
+                          <ChatFeedback 
+                            messageId={msg.messageId} 
+                            conversationType="voice"
+                          />
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
 
             {/* Current user input preview */}
@@ -744,33 +800,87 @@ export function FloatingChat({ isOpen, onClose, currentPage }: FloatingChatProps
                   : messages || [];
                 
                 return visibleMessages.length > 0 ? (
-                  visibleMessages.map((msg, index) => (
-                    <div
-                      key={msg.id}
-                      className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-                      data-testid={`floating-message-${msg.role}-${index}`}
-                    >
-                      <div className="flex flex-col gap-2 max-w-[85%]">
-                        <div
-                          className={`rounded-lg p-3 text-sm ${
-                            msg.role === "user"
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-muted"
-                          }`}
-                        >
-                          <p className="whitespace-pre-wrap break-words">{msg.content}</p>
-                        </div>
-                        {msg.role === "assistant" && (
-                          <div className="flex justify-end">
-                            <ChatFeedback 
-                              messageId={msg.id} 
-                              conversationType="text"
-                            />
+                  visibleMessages.map((msg, index) => {
+                    // Extract citations from AI messages
+                    const citations = msg.role === "assistant" ? extractCitations(msg.content) : [];
+                    
+                    return (
+                      <div
+                        key={msg.id}
+                        className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                        data-testid={`floating-message-${msg.role}-${index}`}
+                      >
+                        <div className="flex flex-col gap-2 max-w-[85%]">
+                          <div
+                            className={`rounded-lg p-3 text-sm ${
+                              msg.role === "user"
+                                ? "bg-primary text-primary-foreground"
+                                : "bg-muted"
+                            }`}
+                          >
+                            <p className="whitespace-pre-wrap break-words">{msg.content}</p>
                           </div>
-                        )}
+                          
+                          {/* Citation badges for AI messages */}
+                          {citations.length > 0 && (
+                            <div className="flex items-center gap-1 flex-wrap px-1">
+                              <TooltipProvider>
+                                {citations.map((citation, citIndex) => {
+                                  const url = getStandardUrl(citation.standard);
+                                  const badgeContent = (
+                                    <Badge 
+                                      variant="outline" 
+                                      className="text-xs gap-1 bg-primary/5 border-primary/20 hover:bg-primary/10 cursor-pointer"
+                                      data-testid={`badge-text-citation-${citation.standard.toLowerCase()}`}
+                                    >
+                                      <Shield className="h-3 w-3" />
+                                      {citation.standard}
+                                      {url && <ExternalLink className="h-3 w-3 ml-0.5" />}
+                                    </Badge>
+                                  );
+
+                                  return (
+                                    <Tooltip key={citIndex}>
+                                      <TooltipTrigger asChild>
+                                        {url ? (
+                                          <a 
+                                            href={url} 
+                                            target="_blank" 
+                                            rel="noopener noreferrer"
+                                            className="inline-flex"
+                                            data-testid={`link-text-citation-${citation.standard.toLowerCase()}`}
+                                          >
+                                            {badgeContent}
+                                          </a>
+                                        ) : (
+                                          badgeContent
+                                        )}
+                                      </TooltipTrigger>
+                                      <TooltipContent side="bottom" className="max-w-xs">
+                                        <p className="text-xs">
+                                          <strong>{getStandardFullName(citation.standard)}:</strong> {citation.text}
+                                          {url && <span className="block mt-1 text-primary">Click to learn more →</span>}
+                                        </p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  );
+                                })}
+                              </TooltipProvider>
+                            </div>
+                          )}
+                          
+                          {msg.role === "assistant" && (
+                            <div className="flex justify-end">
+                              <ChatFeedback 
+                                messageId={msg.id} 
+                                conversationType="text"
+                              />
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 ) : (
                   <div className="flex justify-start">
                     <div className="max-w-[85%] rounded-lg p-3 bg-muted text-sm">
