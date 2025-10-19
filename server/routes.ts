@@ -4717,6 +4717,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Submit workout feedback after completion
+  app.post("/api/workout-sessions/:id/feedback", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { id } = req.params;
+    
+    try {
+      // Validate the feedback payload
+      const feedbackSchema = z.object({
+        overallDifficulty: z.number().min(1).max(5),
+        fatigueLevel: z.number().min(1).max(5),
+        enjoymentRating: z.number().min(1).max(5),
+        exercisesTooEasy: z.array(z.string()).default([]),
+        exercisesTooHard: z.array(z.string()).default([]),
+        painOrDiscomfort: z.string().default(""),
+        feedbackNotes: z.string().default(""),
+      });
+
+      const feedback = feedbackSchema.parse(req.body);
+
+      // Use storage layer to save feedback (handles IDOR check, upsert logic, and completionStatus)
+      await storage.saveWorkoutFeedback(id, userId, feedback);
+
+      console.log(`✅ Workout feedback saved for session ${id}`);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error saving workout feedback:", error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ error: "Invalid feedback data", details: error.errors });
+      }
+      if (error.message === "Workout session not found") {
+        return res.status(404).json({ message: "Workout session not found" });
+      }
+      res.status(500).json({ message: error.message || "Failed to save workout feedback" });
+    }
+  });
+
   // Update exercise set
   app.patch("/api/exercise-sets/:id", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;

@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useState, useEffect } from "react";
-import { MessageSquare, Zap, Heart, ThumbsUp, ThumbsDown, AlertCircle, Frown, Meh, Smile, Grin, HeartHandshake } from "lucide-react";
+import { MessageSquare, Zap, Heart, ThumbsUp, ThumbsDown, AlertCircle, Frown, Meh, Smile, SmilePlus, HeartHandshake } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 interface WorkoutFeedbackModalProps {
@@ -51,7 +51,7 @@ const enjoymentOptions = [
   { value: "1", label: "Not Enjoyable", icon: Frown },
   { value: "2", label: "Slightly Enjoyable", icon: Meh },
   { value: "3", label: "Moderately Enjoyable", icon: Smile },
-  { value: "4", label: "Very Enjoyable", icon: Grin },
+  { value: "4", label: "Very Enjoyable", icon: SmilePlus },
   { value: "5", label: "Loved It", icon: HeartHandshake },
 ];
 

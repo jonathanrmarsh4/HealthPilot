@@ -237,6 +237,15 @@ export interface IStorage {
   getWorkoutSession(id: string, userId: string): Promise<WorkoutSession | undefined>;
   matchWorkoutToSchedule(sessionId: string, scheduleId: string, userId: string): Promise<void>;
   findMatchingSchedule(userId: string, workoutType: string, startTime: Date): Promise<TrainingSchedule | undefined>;
+  saveWorkoutFeedback(workoutSessionId: string, userId: string, feedback: {
+    overallDifficulty: number;
+    fatigueLevel: number;
+    enjoymentRating: number;
+    exercisesTooEasy: string[];
+    exercisesTooHard: string[];
+    painOrDiscomfort: string;
+    feedbackNotes: string;
+  }): Promise<void>;
   
   createExerciseLog(log: InsertExerciseLog): Promise<ExerciseLog>;
   getExerciseLogs(workoutSessionId: string): Promise<ExerciseLog[]>;
@@ -1646,6 +1655,62 @@ export class DbStorage implements IStorage {
       .limit(1);
     
     return result[0];
+  }
+
+  async saveWorkoutFeedback(workoutSessionId: string, userId: string, feedback: {
+    overallDifficulty: number;
+    fatigueLevel: number;
+    enjoymentRating: number;
+    exercisesTooEasy: string[];
+    exercisesTooHard: string[];
+    painOrDiscomfort: string;
+    feedbackNotes: string;
+  }): Promise<void> {
+    // Get the workout session to determine completion status
+    const session = await this.getWorkoutSession(workoutSessionId, userId);
+    if (!session) {
+      throw new Error("Workout session not found");
+    }
+
+    // Check if a training load session already exists for this workout
+    const existingLoadSession = await db.query.trainingLoadSessions.findFirst({
+      where: and(
+        eq(trainingLoadSessions.workoutSessionId, workoutSessionId),
+        eq(trainingLoadSessions.userId, userId)
+      )
+    });
+
+    const completionStatus = session.completedAt ? 'completed' : 'partial';
+
+    if (existingLoadSession) {
+      // Update existing record with all feedback fields and updated completion status
+      await db.update(trainingLoadSessions)
+        .set({
+          overallDifficulty: feedback.overallDifficulty,
+          fatigueLevel: feedback.fatigueLevel,
+          enjoymentRating: feedback.enjoymentRating,
+          exercisesTooEasy: feedback.exercisesTooEasy,
+          exercisesTooHard: feedback.exercisesTooHard,
+          painOrDiscomfort: feedback.painOrDiscomfort,
+          feedbackNotes: feedback.feedbackNotes,
+          completionStatus,
+        })
+        .where(eq(trainingLoadSessions.id, existingLoadSession.id));
+    } else {
+      // Create new training load session with feedback
+      await db.insert(trainingLoadSessions).values({
+        userId,
+        workoutSessionId,
+        overallDifficulty: feedback.overallDifficulty,
+        fatigueLevel: feedback.fatigueLevel,
+        enjoymentRating: feedback.enjoymentRating,
+        exercisesTooEasy: feedback.exercisesTooEasy,
+        exercisesTooHard: feedback.exercisesTooHard,
+        painOrDiscomfort: feedback.painOrDiscomfort,
+        feedbackNotes: feedback.feedbackNotes,
+        completionStatus,
+      });
+    }
   }
 
   async createExerciseLog(log: InsertExerciseLog): Promise<ExerciseLog> {
