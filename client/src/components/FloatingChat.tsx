@@ -44,12 +44,14 @@ export function VoiceChatModal({ isOpen, onClose }: VoiceChatModalProps) {
   const [transcript, setTranscript] = useState<TranscriptMessage[]>([]);
   const [currentUserInput, setCurrentUserInput] = useState("");
   const [hasShownDisclosure, setHasShownDisclosure] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const recognitionRef = useRef<any>(null);
   const transcriptEndRef = useRef<HTMLDivElement>(null);
   const speechTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastTranscriptRef = useRef<string>("");
   const isRecordingRef = useRef<boolean>(false);
   const currentUserInputRef = useRef<string>("");
+  const isTTSPrimedRef = useRef<boolean>(false);
   
   // Check if AI disclosure has been shown before
   useEffect(() => {
@@ -154,6 +156,43 @@ export function VoiceChatModal({ isOpen, onClose }: VoiceChatModalProps) {
     };
   }, []);
 
+  // Prime TTS for iOS Safari - must be called from user gesture
+  const primeTTS = () => {
+    if (!isTTSPrimedRef.current && 'speechSynthesis' in window) {
+      // Speak empty utterance to enable TTS on iOS
+      const primeUtterance = new SpeechSynthesisUtterance('');
+      window.speechSynthesis.speak(primeUtterance);
+      isTTSPrimedRef.current = true;
+    }
+  };
+
+  // Speak text with iOS Safari compatibility
+  const speakText = (text: string) => {
+    if (!('speechSynthesis' in window) || !text) return;
+
+    // Cancel any ongoing speech
+    window.speechSynthesis.cancel();
+    setIsSpeaking(true);
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 0.95;
+    utterance.pitch = 1;
+    utterance.volume = 1;
+    
+    utterance.onend = () => {
+      setIsSpeaking(false);
+    };
+    
+    utterance.onerror = () => {
+      setIsSpeaking(false);
+    };
+
+    // Small delay for iOS Safari compatibility
+    setTimeout(() => {
+      window.speechSynthesis.speak(utterance);
+    }, 100);
+  };
+
   const handleUserInputComplete = async (userMessage: string) => {
     if (!userMessage.trim()) return;
 
@@ -228,15 +267,8 @@ export function VoiceChatModal({ isOpen, onClose }: VoiceChatModalProps) {
       
       setTranscript(prev => [...prev, aiMsg]);
 
-      // Speak the AI response
-      if ('speechSynthesis' in window && aiResponse) {
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(aiResponse);
-        utterance.rate = 0.95;
-        utterance.pitch = 1;
-        utterance.volume = 1;
-        window.speechSynthesis.speak(utterance);
-      }
+      // Speak the AI response with iOS Safari compatibility
+      speakText(aiResponse);
     } catch (error) {
       toast({
         title: "Error",
@@ -263,6 +295,9 @@ export function VoiceChatModal({ isOpen, onClose }: VoiceChatModalProps) {
       setIsRecording(false);
       isRecordingRef.current = false;
     } else {
+      // Prime TTS on first user interaction (iOS Safari requirement)
+      primeTTS();
+      
       try {
         recognitionRef.current.start();
         setIsRecording(true);
@@ -467,7 +502,7 @@ export function VoiceChatModal({ isOpen, onClose }: VoiceChatModalProps) {
           {/* Voice Controls */}
           <div className="border-t p-6 bg-muted/30">
             <div className="flex flex-col items-center gap-4">
-              {/* Waveform Visualization */}
+              {/* Waveform Visualization - Recording */}
               {isRecording && (
                 <div className="flex items-center gap-1 h-12" data-testid="waveform-visualization">
                   {[...Array(8)].map((_, i) => (
@@ -481,6 +516,29 @@ export function VoiceChatModal({ isOpen, onClose }: VoiceChatModalProps) {
                       }}
                     />
                   ))}
+                </div>
+              )}
+
+              {/* AI Speaking Indicator */}
+              {isSpeaking && (
+                <div className="flex flex-col items-center gap-2" data-testid="ai-speaking-indicator">
+                  <div className="flex items-center gap-1 h-12">
+                    {[...Array(6)].map((_, i) => (
+                      <div
+                        key={i}
+                        className="w-1.5 bg-green-500 rounded-full animate-pulse"
+                        style={{
+                          height: `${15 + Math.random() * 25}px`,
+                          animationDelay: `${i * 0.15}s`,
+                          animationDuration: '1s',
+                        }}
+                      />
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
+                    <Volume2 className="h-4 w-4" />
+                    <span>AI is speaking...</span>
+                  </div>
                 </div>
               )}
 
