@@ -165,9 +165,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(200).send('null');
       }
 
-      const dbUser = await storage.getUser(user.claims.sub);
+      let dbUser = await storage.getUser(user.claims.sub);
       if (!dbUser) {
         return res.status(200).send('null');
+      }
+
+      // Generate referral code if user doesn't have one
+      if (!dbUser.referralCode) {
+        try {
+          const referralCode = await storage.generateReferralCode(dbUser.id);
+          dbUser = { ...dbUser, referralCode }; // Update local copy
+        } catch (error: any) {
+          console.error("Error generating referral code:", error);
+          // Continue without referral code - non-critical
+        }
       }
 
       // Send JSON with timestamp to prevent caching - Safari iOS is very aggressive
@@ -180,6 +191,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         role: dbUser.role,
         subscriptionTier: dbUser.subscriptionTier,
         subscriptionStatus: dbUser.subscriptionStatus,
+        referralCode: dbUser.referralCode, // Include referral code
         _timestamp: Date.now(), // Force unique response to prevent 304
       };
       res.set('Content-Type', 'application/json');
@@ -517,6 +529,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       console.error("Error saving consent:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Referral Program Routes
+  
+  // Apply referral code - link a user to a referrer
+  app.post("/api/referrals/apply", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any).claims.sub;
+      const { referralCode } = req.body;
+
+      if (!referralCode || typeof referralCode !== "string") {
+        return res.status(400).json({ error: "Referral code is required" });
+      }
+
+      // Check if user already has a referrer
+      const existingReferral = await db.select().from(referrals).where(eq(referrals.referredUserId, userId)).limit(1);
+      if (existingReferral.length > 0) {
+        return res.status(400).json({ error: "You have already been referred by someone" });
+      }
+
+      // Find the referrer by their code
+      const referrer = await db.select().from(users).where(eq(users.referralCode, referralCode.toUpperCase())).limit(1);
+      if (!referrer[0]) {
+        return res.status(404).json({ error: "Invalid referral code" });
+      }
+
+      // Can't refer yourself
+      if (referrer[0].id === userId) {
+        return res.status(400).json({ error: "You cannot refer yourself" });
+      }
+
+      // Create referral record
+      await storage.createReferral({
+        referrerUserId: referrer[0].id,
+        referredUserId: userId,
+        referralCode: referralCode.toUpperCase(),
+        status: "pending", // Will be marked as "converted" when referred user subscribes
+      });
+
+      res.json({
+        success: true,
+        message: `Successfully applied referral code from ${referrer[0].firstName || 'user'}`,
+        referrerName: referrer[0].firstName,
+      });
+    } catch (error: any) {
+      console.error("Error applying referral code:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get user's referral stats
+  app.get("/api/referrals/stats", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any).claims.sub;
+      
+      // Get all referrals where this user is the referrer
+      const userReferrals = await storage.getReferralsByUser(userId);
+      
+      const pending = userReferrals.filter(r => r.status === "pending").length;
+      const converted = userReferrals.filter(r => r.status === "converted").length;
+      const rewardedCount = userReferrals.filter(r => r.rewardGranted).length;
+      const totalEarnings = rewardedCount * 20; // $20 per rewarded referral
+
+      res.json({
+        pending,
+        converted,
+        totalEarnings, // Total $ earned
+        rewardedCount, // Number of rewarded referrals
+        referrals: userReferrals,
+      });
+    } catch (error: any) {
+      console.error("Error fetching referral stats:", error);
       res.status(500).json({ error: error.message });
     }
   });
@@ -890,12 +976,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
             if (userId) {
               // Check if user was referred
               const referral = await db.select().from(referrals).where(eq(referrals.referredUserId, userId)).limit(1);
-              if (referral[0] && referral[0].status === "pending") {
+              if (referral[0] && referral[0].status === "pending" && !referral[0].rewardGranted) {
                 // Mark referral as converted
                 await storage.updateReferralStatus(referral[0].referralCode, "converted", new Date());
                 
-                // TODO: Award referrer with free month credit via Stripe (implement in phase 2)
-                console.log(`🎉 Referral converted! User ${userId} was referred by ${referral[0].referrerUserId}`);
+                // Award referrer with $20 credit (one month premium equivalent)
+                const referrer = await storage.getUser(referral[0].referrerUserId);
+                if (referrer && referrer.stripeCustomerId) {
+                  try {
+                    // Create a balance credit for the referrer
+                    await stripe.customers.createBalanceTransaction(referrer.stripeCustomerId, {
+                      amount: -2000, // -$20.00 credit (negative = credit to customer)
+                      currency: "usd",
+                      description: `Referral credit for referring ${userId}`,
+                    });
+                    
+                    // Mark referral as rewarded
+                    await storage.markReferralRewarded(referral[0].referralCode);
+                    
+                    console.log(`🎉 Referral converted! Awarded $20 credit to ${referrer.email}`);
+                  } catch (stripeError: any) {
+                    console.error(`Failed to create Stripe credit for referrer ${referrer.id}:`, stripeError.message);
+                    // Still mark as converted even if credit fails - can be manually handled
+                  }
+                } else {
+                  console.log(`🎉 Referral converted! User ${userId} was referred by ${referral[0].referrerUserId} (no Stripe customer yet)`);
+                }
               }
             }
           }
