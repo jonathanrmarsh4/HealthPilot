@@ -736,6 +736,30 @@ export default function WorkoutSession() {
     },
   });
 
+  // Finish workout mutation - records muscle group engagements
+  const finishWorkoutMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest("POST", `/api/workout-sessions/${sessionId}/finish`, {});
+    },
+    onSuccess: () => {
+      // Invalidate relevant queries
+      queryClient.invalidateQueries({ queryKey: ["/api/analytics/muscle-group-frequency"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/workouts/completed"] });
+      toast({
+        title: "Workout Complete!",
+        description: "Great job on your workout. Muscle group progress tracked.",
+      });
+      navigate("/training");
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   // Complete set and start rest timer
   const handleCompleteSet = (set: ExerciseSet, exercise: Exercise) => {
     const restDuration = exercise.restDefault || 90;
@@ -1054,17 +1078,21 @@ export default function WorkoutSession() {
           </Button>
           <Button
             className="flex-1"
-            onClick={() => {
-              toast({
-                title: "Workout Complete!",
-                description: "Great job on your workout",
-              });
-              navigate("/training");
-            }}
+            onClick={() => finishWorkoutMutation.mutate()}
+            disabled={finishWorkoutMutation.isPending}
             data-testid="button-finish-workout"
           >
-            <Trophy className="mr-2 h-4 w-4" />
-            Finish
+            {finishWorkoutMutation.isPending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Finishing...
+              </>
+            ) : (
+              <>
+                <Trophy className="mr-2 h-4 w-4" />
+                Finish
+              </>
+            )}
           </Button>
         </div>
       </div>
