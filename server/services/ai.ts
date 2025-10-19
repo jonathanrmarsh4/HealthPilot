@@ -2813,6 +2813,18 @@ export async function generateDailyTrainingRecommendation(data: {
     totalSets: number;
     totalVolume: number;
   }>;
+  recentFeedback?: Array<{
+    workoutSessionId: string;
+    workoutType: string;
+    startTime: Date;
+    overallDifficulty: number | null;
+    fatigueLevel: number | null;
+    enjoymentRating: number | null;
+    exercisesTooEasy: string[];
+    exercisesTooHard: string[];
+    painOrDiscomfort: string | null;
+    feedbackNotes: string | null;
+  }>;
 }) {
   // Check auto-regulation triggers based on biomarkers and recovery metrics
   const autoRegulationActions = checkAutoRegulation({
@@ -2950,6 +2962,53 @@ INSTRUCTIONS:
 3. REDUCE volume for overtrained groups (marked ⚠️ REDUCE)
 4. Aim for balanced training ensuring all major groups hit 2-3x per week
 ` : 'No muscle group frequency data available - design balanced workout hitting major muscle groups'}
+
+${data.recentFeedback && data.recentFeedback.length > 0 ? `## 💭 WORKOUT FEEDBACK & PERSONALIZATION DATA (CRITICAL FOR EXERCISE SELECTION!)
+**⚠️ IMPORTANT: This user feedback directly reflects their workout experience. Use this data to create more personalized and effective workouts.**
+
+Recent Workout Feedback (last ${data.recentFeedback.length} sessions):
+${data.recentFeedback.map((fb, idx) => {
+  const feedbackDate = new Date(fb.startTime).toLocaleDateString();
+  const difficultyText = fb.overallDifficulty 
+    ? `${fb.overallDifficulty}/10 ${fb.overallDifficulty >= 8 ? '(TOO HARD)' : fb.overallDifficulty <= 4 ? '(TOO EASY)' : '(APPROPRIATE)'}` 
+    : 'Not rated';
+  const fatigueText = fb.fatigueLevel 
+    ? `${fb.fatigueLevel}/10 ${fb.fatigueLevel >= 8 ? '(VERY FATIGUED)' : fb.fatigueLevel <= 4 ? '(WELL RECOVERED)' : '(MODERATE)'}` 
+    : 'Not rated';
+  const enjoymentText = fb.enjoymentRating 
+    ? `${fb.enjoymentRating}/10 ${fb.enjoymentRating >= 7 ? '(ENJOYED 👍)' : fb.enjoymentRating <= 4 ? '(DID NOT ENJOY 👎)' : '(NEUTRAL)'}` 
+    : 'Not rated';
+  
+  return `
+${idx + 1}. ${fb.workoutType} (${feedbackDate})
+   - Difficulty: ${difficultyText}
+   - Fatigue: ${fatigueText}
+   - Enjoyment: ${enjoymentText}
+   ${fb.exercisesTooEasy.length > 0 ? `- ✅ EXERCISES TOO EASY (increase weight/volume): ${fb.exercisesTooEasy.join(', ')}\n   ` : ''}${fb.exercisesTooHard.length > 0 ? `- ⚠️ EXERCISES TOO HARD (reduce weight/volume or swap): ${fb.exercisesTooHard.join(', ')}\n   ` : ''}${fb.painOrDiscomfort ? `- ⚠️ Pain/Discomfort: ${fb.painOrDiscomfort}\n   ` : ''}${fb.feedbackNotes ? `- Notes: ${fb.feedbackNotes}\n   ` : ''}`;
+}).join('\n')}
+
+CRITICAL PERSONALIZATION INSTRUCTIONS (MUST FOLLOW):
+1. **Exercise Selection**: 
+   - STRONGLY PREFER exercises with high enjoyment ratings (7+/10)
+   - AVOID or SWAP exercises that caused pain/discomfort
+   - If an exercise appears in "too hard" list frequently, substitute with easier alternative
+   - If an exercise appears in "too easy" list, suggest progressive overload (more weight/reps/sets)
+
+2. **Difficulty Calibration**:
+   - If recent workouts rated consistently high difficulty (8+/10), reduce volume by 10-20% or intensity
+   - If recent workouts rated consistently low difficulty (<5/10), increase challenge
+   - Aim for workouts rated 6-7/10 difficulty (challenging but sustainable)
+
+3. **Progression Pacing**:
+   - If high fatigue scores (8+/10) are frequent, slow down progression rate
+   - If consistent low fatigue (<5/10), user can handle faster progression
+   - Balance challenge with recovery to optimize long-term gains
+
+4. **Exercise Variety**:
+   - Rotate in exercises user hasn't tried recently (if they exist in database)
+   - But prioritize exercises with proven high enjoyment ratings
+   - Use feedback to build a "favorites list" of exercises to include regularly
+` : ''}
 
 Generate a recommendation with this JSON structure:
 {

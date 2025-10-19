@@ -4131,7 +4131,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         muscleGroupFrequency = undefined;
       }
       
-      // 7. Generate AI recommendation with safety-first logic and guardrails
+      // 7. Fetch recent workout feedback for AI-driven exercise selection and progression
+      let recentFeedback;
+      try {
+        recentFeedback = await storage.getRecentWorkoutFeedback(userId, 10);
+        console.log(`💭 Fetched workout feedback for user ${userId}:`, recentFeedback.length, 'feedback entries');
+      } catch (error) {
+        console.error("Error fetching workout feedback:", error);
+        recentFeedback = undefined;
+      }
+      
+      // 8. Generate AI recommendation with safety-first logic, guardrails, and feedback-driven personalization
       let aiRecommendation = await generateDailyTrainingRecommendation({
         readinessScore: readinessData!.score,
         readinessRecommendation: readinessData!.recommendation as "ready" | "caution" | "rest",
@@ -4157,6 +4167,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userProfile,
         fitnessProfile: fullFitnessProfile,
         muscleGroupFrequency,
+        recentFeedback,
       });
       
       // Fallback recommendation if AI generation fails

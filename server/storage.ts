@@ -1719,6 +1719,41 @@ export class DbStorage implements IStorage {
     }
   }
 
+  async getRecentWorkoutFeedback(userId: string, limit: number = 10): Promise<Array<{
+    workoutSessionId: string;
+    workoutType: string;
+    startTime: Date;
+    overallDifficulty: number | null;
+    fatigueLevel: number | null;
+    enjoymentRating: number | null;
+    exercisesTooEasy: string[];
+    exercisesTooHard: string[];
+    painOrDiscomfort: string | null;
+    feedbackNotes: string | null;
+  }>> {
+    // Join training_load_sessions with workout_sessions to get recent feedback
+    const results = await db
+      .select({
+        workoutSessionId: trainingLoadSessions.workoutSessionId,
+        workoutType: workoutSessions.workoutType,
+        startTime: workoutSessions.startTime,
+        overallDifficulty: trainingLoadSessions.overallDifficulty,
+        fatigueLevel: trainingLoadSessions.fatigueLevel,
+        enjoymentRating: trainingLoadSessions.enjoymentRating,
+        exercisesTooEasy: trainingLoadSessions.exercisesTooEasy,
+        exercisesTooHard: trainingLoadSessions.exercisesTooHard,
+        painOrDiscomfort: trainingLoadSessions.painOrDiscomfort,
+        feedbackNotes: trainingLoadSessions.feedbackNotes,
+      })
+      .from(trainingLoadSessions)
+      .innerJoin(workoutSessions, eq(trainingLoadSessions.workoutSessionId, workoutSessions.id))
+      .where(eq(trainingLoadSessions.userId, userId))
+      .orderBy(desc(workoutSessions.startTime))
+      .limit(limit);
+
+    return results;
+  }
+
   async getLastExerciseValues(userId: string, exerciseId: string): Promise<{
     weight: number | null;
     reps: number | null;
