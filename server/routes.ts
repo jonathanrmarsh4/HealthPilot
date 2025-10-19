@@ -1902,9 +1902,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 searchResults = await spoonacularService.searchRecipes(relaxedParams);
                 
                 // If still no results, do a minimal search with just meal type and calorie range
+                // CRITICAL: Preserve dietary restrictions (diet) and intolerances - these are NON-NEGOTIABLE
                 if (!searchResults.results || searchResults.results.length === 0) {
-                  console.log(`⚠️ Still no results, retrying with minimal constraints (type and calories only)...`);
-                  const minimalParams = {
+                  console.log(`⚠️ Still no results, retrying with minimal constraints (preserving dietary restrictions)...`);
+                  const minimalParams: any = {
                     type: mealType,
                     maxCalories: targetCaloriesPerMeal + 300,
                     minCalories: targetCaloriesPerMeal - 300,
@@ -1912,6 +1913,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     sort: 'random',
                     addRecipeInformation: true,
                   };
+                  // NEVER compromise on dietary restrictions (vegetarian, vegan, etc.)
+                  if (diet) {
+                    minimalParams.diet = diet;
+                  }
+                  // NEVER compromise on intolerances/allergies
+                  if (intolerances) {
+                    minimalParams.intolerances = intolerances;
+                  }
                   searchResults = await spoonacularService.searchRecipes(minimalParams);
                 }
               }
@@ -1930,10 +1939,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   return true;
                 });
                 
-                // If all results were filtered out, fall back to original results
+                // CRITICAL: Only relax dish type filtering if no meal-specific dislikes were filtered
+                // NEVER re-add meals that user explicitly disliked by name
                 if (filteredResults.length === 0) {
-                  console.log(`⚠️ All results filtered by dish type feedback, using original results...`);
-                  filteredResults = searchResults.results;
+                  // Check if we filtered out meal-specific dislikes
+                  const hasDislikedMealNames = searchResults.results.some((recipe: any) => 
+                    recipe.title && dislikedMealNames.has(recipe.title.toLowerCase())
+                  );
+                  
+                  if (!hasDislikedMealNames) {
+                    // Only dish types were filtered - we can relax this constraint
+                    console.log(`⚠️ All results filtered by dish type feedback only, relaxing dish type constraint...`);
+                    filteredResults = searchResults.results.filter((recipe: any) => {
+                      // Still exclude permanently disliked meals by name (non-negotiable)
+                      if (recipe.title && dislikedMealNames.has(recipe.title.toLowerCase())) {
+                        return false;
+                      }
+                      return true;
+                    });
+                  } else {
+                    // User explicitly disliked specific meals - do NOT re-add them
+                    console.log(`🚫 All results contain permanently disliked meals - skipping this meal slot`);
+                    filteredResults = []; // Keep empty to skip this meal
+                  }
                 }
                 
                 // Rank results by preferred cuisines and dish types
