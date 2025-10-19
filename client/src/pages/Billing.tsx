@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Copy, CreditCard, TrendingUp, Users, Calendar, DollarSign } from "lucide-react";
 import { format } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 interface SubscriptionData {
   tier: string;
@@ -56,6 +57,50 @@ export default function Billing() {
 
   const { data: user } = useQuery<UserData>({
     queryKey: ["/api/auth/user"],
+  });
+
+  const portalMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest<{ url: string }>("/api/stripe/create-portal-session", {
+        method: "POST",
+      });
+    },
+    onSuccess: (data) => {
+      window.location.href = data.url;
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const cancelMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest("/api/subscriptions/cancel", { method: "POST" });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/subscriptions"] });
+      toast({
+        title: "Subscription cancelled",
+        description: "You'll have access until the end of your billing period",
+      });
+    },
+  });
+
+  const reactivateMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest("/api/subscriptions/reactivate", { method: "POST" });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/subscriptions"] });
+      toast({
+        title: "Subscription reactivated",
+        description: "Your subscription will continue as normal",
+      });
+    },
   });
 
   const handleCopyReferralCode = () => {
@@ -173,10 +218,51 @@ export default function Billing() {
                 </p>
               </div>
             )}
-            <Button className="w-full" variant="outline" data-testid="button-manage-payment">
-              <CreditCard className="h-4 w-4 mr-2" />
-              Manage Payment Method
-            </Button>
+            <div className="space-y-2">
+              <Button 
+                className="w-full" 
+                variant="outline" 
+                onClick={() => portalMutation.mutate()}
+                disabled={portalMutation.isPending || subscription?.tier === "free"}
+                data-testid="button-manage-payment"
+              >
+                <CreditCard className="h-4 w-4 mr-2" />
+                Manage Payment Method
+              </Button>
+              
+              {subscription?.tier === "premium" && (
+                <Button
+                  className="w-full"
+                  variant="default"
+                  onClick={() => window.location.href = "/pricing"}
+                  data-testid="button-upgrade-enterprise"
+                >
+                  Upgrade to Enterprise
+                </Button>
+              )}
+              
+              {subscription?.cancelAtPeriodEnd ? (
+                <Button
+                  className="w-full"
+                  variant="default"
+                  onClick={() => reactivateMutation.mutate()}
+                  disabled={reactivateMutation.isPending}
+                  data-testid="button-reactivate"
+                >
+                  Reactivate Subscription
+                </Button>
+              ) : subscription?.tier !== "free" && (
+                <Button
+                  className="w-full"
+                  variant="destructive"
+                  onClick={() => cancelMutation.mutate()}
+                  disabled={cancelMutation.isPending}
+                  data-testid="button-cancel"
+                >
+                  Cancel Subscription
+                </Button>
+              )}
+            </div>
           </CardContent>
         </Card>
 

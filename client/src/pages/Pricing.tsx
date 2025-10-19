@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Check, Sparkles, Zap, Crown } from "lucide-react";
-import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
+import { CheckoutModal } from "@/components/CheckoutModal";
 
 const plans = [
   {
@@ -77,46 +77,25 @@ const plans = [
 export default function Pricing() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const [loadingTier, setLoadingTier] = useState<string | null>(null);
+  const [checkoutModal, setCheckoutModal] = useState<{ open: boolean; tier: string; tierName: string }>({
+    open: false,
+    tier: "",
+    tierName: "",
+  });
 
   const { data: user } = useQuery<{ subscriptionTier: string; role?: string }>({
     queryKey: ["/api/auth/user"],
   });
 
-  const checkoutMutation = useMutation({
-    mutationFn: async (tier: string) => {
-      const res = await apiRequest<{ sessionUrl: string }>("/api/stripe/create-checkout", {
-        method: "POST",
-        body: JSON.stringify({ tier }),
-        headers: { "Content-Type": "application/json" },
-      });
-      return res;
-    },
-    onSuccess: (data) => {
-      window.location.href = data.sessionUrl;
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to start checkout",
-        variant: "destructive",
-      });
-      setLoadingTier(null);
-    },
-  });
-
-  const handleUpgrade = async (tier: string) => {
-    if (tier === "free") {
-      return;
-    }
-
+  const handleUpgrade = async (tier: string, tierName: string) => {
+    if (tier === "free") return;
+    
     if (tier === "enterprise") {
-      window.location.href = "mailto:sales@healthinsights.ai?subject=Enterprise Inquiry";
+      window.location.href = "mailto:sales@nuvitaelabs.com?subject=Enterprise Inquiry";
       return;
     }
 
-    setLoadingTier(tier);
-    checkoutMutation.mutate(tier);
+    setCheckoutModal({ open: true, tier, tierName });
   };
 
   // Admins are treated as enterprise tier
@@ -209,17 +188,11 @@ export default function Pricing() {
                     variant={isCurrentPlan ? "outline" : plan.ctaVariant}
                     size="lg"
                     className="w-full"
-                    onClick={() => handleUpgrade(plan.tier)}
-                    disabled={isCurrentPlan || isDowngrade || loadingTier === plan.tier}
+                    onClick={() => handleUpgrade(plan.tier, plan.name)}
+                    disabled={isCurrentPlan || isDowngrade}
                     data-testid={`button-select-${plan.tier}`}
                   >
-                    {loadingTier === plan.tier
-                      ? "Loading..."
-                      : isCurrentPlan
-                      ? "Current Plan"
-                      : isDowngrade
-                      ? "Contact Support"
-                      : plan.cta}
+                    {isCurrentPlan ? "Current Plan" : isDowngrade ? "Contact Support" : plan.cta}
                   </Button>
                 </CardFooter>
               </Card>
@@ -240,6 +213,15 @@ export default function Pricing() {
           </Button>
         </div>
       </div>
+
+      {checkoutModal.tier === "premium" && (
+        <CheckoutModal
+          open={checkoutModal.open}
+          onOpenChange={(open) => setCheckoutModal({ ...checkoutModal, open })}
+          tier="premium"
+          tierName="Premium"
+        />
+      )}
     </div>
   );
 }

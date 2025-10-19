@@ -815,45 +815,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/subscriptions/cancel", isAuthenticated, async (req, res) => {
     try {
       const userId = (req.user as any).claims.sub;
+      const subscription = await storage.getActiveSubscription(userId);
       
-      // Get user's subscription
-      const subscription = await db
-        .select()
-        .from(subscriptions)
-        .where(eq(subscriptions.userId, userId))
-        .orderBy(sql`${subscriptions.createdAt} DESC`)
-        .limit(1);
-
-      if (!subscription[0]) {
+      if (!subscription) {
         return res.status(404).json({ error: "No active subscription found" });
       }
 
-      const sub = subscription[0];
-
-      // Cancel subscription in Stripe
       const Stripe = (await import("stripe")).default;
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-        apiVersion: "2024-06-20",
+        apiVersion: "2024-11-20",
       });
 
-      await stripe.subscriptions.update(sub.stripeSubscriptionId, {
+      // Update Stripe subscription to cancel at period end
+      await stripe.subscriptions.update(subscription.stripeSubscriptionId, {
         cancel_at_period_end: true,
       });
 
-      // Update database
-      await db
-        .update(subscriptions)
-        .set({
-          cancelAtPeriodEnd: 1,
-          canceledAt: new Date(),
-          updatedAt: new Date(),
-        })
-        .where(eq(subscriptions.id, sub.id));
+      // Update local database
+      await storage.updateSubscription(subscription.stripeSubscriptionId, {
+        cancelAtPeriodEnd: 1,
+        canceledAt: new Date(),
+      });
 
-      res.json({
-        success: true,
-        message: "Subscription will be cancelled at the end of the billing period",
-        currentPeriodEnd: sub.currentPeriodEnd,
+      res.json({ 
+        success: true, 
+        message: "Subscription will cancel at period end",
+        currentPeriodEnd: subscription.currentPeriodEnd,
       });
     } catch (error: any) {
       console.error("Error canceling subscription:", error);
@@ -865,84 +852,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/subscriptions/reactivate", isAuthenticated, async (req, res) => {
     try {
       const userId = (req.user as any).claims.sub;
+      const subscription = await storage.getActiveSubscription(userId);
       
-      // Get user's subscription
-      const subscription = await db
-        .select()
-        .from(subscriptions)
-        .where(eq(subscriptions.userId, userId))
-        .orderBy(sql`${subscriptions.createdAt} DESC`)
-        .limit(1);
-
-      if (!subscription[0]) {
-        return res.status(404).json({ error: "No subscription found" });
-      }
-
-      const sub = subscription[0];
-
-      if (!sub.cancelAtPeriodEnd) {
+      if (!subscription || !subscription.cancelAtPeriodEnd) {
         return res.status(400).json({ error: "Subscription is not scheduled for cancellation" });
       }
 
-      // Reactivate subscription in Stripe
       const Stripe = (await import("stripe")).default;
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-        apiVersion: "2024-06-20",
+        apiVersion: "2024-11-20",
       });
 
-      await stripe.subscriptions.update(sub.stripeSubscriptionId, {
+      // Update Stripe subscription to NOT cancel
+      await stripe.subscriptions.update(subscription.stripeSubscriptionId, {
         cancel_at_period_end: false,
       });
 
-      // Update database
-      await db
-        .update(subscriptions)
-        .set({
-          cancelAtPeriodEnd: 0,
-          canceledAt: null,
-          updatedAt: new Date(),
-        })
-        .where(eq(subscriptions.id, sub.id));
-
-      res.json({
-        success: true,
-        message: "Subscription has been reactivated",
+      // Update local database
+      await storage.updateSubscription(subscription.stripeSubscriptionId, {
+        cancelAtPeriodEnd: 0,
+        canceledAt: null,
       });
+
+      res.json({ success: true, message: "Subscription reactivated" });
     } catch (error: any) {
       console.error("Error reactivating subscription:", error);
       res.status(500).json({ error: error.message });
     }
   });
 
-  // Create Stripe Customer Portal session
-  app.post("/api/stripe/portal-session", isAuthenticated, async (req, res) => {
+  // Stripe Customer Portal for payment method management
+  app.post("/api/stripe/create-portal-session", isAuthenticated, async (req, res) => {
     try {
       const userId = (req.user as any).claims.sub;
-      
-      // Get user to get Stripe customer ID
       const user = await storage.getUser(userId);
-      if (!user) {
-        return res.status(404).json({ error: "User not found" });
+      
+      if (!user?.stripeCustomerId) {
+        return res.status(400).json({ error: "No Stripe customer found" });
       }
 
-      if (!user.stripeCustomerId) {
-        return res.status(400).json({ error: "No Stripe customer ID found. Please subscribe first." });
-      }
-
-      // Create portal session
       const Stripe = (await import("stripe")).default;
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-        apiVersion: "2024-06-20",
+        apiVersion: "2024-11-20",
       });
 
       const session = await stripe.billingPortal.sessions.create({
         customer: user.stripeCustomerId,
-        return_url: `${process.env.REPL_HOME || 'https://healthpilot.pro'}/billing`,
+        return_url: `${process.env.REPLIT_DOMAINS?.split(',')[0] || 'http://localhost:5000'}/billing`,
       });
 
-      res.json({
-        url: session.url,
-      });
+      res.json({ url: session.url });
     } catch (error: any) {
       console.error("Error creating portal session:", error);
       res.status(500).json({ error: error.message });

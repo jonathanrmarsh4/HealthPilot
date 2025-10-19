@@ -390,6 +390,7 @@ export interface IStorage {
   // Subscription methods
   createSubscription(subscription: InsertSubscription): Promise<Subscription>;
   getSubscription(userId: string): Promise<Subscription | undefined>;
+  getActiveSubscription(userId: string): Promise<Subscription | undefined>;
   getSubscriptionByStripeId(stripeSubscriptionId: string): Promise<Subscription | undefined>;
   updateSubscription(stripeSubscriptionId: string, data: Partial<Subscription>): Promise<Subscription | undefined>;
   
@@ -3296,6 +3297,16 @@ export class DbStorage implements IStorage {
   async getSubscription(userId: string): Promise<Subscription | undefined> {
     const { subscriptions } = await import("@shared/schema");
     const results = await db.select().from(subscriptions).where(eq(subscriptions.userId, userId));
+    return results[0];
+  }
+
+  async getActiveSubscription(userId: string): Promise<Subscription | undefined> {
+    const { subscriptions } = await import("@shared/schema");
+    const results = await db.select()
+      .from(subscriptions)
+      .where(eq(subscriptions.userId, userId))
+      .orderBy(desc(subscriptions.createdAt))
+      .limit(1);
     return results[0];
   }
 

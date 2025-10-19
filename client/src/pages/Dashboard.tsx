@@ -14,6 +14,7 @@ import { DataInsightsWidget } from "@/components/DataInsightsWidget";
 import { BiologicalAgeWidget } from "@/components/BiologicalAgeWidget";
 import { ReadinessScoreWidget } from "@/components/ReadinessScoreWidget";
 import { DailyRemindersWidget } from "@/components/DailyRemindersWidget";
+import { UpgradeBanner } from "@/components/UpgradeBanner";
 import { Heart, Activity, Scale, Droplet, TrendingUp, Zap, Apple, AlertCircle, Dumbbell, Settings2, Eye, EyeOff, ChevronUp, ChevronDown, Dna, TrendingDown, Upload, Shield } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -293,7 +294,7 @@ export default function Dashboard() {
     queryKey: ["/api/biomarkers"],
   });
 
-  const { data: currentUser } = useQuery<{ role: string }>({
+  const { data: currentUser } = useQuery<{ role: string; subscriptionTier: string }>({
     queryKey: ["/api/auth/user"],
   });
 
@@ -706,6 +707,8 @@ export default function Dashboard() {
           </Sheet>
         </div>
       </div>
+
+      {currentUser?.subscriptionTier === "free" && <UpgradeBanner />}
 
       {/* All Widgets - Fully Manageable with Respected Order */}
       {optionalWidgets.some(w => isVisible(w)) && (
