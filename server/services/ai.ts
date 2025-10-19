@@ -1369,7 +1369,10 @@ export async function chatWithHealthCoach(
     }
   }
 
-  const systemPrompt = `You are a friendly and knowledgeable health and fitness coach AI.
+  const guardrailsPrompt = buildGuardrailsSystemPrompt();
+  const systemPrompt = `${guardrailsPrompt}
+
+You are a friendly and knowledgeable health and fitness coach AI.
 
 ## ⚠️ EXERCISE RECOMMENDATIONS - CRITICAL OUTPUT RULES ⚠️
 

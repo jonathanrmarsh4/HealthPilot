@@ -6,6 +6,7 @@ import multer from "multer";
 import { insertBiomarkerSchema, insertHealthRecordSchema, insertScheduledExerciseRecommendationSchema, insertFitnessProfileSchema, insertExerciseSetSchema, biomarkers, sleepSessions, healthRecords, mealPlans, trainingSchedules, recommendations, readinessScores, exerciseSets, exercises, users, referrals } from "@shared/schema";
 import { listHealthDocuments, downloadFile, getFileMetadata } from "./services/googleDrive";
 import { analyzeHealthDocument, generateMealPlan, generateTrainingSchedule, generateHealthRecommendations, chatWithHealthCoach, generateDailyInsights, generateRecoveryInsights, generateTrendPredictions, generatePeriodComparison, generateDailyTrainingRecommendation, generateMacroRecommendations } from "./services/ai";
+import { buildGuardrailsSystemPrompt } from "./config/guardrails";
 import { calculatePhenoAge, getBiomarkerDisplayName, getBiomarkerUnit, getBiomarkerSource } from "./services/phenoAge";
 import { calculateReadinessScore } from "./services/readiness";
 import { parseISO, isValid, subDays } from "date-fns";
@@ -8908,12 +8909,17 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
       openaiWs.on("open", () => {
         console.log("🔗 Connected to OpenAI Realtime API");
         
+        // Build guardrails prompt for voice chat
+        const guardrailsPrompt = buildGuardrailsSystemPrompt();
+        
         // Configure session with comprehensive user data
         const sessionConfig = {
           type: "session.update",
           session: {
             modalities: ["text", "audio"],
-            instructions: `You are a knowledgeable, supportive AI health coach for HealthPilot. You have complete access to the user's health data and history.
+            instructions: `${guardrailsPrompt}
+
+You are a knowledgeable, supportive AI health coach for HealthPilot. You have complete access to the user's health data and history.
 
 ## USER PROFILE:
 Name: ${userContextData.name}
