@@ -1,0 +1,332 @@
+{
+  "spec_name": "HealthPilot Universal Medical Data Interpreter",
+  "version": "1.0.0",
+  "updated": "2025-10-20",
+  "purpose": "Enable ingestion, classification, extraction, normalization, validation, and safe interpretation of any medical data/report into a unified schema with discard-on-uncertainty behavior.",
+  "readme_prompt": "You are a development AI implementing HealthPilot's Universal Medical Data Interpreter. Use this spec as the single source of truth. Follow the workflow: (1) detect report type, (2) extract into the internal schema using FHIR-aligned fields, (3) normalize units/ranges, (4) validate and compute confidence, (5) interpret using evidence-based rules, (6) return structured JSON + plain-language summary, (7) if confidence below threshold or schema invalid, return an actionable user-facing feedback message and discard the data (do not store). To use: call `pipelines.ingest.run` with an input payload. If you are writing prompts for sub-agents, use `prompts.system`, `prompts.type_classification`, and `prompts.extraction_by_type[<type>]`. Always apply `guardrails` and `policies.discard_rules` before returning.",
+  "guardrails": {
+    "safety": [
+      "Do not diagnose, prescribe, or suggest medication dosages.",
+      "Summaries must be informational only and reference evidence-based standards at a high level.",
+      "Never infer values not present in the source; never hallucinate reference ranges."
+    ],
+    "data_integrity": [
+      "Reject inputs with unknown units or missing measurement context.",
+      "Reject OCR output with low text quality or conflicting numeric tokens.",
+      "Reject report types with classifier confidence < thresholds.type_detection."
+    ],
+    "transparency": [
+      "Always include confidence scores and a reasoned decision path in `audit`.",
+      "If discarding, include a clear, friendly feedback message and remediation tips."
+    ],
+    "privacy": [
+      "Strip or hash direct identifiers where possible.",
+      "Do not echo PII in summaries unless explicitly required for clinical utility."
+    ],
+    "localization": [
+      "Default to SI units; convert from non-SI to SI consistently.",
+      "Support region-specific reference ranges when provided by source."
+    ],
+    "traceability": [
+      "Every output must include `audit`: classifier label, confidence, normalization steps, validations run, and any rule hits."
+    ]
+  },
+  "thresholds": {
+    "type_detection": 0.80,
+    "extraction_min": 0.80,
+    "normalization_min": 0.85,
+    "overall_accept_min": 0.85
+  },
+  "policies": {
+    "discard_rules": [
+      "Discard if overall confidence < thresholds.overall_accept_min.",
+      "Discard any observation missing unit when unit is required and cannot be inferred with >=0.9 confidence.",
+      "Discard conflicting duplicates where values differ beyond instrument tolerance and no timestamp disambiguates."
+    ],
+    "user_feedback_templates": {
+      "unrecognized_type": "We couldn’t confidently recognize this report type. Please select the closest category (Blood, Imaging, Cardiac, Genetic, Wearable, Vitals, Medication, Procedure, Immunization, Other) or upload a clearer copy.",
+      "missing_units": "Some results do not include units. Please upload a version that shows units (for example, µmol/L, mg/dL, bpm, mmHg).",
+      "low_quality_ocr": "The document’s text quality is too low to read reliably. Try a higher-resolution scan or the original digital PDF.",
+      "partial_parse": "We parsed part of your report, but some fields were unclear and were excluded. You can proceed or re-upload a clearer file."
+    }
+  },
+  "schema": {
+    "root": {
+      "report_id": "string",
+      "report_type": "enum(Observation_Labs, Cardiac_ECG, Cardiac_Echo, DiagnosticReport_Imaging, Genomic, Wearable, VitalsAnthro, MedicationStatement, Procedure, Immunization, ClinicalNote, Other)",
+      "source_format": "enum(PDF, PDF_OCR, Image_OCR, FHIR_JSON, HL7, CSV, JSON, XML, DICOM, TXT)",
+      "ingested_at": "ISO8601",
+      "patient": {
+        "pseudo_id": "string",
+        "dob": "YYYY-MM-DD|null",
+        "sex_at_birth": "enum(M,F,Intersex,Unknown)|null"
+      },
+      "data": "object (see type-specific schemas below)",
+      "interpretation": {
+        "category": "enum(Normal, Borderline, Abnormal, Indeterminate)|null",
+        "insights": "array[string]",
+        "caveats": "array[string]",
+        "next_best_actions": "array[string]"
+      },
+      "audit": {
+        "type_classifier": {"label": "string", "confidence": "0-1"},
+        "extraction_confidence": "0-1",
+        "normalization_confidence": "0-1",
+        "overall_confidence": "0-1",
+        "rules_triggered": "array[string]",
+        "unit_conversions": "array[{field, from, to, factor}]",
+        "validation_findings": "array[string]"
+      },
+      "references": "array[string]",
+      "status": "enum(accepted, discarded)"
+    },
+    "types": {
+      "Observation_Labs": {
+        "panel_name": "string|null",
+        "observations": [
+          {
+            "code": "string",
+            "display": "string",
+            "value": "number|string",
+            "unit": "string",
+            "reference_range": {"low": "number|null", "high": "number|null", "unit": "string|null"},
+            "collected_at": "ISO8601|null",
+            "flags": "array[string]"
+          }
+        ]
+      },
+      "Cardiac_ECG": {
+        "heart_rate_bpm": "number|null",
+        "pr_interval_ms": "number|null",
+        "qrs_duration_ms": "number|null",
+        "qt_ms": "number|null",
+        "qtc_ms": "number|null",
+        "rhythm_summary": "string|null",
+        "interpretive_text": "string|null"
+      },
+      "Cardiac_Echo": {
+        "lvef_percent": "number|null",
+        "lv_mass_index": "number|null",
+        "valvular_findings": "array[string]",
+        "chamber_sizes": "array[string]",
+        "summary": "string|null"
+      },
+      "DiagnosticReport_Imaging": {
+        "modality": "enum(CT,MRI,XR,US,NM,Other)",
+        "body_region": "string|null",
+        "findings": "array[string]",
+        "impression": "string|null",
+        "accession_number": "string|null"
+      },
+      "Genomic": {
+        "variants": [
+          {
+            "gene": "string",
+            "rsid": "string|null",
+            "zygosity": "enum(Homozygous,Heterozygous,Unknown)",
+            "consequence": "string|null",
+            "clinical_significance": "enum(Pathogenic,Likely_pathogenic,Uncertain,Likely_benign,Benign,Unknown)"
+          }
+        ],
+        "panel": "string|null"
+      },
+      "Wearable": {
+        "provider": "string",
+        "series": [
+          {"metric": "enum(steps,hr_rest,hrv_ms,vo2max_ml_kg_min,sleep_efficiency_percent,calories_kcal,spo2_percent)",
+           "values": [{"ts": "ISO8601","value": "number"}]
+          }
+        ]
+      },
+      "VitalsAnthro": {
+        "bp_systolic_mmhg": "number|null",
+        "bp_diastolic_mmhg": "number|null",
+        "hr_rest_bpm": "number|null",
+        "height_cm": "number|null",
+        "weight_kg": "number|null",
+        "waist_cm": "number|null",
+        "hip_cm": "number|null"
+      },
+      "MedicationStatement": {
+        "medications": [
+          {"name": "string","dose": "string|null","route": "string|null","frequency": "string|null","start_date": "YYYY-MM-DD|null","end_date": "YYYY-MM-DD|null"}
+        ]
+      },
+      "Procedure": {
+        "procedures": [
+          {"name": "string","date": "YYYY-MM-DD|null","laterality": "string|null","notes": "string|null"}
+        ]
+      },
+      "Immunization": {
+        "immunizations": [
+          {"vaccine": "string","date": "YYYY-MM-DD","lot": "string|null","site": "string|null"}
+        ]
+      },
+      "ClinicalNote": {
+        "note_type": "string|null",
+        "sections": [{"title": "string","text": "string"}]
+      }
+    }
+  },
+  "units": {
+    "preferred": "SI",
+    "conversions": [
+      {"from": "mg/dL", "to": "mmol/L", "analyte": "glucose", "factor": 0.0555},
+      {"from": "mg/dL", "to": "mmol/L", "analyte": "cholesterol", "factor": 0.0259},
+      {"from": "mg/dL", "to": "µmol/L", "analyte": "creatinine", "factor": 88.4}
+    ]
+  },
+  "type_detection": {
+    "heuristics": [
+      {"pattern": "Reference Range|Test Name|Units", "label": "Observation_Labs"},
+      {"pattern": "PR interval|QRS|QTc|sinus rhythm", "label": "Cardiac_ECG"},
+      {"pattern": "LVEF|tricuspid|mitral|echo", "label": "Cardiac_Echo"},
+      {"pattern": "Findings|Impression|CT|MRI|X-Ray|Ultrasound", "label": "DiagnosticReport_Imaging"},
+      {"pattern": "variant|rsID|allele|zygosity", "label": "Genomic"},
+      {"pattern": "steps|HRV|VO2max|sleep|Resting Heart Rate", "label": "Wearable"},
+      {"pattern": "mmHg|bpm|height|weight|waist", "label": "VitalsAnthro"},
+      {"pattern": "dose|mg|tablet|once daily", "label": "MedicationStatement"},
+      {"pattern": "procedure|surgery|laparoscopic|arthroscopy", "label": "Procedure"},
+      {"pattern": "immunization|vaccine|lot|site", "label": "Immunization"}
+    ],
+    "classifier_prompt": "Classify the report type from text. Output JSON: {\"label\": <type>, \"confidence\": <0-1>, \"rationale\": <short>}. Only use the allowed labels."
+  },
+  "validation": {
+    "rules": [
+      "Observation values must be numeric when a numeric unit is present.",
+      "Reference range unit must match observation unit or be convertible.",
+      "Timestamp ordering: collected_at must be <= ingested_at.",
+      "Outlier screening: flag values >8 SD from population norms for manual review."
+    ],
+    "outcomes": {
+      "pass": "continue",
+      "warn": "include in output with caveat",
+      "fail": "discard observation"
+    }
+  },
+  "interpretation_rules": {
+    "Observation_Labs": [
+      {"name": "LipidRiskSimple", "if": "LDL present", "logic": "ldl>=4.9 mmol/L => 'high' else if ldl>=3.4 => 'borderline' else 'within range'", "outputs": ["insight:Lipid levels suggest ...", "category"]},
+      {"name": "A1cGlycemia", "if": "HbA1c present", "logic": "a1c>=6.5% => 'abnormal'; 5.7-6.4 => 'borderline'; else 'normal'", "outputs": ["insight:Glycemic control ...", "category"]}
+    ],
+    "Cardiac_ECG": [
+      {"name": "QTcFlag", "if": "qtc_ms present", "logic": "qtc_ms>470 (M) or >480 (F) => 'borderline/abnormal'", "outputs": ["insight:Prolonged QTc may increase arrhythmia risk", "category"]}
+    ],
+    "Wearable": [
+      {"name": "HRVTrend", "if": "hrv_ms time series", "logic": "7-day slope < -5% => 'borderline'", "outputs": ["insight:HRV trending down—consider recovery emphasis", "category"]}
+    ]
+  },
+  "prompts": {
+    "system": "You are the HealthPilot Medical Data Interpreter. You ingest, classify, extract, normalize, validate, interpret, and either accept or discard medical data. You never diagnose or prescribe. You use FHIR-aligned fields and SI units. If uncertain, you discard and provide clear feedback.",
+    "type_classification": "Classify the report type strictly into the allowed labels. Use content cues (terms, sections, units). Output JSON with label, confidence, and one-sentence rationale.",
+    "extraction_by_type": {
+      "Observation_Labs": "Extract each row as {code, display, value, unit, reference_range:{low,high,unit}, collected_at}. Convert textual ranges like '(<200)' into numeric low/high where possible, else leave null. Do not invent ranges.",
+      "Cardiac_ECG": "Extract heart_rate_bpm, pr_interval_ms, qrs_duration_ms, qt_ms, qtc_ms, rhythm_summary, interpretive_text if present. Do not infer missing values.",
+      "DiagnosticReport_Imaging": "Extract modality, body_region, findings[], impression. Do not paraphrase beyond light cleanup; retain clinical phrasing.",
+      "Genomic": "Extract variants as {gene, rsid, zygosity, consequence, clinical_significance}. If clinical significance absent, set Unknown.",
+      "Wearable": "Aggregate time series per metric. Downsample to 1 value/hour if denser than minute-level unless `preserve_high_res=true` flag is passed.",
+      "VitalsAnthro": "Extract bp systolic/diastolic, hr_rest, height_cm, weight_kg, waist_cm, hip_cm with timestamps if present."
+    },
+    "normalization": "Convert all units to SI. If conversion requires analyte-specific factor, use `units.conversions`. If not convertible, mark observation as invalid.",
+    "validation": "Run rule checks; annotate warnings; discard failed observations. Compute normalization_confidence based on unit certainty and conversion path.",
+    "interpretation": "Apply interpretation_rules for the report type. Produce concise, plain-language insights and a category. Add caveats if inputs are incomplete.",
+    "finalizer": "Compute overall_confidence = min(type_detection, extraction_min_conf, normalization_conf). If < thresholds.overall_accept_min, set status=discarded and attach a user_feedback_templates message."
+  },
+  "pipelines": {
+    "ingest": {
+      "input": {
+        "source_bytes_or_uri": "string",
+        "source_format_hint": "string|null",
+        "user_region": "string|null",
+        "preserve_high_res": "boolean|null"
+      },
+      "steps": [
+        "OCR_or_Parse",
+        "TypeDetection",
+        "TypeSpecificExtraction",
+        "Normalization",
+        "Validation",
+        "Interpretation",
+        "Finalizer"
+      ],
+      "output": "schema.root"
+    }
+  },
+  "usage_examples": {
+    "how_to_call": {
+      "request": {
+        "source_bytes_or_uri": "s3://bucket/user123/report.pdf",
+        "source_format_hint": "PDF",
+        "user_region": "AU"
+      },
+      "response_accepted_minimal": {
+        "report_id": "abc123",
+        "report_type": "Observation_Labs",
+        "source_format": "PDF_OCR",
+        "ingested_at": "2025-10-20T00:00:00Z",
+        "patient": {"pseudo_id": "u-123", "dob": null, "sex_at_birth": "Unknown"},
+        "data": {
+          "panel_name": "Lipid Panel",
+          "observations": [
+            {
+              "code": "LDL",
+              "display": "Low-Density Lipoprotein Cholesterol",
+              "value": 3.7,
+              "unit": "mmol/L",
+              "reference_range": {"low": null, "high": 3.4, "unit": "mmol/L"},
+              "collected_at": "2025-10-18T09:30:00Z",
+              "flags": ["high"]
+            }
+          ]
+        },
+        "interpretation": {
+          "category": "Borderline",
+          "insights": [
+            "LDL cholesterol is above the common optimal threshold."
+          ],
+          "caveats": [],
+          "next_best_actions": [
+            "Discuss lipid profile with a clinician.",
+            "Consider repeat testing and lifestyle review."
+          ]
+        },
+        "audit": {
+          "type_classifier": {"label": "Observation_Labs", "confidence": 0.91},
+          "extraction_confidence": 0.93,
+          "normalization_confidence": 0.95,
+          "overall_confidence": 0.91,
+          "rules_triggered": ["LipidRiskSimple"],
+          "unit_conversions": [{"field": "LDL", "from": "mg/dL", "to": "mmol/L", "factor": 0.0259}],
+          "validation_findings": []
+        },
+        "references": ["Lipid management guidelines (high-level reference)"],
+        "status": "accepted"
+      },
+      "response_discarded_example": {
+        "status": "discarded",
+        "audit": {
+          "type_classifier": {"label": "Observation_Labs", "confidence": 0.62},
+          "extraction_confidence": 0.58,
+          "normalization_confidence": 0.60,
+          "overall_confidence": 0.58,
+          "validation_findings": ["Missing units for values: Cholesterol Total"]
+        },
+        "user_feedback": "We couldn’t confidently interpret this report. Some results were missing units. Please upload a copy that includes units (e.g., mmol/L or mg/dL)."
+      }
+    }
+  },
+  "testing": {
+    "datasets_suggested": [
+      "Synthetic lab tables with noise and missing units",
+      "Public imaging reports with Findings/Impression sections",
+      "Synthetic ECG summaries with standard intervals",
+      "Wearable CSV time series (steps, HRV, VO2max proxies)"
+    ],
+    "acceptance_criteria": [
+      "≥98% correct type classification on test set",
+      "100% unit normalization to SI or proper discard",
+      "Deterministic discard for unknown units or missing ranges when required",
+      "Clear user feedback messages for all discard scenarios"
+    ]
+  }
+}

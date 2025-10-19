@@ -1,0 +1,77 @@
+You are a senior platform engineer tasked with IMPLEMENTING the “HealthPilot Universal Medical Data Interpreter”.
+
+TREAT THE ATTACHED FILE `healthpilot_interpreter_spec.json` AS A DESIGN SPECIFICATION (not user data).
+- Parse its fields: spec_name, readme_prompt, guardrails, thresholds, policies, schema, units, type_detection, validation, interpretation_rules, prompts, pipelines, usage_examples, testing.
+- Obey guardrails, discard rules, and confidence thresholds exactly.
+
+OBJECTIVE
+Build a working ingestion + interpretation engine as per the spec. It must ingest arbitrary medical reports (PDF/OCR, images, FHIR/HL7/CSV/JSON, etc.), classify type, extract into the FHIR-aligned internal schema, normalize units to SI, validate, interpret with rules, and either ACCEPT or DISCARD with clear user feedback.
+
+PRIMARY OUTPUTS
+1) Production-quality code (choose TypeScript + Node OR Python 3.11; prefer TypeScript if undecided).
+2) Tests and fixtures showing accepted and discarded paths.
+3) CLI and minimal HTTP endpoints for `pipelines.ingest.run`.
+4) README with setup, run commands, and examples from `usage_examples`.
+
+DELIVERABLE STRUCTURE (if TypeScript; mirror analogs for Python):
+- /src/index.ts (boot + wiring)
+- /src/pipelines/ingest.ts (implements steps: OCR_or_Parse → TypeDetection → TypeSpecificExtraction → Normalization → Validation → Interpretation → Finalizer)
+- /src/extraction/<type>.ts (from `prompts.extraction_by_type`)
+- /src/normalization/units.ts (from `units.conversions`)
+- /src/validation/rules.ts (from `validation.rules`)
+- /src/interpretation/<type>.ts (from `interpretation_rules`)
+- /src/detection/classifier.ts (heuristics + optional ML stub; use `type_detection.heuristics`)
+- /src/shared/schema.ts (strongly typed model from `schema.root` + `schema.types`)
+- /src/shared/guardrails.ts (enforce `guardrails`, `thresholds`, `policies.discard_rules`)
+- /src/http/server.ts (POST /ingest; streams JSON result)
+- /tests/**/* (unit + e2e)
+- /fixtures/**/* (sample inputs/outputs)
+- README.md
+
+FUNCTIONAL REQUIREMENTS (map directly from the JSON spec)
+- Confidence gates: reject if overall < thresholds.overall_accept_min.
+- Units: convert to SI; if non-convertible → discard observation with reason.
+- Validation: apply all `validation.rules` → outcomes pass/warn/fail; warn annotates, fail discards.
+- Discard behavior: when discarding, return `status:"discarded"` + `user_feedback` using `policies.user_feedback_templates`.
+- Audit trail: always populate `audit` (classifier label+confidence, extraction/normalization conf, rules hit, conversions, validations, rationale).
+- No diagnosis/prescription; summaries informational only.
+- Localization: respect SI; allow region override hook.
+
+NON-GOALS
+- Do NOT hallucinate reference ranges or values.
+- Do NOT store unknown/ambiguous data; discard with feedback.
+- Do NOT paraphrase imaging findings beyond light cleanup.
+
+INTERFACES
+CLI:
+  npx healthpilot ingest --file ./fixtures/input.pdf --region AU --out ./out.json
+HTTP:
+  POST /ingest { source_bytes_or_uri, source_format_hint?, user_region?, preserve_high_res? } → `schema.root`
+
+TEST PLAN (derive from `testing`)
+- Type classification ≥ 98% on synthetic set (heuristics).
+- 100% conversion to SI OR discarded with explicit reason.
+- Deterministic discard for unknown units / missing required context.
+- Golden tests: use `usage_examples.response_accepted_minimal` and `response_discarded_example`.
+
+IMPLEMENTATION STEPS (execute now)
+1) Generate typed models from `schema.root` and `schema.types`.
+2) Implement heuristics‐based TypeDetection with confidence scoring.
+3) Implement extraction modules for: Observation_Labs, Cardiac_ECG, DiagnosticReport_Imaging, Genomic, Wearable, VitalsAnthro, MedicationStatement, Procedure, Immunization, ClinicalNote.
+4) Implement unit normalization using `units.conversions` (include analyte-specific logic).
+5) Implement validation + outcomes; compute per-phase confidences; `overall_confidence = min(type, extraction, normalization)`.
+6) Implement interpretation rules per type (pure functions).
+7) Implement Finalizer: accept/discard, populate `audit`, add `references`, attach user feedback if discarded.
+8) Expose CLI + HTTP interfaces; write README.
+9) Create tests + fixtures covering accept/warn/discard paths.
+
+CODE STYLE & QUALITY
+- Functional, side-effect-light modules; explicit types; deterministic outputs.
+- Strict linting/formatting, 90%+ unit test coverage on core modules.
+- Small, composable functions; clear error messages surfaced to users.
+
+WHEN UNSURE
+- Follow `readme_prompt` in the spec.
+- Ask me for clarifications only if a required field is undefined in the JSON; otherwise make the smallest reasonable assumption and document it in README “Assumptions”.
+
+Begin by loading `healthpilot_interpreter_spec.json`, generating types and scaffolding the file tree, then implement modules in the order above. Output code and instructions to run the demo locally and via CLI/HTTP.
