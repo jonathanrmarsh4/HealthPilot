@@ -12,7 +12,7 @@ import { LocaleSelector } from "@/components/LocaleSelector";
 import { TimezoneProvider } from "@/contexts/TimezoneContext";
 import { OnboardingProvider, useOnboarding } from "@/contexts/OnboardingContext";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { FloatingChat, FloatingChatTrigger } from "@/components/FloatingChat";
+import { FloatingChat, FloatingChatTrigger, VoiceChatModal } from "@/components/FloatingChat";
 import { useAuth } from "@/hooks/useAuth";
 import { TimezoneDetector } from "@/components/TimezoneDetector";
 import { EulaDialog } from "@/components/EulaDialog";
@@ -95,6 +95,7 @@ function Router() {
 
 function AppLayout() {
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isVoiceChatOpen, setIsVoiceChatOpen] = useState(false);
   const [hasAutoOpened, setHasAutoOpened] = useState(false);
   const [location] = useLocation();
   const { shouldShowOnboarding, isLoading: onboardingLoading } = useOnboarding();
@@ -184,9 +185,16 @@ function AppLayout() {
         </div>
       </div>
 
-      {location !== "/chat" && !isChatOpen && (
+      {location !== "/chat" && !isChatOpen && !isVoiceChatOpen && (
         <FloatingChatTrigger 
-          onClick={() => setIsChatOpen(true)} 
+          onClick={() => {
+            const isPremium = user?.subscriptionTier === 'premium' || user?.subscriptionTier === 'enterprise';
+            if (isPremium) {
+              setIsVoiceChatOpen(true);
+            } else {
+              setIsChatOpen(true);
+            }
+          }} 
           subscriptionTier={user?.subscriptionTier || 'free'}
         />
       )}
@@ -195,6 +203,11 @@ function AppLayout() {
         isOpen={isChatOpen} 
         onClose={() => setIsChatOpen(false)}
         currentPage={currentPage}
+      />
+      
+      <VoiceChatModal
+        isOpen={isVoiceChatOpen}
+        onClose={() => setIsVoiceChatOpen(false)}
       />
     </SidebarProvider>
   );

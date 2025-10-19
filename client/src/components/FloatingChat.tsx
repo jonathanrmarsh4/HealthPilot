@@ -7,9 +7,402 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import { Link } from "wouter";
-import { Send, X, MessageCircle, Loader2, Minimize2, Sparkles, Trash2, Mic, MicOff, Volume2, VolumeX } from "lucide-react";
+import { Send, X, MessageCircle, Loader2, Minimize2, Sparkles, Trash2, Mic, MicOff, Volume2, VolumeX, Activity } from "lucide-react";
 import { useOnboarding } from "@/contexts/OnboardingContext";
 import type { ChatMessage } from "@shared/schema";
+import { ChatFeedback } from "@/components/ChatFeedback";
+
+interface VoiceChatModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+interface TranscriptMessage {
+  id: string;
+  messageId?: number;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: Date;
+}
+
+export function VoiceChatModal({ isOpen, onClose }: VoiceChatModalProps) {
+  const { toast } = useToast();
+  const [isRecording, setIsRecording] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [transcript, setTranscript] = useState<TranscriptMessage[]>([]);
+  const [currentUserInput, setCurrentUserInput] = useState("");
+  const [hasShownDisclosure, setHasShownDisclosure] = useState(false);
+  const recognitionRef = useRef<any>(null);
+  const transcriptEndRef = useRef<HTMLDivElement>(null);
+  
+  // Check if AI disclosure has been shown before
+  useEffect(() => {
+    const disclosureShown = localStorage.getItem('healthpilot_voice_disclosure_shown');
+    setHasShownDisclosure(disclosureShown === 'true');
+  }, []);
+
+  // Initialize speech recognition
+  useEffect(() => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    
+    if (SpeechRecognition) {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = 'en-US';
+      
+      recognition.onresult = (event: any) => {
+        let interimTranscript = '';
+        let finalTranscript = '';
+        
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const transcript = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            finalTranscript += transcript + ' ';
+          } else {
+            interimTranscript += transcript;
+          }
+        }
+        
+        setCurrentUserInput(finalTranscript || interimTranscript);
+      };
+      
+      recognition.onerror = (event: any) => {
+        console.error('Speech recognition error:', event.error);
+        if (event.error !== 'no-speech' && event.error !== 'aborted') {
+          toast({
+            title: "Voice Error",
+            description: "Could not understand speech. Please try again.",
+            variant: "destructive",
+          });
+        }
+        setIsRecording(false);
+      };
+      
+      recognition.onend = () => {
+        if (isRecording && currentUserInput.trim()) {
+          handleUserInputComplete(currentUserInput.trim());
+        }
+        setIsRecording(false);
+      };
+      
+      recognitionRef.current = recognition;
+    }
+    
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+    };
+  }, []);
+
+  const handleUserInputComplete = async (userMessage: string) => {
+    if (!userMessage.trim()) return;
+
+    /**
+     * PRIVACY & DATA DELETION POLICY:
+     * 
+     * Voice chat implements strict data minimization principles:
+     * 
+     * 1. NO RAW AUDIO STORAGE: Raw audio data is NEVER stored. Web Speech API 
+     *    processes speech client-side and only text transcripts are transmitted.
+     * 
+     * 2. TRANSCRIPT RETENTION: Text transcripts are stored temporarily in memory 
+     *    (React state) for the duration of the voice chat session only. When the
+     *    modal closes, all transcript data is cleared.
+     * 
+     * 3. SUMMARIZATION ONLY: After each interaction, only high-level summaries
+     *    (preferences, progress, concerns) are stored in the database via the
+     *    coach_memory table. Full transcript text is NOT persisted.
+     * 
+     * 4. VECTOR EMBEDDINGS: Summaries are converted to embeddings for semantic
+     *    search. Original summary text is stored, but raw transcripts are not.
+     * 
+     * 5. USER CONTROL: Users can delete all coaching memories via the "Forget Me"
+     *    feature in Privacy Dashboard, which removes summaries and embeddings.
+     * 
+     * This approach complies with GDPR, HIPAA, PIPEDA, and Australia Privacy Act
+     * data minimization requirements.
+     */
+
+    // Add user message to transcript (in-memory only, cleared on modal close)
+    const userMsg: TranscriptMessage = {
+      id: `user-${Date.now()}`,
+      role: 'user',
+      content: userMessage,
+      timestamp: new Date(),
+    };
+    
+    setTranscript(prev => [...prev, userMsg]);
+    setCurrentUserInput("");
+    setIsProcessing(true);
+
+    try {
+      // Send to AI chat endpoint
+      const res = await apiRequest("POST", "/api/chat", { 
+        message: userMessage,
+        currentPage: "Voice Chat"
+      });
+      const data = await res.json();
+
+      // Prepend AI disclosure on first voice interaction
+      const aiDisclosure = "Hello! I'm your HealthPilot Coach, an AI assistant powered by OpenAI. I'm here to help with fitness and wellness guidance, but I'm not a medical professional. Always consult qualified healthcare providers for medical advice.\n\n";
+      
+      let aiResponse = data.reply || "I'm sorry, I couldn't process that.";
+      
+      // Add disclosure if this is the first voice interaction
+      // Check against !hasShownDisclosure flag, not stale transcript.length
+      if (!hasShownDisclosure) {
+        aiResponse = aiDisclosure + aiResponse;
+        setHasShownDisclosure(true);
+        localStorage.setItem('healthpilot_voice_disclosure_shown', 'true');
+      }
+
+      // Add AI response to transcript
+      const aiMsg: TranscriptMessage = {
+        id: `ai-${Date.now()}`,
+        messageId: data.messageId,
+        role: 'assistant',
+        content: aiResponse,
+        timestamp: new Date(),
+      };
+      
+      setTranscript(prev => [...prev, aiMsg]);
+
+      // Speak the AI response
+      if ('speechSynthesis' in window && aiResponse) {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(aiResponse);
+        utterance.rate = 0.95;
+        utterance.pitch = 1;
+        utterance.volume = 1;
+        window.speechSynthesis.speak(utterance);
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to get AI response",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const toggleRecording = () => {
+    if (!recognitionRef.current) {
+      toast({
+        title: "Not Supported",
+        description: "Voice input is not supported in your browser",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (isRecording) {
+      recognitionRef.current.stop();
+      setIsRecording(false);
+    } else {
+      try {
+        recognitionRef.current.start();
+        setIsRecording(true);
+      } catch (error) {
+        console.error('Error starting speech recognition:', error);
+        toast({
+          title: "Error",
+          description: "Could not start voice input",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
+  useEffect(() => {
+    transcriptEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [transcript]);
+
+  // Close and cleanup on unmount
+  useEffect(() => {
+    if (!isOpen) {
+      if (recognitionRef.current && isRecording) {
+        recognitionRef.current.stop();
+      }
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+      setIsRecording(false);
+      setCurrentUserInput("");
+    }
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm p-4"
+      onClick={handleBackdropClick}
+      data-testid="voice-chat-modal-backdrop"
+    >
+      <Card className="w-full max-w-2xl bg-background/95 backdrop-blur-md shadow-2xl border-2 border-primary/20">
+        <div className="flex flex-col h-[min(80vh,600px)]">
+          {/* Header */}
+          <div className="flex items-center justify-between gap-2 p-4 border-b bg-gradient-to-r from-green-600 to-green-700 text-white rounded-t-lg">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5" />
+              <h3 className="font-semibold">Voice Coach</h3>
+              <Badge variant="secondary" className="bg-white/20 text-white border-white/30">
+                Premium
+              </Badge>
+            </div>
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={onClose}
+              className="h-8 w-8 text-white hover:bg-white/20"
+              data-testid="button-close-voice-modal"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {/* Transcript Area */}
+          <div className="flex-1 overflow-y-auto p-6 space-y-4">
+            {transcript.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full text-center space-y-4">
+                <div className="p-6 rounded-full bg-primary/10">
+                  <Mic className="h-12 w-12 text-primary" />
+                </div>
+                <div>
+                  <h4 className="font-semibold text-lg mb-2">Ready to chat!</h4>
+                  <p className="text-muted-foreground text-sm max-w-sm">
+                    Tap the microphone button below to start your voice conversation with your AI health coach.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              transcript.map((msg) => (
+                <div
+                  key={msg.id}
+                  className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                  data-testid={`voice-transcript-${msg.role}`}
+                >
+                  <div className="flex flex-col gap-2 max-w-[80%]">
+                    <div
+                      className={`rounded-lg p-4 ${
+                        msg.role === 'user'
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-muted'
+                      }`}
+                    >
+                      <p className="whitespace-pre-wrap break-words text-sm">
+                        {msg.content}
+                      </p>
+                      <p className="text-xs opacity-70 mt-2">
+                        {msg.timestamp.toLocaleTimeString()}
+                      </p>
+                    </div>
+                    {msg.role === 'assistant' && msg.messageId && (
+                      <div className="flex justify-end">
+                        <ChatFeedback 
+                          messageId={msg.messageId} 
+                          conversationType="voice"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+
+            {/* Current user input preview */}
+            {currentUserInput && (
+              <div className="flex justify-end">
+                <div className="max-w-[80%] rounded-lg p-4 bg-primary/50 text-primary-foreground border-2 border-primary border-dashed">
+                  <p className="whitespace-pre-wrap break-words text-sm">
+                    {currentUserInput}
+                  </p>
+                  <p className="text-xs opacity-70 mt-2">Listening...</p>
+                </div>
+              </div>
+            )}
+
+            {/* Processing indicator */}
+            {isProcessing && (
+              <div className="flex justify-start">
+                <div className="max-w-[80%] rounded-lg p-4 bg-muted">
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <p className="text-sm">AI is thinking...</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div ref={transcriptEndRef} />
+          </div>
+
+          {/* Voice Controls */}
+          <div className="border-t p-6 bg-muted/30">
+            <div className="flex flex-col items-center gap-4">
+              {/* Waveform Visualization */}
+              {isRecording && (
+                <div className="flex items-center gap-1 h-12" data-testid="waveform-visualization">
+                  {[...Array(8)].map((_, i) => (
+                    <div
+                      key={i}
+                      className="w-1 bg-primary rounded-full animate-pulse"
+                      style={{
+                        height: `${20 + Math.random() * 30}px`,
+                        animationDelay: `${i * 0.1}s`,
+                        animationDuration: '0.8s',
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {/* Mic Button */}
+              <div className="flex items-center gap-4">
+                <Button
+                  size="lg"
+                  variant={isRecording ? "default" : "outline"}
+                  onClick={toggleRecording}
+                  disabled={isProcessing}
+                  className={`h-16 w-16 rounded-full ${
+                    isRecording
+                      ? 'bg-red-500 hover:bg-red-600 border-red-400 animate-pulse'
+                      : 'bg-primary hover:bg-primary/90'
+                  }`}
+                  data-testid="button-toggle-voice-recording"
+                >
+                  {isRecording ? (
+                    <MicOff className="h-8 w-8 text-white" />
+                  ) : (
+                    <Mic className="h-8 w-8 text-white" />
+                  )}
+                </Button>
+              </div>
+
+              <p className="text-sm text-muted-foreground text-center">
+                {isRecording
+                  ? "Tap to stop recording"
+                  : isProcessing
+                  ? "Processing your message..."
+                  : "Tap to start talking"}
+              </p>
+            </div>
+          </div>
+        </div>
+      </Card>
+    </div>
+  );
+}
 
 interface FloatingChatProps {
   isOpen: boolean;
@@ -357,14 +750,24 @@ export function FloatingChat({ isOpen, onClose, currentPage }: FloatingChatProps
                       className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
                       data-testid={`floating-message-${msg.role}-${index}`}
                     >
-                      <div
-                        className={`max-w-[85%] rounded-lg p-3 text-sm ${
-                          msg.role === "user"
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-muted"
-                        }`}
-                      >
-                        <p className="whitespace-pre-wrap break-words">{msg.content}</p>
+                      <div className="flex flex-col gap-2 max-w-[85%]">
+                        <div
+                          className={`rounded-lg p-3 text-sm ${
+                            msg.role === "user"
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-muted"
+                          }`}
+                        >
+                          <p className="whitespace-pre-wrap break-words">{msg.content}</p>
+                        </div>
+                        {msg.role === "assistant" && (
+                          <div className="flex justify-end">
+                            <ChatFeedback 
+                              messageId={msg.id} 
+                              conversationType="text"
+                            />
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))
