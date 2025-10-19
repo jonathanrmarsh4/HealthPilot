@@ -5948,6 +5948,17 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
       // Load user's nutrition profile for personalized meal recommendations
       const nutritionProfile = await storage.getNutritionProfile(userId);
 
+      // Retrieve relevant coach memories using semantic search
+      let relevantMemories: any[] = [];
+      try {
+        const { generateEmbedding } = await import("./services/embeddings");
+        const messageEmbedding = await generateEmbedding(message);
+        relevantMemories = await storage.getRelevantMemories(userId, messageEmbedding, 5);
+      } catch (memoryError) {
+        console.error("Error retrieving memories:", memoryError);
+        // Continue without memories if retrieval fails
+      }
+
       const context = {
         // Full biomarker history for complete health analysis
         allBiomarkers,
@@ -5998,6 +6009,13 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
         
         // Personal memories for relationship building
         personalMemories: user?.personalContext || undefined,
+        
+        // Coach memories for personalized context (semantic search)
+        coachMemories: relevantMemories.length > 0 ? relevantMemories.map(m => ({
+          type: m.memoryType,
+          summary: m.summary,
+          date: m.createdAt
+        })) : undefined,
       };
 
       const aiResponse = await chatWithHealthCoach(conversationHistory, context);
@@ -9191,6 +9209,37 @@ IMPORTANT: When discussing metrics like weight, HRV, sleep, etc., always use the
       res.json(session);
     } catch (error: any) {
       console.error("Error creating voice session:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Create coach memory with embedding
+  app.post("/api/coach/memory", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+
+    try {
+      const { summary, memoryType } = req.body;
+      
+      if (!summary || !memoryType) {
+        return res.status(400).json({ 
+          error: "Summary and memoryType are required" 
+        });
+      }
+
+      // Generate embedding for the summary
+      const { generateEmbedding } = await import("./services/embeddings");
+      const embedding = await generateEmbedding(summary);
+
+      const memory = await storage.addCoachMemory({
+        userId,
+        summary,
+        memoryType,
+        embedding: JSON.stringify(embedding),
+      });
+
+      res.json(memory);
+    } catch (error: any) {
+      console.error("Error creating coach memory:", error);
       res.status(500).json({ error: error.message });
     }
   });
