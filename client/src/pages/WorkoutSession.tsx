@@ -132,7 +132,6 @@ function SortableExerciseCard({
   handleAddSet: (exerciseId: string) => void;
   isExpanded: boolean;
   onToggleExpand: () => void;
-  wasDragging: boolean;
 }) {
   const {
     attributes,
@@ -142,10 +141,6 @@ function SortableExerciseCard({
     transition,
     isDragging,
   } = useSortable({ id: exercise.id });
-
-  // Track tap vs longpress for mobile-friendly interaction
-  const [pressStartTime, setPressStartTime] = useState<number | null>(null);
-  const longPressThreshold = 200; // ms - anything less is a tap, more is longpress/drag
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -210,33 +205,25 @@ function SortableExerciseCard({
     >
       <CardHeader className="pb-3 space-y-0">
         <div className="flex items-start gap-2">
-          {/* Drag Handle - Tap to expand/collapse, longpress to reorder */}
+          {/* Drag Handle - Hold to reorder */}
           <button
-            className="mt-1 cursor-pointer touch-none p-2 hover-elevate rounded flex items-center gap-1"
-            onPointerDown={(e) => {
-              setPressStartTime(Date.now());
-              // Pass the event to drag listeners for potential drag
-              if (listeners?.onPointerDown) {
-                listeners.onPointerDown(e as any);
-              }
-            }}
-            onPointerUp={(e) => {
-              const pressDuration = pressStartTime ? Date.now() - pressStartTime : 0;
-              setPressStartTime(null);
-              
-              // If it was a quick tap (not dragging and not a longpress), toggle expand
-              if (!isDragging && !wasDragging && pressDuration < longPressThreshold) {
-                e.stopPropagation();
-                onToggleExpand();
-              }
-            }}
-            onPointerCancel={() => {
-              setPressStartTime(null);
-            }}
+            className="mt-1 cursor-move touch-none p-2 hover-elevate rounded"
             {...attributes}
+            {...listeners}
             data-testid={`button-drag-${exerciseIndex}`}
           >
             <GripVertical className="h-5 w-5 text-muted-foreground" />
+          </button>
+
+          {/* Expand/Collapse Button - Separate from drag handle */}
+          <button
+            className="mt-1 cursor-pointer p-2 hover-elevate rounded"
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleExpand();
+            }}
+            data-testid={`button-expand-${exerciseIndex}`}
+          >
             {isExpanded ? (
               <ChevronUp className="h-4 w-4 text-muted-foreground" />
             ) : (
@@ -526,9 +513,6 @@ export default function WorkoutSession() {
 
   // Expanded state for exercises (collapsed by default)
   const [expandedExercises, setExpandedExercises] = useState<Set<string>>(new Set());
-  
-  // Track if a drag just completed to prevent unwanted toggle
-  const [wasDragging, setWasDragging] = useState(false);
 
   // Toggle expand/collapse for an exercise
   const toggleExpandExercise = (exerciseId: string) => {
@@ -843,11 +827,11 @@ export default function WorkoutSession() {
     }
   };
 
-  // Drag and drop sensors - configured for tap vs longpress
+  // Drag and drop sensors
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        delay: 200, // 200ms delay - matches our longpress threshold
+        delay: 200, // 200ms delay before drag starts
         tolerance: 5, // Allow 5px of movement during the delay
       },
     }),
@@ -855,11 +839,6 @@ export default function WorkoutSession() {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
-
-  // Handle drag start
-  const handleDragStart = () => {
-    setWasDragging(true);
-  };
 
   // Handle drag end
   const handleDragEnd = (event: DragEndEvent) => {
@@ -872,9 +851,6 @@ export default function WorkoutSession() {
         return arrayMove(items, oldIndex, newIndex);
       });
     }
-    
-    // Reset wasDragging after a small delay to allow onClick to check it
-    setTimeout(() => setWasDragging(false), 100);
   };
 
   // Get ordered exercises
@@ -1001,7 +977,6 @@ export default function WorkoutSession() {
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
-          onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
           <SortableContext
@@ -1028,7 +1003,6 @@ export default function WorkoutSession() {
                   handleAddSet={(exerciseId) => addSetMutation.mutate({ exerciseId })}
                   isExpanded={expandedExercises.has(exercise.id)}
                   onToggleExpand={() => toggleExpandExercise(exercise.id)}
-                  wasDragging={wasDragging}
                 />
               );
             })}
