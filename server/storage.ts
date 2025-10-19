@@ -364,6 +364,27 @@ export interface IStorage {
   getUserConsent(userId: string, consentType?: string): Promise<any[]>;
   createAuditLog(log: { userId: string; action: string; resourceType?: string; resourceId?: string; details?: any; ipAddress?: string; userAgent?: string }): Promise<void>;
   getAuditLogsForUser(userId: string, limit?: number): Promise<any[]>;
+  
+  // Subscription methods
+  createSubscription(subscription: InsertSubscription): Promise<Subscription>;
+  getSubscription(userId: string): Promise<Subscription | undefined>;
+  getSubscriptionByStripeId(stripeSubscriptionId: string): Promise<Subscription | undefined>;
+  updateSubscription(stripeSubscriptionId: string, data: Partial<Subscription>): Promise<Subscription | undefined>;
+  
+  // Promo Code methods
+  createPromoCode(promoCode: InsertPromoCode): Promise<PromoCode>;
+  getPromoCode(code: string): Promise<PromoCode | undefined>;
+  getPromoCodes(isActive?: boolean): Promise<PromoCode[]>;
+  updatePromoCodeUsage(code: string): Promise<PromoCode | undefined>;
+  updatePromoCode(id: string, data: Partial<PromoCode>): Promise<PromoCode | undefined>;
+  
+  // Referral methods
+  createReferral(referral: InsertReferral): Promise<Referral>;
+  getReferral(referralCode: string): Promise<Referral | undefined>;
+  getReferralsByUser(userId: string): Promise<Referral[]>;
+  updateReferralStatus(referralCode: string, status: string, convertedAt?: Date): Promise<Referral | undefined>;
+  markReferralRewarded(referralCode: string): Promise<Referral | undefined>;
+  generateReferralCode(userId: string): Promise<string>;
 }
 
 export class DbStorage implements IStorage {
@@ -3195,6 +3216,153 @@ export class DbStorage implements IStorage {
       .limit(limit);
     
     return logs;
+  }
+
+  // Subscription implementations
+  async createSubscription(subscription: InsertSubscription): Promise<Subscription> {
+    const { subscriptions } = await import("@shared/schema");
+    const [result] = await db.insert(subscriptions).values(subscription).returning();
+    return result;
+  }
+
+  async getSubscription(userId: string): Promise<Subscription | undefined> {
+    const { subscriptions } = await import("@shared/schema");
+    const results = await db.select().from(subscriptions).where(eq(subscriptions.userId, userId));
+    return results[0];
+  }
+
+  async getSubscriptionByStripeId(stripeSubscriptionId: string): Promise<Subscription | undefined> {
+    const { subscriptions } = await import("@shared/schema");
+    const results = await db.select().from(subscriptions).where(eq(subscriptions.stripeSubscriptionId, stripeSubscriptionId));
+    return results[0];
+  }
+
+  async updateSubscription(stripeSubscriptionId: string, data: Partial<Subscription>): Promise<Subscription | undefined> {
+    const { subscriptions } = await import("@shared/schema");
+    const [result] = await db
+      .update(subscriptions)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(subscriptions.stripeSubscriptionId, stripeSubscriptionId))
+      .returning();
+    return result;
+  }
+
+  // Promo Code implementations
+  async createPromoCode(promoCode: InsertPromoCode): Promise<PromoCode> {
+    const { promoCodes } = await import("@shared/schema");
+    const [result] = await db.insert(promoCodes).values(promoCode).returning();
+    return result;
+  }
+
+  async getPromoCode(code: string): Promise<PromoCode | undefined> {
+    const { promoCodes } = await import("@shared/schema");
+    // Case-insensitive search
+    const results = await db.select().from(promoCodes).where(sql`LOWER(${promoCodes.code}) = LOWER(${code})`);
+    return results[0];
+  }
+
+  async getPromoCodes(isActive?: boolean): Promise<PromoCode[]> {
+    const { promoCodes } = await import("@shared/schema");
+    if (isActive !== undefined) {
+      return await db.select().from(promoCodes).where(eq(promoCodes.isActive, isActive ? 1 : 0));
+    }
+    return await db.select().from(promoCodes);
+  }
+
+  async updatePromoCodeUsage(code: string): Promise<PromoCode | undefined> {
+    const { promoCodes } = await import("@shared/schema");
+    const [result] = await db
+      .update(promoCodes)
+      .set({ 
+        currentUses: sql`${promoCodes.currentUses} + 1`,
+        updatedAt: new Date()
+      })
+      .where(sql`LOWER(${promoCodes.code}) = LOWER(${code})`)
+      .returning();
+    return result;
+  }
+
+  async updatePromoCode(id: string, data: Partial<PromoCode>): Promise<PromoCode | undefined> {
+    const { promoCodes } = await import("@shared/schema");
+    const [result] = await db
+      .update(promoCodes)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(promoCodes.id, id))
+      .returning();
+    return result;
+  }
+
+  // Referral implementations
+  async createReferral(referral: InsertReferral): Promise<Referral> {
+    const { referrals } = await import("@shared/schema");
+    const [result] = await db.insert(referrals).values(referral).returning();
+    return result;
+  }
+
+  async getReferral(referralCode: string): Promise<Referral | undefined> {
+    const { referrals } = await import("@shared/schema");
+    const results = await db.select().from(referrals).where(eq(referrals.referralCode, referralCode));
+    return results[0];
+  }
+
+  async getReferralsByUser(userId: string): Promise<Referral[]> {
+    const { referrals } = await import("@shared/schema");
+    return await db.select().from(referrals).where(eq(referrals.referrerUserId, userId));
+  }
+
+  async updateReferralStatus(referralCode: string, status: string, convertedAt?: Date): Promise<Referral | undefined> {
+    const { referrals } = await import("@shared/schema");
+    const updateData: any = { status, updatedAt: new Date() };
+    if (convertedAt) {
+      updateData.convertedAt = convertedAt;
+    }
+    const [result] = await db
+      .update(referrals)
+      .set(updateData)
+      .where(eq(referrals.referralCode, referralCode))
+      .returning();
+    return result;
+  }
+
+  async markReferralRewarded(referralCode: string): Promise<Referral | undefined> {
+    const { referrals } = await import("@shared/schema");
+    const [result] = await db
+      .update(referrals)
+      .set({ 
+        rewardGranted: 1,
+        rewardedAt: new Date(),
+        updatedAt: new Date()
+      })
+      .where(eq(referrals.referralCode, referralCode))
+      .returning();
+    return result;
+  }
+
+  async generateReferralCode(userId: string): Promise<string> {
+    // Generate a unique referral code like "JOHN-A3B9"
+    const user = await this.getUser(userId);
+    const firstName = user?.firstName?.toUpperCase()?.substring(0, 6) || "USER";
+    
+    // Generate random 4-character suffix
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // Avoid confusing characters like 0/O, 1/I
+    let suffix = "";
+    for (let i = 0; i < 4; i++) {
+      suffix += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    
+    const referralCode = `${firstName}-${suffix}`;
+    
+    // Check if code already exists (rare collision)
+    const existing = await this.getReferral(referralCode);
+    if (existing) {
+      // Recursively try again with different suffix
+      return this.generateReferralCode(userId);
+    }
+    
+    // Update user with their referral code
+    await db.update(users).set({ referralCode }).where(eq(users.id, userId));
+    
+    return referralCode;
   }
 }
 

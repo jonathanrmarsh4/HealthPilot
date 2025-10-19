@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
 import multer from "multer";
-import { insertBiomarkerSchema, insertHealthRecordSchema, insertScheduledExerciseRecommendationSchema, insertFitnessProfileSchema, insertExerciseSetSchema, biomarkers, sleepSessions, healthRecords, mealPlans, trainingSchedules, recommendations, readinessScores, exerciseSets, exercises } from "@shared/schema";
+import { insertBiomarkerSchema, insertHealthRecordSchema, insertScheduledExerciseRecommendationSchema, insertFitnessProfileSchema, insertExerciseSetSchema, biomarkers, sleepSessions, healthRecords, mealPlans, trainingSchedules, recommendations, readinessScores, exerciseSets, exercises, users, referrals } from "@shared/schema";
 import { listHealthDocuments, downloadFile, getFileMetadata } from "./services/googleDrive";
 import { analyzeHealthDocument, generateMealPlan, generateTrainingSchedule, generateHealthRecommendations, chatWithHealthCoach, generateDailyInsights, generateRecoveryInsights, generateTrendPredictions, generatePeriodComparison, generateDailyTrainingRecommendation, generateMacroRecommendations } from "./services/ai";
 import { calculatePhenoAge, getBiomarkerDisplayName, getBiomarkerUnit, getBiomarkerSource } from "./services/phenoAge";
@@ -645,28 +645,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const session = event.data.object as any;
           const userId = session.client_reference_id || session.metadata?.userId;
           const tier = session.metadata?.tier;
+          const billingCycle = session.metadata?.billingCycle || "monthly";
 
-          if (userId && tier) {
-            await storage.updateUserAdminFields(userId, {
-              subscriptionTier: tier as "premium" | "enterprise",
-              subscriptionStatus: "active",
-            });
-            console.log(`✅ User ${userId} upgraded to ${tier}`);
+          if (userId && tier && session.subscription) {
+            // Fetch full subscription details from Stripe
+            const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
+            
+            // Check if subscription already exists (idempotency check for Stripe retries)
+            const existingSubscription = await storage.getSubscriptionByStripeId(subscription.id);
+            
+            if (!existingSubscription) {
+              // Update user tier and status
+              await storage.updateUserAdminFields(userId, {
+                subscriptionTier: tier as "premium" | "enterprise",
+                subscriptionStatus: "active",
+                stripeCustomerId: session.customer as string,
+              });
+
+              // Create subscription record in database
+              await storage.createSubscription({
+                userId,
+                stripeSubscriptionId: subscription.id,
+                stripePriceId: subscription.items.data[0].price.id,
+                tier,
+                billingCycle,
+                status: subscription.status,
+                currentPeriodStart: new Date(subscription.current_period_start * 1000),
+                currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+                cancelAtPeriodEnd: subscription.cancel_at_period_end ? 1 : 0,
+                trialStart: subscription.trial_start ? new Date(subscription.trial_start * 1000) : null,
+                trialEnd: subscription.trial_end ? new Date(subscription.trial_end * 1000) : null,
+              });
+
+              console.log(`✅ User ${userId} upgraded to ${tier} (${billingCycle})`);
+            } else {
+              console.log(`✓ Subscription ${subscription.id} already exists (idempotent check)`);
+            }
           }
           break;
         }
 
         case "customer.subscription.updated": {
           const subscription = event.data.object as any;
-          const userId = subscription.metadata?.userId;
+          
+          // Try to get userId from subscription metadata or customer
+          let userId = subscription.metadata?.userId;
+          if (!userId && subscription.customer) {
+            // Fallback: look up user by Stripe customer ID
+            const user = await db.select().from(users).where(eq(users.stripeCustomerId, subscription.customer)).limit(1);
+            if (user[0]) {
+              userId = user[0].id;
+            }
+          }
 
           if (userId) {
             const status = subscription.status;
+            const mappedStatus = status === "active" ? "active" : 
+                                status === "past_due" ? "past_due" : 
+                                status === "canceled" ? "cancelled" : "inactive";
+            
+            // Update user status
             await storage.updateUserAdminFields(userId, {
-              subscriptionStatus: status === "active" ? "active" : 
-                                  status === "past_due" ? "past_due" : 
-                                  status === "canceled" ? "cancelled" : "inactive",
+              subscriptionStatus: mappedStatus,
             });
+
+            // Update subscription record
+            await storage.updateSubscription(subscription.id, {
+              status: subscription.status,
+              currentPeriodStart: new Date(subscription.current_period_start * 1000),
+              currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+              cancelAtPeriodEnd: subscription.cancel_at_period_end ? 1 : 0,
+              canceledAt: subscription.canceled_at ? new Date(subscription.canceled_at * 1000) : null,
+            });
+
             console.log(`✅ Updated subscription status for user ${userId}: ${status}`);
           }
           break;
@@ -674,27 +725,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         case "customer.subscription.deleted": {
           const subscription = event.data.object as any;
-          const userId = subscription.metadata?.userId;
+          
+          // Try to get userId from subscription metadata or customer
+          let userId = subscription.metadata?.userId;
+          if (!userId && subscription.customer) {
+            const user = await db.select().from(users).where(eq(users.stripeCustomerId, subscription.customer)).limit(1);
+            if (user[0]) {
+              userId = user[0].id;
+            }
+          }
 
           if (userId) {
+            // Downgrade user to free tier
             await storage.updateUserAdminFields(userId, {
               subscriptionTier: "free",
               subscriptionStatus: "cancelled",
             });
+
+            // Update subscription record
+            await storage.updateSubscription(subscription.id, {
+              status: "canceled",
+              canceledAt: new Date(),
+            });
+
             console.log(`✅ User ${userId} subscription cancelled, downgraded to free`);
+          }
+          break;
+        }
+
+        case "invoice.payment_succeeded": {
+          const invoice = event.data.object as any;
+          
+          // Check if this is for a referred user's first payment
+          if (invoice.subscription && invoice.billing_reason === "subscription_create") {
+            const subscription = await stripe.subscriptions.retrieve(invoice.subscription);
+            let userId = subscription.metadata?.userId;
+            
+            if (!userId && subscription.customer) {
+              const user = await db.select().from(users).where(eq(users.stripeCustomerId, subscription.customer as string)).limit(1);
+              if (user[0]) {
+                userId = user[0].id;
+              }
+            }
+
+            if (userId) {
+              // Check if user was referred
+              const referral = await db.select().from(referrals).where(eq(referrals.referredUserId, userId)).limit(1);
+              if (referral[0] && referral[0].status === "pending") {
+                // Mark referral as converted
+                await storage.updateReferralStatus(referral[0].referralCode, "converted", new Date());
+                
+                // TODO: Award referrer with free month credit via Stripe (implement in phase 2)
+                console.log(`🎉 Referral converted! User ${userId} was referred by ${referral[0].referrerUserId}`);
+              }
+            }
           }
           break;
         }
 
         case "invoice.payment_failed": {
           const invoice = event.data.object as any;
-          const userId = invoice.subscription_details?.metadata?.userId;
+          
+          if (invoice.subscription) {
+            const subscription = await stripe.subscriptions.retrieve(invoice.subscription);
+            let userId = subscription.metadata?.userId;
+            
+            if (!userId && subscription.customer) {
+              const user = await db.select().from(users).where(eq(users.stripeCustomerId, subscription.customer as string)).limit(1);
+              if (user[0]) {
+                userId = user[0].id;
+              }
+            }
 
-          if (userId) {
-            await storage.updateUserAdminFields(userId, {
-              subscriptionStatus: "past_due",
-            });
-            console.log(`⚠️ Payment failed for user ${userId}, marked as past_due`);
+            if (userId) {
+              await storage.updateUserAdminFields(userId, {
+                subscriptionStatus: "past_due",
+              });
+              console.log(`⚠️ Payment failed for user ${userId}, marked as past_due`);
+            }
           }
           break;
         }
