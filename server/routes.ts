@@ -6978,34 +6978,52 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
               console.log(`✅ Using Apple Health sleep score for ${nightKey}: ${sleepScore}`);
             } else {
               // Calculate our own score (0-100) based on sleep quality
+              // Actual sleep time excludes awake minutes
+              const actualSleepMinutes = totalMinutes - night.awakeMinutes;
+              const sleepHours = actualSleepMinutes / 60;
               sleepScore = 70; // Base score
-              const sleepHours = totalMinutes / 60;
               
-              // Adjust for total sleep duration (optimal 7-9 hours)
+              // Adjust for actual sleep duration (optimal 7-9 hours)
               if (sleepHours >= 7 && sleepHours <= 9) {
-                sleepScore += 10;
+                sleepScore += 15;
               } else if (sleepHours >= 6 && sleepHours < 7) {
-                sleepScore += 5;
+                sleepScore += 8;
               } else if (sleepHours < 6) {
-                sleepScore -= 10;
-              }
-              
-              // Adjust for deep sleep (should be ~20% of total)
-              const deepHours = night.deepMinutes / 60;
-              const deepPercentage = deepHours / sleepHours;
-              if (deepPercentage >= 0.15 && deepPercentage <= 0.25) {
-                sleepScore += 10;
-              } else if (deepPercentage < 0.10) {
+                sleepScore -= 15;
+              } else if (sleepHours > 9) {
                 sleepScore -= 5;
               }
               
-              // Adjust for REM sleep (should be ~20-25% of total)
-              const remHours = night.remMinutes / 60;
-              const remPercentage = remHours / sleepHours;
-              if (remPercentage >= 0.18 && remPercentage <= 0.28) {
-                sleepScore += 10;
-              } else if (remPercentage < 0.15) {
-                sleepScore -= 5;
+              // Adjust for deep sleep (should be ~15-20% of actual sleep time)
+              if (night.deepMinutes > 0 && actualSleepMinutes > 0) {
+                const deepPercentage = night.deepMinutes / actualSleepMinutes;
+                if (deepPercentage >= 0.15 && deepPercentage <= 0.25) {
+                  sleepScore += 10;
+                } else if (deepPercentage < 0.10) {
+                  sleepScore -= 5;
+                }
+              }
+              
+              // Adjust for REM sleep (should be ~20-25% of actual sleep time)
+              if (night.remMinutes > 0 && actualSleepMinutes > 0) {
+                const remPercentage = night.remMinutes / actualSleepMinutes;
+                if (remPercentage >= 0.18 && remPercentage <= 0.28) {
+                  sleepScore += 10;
+                } else if (remPercentage < 0.15) {
+                  sleepScore -= 5;
+                }
+              }
+              
+              // Penalize excessive awake time (>10% of time in bed is poor sleep quality)
+              if (night.awakeMinutes > 0) {
+                const awakePercentage = night.awakeMinutes / totalMinutes;
+                if (awakePercentage > 0.15) {
+                  // Very poor sleep efficiency (>15% awake)
+                  sleepScore -= 20;
+                } else if (awakePercentage > 0.10) {
+                  // Moderate awake time (10-15% awake)
+                  sleepScore -= 10;
+                }
               }
               
               // Ensure score is between 0 and 100
@@ -7686,10 +7704,12 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
           }
           
           // Calculate sleep score based on duration and stage quality
-          const sleepHours = totalMinutes / 60;
+          // Actual sleep time excludes awake minutes
+          const actualSleepMinutes = totalMinutes - night.awakeMinutes;
+          const sleepHours = actualSleepMinutes / 60;
           let sleepScore = 70; // Base score
           
-          // Adjust for total sleep duration (optimal 7-9 hours)
+          // Adjust for actual sleep duration (optimal 7-9 hours)
           if (sleepHours >= 7 && sleepHours <= 9) {
             sleepScore += 15;
           } else if (sleepHours >= 6 && sleepHours < 7) {
@@ -7700,9 +7720,9 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
             sleepScore -= 5;
           }
           
-          // Adjust for deep sleep (should be ~15-20% of total)
-          if (night.deepMinutes > 0) {
-            const deepPercentage = night.deepMinutes / totalMinutes;
+          // Adjust for deep sleep (should be ~15-20% of actual sleep time)
+          if (night.deepMinutes > 0 && actualSleepMinutes > 0) {
+            const deepPercentage = night.deepMinutes / actualSleepMinutes;
             if (deepPercentage >= 0.15 && deepPercentage <= 0.25) {
               sleepScore += 10;
             } else if (deepPercentage < 0.10) {
@@ -7710,9 +7730,9 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
             }
           }
           
-          // Adjust for REM sleep (should be ~20-25% of total)
-          if (night.remMinutes > 0) {
-            const remPercentage = night.remMinutes / totalMinutes;
+          // Adjust for REM sleep (should be ~20-25% of actual sleep time)
+          if (night.remMinutes > 0 && actualSleepMinutes > 0) {
+            const remPercentage = night.remMinutes / actualSleepMinutes;
             if (remPercentage >= 0.18 && remPercentage <= 0.28) {
               sleepScore += 10;
             } else if (remPercentage < 0.15) {
@@ -7720,10 +7740,14 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
             }
           }
           
-          // Penalize excessive awake time (>10% is poor sleep quality)
+          // Penalize excessive awake time (>10% of time in bed is poor sleep quality)
           if (night.awakeMinutes > 0) {
             const awakePercentage = night.awakeMinutes / totalMinutes;
-            if (awakePercentage > 0.10) {
+            if (awakePercentage > 0.15) {
+              // Very poor sleep efficiency (>15% awake)
+              sleepScore -= 20;
+            } else if (awakePercentage > 0.10) {
+              // Moderate awake time (10-15% awake)
               sleepScore -= 10;
             }
           }
