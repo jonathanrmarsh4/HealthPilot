@@ -85,9 +85,7 @@ export function RecommendationCalendar({ recommendations, insights = [], onDateC
   // Delete scheduled exercise mutation
   const deleteExerciseMutation = useMutation({
     mutationFn: async (id: string | number) => {
-      return await apiRequest(`/api/scheduled-exercises/${id}`, {
-        method: 'DELETE',
-      });
+      return await apiRequest('DELETE', `/api/scheduled-exercises/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/scheduled-exercises'] });
@@ -110,9 +108,7 @@ export function RecommendationCalendar({ recommendations, insights = [], onDateC
   // Delete scheduled insight mutation
   const deleteInsightMutation = useMutation({
     mutationFn: async (id: string | number) => {
-      return await apiRequest(`/api/scheduled-insights/${id}`, {
-        method: 'DELETE',
-      });
+      return await apiRequest('DELETE', `/api/scheduled-insights/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/scheduled-insights'] });
