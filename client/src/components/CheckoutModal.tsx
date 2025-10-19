@@ -48,6 +48,13 @@ export function CheckoutModal({ open, onOpenChange, tier, tierName }: CheckoutMo
           title: "Promo code applied!",
           description: `${data.discountPercent}% discount: ${data.description}`,
         });
+      } else {
+        setValidatedPromo(null);
+        toast({
+          title: "Invalid promo code",
+          description: data.error || "This promo code is not valid",
+          variant: "destructive",
+        });
       }
     },
     onError: (error: any) => {
