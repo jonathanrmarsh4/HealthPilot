@@ -130,6 +130,7 @@ import {
   safetyEscalations,
   coachMemory,
   preferenceVectors,
+  trainingLoadSessions,
 } from "@shared/schema";
 import { eq, desc, and, gte, lte, lt, sql, or, like, count, isNull, inArray } from "drizzle-orm";
 
