@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Sparkles, TrendingUp, Activity, Brain, AlertTriangle, X, RefreshCw, Target, ThumbsUp, ThumbsDown, Calendar, Trophy, Shield } from "lucide-react";
+import { Sparkles, TrendingUp, Activity, Brain, AlertTriangle, X, RefreshCw, Target, ThumbsUp, ThumbsDown, Calendar, Trophy, Shield, ExternalLink } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { InsightSchedulingModal } from "./InsightSchedulingModal";
 import { motion, AnimatePresence } from "framer-motion";
-import { extractCitations, getStandardFullName } from "@/lib/citationUtils";
+import { extractCitations, getStandardFullName, getStandardUrl } from "@/lib/citationUtils";
 
 type InsightType = "daily_summary" | "pattern" | "correlation" | "trend" | "alert" | "goal_progress";
 type InsightCategory = "sleep" | "activity" | "nutrition" | "biomarkers" | "overall" | "goals";
@@ -371,25 +371,46 @@ export function AIInsightsWidget() {
                         return citations.length > 0 && (
                           <div className="flex items-center gap-1 flex-wrap mt-2">
                             <TooltipProvider>
-                              {citations.map((citation, index) => (
-                                <Tooltip key={index}>
-                                  <TooltipTrigger asChild>
-                                    <Badge 
-                                      variant="outline" 
-                                      className="text-xs gap-1 bg-primary/5 border-primary/20 hover:bg-primary/10"
-                                      data-testid={`badge-citation-${citation.standard.toLowerCase()}`}
-                                    >
-                                      <Shield className="h-3 w-3" />
-                                      {citation.standard}
-                                    </Badge>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="bottom" className="max-w-xs">
-                                    <p className="text-xs">
-                                      <strong>{getStandardFullName(citation.standard)}:</strong> {citation.text}
-                                    </p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              ))}
+                              {citations.map((citation, index) => {
+                                const url = getStandardUrl(citation.standard);
+                                const badgeContent = (
+                                  <Badge 
+                                    variant="outline" 
+                                    className="text-xs gap-1 bg-primary/5 border-primary/20 hover:bg-primary/10 cursor-pointer"
+                                    data-testid={`badge-citation-${citation.standard.toLowerCase()}`}
+                                  >
+                                    <Shield className="h-3 w-3" />
+                                    {citation.standard}
+                                    {url && <ExternalLink className="h-3 w-3 ml-0.5" />}
+                                  </Badge>
+                                );
+
+                                return (
+                                  <Tooltip key={index}>
+                                    <TooltipTrigger asChild>
+                                      {url ? (
+                                        <a 
+                                          href={url} 
+                                          target="_blank" 
+                                          rel="noopener noreferrer"
+                                          className="inline-flex"
+                                          data-testid={`link-citation-${citation.standard.toLowerCase()}`}
+                                        >
+                                          {badgeContent}
+                                        </a>
+                                      ) : (
+                                        badgeContent
+                                      )}
+                                    </TooltipTrigger>
+                                    <TooltipContent side="bottom" className="max-w-xs">
+                                      <p className="text-xs">
+                                        <strong>{getStandardFullName(citation.standard)}:</strong> {citation.text}
+                                        {url && <span className="block mt-1 text-primary">Click to learn more →</span>}
+                                      </p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                );
+                              })}
                             </TooltipProvider>
                           </div>
                         );

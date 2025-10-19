@@ -19,6 +19,20 @@ const STANDARDS_MAP: Record<string, string> = {
 };
 
 /**
+ * URLs for evidence-based standards - links to official organization websites
+ */
+const STANDARDS_URL_MAP: Record<string, string> = {
+  'ACSM': 'https://www.acsm.org/education-resources/trending-topics-resources/physical-activity-guidelines',
+  'ACSM_HRMAX': 'https://www.acsm.org/education-resources/trending-topics-resources/physical-activity-guidelines',
+  'NSCA': 'https://www.nsca.com/education/articles/nsca-coach/essentials-of-strength-training-and-conditioning/',
+  'NSCA_PROGRESSION': 'https://www.nsca.com/education/articles/nsca-coach/essentials-of-strength-training-and-conditioning/',
+  'WHO': 'https://www.who.int/news-room/fact-sheets/detail/physical-activity',
+  'AND': 'https://www.eatright.org/health/wellness/fad-diets/what-is-an-rd',
+  'ADA': 'https://diabetes.org/health-wellness/fitness',
+  'AHA': 'https://www.heart.org/en/healthy-living/fitness/fitness-basics/aha-recs-for-physical-activity-in-adults',
+};
+
+/**
  * Extract citations from text
  * Looks for patterns like "ACSM: text", "Per NSCA, text", "NSCA recommends text"
  * De-duplicates citations by standard to avoid rendering identical badges
@@ -71,6 +85,13 @@ export function extractCitations(text: string): Citation[] {
  */
 export function getStandardFullName(abbreviation: string): string {
   return STANDARDS_MAP[abbreviation.toUpperCase()] || abbreviation;
+}
+
+/**
+ * Get URL for a standard abbreviation
+ */
+export function getStandardUrl(abbreviation: string): string | null {
+  return STANDARDS_URL_MAP[abbreviation.toUpperCase()] || null;
 }
 
 /**
