@@ -596,7 +596,7 @@ export async function generateHealthRecommendations(data: {
         description: "Upload health records or connect Apple Health to receive personalized insights",
         category: "Biomarker",
         priority: "high",
-        details: "To provide accurate AI-powered recommendations, we need your health data. Upload recent blood work, connect Apple Health, or manually add biomarkers to get started.",
+        details: "To provide accurate AI-powered recommendations, we need your health data. Upload recent blood work, connect Apple Health, or manually add biomarkers to get started. [ACSM: Regular health screenings enable evidence-based exercise programming]",
         actionLabel: "Add Health Data"
       },
       {
@@ -604,7 +604,7 @@ export async function generateHealthRecommendations(data: {
         description: "Quality sleep is foundational to all health metrics",
         category: "Lifestyle",
         priority: "medium",
-        details: "Connect Apple Health or manually log your sleep to track patterns and receive sleep optimization recommendations.",
+        details: "Connect Apple Health or manually log your sleep to track patterns and receive sleep optimization recommendations. [WHO: 7-9 hours of quality sleep per night for adults]",
         actionLabel: "Track Sleep"
       },
       {
@@ -612,7 +612,7 @@ export async function generateHealthRecommendations(data: {
         description: "Define clear objectives for personalized guidance",
         category: "Lifestyle",
         priority: "medium",
-        details: "Navigate to Goals and set specific, measurable health objectives. This allows our AI to tailor recommendations to your unique targets.",
+        details: "Navigate to Goals and set specific, measurable health objectives. This allows our AI to tailor recommendations to your unique targets. [ACSM: Goal-setting improves exercise adherence and long-term outcomes]",
         actionLabel: "Set Goals"
       }
     ];
@@ -2435,12 +2435,25 @@ When biomarkers or patterns indicate benefit, suggest alternative therapies as o
 
 Only suggest these when they meaningfully support the user's health goals and physiology based on their data.
 
+## Evidence Citations:
+**CRITICAL: Include evidence-based citations in your insights**
+- Add 1-2 brief citations in the "description" or "recommendation" field using format: [STANDARD: brief guidance text]
+- Available standards: ACSM, NSCA, WHO, ADA, AND, AHA
+- Examples:
+  * "[WHO: 7-9 hours of quality sleep per night for adults]"
+  * "[ACSM: 150 minutes moderate-intensity activity per week]"
+  * "[ADA: HbA1c <5.7% is normal]"
+  * "[AND: 1.6-2.2g protein/kg for active individuals]"
+  * "[NSCA: Progressive overload for strength gains]"
+  * "[AHA: Resting heart rate 60-100 bpm is normal]"
+- Place citations naturally to build user trust in recommendations
+
 ## Guidelines:
 - Be specific with numbers and timeframes
-- Make insights actionable - tell user what to do
+- Make insights actionable - tell user what to do with evidence-backed citations
 - Prioritize based on health impact (high = needs attention, low = informational)
 - Reference user's timezone: ${data.timezone || 'UTC'}
-- Use conversational, motivating language
+- Use conversational, motivating language with supporting evidence
 - Celebrate wins and improvements
 - Include alternative therapy suggestions when they align with biomarkers and goals
 - For goal insights, provide clear next steps to help user achieve their targets
