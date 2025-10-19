@@ -522,6 +522,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Stripe Payment Routes
+  
+  // Promo code validation endpoint
+  app.post("/api/checkout/validate-promo", isAuthenticated, async (req, res) => {
+    try {
+      const { code, tier } = req.body;
+
+      if (!code || typeof code !== "string") {
+        return res.status(400).json({ error: "Promo code is required" });
+      }
+
+      // Get promo code from database
+      const promoCode = await storage.getPromoCode(code.toUpperCase());
+
+      if (!promoCode) {
+        return res.status(404).json({ error: "Invalid promo code", valid: false });
+      }
+
+      // Check if promo code is active
+      if (!promoCode.isActive) {
+        return res.status(400).json({ error: "This promo code is no longer active", valid: false });
+      }
+
+      // Check if expired
+      if (promoCode.expiresAt && new Date(promoCode.expiresAt) < new Date()) {
+        return res.status(400).json({ error: "This promo code has expired", valid: false });
+      }
+
+      // Check usage limit
+      if (promoCode.maxUses && promoCode.usedCount >= promoCode.maxUses) {
+        return res.status(400).json({ error: "This promo code has reached its usage limit", valid: false });
+      }
+
+      // Check tier restrictions
+      if (tier && promoCode.tierRestriction && promoCode.tierRestriction !== tier) {
+        return res.status(400).json({ 
+          error: `This promo code is only valid for ${promoCode.tierRestriction} tier`, 
+          valid: false 
+        });
+      }
+
+      // Return valid promo code info
+      res.json({
+        valid: true,
+        code: promoCode.code,
+        discountPercent: promoCode.discountPercent,
+        description: promoCode.description,
+      });
+    } catch (error: any) {
+      console.error("Error validating promo code:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.post("/api/stripe/create-checkout", isAuthenticated, async (req, res) => {
     try {
       const userId = (req.user as any).claims.sub;
@@ -545,6 +598,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "User not found" });
       }
 
+      // Validate promo code if provided
+      let validatedPromoCode = null;
+      if (promoCode) {
+        const dbPromoCode = await storage.getPromoCode(promoCode.toUpperCase());
+        
+        if (!dbPromoCode || !dbPromoCode.isActive) {
+          return res.status(400).json({ error: "Invalid or inactive promo code" });
+        }
+
+        if (dbPromoCode.expiresAt && new Date(dbPromoCode.expiresAt) < new Date()) {
+          return res.status(400).json({ error: "Promo code has expired" });
+        }
+
+        if (dbPromoCode.maxUses && dbPromoCode.usedCount >= dbPromoCode.maxUses) {
+          return res.status(400).json({ error: "Promo code has reached its usage limit" });
+        }
+
+        if (dbPromoCode.tierRestriction && dbPromoCode.tierRestriction !== tier) {
+          return res.status(400).json({ error: `Promo code is only valid for ${dbPromoCode.tierRestriction} tier` });
+        }
+
+        validatedPromoCode = dbPromoCode;
+      }
+
       // Pricing structure with 20% annual discount
       const pricing = {
         premium: {
@@ -565,13 +642,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ? `Unlimited AI chat, meal plans, biological age, and more${billingCycle === "annual" ? " (20% off annual)" : ""}`
         : `Enterprise features with team management and custom integrations${billingCycle === "annual" ? " (20% off annual)" : ""}`;
 
+      // Create or get Stripe coupon if promo code is valid
+      let stripeCouponId = null;
+      if (validatedPromoCode) {
+        // Check if Stripe coupon already exists for this promo code
+        if (validatedPromoCode.stripeCouponId) {
+          stripeCouponId = validatedPromoCode.stripeCouponId;
+        } else {
+          // Create new Stripe coupon
+          const coupon = await stripe.coupons.create({
+            percent_off: validatedPromoCode.discountPercent,
+            duration: "once", // Apply discount to first payment only
+            name: validatedPromoCode.description || validatedPromoCode.code,
+          });
+          stripeCouponId = coupon.id;
+
+          // Update promo code with Stripe coupon ID
+          await storage.updatePromoCode(validatedPromoCode.id, {
+            stripeCouponId: coupon.id,
+          });
+        }
+      }
+
       // Create Stripe checkout session
-      const session = await stripe.checkout.sessions.create({
+      const sessionConfig: any = {
         customer_email: user.email,
         client_reference_id: userId,
         mode: "subscription",
         payment_method_types: ["card"],
-        allow_promotion_codes: true, // Enable Stripe's built-in promo code input
+        allow_promotion_codes: !validatedPromoCode, // Disable if we're applying a code
         line_items: [
           {
             price_data: {
@@ -594,8 +693,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           userId,
           tier,
           billingCycle,
+          promoCode: validatedPromoCode?.code || null,
         },
-      });
+      };
+
+      // Apply discount if promo code is valid
+      if (stripeCouponId) {
+        sessionConfig.discounts = [{
+          coupon: stripeCouponId,
+        }];
+      }
+
+      const session = await stripe.checkout.sessions.create(sessionConfig);
 
       res.json({ sessionUrl: session.url });
     } catch (error: any) {
@@ -646,6 +755,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const userId = session.client_reference_id || session.metadata?.userId;
           const tier = session.metadata?.tier;
           const billingCycle = session.metadata?.billingCycle || "monthly";
+          const promoCode = session.metadata?.promoCode;
 
           if (userId && tier && session.subscription) {
             // Fetch full subscription details from Stripe
@@ -676,6 +786,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 trialStart: subscription.trial_start ? new Date(subscription.trial_start * 1000) : null,
                 trialEnd: subscription.trial_end ? new Date(subscription.trial_end * 1000) : null,
               });
+
+              // Track promo code usage if one was applied
+              if (promoCode) {
+                await storage.updatePromoCodeUsage(promoCode);
+                console.log(`📊 Promo code ${promoCode} usage tracked`);
+              }
 
               console.log(`✅ User ${userId} upgraded to ${tier} (${billingCycle})`);
             } else {
