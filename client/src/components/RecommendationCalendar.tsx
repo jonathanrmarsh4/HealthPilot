@@ -139,7 +139,9 @@ export function RecommendationCalendar({ recommendations, insights = [], onDateC
       if (viewingActivity.type === 'recommendation') {
         deleteExerciseMutation.mutate(viewingActivity.id);
       } else {
-        deleteInsightMutation.mutate(viewingActivity.id);
+        // For insights/exercises with composite IDs, use insightId which contains the actual ID
+        const idToDelete = viewingActivity.insightId || viewingActivity.id;
+        deleteInsightMutation.mutate(idToDelete);
       }
     }
   };
