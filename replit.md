@@ -1,7 +1,7 @@
-# Health Insights AI - AI-Powered Health Dashboard
+# HealthPilot - AI-Powered Health Dashboard
 
 ## Overview
-Health Insights AI is an AI-powered platform designed to analyze health records, track biomarkers, and deliver personalized health recommendations. It provides AI-generated meal plans, training schedules, and alternative therapy suggestions, empowering users with personalized intelligence and pattern discovery from their health data to optimize well-being. The project's vision is to optimize user well-being through data-driven insights and actionable recommendations, with market potential in personalized health and wellness.
+HealthPilot is an AI-powered health and wellness platform developed by Nuvitae Labs (nuvitaelabs.com). The platform analyzes health records, tracks biomarkers, and delivers personalized health recommendations. It provides AI-generated meal plans, training schedules, and alternative therapy suggestions, empowering users with personalized intelligence and pattern discovery from their health data to optimize well-being. The project's vision is to optimize user well-being through data-driven insights and actionable recommendations, with market potential in personalized health and wellness.
 
 ## User Preferences
 I prefer simple language and clear explanations. I want iterative development where I can provide feedback at each stage. Ask before making major changes to the project structure or core functionalities. Do not make changes to the `replit.nix` file. I primarily use iPad and iPhone for my work. All features must be fully functional and properly responsive on mobile/tablet devices.
