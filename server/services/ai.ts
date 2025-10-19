@@ -1402,24 +1402,24 @@ export async function chatWithHealthCoach(
 - "Put foam rolling in my recovery routine"
 
 **Categories (choose one):**
-- `mobility` - Movement-based recovery (stretching, yoga, foam rolling)
-- `mindfulness` - Mental recovery (meditation, breathwork)
-- `cold_therapy` - Cold exposure (ice bath, cold plunge, cryotherapy)
-- `heat_therapy` - Heat exposure (sauna, hot bath, steam room)
-- `breathing` - Breathwork protocols
-- `nutrition` - Nutrition-based recovery protocols
-- `sleep_hygiene` - Sleep optimization protocols
+- mobility - Movement-based recovery (stretching, yoga, foam rolling)
+- mindfulness - Mental recovery (meditation, breathwork)
+- cold_therapy - Cold exposure (ice bath, cold plunge, cryotherapy)
+- heat_therapy - Heat exposure (sauna, hot bath, steam room)
+- breathing - Breathwork protocols
+- nutrition - Nutrition-based recovery protocols
+- sleep_hygiene - Sleep optimization protocols
 
 **Difficulty Levels:**
-- `beginner` - Easy to start, minimal equipment/experience needed
-- `intermediate` - Moderate experience or equipment required
-- `advanced` - Requires significant experience or specialized equipment
+- beginner - Easy to start, minimal equipment/experience needed
+- intermediate - Moderate experience or equipment required
+- advanced - Requires significant experience or specialized equipment
 
 **Target Factors (array of applicable factors):**
-- `sleep` - Improves sleep quality
-- `hrv` - Improves heart rate variability
-- `resting_hr` - Reduces resting heart rate
-- `workload` - Aids workout recovery
+- sleep - Improves sleep quality
+- hrv - Improves heart rate variability
+- resting_hr - Reduces resting heart rate
+- workload - Aids workout recovery
 
 ### Required Output Format:
 
