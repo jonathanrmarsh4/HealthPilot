@@ -3824,6 +3824,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Add a set to an exercise in a workout session
+  app.post("/api/workout-sessions/:sessionId/exercises/:exerciseId/add-set", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { sessionId, exerciseId } = req.params;
+    
+    try {
+      // Verify the session exists and belongs to the user
+      const session = await storage.getWorkoutSession(sessionId, userId);
+      if (!session) {
+        return res.status(404).json({ error: "Workout session not found" });
+      }
+      
+      // Verify the exercise exists in this session
+      const sessionExercises = await storage.getExercisesForSession(sessionId, userId);
+      const exerciseInSession = sessionExercises.find(ex => ex.id === exerciseId);
+      if (!exerciseInSession) {
+        return res.status(400).json({ error: "Exercise not found in this workout session" });
+      }
+      
+      // Add the new set
+      const newSet = await storage.addExerciseSet(sessionId, exerciseId, userId);
+      res.json(newSet);
+    } catch (error: any) {
+      console.error("Error adding exercise set:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Finish a workout session
   app.post("/api/workout-sessions/:id/finish", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;

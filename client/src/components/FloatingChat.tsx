@@ -122,6 +122,8 @@ export function FloatingChat({ isOpen, onClose, currentPage }: FloatingChatProps
     } else {
       // Increment session ID to trigger new timestamp and reset chat UI
       setSessionId(prev => prev + 1);
+      // Keep minimized by default for better UX during debugging
+      setIsMinimized(true);
     }
   }, [isOpen]);
 

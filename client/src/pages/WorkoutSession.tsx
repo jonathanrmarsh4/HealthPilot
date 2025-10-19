@@ -40,6 +40,7 @@ import {
   useSensors,
   DragEndEvent,
 } from '@dnd-kit/core';
+import { Loader2 } from "lucide-react";
 import {
   arrayMove,
   SortableContext,
@@ -111,8 +112,10 @@ function SortableExerciseCard({
   exerciseIndex,
   progressiveSuggestion,
   updateSetMutation,
+  addSetMutation,
   handleCompleteSet,
   handleShowAlternatives,
+  handleAddSet,
   isExpanded,
   onToggleExpand,
   wasDragging
@@ -123,8 +126,10 @@ function SortableExerciseCard({
   exerciseIndex: number;
   progressiveSuggestion?: ProgressiveOverloadSuggestion;
   updateSetMutation: any;
+  addSetMutation: any;
   handleCompleteSet: (set: ExerciseSet, exercise: Exercise) => void;
   handleShowAlternatives: (exercise: Exercise) => void;
+  handleAddSet: (exerciseId: string) => void;
   isExpanded: boolean;
   onToggleExpand: () => void;
   wasDragging: boolean;
@@ -453,6 +458,29 @@ function SortableExerciseCard({
             </div>
           </div>
         ))}
+        
+        {/* Add Set Button */}
+        <div className="mt-3 pt-3 border-t">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleAddSet(exercise.id)}
+            disabled={addSetMutation.isPending}
+            className="w-full"
+            data-testid={`button-add-set-${exerciseIndex}`}
+          >
+            {addSetMutation.isPending ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Adding...
+              </>
+            ) : (
+              <>
+                <span className="text-lg mr-2">+</span> Add Set
+              </>
+            )}
+          </Button>
+        </div>
         </CardContent>
       )}
     </Card>
@@ -677,6 +705,29 @@ export default function WorkoutSession() {
       }, 100);
     },
     onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Add set mutation
+  const addSetMutation = useMutation({
+    mutationFn: async ({ exerciseId }: { exerciseId: string }) => {
+      return await apiRequest("POST", `/api/workout-sessions/${sessionId}/exercises/${exerciseId}/add-set`, {});
+    },
+    onSuccess: () => {
+      // Invalidate both sets and exercises queries to ensure UI updates
+      queryClient.invalidateQueries({ queryKey: ["/api/workout-sessions", sessionId, "sets"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/workout-sessions", sessionId, "exercises"] });
+      toast({
+        title: "Set Added",
+        description: "New set added to exercise",
+      });
+    },
+    onError: (error: Error) {
       toast({
         title: "Error",
         description: error.message,
@@ -947,8 +998,10 @@ export default function WorkoutSession() {
                   exerciseIndex={exerciseIndex}
                   progressiveSuggestion={progressiveSuggestion}
                   updateSetMutation={updateSetMutation}
+                  addSetMutation={addSetMutation}
                   handleCompleteSet={handleCompleteSet}
                   handleShowAlternatives={handleShowAlternatives}
+                  handleAddSet={(exerciseId) => addSetMutation.mutate({ exerciseId })}
                   isExpanded={expandedExercises.has(exercise.id)}
                   onToggleExpand={() => toggleExpandExercise(exercise.id)}
                   wasDragging={wasDragging}

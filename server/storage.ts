@@ -222,6 +222,7 @@ export interface IStorage {
   getExercisesForSession(sessionId: string, userId: string): Promise<Exercise[]>;
   getSetsForSession(sessionId: string, userId: string): Promise<ExerciseSet[]>;
   updateExerciseSet(setId: string, userId: string, data: Partial<ExerciseSet>): Promise<ExerciseSet | undefined>;
+  addExerciseSet(sessionId: string, exerciseId: string, userId: string): Promise<ExerciseSet>;
   
   getTrainingLoad(userId: string, startDate: Date, endDate: Date): Promise<{
     weeklyLoad: number;
@@ -1692,6 +1693,71 @@ export class DbStorage implements IStorage {
       )
       .returning();
     
+    return result[0];
+  }
+
+  async addExerciseSet(sessionId: string, exerciseId: string, userId: string): Promise<ExerciseSet> {
+    // Get the exercise details to determine tracking type and defaults
+    const exercise = await db
+      .select()
+      .from(exercises)
+      .where(eq(exercises.id, exerciseId))
+      .limit(1);
+    
+    if (!exercise[0]) {
+      throw new Error("Exercise not found");
+    }
+
+    // Get existing sets for this exercise in this session to calculate next setIndex
+    const existingSets = await db
+      .select()
+      .from(exerciseSets)
+      .where(
+        and(
+          eq(exerciseSets.workoutSessionId, sessionId),
+          eq(exerciseSets.exerciseId, exerciseId),
+          eq(exerciseSets.userId, userId)
+        )
+      )
+      .orderBy(desc(exerciseSets.setIndex));
+    
+    const nextSetIndex = existingSets.length > 0 ? existingSets[0].setIndex + 1 : 1;
+    
+    // Build set data based on tracking type
+    const trackingType = exercise[0].trackingType || 'weight_reps';
+    const setData: any = {
+      workoutSessionId: sessionId,
+      exerciseId: exerciseId,
+      userId,
+      setIndex: nextSetIndex,
+      completed: 0,
+    };
+    
+    // Set type-specific fields - match the logic from workout session creation
+    if (trackingType === 'weight_reps') {
+      const isBodyweight = exercise[0].equipment === 'bodyweight';
+      setData.weight = isBodyweight ? 0 : 20; // 0kg for bodyweight, 20kg default for weighted
+      setData.reps = 8; // Default reps
+      setData.targetRepsLow = 6;
+      setData.targetRepsHigh = 12;
+    } else if (trackingType === 'bodyweight_reps') {
+      setData.weight = null;
+      setData.reps = 8;
+      setData.targetRepsLow = 6;
+      setData.targetRepsHigh = 12;
+    } else if (trackingType === 'distance_duration') {
+      setData.distance = null;
+      setData.duration = null;
+      setData.weight = null;
+      setData.reps = null;
+    } else if (trackingType === 'duration_only') {
+      setData.duration = null;
+      setData.weight = null;
+      setData.reps = null;
+      setData.distance = null;
+    }
+    
+    const result = await db.insert(exerciseSets).values(setData).returning();
     return result[0];
   }
 
