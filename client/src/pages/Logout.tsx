@@ -4,8 +4,8 @@ import { LogOut } from "lucide-react";
 import logo from "@assets/HealthPilot_Logo_1759904141260.png";
 
 export default function Logout() {
-  const handleLogin = () => {
-    window.location.href = "/api/login";
+  const handleReturnHome = () => {
+    window.location.href = "/";
   };
 
   return (
@@ -22,12 +22,12 @@ export default function Logout() {
         </CardHeader>
         <CardContent className="space-y-4">
           <Button
-            onClick={handleLogin}
+            onClick={handleReturnHome}
             className="w-full"
-            data-testid="button-login-again"
+            data-testid="button-return-home"
           >
             <LogOut className="h-4 w-4 mr-2" />
-            Sign in again
+            Return to Home
           </Button>
         </CardContent>
       </Card>

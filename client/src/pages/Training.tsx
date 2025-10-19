@@ -404,6 +404,21 @@ export default function Training() {
     );
   }, [trainingSchedules]);
 
+  // Calculate display plan with AI-added exercises included
+  const displayPlan = useMemo(() => {
+    if (!currentPlan) return null;
+    
+    // Calculate additional duration and calories from AI-added exercises
+    const aiDuration = todayScheduledWorkouts.reduce((sum, w) => sum + (w.duration || 0), 0);
+    const aiCalories = todayScheduledWorkouts.reduce((sum, w) => sum + Math.round((w.duration || 0) * 8), 0);
+    
+    return {
+      ...currentPlan,
+      totalDuration: currentPlan.totalDuration + aiDuration,
+      calorieEstimate: currentPlan.calorieEstimate + aiCalories,
+    };
+  }, [currentPlan, todayScheduledWorkouts]);
+
   // Define tiles for the Training page
   const tiles: TileConfig[] = [
     {
@@ -837,7 +852,7 @@ export default function Training() {
                       </ul>
                     </div>
                   </div>
-                ) : currentPlan ? (
+                ) : currentPlan && displayPlan ? (
                   <div className="space-y-4">
                     <div className="flex items-center justify-between flex-wrap gap-2">
                       <h3 className="text-lg font-semibold" data-testid={`text-${selectedPlan}-title`}>
@@ -845,13 +860,13 @@ export default function Training() {
                       </h3>
                       <div className="flex gap-2">
                         <Badge variant="outline" data-testid={`badge-${selectedPlan}-duration`}>
-                          {currentPlan.totalDuration} min
+                          {displayPlan.totalDuration} min
                         </Badge>
                         <Badge variant="outline" data-testid={`badge-${selectedPlan}-intensity`}>
                           {currentPlan.intensity} intensity
                         </Badge>
                         <Badge variant="outline" data-testid={`badge-${selectedPlan}-calories`}>
-                          ~{currentPlan.calorieEstimate} kcal
+                          ~{displayPlan.calorieEstimate} kcal
                         </Badge>
                       </div>
                     </div>

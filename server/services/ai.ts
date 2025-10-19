@@ -1054,48 +1054,65 @@ export async function chatWithHealthCoach(
         contextSection += `- Fitness Level: ${profile.fitnessLevel}\n`;
       }
       if (profile.trainingExperience) {
-        contextSection += `- Training Experience: ${profile.trainingExperience}\n`;
+        contextSection += `- Training Experience: ${profile.trainingExperience} years\n`;
       }
-      if (profile.gymAccess !== null) {
-        contextSection += `- Gym Access: ${profile.gymAccess ? 'Yes' : 'No'}\n`;
+      if (profile.currentTrainingFrequency) {
+        contextSection += `- Current Training Frequency: ${profile.currentTrainingFrequency} days/week\n`;
       }
-      if (profile.crossfitAccess !== null) {
-        contextSection += `- CrossFit Access: ${profile.crossfitAccess ? 'Yes' : 'No'}\n`;
+      if (profile.hasGymAccess !== null && profile.hasGymAccess !== undefined) {
+        contextSection += `- Gym Access: ${profile.hasGymAccess ? 'Yes' : 'No'}\n`;
+        if (profile.hasGymAccess && profile.gymType) {
+          contextSection += `- Gym Type: ${profile.gymType}\n`;
+        }
       }
-      if (profile.equipment && profile.equipment.length > 0) {
-        contextSection += `- Available Equipment: ${profile.equipment.join(', ')}\n`;
-      }
-      if (profile.homeSetup && profile.homeSetup.length > 0) {
-        contextSection += `- Home Setup: ${profile.homeSetup.join(', ')}\n`;
+      if (profile.homeEquipment && profile.homeEquipment.length > 0) {
+        contextSection += `- Home Equipment: ${profile.homeEquipment.join(', ')}\n`;
       }
       if (profile.specialFacilities && profile.specialFacilities.length > 0) {
         contextSection += `- Special Facilities: ${profile.specialFacilities.join(', ')}\n`;
       }
-      if (profile.goals && profile.goals.length > 0) {
-        contextSection += `- Fitness Goals: ${profile.goals.join(', ')}\n`;
+      if (profile.recoveryEquipment && profile.recoveryEquipment.length > 0) {
+        contextSection += `- Recovery Equipment: ${profile.recoveryEquipment.join(', ')}\n`;
       }
-      if (profile.workoutPreferences && profile.workoutPreferences.length > 0) {
-        contextSection += `- Workout Preferences: ${profile.workoutPreferences.join(', ')}\n`;
+      if (profile.primaryGoal) {
+        contextSection += `- Primary Goal: ${profile.primaryGoal}\n`;
+      }
+      if (profile.secondaryGoals && profile.secondaryGoals.length > 0) {
+        contextSection += `- Secondary Goals: ${profile.secondaryGoals.join(', ')}\n`;
+      }
+      if (profile.preferredWorkoutTypes && profile.preferredWorkoutTypes.length > 0) {
+        contextSection += `- Preferred Workout Types: ${profile.preferredWorkoutTypes.join(', ')}\n`;
       }
       if (profile.preferredDuration) {
         contextSection += `- Preferred Workout Duration: ${profile.preferredDuration} minutes\n`;
       }
+      if (profile.preferredIntensity) {
+        contextSection += `- Preferred Intensity: ${profile.preferredIntensity}\n`;
+      }
       if (profile.availableDays && profile.availableDays.length > 0) {
         contextSection += `- Available Days: ${profile.availableDays.join(', ')}\n`;
       }
-      if (profile.injuriesLimitations) {
-        contextSection += `- Injuries/Limitations: ${profile.injuriesLimitations}\n`;
+      if (profile.injuries && profile.injuries.length > 0) {
+        contextSection += `- Injuries: ${profile.injuries.join(', ')}\n`;
       }
-      if (profile.medicalConditions) {
-        contextSection += `- Medical Conditions: ${profile.medicalConditions}\n`;
+      if (profile.limitations && profile.limitations.length > 0) {
+        contextSection += `- Limitations: ${profile.limitations.join(', ')}\n`;
+      }
+      if (profile.medicalConditions && profile.medicalConditions.length > 0) {
+        contextSection += `- Medical Conditions: ${profile.medicalConditions.join(', ')}\n`;
+      }
+      if (profile.notes) {
+        contextSection += `\n📝 ADDITIONAL NOTES FROM USER:\n${profile.notes}\n`;
       }
       
-      contextSection += `\n**IMPORTANT**: Use this fitness profile to personalize ALL workout and exercise recommendations:\n`;
-      contextSection += `- Match intensity to their fitness level (${profile.fitnessLevel || 'beginner'})\n`;
-      contextSection += `- Only suggest exercises using their available equipment\n`;
-      contextSection += `- Respect their injuries/limitations when programming\n`;
-      contextSection += `- Align workouts with their stated goals and preferences\n`;
-      contextSection += `- Schedule workouts on their available days\n`;
+      contextSection += `\n**CRITICAL**: Use this fitness profile to personalize ALL workout and exercise recommendations:\n`;
+      contextSection += `- Match intensity to their fitness level (${profile.fitnessLevel || 'intermediate'})\n`;
+      contextSection += `- ONLY suggest exercises using their available equipment (home equipment + gym access)\n`;
+      contextSection += `- ALWAYS respect their injuries and limitations - NEVER suggest exercises that could aggravate these\n`;
+      contextSection += `- Align ALL workouts with their primary goal (${profile.primaryGoal || 'general fitness'}) and secondary goals\n`;
+      contextSection += `- Follow their workout preferences and preferred intensity level\n`;
+      contextSection += `- Schedule workouts ONLY on their available days\n`;
+      contextSection += `- If they provided Additional Notes, READ THEM CAREFULLY and incorporate this context into all recommendations\n`;
     }
     
     if (context.nutritionProfile) {
