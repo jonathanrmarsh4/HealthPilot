@@ -707,35 +707,30 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* All Widgets - Fully Manageable */}
+      {/* All Widgets - Fully Manageable with Respected Order */}
       {optionalWidgets.some(w => isVisible(w)) && (
         <div className="space-y-6">
-          {/* Render full-width widgets first */}
-          {optionalWidgets.filter(w => w === 'quick-stats' || w === 'health-metrics').map(widget => renderWidget(widget))}
-          
-          {/* Render grid-based widgets */}
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {optionalWidgets.filter(w => 
-              w === 'readiness-score' || 
-              w === 'health-score' || 
-              w === 'sleep-score' || 
-              w === 'goals-summary' ||
-              w === 'next-workout' ||
-              w === 'todays-meals' ||
-              w === 'daily-reminders' ||
-              w === 'blood-glucose-chart' ||
-              w === 'weight-chart' ||
-              w.startsWith('biomarker-')
-            ).map(widget => renderWidget(widget))}
-          </div>
-
-          {/* Render 2-column widgets */}
-          <div className="grid gap-6 md:grid-cols-2">
-            {optionalWidgets.filter(w => 
-              w === 'ai-insights' || 
-              w === 'data-insights'
-            ).map(widget => renderWidget(widget))}
-          </div>
+          {optionalWidgets.map(widget => {
+            if (!isVisible(widget)) return null;
+            
+            if (widget === 'quick-stats' || widget === 'health-metrics') {
+              return <div key={widget}>{renderWidget(widget)}</div>;
+            }
+            
+            if (widget === 'ai-insights' || widget === 'data-insights') {
+              return (
+                <div key={widget} className="grid gap-6 md:grid-cols-2">
+                  {renderWidget(widget)}
+                </div>
+              );
+            }
+            
+            return (
+              <div key={widget} className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {renderWidget(widget)}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

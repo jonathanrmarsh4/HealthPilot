@@ -16,13 +16,23 @@ const ThemeProviderContext = createContext<ThemeProviderState | undefined>(
   undefined
 );
 
+const THEME_VERSION = "v2-dark-default";
+
 export function ThemeProvider({
   children,
   defaultTheme = "dark",
 }: ThemeProviderProps) {
-  const [theme, setTheme] = useState<Theme>(
-    () => (localStorage.getItem("theme") as Theme) || defaultTheme
-  );
+  const [theme, setTheme] = useState<Theme>(() => {
+    const currentVersion = localStorage.getItem("theme-version");
+    
+    if (currentVersion !== THEME_VERSION) {
+      localStorage.removeItem("theme");
+      localStorage.setItem("theme-version", THEME_VERSION);
+      return defaultTheme;
+    }
+    
+    return (localStorage.getItem("theme") as Theme) || defaultTheme;
+  });
 
   useEffect(() => {
     const root = document.documentElement;
