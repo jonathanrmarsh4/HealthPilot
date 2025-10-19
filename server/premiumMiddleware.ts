@@ -4,7 +4,7 @@ import { startOfDay } from "date-fns";
 
 // Free tier limits
 export const FREE_TIER_LIMITS = {
-  messagesPerDay: 10,
+  messagesPerMonth: 50,
   biomarkerTypes: 3,
   historicalDataDays: 7,
 };
@@ -35,7 +35,7 @@ export async function isPremiumUser(userId: string): Promise<boolean> {
   );
 }
 
-// Helper to check daily message count for free users
+// Helper to check monthly message count for free users
 export async function canSendMessage(userId: string): Promise<{
   allowed: boolean;
   count: number;
@@ -47,15 +47,16 @@ export async function canSendMessage(userId: string): Promise<{
     return { allowed: true, count: 0, limit: -1 }; // Unlimited
   }
   
-  // Get today's message count
-  const today = startOfDay(new Date());
-  const usage = await storage.getMessageUsageForDate(userId, today);
-  const count = usage?.messageCount || 0;
+  // Get current month's message count
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1; // JavaScript months are 0-indexed
+  const count = await storage.getMonthlyMessageUsage(userId, year, month);
   
   return {
-    allowed: count < FREE_TIER_LIMITS.messagesPerDay,
+    allowed: count < FREE_TIER_LIMITS.messagesPerMonth,
     count,
-    limit: FREE_TIER_LIMITS.messagesPerDay,
+    limit: FREE_TIER_LIMITS.messagesPerMonth,
   };
 }
 

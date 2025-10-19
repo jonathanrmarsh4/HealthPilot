@@ -533,6 +533,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Usage Tracking Routes
+  
+  // Get current month's message usage
+  app.get("/api/usage", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any).claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Get current month and year
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = now.getMonth() + 1; // JavaScript months are 0-indexed
+
+      // Get monthly usage
+      const messagesUsed = await storage.getMonthlyMessageUsage(userId, year, month);
+      
+      // Only active premium/enterprise users get unlimited messages
+      const hasActivePremium = (user.subscriptionTier === "premium" || user.subscriptionTier === "enterprise") && user.subscriptionStatus === "active";
+      const limit = hasActivePremium ? -1 : 50; // -1 means unlimited
+      
+      // Reset date is first day of next month (UTC)
+      const resetDate = new Date(Date.UTC(year, month, 1)); // month is already 1-indexed, so this gives us next month
+
+      res.json({
+        messagesUsed,
+        limit,
+        resetDate: resetDate.toISOString(),
+        tier: user.subscriptionTier,
+        hasUnlimited: limit === -1,
+      });
+    } catch (error: any) {
+      console.error("Error fetching usage:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Referral Program Routes
   
   // Apply referral code - link a user to a referrer

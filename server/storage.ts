@@ -267,6 +267,7 @@ export interface IStorage {
   // Message usage tracking for free tier
   getMessageUsageForDate(userId: string, date: Date): Promise<{ userId: string; messageDate: Date; messageCount: number } | undefined>;
   incrementMessageUsage(userId: string, date: Date): Promise<void>;
+  getMonthlyMessageUsage(userId: string, year: number, month: number): Promise<number>;
   
   createGoal(goal: InsertGoal): Promise<Goal>;
   getGoals(userId: string): Promise<Goal[]>;
@@ -1442,6 +1443,25 @@ export class DbStorage implements IStorage {
         messageCount: 1,
       });
     }
+  }
+
+  async getMonthlyMessageUsage(userId: string, year: number, month: number): Promise<number> {
+    // Create start and end dates for the month (month is 1-indexed)
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 0, 23, 59, 59, 999); // Last day of month
+    
+    const result = await db
+      .select({ total: sql<number>`COALESCE(SUM(${messageUsage.messageCount}), 0)` })
+      .from(messageUsage)
+      .where(
+        and(
+          eq(messageUsage.userId, userId),
+          gte(messageUsage.messageDate, startDate),
+          lte(messageUsage.messageDate, endDate)
+        )
+      );
+    
+    return Number(result[0]?.total || 0);
   }
 
   async createInsight(insight: InsertInsight): Promise<Insight> {
