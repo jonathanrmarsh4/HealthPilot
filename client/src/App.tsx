@@ -35,6 +35,7 @@ import Chat from "@/pages/Chat";
 import VoiceChat from "@/pages/VoiceChat";
 import Profile from "@/pages/Profile";
 import Settings from "@/pages/Settings";
+import Billing from "@/pages/Billing";
 import Pricing from "@/pages/Pricing";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
 import PrivacyDashboard from "@/pages/PrivacyDashboard";
@@ -74,6 +75,7 @@ function Router() {
       <Route path="/profile" component={Profile} />
       <Route path="/apple-health" component={AppleHealthSetup} />
       <Route path="/settings" component={Settings} />
+      <Route path="/billing" component={Billing} />
       <Route path="/pricing" component={Pricing} />
       <Route path="/privacy" component={PrivacyPolicy} />
       <Route path="/privacy-dashboard" component={PrivacyDashboard} />

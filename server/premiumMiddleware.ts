@@ -140,7 +140,7 @@ export async function getBiomarkerTypeCount(userId: string): Promise<number> {
 }
 
 // Helper to check if user can add more biomarker types
-export async function canAddBiomarkerType(userId: string): Promise<{
+export async function canAddBiomarkerType(userId: string, newType?: string): Promise<{
   allowed: boolean;
   current: number;
   limit: number;
@@ -151,11 +151,74 @@ export async function canAddBiomarkerType(userId: string): Promise<{
     return { allowed: true, current: 0, limit: -1 }; // Unlimited
   }
   
-  const current = await getBiomarkerTypeCount(userId);
+  const biomarkers = await storage.getBiomarkers(userId);
+  const uniqueTypes = new Set(biomarkers.map(b => b.type));
+  const current = uniqueTypes.size;
+  
+  // If adding a new type, check if it already exists
+  if (newType && uniqueTypes.has(newType)) {
+    // Type already exists, so user can add more of this type
+    return {
+      allowed: true,
+      current,
+      limit: FREE_TIER_LIMITS.biomarkerTypes,
+    };
+  }
   
   return {
     allowed: current < FREE_TIER_LIMITS.biomarkerTypes,
     current,
     limit: FREE_TIER_LIMITS.biomarkerTypes,
   };
+}
+
+// Middleware to check biomarker type limit
+export async function checkBiomarkerLimit(req: Request, res: Response, next: NextFunction) {
+  try {
+    const userId = (req.user as any)?.claims?.sub;
+    
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    
+    const biomarkerType = req.body.type;
+    const { allowed, current, limit } = await canAddBiomarkerType(userId, biomarkerType);
+    
+    if (!allowed) {
+      return res.status(403).json({
+        error: "Biomarker type limit reached",
+        feature: PremiumFeature.UNLIMITED_BIOMARKERS,
+        message: `You've reached your limit of ${limit} biomarker types. Upgrade to premium for unlimited biomarker tracking.`,
+        current,
+        limit,
+        upgradeUrl: "/pricing",
+      });
+    }
+    
+    next();
+  } catch (error: any) {
+    console.error("Biomarker limit check error:", error);
+    res.status(500).json({ error: "Failed to check biomarker limit" });
+  }
+}
+
+// Helper to filter historical data based on subscription tier
+export function filterHistoricalData<T extends { createdAt?: Date; recordedAt?: Date }>(
+  data: T[],
+  userId: string,
+  isPremium: boolean
+): T[] {
+  if (isPremium) {
+    return data; // No filtering for premium users
+  }
+  
+  // Free users can only access last 7 days of data
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - FREE_TIER_LIMITS.historicalDataDays);
+  
+  return data.filter(item => {
+    const itemDate = item.recordedAt || item.createdAt;
+    if (!itemDate) return true; // Include items without dates
+    return new Date(itemDate) >= cutoffDate;
+  });
 }

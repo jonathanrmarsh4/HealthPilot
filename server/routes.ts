@@ -11,7 +11,7 @@ import { calculateReadinessScore } from "./services/readiness";
 import { parseISO, isValid, subDays } from "date-fns";
 import { eq, and, gte, or, inArray } from "drizzle-orm";
 import { isAuthenticated, isAdmin, webhookAuth } from "./replitAuth";
-import { checkMessageLimit, incrementMessageCount, requirePremium, PremiumFeature } from "./premiumMiddleware";
+import { checkMessageLimit, incrementMessageCount, requirePremium, PremiumFeature, isPremiumUser, filterHistoricalData, canAddBiomarkerType } from "./premiumMiddleware";
 import { z } from "zod";
 import { spoonacularService } from "./spoonacular";
 import { WebSocketServer } from "ws";
@@ -643,6 +643,208 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       console.error("Error fetching referral stats:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get user's subscription details
+  app.get("/api/subscriptions", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any).claims.sub;
+      
+      // Get user to check subscription tier
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // If free tier, return basic info
+      if (user.subscriptionTier === "free") {
+        return res.json({
+          tier: "free",
+          status: "active",
+          billingCycle: null,
+          currentPeriodEnd: null,
+          cancelAtPeriodEnd: false,
+          trialStart: null,
+          trialEnd: null,
+        });
+      }
+
+      // Get subscription from database
+      const subscription = await db
+        .select()
+        .from(subscriptions)
+        .where(eq(subscriptions.userId, userId))
+        .orderBy(sql`${subscriptions.createdAt} DESC`)
+        .limit(1);
+
+      if (!subscription[0]) {
+        // User has premium/enterprise tier but no subscription record - might be legacy data
+        return res.json({
+          tier: user.subscriptionTier,
+          status: user.subscriptionStatus,
+          billingCycle: null,
+          currentPeriodEnd: null,
+          cancelAtPeriodEnd: false,
+          trialStart: null,
+          trialEnd: null,
+        });
+      }
+
+      const sub = subscription[0];
+      res.json({
+        tier: sub.tier,
+        status: sub.status,
+        billingCycle: sub.billingCycle,
+        currentPeriodStart: sub.currentPeriodStart,
+        currentPeriodEnd: sub.currentPeriodEnd,
+        cancelAtPeriodEnd: sub.cancelAtPeriodEnd === 1,
+        canceledAt: sub.canceledAt,
+        trialStart: sub.trialStart,
+        trialEnd: sub.trialEnd,
+        stripePriceId: sub.stripePriceId,
+      });
+    } catch (error: any) {
+      console.error("Error fetching subscription:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Cancel subscription - sets cancel_at_period_end to true
+  app.post("/api/subscriptions/cancel", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any).claims.sub;
+      
+      // Get user's subscription
+      const subscription = await db
+        .select()
+        .from(subscriptions)
+        .where(eq(subscriptions.userId, userId))
+        .orderBy(sql`${subscriptions.createdAt} DESC`)
+        .limit(1);
+
+      if (!subscription[0]) {
+        return res.status(404).json({ error: "No active subscription found" });
+      }
+
+      const sub = subscription[0];
+
+      // Cancel subscription in Stripe
+      const Stripe = (await import("stripe")).default;
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+        apiVersion: "2024-06-20",
+      });
+
+      await stripe.subscriptions.update(sub.stripeSubscriptionId, {
+        cancel_at_period_end: true,
+      });
+
+      // Update database
+      await db
+        .update(subscriptions)
+        .set({
+          cancelAtPeriodEnd: 1,
+          canceledAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(eq(subscriptions.id, sub.id));
+
+      res.json({
+        success: true,
+        message: "Subscription will be cancelled at the end of the billing period",
+        currentPeriodEnd: sub.currentPeriodEnd,
+      });
+    } catch (error: any) {
+      console.error("Error canceling subscription:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Reactivate subscription - removes cancel_at_period_end flag
+  app.post("/api/subscriptions/reactivate", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any).claims.sub;
+      
+      // Get user's subscription
+      const subscription = await db
+        .select()
+        .from(subscriptions)
+        .where(eq(subscriptions.userId, userId))
+        .orderBy(sql`${subscriptions.createdAt} DESC`)
+        .limit(1);
+
+      if (!subscription[0]) {
+        return res.status(404).json({ error: "No subscription found" });
+      }
+
+      const sub = subscription[0];
+
+      if (!sub.cancelAtPeriodEnd) {
+        return res.status(400).json({ error: "Subscription is not scheduled for cancellation" });
+      }
+
+      // Reactivate subscription in Stripe
+      const Stripe = (await import("stripe")).default;
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+        apiVersion: "2024-06-20",
+      });
+
+      await stripe.subscriptions.update(sub.stripeSubscriptionId, {
+        cancel_at_period_end: false,
+      });
+
+      // Update database
+      await db
+        .update(subscriptions)
+        .set({
+          cancelAtPeriodEnd: 0,
+          canceledAt: null,
+          updatedAt: new Date(),
+        })
+        .where(eq(subscriptions.id, sub.id));
+
+      res.json({
+        success: true,
+        message: "Subscription has been reactivated",
+      });
+    } catch (error: any) {
+      console.error("Error reactivating subscription:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Create Stripe Customer Portal session
+  app.post("/api/stripe/portal-session", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any).claims.sub;
+      
+      // Get user to get Stripe customer ID
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      if (!user.stripeCustomerId) {
+        return res.status(400).json({ error: "No Stripe customer ID found. Please subscribe first." });
+      }
+
+      // Create portal session
+      const Stripe = (await import("stripe")).default;
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+        apiVersion: "2024-06-20",
+      });
+
+      const session = await stripe.billingPortal.sessions.create({
+        customer: user.stripeCustomerId,
+        return_url: `${process.env.REPL_HOME || 'https://healthpilot.pro'}/billing`,
+      });
+
+      res.json({
+        url: session.url,
+      });
+    } catch (error: any) {
+      console.error("Error creating portal session:", error);
       res.status(500).json({ error: error.message });
     }
   });
@@ -1790,6 +1992,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const userId = (req.user as any).claims.sub;
 
     try {
+      // Check biomarker type limit for free users
+      const biomarkerType = req.body.type;
+      const { allowed, current, limit } = await canAddBiomarkerType(userId, biomarkerType);
+      
+      if (!allowed) {
+        return res.status(403).json({
+          error: "Biomarker type limit reached",
+          feature: PremiumFeature.UNLIMITED_BIOMARKERS,
+          message: `You've reached your limit of ${limit} biomarker types. Upgrade to premium for unlimited biomarker tracking.`,
+          current,
+          limit,
+          upgradeUrl: "/pricing",
+        });
+      }
+      
       const validatedData = insertBiomarkerSchema.parse({
         ...req.body,
         userId,
@@ -1817,7 +2034,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId,
         type as string | undefined
       );
-      res.json(biomarkers);
+      
+      // Apply historical data filtering for free users
+      const isPremium = await isPremiumUser(userId);
+      const filteredBiomarkers = filterHistoricalData(biomarkers, userId, isPremium);
+      
+      res.json(filteredBiomarkers);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
@@ -1828,11 +2050,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       const { type } = req.params;
-      const { days = '7' } = req.query;
+      let { days = '7' } = req.query;
+      
+      // Enforce historical data limits for free users
+      const isPremium = await isPremiumUser(userId);
+      const requestedDays = parseInt(days as string);
+      
+      if (!isPremium && requestedDays > 7) {
+        return res.status(403).json({
+          error: "Historical data limit exceeded",
+          feature: PremiumFeature.UNLIMITED_HISTORY,
+          message: `Free users can only access 7 days of historical data. Upgrade to premium for unlimited historical access.`,
+          upgradeUrl: "/pricing",
+        });
+      }
       
       const endDate = new Date();
       const startDate = new Date();
-      startDate.setDate(startDate.getDate() - parseInt(days as string));
+      startDate.setDate(startDate.getDate() - requestedDays);
       
       const biomarkers = await storage.getBiomarkersByTimeRange(
         userId,
@@ -8341,19 +8576,9 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
   const wsTokens = new Map<string, { userId: string, expiresAt: number }>();
 
   // Generate temporary token for WebSocket authentication
-  app.post("/api/voice-chat/token", isAuthenticated, async (req, res) => {
+  app.post("/api/voice-chat/token", isAuthenticated, requirePremium(PremiumFeature.VOICE_CHAT), async (req, res) => {
     try {
       const userId = (req.user as any).claims.sub;
-      const user = await storage.getUser(userId);
-
-      // Check premium access
-      const isPremium = user.subscriptionTier === 'premium' || 
-                       user.subscriptionTier === 'enterprise' || 
-                       user.role === 'admin';
-
-      if (!isPremium) {
-        return res.status(403).json({ error: "Voice chat requires Premium subscription" });
-      }
 
       // Generate token (simple random string)
       const token = Math.random().toString(36).substring(2) + Date.now().toString(36);
