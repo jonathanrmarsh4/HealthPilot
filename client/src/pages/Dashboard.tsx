@@ -57,6 +57,12 @@ interface DashboardPreferences {
 
 // All available optional widgets (for Manage Widgets)
 const ALL_OPTIONAL_WIDGETS = [
+  "readiness-score",
+  "health-score",
+  "sleep-score",
+  "goals-summary",
+  "ai-insights",
+  "data-insights",
   "daily-reminders",
   "quick-stats",
   "next-workout",
@@ -66,15 +72,27 @@ const ALL_OPTIONAL_WIDGETS = [
   "weight-chart"
 ];
 
-// Default visible widgets (empty = clean dashboard by default)
-const DEFAULT_WIDGETS: string[] = [];
+// Default visible widgets (show health overview widgets by default)
+const DEFAULT_WIDGETS: string[] = [
+  "readiness-score",
+  "health-score",
+  "sleep-score",
+  "goals-summary",
+  "ai-insights",
+  "data-insights"
+];
 
 const WIDGET_CONFIG: Record<string, { title: string; description: string }> = {
+  "readiness-score": { title: "Readiness Score", description: "Daily readiness based on sleep, HRV, and recovery" },
+  "health-score": { title: "Health Score", description: "Overall health assessment from biomarkers" },
+  "sleep-score": { title: "Sleep Score", description: "Sleep quality and duration analysis" },
+  "goals-summary": { title: "Goals Summary", description: "Health and fitness goals progress" },
+  "ai-insights": { title: "AI Insights", description: "Daily intelligence and pattern discoveries" },
+  "data-insights": { title: "Data Insights", description: "Statistical patterns in your health data" },
   "daily-reminders": { title: "Daily Checklist", description: "Track daily health habits and reminders" },
   "quick-stats": { title: "Quick Stats", description: "Daily steps, heart rate, active days, calories" },
   "next-workout": { title: "Next Workout", description: "Upcoming training session" },
   "todays-meals": { title: "Today's Meals", description: "Daily meal plan overview" },
-  "ai-insights": { title: "AI Insights", description: "Daily intelligence and pattern discoveries" },
   "health-metrics": { title: "Health Metrics", description: "Heart rate, blood glucose, weight cards" },
   "blood-glucose-chart": { title: "Blood Glucose Chart", description: "7-day glucose trend" },
   "weight-chart": { title: "Weight Chart", description: "12-month weight tracking" },
@@ -420,8 +438,23 @@ export default function Dashboard() {
           </div>
         );
 
+      case "readiness-score":
+        return <ReadinessScoreWidget key={widget} />;
+
+      case "health-score":
+        return <HealthScoreWidget key={widget} />;
+
+      case "sleep-score":
+        return <SleepScoreDonutWidget key={widget} />;
+
+      case "goals-summary":
+        return <GoalsSummaryWidget key={widget} />;
+
       case "ai-insights":
         return <AIInsightsWidget key={widget} />;
+
+      case "data-insights":
+        return <DataInsightsWidget key={widget} />;
 
       case "next-workout":
         return <NextWorkoutWidget key={widget} />;
@@ -543,9 +576,8 @@ export default function Dashboard() {
     }
   };
 
-  // Filter out priority widgets from optional widgets
-  const PRIORITY_WIDGETS = ['health-score', 'sleep-score', 'goals-summary', 'ai-insights', 'data-insights'];
-  const optionalWidgets = allWidgets.filter(w => !PRIORITY_WIDGETS.includes(w));
+  // All widgets are now manageable
+  const optionalWidgets = allWidgets;
 
   return (
     <div className="space-y-8">
@@ -578,7 +610,7 @@ export default function Dashboard() {
             <SheetHeader>
               <SheetTitle>Manage Dashboard Widgets</SheetTitle>
               <SheetDescription>
-                Show or hide optional widgets. Priority widgets are always visible.
+                Show, hide, or reorder all dashboard widgets to customize your view.
               </SheetDescription>
             </SheetHeader>
             
@@ -675,35 +707,34 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Priority Section - Always Visible */}
-      <div className="space-y-6">
-        <div>
-          <h2 className="text-xl font-semibold mb-4">Health Overview</h2>
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            <ReadinessScoreWidget />
-            <HealthScoreWidget />
-            <SleepScoreDonutWidget />
-            {biologicalAgeData?.canCalculate && <BiologicalAgeWidget />}
-            <GoalsSummaryWidget />
-          </div>
-        </div>
-
-        <div className="grid gap-6 md:grid-cols-2">
-          <AIInsightsWidget />
-          <DataInsightsWidget />
-        </div>
-      </div>
-
-      {/* Optional Section - Toggleable */}
+      {/* All Widgets - Fully Manageable */}
       {optionalWidgets.some(w => isVisible(w)) && (
-        <div className="space-y-6 pt-4 border-t">
-          <h2 className="text-xl font-semibold">Additional Metrics</h2>
-          <div className="space-y-6">
-            {optionalWidgets.filter(w => w === 'quick-stats' || w === 'health-metrics').map(widget => renderWidget(widget))}
-            
-            <div className="grid gap-6 lg:grid-cols-2">
-              {optionalWidgets.filter(w => w !== 'quick-stats' && w !== 'health-metrics').map(widget => renderWidget(widget))}
-            </div>
+        <div className="space-y-6">
+          {/* Render full-width widgets first */}
+          {optionalWidgets.filter(w => w === 'quick-stats' || w === 'health-metrics').map(widget => renderWidget(widget))}
+          
+          {/* Render grid-based widgets */}
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {optionalWidgets.filter(w => 
+              w === 'readiness-score' || 
+              w === 'health-score' || 
+              w === 'sleep-score' || 
+              w === 'goals-summary' ||
+              w === 'next-workout' ||
+              w === 'todays-meals' ||
+              w === 'daily-reminders' ||
+              w === 'blood-glucose-chart' ||
+              w === 'weight-chart' ||
+              w.startsWith('biomarker-')
+            ).map(widget => renderWidget(widget))}
+          </div>
+
+          {/* Render 2-column widgets */}
+          <div className="grid gap-6 md:grid-cols-2">
+            {optionalWidgets.filter(w => 
+              w === 'ai-insights' || 
+              w === 'data-insights'
+            ).map(widget => renderWidget(widget))}
           </div>
         </div>
       )}
