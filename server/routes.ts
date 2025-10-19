@@ -291,6 +291,88 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin Promo Code Management
+  app.get("/api/admin/promo-codes", isAdmin, async (req, res) => {
+    try {
+      const promoCodes = await storage.getPromoCodes();
+      res.json(promoCodes);
+    } catch (error: any) {
+      console.error("Error getting promo codes:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/admin/promo-codes", isAdmin, async (req, res) => {
+    try {
+      const { code, discountPercent, maxUses, tierRestriction, description, expiresAt, isActive } = req.body;
+
+      if (!code || typeof code !== "string") {
+        return res.status(400).json({ error: "Code is required" });
+      }
+
+      if (!discountPercent || typeof discountPercent !== "number" || discountPercent < 1 || discountPercent > 100) {
+        return res.status(400).json({ error: "Discount percent must be between 1 and 100" });
+      }
+
+      // Check if code already exists
+      const existing = await storage.getPromoCode(code.toUpperCase());
+      if (existing) {
+        return res.status(409).json({ error: "Promo code already exists" });
+      }
+
+      const promoCode = await storage.createPromoCode({
+        code: code.toUpperCase(),
+        discountPercent,
+        maxUses: maxUses || null,
+        tierRestriction: tierRestriction || null,
+        description: description || null,
+        expiresAt: expiresAt ? new Date(expiresAt) : null,
+        isActive: isActive ? 1 : 0,
+        usedCount: 0,
+      });
+
+      res.json(promoCode);
+    } catch (error: any) {
+      console.error("Error creating promo code:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.patch("/api/admin/promo-codes/:id", isAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { isActive } = req.body;
+
+      const promoCode = await storage.updatePromoCode(id, {
+        isActive: isActive ? 1 : 0,
+        updatedAt: new Date(),
+      });
+
+      if (!promoCode) {
+        return res.status(404).json({ error: "Promo code not found" });
+      }
+
+      res.json(promoCode);
+    } catch (error: any) {
+      console.error("Error updating promo code:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/admin/promo-codes/:id", isAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      // Delete promo code using raw DB query since deletePromoCode doesn't exist yet
+      await db.delete(promoCodes).where(eq(promoCodes.id, parseInt(id)));
+
+      res.json({ success: true, message: "Promo code deleted successfully" });
+    } catch (error: any) {
+      console.error("Error deleting promo code:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Privacy & Data Control Routes
   app.post("/api/privacy/export", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;

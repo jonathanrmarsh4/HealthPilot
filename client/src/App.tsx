@@ -43,6 +43,7 @@ import SecurityWhitepaper from "@/pages/SecurityWhitepaper";
 import TermsOfService from "@/pages/TermsOfService";
 import Admin from "@/pages/Admin";
 import AdminMealLibrary from "@/pages/AdminMealLibrary";
+import AdminPromoCodes from "@/pages/AdminPromoCodes";
 import AIAuditLog from "@/pages/AIAuditLog";
 import Login from "@/pages/Login";
 import Logout from "@/pages/Logout";
@@ -83,6 +84,7 @@ function Router() {
       <Route path="/terms" component={TermsOfService} />
       <Route path="/admin" component={Admin} />
       <Route path="/admin/meal-library" component={AdminMealLibrary} />
+      <Route path="/admin/promo-codes" component={AdminPromoCodes} />
       <Route path="/admin/ai-audit" component={AIAuditLog} />
       <Route path="/logged-out" component={Logout} />
       <Route component={NotFound} />
@@ -126,6 +128,7 @@ function AppLayout() {
     "/terms": "Terms of Service",
     "/admin": "Admin Panel",
     "/admin/meal-library": "Meal Library",
+    "/admin/promo-codes": "Promo Codes",
     "/admin/ai-audit": "AI Audit Log"
   };
 

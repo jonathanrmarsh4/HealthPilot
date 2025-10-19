@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Shield, Users, TrendingUp, FileText, Activity, Search, Trash2, ChefHat, ArrowRight } from "lucide-react";
+import { Shield, Users, TrendingUp, FileText, Activity, Search, Trash2, ChefHat, Tag, ArrowRight } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { User } from "@shared/schema";
@@ -257,6 +257,28 @@ export default function Admin() {
         <CardContent>
           <p className="text-sm text-muted-foreground">
             Import bulk meals, track performance metrics, manage deletion queue with premium user protection, and configure library settings
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card data-testid="card-promo-codes-link" className="hover-elevate cursor-pointer" onClick={() => setLocation("/admin/promo-codes")}>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Tag className="w-6 h-6 text-primary" />
+              <div>
+                <CardTitle data-testid="text-promo-codes-link-title">Promo Code Management</CardTitle>
+                <CardDescription data-testid="text-promo-codes-link-description">
+                  Create and manage promotional discount codes
+                </CardDescription>
+              </div>
+            </div>
+            <ArrowRight className="w-5 h-5 text-muted-foreground" />
+          </div>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            Generate promo codes with custom discounts, usage limits, expiration dates, and tier restrictions
           </p>
         </CardContent>
       </Card>
