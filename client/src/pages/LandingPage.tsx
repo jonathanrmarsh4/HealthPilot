@@ -23,9 +23,22 @@ export default function LandingPage() {
         <div className="mx-auto max-w-6xl grid md:grid-cols-2 gap-10 items-center relative z-10">
           {/* Left: Copy / CTA */}
           <div>
+            <motion.h1
+              initial={{ opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-5xl md:text-6xl font-semibold mb-6 tracking-tight bg-gradient-to-r from-white to-[#00E0C6] bg-clip-text text-transparent"
+              style={{
+                textShadow: "0 0 40px rgba(0, 224, 198, 0.3)",
+              }}
+              data-testid="text-brand-title"
+            >
+              HealthPilot
+            </motion.h1>
+
             <motion.div
               initial={{ opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.06 }}
               className="mb-4"
             >
               <Badge
@@ -36,19 +49,19 @@ export default function LandingPage() {
               </Badge>
             </motion.div>
 
-            <motion.h1
+            <motion.h2
               initial={{ opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.06 }}
+              transition={{ delay: 0.12 }}
               className="text-4xl md:text-6xl font-semibold leading-tight mb-6 tracking-tight text-white"
             >
               Your Body, <span className="text-[#00E0C6]">Decoded</span>
-            </motion.h1>
+            </motion.h2>
 
             <motion.p
               initial={{ opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.12 }}
+              transition={{ delay: 0.18 }}
               className="text-lg text-gray-400 max-w-xl mb-8"
             >
               Connect HealthKit, wearables, and blood work to get real-time insights,
@@ -58,7 +71,7 @@ export default function LandingPage() {
             <motion.div
               initial={{ opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.18 }}
+              transition={{ delay: 0.24 }}
               className="flex flex-wrap gap-3 mb-8"
             >
               <Button
@@ -83,7 +96,7 @@ export default function LandingPage() {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 0.24 }}
+              transition={{ delay: 0.3 }}
               className="flex items-center gap-6 text-gray-500"
             >
               <div className="flex items-center gap-2">
