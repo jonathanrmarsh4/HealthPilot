@@ -1143,6 +1143,102 @@ export const insertMessageUsageSchema = createInsertSchema(messageUsage).omit({
 export type InsertMessageUsage = z.infer<typeof insertMessageUsageSchema>;
 export type MessageUsage = typeof messageUsage.$inferSelect;
 
+// Voice chat sessions - stores summaries of voice interactions
+export const voiceSessions = pgTable("voice_sessions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  summary: text("summary").notNull(), // Summarized content of the voice session
+  embedding: jsonb("embedding"), // Vector embedding for semantic search
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => [
+  index("voice_sessions_user_idx").on(table.userId),
+]);
+
+export const insertVoiceSessionSchema = createInsertSchema(voiceSessions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertVoiceSession = z.infer<typeof insertVoiceSessionSchema>;
+export type VoiceSession = typeof voiceSessions.$inferSelect;
+
+// Chat feedback - thumbs up/down on AI messages
+export const chatFeedback = pgTable("chat_feedback", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  messageId: varchar("message_id").notNull(), // ID of the chat message being rated
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  feedbackType: varchar("feedback_type").notNull(), // 'thumbs_up' or 'thumbs_down'
+  context: jsonb("context"), // Additional context (e.g., reason for dislike, workout difficulty, etc.)
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => [
+  index("chat_feedback_user_idx").on(table.userId),
+  index("chat_feedback_message_idx").on(table.messageId),
+]);
+
+export const insertChatFeedbackSchema = createInsertSchema(chatFeedback).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertChatFeedback = z.infer<typeof insertChatFeedbackSchema>;
+export type ChatFeedback = typeof chatFeedback.$inferSelect;
+
+// Safety escalations - logs when safety keywords are detected
+export const safetyEscalations = pgTable("safety_escalations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  triggerKeyword: varchar("trigger_keyword").notNull(), // The keyword that triggered the escalation
+  context: jsonb("context").notNull(), // Full context: message content, conversation type, etc.
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => [
+  index("safety_escalations_user_idx").on(table.userId),
+]);
+
+export const insertSafetyEscalationSchema = createInsertSchema(safetyEscalations).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertSafetyEscalation = z.infer<typeof insertSafetyEscalationSchema>;
+export type SafetyEscalation = typeof safetyEscalations.$inferSelect;
+
+// Coach memory - long-term memory for AI coach personalization
+export const coachMemory = pgTable("coach_memory", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  memoryType: varchar("memory_type").notNull(), // 'preference', 'progress', 'concern', 'goal', etc.
+  summary: text("summary").notNull(), // Human-readable summary of the memory
+  embedding: jsonb("embedding"), // Vector embedding for semantic retrieval
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => [
+  index("coach_memory_user_idx").on(table.userId),
+  index("coach_memory_type_idx").on(table.memoryType),
+]);
+
+export const insertCoachMemorySchema = createInsertSchema(coachMemory).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertCoachMemory = z.infer<typeof insertCoachMemorySchema>;
+export type CoachMemory = typeof coachMemory.$inferSelect;
+
+// Preference vectors - weights for user preferences (exercise difficulty, types, etc.)
+export const preferenceVectors = pgTable("preference_vectors", {
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  preferenceType: varchar("preference_type").notNull(), // 'exercise_difficulty', 'cardio_preference', 'meal_type', etc.
+  weight: real("weight").notNull().default(0.0), // Numeric weight, adjusted based on feedback
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => [
+  index("preference_vectors_user_idx").on(table.userId),
+  uniqueIndex("preference_vectors_user_type_idx").on(table.userId, table.preferenceType),
+]);
+
+export const insertPreferenceVectorSchema = createInsertSchema(preferenceVectors);
+
+export type InsertPreferenceVector = z.infer<typeof insertPreferenceVectorSchema>;
+export type PreferenceVector = typeof preferenceVectors.$inferSelect;
+
 // Page tile preferences schemas
 export const insertPageTilePreferencesSchema = createInsertSchema(pageTilePreferences).omit({
   id: true,

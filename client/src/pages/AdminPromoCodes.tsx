@@ -134,7 +134,10 @@ export default function AdminPromoCodes() {
   });
 
   const onSubmit = (data: PromoCodeForm) => {
-    createMutation.mutate(data);
+    createMutation.mutate({
+      ...data,
+      tierRestriction: data.tierRestriction === "all" ? null : data.tierRestriction,
+    });
   };
 
   const copyCode = (code: string) => {
@@ -269,7 +272,7 @@ export default function AdminPromoCodes() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="">All tiers</SelectItem>
+                          <SelectItem value="all">All tiers</SelectItem>
                           <SelectItem value="premium">Premium only</SelectItem>
                           <SelectItem value="enterprise">Enterprise only</SelectItem>
                         </SelectContent>

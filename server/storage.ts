@@ -72,6 +72,22 @@ import {
   type InsertMealLibrarySettings,
   type PageTilePreferences,
   type InsertPageTilePreferences,
+  type VoiceSession,
+  type InsertVoiceSession,
+  type ChatFeedback,
+  type InsertChatFeedback,
+  type SafetyEscalation,
+  type InsertSafetyEscalation,
+  type CoachMemory,
+  type InsertCoachMemory,
+  type PreferenceVector,
+  type InsertPreferenceVector,
+  type Subscription,
+  type InsertSubscription,
+  type PromoCode,
+  type InsertPromoCode,
+  type Referral,
+  type InsertReferral,
   users,
   healthRecords,
   biomarkers,
@@ -109,6 +125,11 @@ import {
   mealLibrarySettings,
   messageUsage,
   pageTilePreferences,
+  voiceSessions,
+  chatFeedback,
+  safetyEscalations,
+  coachMemory,
+  preferenceVectors,
 } from "@shared/schema";
 import { eq, desc, and, gte, lte, lt, sql, or, like, count, isNull, inArray } from "drizzle-orm";
 
@@ -386,6 +407,33 @@ export interface IStorage {
   updateReferralStatus(referralCode: string, status: string, convertedAt?: Date): Promise<Referral | undefined>;
   markReferralRewarded(referralCode: string): Promise<Referral | undefined>;
   generateReferralCode(userId: string): Promise<string>;
+  
+  // Voice Chat & Memory methods
+  createVoiceSession(session: InsertVoiceSession): Promise<VoiceSession>;
+  getVoiceSessions(userId: string, limit?: number): Promise<VoiceSession[]>;
+  
+  submitChatFeedback(feedback: InsertChatFeedback): Promise<ChatFeedback>;
+  getChatFeedback(userId: string): Promise<ChatFeedback[]>;
+  getChatFeedbackForMessage(messageId: string): Promise<ChatFeedback | undefined>;
+  
+  logSafetyEscalation(escalation: InsertSafetyEscalation): Promise<SafetyEscalation>;
+  getSafetyEscalations(userId: string, limit?: number): Promise<SafetyEscalation[]>;
+  
+  addCoachMemory(memory: InsertCoachMemory): Promise<CoachMemory>;
+  getCoachMemories(userId: string, memoryType?: string): Promise<CoachMemory[]>;
+  getRelevantMemories(userId: string, queryEmbedding: number[], limit?: number): Promise<CoachMemory[]>;
+  deleteCoachMemory(id: string, userId: string): Promise<void>;
+  deleteAllCoachMemories(userId: string): Promise<void>;
+  
+  updatePreferenceVector(userId: string, preferenceType: string, weight: number): Promise<PreferenceVector>;
+  getPreferenceVectors(userId: string): Promise<PreferenceVector[]>;
+  
+  resetUserMemory(userId: string): Promise<void>; // Forget Me - deletes all memories, preferences, voice sessions
+  getWeeklyReflectionData(userId: string, startDate: Date, endDate: Date): Promise<{
+    voiceSessions: VoiceSession[];
+    memories: CoachMemory[];
+    feedbackCount: number;
+  }>;
 }
 
 export class DbStorage implements IStorage {
@@ -3383,6 +3431,206 @@ export class DbStorage implements IStorage {
     await db.update(users).set({ referralCode }).where(eq(users.id, userId));
     
     return referralCode;
+  }
+  
+  // Voice Chat & Memory implementations
+  async createVoiceSession(session: InsertVoiceSession): Promise<VoiceSession> {
+    const [result] = await db.insert(voiceSessions).values(session).returning();
+    return result;
+  }
+  
+  async getVoiceSessions(userId: string, limit: number = 50): Promise<VoiceSession[]> {
+    return await db
+      .select()
+      .from(voiceSessions)
+      .where(eq(voiceSessions.userId, userId))
+      .orderBy(desc(voiceSessions.createdAt))
+      .limit(limit);
+  }
+  
+  async submitChatFeedback(feedback: InsertChatFeedback): Promise<ChatFeedback> {
+    const [result] = await db.insert(chatFeedback).values(feedback).returning();
+    return result;
+  }
+  
+  async getChatFeedback(userId: string): Promise<ChatFeedback[]> {
+    return await db
+      .select()
+      .from(chatFeedback)
+      .where(eq(chatFeedback.userId, userId))
+      .orderBy(desc(chatFeedback.createdAt));
+  }
+  
+  async getChatFeedbackForMessage(messageId: string): Promise<ChatFeedback | undefined> {
+    const results = await db
+      .select()
+      .from(chatFeedback)
+      .where(eq(chatFeedback.messageId, messageId));
+    return results[0];
+  }
+  
+  async logSafetyEscalation(escalation: InsertSafetyEscalation): Promise<SafetyEscalation> {
+    const [result] = await db.insert(safetyEscalations).values(escalation).returning();
+    return result;
+  }
+  
+  async getSafetyEscalations(userId: string, limit: number = 100): Promise<SafetyEscalation[]> {
+    return await db
+      .select()
+      .from(safetyEscalations)
+      .where(eq(safetyEscalations.userId, userId))
+      .orderBy(desc(safetyEscalations.createdAt))
+      .limit(limit);
+  }
+  
+  async addCoachMemory(memory: InsertCoachMemory): Promise<CoachMemory> {
+    const [result] = await db.insert(coachMemory).values(memory).returning();
+    return result;
+  }
+  
+  async getCoachMemories(userId: string, memoryType?: string): Promise<CoachMemory[]> {
+    const query = memoryType
+      ? db.select().from(coachMemory).where(and(eq(coachMemory.userId, userId), eq(coachMemory.memoryType, memoryType)))
+      : db.select().from(coachMemory).where(eq(coachMemory.userId, userId));
+    
+    return await query.orderBy(desc(coachMemory.createdAt));
+  }
+  
+  async getRelevantMemories(userId: string, queryEmbedding: number[], limit: number = 5): Promise<CoachMemory[]> {
+    // Defensive check: ensure queryEmbedding is valid
+    if (!queryEmbedding || !Array.isArray(queryEmbedding) || queryEmbedding.length === 0) {
+      console.warn("getRelevantMemories: Invalid queryEmbedding provided");
+      return [];
+    }
+    
+    // Get all memories for the user
+    const userMemories = await db
+      .select()
+      .from(coachMemory)
+      .where(eq(coachMemory.userId, userId));
+    
+    // Calculate cosine similarity for each memory with embedding
+    const memoriesWithSimilarity = userMemories
+      .filter(m => {
+        // Only include memories with valid embeddings that match queryEmbedding length
+        if (!m.embedding || !Array.isArray(m.embedding)) return false;
+        const memoryEmbedding = m.embedding as number[];
+        if (memoryEmbedding.length !== queryEmbedding.length) {
+          console.warn(`getRelevantMemories: Embedding length mismatch for memory ${m.id}`);
+          return false;
+        }
+        return true;
+      })
+      .map(memory => {
+        const memoryEmbedding = memory.embedding as number[];
+        const similarity = this.cosineSimilarity(queryEmbedding, memoryEmbedding);
+        return { ...memory, similarity };
+      })
+      .sort((a, b) => b.similarity - a.similarity)
+      .slice(0, limit);
+    
+    return memoriesWithSimilarity;
+  }
+  
+  private cosineSimilarity(a: number[], b: number[]): number {
+    if (a.length !== b.length) return 0;
+    
+    let dotProduct = 0;
+    let normA = 0;
+    let normB = 0;
+    
+    for (let i = 0; i < a.length; i++) {
+      dotProduct += a[i] * b[i];
+      normA += a[i] * a[i];
+      normB += b[i] * b[i];
+    }
+    
+    if (normA === 0 || normB === 0) return 0;
+    
+    return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+  }
+  
+  async deleteCoachMemory(id: string, userId: string): Promise<void> {
+    await db
+      .delete(coachMemory)
+      .where(and(eq(coachMemory.id, id), eq(coachMemory.userId, userId)));
+  }
+  
+  async deleteAllCoachMemories(userId: string): Promise<void> {
+    await db.delete(coachMemory).where(eq(coachMemory.userId, userId));
+  }
+  
+  async updatePreferenceVector(userId: string, preferenceType: string, weight: number): Promise<PreferenceVector> {
+    // Use upsert pattern: try to insert, on conflict update
+    const [result] = await db
+      .insert(preferenceVectors)
+      .values({ userId, preferenceType, weight, updatedAt: new Date() })
+      .onConflictDoUpdate({
+        target: [preferenceVectors.userId, preferenceVectors.preferenceType],
+        set: { weight, updatedAt: new Date() }
+      })
+      .returning();
+    return result;
+  }
+  
+  async getPreferenceVectors(userId: string): Promise<PreferenceVector[]> {
+    return await db
+      .select()
+      .from(preferenceVectors)
+      .where(eq(preferenceVectors.userId, userId));
+  }
+  
+  async resetUserMemory(userId: string): Promise<void> {
+    // Delete all coach memories, preference vectors, voice sessions, and chat feedback
+    // Use transaction to ensure all-or-nothing deletion (prevent partial data clearing)
+    await db.transaction(async (tx) => {
+      await Promise.all([
+        tx.delete(coachMemory).where(eq(coachMemory.userId, userId)),
+        tx.delete(preferenceVectors).where(eq(preferenceVectors.userId, userId)),
+        tx.delete(voiceSessions).where(eq(voiceSessions.userId, userId)),
+        tx.delete(chatFeedback).where(eq(chatFeedback.userId, userId)),
+      ]);
+    });
+  }
+  
+  async getWeeklyReflectionData(userId: string, startDate: Date, endDate: Date): Promise<{
+    voiceSessions: VoiceSession[];
+    memories: CoachMemory[];
+    feedbackCount: number;
+  }> {
+    const [sessions, memories, feedbackResults] = await Promise.all([
+      db.select()
+        .from(voiceSessions)
+        .where(and(
+          eq(voiceSessions.userId, userId),
+          gte(voiceSessions.createdAt, startDate),
+          lte(voiceSessions.createdAt, endDate)
+        ))
+        .orderBy(desc(voiceSessions.createdAt)),
+      
+      db.select()
+        .from(coachMemory)
+        .where(and(
+          eq(coachMemory.userId, userId),
+          gte(coachMemory.createdAt, startDate),
+          lte(coachMemory.createdAt, endDate)
+        ))
+        .orderBy(desc(coachMemory.createdAt)),
+      
+      db.select({ count: count() })
+        .from(chatFeedback)
+        .where(and(
+          eq(chatFeedback.userId, userId),
+          gte(chatFeedback.createdAt, startDate),
+          lte(chatFeedback.createdAt, endDate)
+        ))
+    ]);
+    
+    return {
+      voiceSessions: sessions,
+      memories,
+      feedbackCount: feedbackResults[0]?.count || 0,
+    };
   }
 }
 
