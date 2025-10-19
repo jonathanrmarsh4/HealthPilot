@@ -49,6 +49,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { WorkoutFeedbackModal, WorkoutFeedback } from "@/components/WorkoutFeedbackModal";
 
 interface Exercise {
   id: string;
@@ -558,6 +559,7 @@ export default function WorkoutSession() {
   // Store progressive overload suggestions and track auto-populated sets
   const [progressiveSuggestions, setProgressiveSuggestions] = useState<Map<string, ProgressiveOverloadSuggestion>>(new Map());
   const [autoPopulatedSetIds, setAutoPopulatedSetIds] = useState<Set<string>>(new Set());
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
 
   // Fetch progressive overload suggestions for all exercises
   useEffect(() => {
@@ -739,10 +741,34 @@ export default function WorkoutSession() {
       
       toast({
         title: "Workout Complete!",
-        description: "Great job on your workout. Muscle group progress tracked.",
+        description: "Great job on your workout. Please share your feedback.",
       });
       
-      // Navigate after all data is refreshed
+      // Show feedback modal instead of navigating immediately
+      setShowFeedbackModal(true);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Submit workout feedback mutation
+  const submitFeedbackMutation = useMutation({
+    mutationFn: async (feedback: WorkoutFeedback) => {
+      return await apiRequest("POST", `/api/workout-sessions/${sessionId}/feedback`, feedback);
+    },
+    onSuccess: () => {
+      setShowFeedbackModal(false);
+      toast({
+        title: "Feedback Submitted",
+        description: "Thank you for your feedback! We'll use it to improve your future workouts.",
+      });
+      
+      // Navigate to training page
       navigate("/training");
     },
     onError: (error: Error) => {
@@ -753,6 +779,17 @@ export default function WorkoutSession() {
       });
     },
   });
+
+  // Handle feedback submission
+  const handleSubmitFeedback = (feedback: WorkoutFeedback) => {
+    submitFeedbackMutation.mutate(feedback);
+  };
+
+  // Handle skipping feedback (navigate directly)
+  const handleSkipFeedback = () => {
+    setShowFeedbackModal(false);
+    navigate("/training");
+  };
 
   // Complete set and start rest timer
   const handleCompleteSet = (set: ExerciseSet, exercise: Exercise) => {
@@ -1157,6 +1194,16 @@ export default function WorkoutSession() {
           </Button>
         </DialogContent>
       </Dialog>
+
+      {/* Workout Feedback Modal */}
+      <WorkoutFeedbackModal
+        open={showFeedbackModal}
+        onOpenChange={(open) => {
+          if (!open) handleSkipFeedback();
+        }}
+        exercises={exercises.map(e => e.name)}
+        onSubmit={handleSubmitFeedback}
+      />
     </div>
   );
 }

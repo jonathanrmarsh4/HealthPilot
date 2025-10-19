@@ -4432,7 +4432,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           // Category and tracking type detection (most specific first)
           // Cardio exercises (distance_duration)
+          // Cardio exercises with distance + duration tracking
           if (nameLower.includes('running') || nameLower.includes('jogging') || nameLower.includes('run') || nameLower.includes('jog')) {
+            category = 'cardio';
+            trackingType = 'distance_duration';
+            equipment = 'bodyweight';
+          }
+          else if (nameLower.includes('walking') || nameLower.includes('walk')) {
             category = 'cardio';
             trackingType = 'distance_duration';
             equipment = 'bodyweight';
@@ -4452,7 +4458,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
             trackingType = 'distance_duration';
             equipment = 'other';
           }
-          // Flexibility exercises (duration_only)
+          else if (nameLower.includes('elliptical')) {
+            category = 'cardio';
+            trackingType = 'distance_duration';
+            equipment = 'machine';
+          }
+          // Isometric holds and flexibility exercises (duration_only)
+          else if (nameLower.includes('plank')) {
+            category = 'strength';
+            trackingType = 'duration_only';
+            equipment = 'bodyweight';
+          }
+          else if (nameLower.includes('wall sit')) {
+            category = 'strength';
+            trackingType = 'duration_only';
+            equipment = 'bodyweight';
+          }
+          else if (nameLower.includes('hollow hold') || nameLower.includes('dead hang')) {
+            category = 'strength';
+            trackingType = 'duration_only';
+            equipment = 'bodyweight';
+          }
           else if (nameLower.includes('stretch') || nameLower.includes('yoga') || nameLower.includes('mobility')) {
             category = 'flexibility';
             trackingType = 'duration_only';
@@ -4460,7 +4486,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
           // Bodyweight strength exercises (bodyweight_reps)
           else if (nameLower.includes('push-up') || nameLower.includes('pushup') || nameLower.includes('pull-up') || nameLower.includes('pullup') || 
-                   nameLower.includes('chin-up') || nameLower.includes('dip') || nameLower.includes('bodyweight')) {
+                   nameLower.includes('chin-up') || nameLower.includes('dip') || nameLower.includes('sit-up') || nameLower.includes('situp') ||
+                   nameLower.includes('crunch') || nameLower.includes('bodyweight')) {
             category = 'strength';
             trackingType = 'bodyweight_reps';
             equipment = 'bodyweight';
@@ -4477,10 +4504,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             else if (nameLower.includes('machine')) equipment = 'machine';
             else if (nameLower.includes('kettlebell')) equipment = 'kettlebell';
             else if (nameLower.includes('band')) equipment = 'band';
-            else if (nameLower.includes('plank')) {
-              trackingType = 'duration_only';
-              equipment = 'bodyweight';
-            }
           }
           
           // Muscle group detection

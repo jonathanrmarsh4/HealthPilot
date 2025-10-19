@@ -91,14 +91,15 @@ export function MuscleGroupHeatmap() {
 
   const muscleGroupsWithStatus = ALL_MUSCLE_GROUPS.map((group) => {
     const data = muscleGroupMap.get(group);
+    const statusInfo = getTrainingStatus(data?.timesTrainedInPeriod || 0);
     return {
       group,
-      label: MUSCLE_GROUP_LABELS[group],
+      muscleGroupLabel: MUSCLE_GROUP_LABELS[group],
       timesTrainedInPeriod: data?.timesTrainedInPeriod || 0,
       lastTrained: data?.lastTrained,
       totalSets: data?.totalSets || 0,
       totalVolume: data?.totalVolume || 0,
-      ...getTrainingStatus(data?.timesTrainedInPeriod || 0),
+      ...statusInfo,
     };
   });
 
@@ -172,7 +173,7 @@ export function MuscleGroupHeatmap() {
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2 flex-1 min-w-0">
                         <Icon className={`h-4 w-4 flex-shrink-0 ${muscle.color}`} />
-                        <span className="font-medium text-sm">{muscle.label}</span>
+                        <span className="font-medium text-sm">{muscle.muscleGroupLabel}</span>
                       </div>
                       <div className="flex items-center gap-3">
                         <Badge variant="outline" className="text-xs font-mono" data-testid={`frequency-${muscle.group}`}>

@@ -251,7 +251,10 @@ export const exerciseSets = pgTable("exercise_sets", {
   restStartedAt: timestamp("rest_started_at"), // when rest timer started after completing this set
   tempo: text("tempo"), // override default tempo for this set
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (table) => ({
+  // Index for fast queries to get last weight/distance/duration by user and exercise
+  userExerciseCreatedIdx: index("exercise_sets_user_exercise_created_idx").on(table.userId, table.exerciseId, table.createdAt),
+}));
 
 // Session PRs - track personal records achieved in a session
 export const sessionPRs = pgTable("session_prs", {
@@ -279,6 +282,57 @@ export const muscleGroupEngagements = pgTable("muscle_group_engagements", {
   // Index for fast queries by user and date range
   index("muscle_group_engagements_user_created_idx").on(table.userId, table.createdAt),
 ]);
+
+// Training Load Sessions - session-level metrics for training load analysis and progressive overload
+export const trainingLoadSessions = pgTable("training_load_sessions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  workoutSessionId: varchar("workout_session_id").notNull(),
+  // Session metrics
+  totalVolume: real("total_volume"), // Sum of (weight * reps) across all sets
+  totalTonnage: real("total_tonnage"), // Alternative calculation for total work
+  avgIntensity: real("avg_intensity"), // Average % of 1RM across all sets
+  peakRPE: integer("peak_rpe"), // Highest RPE recorded in session (1-10 scale)
+  estimatedOneRepMax: real("estimated_one_rep_max"), // Estimated 1RM for primary lift
+  // Completion status
+  completionStatus: text("completion_status").notNull().default("completed"), // 'completed', 'partial', 'skipped'
+  // User feedback (denormalized for easy access)
+  overallDifficulty: integer("overall_difficulty"), // 1-5 scale (1=too easy, 5=too hard)
+  fatigueLevel: integer("fatigue_level"), // 1-5 scale (1=energized, 5=exhausted)
+  enjoymentRating: integer("enjoyment_rating"), // 1-5 scale (1=disliked, 5=loved)
+  wouldRepeat: integer("would_repeat"), // 1 if user would do this workout again, 0 if not, null if not answered
+  exercisesTooEasy: text("exercises_too_easy").array(), // List of exercise names that felt too easy
+  exercisesTooHard: text("exercises_too_hard").array(), // List of exercise names that felt too hard
+  painOrDiscomfort: text("pain_or_discomfort"), // Free text description of any pain/discomfort
+  feedbackNotes: text("feedback_notes"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  // Index for fast queries by user and creation date (for historical analysis)
+  userCreatedIdx: index("training_load_sessions_user_created_idx").on(table.userId, table.createdAt),
+}));
+
+// Exercise Set Details - per-set tracking with detailed metrics for progressive overload and AI adaptation
+export const exerciseSetDetails = pgTable("exercise_set_details", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  trainingLoadSessionId: varchar("training_load_session_id").notNull(),
+  exerciseName: text("exercise_name").notNull(),
+  setIndex: integer("set_index").notNull(), // 1, 2, 3, etc.
+  // Performance tracking
+  weight: real("weight"), // in kg (for strength exercises)
+  reps: integer("reps"), // actual reps completed (for strength exercises)
+  distance: real("distance"), // in km (for cardio exercises)
+  duration: integer("duration"), // in seconds (for cardio/isometric holds)
+  rpe: integer("rpe"), // Rate of Perceived Exertion 1-10
+  // Feedback
+  difficultyRating: integer("difficulty_rating"), // 1-5 scale (1=too easy, 5=too hard)
+  formQuality: integer("form_quality"), // 1-5 scale (1=poor form, 5=perfect form)
+  notes: text("notes"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  // Index for fast queries to get last weight/distance/duration by user and exercise
+  userExerciseCreatedIdx: index("exercise_set_details_user_exercise_created_idx").on(table.userId, table.exerciseName, table.createdAt),
+}));
 
 export const recommendations = pgTable("recommendations", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

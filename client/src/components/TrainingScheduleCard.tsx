@@ -98,20 +98,6 @@ function getExerciseMuscleGroups(exerciseName: string): string[] {
   return ['Full Body'];
 }
 
-const muscleGroupColors: Record<string, string> = {
-  'Chest': 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
-  'Back': 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20',
-  'Legs': 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20',
-  'Shoulders': 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20',
-  'Arms': 'bg-pink-500/10 text-pink-600 dark:text-pink-400 border-pink-500/20',
-  'Core': 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/20',
-  'Glutes': 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20',
-  'Calves': 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20',
-  'Cardio': 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/20',
-  'Flexibility': 'bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/20',
-  'Full Body': 'bg-gray-500/10 text-gray-600 dark:text-gray-400 border-gray-500/20',
-};
-
 interface TrainingScheduleCardProps {
   id?: string;
   day: string;
@@ -235,24 +221,17 @@ export function TrainingScheduleCard({
                     className="rounded-md bg-muted/50 px-3 py-2"
                     data-testid={`exercise-item-${idx}`}
                   >
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="font-medium text-sm">{exercise.name}</span>
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="font-medium text-sm">{exercise.name}</div>
+                        <div className="text-xs text-muted-foreground mt-0.5" data-testid={`muscle-groups-${idx}`}>
+                          {muscleGroups.join(' • ')}
+                        </div>
+                      </div>
                       <span className="font-mono text-xs text-muted-foreground">
                         {exercise.sets && exercise.reps && `${exercise.sets}x${exercise.reps}`}
                         {exercise.duration}
                       </span>
-                    </div>
-                    <div className="flex gap-1 flex-wrap">
-                      {muscleGroups.map((group) => (
-                        <Badge
-                          key={group}
-                          variant="outline"
-                          className={`text-[10px] px-1.5 py-0 h-4 ${muscleGroupColors[group] || muscleGroupColors['Full Body']}`}
-                          data-testid={`badge-muscle-${group.toLowerCase()}`}
-                        >
-                          {group}
-                        </Badge>
-                      ))}
                     </div>
                   </div>
                 );
