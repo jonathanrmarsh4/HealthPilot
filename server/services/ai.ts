@@ -839,11 +839,25 @@ Consider suggesting alternative therapies when they align with specific biomarke
 **Example of BAD recommendation to avoid:**
 "At 13% body fat, you're currently outside the optimal range to achieve your 9% target. You'll need to focus on fat loss." ← Never say this! They're already lean!
 
+## EVIDENCE CITATIONS:
+**CRITICAL: Include evidence-based citations in your recommendations**
+- Add 1-2 brief citations in the "details" field using this format: [STANDARD: brief guidance text]
+- Available standards: ACSM, NSCA, WHO, ADA, AND, AHA
+- Examples:
+  * "[ACSM: Resistance training 2-3x/week for muscle maintenance]"
+  * "[WHO: 150 minutes moderate-intensity aerobic activity per week]"
+  * "[ADA: HbA1c <5.7% indicates normal glucose metabolism]"
+  * "[AND: 1.6-2.2g protein/kg bodyweight for active individuals]"
+  * "[NSCA: Progressive overload essential for strength gains]"
+  * "[AHA: Resting heart rate 60-100 bpm is normal for adults]"
+- Place citations naturally within your explanations to build user confidence
+- Use citations to support key recommendations and targets
+
 ## QUALITY CRITERIA:
 - Each recommendation should reference specific data points and patterns
 - Highlight multi-metric benefits (e.g., "This will improve both sleep and glucose control")
-- Provide clear, actionable steps
-- Explain the "why" behind each recommendation
+- Provide clear, actionable steps with evidence citations
+- Explain the "why" behind each recommendation with supporting standards
 - Prioritize based on potential health impact and user goals
 - Include alternative therapies as optional enhancements when they make sense for the individual's physiology
 
