@@ -710,27 +710,61 @@ export default function Dashboard() {
       {/* All Widgets - Fully Manageable with Respected Order */}
       {optionalWidgets.some(w => isVisible(w)) && (
         <div className="space-y-6">
-          {optionalWidgets.map(widget => {
-            if (!isVisible(widget)) return null;
+          {(() => {
+            const visibleWidgets = optionalWidgets.filter(w => isVisible(w));
+            const groups: JSX.Element[] = [];
+            let currentGrid3Col: string[] = [];
+            let currentGrid2Col: string[] = [];
             
-            if (widget === 'quick-stats' || widget === 'health-metrics') {
-              return <div key={widget}>{renderWidget(widget)}</div>;
-            }
+            const getWidgetLayoutType = (w: string): 'full-width' | 'grid-3' | 'grid-2' => {
+              if (w === 'quick-stats' || w === 'health-metrics') return 'full-width';
+              if (w === 'ai-insights' || w === 'data-insights') return 'grid-2';
+              return 'grid-3';
+            };
             
-            if (widget === 'ai-insights' || widget === 'data-insights') {
-              return (
-                <div key={widget} className="grid gap-6 md:grid-cols-2">
-                  {renderWidget(widget)}
-                </div>
-              );
-            }
+            const flushGrid3Col = () => {
+              if (currentGrid3Col.length > 0) {
+                groups.push(
+                  <div key={`grid-3-${groups.length}`} className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                    {currentGrid3Col.map(w => renderWidget(w))}
+                  </div>
+                );
+                currentGrid3Col = [];
+              }
+            };
             
-            return (
-              <div key={widget} className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {renderWidget(widget)}
-              </div>
-            );
-          })}
+            const flushGrid2Col = () => {
+              if (currentGrid2Col.length > 0) {
+                groups.push(
+                  <div key={`grid-2-${groups.length}`} className="grid gap-6 md:grid-cols-2">
+                    {currentGrid2Col.map(w => renderWidget(w))}
+                  </div>
+                );
+                currentGrid2Col = [];
+              }
+            };
+            
+            visibleWidgets.forEach(widget => {
+              const layoutType = getWidgetLayoutType(widget);
+              
+              if (layoutType === 'full-width') {
+                flushGrid3Col();
+                flushGrid2Col();
+                groups.push(<div key={widget}>{renderWidget(widget)}</div>);
+              } else if (layoutType === 'grid-3') {
+                flushGrid2Col();
+                currentGrid3Col.push(widget);
+              } else if (layoutType === 'grid-2') {
+                flushGrid3Col();
+                currentGrid2Col.push(widget);
+              }
+            });
+            
+            flushGrid3Col();
+            flushGrid2Col();
+            
+            return groups;
+          })()}
         </div>
       )}
     </div>
