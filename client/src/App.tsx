@@ -13,6 +13,7 @@ import { TimezoneProvider } from "@/contexts/TimezoneContext";
 import { OnboardingProvider, useOnboarding } from "@/contexts/OnboardingContext";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { FloatingChat, FloatingChatTrigger } from "@/components/FloatingChat";
+import { useAuth } from "@/hooks/useAuth";
 import { TimezoneDetector } from "@/components/TimezoneDetector";
 import { EulaDialog } from "@/components/EulaDialog";
 import Dashboard from "@/pages/Dashboard";
@@ -97,6 +98,7 @@ function AppLayout() {
   const [hasAutoOpened, setHasAutoOpened] = useState(false);
   const [location] = useLocation();
   const { shouldShowOnboarding, isLoading: onboardingLoading } = useOnboarding();
+  const { user } = useAuth();
   
   const style = {
     "--sidebar-width": "16rem",
@@ -183,7 +185,10 @@ function AppLayout() {
       </div>
 
       {location !== "/chat" && !isChatOpen && (
-        <FloatingChatTrigger onClick={() => setIsChatOpen(true)} />
+        <FloatingChatTrigger 
+          onClick={() => setIsChatOpen(true)} 
+          subscriptionTier={user?.subscriptionTier || 'free'}
+        />
       )}
       
       <FloatingChat 

@@ -439,12 +439,19 @@ export function FloatingChat({ isOpen, onClose, currentPage }: FloatingChatProps
   );
 }
 
-export function FloatingChatTrigger({ onClick }: { onClick: () => void }) {
+export function FloatingChatTrigger({ onClick, subscriptionTier = 'free' }: { onClick: () => void; subscriptionTier?: string }) {
+  const isPremium = subscriptionTier === 'premium' || subscriptionTier === 'enterprise';
+  
+  // Green for premium/enterprise users, purple for free users
+  const buttonClasses = isPremium
+    ? "bg-gradient-to-br from-green-500 to-green-700 hover:from-green-600 hover:to-green-800 border-2 border-green-400 hover:border-green-300"
+    : "bg-gradient-to-br from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800 border-2 border-purple-400 hover:border-purple-300";
+  
   return (
     <Button
       size="icon"
       style={{ position: 'fixed', bottom: '1rem', right: '1rem' }}
-      className="z-40 h-10 w-10 rounded-full shadow-lg bg-gradient-to-br from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800 border-2 border-purple-400 hover:border-purple-300 animate-pulse hover:animate-none transition-all hover:scale-110"
+      className={`z-40 h-10 w-10 rounded-full shadow-lg ${buttonClasses} animate-pulse hover:animate-none transition-all hover:scale-110`}
       onClick={onClick}
       data-testid="button-open-floating-chat"
     >
