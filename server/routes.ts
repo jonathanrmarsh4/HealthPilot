@@ -24,6 +24,23 @@ const adminUserUpdateSchema = z.object({
   subscriptionStatus: z.enum(["active", "inactive", "cancelled", "past_due"]).optional(),
 });
 
+// Zod schemas for voice chat endpoints
+const chatFeedbackSchema = z.object({
+  messageId: z.string(),
+  feedbackType: z.enum(["thumbs_up", "thumbs_down"]),
+  context: z.string().nullable().optional(),
+});
+
+const voiceSessionSchema = z.object({
+  summary: z.string(),
+  embedding: z.array(z.number()).nullable().optional(),
+});
+
+const safetyEscalationSchema = z.object({
+  triggerKeyword: z.string(),
+  context: z.string().nullable().optional(),
+});
+
 // Helper function to parse biomarker dates with fallback
 function parseBiomarkerDate(dateStr: string | undefined, documentDate: string | undefined, fileDate: Date | undefined): Date {
   // Try the biomarker's specific date first
@@ -9115,6 +9132,149 @@ IMPORTANT: When discussing metrics like weight, HRV, sleep, etc., always use the
       });
     } catch (error: any) {
       console.error("Error monitoring all users:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Voice Chat & Feedback API Endpoints
+  
+  // Submit feedback (thumbs up/down) on AI messages
+  app.post("/api/chat/feedback", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+
+    try {
+      const validationResult = chatFeedbackSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        return res.status(400).json({ 
+          error: "Invalid feedback data", 
+          details: validationResult.error.format() 
+        });
+      }
+
+      const { messageId, feedbackType, context } = validationResult.data;
+
+      const feedback = await storage.submitChatFeedback({
+        messageId,
+        userId,
+        feedbackType,
+        context: context || null,
+      });
+
+      res.json(feedback);
+    } catch (error: any) {
+      console.error("Error submitting chat feedback:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Create voice session summary
+  app.post("/api/voice/session", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+
+    try {
+      const validationResult = voiceSessionSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        return res.status(400).json({ 
+          error: "Invalid voice session data", 
+          details: validationResult.error.format() 
+        });
+      }
+
+      const { summary, embedding } = validationResult.data;
+
+      const session = await storage.createVoiceSession({
+        userId,
+        summary,
+        embedding: embedding || null,
+      });
+
+      res.json(session);
+    } catch (error: any) {
+      console.error("Error creating voice session:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get coach memories (optionally filtered by type)
+  app.get("/api/coach/memory", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+
+    try {
+      const { memoryType } = req.query;
+      
+      const memories = await storage.getCoachMemories(
+        userId,
+        memoryType as string | undefined
+      );
+
+      res.json(memories);
+    } catch (error: any) {
+      console.error("Error getting coach memories:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Delete all user memory (Forget Me functionality)
+  app.delete("/api/coach/memory", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+
+    try {
+      await storage.resetUserMemory(userId);
+
+      res.json({ success: true, message: "All coaching memory deleted" });
+    } catch (error: any) {
+      console.error("Error resetting user memory:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Log safety escalation
+  app.post("/api/safety/escalation", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+
+    try {
+      const validationResult = safetyEscalationSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        return res.status(400).json({ 
+          error: "Invalid safety escalation data", 
+          details: validationResult.error.format() 
+        });
+      }
+
+      const { triggerKeyword, context } = validationResult.data;
+
+      const escalation = await storage.logSafetyEscalation({
+        userId,
+        triggerKeyword,
+        context: context || null,
+      });
+
+      res.json(escalation);
+    } catch (error: any) {
+      console.error("Error logging safety escalation:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get weekly reflection summary
+  app.get("/api/coach/reflection", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+
+    try {
+      // Default to last 7 days
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - 7);
+
+      const reflectionData = await storage.getWeeklyReflectionData(
+        userId,
+        startDate,
+        endDate
+      );
+
+      res.json(reflectionData);
+    } catch (error: any) {
+      console.error("Error getting weekly reflection:", error);
       res.status(500).json({ error: error.message });
     }
   });
