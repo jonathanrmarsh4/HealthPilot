@@ -1,0 +1,99 @@
+🧬 HealthPilot Adaptive Coach Memory Design Framework v1.0
+(Companion to the Voice AI Guardrails Addendum)
+1. Purpose
+To define the memory architecture and adaptive learning framework for the HealthPilot Voice AI Coach.
+This ensures that user interactions, biometric data, and feedback signals are persistently and safely integrated to create a trusted, personalized, and evolving coaching experience.
+2. Design Principles
+Principle	Description
+Safety-first learning	The system may learn preferences and behavior patterns, but never alter clinical or evidence-based safety limits.
+Transparency	The user always knows what the AI remembers, and can reset or forget data on command.
+Personalization through summarization	Memory is stored as abstracted summaries — not raw logs — to balance personalization and privacy.
+Contextual recall	The AI retrieves only the most relevant user data for the current conversation.
+Human-like continuity	Conversations feel continuous (“Last time you said…”), but remain compliant and auditable.
+3. Memory Architecture Overview
+🧱 Three-tier Memory Stack
+Layer	Function	Example Contents	Retention
+Session Memory	Real-time, short-term memory of current dialogue.	User: “I feel tired.” → Coach: “You mentioned low sleep.”	Active only during session
+Long-term Personal Memory	Summarized knowledge about user preferences, progress, biometrics, and habits.	“Prefers morning workouts, dislikes HIIT, HRV trend improving.”	Persistent (until user resets)
+Global Model Memory	Aggregated, anonymized learning across all users to improve general recommendations.	“Users with HRV <40 benefit from longer recovery.”	Aggregated & anonymized only
+4. Memory Data Types
+Type	Source	Example Data	Usage
+Biometric Data	Apple HealthKit, wearables, bloodwork	HRV, sleep duration, VO₂max	Training & recovery adjustment
+Behavioral Data	App interactions, workout logs	Session adherence, skipped workouts	Motivation & scheduling optimization
+Preference Data	User feedback, likes/dislikes	“Prefer bodyweight exercises”	Program personalization
+Contextual Data	Temporal patterns, mood, sentiment	“Feels fatigued Sundays”	Adaptive planning
+Feedback Data	Voice tone analysis, explicit ratings	“That was too easy.”	Difficulty auto-calibration
+5. Learning Process Flow
+🔄 Adaptive Learning Loop
+Input Layer
+Collects all available data: user statements, biometric values, engagement logs.
+Summarization Layer
+Converts raw input into a structured, privacy-safe summary:
+“User completed 4/5 sessions this week.”
+“Expressed lower energy levels and frustration.”
+Embedding + Indexing Layer
+Encodes summaries as semantic vectors for retrieval (e.g., Supabase or Pinecone DB).
+Indexed by user ID and topic tags: ["recovery", "preference", "motivation"].
+Contextual Recall
+When starting a new session, retrieves the top 5 most relevant memory chunks (by cosine similarity) and injects them into system context.
+Feedback Calibration
+Positive feedback strengthens certain behaviors or tones (e.g., more motivational language).
+Negative feedback weakens or suppresses patterns.
+Governed Reinforcement
+All adaptive weighting remains within predefined limits set by HealthPilot Guardrails — no model self-modification beyond tone and preference layers.
+6. Adaptive Learning Controls
+Category	Mechanism	Example
+User Control	“Forget my data” command deletes long-term memory.	“Forget everything you know about my diet.”
+Transparency Prompts	The AI can summarize its understanding when asked.	“Here’s what I’ve learned about your training so far…”
+Feedback Interface	Voice or button feedback modifies internal weights.	“That was too easy” → lower difficulty factor by 10%.
+Review Thresholds	AI never changes exercise intensity, nutrition, or recovery limits beyond predefined evidence standards.	“Increase reps by max 10% week-on-week.”
+Weekly Reflection Summaries	Auto-generated recap sent to user dashboard.	“Week summary: 3 workouts completed, HRV improving, mood positive.”
+7. Data Flow Diagram
+User Voice Input → STT → LLM Reasoning
+         ↓
+  Context Retrieval (Vector DB)
+         ↓
+     Guardrail Validation
+         ↓
+   Response Generation (TTS)
+         ↓
+     Interaction Logging
+         ↓
+   Summary + Embedding Update
+         ↓
+    Weekly Personal Report
+8. Data Privacy & Security Controls
+Rule	Description
+Data Minimization	Only high-level summaries are retained (no raw voice data).
+Encryption	All data encrypted at rest (AES-256) and in transit (TLS 1.2+).
+User Consent	Explicit consent required for memory activation and cross-device sync.
+Auditability	Each summary record is timestamped, versioned, and user-accessible.
+Right to Forget	Immediate deletion upon user request; vector entries are destroyed.
+9. Trust & Humanization Strategies
+Strategy	Purpose	Example Implementation
+Explainability	Build confidence by explaining rationale.	“I’m adjusting your recovery time because your HRV dropped 12%.”
+Continuity of Memory	Refer to past sessions naturally.	“You mentioned shoulder discomfort last week — how’s it today?”
+Tone Calibration	Adjusts based on user sentiment.	Softer tone when user sounds discouraged.
+Predictive Assistance	Anticipate needs.	“Your sleep trend suggests tomorrow might be a lighter day.”
+Micro-celebrations	Reinforce motivation.	“Nice work maintaining consistency for 3 weeks straight!”
+10. Developer Implementation Notes
+Component	Recommended Tooling
+Vector Database	Supabase, Pinecone, or Weaviate
+Embedding Model	text-embedding-3-large (for long-term summaries)
+Summarizer Model	GPT-5-turbo or equivalent context-aware LLM
+Feedback Parser	Lightweight sentiment analysis on STT text
+Memory Retrieval Strategy	Top-k semantic search with context scoring
+Session Context Handling	Auto-truncate or re-summarize to fit token limits
+11. Compliance Alignment
+This framework aligns with:
+ACSM & NSCA: Progression and intensity rules.
+GDPR & HIPAA: Data retention, transparency, and deletion rights.
+ISO 27701: Privacy information management principles.
+HealthPilot Core Guardrails: All evidence-based safety and ethical controls remain active.
+12. Governance
+Memory and personalization models reviewed biannually by the HealthPilot Ethics Committee.
+User satisfaction & trust index tracked as a performance metric (derived from feedback ratio and retention).
+Automatic rollbacks occur if adaptive learning generates inconsistent or unsafe advice.
+13. Example Prompt Injection for Realtime Voice AI
+You can embed this as a system message prefix for the real-time agent:
+“You are the HealthPilot Voice Coach — an AI health companion who learns user preferences and adapts your coaching within safe, evidence-based boundaries. You may use summarized memories retrieved from the HealthPilot Memory Engine to personalize advice, but you must never exceed ACSM/NSCA safety limits or make diagnostic claims. If uncertain, clarify or ask the user before proceeding.”
