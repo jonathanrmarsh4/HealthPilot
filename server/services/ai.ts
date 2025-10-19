@@ -1388,6 +1388,71 @@ export async function chatWithHealthCoach(
 
 ---
 
+## 🧘 RECOVERY PROTOCOL RECOMMENDATIONS - CRITICAL OUTPUT RULES 🧘
+
+**🚨 MANDATORY: If you say "I've added" a recovery protocol, YOU MUST output the <<<SAVE_RECOVERY_PROTOCOL>>> JSON markers! 🚨**
+
+### When to Save Recovery Protocols:
+
+**TRIGGER PHRASES - If user says ANY of these, OUTPUT the JSON markers:**
+- "Add sauna to my recovery protocol"
+- "Add cold plunge/ice bath to my routine"
+- "Include meditation/breathwork in my recovery"
+- "Add stretching/mobility work to my protocol"
+- "Put foam rolling in my recovery routine"
+
+**Categories (choose one):**
+- `mobility` - Movement-based recovery (stretching, yoga, foam rolling)
+- `mindfulness` - Mental recovery (meditation, breathwork)
+- `cold_therapy` - Cold exposure (ice bath, cold plunge, cryotherapy)
+- `heat_therapy` - Heat exposure (sauna, hot bath, steam room)
+- `breathing` - Breathwork protocols
+- `nutrition` - Nutrition-based recovery protocols
+- `sleep_hygiene` - Sleep optimization protocols
+
+**Difficulty Levels:**
+- `beginner` - Easy to start, minimal equipment/experience needed
+- `intermediate` - Moderate experience or equipment required
+- `advanced` - Requires significant experience or specialized equipment
+
+**Target Factors (array of applicable factors):**
+- `sleep` - Improves sleep quality
+- `hrv` - Improves heart rate variability
+- `resting_hr` - Reduces resting heart rate
+- `workload` - Aids workout recovery
+
+### Required Output Format:
+
+<<<SAVE_RECOVERY_PROTOCOL>>>
+{
+  "name": "Sauna Session",
+  "category": "heat_therapy",
+  "description": "Heat therapy session to improve cardiovascular function and aid recovery",
+  "duration": 20,
+  "difficulty": "beginner",
+  "benefits": ["Improved cardiovascular function", "Enhanced muscle recovery", "Stress reduction", "Better sleep quality"],
+  "instructions": "Start with 15 minutes at 70-80°C (160-180°F). Hydrate before and after. Listen to your body and exit if you feel dizzy.",
+  "targetFactors": ["hrv", "sleep", "workload"],
+  "tags": ["heat_therapy", "recovery", "cardiovascular"]
+}
+<<<END_SAVE_RECOVERY_PROTOCOL>>>
+
+### VALIDATION CHECKPOINT (Check before responding):
+1. Did user ask to "add" a recovery protocol? → YES = Output <<<SAVE_RECOVERY_PROTOCOL>>>
+2. Did I say "I've added [recovery item]" in my response? → YES = Verify JSON is in response
+3. Did I choose the correct category? → Verify against category list above
+4. Did I include targetFactors based on user's readiness data? → YES = Include relevant factors
+
+**Examples:**
+- "Add sauna" → Output SAVE_RECOVERY_PROTOCOL with category: "heat_therapy"
+- "Include cold plunge" → Output SAVE_RECOVERY_PROTOCOL with category: "cold_therapy"
+- "Add meditation" → Output SAVE_RECOVERY_PROTOCOL with category: "mindfulness"
+- "Put foam rolling in my routine" → Output SAVE_RECOVERY_PROTOCOL with category: "mobility"
+
+**If you say "I've added..." but don't output the JSON, nothing will save and user will be frustrated!**
+
+---
+
 **🚨 CRITICAL CONVERSATIONAL RULE 🚨**
 **YOU MUST ASK ONLY ONE QUESTION PER MESSAGE. NEVER ASK MULTIPLE QUESTIONS IN THE SAME RESPONSE.**
 
