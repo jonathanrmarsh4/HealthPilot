@@ -1669,7 +1669,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Step 3.5: Analyze user's meal feedback to learn preferences
-      const mealFeedback = await storage.getMealFeedback(userId);
+      const mealFeedback = await storage.getUserMealFeedback(userId);
       const dislikedCuisines = new Set<string>();
       const dislikedDishTypes = new Set<string>();
       const dislikedMealNames = new Set<string>();
@@ -1726,9 +1726,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         feedbackContext += `👍 Preferring dish types: ${Array.from(preferredDishTypes).join(', ')}\n`;
       }
       
-      // Step 4: Delete past meals to keep only current/future meals
-      const deletedCount = await storage.deletePastMealPlans(userId);
-      console.log(`🗑️ Deleted ${deletedCount} past meal(s) for user ${userId}`);
+      // Step 4: Delete ALL existing meal plans before generating new ones
+      // This ensures disliked meals don't persist in regenerated plans
+      const deletedCount = await storage.deleteAllUserMealPlans(userId);
+      console.log(`🗑️ Deleted ${deletedCount} existing meal plan(s) for user ${userId} before regeneration`);
       
       // Step 5: Check existing meals to determine start date
       const existingMeals = await storage.getMealPlans(userId);

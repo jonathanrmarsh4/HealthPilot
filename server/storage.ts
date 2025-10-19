@@ -163,6 +163,7 @@ export interface IStorage {
   getMealPlans(userId: string): Promise<MealPlan[]>;
   updateMealFeedback(mealId: string, userId: string, feedback: string): Promise<MealPlan | undefined>;
   deletePastMealPlans(userId: string): Promise<number>; // Returns count of deleted meals
+  deleteAllUserMealPlans(userId: string): Promise<number>; // Delete ALL meal plans for user
   deleteFutureMealsBeyondDate(userId: string, maxDate: Date): Promise<number>; // Delete meals scheduled after maxDate
   
   createFavoriteRecipe(favorite: InsertFavoriteRecipe): Promise<FavoriteRecipe>;
@@ -833,6 +834,16 @@ export class DbStorage implements IStorage {
           lt(mealPlans.scheduledDate, today)
         )
       )
+      .returning({ id: mealPlans.id });
+    
+    return result.length;
+  }
+
+  async deleteAllUserMealPlans(userId: string): Promise<number> {
+    // Delete ALL meal plans for user (used when regenerating to ensure clean slate)
+    const result = await db
+      .delete(mealPlans)
+      .where(eq(mealPlans.userId, userId))
       .returning({ id: mealPlans.id });
     
     return result.length;
