@@ -1,4 +1,4 @@
-// OCR Service using OpenAI Vision API
+// OCR Service using OpenAI Vision API for images and pdf-parse for PDFs
 // Extracts text from PDF/image medical reports with quality assessment
 
 import { openai } from './client';
@@ -6,49 +6,72 @@ import type { OCROutput } from './types';
 import fs from 'fs/promises';
 
 /**
- * Extract text from a medical report image or PDF using OpenAI Vision API
+ * Extract text from a medical report image or PDF
  * @param filePath - Path to the uploaded file
  * @returns OCR output with extracted text, quality score, and confidence
  */
 export async function extractTextFromFile(filePath: string): Promise<OCROutput> {
   try {
-    // Read the file
-    const fileBuffer = await fs.readFile(filePath);
-    const base64Image = fileBuffer.toString('base64');
-    const mimeType = filePath.endsWith('.pdf') ? 'application/pdf' : 'image/png';
+    const isPDF = filePath.toLowerCase().endsWith('.pdf');
 
-    // Use OpenAI Vision to extract text
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a medical document OCR system. Extract all text from medical reports accurately. Preserve structure, numbers, units, and reference ranges exactly as shown. Output only the extracted text, maintaining the original formatting and layout.',
-        },
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'text',
-              text: 'Extract all text from this medical report. Preserve exact values, units, reference ranges, and structure.',
-            },
-            {
-              type: 'image_url',
-              image_url: {
-                url: `data:${mimeType};base64,${base64Image}`,
+    let extractedText = '';
+
+    if (isPDF) {
+      // Use pdf-parse for PDF files (dynamic import for CommonJS module)
+      console.log('📄 Extracting text from PDF using pdf-parse...');
+      const pdfParse = (await import('pdf-parse')).default;
+      const fileBuffer = await fs.readFile(filePath);
+      const pdfData = await pdfParse(fileBuffer);
+      extractedText = pdfData.text;
+      console.log(`✅ PDF text extracted: ${extractedText.length} characters`);
+    } else {
+      // Use OpenAI Vision API for images (PNG, JPEG, JPG)
+      console.log('🖼️  Extracting text from image using OpenAI Vision API...');
+      const fileBuffer = await fs.readFile(filePath);
+      const base64Image = fileBuffer.toString('base64');
+      
+      // Determine MIME type
+      let mimeType = 'image/png';
+      if (filePath.toLowerCase().endsWith('.jpg') || filePath.toLowerCase().endsWith('.jpeg')) {
+        mimeType = 'image/jpeg';
+      }
+
+      // Use OpenAI Vision to extract text
+      const response = await openai.chat.completions.create({
+        model: 'gpt-4o',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a medical document OCR system. Extract all text from medical reports accurately. Preserve structure, numbers, units, and reference ranges exactly as shown. Output only the extracted text, maintaining the original formatting and layout.',
+          },
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: 'Extract all text from this medical report. Preserve exact values, units, reference ranges, and structure.',
               },
-            },
-          ],
-        },
-      ],
-      max_tokens: 4000,
-    });
+              {
+                type: 'image_url',
+                image_url: {
+                  url: `data:${mimeType};base64,${base64Image}`,
+                },
+              },
+            ],
+          },
+        ],
+        max_tokens: 4000,
+      });
 
-    const extractedText = response.choices[0]?.message?.content || '';
+      extractedText = response.choices[0]?.message?.content || '';
+      console.log(`✅ Image OCR complete: ${extractedText.length} characters`);
+    }
 
     // Assess quality based on text characteristics
     const qualityScore = assessTextQuality(extractedText);
     const confidence = qualityScore > 0.6 ? 0.9 : 0.7;
+
+    console.log(`📊 Quality assessment: score=${qualityScore.toFixed(2)}, confidence=${confidence.toFixed(2)}`);
 
     return {
       text: extractedText,
@@ -56,7 +79,7 @@ export async function extractTextFromFile(filePath: string): Promise<OCROutput> 
       confidence,
     };
   } catch (error) {
-    console.error('OCR extraction error:', error);
+    console.error('❌ OCR extraction error:', error);
     return {
       text: '',
       quality_score: 0,
