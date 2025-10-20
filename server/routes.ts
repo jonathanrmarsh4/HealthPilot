@@ -4428,8 +4428,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         let matchedExercise;
         
-        if (matchResult && matchResult.score >= 30) {
-          // Good match found
+        if (matchResult && matchResult.score >= 60) {
+          // Good match found (minimum 60% confidence to avoid mismatches)
           matchedExercise = matchResult.exercise;
           console.log(`✅ Matched "${planExercise.name}" to database exercise "${matchedExercise.name}" (score: ${matchResult.score})`);
         } else {
