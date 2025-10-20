@@ -9792,6 +9792,26 @@ IMPORTANT: When discussing metrics like weight, HRV, sleep, etc., always use the
     }
   });
 
+  // Clear ExerciseDB cache (useful after upgrading API tier)
+  app.post("/api/exercisedb/clear-cache", isAuthenticated, async (req, res) => {
+    try {
+      const { exerciseDBService } = await import('./services/exercisedb/exercisedb');
+      exerciseDBService.clearCache();
+      
+      // Force a fresh fetch to verify the new tier is working
+      const exercises = await exerciseDBService.getAllExercises();
+      
+      res.json({ 
+        success: true, 
+        message: 'Cache cleared successfully',
+        exerciseCount: exercises.length 
+      });
+    } catch (error: any) {
+      console.error("Error clearing cache:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Proxy endpoint for exercise GIF images (to include auth headers)
   app.get("/api/exercisedb/image", isAuthenticated, async (req, res) => {
     const { exerciseId } = req.query;

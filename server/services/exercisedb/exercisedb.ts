@@ -262,6 +262,17 @@ export class ExerciseDBService {
       return [];
     }
   }
+
+  /**
+   * Clear the exercise cache (useful after upgrading API tier)
+   */
+  clearCache(): void {
+    console.log('[ExerciseDB] Clearing exercise cache...');
+    exerciseCache.clear();
+    allExercisesCache.data = null;
+    allExercisesCache.timestamp = 0;
+    console.log('[ExerciseDB] Cache cleared successfully');
+  }
 }
 
 // Singleton instance
