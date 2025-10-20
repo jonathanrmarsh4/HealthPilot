@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Switch } from "@/components/ui/switch";
 import { ArrowLeft, Tag, Plus, Trash2, Power, Copy, Check } from "lucide-react";
@@ -381,8 +382,9 @@ export default function AdminPromoCodes() {
               ))}
             </div>
           ) : promoCodes && promoCodes.length > 0 ? (
-            <div className="rounded-md border">
-              <Table>
+            <ScrollArea className="w-full">
+              <div className="rounded-md border">
+                <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Code</TableHead>
@@ -479,7 +481,9 @@ export default function AdminPromoCodes() {
                   ))}
                 </TableBody>
               </Table>
-            </div>
+              </div>
+              <ScrollBar orientation="horizontal" />
+            </ScrollArea>
           ) : (
             <div className="text-center py-12 text-muted-foreground" data-testid="text-no-codes">
               <Tag className="w-12 h-12 mx-auto mb-4 opacity-20" />

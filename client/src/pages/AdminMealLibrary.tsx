@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -317,11 +318,12 @@ export default function AdminMealLibrary() {
                   ))}
                 </div>
               ) : (
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead data-testid="table-head-meal">Meal</TableHead>
+                <ScrollArea className="w-full">
+                  <div className="rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead data-testid="table-head-meal">Meal</TableHead>
                         <TableHead data-testid="table-head-cuisines">Cuisines</TableHead>
                         <TableHead data-testid="table-head-served">Served</TableHead>
                         <TableHead data-testid="table-head-conversion">Conversion</TableHead>
@@ -386,7 +388,9 @@ export default function AdminMealLibrary() {
                       ))}
                     </TableBody>
                   </Table>
-                </div>
+                  </div>
+                  <ScrollBar orientation="horizontal" />
+                </ScrollArea>
               )}
             </CardContent>
           </Card>
@@ -408,8 +412,9 @@ export default function AdminMealLibrary() {
                   ))}
                 </div>
               ) : lowPerformingMeals && lowPerformingMeals.length > 0 ? (
-                <div className="rounded-md border">
-                  <Table>
+                <ScrollArea className="w-full">
+                  <div className="rounded-md border">
+                    <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead data-testid="table-head-meal-del">Meal</TableHead>
@@ -476,7 +481,9 @@ export default function AdminMealLibrary() {
                       })}
                     </TableBody>
                   </Table>
-                </div>
+                  </div>
+                  <ScrollBar orientation="horizontal" />
+                </ScrollArea>
               ) : (
                 <div className="text-center py-8 text-muted-foreground" data-testid="text-no-deletions">
                   No meals flagged for deletion

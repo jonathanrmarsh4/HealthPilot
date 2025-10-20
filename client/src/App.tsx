@@ -162,7 +162,7 @@ function AppLayout() {
 
   return (
     <SidebarProvider style={style as React.CSSProperties}>
-      <div className="flex h-screen w-full">
+      <div className="flex h-screen w-full overflow-x-hidden">
         <AppSidebar />
         <div className="flex flex-col flex-1 overflow-hidden">
           <header className="flex items-center justify-between p-4 border-b border-border shrink-0">
@@ -180,7 +180,7 @@ function AppLayout() {
               </Button>
             </div>
           </header>
-          <main className="flex-1 overflow-auto p-4 md:p-6 lg:p-8">
+          <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 lg:p-8">
             <ErrorBoundary>
               <Router />
             </ErrorBoundary>

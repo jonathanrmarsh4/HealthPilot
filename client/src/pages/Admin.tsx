@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Shield, Users, TrendingUp, FileText, Activity, Search, Trash2, ChefHat, Tag, ArrowRight } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -313,18 +314,19 @@ export default function Admin() {
             </div>
           ) : (
             <>
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead data-testid="table-head-user">User</TableHead>
-                      <TableHead data-testid="table-head-role">Role</TableHead>
-                      <TableHead data-testid="table-head-subscription">Subscription</TableHead>
-                      <TableHead data-testid="table-head-status">Status</TableHead>
-                      <TableHead data-testid="table-head-actions">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
+              <ScrollArea className="w-full">
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead data-testid="table-head-user">User</TableHead>
+                        <TableHead data-testid="table-head-role">Role</TableHead>
+                        <TableHead data-testid="table-head-subscription">Subscription</TableHead>
+                        <TableHead data-testid="table-head-status">Status</TableHead>
+                        <TableHead data-testid="table-head-actions">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
                     {usersData?.users.map((user) => (
                       <TableRow key={user.id} data-testid={`row-user-${user.id}`}>
                         <TableCell data-testid={`cell-user-info-${user.id}`}>
@@ -398,7 +400,9 @@ export default function Admin() {
                     ))}
                   </TableBody>
                 </Table>
-              </div>
+                </div>
+                <ScrollBar orientation="horizontal" />
+              </ScrollArea>
 
               {totalPages > 1 && (
                 <div className="flex items-center justify-between">
