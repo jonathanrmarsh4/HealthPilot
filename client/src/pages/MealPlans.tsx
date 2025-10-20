@@ -47,7 +47,10 @@ export default function MealPlans() {
       const res = await apiRequest("POST", "/api/meal-plans/generate");
       if (!res.ok) {
         const errorData = await res.json();
-        throw new Error(errorData.message || errorData.error || "Failed to generate meal plan");
+        // Include status code in error for upgrade prompt handling
+        const error: any = new Error(errorData.message || errorData.error || "Failed to generate meal plan");
+        error.status = res.status;
+        throw error;
       }
       return res.json();
     },
@@ -58,9 +61,16 @@ export default function MealPlans() {
         description: "New meal plan generated successfully!",
       });
     },
-    onError: (error: Error) => {
+    onError: (error: any) => {
+      // If premium tier required, show upgrade prompt
+      if (error.status === 402 || error.status === 403) {
+        setUpgradePromptOpen(true);
+        return;
+      }
+      
+      // Otherwise show error toast
       toast({
-        title: "Nutrition Data Missing",
+        title: "Error",
         description: error.message || "Failed to generate meal plan. Please ensure the meal library has nutrition data.",
         variant: "destructive",
       });
@@ -70,11 +80,8 @@ export default function MealPlans() {
   const isPremium = user?.subscriptionTier === "premium" || user?.subscriptionTier === "enterprise" || user?.role === "admin";
 
   const handleGenerateClick = () => {
-    if (!isPremium) {
-      setUpgradePromptOpen(true);
-    } else {
-      generateMutation.mutate();
-    }
+    // Always try the mutation - let backend handle premium check
+    generateMutation.mutate();
   };
 
   return (
