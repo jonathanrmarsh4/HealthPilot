@@ -3255,6 +3255,8 @@ export class DbStorage implements IStorage {
     cuisines?: string[];
     count?: number;
   }): Promise<MealLibrary[]> {
+    console.log(`🔍 getFilteredMealLibraryItems called with filters:`, JSON.stringify(filters, null, 2));
+    
     // Get user's meal feedback to exclude ALL dislike types and boost thumbs up
     const userFeedback = await this.getUserMealFeedback(userId);
     const dislikedMealIds = userFeedback
@@ -3265,6 +3267,8 @@ export class DbStorage implements IStorage {
       .filter(f => f.feedback === 'thumbs_up')
       .map(f => f.mealLibraryId)
       .filter(id => id != null);
+    
+    console.log(`📊 Disliked meal IDs: ${dislikedMealIds.length}, Thumbs up IDs: ${thumbsUpIds.length}`);
 
     // Get active meals from library
     let query = db
@@ -3300,17 +3304,24 @@ export class DbStorage implements IStorage {
       
       // Map common diet names to Spoonacular equivalents
       let dietToSearch = filters.diet.toLowerCase();
+      console.log(`🥗 Original diet filter: "${filters.diet}" → "${dietToSearch}"`);
+      
       if (dietToSearch === 'low-carb') {
         dietToSearch = 'ketogenic'; // Map low-carb to ketogenic
+        console.log(`🔄 Mapped "low-carb" → "ketogenic"`);
       } else if (dietToSearch === 'whole30') {
         dietToSearch = 'whole 30';
+        console.log(`🔄 Mapped "whole30" → "whole 30"`);
       }
       
       // Only apply filter if it's a valid Spoonacular diet type
       if (validSpoonacularDiets.includes(dietToSearch)) {
+        console.log(`✅ Diet "${dietToSearch}" is valid, adding to SQL conditions`);
         conditions.push(
           sql`${dietToSearch} = ANY(${mealLibrary.diets})`
         );
+      } else {
+        console.log(`⚠️ Diet "${dietToSearch}" is NOT valid, skipping diet filter`);
       }
     }
 
@@ -3341,10 +3352,15 @@ export class DbStorage implements IStorage {
       query = query.where(and(...conditions)) as any;
     }
 
+    console.log(`🔎 SQL conditions applied: ${conditions.length} total`);
+    
     // Get all matching meals
     const allMeals = await query;
 
+    console.log(`📊 SQL query returned ${allMeals.length} meals`);
+    
     if (allMeals.length === 0) {
+      console.log(`❌ No meals found matching filters`);
       return [];
     }
 
