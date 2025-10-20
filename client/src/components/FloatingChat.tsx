@@ -543,12 +543,10 @@ export function FloatingChat({ isOpen, onClose, currentPage }: FloatingChatProps
   };
 
   useEffect(() => {
-    if (!isOpen) {
-      setIsMinimized(false);
-    } else {
+    if (isOpen) {
       // Increment session ID to trigger new timestamp and reset chat UI
       setSessionId(prev => prev + 1);
-      // Keep minimized by default for better UX during debugging
+      // Keep minimized by default, especially during onboarding
       setIsMinimized(true);
     }
   }, [isOpen]);
@@ -737,15 +735,17 @@ export function FloatingChat({ isOpen, onClose, currentPage }: FloatingChatProps
                   <Trash2 className="h-4 w-4" />
                 </Button>
               )}
-              <Button
-                size="icon"
-                variant="ghost"
-                onClick={() => setIsMinimized(!isMinimized)}
-                className="h-8 w-8 text-white hover:bg-white/20"
-                data-testid="button-minimize-chat"
-              >
-                <Minimize2 className="h-4 w-4" />
-              </Button>
+              {!isOnboarding && (
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => setIsMinimized(!isMinimized)}
+                  className="h-8 w-8 text-white hover:bg-white/20"
+                  data-testid="button-minimize-chat"
+                >
+                  <Minimize2 className="h-4 w-4" />
+                </Button>
+              )}
               <Button
                 size="icon"
                 variant="ghost"
