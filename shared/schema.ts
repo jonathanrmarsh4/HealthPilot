@@ -85,6 +85,26 @@ export const healthRecords = pgTable("health_records", {
   extractedData: jsonb("extracted_data"),
 });
 
+export const medicalReports = pgTable("medical_reports", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  filePath: text("file_path").notNull(), // Path to uploaded PDF/image
+  fileName: text("file_name").notNull(), // Original filename
+  reportType: text("report_type"), // Observation_Labs, Cardiac_ECG, DiagnosticReport_Imaging, etc. - null until classified
+  sourceFormat: text("source_format").notNull(), // PDF, PDF_OCR, Image_OCR, FHIR_JSON, HL7, CSV, JSON, XML, DICOM, TXT
+  rawDataJson: jsonb("raw_data_json"), // OCR/parsed text output
+  interpretedDataJson: jsonb("interpreted_data_json"), // Full interpretation result matching spec schema.root
+  status: text("status").notNull().default("pending"), // pending, processing, interpreted, discarded, failed
+  confidenceScores: jsonb("confidence_scores"), // { type_detection, extraction, normalization, overall }
+  userFeedback: text("user_feedback"), // Discard message if status=discarded
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  processedAt: timestamp("processed_at"), // When interpretation completed
+}, (table) => [
+  index("medical_reports_user_id_idx").on(table.userId),
+  index("medical_reports_status_idx").on(table.status),
+  index("medical_reports_report_type_idx").on(table.reportType),
+]);
+
 export const biomarkers = pgTable("biomarkers", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull(),
@@ -508,6 +528,11 @@ export const aiActions = pgTable("ai_actions", {
 export const insertHealthRecordSchema = createInsertSchema(healthRecords).omit({
   id: true,
   uploadedAt: true,
+});
+
+export const insertMedicalReportSchema = createInsertSchema(medicalReports).omit({
+  id: true,
+  createdAt: true,
 });
 
 export const insertBiomarkerSchema = createInsertSchema(biomarkers).omit({
@@ -942,6 +967,9 @@ export type User = typeof users.$inferSelect;
 
 export type InsertHealthRecord = z.infer<typeof insertHealthRecordSchema>;
 export type HealthRecord = typeof healthRecords.$inferSelect;
+
+export type InsertMedicalReport = z.infer<typeof insertMedicalReportSchema>;
+export type MedicalReport = typeof medicalReports.$inferSelect;
 
 export type InsertBiomarker = z.infer<typeof insertBiomarkerSchema>;
 export type Biomarker = typeof biomarkers.$inferSelect;

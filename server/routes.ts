@@ -9,6 +9,8 @@ import { analyzeHealthDocument, generateMealPlan, generateTrainingSchedule, gene
 import { buildGuardrailsSystemPrompt } from "./config/guardrails";
 import { calculatePhenoAge, getBiomarkerDisplayName, getBiomarkerUnit, getBiomarkerSource } from "./services/phenoAge";
 import { calculateReadinessScore } from "./services/readiness";
+import { runInterpretationPipeline } from "./services/medical-interpreter/pipeline";
+import { extractBiomarkersFromLabs } from "./services/medical-interpreter/biomarkerExtractor";
 import { parseISO, isValid, subDays } from "date-fns";
 import { eq, and, gte, or, inArray } from "drizzle-orm";
 import { isAuthenticated, isAdmin, webhookAuth } from "./replitAuth";
@@ -9373,6 +9375,179 @@ IMPORTANT: When discussing metrics like weight, HRV, sleep, etc., always use the
       res.json(reflectionData);
     } catch (error: any) {
       console.error("Error getting weekly reflection:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ========================
+  // Medical Reports (Universal Interpreter) Routes
+  // ========================
+
+  // Upload and interpret medical report
+  app.post("/api/medical-reports/upload", isAuthenticated, upload.single('file'), async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: 'No file uploaded' });
+      }
+
+      console.log(`📄 Medical report upload received from user ${userId}`);
+
+      // Save file to temporary location
+      const fs = await import('fs/promises');
+      const path = await import('path');
+      const uploadDir = path.join(process.cwd(), 'uploads', 'medical-reports');
+      
+      // Create directory if it doesn't exist
+      await fs.mkdir(uploadDir, { recursive: true });
+      
+      // Generate unique filename
+      const fileExt = path.extname(req.file.originalname);
+      const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}${fileExt}`;
+      const filePath = path.join(uploadDir, fileName);
+      
+      // Save file
+      await fs.writeFile(filePath, req.file.buffer);
+
+      // Create medical report record in database
+      const report = await storage.createMedicalReport({
+        userId,
+        filePath: filePath,
+        fileName: req.file.originalname,
+        reportType: 'Other',
+        sourceFormat: 'PDF_OCR',
+        status: 'pending',
+        confidenceScores: {},
+      });
+
+      console.log(`✅ Medical report record created: ${report.id}`);
+      res.json(report);
+    } catch (error: any) {
+      console.error("Error uploading medical report:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Interpret a medical report
+  app.post("/api/medical-reports/:id/interpret", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { id } = req.params;
+
+    try {
+      // Get the report
+      const report = await storage.getMedicalReport(id, userId);
+      if (!report) {
+        return res.status(404).json({ error: 'Report not found' });
+      }
+
+      if (report.status !== 'pending') {
+        return res.status(400).json({ error: 'Report has already been processed' });
+      }
+
+      console.log(`🔬 Starting interpretation for report ${id}`);
+
+      // Update status to processing
+      await storage.updateMedicalReportStatus(id, userId, { status: 'processing' });
+
+      // Run interpretation pipeline
+      const result = await runInterpretationPipeline(
+        {
+          source_bytes_or_uri: report.filePath,
+          source_format_hint: 'PDF_OCR',
+        },
+        userId
+      );
+
+      console.log(`📊 Interpretation complete. Status: ${result.status}`);
+
+      // Determine final status based on interpretation result
+      // 'accepted' → 'completed', 'discarded' → 'discarded', other → 'failed'
+      let finalStatus: string;
+      if (result.status === 'accepted') {
+        finalStatus = 'completed';
+      } else if (result.status === 'discarded') {
+        finalStatus = 'discarded';
+      } else {
+        finalStatus = 'failed';
+      }
+
+      // If interpretation was successful and it's a lab report, auto-extract biomarkers
+      let extractedBiomarkerIds: string[] = [];
+      if (result.status === 'accepted' && result.report_type === 'Observation_Labs') {
+        console.log('🧬 Auto-extracting biomarkers from lab observations');
+        try {
+          extractedBiomarkerIds = await extractBiomarkersFromLabs(
+            result.data as any,
+            userId,
+            id
+          );
+          console.log(`✅ Auto-extracted ${extractedBiomarkerIds.length} biomarkers`);
+        } catch (biomarkerError) {
+          console.error('⚠️  Failed to auto-extract biomarkers:', biomarkerError);
+          // Log the error but don't fail the entire request
+          // The interpretation was successful even if biomarker extraction failed
+        }
+      }
+
+      // Update report with results (always stamp processedAt)
+      const updatedReport = await storage.updateMedicalReportStatus(id, userId, {
+        status: finalStatus,
+        reportType: result.report_type,
+        sourceFormat: result.source_format,
+        rawDataJson: result,
+        interpretedDataJson: result.data,
+        confidenceScores: {
+          overall: result.audit.overall_confidence,
+          extraction: result.audit.extraction_confidence,
+          normalization: result.audit.normalization_confidence,
+        },
+        processedAt: new Date(),
+      });
+
+      res.json({
+        ...updatedReport,
+        extractedBiomarkersCount: extractedBiomarkerIds.length,
+      });
+    } catch (error: any) {
+      console.error("Error interpreting medical report:", error);
+      
+      // Update status to failed
+      await storage.updateMedicalReportStatus(id, userId, { 
+        status: 'failed',
+        processedAt: new Date(),
+      });
+      
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get all medical reports for user
+  app.get("/api/medical-reports", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+
+    try {
+      const reports = await storage.getMedicalReports(userId);
+      res.json(reports);
+    } catch (error: any) {
+      console.error("Error getting medical reports:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get single medical report
+  app.get("/api/medical-reports/:id", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { id } = req.params;
+
+    try {
+      const report = await storage.getMedicalReport(id, userId);
+      if (!report) {
+        return res.status(404).json({ error: 'Report not found' });
+      }
+      res.json(report);
+    } catch (error: any) {
+      console.error("Error getting medical report:", error);
       res.status(500).json({ error: error.message });
     }
   });

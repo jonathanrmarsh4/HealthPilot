@@ -170,6 +170,12 @@ export interface IStorage {
   updateHealthRecord(id: string, userId: string, data: Partial<HealthRecord>): Promise<HealthRecord | undefined>;
   deleteHealthRecord(id: string, userId: string): Promise<void>;
   
+  // Medical Reports (Interpreter)
+  createMedicalReport(report: InsertMedicalReport): Promise<MedicalReport>;
+  getMedicalReports(userId: string, limit?: number): Promise<MedicalReport[]>;
+  getMedicalReport(id: string, userId: string): Promise<MedicalReport | undefined>;
+  updateMedicalReportStatus(id: string, userId: string, data: Partial<MedicalReport>): Promise<MedicalReport | undefined>;
+  
   createBiomarker(biomarker: InsertBiomarker): Promise<Biomarker>;
   upsertBiomarker(biomarker: InsertBiomarker): Promise<Biomarker>;
   updateBiomarker(id: string, userId: string, data: Partial<InsertBiomarker>): Promise<Biomarker | undefined>;
@@ -747,6 +753,38 @@ export class DbStorage implements IStorage {
     await db.delete(healthRecords).where(
       and(eq(healthRecords.id, id), eq(healthRecords.userId, userId))
     );
+  }
+
+  // Medical Reports (Interpreter) methods
+  async createMedicalReport(report: InsertMedicalReport): Promise<MedicalReport> {
+    const result = await db.insert(medicalReports).values(report).returning();
+    return result[0];
+  }
+
+  async getMedicalReports(userId: string, limit: number = 50): Promise<MedicalReport[]> {
+    return await db
+      .select()
+      .from(medicalReports)
+      .where(eq(medicalReports.userId, userId))
+      .orderBy(desc(medicalReports.createdAt))
+      .limit(limit);
+  }
+
+  async getMedicalReport(id: string, userId: string): Promise<MedicalReport | undefined> {
+    const result = await db
+      .select()
+      .from(medicalReports)
+      .where(and(eq(medicalReports.id, id), eq(medicalReports.userId, userId)));
+    return result[0];
+  }
+
+  async updateMedicalReportStatus(id: string, userId: string, data: Partial<MedicalReport>): Promise<MedicalReport | undefined> {
+    const result = await db
+      .update(medicalReports)
+      .set(data)
+      .where(and(eq(medicalReports.id, id), eq(medicalReports.userId, userId)))
+      .returning();
+    return result[0];
   }
 
   async createBiomarker(biomarker: InsertBiomarker): Promise<Biomarker> {
