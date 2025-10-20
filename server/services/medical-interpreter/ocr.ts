@@ -15,9 +15,10 @@ export async function extractTextFromFile(filePath: string): Promise<OCROutput> 
     const isPDF = filePath.toLowerCase().endsWith('.pdf');
 
     let extractedText = '';
+    let usedVisionFallback = false;
 
     if (isPDF) {
-      // Use pdf-parse for PDF files (dynamic import for CommonJS module)
+      // Try pdf-parse first for text-based PDFs
       console.log('📄 Extracting text from PDF using pdf-parse...');
       const { PDFParse } = await import('pdf-parse');
       const fileBuffer = await fs.readFile(filePath);
@@ -25,6 +26,45 @@ export async function extractTextFromFile(filePath: string): Promise<OCROutput> 
       const textResult = await parser.getText();
       extractedText = textResult.text;
       console.log(`✅ PDF text extracted: ${extractedText.length} characters (${textResult.pages.length} pages)`);
+
+      // Check if we got meaningful text - if not, it's likely a scanned PDF
+      const preliminaryQuality = assessTextQuality(extractedText);
+      if (preliminaryQuality < 0.3) {
+        console.log('⚠️  Low quality text extraction detected - PDF appears to be scanned images');
+        console.log('🔄 Falling back to OpenAI Vision API for OCR...');
+        
+        // Convert PDF to base64 and use Vision API
+        const base64PDF = fileBuffer.toString('base64');
+        const response = await openai.chat.completions.create({
+          model: 'gpt-4o',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a medical document OCR system. Extract all text from medical reports accurately. Preserve structure, numbers, units, and reference ranges exactly as shown. Output only the extracted text, maintaining the original formatting and layout.',
+            },
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'text',
+                  text: 'Extract all text from this medical report PDF. Preserve exact values, units, reference ranges, and structure. This is a scanned document, so please extract all visible text.',
+                },
+                {
+                  type: 'image_url',
+                  image_url: {
+                    url: `data:application/pdf;base64,${base64PDF}`,
+                  },
+                },
+              ],
+            },
+          ],
+          max_tokens: 4000,
+        });
+
+        extractedText = response.choices[0]?.message?.content || '';
+        usedVisionFallback = true;
+        console.log(`✅ Vision API OCR complete: ${extractedText.length} characters`);
+      }
     } else {
       // Use OpenAI Vision API for images (PNG, JPEG, JPG)
       console.log('🖼️  Extracting text from image using OpenAI Vision API...');
@@ -70,7 +110,7 @@ export async function extractTextFromFile(filePath: string): Promise<OCROutput> 
 
     // Assess quality based on text characteristics
     const qualityScore = assessTextQuality(extractedText);
-    const confidence = qualityScore > 0.6 ? 0.9 : 0.7;
+    const confidence = qualityScore > 0.6 ? 0.9 : (usedVisionFallback ? 0.85 : 0.7);
 
     console.log(`📊 Quality assessment: score=${qualityScore.toFixed(2)}, confidence=${confidence.toFixed(2)}`);
 
