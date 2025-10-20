@@ -57,7 +57,8 @@ export class ExerciseDBService {
    */
   private normalizeExercise(apiExercise: ExerciseDBAPIResponse): ExerciseDBExercise {
     // Use our proxy endpoint for images (to include auth headers)
-    const gifUrl = `/api/exercisedb/image/${apiExercise.id}`;
+    // ExerciseDB image endpoint uses query params: ?exerciseId={id}&resolution={res}
+    const gifUrl = `/api/exercisedb/image?exerciseId=${apiExercise.id}`;
     
     return {
       id: apiExercise.id,
@@ -186,11 +187,10 @@ export class ExerciseDBService {
 
     try {
       console.log(`[ExerciseDB] Fetching exercises from API...`);
+      // Note: RapidAPI ExerciseDB returns all exercises at once (no pagination support)
+      // BASIC tier has limited exercises (10), higher tiers get full 1,300+ exercises
       const response = await axios.get<ExerciseDBAPIResponse[]>(`${BASE_URL}/exercises`, {
         headers: this.getHeaders(),
-        params: {
-          limit: 1400, // Get all exercises
-        },
       });
 
       // Normalize the exercises with gifUrl

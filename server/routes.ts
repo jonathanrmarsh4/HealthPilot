@@ -9793,15 +9793,25 @@ IMPORTANT: When discussing metrics like weight, HRV, sleep, etc., always use the
   });
 
   // Proxy endpoint for exercise GIF images (to include auth headers)
-  app.get("/api/exercisedb/image/:id", isAuthenticated, async (req, res) => {
-    const { id } = req.params;
+  app.get("/api/exercisedb/image", isAuthenticated, async (req, res) => {
+    const { exerciseId } = req.query;
+    
+    if (!exerciseId || typeof exerciseId !== 'string') {
+      return res.status(400).send('exerciseId parameter is required');
+    }
 
     try {
       const axios = await import('axios');
       const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY;
       const RAPIDAPI_HOST = 'exercisedb.p.rapidapi.com';
 
-      const response = await axios.default.get(`https://${RAPIDAPI_HOST}/image/${id}`, {
+      // ExerciseDB image endpoint format: /image?exerciseId={id}&resolution={res}
+      // BASIC tier only has access to resolution 180
+      const response = await axios.default.get(`https://${RAPIDAPI_HOST}/image`, {
+        params: {
+          exerciseId,
+          resolution: '180', // BASIC tier resolution
+        },
         headers: {
           'X-RapidAPI-Key': RAPIDAPI_KEY,
           'X-RapidAPI-Host': RAPIDAPI_HOST,
@@ -9814,7 +9824,7 @@ IMPORTANT: When discussing metrics like weight, HRV, sleep, etc., always use the
       res.set('Cache-Control', 'public, max-age=86400'); // Cache for 24 hours
       res.send(response.data);
     } catch (error: any) {
-      console.error(`Error fetching exercise image ${id}:`, error.message);
+      console.error(`Error fetching exercise image ${exerciseId}:`, error.message);
       
       // Surface upstream status codes to aid debugging
       if (error.response) {
