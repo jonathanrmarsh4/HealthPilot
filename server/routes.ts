@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
 import multer from "multer";
-import { insertBiomarkerSchema, insertHealthRecordSchema, insertScheduledExerciseRecommendationSchema, insertFitnessProfileSchema, insertExerciseSetSchema, biomarkers, sleepSessions, healthRecords, mealPlans, mealLibrary, trainingSchedules, recommendations, readinessScores, exerciseSets, exercises, users, referrals } from "@shared/schema";
+import { insertBiomarkerSchema, insertHealthRecordSchema, insertScheduledExerciseRecommendationSchema, insertFitnessProfileSchema, insertExerciseSetSchema, biomarkers, sleepSessions, healthRecords, mealPlans, mealLibrary, trainingSchedules, recommendations, readinessScores, exerciseSets, exercises, users, referrals, insertLandingPageContentSchema, insertLandingPageFeatureSchema, insertLandingPageTestimonialSchema, insertLandingPagePricingPlanSchema, insertLandingPageSocialLinkSchema } from "@shared/schema";
 import { listHealthDocuments, downloadFile, getFileMetadata } from "./services/googleDrive";
 import { analyzeHealthDocument, generateMealPlan, generateTrainingSchedule, generateHealthRecommendations, chatWithHealthCoach, generateDailyInsights, generateRecoveryInsights, generateTrendPredictions, generatePeriodComparison, generateDailyTrainingRecommendation, generateMacroRecommendations } from "./services/ai";
 import { buildGuardrailsSystemPrompt } from "./config/guardrails";
@@ -9994,9 +9994,13 @@ DATA AVAILABILITY:
   // Admin - update main content (hero, sections, SEO)
   app.put("/api/admin/landing-page/content", isAdmin, async (req, res) => {
     try {
-      const updated = await storage.upsertLandingPageContent(req.body);
+      const validatedData = insertLandingPageContentSchema.parse(req.body);
+      const updated = await storage.upsertLandingPageContent(validatedData);
       res.json(updated);
     } catch (error: any) {
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ error: "Invalid data", details: error.errors });
+      }
       console.error("Error updating landing page content:", error);
       res.status(500).json({ error: error.message });
     }
@@ -10005,9 +10009,13 @@ DATA AVAILABILITY:
   // Admin - features
   app.post("/api/admin/landing-page/features", isAdmin, async (req, res) => {
     try {
-      const created = await storage.createLandingPageFeature(req.body);
+      const validatedData = insertLandingPageFeatureSchema.parse(req.body);
+      const created = await storage.createLandingPageFeature(validatedData);
       res.json(created);
     } catch (error: any) {
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ error: "Invalid data", details: error.errors });
+      }
       console.error("Error creating feature:", error);
       res.status(500).json({ error: error.message });
     }
@@ -10015,12 +10023,16 @@ DATA AVAILABILITY:
   
   app.put("/api/admin/landing-page/features/:id", isAdmin, async (req, res) => {
     try {
-      const updated = await storage.updateLandingPageFeature(req.params.id, req.body);
+      const validatedData = insertLandingPageFeatureSchema.partial().parse(req.body);
+      const updated = await storage.updateLandingPageFeature(req.params.id, validatedData);
       if (!updated) {
         return res.status(404).json({ error: "Feature not found" });
       }
       res.json(updated);
     } catch (error: any) {
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ error: "Invalid data", details: error.errors });
+      }
       console.error("Error updating feature:", error);
       res.status(500).json({ error: error.message });
     }
@@ -10039,9 +10051,13 @@ DATA AVAILABILITY:
   // Admin - testimonials
   app.post("/api/admin/landing-page/testimonials", isAdmin, async (req, res) => {
     try {
-      const created = await storage.createLandingPageTestimonial(req.body);
+      const validatedData = insertLandingPageTestimonialSchema.parse(req.body);
+      const created = await storage.createLandingPageTestimonial(validatedData);
       res.json(created);
     } catch (error: any) {
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ error: "Invalid data", details: error.errors });
+      }
       console.error("Error creating testimonial:", error);
       res.status(500).json({ error: error.message });
     }
@@ -10049,12 +10065,16 @@ DATA AVAILABILITY:
   
   app.put("/api/admin/landing-page/testimonials/:id", isAdmin, async (req, res) => {
     try {
-      const updated = await storage.updateLandingPageTestimonial(req.params.id, req.body);
+      const validatedData = insertLandingPageTestimonialSchema.partial().parse(req.body);
+      const updated = await storage.updateLandingPageTestimonial(req.params.id, validatedData);
       if (!updated) {
         return res.status(404).json({ error: "Testimonial not found" });
       }
       res.json(updated);
     } catch (error: any) {
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ error: "Invalid data", details: error.errors });
+      }
       console.error("Error updating testimonial:", error);
       res.status(500).json({ error: error.message });
     }
@@ -10073,9 +10093,13 @@ DATA AVAILABILITY:
   // Admin - pricing plans
   app.post("/api/admin/landing-page/pricing", isAdmin, async (req, res) => {
     try {
-      const created = await storage.createLandingPagePricingPlan(req.body);
+      const validatedData = insertLandingPagePricingPlanSchema.parse(req.body);
+      const created = await storage.createLandingPagePricingPlan(validatedData);
       res.json(created);
     } catch (error: any) {
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ error: "Invalid data", details: error.errors });
+      }
       console.error("Error creating pricing plan:", error);
       res.status(500).json({ error: error.message });
     }
@@ -10083,12 +10107,16 @@ DATA AVAILABILITY:
   
   app.put("/api/admin/landing-page/pricing/:id", isAdmin, async (req, res) => {
     try {
-      const updated = await storage.updateLandingPagePricingPlan(req.params.id, req.body);
+      const validatedData = insertLandingPagePricingPlanSchema.partial().parse(req.body);
+      const updated = await storage.updateLandingPagePricingPlan(req.params.id, validatedData);
       if (!updated) {
         return res.status(404).json({ error: "Pricing plan not found" });
       }
       res.json(updated);
     } catch (error: any) {
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ error: "Invalid data", details: error.errors });
+      }
       console.error("Error updating pricing plan:", error);
       res.status(500).json({ error: error.message });
     }
@@ -10107,9 +10135,13 @@ DATA AVAILABILITY:
   // Admin - social links
   app.post("/api/admin/landing-page/social", isAdmin, async (req, res) => {
     try {
-      const created = await storage.createLandingPageSocialLink(req.body);
+      const validatedData = insertLandingPageSocialLinkSchema.parse(req.body);
+      const created = await storage.createLandingPageSocialLink(validatedData);
       res.json(created);
     } catch (error: any) {
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ error: "Invalid data", details: error.errors });
+      }
       console.error("Error creating social link:", error);
       res.status(500).json({ error: error.message });
     }
@@ -10117,12 +10149,16 @@ DATA AVAILABILITY:
   
   app.put("/api/admin/landing-page/social/:id", isAdmin, async (req, res) => {
     try {
-      const updated = await storage.updateLandingPageSocialLink(req.params.id, req.body);
+      const validatedData = insertLandingPageSocialLinkSchema.partial().parse(req.body);
+      const updated = await storage.updateLandingPageSocialLink(req.params.id, validatedData);
       if (!updated) {
         return res.status(404).json({ error: "Social link not found" });
       }
       res.json(updated);
     } catch (error: any) {
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ error: "Invalid data", details: error.errors });
+      }
       console.error("Error updating social link:", error);
       res.status(500).json({ error: error.message });
     }

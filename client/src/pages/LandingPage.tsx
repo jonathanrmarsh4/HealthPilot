@@ -659,14 +659,36 @@ export default function LandingPage() {
 
       {/* === Footer === */}
       <footer className="px-6 pb-12">
-        <div className="mx-auto max-w-6xl border-t border-white/10 pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-gray-500">
-          <div>© {new Date().getFullYear()} HealthPilot by Nuvitae Labs</div>
-          <nav className="flex gap-6">
-            <button onClick={() => setLocation("/security")} className="hover:text-white transition-colors">About</button>
-            <button onClick={() => setLocation("/terms")} className="hover:text-white transition-colors">Terms</button>
-            <button onClick={() => setLocation("/privacy")} className="hover:text-white transition-colors">Privacy</button>
-            <button onClick={() => setLocation("/security")} className="hover:text-white transition-colors">Support</button>
-          </nav>
+        <div className="mx-auto max-w-6xl border-t border-white/10 pt-8">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-gray-500">
+            <div>© {new Date().getFullYear()} HealthPilot by Nuvitae Labs</div>
+            <nav className="flex gap-6">
+              <button onClick={() => setLocation("/security")} className="hover:text-white transition-colors">About</button>
+              <button onClick={() => setLocation("/terms")} className="hover:text-white transition-colors">Terms</button>
+              <button onClick={() => setLocation("/privacy")} className="hover:text-white transition-colors">Privacy</button>
+              <button onClick={() => setLocation("/security")} className="hover:text-white transition-colors">Support</button>
+            </nav>
+          </div>
+          {socialLinks.length > 0 && (
+            <div className="flex justify-center gap-4 mt-6">
+              {socialLinks.map((link) => {
+                const IconComponent = getIcon(link.icon);
+                return (
+                  <a
+                    key={link.id}
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-gray-500 hover:text-[#00E0C6] transition-colors"
+                    aria-label={link.platform}
+                    data-testid={`link-social-${link.platform.toLowerCase()}`}
+                  >
+                    {IconComponent}
+                  </a>
+                );
+              })}
+            </div>
+          )}
         </div>
       </footer>
     </div>
