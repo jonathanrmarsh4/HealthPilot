@@ -9786,6 +9786,40 @@ DATA AVAILABILITY:
     }
   });
 
+  // Download medical report file (secure endpoint with authorization)
+  app.get("/api/medical-reports/:id/download", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { id } = req.params;
+
+    try {
+      // First verify the user owns this report
+      const report = await storage.getMedicalReport(id, userId);
+      if (!report) {
+        return res.status(404).json({ error: 'Report not found or access denied' });
+      }
+
+      // Check if file path exists
+      if (!report.filePath) {
+        return res.status(404).json({ error: 'File not found' });
+      }
+
+      // Send the file
+      const fs = await import('fs/promises');
+      const path = await import('path');
+      
+      try {
+        await fs.access(report.filePath);
+        res.download(report.filePath, report.fileName);
+      } catch (fileError) {
+        console.error("File access error:", fileError);
+        return res.status(404).json({ error: 'File not found on server' });
+      }
+    } catch (error: any) {
+      console.error("Error downloading medical report:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // ExerciseDB API routes
   app.get("/api/exercisedb/search", isAuthenticated, async (req, res) => {
     const { name } = req.query;
