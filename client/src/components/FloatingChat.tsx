@@ -546,8 +546,8 @@ export function FloatingChat({ isOpen, onClose, currentPage }: FloatingChatProps
     if (isOpen) {
       // Increment session ID to trigger new timestamp and reset chat UI
       setSessionId(prev => prev + 1);
-      // Keep minimized by default, especially during onboarding
-      setIsMinimized(true);
+      // Open fully expanded by default
+      setIsMinimized(false);
     }
   }, [isOpen]);
 
@@ -930,12 +930,8 @@ export function FloatingChat({ isOpen, onClose, currentPage }: FloatingChatProps
 }
 
 export function FloatingChatTrigger({ onClick, subscriptionTier = 'free' }: { onClick: () => void; subscriptionTier?: string }) {
-  const isPremium = subscriptionTier === 'premium' || subscriptionTier === 'enterprise';
-  
-  // Green for premium/enterprise users, purple for free users
-  const buttonClasses = isPremium
-    ? "bg-gradient-to-br from-green-500 to-green-700 hover:from-green-600 hover:to-green-800 border-2 border-green-400 hover:border-green-300"
-    : "bg-gradient-to-br from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800 border-2 border-purple-400 hover:border-purple-300";
+  // Use primary gradient for all users to match theme
+  const buttonClasses = "bg-primary hover:bg-primary/90 border-2 border-primary/50 hover:border-primary/70";
   
   return (
     <Button
@@ -945,7 +941,7 @@ export function FloatingChatTrigger({ onClick, subscriptionTier = 'free' }: { on
       onClick={onClick}
       data-testid="button-open-floating-chat"
     >
-      <Sparkles className="h-5 w-5 text-white" />
+      <Sparkles className="h-5 w-5 text-primary-foreground" />
     </Button>
   );
 }
