@@ -216,6 +216,15 @@ export default function AdminMealLibrary() {
             Settings
           </Button>
           <Button 
+            variant="outline"
+            onClick={() => backfillMutation.mutate()}
+            disabled={backfillMutation.isPending}
+            data-testid="button-backfill-nutrition"
+          >
+            <ChefHat className="w-4 h-4 mr-2" />
+            {backfillMutation.isPending ? 'Backfilling...' : 'Backfill Nutrition'}
+          </Button>
+          <Button 
             onClick={() => setImportDialogOpen(true)}
             data-testid="button-import-meals"
           >
