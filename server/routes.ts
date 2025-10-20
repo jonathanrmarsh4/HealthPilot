@@ -9806,11 +9806,11 @@ IMPORTANT: When discussing metrics like weight, HRV, sleep, etc., always use the
       const RAPIDAPI_HOST = 'exercisedb.p.rapidapi.com';
 
       // ExerciseDB image endpoint format: /image?exerciseId={id}&resolution={res}
-      // BASIC tier only has access to resolution 180
+      // ULTRA tier has access to 1080p high-resolution GIFs
       const response = await axios.default.get(`https://${RAPIDAPI_HOST}/image`, {
         params: {
           exerciseId,
-          resolution: '180', // BASIC tier resolution
+          resolution: '1080', // ULTRA tier: 1080p high-resolution
         },
         headers: {
           'X-RapidAPI-Key': RAPIDAPI_KEY,
