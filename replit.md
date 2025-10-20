@@ -46,4 +46,8 @@ The application is a full-stack project using React, TypeScript, Tailwind CSS, a
 - **Health Data Integration:** Apple Health via Health Auto Export iOS app webhook (web) and native HealthKit integration via Capacitor (iOS app).
 - **Mobile Platform:** Capacitor 7 for native iOS app.
 - **Payment Processing:** Stripe
-- **Exercise Database:** ExerciseDB API via RapidAPI (1,300+ exercises with GIF demonstrations)
+- **Exercise Database:** ExerciseDB API via RapidAPI
+  - **Subscription Tier Limitation:** Current BASIC tier (free) only provides **10 exercises** with 180px GIFs
+  - **Full Database Access:** Requires paid tier upgrade (PRO: $11.99/mo for 1,300+ exercises, ULTRA: $17.99/mo, MEGA: $29.99/mo)
+  - **Impact:** Many exercises (Romanian Deadlift, Lat Pulldown, etc.) are not available in BASIC tier, causing "Exercise not found" errors
+  - **Technical Implementation:** Fuzzy name matching, 24-hour caching, authenticated image proxy endpoint functional and ready for full database when upgraded
