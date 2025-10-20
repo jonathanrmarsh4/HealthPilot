@@ -397,6 +397,10 @@ export class ExerciseDBService {
     try {
       console.log('[ExerciseDB Sync] Starting sync from API to database...');
       
+      // Clear the in-memory cache to force a fresh API fetch
+      console.log('[ExerciseDB Sync] Clearing in-memory cache to force fresh API fetch...');
+      this.clearCache();
+      
       // Fetch all exercises from API (not database)
       const apiExercises = await this.fetchAllExercisesFromAPI();
       
@@ -426,10 +430,10 @@ export class ExerciseDBService {
       console.log('[ExerciseDB Sync] Inserting exercises to database...');
       await storage.bulkInsertExercisedbExercises(dbExercises);
       
-      // Log the sync operation
+      // Log the sync operation (success field is integer: 1 = success, 0 = failed)
       await storage.logExercisedbSync({
         exerciseCount: apiExercises.length,
-        success: true,
+        success: 1,
       });
       
       console.log(`[ExerciseDB Sync] Successfully synced ${apiExercises.length} exercises to database`);
@@ -438,10 +442,10 @@ export class ExerciseDBService {
     } catch (error: any) {
       console.error('[ExerciseDB Sync] Error during sync:', error);
       
-      // Log failed sync
+      // Log failed sync (success field is integer: 1 = success, 0 = failed)
       await storage.logExercisedbSync({
         exerciseCount: 0,
-        success: false,
+        success: 0,
         errorMessage: error.message,
       });
       
