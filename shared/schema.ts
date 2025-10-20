@@ -52,6 +52,9 @@ export const users = pgTable("users", {
   // Privacy & Compliance fields
   consentGivenAt: timestamp("consent_given_at"),
   deletionScheduledAt: timestamp("deletion_scheduled_at"),
+  // Medical report upload quota tracking
+  medicalReportsUsedThisMonth: integer("medical_reports_used_this_month").notNull().default(0),
+  medicalReportsMonthStart: timestamp("medical_reports_month_start").defaultNow(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

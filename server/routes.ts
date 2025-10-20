@@ -9478,6 +9478,60 @@ IMPORTANT: When discussing metrics like weight, HRV, sleep, etc., always use the
       // - Implement async scanning and quarantine suspicious files
       // For now, rely on MIME type + extension validation + user authentication
 
+      // 8. Premium tier quota enforcement
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(401).json({ error: 'User not found' });
+      }
+
+      // Define quota limits by tier
+      const QUOTA_LIMITS = {
+        free: 3,        // 3 medical reports per month
+        premium: -1,    // Unlimited (-1 indicates no limit)
+        enterprise: -1  // Unlimited
+      };
+
+      const userTier = user.subscriptionTier || 'free';
+      const monthlyLimit = QUOTA_LIMITS[userTier as keyof typeof QUOTA_LIMITS] ?? QUOTA_LIMITS.free;
+
+      // Check if we need to reset the monthly counter
+      const now = new Date();
+      let monthStart = user.medicalReportsMonthStart ? new Date(user.medicalReportsMonthStart) : null;
+      
+      // Initialize month_start if it's null (first time tracking for this user)
+      if (!monthStart) {
+        monthStart = now;
+        await storage.updateUser(userId, {
+          medicalReportsMonthStart: now
+        });
+      }
+      
+      const daysSinceMonthStart = (now.getTime() - monthStart.getTime()) / (1000 * 60 * 60 * 24);
+
+      let currentUsage = user.medicalReportsUsedThisMonth || 0;
+
+      // Reset counter if more than 30 days have passed
+      if (daysSinceMonthStart >= 30) {
+        currentUsage = 0;
+        await storage.updateUser(userId, {
+          medicalReportsUsedThisMonth: 0,
+          medicalReportsMonthStart: now
+        });
+        monthStart = now; // Update local variable for accurate reset date calculation
+      }
+
+      // Check quota (only for tiers with limits)
+      if (monthlyLimit !== -1 && currentUsage >= monthlyLimit) {
+        return res.status(403).json({
+          error: 'Monthly medical report upload limit reached',
+          limit: monthlyLimit,
+          used: currentUsage,
+          tier: userTier,
+          resetDate: new Date(monthStart.getTime() + (30 * 24 * 60 * 60 * 1000)).toISOString(),
+          upgradeMessage: 'Upgrade to Premium for unlimited medical report uploads'
+        });
+      }
+
       // Create medical report record in database
       const report = await storage.createMedicalReport({
         userId,
@@ -9489,7 +9543,14 @@ IMPORTANT: When discussing metrics like weight, HRV, sleep, etc., always use the
         confidenceScores: {},
       });
 
-      console.log(`✅ Medical report record created: ${report.id} (${req.file.size} bytes)`);
+      // Increment usage counter (only for tiers with limits)
+      if (monthlyLimit !== -1) {
+        await storage.updateUser(userId, {
+          medicalReportsUsedThisMonth: currentUsage + 1
+        });
+      }
+
+      console.log(`✅ Medical report record created: ${report.id} (${req.file.size} bytes, quota: ${currentUsage + 1}/${monthlyLimit === -1 ? '∞' : monthlyLimit})`);
       res.json(report);
     } catch (error: any) {
       console.error("❌ Error uploading medical report:", error);
