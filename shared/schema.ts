@@ -528,6 +528,34 @@ export const aiActions = pgTable("ai_actions", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// ExerciseDB - persistent storage for all 1,300+ exercises from the API
+export const exercisedbExercises = pgTable("exercisedb_exercises", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  exerciseId: text("exercise_id").notNull().unique(), // ExerciseDB API ID
+  name: text("name").notNull(),
+  bodyPart: text("body_part").notNull(),
+  equipment: text("equipment").notNull(),
+  target: text("target").notNull(), // Primary target muscle
+  secondaryMuscles: jsonb("secondary_muscles").notNull().default(sql`'[]'::jsonb`), // Array of secondary muscles
+  instructions: jsonb("instructions").notNull().default(sql`'[]'::jsonb`), // Array of instruction steps
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => [
+  index("exercisedb_exercises_name_idx").on(table.name),
+  index("exercisedb_exercises_body_part_idx").on(table.bodyPart),
+  index("exercisedb_exercises_equipment_idx").on(table.equipment),
+  index("exercisedb_exercises_target_idx").on(table.target),
+]);
+
+// ExerciseDB sync log - tracks when we last synced with the API
+export const exercisedbSyncLog = pgTable("exercisedb_sync_log", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  syncedAt: timestamp("synced_at").notNull().defaultNow(),
+  exerciseCount: integer("exercise_count").notNull(),
+  success: integer("success").notNull().default(1), // 1 if successful, 0 if failed
+  errorMessage: text("error_message"),
+});
+
 export const insertHealthRecordSchema = createInsertSchema(healthRecords).omit({
   id: true,
   uploadedAt: true,
@@ -1333,3 +1361,21 @@ export const insertPageTilePreferencesSchema = createInsertSchema(pageTilePrefer
 
 export type InsertPageTilePreferences = z.infer<typeof insertPageTilePreferencesSchema>;
 export type PageTilePreferences = typeof pageTilePreferences.$inferSelect;
+
+// ExerciseDB schemas
+export const insertExercisedbExerciseSchema = createInsertSchema(exercisedbExercises).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertExercisedbExercise = z.infer<typeof insertExercisedbExerciseSchema>;
+export type ExercisedbExercise = typeof exercisedbExercises.$inferSelect;
+
+export const insertExercisedbSyncLogSchema = createInsertSchema(exercisedbSyncLog).omit({
+  id: true,
+  syncedAt: true,
+});
+
+export type InsertExercisedbSyncLog = z.infer<typeof insertExercisedbSyncLogSchema>;
+export type ExercisedbSyncLog = typeof exercisedbSyncLog.$inferSelect;

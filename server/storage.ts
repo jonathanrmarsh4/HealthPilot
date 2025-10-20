@@ -90,6 +90,10 @@ import {
   type InsertReferral,
   type MedicalReport,
   type InsertMedicalReport,
+  type ExercisedbExercise,
+  type InsertExercisedbExercise,
+  type ExercisedbSyncLog,
+  type InsertExercisedbSyncLog,
   users,
   healthRecords,
   biomarkers,
@@ -134,6 +138,8 @@ import {
   coachMemory,
   preferenceVectors,
   trainingLoadSessions,
+  exercisedbExercises,
+  exercisedbSyncLog,
 } from "@shared/schema";
 import { eq, desc, and, gte, lte, lt, sql, or, like, count, isNull, inArray } from "drizzle-orm";
 
@@ -461,6 +467,17 @@ export interface IStorage {
     memories: CoachMemory[];
     feedbackCount: number;
   }>;
+  
+  // ExerciseDB - persistent storage for 1,300+ exercises
+  getAllExercisedbExercises(): Promise<ExercisedbExercise[]>;
+  getExercisedbExerciseById(exerciseId: string): Promise<ExercisedbExercise | undefined>;
+  searchExercisedbExercisesByName(name: string): Promise<ExercisedbExercise | null>;
+  bulkInsertExercisedbExercises(exercises: InsertExercisedbExercise[]): Promise<void>;
+  clearExercisedbExercises(): Promise<void>;
+  
+  // ExerciseDB sync log
+  getLatestExercisedbSync(): Promise<ExercisedbSyncLog | undefined>;
+  logExercisedbSync(log: InsertExercisedbSyncLog): Promise<ExercisedbSyncLog>;
 }
 
 export class DbStorage implements IStorage {
@@ -3849,6 +3866,57 @@ export class DbStorage implements IStorage {
       memories,
       feedbackCount: feedbackResults[0]?.count || 0,
     };
+  }
+  
+  // ExerciseDB - persistent storage for 1,300+ exercises
+  async getAllExercisedbExercises(): Promise<ExercisedbExercise[]> {
+    return await db.select().from(exercisedbExercises);
+  }
+  
+  async getExercisedbExerciseById(exerciseId: string): Promise<ExercisedbExercise | undefined> {
+    const result = await db.select()
+      .from(exercisedbExercises)
+      .where(eq(exercisedbExercises.exerciseId, exerciseId));
+    return result[0];
+  }
+  
+  async searchExercisedbExercisesByName(name: string): Promise<ExercisedbExercise | null> {
+    // Use case-insensitive LIKE search for fuzzy matching
+    const searchTerm = `%${name.toLowerCase()}%`;
+    const results = await db.select()
+      .from(exercisedbExercises)
+      .where(sql`LOWER(${exercisedbExercises.name}) LIKE ${searchTerm}`)
+      .limit(1);
+    return results[0] || null;
+  }
+  
+  async bulkInsertExercisedbExercises(exercises: InsertExercisedbExercise[]): Promise<void> {
+    if (exercises.length === 0) return;
+    
+    // Insert in batches of 100 to avoid query size limits
+    const batchSize = 100;
+    for (let i = 0; i < exercises.length; i += batchSize) {
+      const batch = exercises.slice(i, i + batchSize);
+      await db.insert(exercisedbExercises).values(batch);
+    }
+  }
+  
+  async clearExercisedbExercises(): Promise<void> {
+    await db.delete(exercisedbExercises);
+  }
+  
+  // ExerciseDB sync log
+  async getLatestExercisedbSync(): Promise<ExercisedbSyncLog | undefined> {
+    const result = await db.select()
+      .from(exercisedbSyncLog)
+      .orderBy(desc(exercisedbSyncLog.syncedAt))
+      .limit(1);
+    return result[0];
+  }
+  
+  async logExercisedbSync(log: InsertExercisedbSyncLog): Promise<ExercisedbSyncLog> {
+    const [syncLog] = await db.insert(exercisedbSyncLog).values(log).returning();
+    return syncLog;
   }
 }
 

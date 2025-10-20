@@ -9812,6 +9812,51 @@ IMPORTANT: When discussing metrics like weight, HRV, sleep, etc., always use the
     }
   });
 
+  // Sync all exercises from ExerciseDB API to database
+  app.post("/api/exercisedb/sync", isAuthenticated, async (req, res) => {
+    try {
+      const { exerciseDBService } = await import('./services/exercisedb/exercisedb');
+      const result = await exerciseDBService.syncExercisesToDatabase();
+      
+      if (result.success) {
+        res.json({ 
+          success: true, 
+          message: `Successfully synced ${result.count} exercises to database`,
+          count: result.count 
+        });
+      } else {
+        res.status(500).json({ 
+          success: false, 
+          error: result.error || 'Sync failed',
+          count: 0 
+        });
+      }
+    } catch (error: any) {
+      console.error("Error syncing exercises:", error);
+      res.status(500).json({ 
+        success: false, 
+        error: error.message,
+        count: 0 
+      });
+    }
+  });
+
+  // Get sync status and latest sync log
+  app.get("/api/exercisedb/sync-status", isAuthenticated, async (req, res) => {
+    try {
+      const latestSync = await storage.getLatestExercisedbSync();
+      const exerciseCount = await storage.getAllExercisedbExercises();
+      
+      res.json({ 
+        latestSync,
+        currentExerciseCount: exerciseCount.length,
+      });
+    } catch (error: any) {
+      console.error("Error getting sync status:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Proxy endpoint for exercise GIF images (to include auth headers)
   app.get("/api/exercisedb/image", isAuthenticated, async (req, res) => {
     const { exerciseId } = req.query;
