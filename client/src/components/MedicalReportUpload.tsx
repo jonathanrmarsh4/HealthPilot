@@ -71,7 +71,7 @@ export function MedicalReportUpload() {
       } else if (data.status === 'discarded') {
         toast({
           title: "Report discarded",
-          description: "Unable to interpret this report. Please check the file quality.",
+          description: data.userFeedback || "Unable to interpret this report. Please check the file quality.",
           variant: "destructive",
         });
       } else {
@@ -169,10 +169,12 @@ export function MedicalReportUpload() {
         );
       case 'discarded':
         return (
-          <Badge className="bg-yellow-500/10 text-yellow-600 dark:text-yellow-400">
-            <AlertCircle className="h-3 w-3 mr-1" />
-            Discarded
-          </Badge>
+          <div className="flex items-center gap-1">
+            <Badge className="bg-yellow-500/10 text-yellow-600 dark:text-yellow-400">
+              <AlertCircle className="h-3 w-3 mr-1" />
+              Discarded
+            </Badge>
+          </div>
         );
       default:
         return (
@@ -287,6 +289,11 @@ export function MedicalReportUpload() {
                           <span>• {report.extractedBiomarkersCount} biomarkers</span>
                         )}
                       </div>
+                      {report.status === 'discarded' && report.userFeedback && (
+                        <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1 line-clamp-2" title={report.userFeedback}>
+                          {report.userFeedback}
+                        </p>
+                      )}
                     </div>
                   </div>
                   {getStatusBadge(report)}

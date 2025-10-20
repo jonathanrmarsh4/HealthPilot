@@ -35,6 +35,7 @@ export async function runInterpretationPipeline(
     const ocrOutput = await extractTextFromFile(input.source_bytes_or_uri);
     
     if (ocrOutput.quality_score < 0.3) {
+      console.log(`❌ DISCARD: Low quality OCR (quality_score: ${ocrOutput.quality_score.toFixed(2)} < 0.3)`);
       return createDiscardedResult(
         reportId,
         ingestedAt,
@@ -47,7 +48,7 @@ export async function runInterpretationPipeline(
           overall_confidence: 0,
           rules_triggered: [],
           unit_conversions: [],
-          validation_findings: ['OCR quality too low to extract reliable data'],
+          validation_findings: [`OCR quality too low: ${ocrOutput.quality_score.toFixed(2)} < threshold 0.3`],
         }
       );
     }
@@ -57,6 +58,7 @@ export async function runInterpretationPipeline(
     const typeDetection = await classifyReportType(ocrOutput);
 
     if (typeDetection.confidence < THRESHOLDS.type_detection) {
+      console.log(`❌ DISCARD: Unrecognized type (confidence: ${typeDetection.confidence.toFixed(2)} < ${THRESHOLDS.type_detection}, label: ${typeDetection.label})`);
       return createDiscardedResult(
         reportId,
         ingestedAt,
@@ -69,7 +71,7 @@ export async function runInterpretationPipeline(
           overall_confidence: typeDetection.confidence,
           rules_triggered: [],
           unit_conversions: [],
-          validation_findings: [`Low confidence (${typeDetection.confidence.toFixed(2)}) in type detection`],
+          validation_findings: [`Type detection confidence ${typeDetection.confidence.toFixed(2)} < threshold ${THRESHOLDS.type_detection}`],
         }
       );
     }
@@ -79,6 +81,7 @@ export async function runInterpretationPipeline(
     
     // Currently only supporting lab reports - will expand to other types
     if (typeDetection.label !== 'Observation_Labs') {
+      console.log(`❌ DISCARD: Unsupported report type (${typeDetection.label} - only Observation_Labs currently supported)`);
       return createDiscardedResult(
         reportId,
         ingestedAt,
@@ -99,6 +102,7 @@ export async function runInterpretationPipeline(
     const extraction = await extractLabObservations(ocrOutput);
     
     if (extraction.confidence < THRESHOLDS.extraction_min) {
+      console.log(`❌ DISCARD: Low extraction confidence (${extraction.confidence.toFixed(2)} < ${THRESHOLDS.extraction_min})`);
       return createDiscardedResult(
         reportId,
         ingestedAt,
@@ -111,7 +115,7 @@ export async function runInterpretationPipeline(
           overall_confidence: extraction.confidence,
           rules_triggered: [],
           unit_conversions: [],
-          validation_findings: ['Extraction confidence too low - unable to reliably extract data'],
+          validation_findings: [`Extraction confidence ${extraction.confidence.toFixed(2)} < threshold ${THRESHOLDS.extraction_min}`],
         }
       );
     }
@@ -121,6 +125,7 @@ export async function runInterpretationPipeline(
     const normalization = normalizeLabData(extraction.data as ObservationLabsData);
 
     if (normalization.confidence < THRESHOLDS.normalization_min) {
+      console.log(`❌ DISCARD: Low normalization confidence (${normalization.confidence.toFixed(2)} < ${THRESHOLDS.normalization_min}) - missing or invalid units`);
       return createDiscardedResult(
         reportId,
         ingestedAt,
@@ -133,7 +138,7 @@ export async function runInterpretationPipeline(
           overall_confidence: normalization.confidence,
           rules_triggered: [],
           unit_conversions: normalization.conversions,
-          validation_findings: ['Unable to normalize all units - some observations missing valid units'],
+          validation_findings: [`Normalization confidence ${normalization.confidence.toFixed(2)} < threshold ${THRESHOLDS.normalization_min} - some observations missing valid units`],
         }
       );
     }
@@ -144,6 +149,9 @@ export async function runInterpretationPipeline(
     const hasFailures = validationResults.some(v => v.outcome === 'fail');
 
     if (hasFailures) {
+      const failures = validationResults.filter(v => v.outcome === 'fail');
+      console.log(`❌ DISCARD: Validation failures (${failures.length} failed checks)`);
+      failures.forEach(f => console.log(`  - ${f.message}`));
       return createDiscardedResult(
         reportId,
         ingestedAt,
@@ -156,7 +164,7 @@ export async function runInterpretationPipeline(
           overall_confidence: 0,
           rules_triggered: [],
           unit_conversions: normalization.conversions,
-          validation_findings: validationResults.filter(v => v.outcome === 'fail').map(v => v.message || 'Validation failed'),
+          validation_findings: failures.map(v => v.message || 'Validation failed'),
         }
       );
     }
@@ -173,6 +181,8 @@ export async function runInterpretationPipeline(
     );
 
     if (overallConfidence < THRESHOLDS.overall_accept_min) {
+      console.log(`❌ DISCARD: Overall confidence too low (${overallConfidence.toFixed(2)} < ${THRESHOLDS.overall_accept_min})`);
+      console.log(`  Type: ${typeDetection.confidence.toFixed(2)}, Extraction: ${extraction.confidence.toFixed(2)}, Normalization: ${normalization.confidence.toFixed(2)}`);
       return createDiscardedResult(
         reportId,
         ingestedAt,
@@ -221,7 +231,8 @@ export async function runInterpretationPipeline(
       status: 'accepted',
     };
   } catch (error) {
-    console.error('Pipeline error:', error);
+    console.error('❌ PIPELINE ERROR:', error);
+    console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace available');
     
     return createDiscardedResult(
       reportId,
