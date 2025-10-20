@@ -160,12 +160,12 @@ interface RecommendationResponse {
 
 export class MealRecommenderService {
   private readonly DEFAULT_WEIGHTS = {
-    goalAlignment: 0.35,
-    macroFit: 0.25,
-    tasteMatch: 0.15,
-    diversityBonus: 0.10,
-    explorationBonus: 0.10,
-    prepTimeBonus: 0.05
+    goalAlignment: 0.25,  // Reduced from 0.35
+    macroFit: 0.20,       // Reduced from 0.25
+    tasteMatch: 0.10,     // Reduced from 0.15
+    diversityBonus: 0.10, // Same
+    explorationBonus: 0.30, // Increased from 0.10 - Thompson Sampling is primary driver
+    prepTimeBonus: 0.05   // Same
   };
 
   /**
@@ -581,30 +581,60 @@ export class MealRecommenderService {
   }
 
   private calculateExplorationBonus(meal: MealCandidate, arms: Record<string, any>, context: RecommendationContext): number {
-    if (context.explorationStrength === 0) return 0;
+    // Thompson Sampling: Sample from Beta distribution for each arm
+    // Higher samples indicate more promising options based on past feedback
     
-    // Thompson sampling
-    let maxSample = 0;
+    let totalSample = 0;
+    let sampleCount = 0;
     
-    // Check cuisine arm
+    // Sample per-meal arm (most specific)
+    const mealKey = `meal:${meal.mealId}`;
+    if (arms[mealKey]) {
+      const arm = arms[mealKey];
+      const sample = this.sampleBeta(arm.alpha, arm.beta);
+      totalSample += sample * 2; // Weight meal-specific data higher
+      sampleCount += 2;
+    } else {
+      // Initialize new meal with optimistic prior
+      const sample = this.sampleBeta(1, 1);
+      totalSample += sample * 2;
+      sampleCount += 2;
+    }
+    
+    // Sample cuisine arm
     const cuisineKey = `cuisine:${meal.cuisine}`;
     if (arms[cuisineKey]) {
       const arm = arms[cuisineKey];
       const sample = this.sampleBeta(arm.alpha, arm.beta);
-      maxSample = Math.max(maxSample, sample);
+      totalSample += sample;
+      sampleCount++;
+    } else {
+      const sample = this.sampleBeta(1, 1);
+      totalSample += sample;
+      sampleCount++;
     }
     
-    // Check tag arms
-    for (const tag of meal.tags.slice(0, 3)) { // Top 3 tags
+    // Sample tag arms (top 3 tags)
+    for (const tag of meal.tags.slice(0, 3)) {
       const tagKey = `tag:${tag}`;
       if (arms[tagKey]) {
         const arm = arms[tagKey];
         const sample = this.sampleBeta(arm.alpha, arm.beta);
-        maxSample = Math.max(maxSample, sample);
+        totalSample += sample * 0.5; // Weight tags lower
+        sampleCount += 0.5;
+      } else {
+        const sample = this.sampleBeta(1, 1);
+        totalSample += sample * 0.5;
+        sampleCount += 0.5;
       }
     }
     
-    return context.explorationStrength * maxSample;
+    // Return weighted average of samples
+    // This becomes the primary driver of exploration/exploitation
+    const avgSample = sampleCount > 0 ? totalSample / sampleCount : 0.5;
+    
+    // Apply exploration strength to control the influence of Thompson Sampling
+    return avgSample * context.explorationStrength;
   }
 
   private calculatePrepTimeBonus(meal: MealCandidate): number {
@@ -629,23 +659,43 @@ export class MealRecommenderService {
       const meal = meals.find(m => m.mealId === event.mealId);
       if (!meal) continue;
       
+      // Update per-meal arm (most specific and important)
+      const mealKey = `meal:${event.mealId}`;
+      if (!updatedArms[mealKey]) {
+        updatedArms[mealKey] = { alpha: 1, beta: 1 };
+      }
+      
+      // Update meal arm based on signal
+      switch (event.signal) {
+        case "like":
+        case "completed":
+          updatedArms[mealKey].alpha += event.strength;
+          break;
+        case "dislike":
+          updatedArms[mealKey].beta += event.strength;
+          break;
+        case "saved":
+          updatedArms[mealKey].alpha += 0.7 * event.strength;
+          break;
+      }
+      
       // Update cuisine arm
       const cuisineKey = `cuisine:${meal.cuisine}`;
       if (!updatedArms[cuisineKey]) {
         updatedArms[cuisineKey] = { alpha: 1, beta: 1 };
       }
       
-      // Update based on signal
+      // Update cuisine based on signal (less weight than meal-specific)
       switch (event.signal) {
         case "like":
         case "completed":
-          updatedArms[cuisineKey].alpha += event.strength;
+          updatedArms[cuisineKey].alpha += event.strength * 0.5;
           break;
         case "dislike":
-          updatedArms[cuisineKey].beta += event.strength;
+          updatedArms[cuisineKey].beta += event.strength * 0.5;
           break;
         case "saved":
-          updatedArms[cuisineKey].alpha += 0.5 * event.strength;
+          updatedArms[cuisineKey].alpha += 0.3 * event.strength;
           break;
       }
       
@@ -659,13 +709,13 @@ export class MealRecommenderService {
         switch (event.signal) {
           case "like":
           case "completed":
-            updatedArms[tagKey].alpha += event.strength * 0.5;
+            updatedArms[tagKey].alpha += event.strength * 0.3;
             break;
           case "dislike":
-            updatedArms[tagKey].beta += event.strength * 0.5;
+            updatedArms[tagKey].beta += event.strength * 0.3;
             break;
           case "saved":
-            updatedArms[tagKey].alpha += 0.25 * event.strength;
+            updatedArms[tagKey].alpha += 0.2 * event.strength;
             break;
         }
       }
@@ -675,9 +725,55 @@ export class MealRecommenderService {
   }
 
   private sampleBeta(alpha: number, beta: number): number {
-    // Simplified beta sampling (in production, use proper beta distribution)
-    // For now, return mean of beta distribution
-    return alpha / (alpha + beta);
+    // Proper Thompson Sampling using Beta distribution
+    // Using Marsaglia's method for sampling from Beta distribution
+    
+    // First sample from two Gamma distributions
+    const gammaAlpha = this.sampleGamma(alpha);
+    const gammaBeta = this.sampleGamma(beta);
+    
+    // Beta(α, β) = Gamma(α, 1) / (Gamma(α, 1) + Gamma(β, 1))
+    return gammaAlpha / (gammaAlpha + gammaBeta);
+  }
+  
+  private sampleGamma(shape: number): number {
+    // Marsaglia and Tsang's method for Gamma sampling
+    // For shape >= 1
+    if (shape < 1) {
+      // For shape < 1, use Gamma(shape + 1) and transform
+      const sample = this.sampleGamma(shape + 1);
+      return sample * Math.pow(Math.random(), 1 / shape);
+    }
+    
+    const d = shape - 1/3;
+    const c = 1 / Math.sqrt(9 * d);
+    
+    while (true) {
+      let x, v;
+      do {
+        x = this.sampleNormal(0, 1);
+        v = 1 + c * x;
+      } while (v <= 0);
+      
+      v = v * v * v;
+      const u = Math.random();
+      
+      if (u < 1 - 0.0331 * x * x * x * x) {
+        return d * v;
+      }
+      
+      if (Math.log(u) < 0.5 * x * x + d * (1 - v + Math.log(v))) {
+        return d * v;
+      }
+    }
+  }
+  
+  private sampleNormal(mean: number, variance: number): number {
+    // Box-Muller transform for normal distribution
+    const u1 = Math.random();
+    const u2 = Math.random();
+    const z0 = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+    return mean + Math.sqrt(variance) * z0;
   }
 
   /**
