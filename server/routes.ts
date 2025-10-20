@@ -1053,6 +1053,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // Construct proper base URL for redirects
+      const baseUrl = process.env.REPLIT_DOMAINS 
+        ? `https://${process.env.REPLIT_DOMAINS.split(',')[0]}` 
+        : 'http://localhost:5000';
+
       // Create Stripe checkout session
       const sessionConfig: any = {
         customer_email: user.email,
@@ -1079,8 +1084,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         subscription_data: {
           trial_period_days: 7, // 7-day free trial for all new subscriptions
         },
-        success_url: `${process.env.REPLIT_DOMAINS?.split(',')[0] || 'http://localhost:5000'}/?upgrade=success`,
-        cancel_url: `${process.env.REPLIT_DOMAINS?.split(',')[0] || 'http://localhost:5000'}/pricing?upgrade=cancelled`,
+        success_url: `${baseUrl}/dashboard?upgrade=success`,
+        cancel_url: `${baseUrl}/dashboard?upgrade=cancelled`,
         metadata: {
           userId,
           tier,
