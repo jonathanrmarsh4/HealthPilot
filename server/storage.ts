@@ -3290,11 +3290,28 @@ export class DbStorage implements IStorage {
       );
     }
 
-    // Diet filter
+    // Diet filter - map common diet names to Spoonacular values
     if (filters.diet) {
-      conditions.push(
-        sql`${filters.diet} = ANY(${mealLibrary.diets})`
-      );
+      const validSpoonacularDiets = [
+        'ketogenic', 'vegetarian', 'vegan', 'pescatarian', 'paleo',
+        'whole 30', 'gluten free', 'dairy free', 'lacto ovo vegetarian',
+        'fodmap friendly', 'primal', 'paleolithic'
+      ];
+      
+      // Map common diet names to Spoonacular equivalents
+      let dietToSearch = filters.diet.toLowerCase();
+      if (dietToSearch === 'low-carb') {
+        dietToSearch = 'ketogenic'; // Map low-carb to ketogenic
+      } else if (dietToSearch === 'whole30') {
+        dietToSearch = 'whole 30';
+      }
+      
+      // Only apply filter if it's a valid Spoonacular diet type
+      if (validSpoonacularDiets.includes(dietToSearch)) {
+        conditions.push(
+          sql`${dietToSearch} = ANY(${mealLibrary.diets})`
+        );
+      }
     }
 
     // Calorie filters
