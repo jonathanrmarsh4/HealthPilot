@@ -3,7 +3,7 @@ import { GoogleDriveFiles } from "@/components/GoogleDriveFiles";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FileText, Download, Eye, Trash2, RefreshCw, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
+import { FileText, Trash2, RefreshCw, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -107,20 +107,6 @@ export default function HealthRecords() {
     }
   };
 
-  const handleViewReport = (report: MedicalReport) => {
-    if (report.filePath) {
-      window.open(report.filePath, "_blank");
-    }
-  };
-
-  const handleDownload = (report: MedicalReport) => {
-    if (report.filePath) {
-      const link = document.createElement('a');
-      link.href = report.filePath;
-      link.download = report.fileName;
-      link.click();
-    }
-  };
 
   return (
     <div className="space-y-8">
@@ -193,36 +179,6 @@ export default function HealthRecords() {
                         </TooltipContent>
                       </Tooltip>
                     )}
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => handleViewReport(report)}
-                          data-testid={`button-view-${report.id}`}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>View document</p>
-                      </TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => handleDownload(report)}
-                          data-testid={`button-download-${report.id}`}
-                        >
-                          <Download className="h-4 w-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Download document</p>
-                      </TooltipContent>
-                    </Tooltip>
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button
