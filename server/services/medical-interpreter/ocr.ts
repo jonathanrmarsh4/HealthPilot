@@ -34,26 +34,37 @@ export async function extractTextFromFile(filePath: string): Promise<OCROutput> 
         console.log('🔄 Attempting Vision API extraction on PDF pages as images...');
         
         try {
-          // For scanned PDFs, we'll send the entire PDF as base64 to GPT-4 with vision
-          // GPT-4 can handle PDFs internally by rendering them
+          // For scanned PDFs, send the PDF as an image to GPT-4 Vision
           const base64PDF = fileBuffer.toString('base64');
           const response = await openai.chat.completions.create({
             model: 'gpt-4o',
             messages: [
               {
                 role: 'system',
-                content: 'You are a medical document OCR system. Extract all text from medical reports accurately. Preserve structure, numbers, units, and reference ranges exactly as shown. Output only the extracted text, maintaining the original formatting and layout.',
+                content: 'You are a medical document OCR system. Extract ALL text from medical reports accurately, preserving structure, numbers, units, and reference ranges exactly as shown.',
               },
               {
                 role: 'user',
-                content: `Extract all text from this medical report. The file appears to be a scanned document. Extract all visible text, preserving exact values, units, reference ranges, and structure.\n\nText already extracted (${extractedText.length} chars): ${extractedText}\n\nPlease extract any additional text visible in the document that wasn't captured above.`,
+                content: [
+                  {
+                    type: 'text',
+                    text: 'Extract all visible text from this medical report PDF. Include ALL text: patient info, test names, values, units, reference ranges, dates, doctor names, and any other visible text. Preserve exact values and structure.',
+                  },
+                  {
+                    type: 'image_url',
+                    image_url: {
+                      url: `data:application/pdf;base64,${base64PDF}`,
+                    },
+                  },
+                ],
               },
             ],
-            max_tokens: 4000,
+            max_tokens: 8000,
           });
 
           const visionText = response.choices[0]?.message?.content || '';
           console.log(`✅ Vision API extraction complete: ${visionText.length} characters`);
+          console.log(`📝 First 200 chars: ${visionText.substring(0, 200)}...`);
           
           // Combine pdf-parse text with vision extraction (vision usually has more for scanned docs)
           if (visionText.length > extractedText.length) {
