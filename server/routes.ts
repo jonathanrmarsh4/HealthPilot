@@ -2523,6 +2523,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             let recipeToUse = null;
             let isFromLibrary = false;
             
+            console.log(`📚 Found ${libraryMeals.length} ${mealType} meals in library before filtering`);
+            
             // Apply feedback-based filtering to library meals
             if (libraryMeals.length > 0) {
               const filteredLibraryMeals = libraryMeals.filter(meal => {
@@ -2639,7 +2641,83 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   savedPlans.push(saved);
                 }
               } else {
-                console.log(`⚠️ No ${mealType} meals found after applying all filters - user may need to adjust preferences`);
+                console.log(`⚠️ No ${mealType} meals found after applying library filters`);
+              }
+            }
+            
+            // Fallback to Spoonacular API if library is empty or insufficient
+            if (savedPlans.filter(p => p.mealType.toLowerCase() === mealType).length < mealsPerType) {
+              const neededCount = mealsPerType - savedPlans.filter(p => p.mealType.toLowerCase() === mealType).length;
+              console.log(`🌐 Meal library insufficient, falling back to Spoonacular API for ${neededCount} ${mealType} meals`);
+              
+              try {
+                const { SpoonacularService } = await import("./spoonacular");
+                const spoonacular = new SpoonacularService();
+                
+                const searchParams: any = {
+                  type: mealType,
+                  number: neededCount,
+                  diet: diet as string,
+                  intolerances: intolerances as string,
+                  maxCalories: targetCaloriesPerMeal + 200,
+                  minCalories: targetCaloriesPerMeal - 200,
+                  sort: 'random',
+                };
+                
+                const results = await spoonacular.searchRecipes(searchParams);
+                
+                for (const recipe of results.results) {
+                  try {
+                    const details = await spoonacular.getRecipeDetails(recipe.id, true);
+                    
+                    // Generate AI reasoning for Spoonacular meal
+                    const aiReasoning = generateAIReasoning(details);
+                    
+                    // Save meal plan from Spoonacular with AI reasoning
+                    const saved = await storage.createMealPlan({
+                      userId,
+                      mealType: mealType.charAt(0).toUpperCase() + mealType.slice(1),
+                      name: details.title,
+                      description: details.summary ? details.summary.replace(/<[^>]*>/g, '').substring(0, 200) : '',
+                      calories: Math.round(details.nutrition?.nutrients.find((n: any) => n.name === 'Calories')?.amount || 0),
+                      protein: Math.round(details.nutrition?.nutrients.find((n: any) => n.name === 'Protein')?.amount || 0),
+                      carbs: Math.round(details.nutrition?.nutrients.find((n: any) => n.name === 'Carbohydrates')?.amount || 0),
+                      fat: Math.round(details.nutrition?.nutrients.find((n: any) => n.name === 'Fat')?.amount || 0),
+                      prepTime: details.readyInMinutes || 30,
+                      servings: details.servings || 1,
+                      ingredients: details.extendedIngredients?.map((ing: any) => ing.original) || [],
+                      detailedRecipe: details.instructions || '',
+                      recipe: details.instructions || '',
+                      tags: details.diets || [],
+                      imageUrl: details.image,
+                      spoonacularRecipeId: details.id,
+                      scheduledDate: null,
+                      sourceUrl: details.sourceUrl,
+                      readyInMinutes: details.readyInMinutes,
+                      healthScore: details.healthScore,
+                      dishTypes: details.dishTypes || [],
+                      diets: details.diets || [],
+                      cuisines: details.cuisines || [],
+                      extendedIngredients: details.extendedIngredients || null,
+                      analyzedInstructions: details.analyzedInstructions || null,
+                      nutritionData: details.nutrition || null,
+                      mealLibraryId: null, // Not from library
+                      aiReasoning, // AI explanation
+                    });
+                    
+                    savedPlans.push(saved);
+                    
+                    if (savedPlans.filter(p => p.mealType.toLowerCase() === mealType).length >= mealsPerType) {
+                      break;
+                    }
+                  } catch (error) {
+                    console.error(`Failed to get Spoonacular recipe ${recipe.id}:`, error);
+                  }
+                }
+                
+                console.log(`✅ Generated ${savedPlans.filter(p => p.mealType.toLowerCase() === mealType).length} ${mealType} meals (library + Spoonacular)`);
+              } catch (error) {
+                console.error(`Error falling back to Spoonacular for ${mealType}:`, error);
               }
             }
         } catch (error: any) {
