@@ -1,7 +1,7 @@
 // Biomarker Extraction Service
 // Converts lab observations to HealthPilot biomarker entries
 
-import type { ObservationLabsData, LabObservation } from './types';
+import type { ObservationLabsData, LabObservation, ImagingObservation } from './types';
 import type { InsertBiomarker } from '@shared/schema';
 import { storage } from '../../storage';
 
@@ -212,4 +212,81 @@ export function previewBiomarkerExtraction(labData: ObservationLabsData): {
     mappableObservations: mappable,
     unmappedObservations: unmapped,
   };
+}
+
+/**
+ * Mapping from imaging codes to HealthPilot biomarker types
+ */
+const IMAGING_TO_BIOMARKER_MAP: Record<string, { type: string; unit?: string }> = {
+  'cac': { type: 'calcium-score', unit: 'Agatston units' },
+  'coronary artery calcium': { type: 'calcium-score', unit: 'Agatston units' },
+  'coronary artery calcium score': { type: 'calcium-score', unit: 'Agatston units' },
+  'calcium score': { type: 'calcium-score', unit: 'Agatston units' },
+};
+
+/**
+ * Map an imaging observation to a biomarker entry
+ */
+function mapImagingObservationToBiomarker(
+  obs: ImagingObservation,
+  userId: string,
+  reportId: string
+): InsertBiomarker | null {
+  const searchKey = obs.code.toLowerCase();
+  const displayKey = obs.display.toLowerCase();
+  const mapping = IMAGING_TO_BIOMARKER_MAP[searchKey] || IMAGING_TO_BIOMARKER_MAP[displayKey];
+
+  if (!mapping) {
+    return null;
+  }
+
+  const biomarker: InsertBiomarker = {
+    userId,
+    type: mapping.type,
+    value: obs.value,
+    unit: obs.unit || mapping.unit || '',
+    recordedAt: new Date(obs.collected_at),
+    source: 'medical-report',
+    medicalReportId: reportId,
+    notes: obs.flags?.join('; ') || null,
+  };
+
+  return biomarker;
+}
+
+/**
+ * Extract biomarkers from imaging observations
+ */
+export async function extractBiomarkersFromImaging(
+  imagingData: { observations: ImagingObservation[] },
+  userId: string,
+  reportId: string
+): Promise<string[]> {
+  const createdBiomarkers: string[] = [];
+
+  if (!imagingData.observations || imagingData.observations.length === 0) {
+    console.log('No imaging observations to extract biomarkers from');
+    return createdBiomarkers;
+  }
+
+  console.log(`🔬 Extracting biomarkers from ${imagingData.observations.length} imaging observations`);
+
+  for (const obs of imagingData.observations) {
+    try {
+      const biomarkerData = mapImagingObservationToBiomarker(obs, userId, reportId);
+      
+      if (biomarkerData) {
+        const biomarker = await storage.upsertBiomarker(biomarkerData);
+        createdBiomarkers.push(biomarker.id);
+        console.log(`✅ Created/updated biomarker: ${biomarkerData.type} = ${biomarkerData.value} ${biomarkerData.unit}`);
+      } else {
+        console.log(`⚠️  Could not map imaging observation to biomarker: ${obs.display} (${obs.code})`);
+      }
+    } catch (error) {
+      console.error(`❌ Error creating biomarker from imaging observation ${obs.code}:`, error);
+    }
+  }
+
+  console.log(`📊 Successfully extracted ${createdBiomarkers.length} biomarkers from imaging`);
+  return createdBiomarkers;
 }

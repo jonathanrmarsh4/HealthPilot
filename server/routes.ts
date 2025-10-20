@@ -9613,8 +9613,9 @@ IMPORTANT: When discussing metrics like weight, HRV, sleep, etc., always use the
         finalStatus = 'failed';
       }
 
-      // If interpretation was successful and it's a lab report, auto-extract biomarkers
+      // If interpretation was successful, auto-extract biomarkers based on report type
       let extractedBiomarkerIds: string[] = [];
+      
       if (result.status === 'accepted' && result.report_type === 'Observation_Labs') {
         console.log('🧬 Auto-extracting biomarkers from lab observations');
         try {
@@ -9623,9 +9624,24 @@ IMPORTANT: When discussing metrics like weight, HRV, sleep, etc., always use the
             userId,
             id
           );
-          console.log(`✅ Auto-extracted ${extractedBiomarkerIds.length} biomarkers`);
+          console.log(`✅ Auto-extracted ${extractedBiomarkerIds.length} biomarkers from labs`);
         } catch (biomarkerError) {
-          console.error('⚠️  Failed to auto-extract biomarkers:', biomarkerError);
+          console.error('⚠️  Failed to auto-extract biomarkers from labs:', biomarkerError);
+          // Log the error but don't fail the entire request
+          // The interpretation was successful even if biomarker extraction failed
+        }
+      } else if (result.status === 'accepted' && result.report_type === 'DiagnosticReport_Imaging') {
+        console.log('🧬 Auto-extracting biomarkers from imaging observations');
+        try {
+          const { extractBiomarkersFromImaging } = await import('./services/medical-interpreter/biomarkerExtractor');
+          extractedBiomarkerIds = await extractBiomarkersFromImaging(
+            result.data as any,
+            userId,
+            id
+          );
+          console.log(`✅ Auto-extracted ${extractedBiomarkerIds.length} biomarkers from imaging`);
+        } catch (biomarkerError) {
+          console.error('⚠️  Failed to auto-extract biomarkers from imaging:', biomarkerError);
           // Log the error but don't fail the entire request
           // The interpretation was successful even if biomarker extraction failed
         }
