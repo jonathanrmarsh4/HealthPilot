@@ -2651,8 +2651,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               console.log(`🌐 Meal library insufficient, falling back to Spoonacular API for ${neededCount} ${mealType} meals`);
               
               try {
-                const { SpoonacularService } = await import("./spoonacular");
-                const spoonacular = new SpoonacularService();
+                const { spoonacularService } = await import("./spoonacular");
                 
                 const searchParams: any = {
                   type: mealType,
@@ -2664,11 +2663,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   sort: 'random',
                 };
                 
-                const results = await spoonacular.searchRecipes(searchParams);
+                const results = await spoonacularService.searchRecipes(searchParams);
                 
                 for (const recipe of results.results) {
                   try {
-                    const details = await spoonacular.getRecipeDetails(recipe.id, true);
+                    const details = await spoonacularService.getRecipeDetails(recipe.id, true);
                     
                     // Generate AI reasoning for Spoonacular meal
                     const aiReasoning = generateAIReasoning(details);
