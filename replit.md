@@ -37,6 +37,7 @@ The application is a full-stack project using React, TypeScript, Tailwind CSS, a
 - **Muscle Group Frequency Tracking System:** Tracks training frequency across 8 major muscle groups with a 14-day rolling window, providing visual heatmap feedback (undertrained/optimal/overtrained). AI workout generation uses this data to prioritize undertrained groups. Exercise cards display color-coded muscle group badges.
 - **Voice Chat System (Premium Feature):** Glass-morphism modal UI with WebSocket + OpenAI Realtime API for natural, human-like voice interaction. Includes real-time transcription, auto-greeting, tiered access, chat feedback, and safety guardrails with real-time keyword detection and escalation. Strict data privacy with data minimization.
 - **Universal Medical Data Interpreter:** AI-powered system for ingesting and interpreting medical data (PDFs, images, FHIR, HL7) through a seven-stage pipeline (OCR→Classify→Extract→Normalize→Validate→Interpret→Finalize) with confidence gating. Supports various report types including lab results and imaging reports (calcium scores, cardiac CT), performs biomarker auto-extraction, and enables AI correlation analysis. All medical documents are processed through the unified interpreter pipeline and stored in the medical_reports table. Includes premium tier limits for uploads and robust file security.
+- **Exercise Demonstration System (ExerciseDB Integration):** Integration with ExerciseDB API (1,300+ exercises) providing animated GIF demonstrations, step-by-step instructions, target muscle groups, and equipment information. Features fuzzy name matching for exercise lookups, 24-hour in-memory caching to minimize API calls, and info buttons on all exercise cards in both training schedules and active workout sessions. Accessible via modal dialogs showing proper form and technique guidance.
 
 ## External Dependencies
 - **Database:** PostgreSQL (via Drizzle ORM)
@@ -45,3 +46,4 @@ The application is a full-stack project using React, TypeScript, Tailwind CSS, a
 - **Health Data Integration:** Apple Health via Health Auto Export iOS app webhook (web) and native HealthKit integration via Capacitor (iOS app).
 - **Mobile Platform:** Capacitor 7 for native iOS app.
 - **Payment Processing:** Stripe
+- **Exercise Database:** ExerciseDB API via RapidAPI (1,300+ exercises with GIF demonstrations)
