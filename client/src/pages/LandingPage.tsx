@@ -16,7 +16,7 @@ import type { LandingPageContent, LandingPageFeature, LandingPageTestimonial, La
 export default function LandingPage() {
   const [, setLocation] = useLocation();
   
-  const { data: pageData, isLoading } = useQuery<{
+  const { data: pageData, isLoading, isError, error, refetch } = useQuery<{
     content: LandingPageContent | null;
     features: LandingPageFeature[];
     testimonials: LandingPageTestimonial[];
@@ -42,6 +42,34 @@ export default function LandingPage() {
     return (
       <div className="min-h-screen bg-[#0A0F1F] flex items-center justify-center">
         <div className="text-[#00E0C6] text-lg">Loading...</div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="min-h-screen bg-[#0A0F1F] flex items-center justify-center p-6">
+        <Card className="bg-white/5 backdrop-blur-xl border-white/10 max-w-md">
+          <CardContent className="p-8 text-center">
+            <Shield className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-white mb-2">Unable to Load Page</h2>
+            <p className="text-gray-400 mb-6">
+              We're having trouble loading the landing page content. Please try again.
+            </p>
+            {error && (
+              <p className="text-xs text-gray-500 mb-6">
+                Error: {error instanceof Error ? error.message : 'Unknown error'}
+              </p>
+            )}
+            <Button
+              onClick={() => refetch()}
+              className="bg-[#00E0C6] text-[#0A0F1F] hover:bg-[#00E0C6]/90"
+              data-testid="button-retry"
+            >
+              Try Again
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
