@@ -21,7 +21,8 @@ export async function extractTextFromFile(filePath: string): Promise<OCROutput> 
       console.log('📄 Extracting text from PDF using pdf-parse...');
       const { PDFParse } = await import('pdf-parse');
       const fileBuffer = await fs.readFile(filePath);
-      const pdfData = await PDFParse(fileBuffer);
+      const parser = new PDFParse();
+      const pdfData = await parser.parse(fileBuffer);
       extractedText = pdfData.text;
       console.log(`✅ PDF text extracted: ${extractedText.length} characters`);
     } else {
