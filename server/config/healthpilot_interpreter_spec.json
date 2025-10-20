@@ -178,16 +178,72 @@
   },
   "type_detection": {
     "heuristics": [
-      {"pattern": "Reference Range|Test Name|Units", "label": "Observation_Labs"},
-      {"pattern": "PR interval|QRS|QTc|sinus rhythm", "label": "Cardiac_ECG"},
-      {"pattern": "LVEF|tricuspid|mitral|echo", "label": "Cardiac_Echo"},
-      {"pattern": "Findings|Impression|CT|MRI|X-Ray|Ultrasound", "label": "DiagnosticReport_Imaging"},
-      {"pattern": "variant|rsID|allele|zygosity", "label": "Genomic"},
-      {"pattern": "steps|HRV|VO2max|sleep|Resting Heart Rate", "label": "Wearable"},
-      {"pattern": "mmHg|bpm|height|weight|waist", "label": "VitalsAnthro"},
-      {"pattern": "dose|mg|tablet|once daily", "label": "MedicationStatement"},
-      {"pattern": "procedure|surgery|laparoscopic|arthroscopy", "label": "Procedure"},
-      {"pattern": "immunization|vaccine|lot|site", "label": "Immunization"}
+      {
+        "label": "Observation_Labs",
+        "patterns": "Reference Range|Test Name|Units|Laboratory|Specimen|Result|Panel",
+        "weight": 1.0,
+        "exclusions": "calcium score|agatston|coronary artery calcium|CAC score|DEXA|bone density|T-score|Z-score|CT calcium|cardiac CT"
+      },
+      {
+        "label": "Cardiac_ECG",
+        "patterns": "PR interval|QRS|QTc|sinus rhythm|ECG|EKG|electrocardiogram",
+        "weight": 1.0,
+        "exclusions": ""
+      },
+      {
+        "label": "Cardiac_Echo",
+        "patterns": "LVEF|tricuspid|mitral|echo|echocardiogram|ejection fraction",
+        "weight": 1.0,
+        "exclusions": ""
+      },
+      {
+        "label": "DiagnosticReport_Imaging",
+        "patterns": "Findings|Impression|Radiology|Radiologist|CT scan|MRI scan|X-Ray|Ultrasound|mammogram",
+        "weight": 0.8,
+        "exclusions": ""
+      },
+      {
+        "label": "DiagnosticReport_Imaging",
+        "patterns": "calcium score|agatston|coronary artery calcium|CAC score|percentile|cardiac CT|DEXA|bone density|T-score|Z-score|BMD",
+        "weight": 1.2,
+        "exclusions": ""
+      },
+      {
+        "label": "Genomic",
+        "patterns": "variant|rsID|allele|zygosity|mutation|gene|SNP",
+        "weight": 1.0,
+        "exclusions": ""
+      },
+      {
+        "label": "Wearable",
+        "patterns": "steps|HRV|VO2max|sleep|Resting Heart Rate|activity|calories burned",
+        "weight": 1.0,
+        "exclusions": ""
+      },
+      {
+        "label": "VitalsAnthro",
+        "patterns": "mmHg|bpm|height|weight|waist|blood pressure|vital signs",
+        "weight": 1.0,
+        "exclusions": ""
+      },
+      {
+        "label": "MedicationStatement",
+        "patterns": "dose|mg|tablet|once daily|prescription|medication|dosage",
+        "weight": 1.0,
+        "exclusions": ""
+      },
+      {
+        "label": "Procedure",
+        "patterns": "procedure|surgery|laparoscopic|arthroscopy|surgical|operation",
+        "weight": 1.0,
+        "exclusions": ""
+      },
+      {
+        "label": "Immunization",
+        "patterns": "immunization|vaccine|vaccination|lot|site|dose number",
+        "weight": 1.0,
+        "exclusions": ""
+      }
     ],
     "classifier_prompt": "Classify the report type from text. Output JSON: {\"label\": <type>, \"confidence\": <0-1>, \"rationale\": <short>}. Only use the allowed labels."
   },
