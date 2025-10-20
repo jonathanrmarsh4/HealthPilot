@@ -3255,14 +3255,16 @@ export class DbStorage implements IStorage {
     cuisines?: string[];
     count?: number;
   }): Promise<MealLibrary[]> {
-    // Get user's meal feedback to exclude thumbs down and boost thumbs up
+    // Get user's meal feedback to exclude ALL dislike types and boost thumbs up
     const userFeedback = await this.getUserMealFeedback(userId);
-    const thumbsDownIds = userFeedback
-      .filter(f => f.feedback === 'thumbs_down')
-      .map(f => f.mealLibraryId);
+    const dislikedMealIds = userFeedback
+      .filter(f => f.feedback === 'thumbs_down' || f.feedback === 'permanent_dislike' || f.feedback === 'dislike')
+      .map(f => f.mealLibraryId)
+      .filter(id => id != null); // Filter out null IDs
     const thumbsUpIds = userFeedback
       .filter(f => f.feedback === 'thumbs_up')
-      .map(f => f.mealLibraryId);
+      .map(f => f.mealLibraryId)
+      .filter(id => id != null);
 
     // Get active meals from library
     let query = db
@@ -3271,8 +3273,8 @@ export class DbStorage implements IStorage {
       .where(
         and(
           eq(mealLibrary.status, 'active'),
-          // Exclude meals user disliked
-          thumbsDownIds.length > 0 ? sql`${mealLibrary.id} NOT IN (${sql.join(thumbsDownIds.map(id => sql`${id}`), sql`, `)})` : undefined,
+          // Exclude ALL meals user disliked (permanent_dislike, thumbs_down, dislike)
+          dislikedMealIds.length > 0 ? sql`${mealLibrary.id} NOT IN (${sql.join(dislikedMealIds.map(id => sql`${id}`), sql`, `)})` : undefined,
           // Filter out meals with <60% approval (approval = thumbs_up / total_served >= 0.6)
           sql`(${mealLibrary.totalServed} = 0 OR ${mealLibrary.thumbsUpCount}::float / ${mealLibrary.totalServed} >= 0.6)`
         )

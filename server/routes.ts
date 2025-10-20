@@ -2434,10 +2434,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         startDate.setDate(startDate.getDate() + 1);
       }
       
-      // Step 6: Generate meal plan using Spoonacular with intelligent filtering
+      // Step 6: Generate AI-curated meal plan from library (30-50 options per meal type)
       const savedPlans = [];
       const mealTypes = ['breakfast', 'lunch', 'dinner'];
-      const daysToGenerate = 4; // Generate 4 days of meals
+      const mealsPerType = 40; // Generate 40 curated options per meal type
       
       // Build dietary restrictions from nutrition profile
       const diet = nutritionProfile?.dietaryPreferences?.[0]; // Use first preference as main diet
@@ -2448,26 +2448,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const adjustedDailyCalories = baseCalorieTarget + calorieModifier;
       const targetCaloriesPerMeal = Math.round(adjustedDailyCalories / 3);
       
-      console.log(`🍽️ Intelligent meal generation:`);
+      // Generate AI reasoning helper function
+      const generateAIReasoning = (meal: any): string => {
+        const reasons: string[] = [];
+        
+        // Biomarker-based reasoning
+        if (latestGlucose && latestGlucose.value > 100 && meal.carbs < targetCaloriesPerMeal * 0.40 / 4) {
+          reasons.push('Low-carb to help manage blood glucose');
+        }
+        if (latestCholesterol && latestCholesterol.value > 200 && meal.fat < 15) {
+          reasons.push('Heart-healthy with low saturated fat');
+        }
+        if (latestTriglycerides && latestTriglycerides.value > 150 && meal.carbs < targetCaloriesPerMeal * 0.35 / 4) {
+          reasons.push('Low-carb to reduce triglycerides');
+        }
+        
+        // Goal-based reasoning
+        if (proteinBoost && meal.protein >= targetCaloriesPerMeal * 0.30 / 4) {
+          reasons.push('High protein to support muscle growth');
+        }
+        if (calorieModifier < 0 && meal.calories <= targetCaloriesPerMeal) {
+          reasons.push('Calorie-controlled for weight loss');
+        }
+        if (calorieModifier > 0 && meal.calories >= targetCaloriesPerMeal) {
+          reasons.push('Higher calories to support weight gain');
+        }
+        
+        // Default reasoning if no specific match
+        if (reasons.length === 0) {
+          reasons.push(`Balanced nutrition aligned with your ${targetCaloriesPerMeal}-calorie meal target`);
+        }
+        
+        return reasons.join(' • ');
+      };
+      
+      console.log(`🍽️ AI-Driven Meal Curation:`);
+      console.log(`   Generating ${mealsPerType} curated options per meal type (${mealsPerType * 3} total meals)`);
       console.log(`   Diet: ${diet || 'none'}, Intolerances: ${intolerances || 'none'}`);
       console.log(`   Base calories: ${baseCalorieTarget}, Adjusted: ${adjustedDailyCalories} (modifier: ${calorieModifier})`);
       if (healthContext) console.log(`   Health context:\n${healthContext}`);
       if (feedbackContext) console.log(`   User preferences from feedback:\n${feedbackContext}`);
       
-      for (let day = 0; day < daysToGenerate; day++) {
-        const scheduledDate = new Date(startDate);
-        scheduledDate.setDate(startDate.getDate() + day);
-        
-        for (const mealType of mealTypes) {
-          try {
-            // Build intelligent search parameters for meal library
-            const libraryFilters: any = {
-              mealType,
-              diet: diet as string,
-              maxCalories: targetCaloriesPerMeal + 200,
-              minCalories: targetCaloriesPerMeal - 200,
-              count: 1, // Request only 1 meal - weighted selection happens in storage layer
-            };
+      for (const mealType of mealTypes) {
+        try {
+          // Build intelligent search parameters for meal library
+          const libraryFilters: any = {
+            mealType,
+            diet: diet as string,
+            maxCalories: targetCaloriesPerMeal + 200,
+            minCalories: targetCaloriesPerMeal - 200,
+            count: 50, // Request 50 meals from library for variety
+          };
             
             // Apply health-based filters
             if (latestGlucose && latestGlucose.value > 100) {
@@ -2562,303 +2593,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   return scoreB - scoreA; // Higher score first
                 });
                 
-                // Use the top-ranked meal from the library
-                recipeToUse = rankedLibraryMeals[0];
-                isFromLibrary = true;
-                console.log(`📚 Using meal from library: ${recipeToUse.title}`);
-              } else {
-                console.log(`🚫 All library meals filtered by user feedback, falling back to Spoonacular...`);
-              }
-            }
-            
-            if (!recipeToUse) {
-              console.log(`🌐 No suitable library meals found, falling back to Spoonacular...`);
-              
-              // Fall back to Spoonacular API
-              const searchParams: any = {
-                type: mealType,
-                diet: diet as string,
-                intolerances: intolerances,
-                maxCalories: targetCaloriesPerMeal + 200,
-                minCalories: targetCaloriesPerMeal - 200,
-                number: 10, // Request more to allow filtering
-                sort: 'random',
-                addRecipeInformation: true,
-              };
-              
-              // Apply user feedback preferences for cuisines
-              if (dislikedCuisines.size > 0) {
-                searchParams.excludeCuisine = Array.from(dislikedCuisines).join(',');
-              }
-              if (preferredCuisines.size > 0) {
-                searchParams.cuisine = Array.from(preferredCuisines).join(',');
-              }
-              
-              // Apply health-based filters for Spoonacular
-              if (latestGlucose && latestGlucose.value > 100) {
-                searchParams.maxSugar = 15; // Max 15g sugar per meal
-              }
-              
-              if (latestCholesterol && latestCholesterol.value > 200) {
-                searchParams.maxSaturatedFat = 5; // Max 5g saturated fat per meal
-              }
-              
-              if (latestTriglycerides && latestTriglycerides.value > 150) {
-                searchParams.maxCarbs = Math.round(targetCaloriesPerMeal * 0.35 / 4);
-              }
-              
-              if (proteinBoost) {
-                searchParams.minProtein = Math.round(targetCaloriesPerMeal * 0.30 / 4);
-              }
-              
-              // Search for recipes matching nutritional requirements
-              let searchResults = await spoonacularService.searchRecipes(searchParams);
-
-              // If feedback filters excluded all results, retry without feedback constraints
-              if (!searchResults.results || searchResults.results.length === 0) {
-                console.log(`⚠️ Feedback filters excluded all Spoonacular results, retrying without cuisine constraints...`);
-                const relaxedParams = { ...searchParams };
-                delete relaxedParams.excludeCuisine;
-                delete relaxedParams.cuisine;
-                searchResults = await spoonacularService.searchRecipes(relaxedParams);
+                // Save up to mealsPerType meals with AI reasoning
+                const mealsToSave = rankedLibraryMeals.slice(0, mealsPerType);
+                console.log(`📚 Creating ${mealsToSave.length} AI-curated ${mealType} options from library`);
                 
-                // If still no results, do a minimal search with just meal type and calorie range
-                // CRITICAL: Preserve dietary restrictions (diet) and intolerances - these are NON-NEGOTIABLE
-                if (!searchResults.results || searchResults.results.length === 0) {
-                  console.log(`⚠️ Still no results, retrying with minimal constraints (preserving dietary restrictions)...`);
-                  const minimalParams: any = {
-                    type: mealType,
-                    maxCalories: targetCaloriesPerMeal + 300,
-                    minCalories: targetCaloriesPerMeal - 300,
-                    number: 10,
-                    sort: 'random',
-                    addRecipeInformation: true,
-                  };
-                  // NEVER compromise on dietary restrictions (vegetarian, vegan, etc.)
-                  if (diet) {
-                    minimalParams.diet = diet;
-                  }
-                  // NEVER compromise on intolerances/allergies
-                  if (intolerances) {
-                    minimalParams.intolerances = intolerances;
-                  }
-                  searchResults = await spoonacularService.searchRecipes(minimalParams);
+                for (const meal of mealsToSave) {
+                  // Generate AI reasoning for this meal
+                  const aiReasoning = generateAIReasoning(meal);
+                  
+                  // Increment served count for library meal
+                  await storage.updateMealPerformance(meal.id, true);
+                  
+                  // Save meal plan from library with AI reasoning
+                  const saved = await storage.createMealPlan({
+                    userId,
+                    mealType: mealType.charAt(0).toUpperCase() + mealType.slice(1),
+                    name: meal.title,
+                    description: meal.description || '',
+                    calories: meal.calories || 0,
+                    protein: meal.protein || 0,
+                    carbs: meal.carbs || 0,
+                    fat: meal.fat || 0,
+                    prepTime: meal.readyInMinutes || 30,
+                    servings: meal.servings || 1,
+                    ingredients: Array.isArray(meal.ingredients) ? meal.ingredients : [],
+                    detailedRecipe: meal.instructions || '',
+                    recipe: meal.instructions || '',
+                    tags: meal.diets || [],
+                    imageUrl: meal.imageUrl,
+                    spoonacularRecipeId: meal.spoonacularRecipeId,
+                    scheduledDate: null, // No fixed schedule - user browses and selects
+                    sourceUrl: meal.sourceUrl,
+                    readyInMinutes: meal.readyInMinutes,
+                    healthScore: meal.healthScore || null,
+                    dishTypes: meal.dishTypes || [],
+                    diets: meal.diets || [],
+                    cuisines: meal.cuisines || [],
+                    extendedIngredients: meal.extendedIngredients || null,
+                    analyzedInstructions: meal.analyzedInstructions || null,
+                    nutritionData: null,
+                    mealLibraryId: meal.id, // Link to library meal for feedback tracking
+                    aiReasoning, // AI explanation for why this meal was recommended
+                  });
+                  
+                  savedPlans.push(saved);
                 }
-              }
-
-              if (searchResults.results && searchResults.results.length > 0) {
-                // Filter results by dish type and meal name feedback (post-query filtering)
-                let filteredResults = searchResults.results.filter((recipe: any) => {
-                  // Exclude permanently disliked meals by name
-                  if (recipe.title && dislikedMealNames.has(recipe.title.toLowerCase())) {
-                    return false;
-                  }
-                  // Exclude recipes with disliked dish types
-                  if (recipe.dishTypes && recipe.dishTypes.some((d: string) => dislikedDishTypes.has(d))) {
-                    return false;
-                  }
-                  
-                  // CRITICAL: Validate dietary restrictions (vegetarian/vegan)
-                  // Spoonacular's API sometimes returns non-compliant meals, so we must validate
-                  if (diet) {
-                    const meatTerms = ['chicken', 'beef', 'pork', 'lamb', 'turkey', 'fish', 'salmon', 'tuna', 'shrimp', 'steak', 'bacon', 'sausage', 'ham', 'duck', 'veal', 'meat', 'seafood', 'prosciutto', 'pepperoni', 'anchovy', 'cod', 'tilapia', 'mahi', 'halibut'];
-                    const animalProductTerms = ['milk', 'cheese', 'butter', 'egg', 'cream', 'yogurt', 'honey'];
-                    
-                    const textToCheck = `${recipe.title || ''} ${JSON.stringify(recipe.extendedIngredients || [])}`.toLowerCase();
-                    
-                    if (diet === 'vegetarian' || diet === 'vegan') {
-                      // Check for meat in title or ingredients
-                      const hasMeat = meatTerms.some(term => textToCheck.includes(term));
-                      if (hasMeat) {
-                        console.log(`🚫 Filtered out non-vegetarian meal: ${recipe.title} (contains meat)`);
-                        return false;
-                      }
-                    }
-                    
-                    if (diet === 'vegan') {
-                      // Additionally check for animal products
-                      const hasAnimalProducts = animalProductTerms.some(term => textToCheck.includes(term));
-                      if (hasAnimalProducts) {
-                        console.log(`🚫 Filtered out non-vegan meal: ${recipe.title} (contains animal products)`);
-                        return false;
-                      }
-                    }
-                  }
-                  
-                  return true;
-                });
-                
-                // CRITICAL: Only relax dish type filtering if no meal-specific dislikes were filtered
-                // NEVER re-add meals that user explicitly disliked by name
-                if (filteredResults.length === 0) {
-                  // Check if we filtered out meal-specific dislikes
-                  const hasDislikedMealNames = searchResults.results.some((recipe: any) => 
-                    recipe.title && dislikedMealNames.has(recipe.title.toLowerCase())
-                  );
-                  
-                  if (!hasDislikedMealNames) {
-                    // Only dish types were filtered - we can relax this constraint
-                    console.log(`⚠️ All results filtered by dish type feedback only, relaxing dish type constraint...`);
-                    filteredResults = searchResults.results.filter((recipe: any) => {
-                      // Still exclude permanently disliked meals by name (non-negotiable)
-                      if (recipe.title && dislikedMealNames.has(recipe.title.toLowerCase())) {
-                        return false;
-                      }
-                      return true;
-                    });
-                  } else {
-                    // User explicitly disliked specific meals - do NOT re-add them
-                    console.log(`🚫 All results contain permanently disliked meals - skipping this meal slot`);
-                    filteredResults = []; // Keep empty to skip this meal
-                  }
-                }
-                
-                // Rank results by preferred cuisines and dish types
-                const rankedResults = filteredResults.sort((a: any, b: any) => {
-                  let scoreA = 0;
-                  let scoreB = 0;
-                  
-                  // Boost for preferred cuisines
-                  if (a.cuisines) {
-                    scoreA += a.cuisines.filter((c: string) => preferredCuisines.has(c)).length * 3;
-                  }
-                  if (b.cuisines) {
-                    scoreB += b.cuisines.filter((c: string) => preferredCuisines.has(c)).length * 3;
-                  }
-                  
-                  // Boost for preferred dish types
-                  if (a.dishTypes) {
-                    scoreA += a.dishTypes.filter((d: string) => preferredDishTypes.has(d)).length * 2;
-                  }
-                  if (b.dishTypes) {
-                    scoreB += b.dishTypes.filter((d: string) => preferredDishTypes.has(d)).length * 2;
-                  }
-                  
-                  return scoreB - scoreA; // Higher score first
-                });
-                
-                // Pick top-ranked recipe
-                const recipe = rankedResults[0];
-                
-                // Get full recipe details including ingredients and instructions
-                const recipeDetails = await spoonacularService.getRecipeDetails(recipe.id);
-                
-                recipeToUse = recipeDetails;
-                isFromLibrary = false;
               } else {
-                console.log(`❌ CRITICAL: All Spoonacular fallback tiers exhausted for ${mealType} on day ${day + 1}`);
-                console.log(`   - Tried with full constraints: 0 results`);
-                console.log(`   - Tried without cuisine constraints: 0 results`);
-                console.log(`   - Tried with minimal constraints: 0 results`);
-                console.log(`   - Skipping this meal slot - user will see incomplete meal plan`);
+                console.log(`⚠️ No ${mealType} meals found after applying all filters - user may need to adjust preferences`);
               }
             }
-            
-            // Process the selected recipe (from library or Spoonacular)
-            if (recipeToUse) {
-              if (isFromLibrary) {
-                // Increment served count for library meal
-                await storage.updateMealPerformance(recipeToUse.id, true);
-                
-                // Save meal plan from library
-                const saved = await storage.createMealPlan({
-                  userId,
-                  mealType: mealType.charAt(0).toUpperCase() + mealType.slice(1),
-                  name: recipeToUse.title,
-                  description: recipeToUse.description || '',
-                  calories: recipeToUse.calories || 0,
-                  protein: recipeToUse.protein || 0,
-                  carbs: recipeToUse.carbs || 0,
-                  fat: recipeToUse.fat || 0,
-                  prepTime: recipeToUse.readyInMinutes || 30,
-                  servings: recipeToUse.servings || 1,
-                  ingredients: Array.isArray(recipeToUse.ingredients) ? recipeToUse.ingredients : [],
-                  detailedRecipe: recipeToUse.instructions || '',
-                  recipe: recipeToUse.instructions || '',
-                  tags: recipeToUse.diets || [],
-                  imageUrl: recipeToUse.imageUrl,
-                  spoonacularRecipeId: recipeToUse.spoonacularRecipeId,
-                  scheduledDate,
-                  sourceUrl: recipeToUse.sourceUrl,
-                  readyInMinutes: recipeToUse.readyInMinutes,
-                  healthScore: recipeToUse.healthScore || null,
-                  dishTypes: recipeToUse.dishTypes || [],
-                  diets: recipeToUse.diets || [],
-                  cuisines: recipeToUse.cuisines || [],
-                  extendedIngredients: recipeToUse.extendedIngredients || null,
-                  analyzedInstructions: recipeToUse.analyzedInstructions || null,
-                  nutritionData: null,
-                  mealLibraryId: recipeToUse.id, // Link to library meal
-                });
-                
-                savedPlans.push(saved);
-                console.log(`✅ Added ${mealType} from library for day ${day + 1}: ${recipeToUse.title}`);
-              } else {
-                // Extract ingredients list from Spoonacular
-                const ingredients = recipeToUse.extendedIngredients?.map((ing: any) => 
-                  ing.original || `${ing.amount} ${ing.unit} ${ing.name}`
-                ) || [];
-                
-                // Extract step-by-step instructions
-                let detailedInstructions = '';
-                if (recipeToUse.analyzedInstructions && recipeToUse.analyzedInstructions.length > 0) {
-                  const steps = recipeToUse.analyzedInstructions[0].steps || [];
-                  detailedInstructions = steps
-                    .map((step: any, index: number) => `${index + 1}. ${step.step}`)
-                    .join('\n\n');
-                }
-                
-                // Calculate macros from nutrition data
-                const nutrition = recipeToUse.nutrition;
-                const calories = nutrition?.nutrients?.find((n: any) => n.name === 'Calories')?.amount || 0;
-                const protein = nutrition?.nutrients?.find((n: any) => n.name === 'Protein')?.amount || 0;
-                const carbs = nutrition?.nutrients?.find((n: any) => n.name === 'Carbohydrates')?.amount || 0;
-                const fat = nutrition?.nutrients?.find((n: any) => n.name === 'Fat')?.amount || 0;
-                
-                // Save meal plan with Spoonacular data
-                const recipeData = recipeToUse as any;
-                const saved = await storage.createMealPlan({
-                  userId,
-                  mealType: mealType.charAt(0).toUpperCase() + mealType.slice(1),
-                  name: recipeToUse.title,
-                  description: recipeToUse.summary?.replace(/<[^>]*>/g, '').substring(0, 200) || '',
-                  calories: Math.round(calories),
-                  protein: Math.round(protein),
-                  carbs: Math.round(carbs),
-                  fat: Math.round(fat),
-                  prepTime: recipeToUse.readyInMinutes || 30,
-                  servings: recipeToUse.servings || 1,
-                  ingredients,
-                  detailedRecipe: detailedInstructions || recipeData.instructions || '',
-                  recipe: recipeData.instructions || '',
-                  tags: recipeData.diets || [],
-                  imageUrl: recipeToUse.image,
-                  spoonacularRecipeId: recipeToUse.id,
-                  scheduledDate,
-                  sourceUrl: recipeToUse.sourceUrl,
-                  readyInMinutes: recipeToUse.readyInMinutes,
-                  healthScore: recipeToUse.healthScore,
-                  dishTypes: recipeToUse.dishTypes || [],
-                  diets: recipeToUse.diets || [],
-                  cuisines: recipeToUse.cuisines || [],
-                  extendedIngredients: recipeToUse.extendedIngredients || null,
-                  analyzedInstructions: recipeToUse.analyzedInstructions || null,
-                  nutritionData: recipeToUse.nutrition || null,
-                });
-                
-                savedPlans.push(saved);
-                console.log(`✅ Added ${mealType} from Spoonacular for day ${day + 1}: ${recipeToUse.title}`);
-              }
-            }
-          } catch (error: any) {
-            console.error(`Error generating ${mealType} for day ${day + 1}:`, error);
-            
-            // If it's a Spoonacular API error, log it but continue with other meals
-            if (error.message === 'SPOONACULAR_PAYMENT_REQUIRED' || error.message === 'SPOONACULAR_QUOTA_EXCEEDED') {
-              console.warn('⚠️ Spoonacular API unavailable - meal generation will be limited');
-            }
-            // Continue with other meals even if one fails
-          }
+        } catch (error: any) {
+          console.error(`Error generating ${mealType} meals:`, error);
+          // Continue with other meal types even if one fails
         }
       }
       
@@ -2872,7 +2658,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`🔒 Enforced 7-day cap: deleted ${cappedCount} meal(s) beyond ${maxDate.toISOString().split('T')[0]}`);
       }
       
-      console.log(`✅ Generated ${savedPlans.length} Spoonacular meals for ${daysToGenerate} days starting ${startDate.toISOString().split('T')[0]}`);
+      console.log(`✅ AI-Generated ${savedPlans.length} total curated meal options from library`);
       res.json(savedPlans);
     } catch (error: any) {
       console.error("Error generating meal plan:", error);

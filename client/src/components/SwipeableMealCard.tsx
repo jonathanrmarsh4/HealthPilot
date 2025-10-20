@@ -247,6 +247,20 @@ export function SwipeableMealCard({
             </div>
           </div>
 
+          {/* AI Reasoning - why this meal was recommended */}
+          {meal.aiReasoning && (
+            <div className="p-3 rounded-lg bg-primary/10 border border-primary/20" data-testid="container-ai-reasoning">
+              <div className="flex items-start gap-2">
+                <Badge variant="outline" className="text-xs bg-primary/20 border-primary/30 shrink-0">
+                  AI Recommended
+                </Badge>
+                <p className="text-sm text-foreground leading-relaxed" data-testid="text-ai-reasoning">
+                  {meal.aiReasoning}
+                </p>
+              </div>
+            </div>
+          )}
+
           <div className="text-center text-sm text-muted-foreground pt-2">
             <p data-testid="text-swipe-instruction">
               <span className="font-medium">Swipe left</span> to skip • <span className="font-medium">Swipe right</span> to dislike

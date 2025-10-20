@@ -171,6 +171,9 @@ export const mealPlans = pgTable("meal_plans", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
   userFeedback: text("user_feedback"), // "liked" or "disliked"
   feedbackAt: timestamp("feedback_at"), // When user gave feedback
+  // AI-driven meal curation fields
+  aiReasoning: text("ai_reasoning"), // AI explanation for why this meal was recommended (e.g., "High protein to support muscle recovery")
+  mealLibraryId: varchar("meal_library_id"), // Reference to meal_library table for feedback tracking
 });
 
 export const favoriteRecipes = pgTable("favorite_recipes", {
