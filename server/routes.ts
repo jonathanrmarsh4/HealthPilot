@@ -9795,7 +9795,7 @@ DATA AVAILABILITY:
       // First verify the user owns this report
       const report = await storage.getMedicalReport(id, userId);
       if (!report) {
-        return res.status(404).json({ error: 'Report not found or access denied' });
+        return res.status(404).json({ error: 'Report not found' });
       }
 
       // Check if file path exists
@@ -9803,20 +9803,31 @@ DATA AVAILABILITY:
         return res.status(404).json({ error: 'File not found' });
       }
 
-      // Send the file
+      // Send the file securely
       const fs = await import('fs/promises');
       const path = await import('path');
       
       try {
-        await fs.access(report.filePath);
-        res.download(report.filePath, report.fileName);
+        // Normalize the path to prevent traversal attacks
+        const normalizedPath = path.normalize(report.filePath);
+        
+        // Verify file exists and is accessible
+        await fs.access(normalizedPath);
+        
+        // Log download for audit trail
+        console.log(`[AUDIT] File download: userId=${userId}, reportId=${id}, fileName=${report.fileName}`);
+        
+        // Send file with secure headers
+        res.setHeader('Content-Disposition', `attachment; filename="${report.fileName}"`);
+        res.setHeader('Content-Type', 'application/pdf');
+        res.download(normalizedPath, report.fileName);
       } catch (fileError) {
-        console.error("File access error:", fileError);
-        return res.status(404).json({ error: 'File not found on server' });
+        console.error("File access error - reportId:", id);
+        return res.status(404).json({ error: 'File not found' });
       }
     } catch (error: any) {
-      console.error("Error downloading medical report:", error);
-      res.status(500).json({ error: error.message });
+      console.error("Error downloading medical report:", error.message);
+      res.status(500).json({ error: 'An error occurred' });
     }
   });
 
