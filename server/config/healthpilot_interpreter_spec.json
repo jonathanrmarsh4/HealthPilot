@@ -204,8 +204,8 @@
       },
       {
         "label": "DiagnosticReport_Imaging",
-        "patterns": "calcium score|agatston|coronary artery calcium|CAC score|percentile|cardiac CT|DEXA|bone density|T-score|Z-score|BMD",
-        "weight": 1.2,
+        "patterns": "calcium score|agatston|coronary artery calcium|CAC score|percentile|cardiac CT|CTCA|CT angiography|DEXA|bone density|T-score|Z-score|BMD",
+        "weight": 1.5,
         "exclusions": ""
       },
       {
@@ -230,7 +230,7 @@
         "label": "MedicationStatement",
         "patterns": "dose|mg|tablet|once daily|prescription|medication|dosage",
         "weight": 1.0,
-        "exclusions": ""
+        "exclusions": "CT|MRI|X-Ray|scan|imaging|radiology|radiologist"
       },
       {
         "label": "Procedure",
