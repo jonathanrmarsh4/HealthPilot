@@ -3325,20 +3325,20 @@ export class DbStorage implements IStorage {
       }
     }
 
-    // Calorie filters
+    // Calorie filters - only apply if meal has calories data
     if (filters.minCalories) {
-      conditions.push(sql`${mealLibrary.calories} >= ${filters.minCalories}`);
+      conditions.push(sql`(${mealLibrary.calories} IS NULL OR ${mealLibrary.calories} >= ${filters.minCalories})`);
     }
     if (filters.maxCalories) {
-      conditions.push(sql`${mealLibrary.calories} <= ${filters.maxCalories}`);
+      conditions.push(sql`(${mealLibrary.calories} IS NULL OR ${mealLibrary.calories} <= ${filters.maxCalories})`);
     }
 
-    // Macro filters
+    // Macro filters - only apply if meal has macro data
     if (filters.maxCarbs) {
-      conditions.push(sql`${mealLibrary.carbs} <= ${filters.maxCarbs}`);
+      conditions.push(sql`(${mealLibrary.carbs} IS NULL OR ${mealLibrary.carbs} <= ${filters.maxCarbs})`);
     }
     if (filters.minProtein) {
-      conditions.push(sql`${mealLibrary.protein} >= ${filters.minProtein}`);
+      conditions.push(sql`(${mealLibrary.protein} IS NULL OR ${mealLibrary.protein} >= ${filters.minProtein})`);
     }
 
     // Cuisine filter
