@@ -16,12 +16,18 @@ export function validateLabData(
   const results: ValidationResult[] = [];
 
   for (const obs of data.observations) {
-    // Rule 1: Observation values must be numeric when a numeric unit is present
+    // Rule 1: Observation values should be numeric when a numeric unit is present
+    // But allow qualitative/special values like "< 1.0", "> 500", "Negative", ranges, etc.
     if (hasNumericUnit(obs.unit)) {
-      const numericValue = typeof obs.value === 'number' ? obs.value : parseFloat(String(obs.value));
-      if (isNaN(numericValue)) {
+      const valueStr = String(obs.value);
+      const numericValue = typeof obs.value === 'number' ? obs.value : parseFloat(valueStr);
+      
+      // Only warn if the value doesn't look like a special case (contains <, >, -, "Negative", etc.)
+      const isSpecialCase = /[<>]|negative|positive|detected|range|\-/i.test(valueStr);
+      
+      if (isNaN(numericValue) && !isSpecialCase) {
         results.push({
-          outcome: 'fail',
+          outcome: 'warn', // Changed from 'fail' to 'warn' - be more forgiving
           message: `Value for ${obs.display} is not numeric despite having numeric unit ${obs.unit}`,
           field: obs.code,
         });

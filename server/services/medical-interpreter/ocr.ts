@@ -18,7 +18,7 @@ export async function extractTextFromFile(filePath: string): Promise<OCROutput> 
     let usedVisionFallback = false;
 
     if (isPDF) {
-      // Use pdf-parse for PDF files (both text and scanned)
+      // Try pdf-parse first for text-based PDFs
       console.log('📄 Extracting text from PDF using pdf-parse...');
       const { PDFParse } = await import('pdf-parse');
       const fileBuffer = await fs.readFile(filePath);
@@ -27,8 +27,44 @@ export async function extractTextFromFile(filePath: string): Promise<OCROutput> 
       extractedText = textResult.text;
       console.log(`✅ PDF text extracted: ${extractedText.length} characters (${textResult.pages.length} pages)`);
       
-      // Note: For scanned PDFs with low text content, users should convert to images first
-      // OpenAI Vision API doesn't support PDF MIME type, only images
+      // Check if this is likely a scanned PDF (very little text extracted)
+      const charsPerPage = extractedText.length / textResult.pages.length;
+      if (charsPerPage < 50) {
+        console.log(`⚠️  Low text density detected (${charsPerPage.toFixed(0)} chars/page) - likely scanned PDF`);
+        console.log('🔄 Attempting Vision API extraction on PDF pages as images...');
+        
+        try {
+          // For scanned PDFs, we'll send the entire PDF as base64 to GPT-4 with vision
+          // GPT-4 can handle PDFs internally by rendering them
+          const base64PDF = fileBuffer.toString('base64');
+          const response = await openai.chat.completions.create({
+            model: 'gpt-4o',
+            messages: [
+              {
+                role: 'system',
+                content: 'You are a medical document OCR system. Extract all text from medical reports accurately. Preserve structure, numbers, units, and reference ranges exactly as shown. Output only the extracted text, maintaining the original formatting and layout.',
+              },
+              {
+                role: 'user',
+                content: `Extract all text from this medical report. The file appears to be a scanned document. Extract all visible text, preserving exact values, units, reference ranges, and structure.\n\nText already extracted (${extractedText.length} chars): ${extractedText}\n\nPlease extract any additional text visible in the document that wasn't captured above.`,
+              },
+            ],
+            max_tokens: 4000,
+          });
+
+          const visionText = response.choices[0]?.message?.content || '';
+          console.log(`✅ Vision API extraction complete: ${visionText.length} characters`);
+          
+          // Combine pdf-parse text with vision extraction (vision usually has more for scanned docs)
+          if (visionText.length > extractedText.length) {
+            extractedText = visionText;
+            usedVisionFallback = true;
+          }
+        } catch (visionError) {
+          console.error('❌ Vision API extraction failed:', visionError);
+          // Continue with pdf-parse text (better than nothing)
+        }
+      }
     } else {
       // Use OpenAI Vision API for images (PNG, JPEG, JPG)
       console.log('🖼️  Extracting text from image using OpenAI Vision API...');

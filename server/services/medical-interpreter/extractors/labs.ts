@@ -56,7 +56,26 @@ export async function extractLabObservations(ocrOutput: OCROutput): Promise<{
       throw new Error('No response from GPT-4');
     }
 
-    const parsed = JSON.parse(content) as ObservationLabsData;
+    // Robust JSON parsing with cleanup
+    let parsed: ObservationLabsData;
+    try {
+      parsed = JSON.parse(content) as ObservationLabsData;
+    } catch (parseError) {
+      // Try cleaning up common JSON issues
+      console.warn('Initial JSON parse failed, attempting cleanup...', parseError);
+      const cleaned = content
+        .replace(/,\s*}/g, '}')  // Remove trailing commas before }
+        .replace(/,\s*]/g, ']')  // Remove trailing commas before ]
+        .replace(/[\u0000-\u001F\u007F-\u009F]/g, ''); // Remove control characters
+      
+      try {
+        parsed = JSON.parse(cleaned) as ObservationLabsData;
+        console.log('✅ JSON cleanup successful');
+      } catch (cleanupError) {
+        console.error('JSON cleanup failed:', cleanupError);
+        throw parseError; // Throw original error
+      }
+    }
 
     // Calculate extraction confidence based on data completeness
     const confidence = calculateExtractionConfidence(parsed);
