@@ -5586,12 +5586,16 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
       const allGoals = await storage.getGoals(userId);
       const activeGoals = allGoals.filter(goal => goal.status === 'active');
       
+      // Fetch medical reports for correlation insights
+      const medicalReports = await storage.getMedicalReports(userId);
+      
       const insights = await generateDailyInsights({
         biomarkers: biomarkers.slice(0, 50), // Last 50 biomarkers
         sleepSessions,
         chatContext,
         timezone,
-        activeGoals
+        activeGoals,
+        medicalReports: medicalReports.filter(r => r.status === 'completed') // Only include successfully interpreted reports
       });
       
       const savedInsights = [];
@@ -5955,6 +5959,9 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
       // Get health records for medical context
       const healthRecords = await storage.getHealthRecords(userId);
       
+      // Get medical reports for correlation analysis
+      const medicalReports = await storage.getMedicalReports(userId);
+      
       // Get supplements for current supplement stack visibility
       const supplements = await storage.getSupplements(userId);
       
@@ -6026,6 +6033,9 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
         
         // Health records for medical context
         healthRecords,
+        
+        // Medical reports for correlation analysis (only completed reports)
+        medicalReports: medicalReports.filter(r => r.status === 'completed'),
         
         // Current supplement stack
         supplements,

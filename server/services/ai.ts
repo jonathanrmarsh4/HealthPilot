@@ -903,6 +903,7 @@ export async function chatWithHealthCoach(
     allTrainingSchedules?: any[];
     historicalReadiness?: any[];
     healthRecords?: any[];
+    medicalReports?: any[];
     supplements?: any[];
     mealPlans?: any[];
     allGoals?: any[];
@@ -1221,6 +1222,76 @@ export async function chatWithHealthCoach(
           contextSection += `  Summary: ${r.aiAnalysisSummary.substring(0, 100)}...\n`;
         }
       });
+    }
+    
+    // Display medical reports with interpreted data for correlation analysis
+    if (context.medicalReports && context.medicalReports.length > 0) {
+      contextSection += `\n🏥 MEDICAL REPORTS - AI-INTERPRETED DATA (${context.medicalReports.length} reports):\n`;
+      contextSection += `Use this data to discover correlations between medical markers, fitness metrics, sleep, and recovery.\n\n`;
+      
+      context.medicalReports.forEach(report => {
+        const date = new Date(report.createdAt).toLocaleDateString();
+        contextSection += `\n📄 Report: ${report.fileName} (${date})\n`;
+        contextSection += `- Type: ${report.reportType}\n`;
+        contextSection += `- Status: ${report.status}\n`;
+        
+        if (report.confidenceScores) {
+          contextSection += `- Confidence: Overall ${Math.round((report.confidenceScores.overall || 0) * 100)}%\n`;
+        }
+        
+        // Display extracted and interpreted data
+        if (report.interpretedData) {
+          try {
+            const data = typeof report.interpretedData === 'string' 
+              ? JSON.parse(report.interpretedData) 
+              : report.interpretedData;
+            
+            // Display lab observations if available
+            if (data.observations && Array.isArray(data.observations)) {
+              contextSection += `\nLab Values:\n`;
+              data.observations.slice(0, 10).forEach((obs: any) => {
+                const refRange = obs.referenceRange ? ` (Ref: ${obs.referenceRange})` : '';
+                const flag = obs.interpretation?.flag ? ` [${obs.interpretation.flag}]` : '';
+                contextSection += `  • ${obs.analyte}: ${obs.value} ${obs.unit}${refRange}${flag}\n`;
+              });
+              if (data.observations.length > 10) {
+                contextSection += `  ... and ${data.observations.length - 10} more values\n`;
+              }
+            }
+            
+            // Display interpretations/insights
+            if (data.clinicalInsights && Array.isArray(data.clinicalInsights)) {
+              contextSection += `\nClinical Insights:\n`;
+              data.clinicalInsights.forEach((insight: any) => {
+                contextSection += `  • ${insight.finding}\n`;
+                if (insight.recommendation) {
+                  contextSection += `    → ${insight.recommendation}\n`;
+                }
+              });
+            }
+          } catch (error) {
+            console.error(`Failed to parse interpretedData for report ${report.id}:`, error);
+            contextSection += `- Data available but could not be parsed\n`;
+          }
+        }
+        
+        if (report.extractedBiomarkersCount && report.extractedBiomarkersCount > 0) {
+          contextSection += `- Auto-extracted ${report.extractedBiomarkersCount} biomarkers to tracking dashboard\n`;
+        }
+      });
+      
+      contextSection += `\n🔬 CORRELATION ANALYSIS INSTRUCTIONS:\n`;
+      contextSection += `When analyzing medical reports alongside fitness data:\n`;
+      contextSection += `1. **Identify patterns**: How do lab values correlate with workout performance, sleep quality, HRV, recovery?\n`;
+      contextSection += `2. **Track trends**: Compare current lab values to historical biomarkers - are they improving with training?\n`;
+      contextSection += `3. **Evidence-based recommendations**: Use medical data to suggest training adjustments, nutrition changes, or recovery protocols\n`;
+      contextSection += `4. **Risk mitigation**: Flag concerning lab values that may require training modifications or medical consultation\n`;
+      contextSection += `5. **Goal optimization**: Leverage lab data to accelerate progress toward fitness/health goals\n`;
+      contextSection += `\nExamples:\n`;
+      contextSection += `- High LDL cholesterol + sedentary patterns → Recommend cardio increase with [AHA: 150min moderate activity/week]\n`;
+      contextSection += `- Low testosterone + poor sleep quality → Suggest sleep optimization as priority recovery strategy\n`;
+      contextSection += `- Elevated inflammatory markers + high training volume → Recommend deload week and anti-inflammatory nutrition\n`;
+      contextSection += `- HbA1c trending up + inconsistent meal timing → Suggest meal plan with stable protein/carb timing\n`;
     }
     
     // Supplements
@@ -2352,6 +2423,7 @@ export async function generateDailyInsights(data: {
   chatContext?: string;
   timezone?: string;
   activeGoals?: any[];
+  medicalReports?: any[];
 }) {
   let goalsSection = "";
   if (data.activeGoals && data.activeGoals.length > 0) {
@@ -2419,6 +2491,12 @@ Generate a JSON object with an "insights" array of daily health insights with th
 4. **Trends**: Week/month changes (e.g., "Resting HR down 5 bpm this month")
 5. **Alerts**: Concerning changes or values outside optimal ranges
 6. **Goal Progress**: Track progress toward active goals and provide specific next steps to achieve them
+7. **Medical Report Insights**: ${data.medicalReports && data.medicalReports.length > 0 ? `When medical reports are available, analyze correlations between lab results, biomarkers, workout performance, sleep quality, and recovery patterns. Look for:
+   - How lab values (lipid panel, glucose, hormones, etc.) correlate with fitness metrics
+   - Impact of training intensity on inflammatory markers
+   - Sleep quality's effect on recovery biomarkers
+   - Nutrition's influence on metabolic markers
+   - Provide evidence-based recommendations when medical data suggests adjustments` : 'No medical reports available'}
 
 ## Goal-Driven Insights:
 ${data.activeGoals && data.activeGoals.length > 0 ? `
