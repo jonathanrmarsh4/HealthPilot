@@ -7,11 +7,29 @@ import {
   TrendingUp, CheckCircle, Star, ArrowRight, Apple, Heart, Target, Zap, Sparkles,
   Lock, FileCheck, Database, Eye, Award
 } from "lucide-react";
+import * as LucideIcons from "lucide-react";
 import digitalHumanImage from "@assets/IMG_0088_1760794249248.png";
 import { useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+import type { LandingPageContent, LandingPageFeature } from "@shared/schema";
 
 export default function LandingPage() {
   const [, setLocation] = useLocation();
+  
+  const { data: pageData } = useQuery<{
+    content: LandingPageContent | null;
+    features: LandingPageFeature[];
+  }>({
+    queryKey: ["/api/landing-page"],
+  });
+  
+  const content = pageData?.content;
+  const howItWorksFeatures = pageData?.features?.filter(f => f.section === 'how_it_works') || [];
+  
+  const getIcon = (iconName: string) => {
+    const IconComponent = (LucideIcons as any)[iconName];
+    return IconComponent ? <IconComponent className="h-5 w-5" /> : <Activity className="h-5 w-5" />;
+  };
 
   return (
     <div className="min-h-screen bg-[#0A0F1F]">
@@ -32,22 +50,24 @@ export default function LandingPage() {
               }}
               data-testid="text-brand-title"
             >
-              HealthPilot
+              {content?.heroTitle || "HealthPilot"}
             </motion.h1>
 
-            <motion.div
-              initial={{ opacity: 0, y: 18 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.06 }}
-              className="mb-4"
-            >
-              <Badge
-                variant="outline"
-                className="border-[#00E0C6]/30 bg-[#00E0C6]/5 text-[#00E0C6] px-4 py-1.5"
+            {content?.heroBadgeText && (
+              <motion.div
+                initial={{ opacity: 0, y: 18 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.06 }}
+                className="mb-4"
               >
-                AI-Powered Health Intelligence
-              </Badge>
-            </motion.div>
+                <Badge
+                  variant="outline"
+                  className="border-[#00E0C6]/30 bg-[#00E0C6]/5 text-[#00E0C6] px-4 py-1.5"
+                >
+                  {content.heroBadgeText}
+                </Badge>
+              </motion.div>
+            )}
 
             <motion.h2
               initial={{ opacity: 0, y: 18 }}
@@ -55,7 +75,7 @@ export default function LandingPage() {
               transition={{ delay: 0.12 }}
               className="text-4xl md:text-6xl font-semibold leading-tight mb-6 tracking-tight text-white"
             >
-              Your Body, <span className="text-[#00E0C6]">Decoded</span>
+              {content?.heroSubtitle || "Your Body, Decoded"}
             </motion.h2>
 
             <motion.p
@@ -64,8 +84,7 @@ export default function LandingPage() {
               transition={{ delay: 0.18 }}
               className="text-lg text-gray-400 max-w-xl mb-8"
             >
-              Connect HealthKit, wearables, and blood work to get real-time insights,
-              adaptive training, and evidence-based nutrition powered by AI.
+              {content?.heroDescription || "Connect HealthKit, wearables, and blood work to get real-time insights, adaptive training, and evidence-based nutrition powered by AI."}
             </motion.p>
 
             <motion.div
@@ -77,18 +96,20 @@ export default function LandingPage() {
               <Button
                 size="lg"
                 className="rounded-full px-8 bg-[#00E0C6] text-[#0A0F1F] hover:bg-[#00E0C6]/90 shadow-[0_0_24px_rgba(0,224,198,0.35)] hover:shadow-[0_0_36px_rgba(0,224,198,0.55)] transition-shadow"
-                onClick={() => window.location.href = "/api/login"}
+                onClick={() => window.location.href = content?.heroCtaPrimaryLink || "/api/login"}
+                data-testid="button-cta-primary"
               >
-                Start Free
+                {content?.heroCtaPrimary || "Start Free"}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
               <Button
                 size="lg"
                 variant="outline"
                 className="rounded-full px-8 border-[#00E0C6]/30 text-[#00E0C6] hover:bg-[#00E0C6]/10"
-                onClick={() => setLocation("/security")}
+                onClick={() => setLocation(content?.heroCtaSecondaryLink || "/security")}
+                data-testid="button-cta-secondary"
               >
-                Watch Demo
+                {content?.heroCtaSecondary || "Watch Demo"}
               </Button>
             </motion.div>
 
@@ -170,56 +191,46 @@ export default function LandingPage() {
       </section>
 
       {/* === How It Works === */}
-      <section className="relative px-6 py-16 md:py-24">
-        <div className="mx-auto max-w-6xl">
-          <div className="mb-10 md:mb-14">
-            <h2 className="text-2xl md:text-4xl font-semibold tracking-tight text-white">
-              How It <span className="text-[#00E0C6]">Works</span>
-            </h2>
-            <p className="text-gray-400 mt-3 max-w-2xl">
-              Three steps from data to daily action.
-            </p>
-          </div>
+      {content?.howItWorksVisible === 1 && (
+        <section className="relative px-6 py-16 md:py-24">
+          <div className="mx-auto max-w-6xl">
+            <div className="mb-10 md:mb-14">
+              <h2 className="text-2xl md:text-4xl font-semibold tracking-tight text-white">
+                {content?.howItWorksTitle || "How It Works"}
+              </h2>
+              {content?.howItWorksSubtitle && (
+                <p className="text-gray-400 mt-3 max-w-2xl">
+                  {content.howItWorksSubtitle}
+                </p>
+              )}
+            </div>
 
-          <div className="grid gap-6 md:grid-cols-3">
-            {[
-              {
-                icon: <Activity className="h-5 w-5" />,
-                title: "Sync Your Data",
-                desc: "Connect HealthKit, wearables and blood results securely.",
-              },
-              {
-                icon: <Brain className="h-5 w-5" />,
-                title: "AI Analyzes You",
-                desc: "Models translate signals into simple, actionable insights.",
-              },
-              {
-                icon: <Calendar className="h-5 w-5" />,
-                title: "Your Plan, Every Day",
-                desc: "Adaptive training, meals and recovery—updated continuously.",
-              },
-            ].map((item, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 12 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, amount: 0.4 }}
-                transition={{ delay: 0.06 * i }}
-              >
-                <Card className="bg-white/5 backdrop-blur-xl border-white/10 h-full">
-                  <CardContent className="p-6">
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="p-2 rounded-lg bg-[#00E0C6]/10 text-[#00E0C6]">{item.icon}</div>
-                      <h3 className="font-semibold text-white">{item.title}</h3>
-                    </div>
-                    <p className="text-sm text-gray-400">{item.desc}</p>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
+            <div className="grid gap-6 md:grid-cols-3">
+              {howItWorksFeatures.map((item, i) => (
+                <motion.div
+                  key={item.id}
+                  initial={{ opacity: 0, y: 12 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, amount: 0.4 }}
+                  transition={{ delay: 0.06 * i }}
+                >
+                  <Card className="bg-white/5 backdrop-blur-xl border-white/10 h-full">
+                    <CardContent className="p-6">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="p-2 rounded-lg bg-[#00E0C6]/10 text-[#00E0C6]">
+                          {getIcon(item.icon)}
+                        </div>
+                        <h3 className="font-semibold text-white">{item.title}</h3>
+                      </div>
+                      <p className="text-sm text-gray-400">{item.description}</p>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* === Features === */}
       <section className="relative px-6 py-16 md:py-24">

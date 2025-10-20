@@ -96,6 +96,16 @@ import {
   type InsertExercisedbExercise,
   type ExercisedbSyncLog,
   type InsertExercisedbSyncLog,
+  type LandingPageContent,
+  type InsertLandingPageContent,
+  type LandingPageFeature,
+  type InsertLandingPageFeature,
+  type LandingPageTestimonial,
+  type InsertLandingPageTestimonial,
+  type LandingPagePricingPlan,
+  type InsertLandingPagePricingPlan,
+  type LandingPageSocialLink,
+  type InsertLandingPageSocialLink,
   users,
   healthRecords,
   biomarkers,
@@ -143,6 +153,11 @@ import {
   trainingLoadSessions,
   exercisedbExercises,
   exercisedbSyncLog,
+  landingPageContent,
+  landingPageFeatures,
+  landingPageTestimonials,
+  landingPagePricingPlans,
+  landingPageSocialLinks,
 } from "@shared/schema";
 import { eq, desc, and, gte, lte, lt, sql, or, like, count, isNull, inArray } from "drizzle-orm";
 
@@ -486,6 +501,30 @@ export interface IStorage {
   // ExerciseDB sync log
   getLatestExercisedbSync(): Promise<ExercisedbSyncLog | undefined>;
   logExercisedbSync(log: InsertExercisedbSyncLog): Promise<ExercisedbSyncLog>;
+  
+  // Landing Page CMS
+  getLandingPageContent(): Promise<LandingPageContent | undefined>;
+  upsertLandingPageContent(content: Partial<InsertLandingPageContent>): Promise<LandingPageContent>;
+  getLandingPageFeatures(section?: string): Promise<LandingPageFeature[]>;
+  getLandingPageFeature(id: string): Promise<LandingPageFeature | undefined>;
+  createLandingPageFeature(feature: InsertLandingPageFeature): Promise<LandingPageFeature>;
+  updateLandingPageFeature(id: string, feature: Partial<InsertLandingPageFeature>): Promise<LandingPageFeature | undefined>;
+  deleteLandingPageFeature(id: string): Promise<void>;
+  getLandingPageTestimonials(): Promise<LandingPageTestimonial[]>;
+  getLandingPageTestimonial(id: string): Promise<LandingPageTestimonial | undefined>;
+  createLandingPageTestimonial(testimonial: InsertLandingPageTestimonial): Promise<LandingPageTestimonial>;
+  updateLandingPageTestimonial(id: string, testimonial: Partial<InsertLandingPageTestimonial>): Promise<LandingPageTestimonial | undefined>;
+  deleteLandingPageTestimonial(id: string): Promise<void>;
+  getLandingPagePricingPlans(): Promise<LandingPagePricingPlan[]>;
+  getLandingPagePricingPlan(id: string): Promise<LandingPagePricingPlan | undefined>;
+  createLandingPagePricingPlan(plan: InsertLandingPagePricingPlan): Promise<LandingPagePricingPlan>;
+  updateLandingPagePricingPlan(id: string, plan: Partial<InsertLandingPagePricingPlan>): Promise<LandingPagePricingPlan | undefined>;
+  deleteLandingPagePricingPlan(id: string): Promise<void>;
+  getLandingPageSocialLinks(): Promise<LandingPageSocialLink[]>;
+  getLandingPageSocialLink(id: string): Promise<LandingPageSocialLink | undefined>;
+  createLandingPageSocialLink(link: InsertLandingPageSocialLink): Promise<LandingPageSocialLink>;
+  updateLandingPageSocialLink(id: string, link: Partial<InsertLandingPageSocialLink>): Promise<LandingPageSocialLink | undefined>;
+  deleteLandingPageSocialLink(id: string): Promise<void>;
 }
 
 export class DbStorage implements IStorage {
@@ -3999,6 +4038,164 @@ export class DbStorage implements IStorage {
   async logExercisedbSync(log: InsertExercisedbSyncLog): Promise<ExercisedbSyncLog> {
     const [syncLog] = await db.insert(exercisedbSyncLog).values(log).returning();
     return syncLog;
+  }
+  
+  // ===== LANDING PAGE CMS =====
+  
+  async getLandingPageContent(): Promise<LandingPageContent | undefined> {
+    const result = await db.select().from(landingPageContent).limit(1);
+    return result[0];
+  }
+  
+  async upsertLandingPageContent(content: Partial<InsertLandingPageContent>): Promise<LandingPageContent> {
+    const existing = await this.getLandingPageContent();
+    
+    if (existing) {
+      const [updated] = await db.update(landingPageContent)
+        .set({ ...content, updatedAt: new Date() })
+        .where(eq(landingPageContent.id, existing.id))
+        .returning();
+      return updated;
+    } else {
+      const [created] = await db.insert(landingPageContent)
+        .values(content as InsertLandingPageContent)
+        .returning();
+      return created;
+    }
+  }
+  
+  async getLandingPageFeatures(section?: string): Promise<LandingPageFeature[]> {
+    if (section) {
+      return await db.select()
+        .from(landingPageFeatures)
+        .where(eq(landingPageFeatures.section, section))
+        .orderBy(landingPageFeatures.order);
+    }
+    return await db.select()
+      .from(landingPageFeatures)
+      .orderBy(landingPageFeatures.section, landingPageFeatures.order);
+  }
+  
+  async getLandingPageFeature(id: string): Promise<LandingPageFeature | undefined> {
+    const result = await db.select()
+      .from(landingPageFeatures)
+      .where(eq(landingPageFeatures.id, id));
+    return result[0];
+  }
+  
+  async createLandingPageFeature(feature: InsertLandingPageFeature): Promise<LandingPageFeature> {
+    const [created] = await db.insert(landingPageFeatures)
+      .values(feature)
+      .returning();
+    return created;
+  }
+  
+  async updateLandingPageFeature(id: string, feature: Partial<InsertLandingPageFeature>): Promise<LandingPageFeature | undefined> {
+    const [updated] = await db.update(landingPageFeatures)
+      .set({ ...feature, updatedAt: new Date() })
+      .where(eq(landingPageFeatures.id, id))
+      .returning();
+    return updated;
+  }
+  
+  async deleteLandingPageFeature(id: string): Promise<void> {
+    await db.delete(landingPageFeatures).where(eq(landingPageFeatures.id, id));
+  }
+  
+  async getLandingPageTestimonials(): Promise<LandingPageTestimonial[]> {
+    return await db.select()
+      .from(landingPageTestimonials)
+      .orderBy(landingPageTestimonials.order);
+  }
+  
+  async getLandingPageTestimonial(id: string): Promise<LandingPageTestimonial | undefined> {
+    const result = await db.select()
+      .from(landingPageTestimonials)
+      .where(eq(landingPageTestimonials.id, id));
+    return result[0];
+  }
+  
+  async createLandingPageTestimonial(testimonial: InsertLandingPageTestimonial): Promise<LandingPageTestimonial> {
+    const [created] = await db.insert(landingPageTestimonials)
+      .values(testimonial)
+      .returning();
+    return created;
+  }
+  
+  async updateLandingPageTestimonial(id: string, testimonial: Partial<InsertLandingPageTestimonial>): Promise<LandingPageTestimonial | undefined> {
+    const [updated] = await db.update(landingPageTestimonials)
+      .set({ ...testimonial, updatedAt: new Date() })
+      .where(eq(landingPageTestimonials.id, id))
+      .returning();
+    return updated;
+  }
+  
+  async deleteLandingPageTestimonial(id: string): Promise<void> {
+    await db.delete(landingPageTestimonials).where(eq(landingPageTestimonials.id, id));
+  }
+  
+  async getLandingPagePricingPlans(): Promise<LandingPagePricingPlan[]> {
+    return await db.select()
+      .from(landingPagePricingPlans)
+      .orderBy(landingPagePricingPlans.order);
+  }
+  
+  async getLandingPagePricingPlan(id: string): Promise<LandingPagePricingPlan | undefined> {
+    const result = await db.select()
+      .from(landingPagePricingPlans)
+      .where(eq(landingPagePricingPlans.id, id));
+    return result[0];
+  }
+  
+  async createLandingPagePricingPlan(plan: InsertLandingPagePricingPlan): Promise<LandingPagePricingPlan> {
+    const [created] = await db.insert(landingPagePricingPlans)
+      .values(plan)
+      .returning();
+    return created;
+  }
+  
+  async updateLandingPagePricingPlan(id: string, plan: Partial<InsertLandingPagePricingPlan>): Promise<LandingPagePricingPlan | undefined> {
+    const [updated] = await db.update(landingPagePricingPlans)
+      .set({ ...plan, updatedAt: new Date() })
+      .where(eq(landingPagePricingPlans.id, id))
+      .returning();
+    return updated;
+  }
+  
+  async deleteLandingPagePricingPlan(id: string): Promise<void> {
+    await db.delete(landingPagePricingPlans).where(eq(landingPagePricingPlans.id, id));
+  }
+  
+  async getLandingPageSocialLinks(): Promise<LandingPageSocialLink[]> {
+    return await db.select()
+      .from(landingPageSocialLinks)
+      .orderBy(landingPageSocialLinks.order);
+  }
+  
+  async getLandingPageSocialLink(id: string): Promise<LandingPageSocialLink | undefined> {
+    const result = await db.select()
+      .from(landingPageSocialLinks)
+      .where(eq(landingPageSocialLinks.id, id));
+    return result[0];
+  }
+  
+  async createLandingPageSocialLink(link: InsertLandingPageSocialLink): Promise<LandingPageSocialLink> {
+    const [created] = await db.insert(landingPageSocialLinks)
+      .values(link)
+      .returning();
+    return created;
+  }
+  
+  async updateLandingPageSocialLink(id: string, link: Partial<InsertLandingPageSocialLink>): Promise<LandingPageSocialLink | undefined> {
+    const [updated] = await db.update(landingPageSocialLinks)
+      .set({ ...link, updatedAt: new Date() })
+      .where(eq(landingPageSocialLinks.id, id))
+      .returning();
+    return updated;
+  }
+  
+  async deleteLandingPageSocialLink(id: string): Promise<void> {
+    await db.delete(landingPageSocialLinks).where(eq(landingPageSocialLinks.id, id));
   }
 }
 

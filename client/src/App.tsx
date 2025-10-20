@@ -45,6 +45,7 @@ import TermsOfService from "@/pages/TermsOfService";
 import Admin from "@/pages/Admin";
 import AdminMealLibrary from "@/pages/AdminMealLibrary";
 import AdminPromoCodes from "@/pages/AdminPromoCodes";
+import AdminLandingPage from "@/pages/AdminLandingPage";
 import AIAuditLog from "@/pages/AIAuditLog";
 import Login from "@/pages/Login";
 import Logout from "@/pages/Logout";
@@ -86,6 +87,7 @@ function Router() {
       <Route path="/admin" component={Admin} />
       <Route path="/admin/meal-library" component={AdminMealLibrary} />
       <Route path="/admin/promo-codes" component={AdminPromoCodes} />
+      <Route path="/admin/landing-page" component={AdminLandingPage} />
       <Route path="/admin/ai-audit" component={AIAuditLog} />
       <Route path="/logged-out" component={Logout} />
       <Route component={NotFound} />

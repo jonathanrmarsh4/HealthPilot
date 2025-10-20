@@ -26,6 +26,7 @@ import {
   MessageSquare,
   Lock,
   ShieldCheck,
+  Globe,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import {
@@ -109,6 +110,7 @@ const menuSections: MenuSection[] = [
     items: [
       { title: "Users", url: "/admin", icon: Users },
       { title: "Billing", url: "/admin", icon: CreditCard },
+      { title: "Landing Page CMS", url: "/admin/landing-page", icon: Globe },
       { title: "AI Usage & Cost", url: "/admin", icon: DollarSign, badge: "Soon" },
       { title: "Profitability", url: "/admin", icon: Wallet, badge: "Soon" },
       { title: "Dynamic Pricing", url: "/admin", icon: Sliders, badge: "Soon" },

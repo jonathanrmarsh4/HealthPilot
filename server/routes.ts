@@ -9941,5 +9941,202 @@ DATA AVAILABILITY:
     }
   });
 
+  // ===== LANDING PAGE CMS ROUTES =====
+  
+  // Public endpoint - get all landing page content
+  app.get("/api/landing-page", async (req, res) => {
+    try {
+      const [content, features, testimonials, pricingPlans, socialLinks] = await Promise.all([
+        storage.getLandingPageContent(),
+        storage.getLandingPageFeatures(),
+        storage.getLandingPageTestimonials(),
+        storage.getLandingPagePricingPlans(),
+        storage.getLandingPageSocialLinks(),
+      ]);
+      
+      res.json({
+        content,
+        features: features.filter(f => f.visible === 1),
+        testimonials: testimonials.filter(t => t.visible === 1),
+        pricingPlans: pricingPlans.filter(p => p.visible === 1),
+        socialLinks: socialLinks.filter(s => s.visible === 1),
+      });
+    } catch (error: any) {
+      console.error("Error getting landing page content:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Admin - get landing page content (all, including hidden)
+  app.get("/api/admin/landing-page", isAdmin, async (req, res) => {
+    try {
+      const [content, features, testimonials, pricingPlans, socialLinks] = await Promise.all([
+        storage.getLandingPageContent(),
+        storage.getLandingPageFeatures(),
+        storage.getLandingPageTestimonials(),
+        storage.getLandingPagePricingPlans(),
+        storage.getLandingPageSocialLinks(),
+      ]);
+      
+      res.json({
+        content,
+        features,
+        testimonials,
+        pricingPlans,
+        socialLinks,
+      });
+    } catch (error: any) {
+      console.error("Error getting admin landing page content:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Admin - update main content (hero, sections, SEO)
+  app.put("/api/admin/landing-page/content", isAdmin, async (req, res) => {
+    try {
+      const updated = await storage.upsertLandingPageContent(req.body);
+      res.json(updated);
+    } catch (error: any) {
+      console.error("Error updating landing page content:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Admin - features
+  app.post("/api/admin/landing-page/features", isAdmin, async (req, res) => {
+    try {
+      const created = await storage.createLandingPageFeature(req.body);
+      res.json(created);
+    } catch (error: any) {
+      console.error("Error creating feature:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  app.put("/api/admin/landing-page/features/:id", isAdmin, async (req, res) => {
+    try {
+      const updated = await storage.updateLandingPageFeature(req.params.id, req.body);
+      if (!updated) {
+        return res.status(404).json({ error: "Feature not found" });
+      }
+      res.json(updated);
+    } catch (error: any) {
+      console.error("Error updating feature:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  app.delete("/api/admin/landing-page/features/:id", isAdmin, async (req, res) => {
+    try {
+      await storage.deleteLandingPageFeature(req.params.id);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error deleting feature:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Admin - testimonials
+  app.post("/api/admin/landing-page/testimonials", isAdmin, async (req, res) => {
+    try {
+      const created = await storage.createLandingPageTestimonial(req.body);
+      res.json(created);
+    } catch (error: any) {
+      console.error("Error creating testimonial:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  app.put("/api/admin/landing-page/testimonials/:id", isAdmin, async (req, res) => {
+    try {
+      const updated = await storage.updateLandingPageTestimonial(req.params.id, req.body);
+      if (!updated) {
+        return res.status(404).json({ error: "Testimonial not found" });
+      }
+      res.json(updated);
+    } catch (error: any) {
+      console.error("Error updating testimonial:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  app.delete("/api/admin/landing-page/testimonials/:id", isAdmin, async (req, res) => {
+    try {
+      await storage.deleteLandingPageTestimonial(req.params.id);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error deleting testimonial:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Admin - pricing plans
+  app.post("/api/admin/landing-page/pricing", isAdmin, async (req, res) => {
+    try {
+      const created = await storage.createLandingPagePricingPlan(req.body);
+      res.json(created);
+    } catch (error: any) {
+      console.error("Error creating pricing plan:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  app.put("/api/admin/landing-page/pricing/:id", isAdmin, async (req, res) => {
+    try {
+      const updated = await storage.updateLandingPagePricingPlan(req.params.id, req.body);
+      if (!updated) {
+        return res.status(404).json({ error: "Pricing plan not found" });
+      }
+      res.json(updated);
+    } catch (error: any) {
+      console.error("Error updating pricing plan:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  app.delete("/api/admin/landing-page/pricing/:id", isAdmin, async (req, res) => {
+    try {
+      await storage.deleteLandingPagePricingPlan(req.params.id);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error deleting pricing plan:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Admin - social links
+  app.post("/api/admin/landing-page/social", isAdmin, async (req, res) => {
+    try {
+      const created = await storage.createLandingPageSocialLink(req.body);
+      res.json(created);
+    } catch (error: any) {
+      console.error("Error creating social link:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  app.put("/api/admin/landing-page/social/:id", isAdmin, async (req, res) => {
+    try {
+      const updated = await storage.updateLandingPageSocialLink(req.params.id, req.body);
+      if (!updated) {
+        return res.status(404).json({ error: "Social link not found" });
+      }
+      res.json(updated);
+    } catch (error: any) {
+      console.error("Error updating social link:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  app.delete("/api/admin/landing-page/social/:id", isAdmin, async (req, res) => {
+    try {
+      await storage.deleteLandingPageSocialLink(req.params.id);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error deleting social link:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   return httpServer;
 }
