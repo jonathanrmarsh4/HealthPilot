@@ -178,6 +178,7 @@ export interface IStorage {
   getMedicalReports(userId: string, limit?: number): Promise<MedicalReport[]>;
   getMedicalReport(id: string, userId: string): Promise<MedicalReport | undefined>;
   updateMedicalReportStatus(id: string, userId: string, data: Partial<MedicalReport>): Promise<MedicalReport | undefined>;
+  deleteMedicalReport(id: string, userId: string): Promise<void>;
   
   createBiomarker(biomarker: InsertBiomarker): Promise<Biomarker>;
   upsertBiomarker(biomarker: InsertBiomarker): Promise<Biomarker>;
@@ -788,6 +789,20 @@ export class DbStorage implements IStorage {
       .where(and(eq(medicalReports.id, id), eq(medicalReports.userId, userId)))
       .returning();
     return result[0];
+  }
+
+  async deleteMedicalReport(id: string, userId: string): Promise<void> {
+    // First verify the report exists and belongs to the user
+    const report = await this.getMedicalReport(id, userId);
+    if (!report) {
+      return;
+    }
+    // Delete associated biomarkers first
+    await db.delete(biomarkers).where(eq(biomarkers.recordId, id));
+    // Then delete the medical report
+    await db.delete(medicalReports).where(
+      and(eq(medicalReports.id, id), eq(medicalReports.userId, userId))
+    );
   }
 
   async createBiomarker(biomarker: InsertBiomarker): Promise<Biomarker> {

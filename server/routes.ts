@@ -9737,5 +9737,19 @@ IMPORTANT: When discussing metrics like weight, HRV, sleep, etc., always use the
     }
   });
 
+  // Delete medical report
+  app.delete("/api/medical-reports/:id", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { id } = req.params;
+
+    try {
+      await storage.deleteMedicalReport(id, userId);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error deleting medical report:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   return httpServer;
 }
