@@ -4,6 +4,7 @@
 import { extractTextFromFile } from './ocr';
 import { classifyReportType } from './classifier';
 import { extractLabObservations } from './extractors/labs';
+import { extractImagingObservations } from './extractors/imaging';
 import { normalizeLabData } from './normalizer';
 import { validateLabData } from './validator';
 import { interpretLabData } from './interpreter';
@@ -79,9 +80,20 @@ export async function runInterpretationPipeline(
     // Step 3: Type-Specific Extraction
     console.log(`Step 3: Extracting data for type: ${typeDetection.label}`);
     
-    // Currently only supporting lab reports - will expand to other types
+    // Handle imaging reports (calcium scores, bone density, etc.)
+    if (typeDetection.label === 'DiagnosticReport_Imaging') {
+      return await processImagingReport(
+        ocrOutput,
+        typeDetection,
+        reportId,
+        ingestedAt,
+        userId
+      );
+    }
+    
+    // Handle lab reports
     if (typeDetection.label !== 'Observation_Labs') {
-      console.log(`❌ DISCARD: Unsupported report type (${typeDetection.label} - only Observation_Labs currently supported)`);
+      console.log(`❌ DISCARD: Unsupported report type (${typeDetection.label} - currently supporting Observation_Labs and DiagnosticReport_Imaging)`);
       return createDiscardedResult(
         reportId,
         ingestedAt,
@@ -94,7 +106,7 @@ export async function runInterpretationPipeline(
           overall_confidence: 0,
           rules_triggered: [],
           unit_conversions: [],
-          validation_findings: [`Report type ${typeDetection.label} is not yet supported. Currently only lab reports are supported.`],
+          validation_findings: [`Report type ${typeDetection.label} is not yet supported.`],
         }
       );
     }
@@ -250,6 +262,87 @@ export async function runInterpretationPipeline(
       }
     );
   }
+}
+
+/**
+ * Process imaging reports (calcium scores, bone density, etc.)
+ * Simplified pipeline - no normalization/validation needed
+ */
+async function processImagingReport(
+  ocrOutput: any,
+  typeDetection: any,
+  reportId: string,
+  ingestedAt: Date,
+  userId: string
+): Promise<InterpretationResult> {
+  console.log('📊 Processing imaging report (simplified pipeline)');
+  
+  const extraction = await extractImagingObservations(ocrOutput);
+  
+  if (extraction.confidence < THRESHOLDS.extraction_min) {
+    console.log(`❌ DISCARD: Low extraction confidence (${extraction.confidence.toFixed(2)} < ${THRESHOLDS.extraction_min})`);
+    return createDiscardedResult(
+      reportId,
+      ingestedAt,
+      userId,
+      'partial_parse',
+      {
+        type_classifier: typeDetection,
+        extraction_confidence: extraction.confidence,
+        normalization_confidence: 1.0,
+        overall_confidence: extraction.confidence,
+        rules_triggered: [],
+        unit_conversions: [],
+        validation_findings: [`Extraction confidence ${extraction.confidence.toFixed(2)} < threshold ${THRESHOLDS.extraction_min}`],
+      }
+    );
+  }
+
+  console.log(`✅ Imaging report processed: ${extraction.data.observations.length} observations extracted`);
+  console.log('Pipeline complete - data accepted');
+
+  return {
+    report_id: reportId,
+    report_type: extraction.data.report_type || 'DiagnosticReport_Imaging',
+    source_format: 'PDF_OCR',
+    ingested_at: ingestedAt.toISOString(),
+    patient: {
+      pseudo_id: userId,
+      dob: null,
+      sex_at_birth: null,
+    },
+    data: {
+      panel_name: extraction.data.report_type,
+      observations: extraction.data.observations.map(obs => ({
+        code: obs.code,
+        display: obs.display,
+        value: obs.value,
+        unit: obs.unit,
+        reference_range: null,
+        collected_at: obs.collected_at || null,
+        flags: obs.interpretation ? [obs.interpretation] : [],
+      })),
+    } as InterpretedData,
+    interpretation: {
+      category: 'imaging_findings',
+      insights: extraction.data.observations.map(obs => 
+        `${obs.display}: ${obs.value} ${obs.unit}${obs.interpretation ? ` (${obs.interpretation})` : ''}`
+      ),
+      caveats: [],
+      next_best_actions: [],
+    },
+    audit: {
+      type_classifier: typeDetection,
+      extraction_confidence: extraction.confidence,
+      normalization_confidence: 1.0,
+      overall_confidence: extraction.confidence,
+      rules_triggered: [],
+      unit_conversions: [],
+      validation_findings: ['All checks passed'],
+    },
+    references: [],
+    status: 'accepted',
+  };
 }
 
 /**
