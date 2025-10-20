@@ -34,41 +34,60 @@ export async function extractTextFromFile(filePath: string): Promise<OCROutput> 
         console.log('🔄 Attempting Vision API extraction on PDF pages as images...');
         
         try {
-          // For scanned PDFs, send the PDF as an image to GPT-4 Vision
-          const base64PDF = fileBuffer.toString('base64');
-          const response = await openai.chat.completions.create({
-            model: 'gpt-4o',
-            messages: [
-              {
-                role: 'system',
-                content: 'You are a medical document OCR system. Extract ALL text from medical reports accurately, preserving structure, numbers, units, and reference ranges exactly as shown.',
-              },
-              {
-                role: 'user',
-                content: [
-                  {
-                    type: 'text',
-                    text: 'Extract all visible text from this medical report PDF. Include ALL text: patient info, test names, values, units, reference ranges, dates, doctor names, and any other visible text. Preserve exact values and structure.',
-                  },
-                  {
-                    type: 'image_url',
-                    image_url: {
-                      url: `data:application/pdf;base64,${base64PDF}`,
-                    },
-                  },
-                ],
-              },
-            ],
-            max_tokens: 8000,
+          // Convert PDF pages to PNG images, then send to Vision API
+          const { pdfToPng } = await import('pdf-to-png-converter');
+          const pngPages = await pdfToPng(filePath, {
+            outputFolder: '/tmp',
+            disableFontFace: false,
+            viewportScale: 2.0,
+            outputFileMask: `page`,
           });
-
-          const visionText = response.choices[0]?.message?.content || '';
-          console.log(`✅ Vision API extraction complete: ${visionText.length} characters`);
-          console.log(`📝 First 200 chars: ${visionText.substring(0, 200)}...`);
           
-          // Combine pdf-parse text with vision extraction (vision usually has more for scanned docs)
-          if (visionText.length > extractedText.length) {
-            extractedText = visionText;
+          console.log(`🖼️  Converted PDF to ${pngPages.length} PNG images`);
+          
+          // Extract text from each page using Vision API
+          let combinedVisionText = '';
+          for (let i = 0; i < Math.min(pngPages.length, 5); i++) {
+            const page = pngPages[i];
+            const base64Image = page.content.toString('base64');
+            
+            const response = await openai.chat.completions.create({
+              model: 'gpt-4o',
+              messages: [
+                {
+                  role: 'system',
+                  content: 'You are a medical document OCR system. Extract ALL visible text accurately, preserving structure, numbers, units, and reference ranges.',
+                },
+                {
+                  role: 'user',
+                  content: [
+                    {
+                      type: 'text',
+                      text: `Extract all visible text from page ${i + 1} of this medical report. Include ALL text: patient info, test names, values, units, reference ranges, dates, and any other visible text.`,
+                    },
+                    {
+                      type: 'image_url',
+                      image_url: {
+                        url: `data:image/png;base64,${base64Image}`,
+                      },
+                    },
+                  ],
+                },
+              ],
+              max_tokens: 4000,
+            });
+
+            const pageText = response.choices[0]?.message?.content || '';
+            combinedVisionText += pageText + '\n\n';
+            console.log(`   Page ${i + 1}: ${pageText.length} characters extracted`);
+          }
+
+          console.log(`✅ Vision API extraction complete: ${combinedVisionText.length} characters total`);
+          console.log(`📝 First 300 chars: ${combinedVisionText.substring(0, 300)}...`);
+          
+          // Use Vision text if it's better than pdf-parse
+          if (combinedVisionText.length > extractedText.length) {
+            extractedText = combinedVisionText;
             usedVisionFallback = true;
           }
         } catch (visionError) {
