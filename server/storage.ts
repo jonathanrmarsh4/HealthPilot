@@ -106,6 +106,12 @@ import {
   type InsertLandingPagePricingPlan,
   type LandingPageSocialLink,
   type InsertLandingPageSocialLink,
+  type UserMealPreference,
+  type InsertUserMealPreference,
+  type UserBanditState,
+  type InsertUserBanditState,
+  type MealRecommendationHistory,
+  type InsertMealRecommendationHistory,
   users,
   healthRecords,
   biomarkers,
@@ -158,6 +164,9 @@ import {
   landingPageTestimonials,
   landingPagePricingPlans,
   landingPageSocialLinks,
+  userMealPreferences,
+  userBanditState,
+  mealRecommendationHistory,
 } from "@shared/schema";
 import { eq, desc, and, gte, lte, lt, sql, or, like, count, isNull, inArray } from "drizzle-orm";
 
@@ -525,6 +534,13 @@ export interface IStorage {
   createLandingPageSocialLink(link: InsertLandingPageSocialLink): Promise<LandingPageSocialLink>;
   updateLandingPageSocialLink(id: string, link: Partial<InsertLandingPageSocialLink>): Promise<LandingPageSocialLink | undefined>;
   deleteLandingPageSocialLink(id: string): Promise<void>;
+  
+  // Meal preference and recommendation methods
+  getUserBanditState(userId: string): Promise<UserBanditState[]>;
+  updateUserBanditState(userId: string, armKey: string, alpha: number, beta: number): Promise<UserBanditState>;
+  saveUserMealPreference(preference: InsertUserMealPreference): Promise<UserMealPreference>;
+  getUserMealPreferences(userId: string, days: number): Promise<UserMealPreference[]>;
+  saveMealRecommendationHistory(history: InsertMealRecommendationHistory): Promise<MealRecommendationHistory>;
 }
 
 export class DbStorage implements IStorage {
@@ -4196,6 +4212,78 @@ export class DbStorage implements IStorage {
   
   async deleteLandingPageSocialLink(id: string): Promise<void> {
     await db.delete(landingPageSocialLinks).where(eq(landingPageSocialLinks.id, id));
+  }
+  
+  // Meal preference and recommendation methods implementation
+  async getUserBanditState(userId: string): Promise<UserBanditState[]> {
+    return await db.select()
+      .from(userBanditState)
+      .where(eq(userBanditState.userId, userId));
+  }
+  
+  async updateUserBanditState(userId: string, armKey: string, alpha: number, beta: number): Promise<UserBanditState> {
+    // Try to update existing state
+    const existing = await db.select()
+      .from(userBanditState)
+      .where(and(
+        eq(userBanditState.userId, userId),
+        eq(userBanditState.armKey, armKey)
+      ));
+    
+    if (existing.length > 0) {
+      // Update existing state (incrementally)
+      const [updated] = await db.update(userBanditState)
+        .set({ 
+          alpha: existing[0].alpha + alpha,
+          beta: existing[0].beta + beta,
+          lastUpdated: new Date(),
+          updatedAt: new Date()
+        })
+        .where(and(
+          eq(userBanditState.userId, userId),
+          eq(userBanditState.armKey, armKey)
+        ))
+        .returning();
+      return updated;
+    } else {
+      // Create new state
+      const [created] = await db.insert(userBanditState)
+        .values({
+          userId,
+          armKey,
+          alpha: 1.0 + alpha, // Start with prior of 1,1
+          beta: 1.0 + beta
+        })
+        .returning();
+      return created;
+    }
+  }
+  
+  async saveUserMealPreference(preference: InsertUserMealPreference): Promise<UserMealPreference> {
+    const [created] = await db.insert(userMealPreferences)
+      .values(preference)
+      .returning();
+    return created;
+  }
+  
+  async getUserMealPreferences(userId: string, days: number): Promise<UserMealPreference[]> {
+    const since = new Date();
+    since.setDate(since.getDate() - days);
+    
+    return await db.select()
+      .from(userMealPreferences)
+      .where(and(
+        eq(userMealPreferences.userId, userId),
+        gte(userMealPreferences.timestamp, since)
+      ))
+      .orderBy(desc(userMealPreferences.timestamp));
+  }
+  
+  async saveMealRecommendationHistory(history: InsertMealRecommendationHistory): Promise<MealRecommendationHistory> {
+    const [created] = await db.insert(mealRecommendationHistory)
+      .values(history)
+      .returning();
+    return created;
   }
 }
 
