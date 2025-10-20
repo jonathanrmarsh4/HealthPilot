@@ -21,10 +21,10 @@ export async function extractTextFromFile(filePath: string): Promise<OCROutput> 
       console.log('📄 Extracting text from PDF using pdf-parse...');
       const { PDFParse } = await import('pdf-parse');
       const fileBuffer = await fs.readFile(filePath);
-      const parser = new PDFParse();
-      const pdfData = await parser.parse(fileBuffer);
-      extractedText = pdfData.text;
-      console.log(`✅ PDF text extracted: ${extractedText.length} characters`);
+      const parser = new PDFParse({ data: fileBuffer });
+      const textResult = await parser.getText();
+      extractedText = textResult.text;
+      console.log(`✅ PDF text extracted: ${extractedText.length} characters (${textResult.pages.length} pages)`);
     } else {
       // Use OpenAI Vision API for images (PNG, JPEG, JPG)
       console.log('🖼️  Extracting text from image using OpenAI Vision API...');
