@@ -9402,40 +9402,111 @@ IMPORTANT: When discussing metrics like weight, HRV, sleep, etc., always use the
         return res.status(400).json({ error: 'No file uploaded' });
       }
 
-      console.log(`📄 Medical report upload received from user ${userId}`);
+      // =====================================
+      // SECURITY VALIDATION FOR MEDICAL REPORTS
+      // =====================================
+      
+      // 1. File size validation (10MB max)
+      const MAX_MEDICAL_REPORT_SIZE = 10 * 1024 * 1024; // 10MB
+      if (req.file.size > MAX_MEDICAL_REPORT_SIZE) {
+        return res.status(400).json({ 
+          error: 'File too large. Maximum file size is 10MB.',
+          maxSize: '10MB',
+          actualSize: `${(req.file.size / 1024 / 1024).toFixed(2)}MB`
+        });
+      }
 
-      // Save file to temporary location
-      const fs = await import('fs/promises');
+      // 2. MIME type validation (PDF and images only)
+      const ALLOWED_MEDICAL_REPORT_MIMES = [
+        'application/pdf',
+        'image/jpeg',
+        'image/jpg',
+        'image/png'
+      ];
+      
+      if (!ALLOWED_MEDICAL_REPORT_MIMES.includes(req.file.mimetype)) {
+        return res.status(400).json({ 
+          error: 'Invalid file type. Only PDF and image files (JPG, PNG) are allowed for medical reports.',
+          allowedTypes: ['PDF', 'JPG', 'PNG'],
+          receivedType: req.file.mimetype
+        });
+      }
+
+      // 3. File extension validation (double-check against mime type spoofing)
       const path = await import('path');
-      const uploadDir = path.join(process.cwd(), 'uploads', 'medical-reports');
+      const fileExt = path.extname(req.file.originalname).toLowerCase();
+      const ALLOWED_EXTENSIONS = ['.pdf', '.jpg', '.jpeg', '.png'];
+      
+      if (!ALLOWED_EXTENSIONS.includes(fileExt)) {
+        return res.status(400).json({ 
+          error: 'Invalid file extension. Only .pdf, .jpg, and .png files are allowed.',
+          allowedExtensions: ALLOWED_EXTENSIONS,
+          receivedExtension: fileExt
+        });
+      }
+
+      // 4. File name sanitization (remove potentially dangerous characters)
+      const sanitizedOriginalName = req.file.originalname
+        .replace(/[^a-zA-Z0-9._-]/g, '_') // Replace special chars with underscore
+        .substring(0, 255); // Limit filename length
+
+      console.log(`📄 Medical report upload received from user ${userId}: ${sanitizedOriginalName}`);
+
+      // 5. Secure storage path generation
+      const fs = await import('fs/promises');
+      const crypto = await import('crypto');
+      
+      // Create user-specific directory for isolation
+      const uploadDir = path.join(process.cwd(), 'uploads', 'medical-reports', userId);
       
       // Create directory if it doesn't exist
       await fs.mkdir(uploadDir, { recursive: true });
       
-      // Generate unique filename
-      const fileExt = path.extname(req.file.originalname);
-      const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}${fileExt}`;
+      // Generate cryptographically secure unique filename
+      const timestamp = Date.now();
+      const randomBytes = crypto.randomBytes(16).toString('hex');
+      const fileName = `${timestamp}_${randomBytes}${fileExt}`;
       const filePath = path.join(uploadDir, fileName);
       
-      // Save file
-      await fs.writeFile(filePath, req.file.buffer);
+      // 6. Save file with restricted permissions
+      await fs.writeFile(filePath, req.file.buffer, { mode: 0o600 }); // Read/write for owner only
+
+      // 7. Virus scanning consideration
+      // NOTE: For production deployment, consider integrating:
+      // - ClamAV for on-premise scanning
+      // - Cloud-based services like VirusTotal API or AWS S3 virus scanning
+      // - Implement async scanning and quarantine suspicious files
+      // For now, rely on MIME type + extension validation + user authentication
 
       // Create medical report record in database
       const report = await storage.createMedicalReport({
         userId,
         filePath: filePath,
-        fileName: req.file.originalname,
+        fileName: sanitizedOriginalName,
         reportType: 'Other',
-        sourceFormat: 'PDF_OCR',
+        sourceFormat: req.file.mimetype === 'application/pdf' ? 'PDF_OCR' : 'Image_OCR',
         status: 'pending',
         confidenceScores: {},
       });
 
-      console.log(`✅ Medical report record created: ${report.id}`);
+      console.log(`✅ Medical report record created: ${report.id} (${req.file.size} bytes)`);
       res.json(report);
     } catch (error: any) {
-      console.error("Error uploading medical report:", error);
-      res.status(500).json({ error: error.message });
+      console.error("❌ Error uploading medical report:", error);
+      
+      // Enhanced error handling with user-friendly messages
+      if (error.code === 'ENOSPC') {
+        return res.status(507).json({ error: 'Server storage full. Please contact support.' });
+      }
+      
+      if (error.code === 'EACCES') {
+        return res.status(500).json({ error: 'Server permission error. Please contact support.' });
+      }
+      
+      res.status(500).json({ 
+        error: 'Failed to upload medical report. Please try again.',
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
     }
   });
 
