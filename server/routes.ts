@@ -9792,5 +9792,49 @@ IMPORTANT: When discussing metrics like weight, HRV, sleep, etc., always use the
     }
   });
 
+  // Proxy endpoint for exercise GIF images (to include auth headers)
+  app.get("/api/exercisedb/image/:id", isAuthenticated, async (req, res) => {
+    const { id } = req.params;
+
+    try {
+      const axios = await import('axios');
+      const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY;
+      const RAPIDAPI_HOST = 'exercisedb.p.rapidapi.com';
+
+      const response = await axios.default.get(`https://${RAPIDAPI_HOST}/image/${id}`, {
+        headers: {
+          'X-RapidAPI-Key': RAPIDAPI_KEY,
+          'X-RapidAPI-Host': RAPIDAPI_HOST,
+        },
+        responseType: 'arraybuffer',
+      });
+
+      // Forward the content type and image data
+      res.set('Content-Type', response.headers['content-type'] || 'image/gif');
+      res.set('Cache-Control', 'public, max-age=86400'); // Cache for 24 hours
+      res.send(response.data);
+    } catch (error: any) {
+      console.error(`Error fetching exercise image ${id}:`, error.message);
+      
+      // Surface upstream status codes to aid debugging
+      if (error.response) {
+        const status = error.response.status;
+        console.error(`[ExerciseDB Image] Upstream returned status ${status}`);
+        
+        // Map upstream errors appropriately
+        if (status === 401 || status === 403) {
+          return res.status(503).send('External service authentication failed');
+        } else if (status === 404) {
+          return res.status(404).send('Image not found');
+        } else if (status >= 500) {
+          return res.status(502).send('External service error');
+        }
+      }
+      
+      // Default to 404 for unknown errors (network issues, etc.)
+      res.status(404).send('Image not found');
+    }
+  });
+
   return httpServer;
 }
