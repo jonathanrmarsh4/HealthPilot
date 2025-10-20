@@ -9,9 +9,7 @@ import { UNIT_CONVERSIONS } from './config';
  * @param data - Lab observations data
  * @returns Normalized data and conversion records
  */
-export function normalizeLab
-
-Data(
+export function normalizeLabData(
   data: ObservationLabsData
 ): {
   normalizedData: ObservationLabsData;

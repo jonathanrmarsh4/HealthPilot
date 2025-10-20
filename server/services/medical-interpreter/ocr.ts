@@ -1,7 +1,7 @@
 // OCR Service using OpenAI Vision API
 // Extracts text from PDF/image medical reports with quality assessment
 
-import { openai } from '../ai';
+import { openai } from './client';
 import type { OCROutput } from './types';
 import fs from 'fs/promises';
 

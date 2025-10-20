@@ -1,7 +1,7 @@
 // Lab Report Extractor
 // Uses GPT-4 to extract structured lab observations from OCR text
 
-import { openai } from '../../ai';
+import { openai } from '../client';
 import type { ObservationLabsData, OCROutput } from '../types';
 import { PROMPTS } from '../config';
 
