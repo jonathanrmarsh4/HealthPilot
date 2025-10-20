@@ -2826,6 +2826,257 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Advanced Meal Recommendation Endpoints
+  app.post("/api/meals/recommend", isAuthenticated, requirePremium(PremiumFeature.MEAL_PLANS), async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { mealSlot = "lunch", maxResults = 10, forDate } = req.body;
+
+    try {
+      // Generate unique request ID
+      const requestId = `req_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+      
+      // Get user profile data
+      const [nutritionProfile, user, recentBiomarkers, goals, banditStates] = await Promise.all([
+        storage.getNutritionProfile(userId),
+        storage.getUser(userId),
+        storage.getBiomarkers(userId, 30), // Last 30 days
+        storage.getGoals(userId),
+        storage.getUserBanditState(userId)
+      ]);
+
+      // Get recent meal preferences
+      const recentPreferences = await storage.getUserMealPreferences(userId, 30);
+
+      // Get all active meals from library
+      const candidateMeals = await db
+        .select()
+        .from(mealLibrary)
+        .where(
+          and(
+            eq(mealLibrary.status, 'active'),
+            isNotNull(mealLibrary.calories)
+          )
+        );
+
+      // Transform meals to candidate format
+      const mealCandidates = candidateMeals.map(meal => ({
+        mealId: meal.id,
+        title: meal.title,
+        mealSlot: meal.mealType || [],
+        serving: {
+          kcal: meal.calories || 0,
+          proteinG: meal.protein || 0,
+          carbsG: meal.carbs || 0,
+          fatG: meal.fat || 0,
+          fiberG: meal.fiber,
+          sodiumMg: meal.sodium
+        },
+        tags: meal.tags || [],
+        cuisine: meal.cuisine || "international",
+        ingredients: meal.ingredients || [],
+        allergens: meal.allergens || [],
+        prepTimeMin: meal.prepTime || 30,
+        imageUrl: meal.imageUrl,
+        sourceUrl: meal.recipeUrl
+      }));
+
+      // Build user profile for recommendations
+      const userProfile = {
+        userId,
+        age: user?.age,
+        sex: user?.sex as any,
+        heightCm: user?.heightCm,
+        weightKg: user?.weightKg,
+        goals: goals.filter(g => g.status === 'active').map(g => g.metricType),
+        dietaryPattern: nutritionProfile?.dietaryPreferences || [],
+        allergies: nutritionProfile?.allergies || [],
+        intolerances: nutritionProfile?.intolerances || [],
+        culturalEthics: [],
+        biomarkers: {
+          // Extract latest biomarker values
+          ldlMgDl: recentBiomarkers.find(b => b.type === 'ldl_cholesterol')?.value,
+          hdlMgDl: recentBiomarkers.find(b => b.type === 'hdl_cholesterol')?.value,
+          tgMgDl: recentBiomarkers.find(b => b.type === 'triglycerides')?.value,
+          hba1cPct: recentBiomarkers.find(b => b.type === 'hba1c')?.value,
+          fastingGlucoseMgDl: recentBiomarkers.find(b => b.type === 'glucose_fasting')?.value,
+          bpSystolic: recentBiomarkers.find(b => b.type === 'blood_pressure_systolic')?.value,
+          bpDiastolic: recentBiomarkers.find(b => b.type === 'blood_pressure_diastolic')?.value,
+        },
+        calorieTargetKcal: nutritionProfile?.calorieTarget,
+        macroTargets: {
+          proteinG: nutritionProfile?.proteinTarget,
+          carbsG: nutritionProfile?.carbsTarget,
+          fatG: nutritionProfile?.fatTarget,
+          fiberG: nutritionProfile?.fiberTarget,
+          sodiumMg: nutritionProfile?.sodiumTarget
+        },
+        tastePreferences: {
+          likedTags: nutritionProfile?.likedFoodTags || [],
+          dislikedTags: nutritionProfile?.dislikedFoodTags || [],
+          likedIngredients: nutritionProfile?.favoriteIngredients || [],
+          dislikedIngredients: nutritionProfile?.avoidIngredients || []
+        },
+        banditState: {
+          lastUpdated: new Date(),
+          arms: banditStates.reduce((acc, state) => {
+            acc[state.armKey] = { alpha: state.alpha, beta: state.beta };
+            return acc;
+          }, {} as Record<string, { alpha: number; beta: number }>)
+        }
+      };
+
+      // Build recommendation context
+      const context = {
+        requestId,
+        timezone: user?.timezone || 'UTC',
+        mealSlot: mealSlot as any,
+        maxResults,
+        diversityStrength: 0.3,
+        explorationStrength: 0.2,
+        allowSubstitutions: true
+      };
+
+      // Transform recent preferences to feedback events
+      const feedbackEvents = recentPreferences.map(pref => ({
+        userId: pref.userId,
+        mealId: pref.mealId,
+        timestamp: pref.timestamp,
+        signal: pref.signal as any,
+        strength: pref.strength
+      }));
+
+      // Get recommendations
+      const { mealRecommenderService } = await import('./services/meal-recommender');
+      const recommendations = await mealRecommenderService.recommendMeals(
+        userProfile,
+        context,
+        mealCandidates,
+        feedbackEvents
+      );
+
+      // Save recommendation history
+      await storage.saveMealRecommendationHistory({
+        userId,
+        requestId,
+        mealSlot,
+        recommendations: recommendations.recommendations,
+        filterStats: recommendations.filteredOutCounts,
+        scoringWeights: recommendations.audit.scoringWeights,
+        contextData: { userProfile, context }
+      });
+
+      // Update bandit states if needed
+      if (recommendations.banditUpdates.applied) {
+        for (const [armKey, state] of Object.entries(recommendations.banditUpdates.arms)) {
+          await storage.updateUserBanditState(userId, armKey, state.alpha, state.beta);
+        }
+      }
+
+      // Fetch full meal data for recommendations
+      const recommendedMealIds = recommendations.recommendations.map(r => r.mealId);
+      const fullMeals = await db
+        .select()
+        .from(mealLibrary)
+        .where(inArray(mealLibrary.id, recommendedMealIds));
+
+      // Combine recommendations with full meal data
+      const enrichedRecommendations = recommendations.recommendations.map(rec => {
+        const meal = fullMeals.find(m => m.id === rec.mealId);
+        return {
+          ...meal,
+          score: rec.score,
+          reasons: rec.reasons,
+          adjustments: rec.adjustments
+        };
+      });
+
+      res.json({
+        requestId,
+        recommendations: enrichedRecommendations,
+        meta: {
+          filteredOutCounts: recommendations.filteredOutCounts,
+          fallback: recommendations.fallback,
+          auditInfo: recommendations.audit
+        }
+      });
+    } catch (error: any) {
+      console.error("Error getting meal recommendations:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Save meal preference/feedback
+  app.post("/api/meals/:mealId/preference", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { mealId } = req.params;
+    const { signal, strength = 1.0, mealType, context } = req.body;
+
+    try {
+      // Validate signal type
+      if (!['like', 'dislike', 'saved', 'completed'].includes(signal)) {
+        return res.status(400).json({ error: 'Invalid signal type' });
+      }
+
+      // Save preference
+      const preference = await storage.saveUserMealPreference({
+        userId,
+        mealId,
+        signal,
+        strength: Math.max(0, Math.min(1, strength)), // Clamp between 0 and 1
+        mealType,
+        context
+      });
+
+      // Update bandit state for this meal's attributes
+      const meal = await db
+        .select()
+        .from(mealLibrary)
+        .where(eq(mealLibrary.id, mealId))
+        .limit(1);
+
+      if (meal.length > 0) {
+        const m = meal[0];
+        
+        // Update cuisine arm
+        if (m.cuisine) {
+          const cuisineKey = `cuisine:${m.cuisine}`;
+          const alpha = signal === 'like' || signal === 'completed' ? strength : 0;
+          const beta = signal === 'dislike' ? strength : 0;
+          await storage.updateUserBanditState(userId, cuisineKey, alpha, beta);
+        }
+
+        // Update tag arms
+        if (m.tags && m.tags.length > 0) {
+          for (const tag of m.tags.slice(0, 3)) {
+            const tagKey = `tag:${tag}`;
+            const alpha = signal === 'like' || signal === 'completed' ? strength * 0.5 : 0;
+            const beta = signal === 'dislike' ? strength * 0.5 : 0;
+            await storage.updateUserBanditState(userId, tagKey, alpha, beta);
+          }
+        }
+      }
+
+      res.json(preference);
+    } catch (error: any) {
+      console.error("Error saving meal preference:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get user's meal preferences
+  app.get("/api/meals/preferences", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { days = 30 } = req.query;
+
+    try {
+      const preferences = await storage.getUserMealPreferences(userId, parseInt(days as string));
+      res.json(preferences);
+    } catch (error: any) {
+      console.error("Error getting meal preferences:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Nutrition Profile Routes
   app.get("/api/nutrition-profile", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
