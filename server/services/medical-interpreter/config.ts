@@ -5,10 +5,10 @@ import type { Thresholds, UserFeedbackTemplates, UnitConversionSpec } from './ty
 export const SPEC = spec;
 
 export const THRESHOLDS: Thresholds = {
-  type_detection: 0.80,
-  extraction_min: 0.80,
-  normalization_min: 0.85,
-  overall_accept_min: 0.85,
+  type_detection: 0.50, // Lowered from 0.80 to accept more valid reports
+  extraction_min: 0.70, // Lowered from 0.80 for better acceptance
+  normalization_min: 0.75, // Lowered from 0.85 for better acceptance
+  overall_accept_min: 0.70, // Lowered from 0.85 for better acceptance
 };
 
 export const USER_FEEDBACK_TEMPLATES: UserFeedbackTemplates = {

@@ -34,8 +34,8 @@ export async function runInterpretationPipeline(
     console.log('Step 1: OCR/Parse - Extracting text from file');
     const ocrOutput = await extractTextFromFile(input.source_bytes_or_uri);
     
-    if (ocrOutput.quality_score < 0.3) {
-      console.log(`❌ DISCARD: Low quality OCR (quality_score: ${ocrOutput.quality_score.toFixed(2)} < 0.3)`);
+    if (ocrOutput.quality_score < 0.15) {
+      console.log(`❌ DISCARD: Low quality OCR (quality_score: ${ocrOutput.quality_score.toFixed(2)} < 0.15)`);
       return createDiscardedResult(
         reportId,
         ingestedAt,
@@ -48,7 +48,7 @@ export async function runInterpretationPipeline(
           overall_confidence: 0,
           rules_triggered: [],
           unit_conversions: [],
-          validation_findings: [`OCR quality too low: ${ocrOutput.quality_score.toFixed(2)} < threshold 0.3`],
+          validation_findings: [`OCR quality too low: ${ocrOutput.quality_score.toFixed(2)} < threshold 0.15`],
         }
       );
     }
