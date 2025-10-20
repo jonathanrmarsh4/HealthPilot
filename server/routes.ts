@@ -9751,5 +9751,46 @@ IMPORTANT: When discussing metrics like weight, HRV, sleep, etc., always use the
     }
   });
 
+  // ExerciseDB API routes
+  app.get("/api/exercisedb/search", isAuthenticated, async (req, res) => {
+    const { name } = req.query;
+    
+    if (!name || typeof name !== 'string') {
+      return res.status(400).json({ error: 'Exercise name is required' });
+    }
+
+    try {
+      const { exerciseDBService } = await import('./services/exercisedb/exercisedb');
+      const exercise = await exerciseDBService.searchExercisesByName(name);
+      
+      if (!exercise) {
+        return res.status(404).json({ error: 'Exercise not found' });
+      }
+      
+      res.json(exercise);
+    } catch (error: any) {
+      console.error("Error searching exercise:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/exercisedb/exercise/:id", isAuthenticated, async (req, res) => {
+    const { id } = req.params;
+
+    try {
+      const { exerciseDBService } = await import('./services/exercisedb/exercisedb');
+      const exercise = await exerciseDBService.getExerciseById(id);
+      
+      if (!exercise) {
+        return res.status(404).json({ error: 'Exercise not found' });
+      }
+      
+      res.json(exercise);
+    } catch (error: any) {
+      console.error("Error fetching exercise:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   return httpServer;
 }

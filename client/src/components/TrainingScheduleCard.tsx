@@ -1,14 +1,59 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Clock, Zap, CheckCircle2, Flame, Snowflake, Calendar } from "lucide-react";
+import { Clock, Zap, CheckCircle2, Flame, Snowflake, Calendar, Info } from "lucide-react";
 import { format } from "date-fns";
+import { ExerciseDetailsModal } from "@/components/ExerciseDetailsModal";
 
 interface Exercise {
   name: string;
   sets?: number;
   reps?: string;
   duration?: string;
+}
+
+// Exercise Item Component with Info Button
+function ExerciseItem({ exercise, muscleGroups, idx }: { exercise: Exercise; muscleGroups: string[]; idx: number }) {
+  const [showDetails, setShowDetails] = useState(false);
+
+  return (
+    <>
+      <div
+        className="rounded-md bg-muted/50 px-3 py-2"
+        data-testid={`exercise-item-${idx}`}
+      >
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex-1 min-w-0">
+            <div className="font-medium text-sm">{exercise.name}</div>
+            <div className="text-xs text-muted-foreground mt-0.5" data-testid={`muscle-groups-${idx}`}>
+              {muscleGroups.join(' • ')}
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="font-mono text-xs text-muted-foreground">
+              {exercise.sets && exercise.reps && `${exercise.sets}x${exercise.reps}`}
+              {exercise.duration}
+            </span>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-7 w-7 shrink-0"
+              onClick={() => setShowDetails(true)}
+              data-testid={`button-exercise-info-${idx}`}
+            >
+              <Info className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
+      <ExerciseDetailsModal
+        exerciseName={exercise.name}
+        open={showDetails}
+        onClose={() => setShowDetails(false)}
+      />
+    </>
+  );
 }
 
 // Muscle group classification helper
@@ -216,24 +261,12 @@ export function TrainingScheduleCard({
               {exercises.map((exercise, idx) => {
                 const muscleGroups = getExerciseMuscleGroups(exercise.name);
                 return (
-                  <div
-                    key={idx}
-                    className="rounded-md bg-muted/50 px-3 py-2"
-                    data-testid={`exercise-item-${idx}`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="font-medium text-sm">{exercise.name}</div>
-                        <div className="text-xs text-muted-foreground mt-0.5" data-testid={`muscle-groups-${idx}`}>
-                          {muscleGroups.join(' • ')}
-                        </div>
-                      </div>
-                      <span className="font-mono text-xs text-muted-foreground">
-                        {exercise.sets && exercise.reps && `${exercise.sets}x${exercise.reps}`}
-                        {exercise.duration}
-                      </span>
-                    </div>
-                  </div>
+                  <ExerciseItem 
+                    key={idx} 
+                    exercise={exercise} 
+                    muscleGroups={muscleGroups} 
+                    idx={idx}
+                  />
                 );
               })}
             </div>

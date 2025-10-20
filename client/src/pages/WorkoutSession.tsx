@@ -28,7 +28,8 @@ import {
   Repeat,
   GripVertical,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Info
 } from "lucide-react";
 import { format, differenceInSeconds } from "date-fns";
 import {
@@ -50,6 +51,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { WorkoutFeedbackModal, WorkoutFeedback } from "@/components/WorkoutFeedbackModal";
+import { ExerciseDetailsModal } from "@/components/ExerciseDetailsModal";
 
 interface Exercise {
   id: string;
@@ -133,7 +135,10 @@ function SortableExerciseCard({
   handleAddSet: (exerciseId: string) => void;
   isExpanded: boolean;
   onToggleExpand: () => void;
+  wasDragging: boolean;
 }) {
+  const [showExerciseDetails, setShowExerciseDetails] = useState(false);
+  
   const {
     attributes,
     listeners,
@@ -264,15 +269,26 @@ function SortableExerciseCard({
               {completedSets}/{exerciseSets.length}
             </Badge>
             {isExpanded && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleShowAlternatives(exercise)}
-                data-testid={`button-swap-${exerciseIndex}`}
-                className="h-7 px-2 text-xs"
-              >
-                <Repeat className="h-3.5 w-3.5" />
-              </Button>
+              <div className="flex gap-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowExerciseDetails(true)}
+                  data-testid={`button-exercise-info-${exerciseIndex}`}
+                  className="h-7 w-7 p-0"
+                >
+                  <Info className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleShowAlternatives(exercise)}
+                  data-testid={`button-swap-${exerciseIndex}`}
+                  className="h-7 w-7 p-0"
+                >
+                  <Repeat className="h-3.5 w-3.5" />
+                </Button>
+              </div>
             )}
           </div>
         </div>
@@ -471,6 +487,11 @@ function SortableExerciseCard({
         </div>
         </CardContent>
       )}
+      <ExerciseDetailsModal
+        exerciseName={exercise.name}
+        open={showExerciseDetails}
+        onClose={() => setShowExerciseDetails(false)}
+      />
     </Card>
   );
 }
