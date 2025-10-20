@@ -11,25 +11,40 @@ import * as LucideIcons from "lucide-react";
 import digitalHumanImage from "@assets/IMG_0088_1760794249248.png";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import type { LandingPageContent, LandingPageFeature } from "@shared/schema";
+import type { LandingPageContent, LandingPageFeature, LandingPageTestimonial, LandingPagePricingPlan, LandingPageSocialLink } from "@shared/schema";
 
 export default function LandingPage() {
   const [, setLocation] = useLocation();
   
-  const { data: pageData } = useQuery<{
+  const { data: pageData, isLoading } = useQuery<{
     content: LandingPageContent | null;
     features: LandingPageFeature[];
+    testimonials: LandingPageTestimonial[];
+    pricingPlans: LandingPagePricingPlan[];
+    socialLinks: LandingPageSocialLink[];
   }>({
     queryKey: ["/api/landing-page"],
   });
   
   const content = pageData?.content;
-  const howItWorksFeatures = pageData?.features?.filter(f => f.section === 'how_it_works') || [];
+  const howItWorksFeatures = pageData?.features?.filter(f => f.section === 'how_it_works' && f.visible === 1) || [];
+  const mainFeatures = pageData?.features?.filter(f => f.section === 'main' && f.visible === 1) || [];
+  const testimonials = pageData?.testimonials?.filter(t => t.visible === 1) || [];
+  const pricingPlans = pageData?.pricingPlans?.filter(p => p.visible === 1) || [];
+  const socialLinks = pageData?.socialLinks?.filter(s => s.visible === 1) || [];
   
   const getIcon = (iconName: string) => {
     const IconComponent = (LucideIcons as any)[iconName];
     return IconComponent ? <IconComponent className="h-5 w-5" /> : <Activity className="h-5 w-5" />;
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#0A0F1F] flex items-center justify-center">
+        <div className="text-[#00E0C6] text-lg">Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#0A0F1F]">
@@ -233,45 +248,27 @@ export default function LandingPage() {
       )}
 
       {/* === Features === */}
-      <section className="relative px-6 py-16 md:py-24">
-        <div className="mx-auto max-w-6xl grid md:grid-cols-2 gap-6">
-          {[
-            {
-              icon: <Target className="h-5 w-5" />,
-              title: "Biomarker-Driven Training",
-              desc: "Workouts that evolve with your body's data.",
-            },
-            {
-              icon: <Zap className="h-5 w-5" />,
-              title: "Adaptive Nutrition",
-              desc: "Meal plans tuned for performance and longevity.",
-            },
-            {
-              icon: <Sparkles className="h-5 w-5" />,
-              title: "Smart Insights",
-              desc: "From complex metrics to crystal-clear next steps.",
-            },
-            {
-              icon: <Shield className="h-5 w-5" />,
-              title: "Private & Secure",
-              desc: "Encryption end-to-end. Your data, your rules.",
-            },
-          ].map((f, i) => (
-            <Card
-              key={i}
-              className="bg-white/5 backdrop-blur-xl border-white/10 hover:bg-white/10 transition-colors"
-            >
-              <CardContent className="p-6">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="p-2 rounded-lg bg-[#00E0C6]/10 text-[#00E0C6]">{f.icon}</div>
-                  <h3 className="font-semibold text-white">{f.title}</h3>
-                </div>
-                <p className="text-sm text-gray-400">{f.desc}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </section>
+      {content?.featuresVisible === 1 && mainFeatures.length > 0 && (
+        <section className="relative px-6 py-16 md:py-24">
+          <div className="mx-auto max-w-6xl grid md:grid-cols-2 gap-6">
+            {mainFeatures.map((f, i) => (
+              <Card
+                key={f.id}
+                className="bg-white/5 backdrop-blur-xl border-white/10 hover:bg-white/10 transition-colors"
+                data-testid={`card-feature-${i}`}
+              >
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="p-2 rounded-lg bg-[#00E0C6]/10 text-[#00E0C6]">{getIcon(f.icon)}</div>
+                    <h3 className="font-semibold text-white">{f.title}</h3>
+                  </div>
+                  <p className="text-sm text-gray-400">{f.description}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* === Medical & Scientific Standards === */}
       <section className="relative px-6 py-16 md:py-24 bg-gradient-to-b from-transparent via-[#00E0C6]/5 to-transparent">
@@ -526,96 +523,117 @@ export default function LandingPage() {
       </section>
 
       {/* === Testimonials === */}
-      <section className="relative px-6 py-16 md:py-24">
-        <div className="mx-auto max-w-6xl">
-          <div className="mb-10 md:mb-14">
-            <h2 className="text-2xl md:text-4xl font-semibold tracking-tight text-white">
-              Built for <span className="text-[#00E0C6]">Everyone</span>
-            </h2>
-            <p className="text-gray-400 mt-3 max-w-2xl">
-              Join thousands optimizing their health with AI.
-            </p>
-          </div>
+      {content?.testimonialsVisible === 1 && testimonials.length > 0 && (
+        <section className="relative px-6 py-16 md:py-24">
+          <div className="mx-auto max-w-6xl">
+            <div className="mb-10 md:mb-14">
+              <h2 className="text-2xl md:text-4xl font-semibold tracking-tight text-white">
+                {content?.testimonialsTitle || "Built for Everyone"}
+              </h2>
+              {content?.testimonialsSubtitle && (
+                <p className="text-gray-400 mt-3 max-w-2xl">
+                  {content.testimonialsSubtitle}
+                </p>
+              )}
+            </div>
 
-          <div className="grid gap-6 md:grid-cols-3">
-            {[1, 2, 3].map((i) => (
-              <Card key={i} className="bg-white/5 backdrop-blur-xl border-white/10">
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="h-10 w-10 rounded-full bg-[#00E0C6]/15" />
-                    <div className="flex-1">
-                      <div className="font-semibold text-white">User {i}</div>
-                      <div className="text-xs text-gray-400">Verified</div>
+            <div className="grid gap-6 md:grid-cols-3">
+              {testimonials.map((testimonial, i) => (
+                <Card key={testimonial.id} className="bg-white/5 backdrop-blur-xl border-white/10" data-testid={`card-testimonial-${i}`}>
+                  <CardContent className="p-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      {testimonial.photoUrl ? (
+                        <img src={testimonial.photoUrl} alt={testimonial.name} className="h-10 w-10 rounded-full object-cover" />
+                      ) : (
+                        <div className="h-10 w-10 rounded-full bg-[#00E0C6]/15 flex items-center justify-center">
+                          <span className="text-[#00E0C6] font-semibold text-sm">
+                            {testimonial.name.charAt(0)}
+                          </span>
+                        </div>
+                      )}
+                      <div className="flex-1">
+                        <div className="font-semibold text-white" data-testid={`text-testimonial-name-${i}`}>{testimonial.name}</div>
+                        <div className="text-xs text-gray-400">{testimonial.role}</div>
+                        {testimonial.company && (
+                          <div className="text-xs text-gray-500">{testimonial.company}</div>
+                        )}
+                      </div>
+                      {testimonial.rating && (
+                        <div className="flex items-center gap-1 text-[#00E0C6]">
+                          {[...Array(testimonial.rating)].map((_, s) => (
+                            <Star key={s} className="h-4 w-4 fill-current" />
+                          ))}
+                        </div>
+                      )}
                     </div>
-                    <div className="flex items-center gap-1 text-[#00E0C6]">
-                      {[...Array(5)].map((_, s) => (
-                        <Star key={s} className="h-4 w-4 fill-current" />
-                      ))}
-                    </div>
-                  </div>
-                  <p className="text-sm text-gray-300">
-                    "HealthPilot turned confusing metrics into daily actions. I feel better,
-                    lift more, and recover faster."
-                  </p>
-                </CardContent>
-              </Card>
-            ))}
+                    <p className="text-sm text-gray-300" data-testid={`text-testimonial-quote-${i}`}>
+                      "{testimonial.quote}"
+                    </p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* === Pricing === */}
-      <section className="relative px-6 pb-24">
-        <div className="mx-auto max-w-6xl">
-          <div className="mb-10 md:mb-14 text-center">
-            <h2 className="text-2xl md:text-4xl font-semibold tracking-tight text-white">
-              Simple <span className="text-[#00E0C6]">Pricing</span>
-            </h2>
-            <p className="text-gray-400 mt-3 max-w-xl mx-auto">
-              Start free. Upgrade any time.
-            </p>
-          </div>
+      {content?.pricingVisible === 1 && pricingPlans.length > 0 && (
+        <section className="relative px-6 pb-24">
+          <div className="mx-auto max-w-6xl">
+            <div className="mb-10 md:mb-14 text-center">
+              <h2 className="text-2xl md:text-4xl font-semibold tracking-tight text-white">
+                {content?.pricingTitle || "Simple Pricing"}
+              </h2>
+              {content?.pricingSubtitle && (
+                <p className="text-gray-400 mt-3 max-w-xl mx-auto">
+                  {content.pricingSubtitle}
+                </p>
+              )}
+            </div>
 
-          <div className="grid gap-6 md:grid-cols-2 max-w-4xl mx-auto">
-            <Card className="bg-white/5 backdrop-blur-xl border-white/10">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-white">Free</h3>
-                  <span className="text-2xl font-semibold text-white">$0</span>
-                </div>
-                <ul className="space-y-2 text-sm text-gray-300 mb-6">
-                  <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-[#00E0C6]" /> Core dashboard</li>
-                  <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-[#00E0C6]" /> HealthKit sync</li>
-                  <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-[#00E0C6]" /> Basic insights</li>
-                </ul>
-                <Button className="w-full rounded-full bg-white/10 text-white hover:bg-white/20 border border-white/20" onClick={() => window.location.href = "/api/login"}>
-                  Try Free
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-white/5 backdrop-blur-xl border border-[#00E0C6]/30 shadow-[0_0_24px_rgba(0,224,198,0.25)]">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-white">Pro</h3>
-                  <span className="text-2xl font-semibold text-white">$19/mo</span>
-                </div>
-                <ul className="space-y-2 text-sm text-gray-300 mb-6">
-                  <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-[#00E0C6]" /> AI coaching & training</li>
-                  <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-[#00E0C6]" /> Blood work insights</li>
-                  <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-[#00E0C6]" /> Adaptive nutrition</li>
-                </ul>
-                <Button
-                  className="w-full rounded-full bg-[#00E0C6] text-[#0A0F1F] hover:bg-[#00E0C6]/90 shadow-[0_0_24px_rgba(0,224,198,0.35)] hover:shadow-[0_0_36px_rgba(0,224,198,0.55)]"
-                  onClick={() => window.location.href = "/api/login"}
+            <div className="grid gap-6 md:grid-cols-2 max-w-4xl mx-auto">
+              {pricingPlans.map((plan, i) => (
+                <Card 
+                  key={plan.id} 
+                  className={plan.highlighted === 1 
+                    ? "bg-white/5 backdrop-blur-xl border border-[#00E0C6]/30 shadow-[0_0_24px_rgba(0,224,198,0.25)]" 
+                    : "bg-white/5 backdrop-blur-xl border-white/10"
+                  }
+                  data-testid={`card-pricing-${i}`}
                 >
-                  Upgrade
-                </Button>
-              </CardContent>
-            </Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-semibold text-white" data-testid={`text-plan-name-${i}`}>{plan.name}</h3>
+                      <span className="text-2xl font-semibold text-white" data-testid={`text-plan-price-${i}`}>{plan.price}</span>
+                    </div>
+                    {plan.description && (
+                      <p className="text-sm text-gray-400 mb-4">{plan.description}</p>
+                    )}
+                    <ul className="space-y-2 text-sm text-gray-300 mb-6">
+                      {plan.features.map((feature, idx) => (
+                        <li key={idx} className="flex items-center gap-2">
+                          <CheckCircle className="h-4 w-4 text-[#00E0C6]" /> {feature}
+                        </li>
+                      ))}
+                    </ul>
+                    <Button
+                      className={plan.highlighted === 1 
+                        ? "w-full rounded-full bg-[#00E0C6] text-[#0A0F1F] hover:bg-[#00E0C6]/90 shadow-[0_0_24px_rgba(0,224,198,0.35)] hover:shadow-[0_0_36px_rgba(0,224,198,0.55)]"
+                        : "w-full rounded-full bg-white/10 text-white hover:bg-white/20 border border-white/20"
+                      }
+                      onClick={() => window.location.href = plan.ctaLink}
+                      data-testid={`button-plan-cta-${i}`}
+                    >
+                      {plan.ctaText}
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* === Final CTA === */}
       <section className="relative px-6 pb-24">
