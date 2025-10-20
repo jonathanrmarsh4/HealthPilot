@@ -9543,17 +9543,16 @@ IMPORTANT: When discussing metrics like weight, HRV, sleep, etc., always use the
         confidenceScores: {},
       });
 
-      // Increment usage counter (only for tiers with limits)
-      if (monthlyLimit !== -1) {
-        await storage.updateUser(userId, {
-          medicalReportsUsedThisMonth: currentUsage + 1
-        });
-      }
+      // NOTE: Quota is NOT incremented here during upload
+      // It will only be incremented when the report status becomes 'completed' after successful interpretation
+      // This ensures failed/discarded reports don't count against user's quota
 
-      console.log(`✅ Medical report record created: ${report.id} (${req.file.size} bytes, quota: ${currentUsage + 1}/${monthlyLimit === -1 ? '∞' : monthlyLimit})`);
+      console.log(`✅ Medical report record created: ${report.id} (${req.file.size} bytes, tier: ${userTier}, pending interpretation, quota NOT yet incremented)`);
       res.json(report);
     } catch (error: any) {
       console.error("❌ Error uploading medical report:", error);
+      console.error("❌ Error stack trace:", error.stack);
+      console.error(`❌ User: ${userId}, File: ${req.file?.originalname || 'unknown'}, Size: ${req.file?.size || 0} bytes`);
       
       // Enhanced error handling with user-friendly messages
       if (error.code === 'ENOSPC') {
@@ -9646,6 +9645,34 @@ IMPORTANT: When discussing metrics like weight, HRV, sleep, etc., always use the
         },
         processedAt: new Date(),
       });
+
+      // ✅ INCREMENT QUOTA ONLY ON SUCCESSFUL COMPLETION
+      // Only count completed reports against quota (not discarded or failed)
+      if (finalStatus === 'completed') {
+        const user = await storage.getUser(userId);
+        if (user) {
+          const QUOTA_LIMITS = {
+            free: 3,
+            premium: -1,
+            enterprise: -1
+          };
+          const userTier = user.subscriptionTier || 'free';
+          const monthlyLimit = QUOTA_LIMITS[userTier as keyof typeof QUOTA_LIMITS] ?? QUOTA_LIMITS.free;
+
+          // Only increment for tiers with limits (free tier)
+          if (monthlyLimit !== -1) {
+            const currentUsage = user.medicalReportsUsedThisMonth || 0;
+            await storage.updateUser(userId, {
+              medicalReportsUsedThisMonth: currentUsage + 1
+            });
+            console.log(`📊 Quota incremented: ${currentUsage + 1}/${monthlyLimit} (user: ${userId}, tier: ${userTier})`);
+          } else {
+            console.log(`📊 No quota increment - unlimited tier: ${userTier} (user: ${userId})`);
+          }
+        }
+      } else {
+        console.log(`📊 No quota increment - report ${finalStatus} (user: ${userId})`);
+      }
 
       res.json({
         ...updatedReport,
