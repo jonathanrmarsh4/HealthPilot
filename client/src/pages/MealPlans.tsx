@@ -45,6 +45,10 @@ export default function MealPlans() {
   const generateMutation = useMutation({
     mutationFn: async () => {
       const res = await apiRequest("POST", "/api/meal-plans/generate");
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || errorData.error || "Failed to generate meal plan");
+      }
       return res.json();
     },
     onSuccess: () => {
@@ -56,8 +60,8 @@ export default function MealPlans() {
     },
     onError: (error: Error) => {
       toast({
-        title: "Error",
-        description: error.message || "Failed to generate meal plan",
+        title: "Nutrition Data Missing",
+        description: error.message || "Failed to generate meal plan. Please ensure the meal library has nutrition data.",
         variant: "destructive",
       });
     },

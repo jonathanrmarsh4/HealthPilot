@@ -12,7 +12,7 @@ import { calculateReadinessScore } from "./services/readiness";
 import { runInterpretationPipeline } from "./services/medical-interpreter/pipeline";
 import { extractBiomarkersFromLabs } from "./services/medical-interpreter/biomarkerExtractor";
 import { parseISO, isValid, subDays } from "date-fns";
-import { eq, and, gte, or, inArray } from "drizzle-orm";
+import { eq, and, gte, or, inArray, isNull, isNotNull } from "drizzle-orm";
 import { isAuthenticated, isAdmin, webhookAuth } from "./replitAuth";
 import { checkMessageLimit, incrementMessageCount, requirePremium, PremiumFeature, isPremiumUser, filterHistoricalData, canAddBiomarkerType } from "./premiumMiddleware";
 import { z } from "zod";
@@ -2392,6 +2392,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const userId = (req.user as any).claims.sub;
 
     try {
+      // Step 0: Validate that meal library has nutrition data
+      const mealsWithNutrition = await db
+        .select()
+        .from(mealLibrary)
+        .where(
+          and(
+            eq(mealLibrary.status, 'active'),
+            isNotNull(mealLibrary.calories)
+          )
+        )
+        .limit(1);
+      
+      if (mealsWithNutrition.length === 0) {
+        console.log('⚠️ Cannot generate meal plans: No meals have nutrition data in library');
+        return res.status(400).json({
+          error: 'Meal library missing nutrition data',
+          message: 'The meal library does not have nutrition data yet. Please contact your administrator to run the nutrition backfill process.',
+          action: 'backfill_required'
+        });
+      }
+      
       // Step 1: Get user's nutrition profile for dietary preferences
       const nutritionProfile = await storage.getNutritionProfile(userId);
       
