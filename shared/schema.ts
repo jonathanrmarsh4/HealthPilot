@@ -1517,6 +1517,58 @@ export const landingPageSocialLinks = pgTable("landing_page_social_links", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+// User meal preferences and feedback
+export const userMealPreferences = pgTable("user_meal_preferences", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  mealId: varchar("meal_id").notNull().references(() => mealLibrary.id, { onDelete: "cascade" }),
+  signal: varchar("signal").notNull(), // 'like', 'dislike', 'saved', 'completed'
+  strength: real("strength").notNull().default(1.0), // Signal strength 0-1
+  timestamp: timestamp("timestamp").notNull().defaultNow(),
+  mealType: varchar("meal_type"), // 'breakfast', 'lunch', 'dinner', 'snack'
+  context: jsonb("context"), // Additional context like meal slot, day of week, etc.
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => {
+  return {
+    userMealIdx: index("user_meal_preference_idx").on(table.userId, table.mealId),
+    timestampIdx: index("preference_timestamp_idx").on(table.timestamp),
+  };
+});
+
+// User bandit state for recommendation learning
+export const userBanditState = pgTable("user_bandit_state", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  armKey: varchar("arm_key").notNull(), // e.g., 'cuisine:italian', 'tag:high_protein'
+  alpha: real("alpha").notNull().default(1.0), // Beta distribution alpha parameter
+  beta: real("beta").notNull().default(1.0), // Beta distribution beta parameter
+  lastUpdated: timestamp("last_updated").notNull().defaultNow(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => {
+  return {
+    userArmIdx: unique("user_arm_unique").on(table.userId, table.armKey),
+  };
+});
+
+// Meal recommendation history for tracking and analysis
+export const mealRecommendationHistory = pgTable("meal_recommendation_history", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  requestId: varchar("request_id").notNull(),
+  mealSlot: varchar("meal_slot").notNull(), // 'breakfast', 'lunch', 'dinner', 'snack'
+  recommendations: jsonb("recommendations").notNull(), // Array of recommended meal IDs with scores
+  filterStats: jsonb("filter_stats"), // Statistics about filtered meals
+  scoringWeights: jsonb("scoring_weights"), // Weights used for scoring
+  contextData: jsonb("context_data"), // User profile and context at time of recommendation
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => {
+  return {
+    userIdIdx: index("recommendation_user_idx").on(table.userId),
+    requestIdIdx: index("recommendation_request_idx").on(table.requestId),
+  };
+});
+
 // Insert schemas
 export const insertLandingPageContentSchema = createInsertSchema(landingPageContent).omit({
   id: true,
@@ -1547,6 +1599,24 @@ export const insertLandingPageSocialLinkSchema = createInsertSchema(landingPageS
   updatedAt: true,
 });
 
+export const insertUserMealPreferenceSchema = createInsertSchema(userMealPreferences).omit({
+  id: true,
+  timestamp: true,
+  createdAt: true,
+});
+
+export const insertUserBanditStateSchema = createInsertSchema(userBanditState).omit({
+  id: true,
+  lastUpdated: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertMealRecommendationHistorySchema = createInsertSchema(mealRecommendationHistory).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type LandingPageContent = typeof landingPageContent.$inferSelect;
 export type InsertLandingPageContent = z.infer<typeof insertLandingPageContentSchema>;
@@ -1562,3 +1632,12 @@ export type InsertLandingPagePricingPlan = z.infer<typeof insertLandingPagePrici
 
 export type LandingPageSocialLink = typeof landingPageSocialLinks.$inferSelect;
 export type InsertLandingPageSocialLink = z.infer<typeof insertLandingPageSocialLinkSchema>;
+
+export type UserMealPreference = typeof userMealPreferences.$inferSelect;
+export type InsertUserMealPreference = z.infer<typeof insertUserMealPreferenceSchema>;
+
+export type UserBanditState = typeof userBanditState.$inferSelect;
+export type InsertUserBanditState = z.infer<typeof insertUserBanditStateSchema>;
+
+export type MealRecommendationHistory = typeof mealRecommendationHistory.$inferSelect;
+export type InsertMealRecommendationHistory = z.infer<typeof insertMealRecommendationHistorySchema>;
