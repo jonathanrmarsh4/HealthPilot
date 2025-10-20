@@ -29,6 +29,7 @@ import { unitConfigs, convertValue, formatValue } from "@/lib/unitConversions";
 import { useState, useEffect } from "react";
 import { biomarkerDisplayConfig } from "@/lib/biomarkerConfig";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 interface DashboardStats {
   dailySteps: number;
@@ -102,6 +103,32 @@ const WIDGET_CONFIG: Record<string, { title: string; description: string }> = {
 
 export default function Dashboard() {
   const { unitSystem } = useLocale();
+  const { toast } = useToast();
+  
+  // Handle checkout success/cancel redirects
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const upgradeStatus = params.get('upgrade');
+    
+    if (upgradeStatus === 'success') {
+      toast({
+        title: "Welcome to Premium!",
+        description: "Your subscription is now active. Enjoy unlimited AI chat, meal plans, and more!",
+        duration: 7000,
+      });
+      // Clean up URL while preserving current pathname
+      window.history.replaceState({}, '', window.location.pathname);
+    } else if (upgradeStatus === 'cancelled') {
+      toast({
+        title: "Upgrade cancelled",
+        description: "No worries! You can upgrade anytime from the Pricing page.",
+        variant: "default",
+        duration: 5000,
+      });
+      // Clean up URL while preserving current pathname
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, [toast]);
   
   const [preferences, setPreferences] = useState<DashboardPreferences>(() => {
     // Check version - if old or missing, clear localStorage and start fresh

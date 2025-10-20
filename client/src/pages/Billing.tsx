@@ -370,6 +370,108 @@ export default function Billing() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Feature Comparison - Only show for free users */}
+      {subscription?.tier === "free" && (
+        <Card className="mt-6 border-primary/20" data-testid="card-upgrade-prompt">
+          <CardHeader className="bg-gradient-to-r from-primary/10 to-transparent">
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-primary" />
+              Unlock Premium Features
+            </CardTitle>
+            <CardDescription>Get unlimited access to AI-powered health optimization</CardDescription>
+          </CardHeader>
+          <CardContent className="pt-6">
+            <div className="grid md:grid-cols-2 gap-6 mb-6">
+              <div>
+                <h3 className="font-semibold mb-3 text-muted-foreground">Free Plan</h3>
+                <ul className="space-y-2 text-sm">
+                  <li className="flex items-center gap-2">
+                    <Badge variant="outline" className="w-16">10/day</Badge>
+                    <span>AI chat messages</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Badge variant="outline" className="w-16">3 types</Badge>
+                    <span>Biomarker tracking</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Badge variant="outline" className="w-16">7 days</Badge>
+                    <span>Historical data</span>
+                  </li>
+                  <li className="flex items-center gap-2 text-muted-foreground">
+                    <Badge variant="outline" className="w-16 opacity-50">✗</Badge>
+                    <span className="line-through">AI meal plans</span>
+                  </li>
+                  <li className="flex items-center gap-2 text-muted-foreground">
+                    <Badge variant="outline" className="w-16 opacity-50">✗</Badge>
+                    <span className="line-through">Apple Health sync</span>
+                  </li>
+                  <li className="flex items-center gap-2 text-muted-foreground">
+                    <Badge variant="outline" className="w-16 opacity-50">✗</Badge>
+                    <span className="line-through">Biological age</span>
+                  </li>
+                  <li className="flex items-center gap-2 text-muted-foreground">
+                    <Badge variant="outline" className="w-16 opacity-50">✗</Badge>
+                    <span className="line-through">Voice chat</span>
+                  </li>
+                </ul>
+              </div>
+              <div className="border-l pl-6">
+                <h3 className="font-semibold mb-3 text-primary">Premium Plan</h3>
+                <ul className="space-y-2 text-sm">
+                  <li className="flex items-center gap-2">
+                    <Badge className="w-16 bg-primary">Unlimited</Badge>
+                    <span className="font-medium">AI chat messages</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Badge className="w-16 bg-primary">Unlimited</Badge>
+                    <span className="font-medium">Biomarker tracking</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Badge className="w-16 bg-primary">Full</Badge>
+                    <span className="font-medium">Historical data</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Badge className="w-16 bg-green-500">✓</Badge>
+                    <span className="font-medium">AI meal plans</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Badge className="w-16 bg-green-500">✓</Badge>
+                    <span className="font-medium">Apple Health sync</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Badge className="w-16 bg-green-500">✓</Badge>
+                    <span className="font-medium">Biological age</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Badge className="w-16 bg-green-500">✓</Badge>
+                    <span className="font-medium">Voice chat</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <Button 
+                className="flex-1" 
+                size="lg"
+                onClick={() => window.location.href = "/pricing"}
+                data-testid="button-view-plans"
+              >
+                View Plans & Pricing
+              </Button>
+              <Button 
+                className="flex-1" 
+                size="lg"
+                variant="outline"
+                onClick={() => window.location.href = "/chat"}
+                data-testid="button-try-chat"
+              >
+                Try AI Chat
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

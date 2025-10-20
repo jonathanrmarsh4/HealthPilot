@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,10 +12,16 @@ import * as LucideIcons from "lucide-react";
 import digitalHumanImage from "@assets/IMG_0088_1760794249248.png";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import { CheckoutModal } from "@/components/CheckoutModal";
 import type { LandingPageContent, LandingPageFeature, LandingPageTestimonial, LandingPagePricingPlan, LandingPageSocialLink } from "@shared/schema";
 
 export default function LandingPage() {
   const [, setLocation] = useLocation();
+  const [checkoutModal, setCheckoutModal] = useState<{ open: boolean; tier: string; tierName: string }>({
+    open: false,
+    tier: "",
+    tierName: "",
+  });
   
   const { data: pageData, isLoading, isError, error, refetch } = useQuery<{
     content: LandingPageContent | null;
@@ -36,6 +43,26 @@ export default function LandingPage() {
   const getIcon = (iconName: string) => {
     const IconComponent = (LucideIcons as any)[iconName];
     return IconComponent ? <IconComponent className="h-5 w-5" /> : <Activity className="h-5 w-5" />;
+  };
+
+  // Smart CTA handler based on plan type
+  const handlePlanCTA = (ctaLink: string, planName: string) => {
+    const lowerPlanName = planName.toLowerCase();
+    
+    // Premium tier - open checkout modal
+    if (lowerPlanName.includes("premium")) {
+      setCheckoutModal({ open: true, tier: "premium", tierName: "Premium" });
+      return;
+    }
+    
+    // Enterprise tier - contact sales
+    if (lowerPlanName.includes("enterprise")) {
+      window.location.href = "mailto:sales@nuvitaelabs.com?subject=Enterprise Inquiry";
+      return;
+    }
+    
+    // Free tier or default - redirect to provided link
+    window.location.href = ctaLink;
   };
 
   if (isLoading) {
@@ -650,7 +677,7 @@ export default function LandingPage() {
                         ? "w-full rounded-full bg-[#00E0C6] text-[#0A0F1F] hover:bg-[#00E0C6]/90 shadow-[0_0_24px_rgba(0,224,198,0.35)] hover:shadow-[0_0_36px_rgba(0,224,198,0.55)]"
                         : "w-full rounded-full bg-white/10 text-white hover:bg-white/20 border border-white/20"
                       }
-                      onClick={() => window.location.href = plan.ctaLink}
+                      onClick={() => handlePlanCTA(plan.ctaLink, plan.name)}
                       data-testid={`button-plan-cta-${i}`}
                     >
                       {plan.ctaText}
@@ -719,6 +746,16 @@ export default function LandingPage() {
           )}
         </div>
       </footer>
+
+      {/* Checkout Modal */}
+      {checkoutModal.tier === "premium" && (
+        <CheckoutModal
+          open={checkoutModal.open}
+          onOpenChange={(open) => setCheckoutModal({ ...checkoutModal, open })}
+          tier="premium"
+          tierName="Premium"
+        />
+      )}
     </div>
   );
 }
