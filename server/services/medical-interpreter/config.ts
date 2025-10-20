@@ -5,7 +5,7 @@ import type { Thresholds, UserFeedbackTemplates, UnitConversionSpec } from './ty
 export const SPEC = spec;
 
 export const THRESHOLDS: Thresholds = {
-  type_detection: 0.30, // Lowered from 0.50 - very forgiving for type detection
+  type_detection: 0.20, // Lowered from 0.30 to support imaging reports with diverse pattern vocabularies
   extraction_min: 0.50, // Lowered from 0.70 - accept reports with 50%+ extraction
   normalization_min: 0.30, // Lowered from 0.40 - accept reports with 30%+ valid units
   overall_accept_min: 0.50, // Lowered from 0.60 for better acceptance
