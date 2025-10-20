@@ -139,6 +139,27 @@ export default function AdminMealLibrary() {
     },
   });
 
+  const backfillMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/admin/meal-library/backfill-nutrition");
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/meal-library"] });
+      toast({
+        title: "Nutrition Backfill Complete",
+        description: `Updated ${data.updated} of ${data.total} meals with nutrition data`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Backfill Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleImport = () => {
     importMutation.mutate();
   };

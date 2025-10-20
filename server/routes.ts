@@ -1475,6 +1475,109 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/admin/meal-library/backfill-nutrition", isAdmin, async (req, res) => {
+    try {
+      console.log('🔄 Starting nutrition backfill for meal library...');
+      
+      // Get all meals with NULL nutrition
+      const mealsNeedingNutrition = await db
+        .select()
+        .from(mealLibrary)
+        .where(
+          and(
+            eq(mealLibrary.status, 'active'),
+            isNull(mealLibrary.calories)
+          )
+        );
+
+      console.log(`📊 Found ${mealsNeedingNutrition.length} meals needing nutrition data`);
+
+      if (mealsNeedingNutrition.length === 0) {
+        return res.json({
+          success: true,
+          updated: 0,
+          message: 'All meals already have nutrition data',
+        });
+      }
+
+      const { spoonacularService } = await import("./spoonacular");
+      const updatedMeals = [];
+      const errors = [];
+      
+      // Process in batches of 50 (Spoonacular bulk API limit)
+      const BATCH_SIZE = 50;
+      for (let i = 0; i < mealsNeedingNutrition.length; i += BATCH_SIZE) {
+        const batch = mealsNeedingNutrition.slice(i, i + BATCH_SIZE);
+        const recipeIds = batch
+          .filter(m => m.spoonacularRecipeId)
+          .map(m => m.spoonacularRecipeId as number);
+        
+        if (recipeIds.length === 0) continue;
+
+        try {
+          console.log(`📥 Fetching nutrition for batch ${Math.floor(i / BATCH_SIZE) + 1} (${recipeIds.length} recipes)...`);
+          
+          // Fetch full recipe info with nutrition
+          const recipes = await spoonacularService.getBulkRecipeInfo(recipeIds, true);
+          
+          // Update each meal with nutrition data
+          for (const recipe of recipes) {
+            const meal = batch.find(m => m.spoonacularRecipeId === recipe.id);
+            if (!meal) continue;
+
+            // Helper to extract and round nutritional values
+            const roundNutrient = (nutrientName: string): number | null => {
+              const value = recipe.nutrition?.nutrients?.find(n => n.name === nutrientName)?.amount;
+              return value !== undefined ? Math.round(value) : null;
+            };
+
+            const nutritionData = {
+              calories: roundNutrient('Calories'),
+              protein: roundNutrient('Protein'),
+              carbs: roundNutrient('Carbohydrates'),
+              fat: roundNutrient('Fat'),
+            };
+
+            // Only update if we got at least calories
+            if (nutritionData.calories !== null) {
+              await db
+                .update(mealLibrary)
+                .set(nutritionData)
+                .where(eq(mealLibrary.id, meal.id));
+              
+              updatedMeals.push({
+                id: meal.id,
+                title: meal.title,
+                ...nutritionData,
+              });
+              
+              console.log(`✅ Updated ${meal.title}: ${nutritionData.calories} cal, ${nutritionData.protein}g protein`);
+            } else {
+              errors.push(`No nutrition data available for ${meal.title} (ID: ${recipe.id})`);
+              console.log(`⚠️ No nutrition data for ${meal.title}`);
+            }
+          }
+        } catch (error: any) {
+          console.error(`Error processing batch ${Math.floor(i / BATCH_SIZE) + 1}:`, error);
+          errors.push(`Batch error: ${error.message}`);
+        }
+      }
+
+      console.log(`✅ Backfill complete! Updated ${updatedMeals.length} meals, ${errors.length} errors`);
+
+      res.json({
+        success: true,
+        updated: updatedMeals.length,
+        total: mealsNeedingNutrition.length,
+        errors,
+        samples: updatedMeals.slice(0, 10), // Show first 10 as examples
+      });
+    } catch (error: any) {
+      console.error("Error backfilling nutrition:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.get("/api/admin/meal-library/settings", isAdmin, async (req, res) => {
     try {
       const userId = (req.user as any).claims.sub;
