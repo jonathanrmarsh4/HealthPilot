@@ -712,6 +712,21 @@ export const insertUserProtocolPreferenceSchema = createInsertSchema(userProtoco
   updatedAt: true,
 });
 
+// User protocol completions - tracks when users complete recovery protocols
+export const userProtocolCompletions = pgTable("user_protocol_completions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  protocolId: varchar("protocol_id").notNull(),
+  completedAt: timestamp("completed_at").notNull().defaultNow(),
+  date: text("date").notNull(), // YYYY-MM-DD format for daily tracking
+  context: jsonb("context"), // Stores readiness score, duration completed, notes, etc.
+});
+
+export const insertUserProtocolCompletionSchema = createInsertSchema(userProtocolCompletions).omit({
+  id: true,
+  completedAt: true,
+});
+
 // Supplements table - user's current supplement stack
 export const supplements = pgTable("supplements", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -1070,6 +1085,9 @@ export type RecoveryProtocol = typeof recoveryProtocols.$inferSelect;
 
 export type InsertUserProtocolPreference = z.infer<typeof insertUserProtocolPreferenceSchema>;
 export type UserProtocolPreference = typeof userProtocolPreferences.$inferSelect;
+
+export type InsertUserProtocolCompletion = z.infer<typeof insertUserProtocolCompletionSchema>;
+export type UserProtocolCompletion = typeof userProtocolCompletions.$inferSelect;
 
 export type InsertSupplement = z.infer<typeof insertSupplementSchema>;
 export type Supplement = typeof supplements.$inferSelect;

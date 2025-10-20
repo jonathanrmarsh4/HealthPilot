@@ -5,7 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { ThumbsUp, ThumbsDown, Clock, Target, Sparkles } from "lucide-react";
+import { ThumbsUp, ThumbsDown, Clock, Target, Sparkles, CheckCircle2 } from "lucide-react";
 import { useState } from "react";
 
 interface RecoveryProtocol {
@@ -22,6 +22,15 @@ interface RecoveryProtocol {
   userPreference?: 'upvote' | 'downvote' | 'neutral';
 }
 
+interface ProtocolCompletion {
+  id: string;
+  userId: string;
+  protocolId: string;
+  completedAt: string;
+  date: string;
+  context?: any;
+}
+
 interface RecoveryRecommendationsResponse {
   readinessScore: number;
   lowFactors: string[];
@@ -34,6 +43,20 @@ export function RecoveryProtocols() {
 
   const { data: recommendations, isLoading } = useQuery<RecoveryRecommendationsResponse>({
     queryKey: ["/api/recovery-protocols/recommendations"],
+  });
+
+  // Get today's date for filtering completions
+  const today = new Date().toISOString().split('T')[0];
+
+  const { data: completions } = useQuery<ProtocolCompletion[]>({
+    queryKey: ["/api/recovery-protocols/completions", today],
+    queryFn: async () => {
+      const res = await fetch(`/api/recovery-protocols/completions?date=${today}`, {
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error('Failed to fetch completions');
+      return res.json();
+    },
   });
 
   const voteMutation = useMutation({
@@ -57,6 +80,27 @@ export function RecoveryProtocols() {
     },
   });
 
+  const completeMutation = useMutation({
+    mutationFn: async (protocolId: string) => {
+      const res = await apiRequest("POST", `/api/recovery-protocols/${protocolId}/complete`, {});
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/recovery-protocols/completions"] });
+      toast({
+        title: "Protocol completed! ✓",
+        description: "Great work on your recovery!",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to mark protocol as complete",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleVote = (protocolId: string, preference: 'upvote' | 'downvote', currentPreference?: string) => {
     // If clicking the same preference again, reset to neutral
     if (currentPreference === preference) {
@@ -64,6 +108,14 @@ export function RecoveryProtocols() {
     } else {
       voteMutation.mutate({ protocolId, preference });
     }
+  };
+
+  const handleComplete = (protocolId: string) => {
+    completeMutation.mutate(protocolId);
+  };
+
+  const isCompletedToday = (protocolId: string): boolean => {
+    return !!completions?.some(c => c.protocolId === protocolId);
   };
 
   const getCategoryColor = (category: string) => {
@@ -172,6 +224,12 @@ export function RecoveryProtocols() {
                     <Badge variant="outline" className={getDifficultyColor(protocol.difficulty)}>
                       {protocol.difficulty}
                     </Badge>
+                    {isCompletedToday(protocol.id) && (
+                      <Badge variant="default" className="bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20">
+                        <CheckCircle2 className="h-3 w-3 mr-1" />
+                        Completed today
+                      </Badge>
+                    )}
                   </div>
 
                   <p className="text-sm text-muted-foreground">{protocol.description}</p>
@@ -200,14 +258,28 @@ export function RecoveryProtocols() {
                     </div>
                   )}
 
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setExpandedProtocol(expandedProtocol === protocol.id ? null : protocol.id)}
-                    data-testid={`button-expand-${protocol.id}`}
-                  >
-                    {expandedProtocol === protocol.id ? 'Show Less' : 'Show More'}
-                  </Button>
+                  <div className="flex gap-2 items-center flex-wrap">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setExpandedProtocol(expandedProtocol === protocol.id ? null : protocol.id)}
+                      data-testid={`button-expand-${protocol.id}`}
+                    >
+                      {expandedProtocol === protocol.id ? 'Show Less' : 'Show More'}
+                    </Button>
+                    {!isCompletedToday(protocol.id) && (
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={() => handleComplete(protocol.id)}
+                        disabled={completeMutation.isPending}
+                        data-testid={`button-complete-${protocol.id}`}
+                      >
+                        <CheckCircle2 className="h-4 w-4 mr-1" />
+                        Complete
+                      </Button>
+                    )}
+                  </div>
                 </div>
 
                 <div className="flex flex-col gap-2">

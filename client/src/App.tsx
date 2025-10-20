@@ -143,12 +143,13 @@ function AppLayout() {
   }, [location]);
 
   // Auto-open floating chat once on first login if onboarding not completed
-  useEffect(() => {
-    if (!onboardingLoading && shouldShowOnboarding && location !== "/chat" && !hasAutoOpened) {
-      setIsChatOpen(true);
-      setHasAutoOpened(true);
-    }
-  }, [onboardingLoading, shouldShowOnboarding, location, hasAutoOpened]);
+  // Disabled: Users prefer to open chat manually via sparkle icon
+  // useEffect(() => {
+  //   if (!onboardingLoading && shouldShowOnboarding && location !== "/chat" && !hasAutoOpened) {
+  //     setIsChatOpen(true);
+  //     setHasAutoOpened(true);
+  //   }
+  // }, [onboardingLoading, shouldShowOnboarding, location, hasAutoOpened]);
 
   // Reset auto-open flag when onboarding is completed
   useEffect(() => {

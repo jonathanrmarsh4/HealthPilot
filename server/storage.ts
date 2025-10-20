@@ -48,6 +48,8 @@ import {
   type InsertRecoveryProtocol,
   type UserProtocolPreference,
   type InsertUserProtocolPreference,
+  type UserProtocolCompletion,
+  type InsertUserProtocolCompletion,
   type Supplement,
   type InsertSupplement,
   type DailyReminder,
@@ -120,6 +122,7 @@ import {
   exerciseFeedback,
   recoveryProtocols,
   userProtocolPreferences,
+  userProtocolCompletions,
   supplements,
   dailyReminders,
   reminderCompletions,
@@ -347,6 +350,11 @@ export interface IStorage {
   getUserProtocolPreferences(userId: string): Promise<UserProtocolPreference[]>;
   getUserProtocolPreference(userId: string, protocolId: string): Promise<UserProtocolPreference | undefined>;
   getDownvotedProtocols(userId: string): Promise<string[]>; // Returns array of protocol IDs
+  
+  // User Protocol Completion methods
+  markProtocolComplete(completion: InsertUserProtocolCompletion): Promise<UserProtocolCompletion>;
+  getProtocolCompletions(userId: string, date?: string): Promise<UserProtocolCompletion[]>;
+  getProtocolCompletionsForProtocol(userId: string, protocolId: string): Promise<UserProtocolCompletion[]>;
   
   // Supplement methods
   createSupplement(supplement: InsertSupplement): Promise<Supplement>;
@@ -2703,6 +2711,45 @@ export class DbStorage implements IStorage {
         )
       );
     return result.map(r => r.protocolId);
+  }
+
+  // User Protocol Completion methods
+  async markProtocolComplete(completion: InsertUserProtocolCompletion): Promise<UserProtocolCompletion> {
+    const result = await db.insert(userProtocolCompletions).values(completion).returning();
+    return result[0];
+  }
+
+  async getProtocolCompletions(userId: string, date?: string): Promise<UserProtocolCompletion[]> {
+    if (date) {
+      return await db
+        .select()
+        .from(userProtocolCompletions)
+        .where(
+          and(
+            eq(userProtocolCompletions.userId, userId),
+            eq(userProtocolCompletions.date, date)
+          )
+        )
+        .orderBy(desc(userProtocolCompletions.completedAt));
+    }
+    return await db
+      .select()
+      .from(userProtocolCompletions)
+      .where(eq(userProtocolCompletions.userId, userId))
+      .orderBy(desc(userProtocolCompletions.completedAt));
+  }
+
+  async getProtocolCompletionsForProtocol(userId: string, protocolId: string): Promise<UserProtocolCompletion[]> {
+    return await db
+      .select()
+      .from(userProtocolCompletions)
+      .where(
+        and(
+          eq(userProtocolCompletions.userId, userId),
+          eq(userProtocolCompletions.protocolId, protocolId)
+        )
+      )
+      .orderBy(desc(userProtocolCompletions.completedAt));
   }
 
   // Supplement methods

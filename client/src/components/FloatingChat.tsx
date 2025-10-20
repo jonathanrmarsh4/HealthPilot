@@ -40,6 +40,11 @@ export function VoiceChatModal({ isOpen, onClose }: VoiceChatModalProps) {
 
       // Create audio context
       audioContextRef.current = new AudioContext({ sampleRate: 24000 });
+      
+      // Safari iOS requires AudioContext to be resumed after user interaction
+      if (audioContextRef.current.state === 'suspended') {
+        await audioContextRef.current.resume();
+      }
 
       // Get authentication token from backend
       console.log("🔑 Requesting authentication token...");
@@ -203,6 +208,11 @@ export function VoiceChatModal({ isOpen, onClose }: VoiceChatModalProps) {
   const playAudioQueue = async () => {
     if (isPlayingRef.current || !audioContextRef.current) return;
     if (audioQueueRef.current.length === 0) return;
+
+    // Ensure AudioContext is running (Safari iOS fix)
+    if (audioContextRef.current.state === 'suspended') {
+      await audioContextRef.current.resume();
+    }
 
     isPlayingRef.current = true;
 
@@ -546,8 +556,8 @@ export function FloatingChat({ isOpen, onClose, currentPage }: FloatingChatProps
     if (isOpen) {
       // Increment session ID to trigger new timestamp and reset chat UI
       setSessionId(prev => prev + 1);
-      // Open fully expanded by default
-      setIsMinimized(false);
+      // Keep minimized by default, especially during onboarding
+      setIsMinimized(true);
     }
   }, [isOpen]);
 

@@ -3611,6 +3611,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Mark recovery protocol as complete
+  app.post("/api/recovery-protocols/:protocolId/complete", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { protocolId } = req.params;
+    
+    try {
+      const today = new Date();
+      const dateString = today.toISOString().split('T')[0]; // YYYY-MM-DD
+      
+      // Get current readiness score for context
+      today.setHours(0, 0, 0, 0);
+      const readinessScore = await calculateReadinessScore(userId, storage, today);
+      
+      const completion = await storage.markProtocolComplete({
+        userId,
+        protocolId,
+        date: dateString,
+        context: {
+          readinessScore: readinessScore.score,
+          completedAt: new Date().toISOString(),
+        },
+      });
+      
+      res.json(completion);
+    } catch (error: any) {
+      console.error("Error marking protocol complete:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get protocol completions for today
+  app.get("/api/recovery-protocols/completions", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    try {
+      const date = req.query.date as string | undefined;
+      const completions = await storage.getProtocolCompletions(userId, date);
+      res.json(completions);
+    } catch (error: any) {
+      console.error("Error fetching protocol completions:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Supplement Endpoints
   
   // Get all supplements for the current user
