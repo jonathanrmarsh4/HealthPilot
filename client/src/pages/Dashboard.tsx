@@ -22,7 +22,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Link } from "wouter";
+import { Link, useSearch } from "wouter";
 import type { Recommendation } from "@shared/schema";
 import { useLocale } from "@/contexts/LocaleContext";
 import { unitConfigs, convertValue, formatValue } from "@/lib/unitConversions";
@@ -104,10 +104,11 @@ const WIDGET_CONFIG: Record<string, { title: string; description: string }> = {
 export default function Dashboard() {
   const { unitSystem } = useLocale();
   const { toast } = useToast();
+  const searchString = useSearch();
   
   // Handle checkout success/cancel redirects
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
+    const params = new URLSearchParams(searchString);
     const upgradeStatus = params.get('upgrade');
     
     if (upgradeStatus === 'success') {
@@ -128,7 +129,8 @@ export default function Dashboard() {
       // Clean up URL while preserving current pathname
       window.history.replaceState({}, '', window.location.pathname);
     }
-  }, [toast]);
+    // Re-run when search params change to handle Stripe redirects
+  }, [toast, searchString]);
   
   const [preferences, setPreferences] = useState<DashboardPreferences>(() => {
     // Check version - if old or missing, clear localStorage and start fresh
