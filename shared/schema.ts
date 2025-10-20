@@ -1400,3 +1400,165 @@ export const insertExercisedbSyncLogSchema = createInsertSchema(exercisedbSyncLo
 
 export type InsertExercisedbSyncLog = z.infer<typeof insertExercisedbSyncLogSchema>;
 export type ExercisedbSyncLog = typeof exercisedbSyncLog.$inferSelect;
+
+// ===== LANDING PAGE CMS =====
+
+// Main landing page content (hero, SEO, general settings)
+export const landingPageContent = pgTable("landing_page_content", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  // Hero Section
+  heroTitle: text("hero_title").notNull().default("HealthPilot"),
+  heroSubtitle: text("hero_subtitle").notNull().default("Your Body, Decoded"),
+  heroDescription: text("hero_description").notNull(),
+  heroBadgeText: text("hero_badge_text").default("AI-Powered Health Intelligence"),
+  heroCtaPrimary: text("hero_cta_primary").default("Start Free"),
+  heroCtaPrimaryLink: text("hero_cta_primary_link").default("/api/login"),
+  heroCtaSecondary: text("hero_cta_secondary").default("Watch Demo"),
+  heroCtaSecondaryLink: text("hero_cta_secondary_link").default("/security"),
+  heroImageUrl: text("hero_image_url"),
+  heroVisible: integer("hero_visible").notNull().default(1),
+  
+  // "How It Works" Section
+  howItWorksTitle: text("how_it_works_title").default("How It Works"),
+  howItWorksSubtitle: text("how_it_works_subtitle").default("Three steps from data to daily action."),
+  howItWorksVisible: integer("how_it_works_visible").notNull().default(1),
+  
+  // Features Section
+  featuresTitle: text("features_title").default("Features"),
+  featuresSubtitle: text("features_subtitle"),
+  featuresVisible: integer("features_visible").notNull().default(1),
+  
+  // Testimonials Section
+  testimonialsTitle: text("testimonials_title").default("What Our Users Say"),
+  testimonialsSubtitle: text("testimonials_subtitle"),
+  testimonialsVisible: integer("testimonials_visible").notNull().default(1),
+  
+  // Pricing Section
+  pricingTitle: text("pricing_title").default("Simple, Transparent Pricing"),
+  pricingSubtitle: text("pricing_subtitle"),
+  pricingVisible: integer("pricing_visible").notNull().default(1),
+  
+  // SEO Metadata
+  metaTitle: text("meta_title"),
+  metaDescription: text("meta_description"),
+  metaKeywords: text("meta_keywords"),
+  ogTitle: text("og_title"),
+  ogDescription: text("og_description"),
+  ogImage: text("og_image"),
+  twitterTitle: text("twitter_title"),
+  twitterDescription: text("twitter_description"),
+  twitterImage: text("twitter_image"),
+  canonicalUrl: text("canonical_url"),
+  robotsMeta: text("robots_meta").default("index, follow"),
+  
+  // Analytics
+  googleAnalyticsId: text("google_analytics_id"),
+  googleTagManagerId: text("google_tag_manager_id"),
+  metaPixelId: text("meta_pixel_id"),
+  
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Landing page features (How It Works + Feature sections)
+export const landingPageFeatures = pgTable("landing_page_features", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  section: varchar("section").notNull(), // 'how_it_works' or 'features'
+  icon: text("icon").notNull(), // Lucide icon name
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  order: integer("order").notNull().default(0),
+  visible: integer("visible").notNull().default(1),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => [
+  index("landing_page_features_section_idx").on(table.section),
+]);
+
+// Landing page testimonials
+export const landingPageTestimonials = pgTable("landing_page_testimonials", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  role: text("role").notNull(),
+  company: text("company"),
+  photoUrl: text("photo_url"),
+  quote: text("quote").notNull(),
+  rating: integer("rating").default(5), // 1-5 stars
+  order: integer("order").notNull().default(0),
+  visible: integer("visible").notNull().default(1),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Landing page pricing plans
+export const landingPagePricingPlans = pgTable("landing_page_pricing_plans", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  price: text("price").notNull(), // e.g., "$0", "$19/mo"
+  description: text("description"),
+  features: text("features").array().notNull(), // Array of feature strings
+  ctaText: text("cta_text").notNull().default("Get Started"),
+  ctaLink: text("cta_link").notNull(),
+  highlighted: integer("highlighted").notNull().default(0), // Popular/recommended
+  order: integer("order").notNull().default(0),
+  visible: integer("visible").notNull().default(1),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Landing page social links
+export const landingPageSocialLinks = pgTable("landing_page_social_links", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  platform: varchar("platform").notNull(), // 'twitter', 'linkedin', 'facebook', 'instagram', 'github', etc.
+  url: text("url").notNull(),
+  icon: text("icon"), // Lucide icon name or custom icon
+  order: integer("order").notNull().default(0),
+  visible: integer("visible").notNull().default(1),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Insert schemas
+export const insertLandingPageContentSchema = createInsertSchema(landingPageContent).omit({
+  id: true,
+  updatedAt: true,
+});
+
+export const insertLandingPageFeatureSchema = createInsertSchema(landingPageFeatures).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertLandingPageTestimonialSchema = createInsertSchema(landingPageTestimonials).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertLandingPagePricingPlanSchema = createInsertSchema(landingPagePricingPlans).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertLandingPageSocialLinkSchema = createInsertSchema(landingPageSocialLinks).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Types
+export type LandingPageContent = typeof landingPageContent.$inferSelect;
+export type InsertLandingPageContent = z.infer<typeof insertLandingPageContentSchema>;
+
+export type LandingPageFeature = typeof landingPageFeatures.$inferSelect;
+export type InsertLandingPageFeature = z.infer<typeof insertLandingPageFeatureSchema>;
+
+export type LandingPageTestimonial = typeof landingPageTestimonials.$inferSelect;
+export type InsertLandingPageTestimonial = z.infer<typeof insertLandingPageTestimonialSchema>;
+
+export type LandingPagePricingPlan = typeof landingPagePricingPlans.$inferSelect;
+export type InsertLandingPagePricingPlan = z.infer<typeof insertLandingPagePricingPlanSchema>;
+
+export type LandingPageSocialLink = typeof landingPageSocialLinks.$inferSelect;
+export type InsertLandingPageSocialLink = z.infer<typeof insertLandingPageSocialLinkSchema>;
