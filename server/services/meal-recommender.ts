@@ -950,56 +950,85 @@ export class MealRecommenderService {
   }
 
   private containsAnimalProducts(meal: MealCandidate): boolean {
-    const animalKeywords = ["meat", "chicken", "beef", "pork", "fish", "egg", "milk", "cheese", "butter", "cream", "honey"];
+    const animalKeywords = [
+      "meat", "chicken", "beef", "pork", "lamb", "turkey", "duck", "goose", "veal", 
+      "fish", "salmon", "tuna", "shrimp", "lobster", "crab", "oyster",
+      "egg", "milk", "cheese", "butter", "cream", "yogurt", "whey", "casein",
+      "honey", "gelatin", "lard", "tallow", "anchovy", "prawn", "squid"
+    ];
     return meal.ingredients.some(ing => 
       animalKeywords.some(keyword => ing.toLowerCase().includes(keyword))
     );
   }
 
   private containsMeat(meal: MealCandidate): boolean {
-    const meatKeywords = ["meat", "chicken", "beef", "pork", "lamb", "turkey", "duck", "fish", "salmon", "tuna", "shrimp"];
+    const meatKeywords = [
+      "meat", "chicken", "beef", "pork", "lamb", "turkey", "duck", "goose", "veal",
+      "bacon", "ham", "sausage", "salami", "pepperoni", "prosciutto",
+      "fish", "salmon", "tuna", "tilapia", "cod", "bass", "trout", "halibut",
+      "shrimp", "prawn", "lobster", "crab", "scallop", "oyster", "mussel"
+    ];
     return meal.ingredients.some(ing => 
       meatKeywords.some(keyword => ing.toLowerCase().includes(keyword))
     );
   }
 
   private containsNonFishMeat(meal: MealCandidate): boolean {
-    const nonFishMeatKeywords = ["meat", "chicken", "beef", "pork", "lamb", "turkey", "duck"];
+    const nonFishMeatKeywords = [
+      "meat", "chicken", "beef", "pork", "lamb", "turkey", "duck", "goose", "veal",
+      "bacon", "ham", "sausage", "salami", "pepperoni", "prosciutto", "rabbit"
+    ];
     return meal.ingredients.some(ing => 
       nonFishMeatKeywords.some(keyword => ing.toLowerCase().includes(keyword))
     );
   }
 
   private containsGluten(meal: MealCandidate): boolean {
-    const glutenKeywords = ["wheat", "flour", "bread", "pasta", "barley", "rye", "spelt"];
+    const glutenKeywords = [
+      "wheat", "flour", "bread", "pasta", "barley", "rye", "spelt",
+      "couscous", "bulgur", "kamut", "triticale", "farro", "semolina",
+      "malt", "cracker", "cereal", "cookie", "cake", "pastry", "bagel"
+    ];
     return meal.ingredients.some(ing => 
       glutenKeywords.some(keyword => ing.toLowerCase().includes(keyword))
     );
   }
 
   private containsDairy(meal: MealCandidate): boolean {
-    const dairyKeywords = ["milk", "cheese", "butter", "cream", "yogurt", "whey", "casein"];
+    const dairyKeywords = [
+      "milk", "cheese", "butter", "cream", "yogurt", "whey", "casein", "ghee",
+      "ice cream", "sour cream", "cottage cheese", "ricotta", "mozzarella", 
+      "cheddar", "feta", "gouda", "brie", "mascarpone", "buttermilk", "kefir"
+    ];
     return meal.ingredients.some(ing => 
       dairyKeywords.some(keyword => ing.toLowerCase().includes(keyword))
     );
   }
 
   private isNotHalal(meal: MealCandidate): boolean {
-    const haramKeywords = ["pork", "bacon", "ham", "alcohol", "wine", "beer"];
+    const haramKeywords = [
+      "pork", "bacon", "ham", "prosciutto", "pancetta", "chorizo", 
+      "alcohol", "wine", "beer", "liquor", "vodka", "whiskey", "rum",
+      "gelatin", "lard", "pepperoni"
+    ];
     return meal.ingredients.some(ing => 
       haramKeywords.some(keyword => ing.toLowerCase().includes(keyword))
     );
   }
 
   private isNotKosher(meal: MealCandidate): boolean {
-    const nonKosherKeywords = ["pork", "shellfish", "shrimp", "lobster", "crab"];
-    // Also check for dairy + meat combinations
+    const nonKosherKeywords = [
+      "pork", "bacon", "ham", "prosciutto", "pancetta",
+      "shellfish", "shrimp", "lobster", "crab", "oyster", "mussel", "clam",
+      "squid", "octopus", "calamari", "scallop", "eel", "catfish"
+    ];
+    // Check for dairy + meat combinations (fish + dairy is kosher)
     const hasDairy = this.containsDairy(meal);
-    const hasMeat = this.containsMeat(meal);
+    const hasNonFishMeat = this.containsNonFishMeat(meal);
     
     return meal.ingredients.some(ing => 
       nonKosherKeywords.some(keyword => ing.toLowerCase().includes(keyword))
-    ) || (hasDairy && hasMeat);
+    ) || (hasDairy && hasNonFishMeat);
   }
 
   /**
