@@ -103,19 +103,6 @@ const menuSections: MenuSection[] = [
       { title: "Privacy Dashboard", url: "/privacy-dashboard", icon: ShieldCheck },
     ],
   },
-  {
-    title: "Admin Panel",
-    icon: Shield,
-    adminOnly: true,
-    items: [
-      { title: "Users", url: "/admin", icon: Users },
-      { title: "Billing", url: "/admin", icon: CreditCard },
-      { title: "Landing Page CMS", url: "/admin/landing-page", icon: Globe },
-      { title: "AI Usage & Cost", url: "/admin", icon: DollarSign, badge: "Soon" },
-      { title: "Profitability", url: "/admin", icon: Wallet, badge: "Soon" },
-      { title: "Dynamic Pricing", url: "/admin", icon: Sliders, badge: "Soon" },
-    ],
-  },
 ];
 
 export function AppSidebar() {
@@ -151,6 +138,20 @@ export function AppSidebar() {
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+              {isAdmin && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={location.startsWith("/admin")}
+                    data-testid="link-admin-panel"
+                  >
+                    <Link href="/admin">
+                      <Shield className="h-4 w-4" />
+                      <span>Admin Panel</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
