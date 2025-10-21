@@ -615,12 +615,21 @@ export class DbStorage implements IStorage {
         updateData.role = existingById[0].role; // Preserve existing role
       }
       
-      const [user] = await db
-        .update(users)
-        .set(updateData)
-        .where(eq(users.id, userData.id))
-        .returning();
-      return user;
+      try {
+        const [user] = await db
+          .update(users)
+          .set(updateData)
+          .where(eq(users.id, userData.id))
+          .returning();
+        return user;
+      } catch (error: any) {
+        // If email unique constraint violation, return existing user without update
+        if (error.code === '23505') {
+          console.warn(`⚠️ Email ${userData.email} already in use by another user. Returning existing user ${userData.id} without email update.`);
+          return existingById[0];
+        }
+        throw error;
+      }
     }
     
     // Check if user exists by email
@@ -636,13 +645,22 @@ export class DbStorage implements IStorage {
           updateData.role = existingByEmail[0].role; // Preserve existing role
         }
         
-        // Update by the existing user's ID, not email, to avoid any constraint issues
-        const [user] = await db
-          .update(users)
-          .set(updateData)
-          .where(eq(users.id, existingByEmail[0].id))
-          .returning();
-        return user;
+        try {
+          // Update by the existing user's ID, not email, to avoid any constraint issues
+          const [user] = await db
+            .update(users)
+            .set(updateData)
+            .where(eq(users.id, existingByEmail[0].id))
+            .returning();
+          return user;
+        } catch (error: any) {
+          // If constraint violation on update, return existing user
+          if (error.code === '23505') {
+            console.warn(`⚠️ Constraint violation when updating user by email. Returning existing user.`);
+            return existingByEmail[0];
+          }
+          throw error;
+        }
       }
     }
     
