@@ -123,6 +123,7 @@ export class ExerciseDBService {
     // Map common muscle terms in search queries to ExerciseDB target muscle names
     const muscleMap: Record<string, string[]> = {
       'chest': ['pectorals', 'upper pectorals', 'lower pectorals'],
+      'bench': ['pectorals', 'upper pectorals', 'lower pectorals'], // "bench press" = chest exercise
       'back': ['lats', 'upper back', 'lower back', 'spine', 'traps'],
       'shoulder': ['deltoids', 'anterior deltoid', 'posterior deltoid', 'lateral deltoid'],
       'shoulders': ['deltoids', 'anterior deltoid', 'posterior deltoid', 'lateral deltoid'],
