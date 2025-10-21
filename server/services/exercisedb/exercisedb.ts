@@ -115,6 +115,10 @@ export class ExerciseDBService {
     
     let score = 0;
     
+    console.log(`[ExerciseDB Scoring] Starting detailed scoring for "${searchName}" vs "${exercise.name}"`);
+    console.log(`[ExerciseDB Scoring] Search words:`, searchWords);
+    console.log(`[ExerciseDB Scoring] Exercise target muscle:`, exercise.target);
+    
     // Target muscle matching - CRITICAL for correct exercise selection
     // Map common muscle terms in search queries to ExerciseDB target muscle names
     const muscleMap: Record<string, string[]> = {
