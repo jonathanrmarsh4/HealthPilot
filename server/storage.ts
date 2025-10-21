@@ -573,29 +573,50 @@ export class DbStorage implements IStorage {
     if (userData.email) {
       const existingByEmail = await db.select().from(users).where(eq(users.email, userData.email));
       if (existingByEmail.length > 0) {
-        // Update existing user by email - PRESERVE existing role unless explicitly set to admin
-        const updateData: any = { ...userData, updatedAt: new Date() };
+        // Update existing user by email - PRESERVE existing role and ID
+        const { id, ...updateDataWithoutId } = userData;
+        const updateData: any = { ...updateDataWithoutId, updatedAt: new Date() };
         
         // Don't overwrite the role if the existing user already has one, unless we're explicitly setting it to admin
         if (existingByEmail[0].role && userData.role !== 'admin') {
           updateData.role = existingByEmail[0].role; // Preserve existing role
         }
         
+        // Update by the existing user's ID, not email, to avoid any constraint issues
         const [user] = await db
           .update(users)
           .set(updateData)
-          .where(eq(users.email, userData.email))
+          .where(eq(users.id, existingByEmail[0].id))
           .returning();
         return user;
       }
     }
     
-    // Insert new user
-    const [user] = await db
-      .insert(users)
-      .values(userData)
-      .returning();
-    return user;
+    // Insert new user - wrap in try/catch to handle race conditions
+    try {
+      const [user] = await db
+        .insert(users)
+        .values(userData)
+        .returning();
+      return user;
+    } catch (error: any) {
+      // If we get a unique constraint violation, it means another request created the user
+      // Try one more time to fetch and return the existing user
+      if (error.code === '23505') { // PostgreSQL unique violation error code
+        const existingById = await db.select().from(users).where(eq(users.id, userData.id));
+        if (existingById.length > 0) {
+          return existingById[0];
+        }
+        if (userData.email) {
+          const existingByEmail = await db.select().from(users).where(eq(users.email, userData.email));
+          if (existingByEmail.length > 0) {
+            return existingByEmail[0];
+          }
+        }
+      }
+      // If it's not a unique constraint violation or we still can't find the user, rethrow
+      throw error;
+    }
   }
 
   async getUserSettings(userId: string): Promise<{ timezone: string }> {
