@@ -115,6 +115,56 @@ export class ExerciseDBService {
     
     let score = 0;
     
+    // Target muscle matching - CRITICAL for correct exercise selection
+    // Map common muscle terms in search queries to ExerciseDB target muscle names
+    const muscleMap: Record<string, string[]> = {
+      'chest': ['pectorals', 'upper pectorals', 'lower pectorals'],
+      'back': ['lats', 'upper back', 'lower back', 'spine', 'traps'],
+      'shoulder': ['deltoids', 'anterior deltoid', 'posterior deltoid', 'lateral deltoid'],
+      'shoulders': ['deltoids', 'anterior deltoid', 'posterior deltoid', 'lateral deltoid'],
+      'bicep': ['biceps'],
+      'biceps': ['biceps'],
+      'tricep': ['triceps'],
+      'triceps': ['triceps'],
+      'leg': ['quads', 'hamstrings', 'glutes', 'calves'],
+      'legs': ['quads', 'hamstrings', 'glutes', 'calves'],
+      'quad': ['quads'],
+      'quads': ['quads'],
+      'hamstring': ['hamstrings'],
+      'hamstrings': ['hamstrings'],
+      'glute': ['glutes'],
+      'glutes': ['glutes'],
+      'calf': ['calves'],
+      'calves': ['calves'],
+      'core': ['abs', 'abdominals'],
+      'ab': ['abs', 'abdominals'],
+      'abs': ['abs', 'abdominals'],
+    };
+    
+    // Check if search term mentions a specific muscle group
+    let targetMuscleBonus = 0;
+    for (const word of searchWords) {
+      const mappedTargets = muscleMap[word];
+      if (mappedTargets) {
+        // Check if this exercise targets that muscle group
+        const exerciseTarget = exercise.target.toLowerCase();
+        const matchesTarget = mappedTargets.some(target => 
+          exerciseTarget.includes(target) || target.includes(exerciseTarget)
+        );
+        
+        if (matchesTarget) {
+          targetMuscleBonus += 60; // MAJOR bonus for matching target muscle
+          console.log(`[ExerciseDB Scoring] Muscle match bonus: "${word}" maps to "${exerciseTarget}" (+60)`);
+        } else {
+          // Penalize if search specifies a muscle but exercise targets a different one
+          targetMuscleBonus -= 30;
+          console.log(`[ExerciseDB Scoring] Muscle mismatch penalty: search wants "${word}" but exercise targets "${exerciseTarget}" (-30)`);
+        }
+        break; // Only consider the first muscle term found
+      }
+    }
+    score += targetMuscleBonus;
+    
     // Check for equipment match (CRITICAL for correct exercise variant)
     // Map common equipment variations to database values
     const equipmentMap: Record<string, string> = {
