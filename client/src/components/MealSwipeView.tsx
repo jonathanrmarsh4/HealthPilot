@@ -209,10 +209,10 @@ export function MealSwipeView({ meals, onMealTap, onBackToCalendar }: MealSwipeV
       {/* Action Hints */}
       <div className="flex items-center justify-center gap-8 text-sm text-muted-foreground">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-destructive/20 flex items-center justify-center">
-            <span className="text-destructive">←</span>
+          <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+            <span>←</span>
           </div>
-          <span>Never Again</span>
+          <span>Pass</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
@@ -221,10 +221,10 @@ export function MealSwipeView({ meals, onMealTap, onBackToCalendar }: MealSwipeV
           <span>Select</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-            <span>→</span>
+          <div className="w-8 h-8 rounded-full bg-destructive/20 flex items-center justify-center">
+            <span className="text-destructive">→</span>
           </div>
-          <span>Pass</span>
+          <span>Never Again</span>
         </div>
       </div>
     </div>

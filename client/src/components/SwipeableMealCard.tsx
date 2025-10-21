@@ -73,7 +73,7 @@ export function SwipeableMealCard({
 
     // Check swipe threshold
     if (Math.abs(dragOffset.x) > swipeThreshold) {
-      const direction = dragOffset.x > 0 ? "left" : "right";
+      const direction = dragOffset.x > 0 ? "right" : "left";
       
       // Animate card flying off screen
       setDragOffset({ x: dragOffset.x > 0 ? 1000 : -1000, y: dragOffset.y });
@@ -144,8 +144,8 @@ export function SwipeableMealCard({
     handleMove(e.clientX, e.clientY);
   };
 
-  const showLeftIndicator = dragOffset.x > 50;
-  const showRightIndicator = dragOffset.x < -50;
+  const showRightIndicator = dragOffset.x > 50;  // Dragging right = dislike (red X)
+  const showLeftIndicator = dragOffset.x < -50;  // Dragging left = skip (green check)
 
   return (
     <div

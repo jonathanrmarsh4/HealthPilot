@@ -1047,28 +1047,27 @@ export class DbStorage implements IStorage {
       .filter(f => f.mealPlanId !== null)
       .map(f => f.mealPlanId as string);
     
-    // Build the query with dislike filtering
-    const query = db
+    // Build the base query conditions
+    const conditions = [
+      eq(mealPlans.userId, userId),
+      // Only return meals scheduled for today or future
+      // If scheduledDate is null, include it (for backward compatibility)
+      or(
+        gte(mealPlans.scheduledDate, today),
+        isNull(mealPlans.scheduledDate)
+      )
+    ];
+    
+    // Only add notInArray if we have disliked meals to filter
+    if (dislikedMealIds.length > 0) {
+      conditions.push(notInArray(mealPlans.id, dislikedMealIds));
+    }
+    
+    return await db
       .select()
       .from(mealPlans)
-      .where(
-        and(
-          eq(mealPlans.userId, userId),
-          // Only return meals scheduled for today or future
-          // If scheduledDate is null, include it (for backward compatibility)
-          or(
-            gte(mealPlans.scheduledDate, today),
-            isNull(mealPlans.scheduledDate)
-          ),
-          // Exclude permanently disliked meals
-          dislikedMealIds.length > 0 
-            ? notInArray(mealPlans.id, dislikedMealIds)
-            : undefined
-        )
-      )
+      .where(and(...conditions))
       .orderBy(mealPlans.scheduledDate, mealPlans.mealType);
-    
-    return await query;
   }
 
   async updateMealFeedback(mealId: string, userId: string, feedback: string): Promise<MealPlan | undefined> {
