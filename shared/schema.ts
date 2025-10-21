@@ -122,19 +122,9 @@ export const biomarkers = pgTable("biomarkers", {
 export const nutritionProfiles = pgTable("nutrition_profiles", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().unique(),
-  dietaryPreferences: text("dietary_preferences").array(), // 'vegetarian', 'vegan', 'keto', 'paleo', 'mediterranean', 'whole30', etc.
+  dietaryPreferences: text("dietary_preferences").array(), // 'vegetarian', 'vegan', 'pescatarian', etc.
   allergies: text("allergies").array(), // 'dairy', 'gluten', 'nuts', 'soy', 'eggs', 'shellfish', etc.
   intolerances: text("intolerances").array(), // 'lactose', 'gluten', 'fructose', etc.
-  cuisinePreferences: text("cuisine_preferences").array(), // 'italian', 'asian', 'mexican', 'mediterranean', etc.
-  dislikedFoods: text("disliked_foods").array(), // Specific foods user doesn't like
-  calorieTarget: integer("calorie_target"), // Daily calorie goal
-  proteinTarget: real("protein_target"), // Daily protein goal in grams
-  carbsTarget: real("carbs_target"), // Daily carbs goal in grams
-  fatTarget: real("fat_target"), // Daily fat goal in grams
-  mealsPerDay: integer("meals_per_day").default(3), // How many meals per day
-  snacksPerDay: integer("snacks_per_day").default(1), // How many snacks per day
-  cookingSkillLevel: text("cooking_skill_level"), // 'beginner', 'intermediate', 'advanced'
-  maxPrepTime: integer("max_prep_time"), // Maximum prep time willing to spend (minutes)
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
