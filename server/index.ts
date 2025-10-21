@@ -113,5 +113,16 @@ app.use((req, res, next) => {
         log(`❌ ExerciseDB auto-sync error: ${error.message}`);
       }
     }, 6000); // Wait 6 seconds after startup (after proactive monitoring)
+    
+    // Start Daily Insights Scheduler (runs at 02:00 user local time)
+    setTimeout(async () => {
+      try {
+        log('🔮 Starting Daily Insights Scheduler...');
+        const { startDailyInsightsScheduler } = await import('./services/dailyInsightsScheduler');
+        startDailyInsightsScheduler();
+      } catch (error: any) {
+        log(`❌ Daily Insights Scheduler error: ${error.message}`);
+      }
+    }, 7000); // Wait 7 seconds after startup
   });
 })();

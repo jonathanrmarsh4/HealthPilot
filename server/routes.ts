@@ -10610,5 +10610,74 @@ DATA AVAILABILITY:
     }
   });
 
+  // Get today's daily health insights for authenticated user
+  app.get("/api/insights/today", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any).claims.sub;
+      const today = new Date();
+      
+      const insights = await storage.getDailyHealthInsights(userId, today);
+      
+      // Filter to only active insights (not dismissed)
+      const activeInsights = insights.filter(i => i.status === 'pending' || i.status === 'acknowledged');
+      
+      res.json({
+        date: today.toISOString().split('T')[0],
+        insights: activeInsights.slice(0, 3), // Max 3 insights
+        total: activeInsights.length,
+      });
+    } catch (error: any) {
+      console.error("Error fetching today's insights:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get daily health insights for a date range
+  app.get("/api/insights/history", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any).claims.sub;
+      const { start_date, end_date } = req.query;
+      
+      if (!start_date || !end_date) {
+        return res.status(400).json({ error: "Missing required query parameters: start_date, end_date" });
+      }
+      
+      const startDate = new Date(start_date as string);
+      const endDate = new Date(end_date as string);
+      
+      const insights = await storage.getDailyHealthInsightsDateRange(userId, startDate, endDate);
+      
+      res.json({
+        startDate: start_date,
+        endDate: end_date,
+        insights,
+        total: insights.length,
+      });
+    } catch (error: any) {
+      console.error("Error fetching insights history:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Update insight status (acknowledge or dismiss)
+  app.patch("/api/insights/:id/status", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any).claims.sub;
+      const { id } = req.params;
+      const { status } = req.body;
+      
+      if (!status || !['acknowledged', 'dismissed'].includes(status)) {
+        return res.status(400).json({ error: "Invalid status. Must be 'acknowledged' or 'dismissed'" });
+      }
+      
+      await storage.updateDailyHealthInsightStatus(id, userId, status);
+      
+      res.json({ success: true, id, status });
+    } catch (error: any) {
+      console.error("Error updating insight status:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   return httpServer;
 }
