@@ -21,13 +21,13 @@ interface TestResult {
   error?: string;
 }
 
-const TEST_USER_ID = 'test-user-001'; // Replace with actual user ID for testing
-
 async function runE2ETest(): Promise<void> {
+  // Always use a unique ID per run to ensure idempotent testing
+  const TEST_USER_ID = `test-e2e-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   const results: TestResult[] = [];
   
   console.log('🧪 Starting Daily Insights E2E Test\n');
-  console.log(`Testing with user ID: ${TEST_USER_ID}\n`);
+  console.log(`Testing with unique user ID: ${TEST_USER_ID}\n`);
   
   // ==========================================================================
   // STEP 1: Seed Realistic Health Data

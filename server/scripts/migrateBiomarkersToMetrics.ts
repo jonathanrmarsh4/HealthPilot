@@ -11,6 +11,7 @@ import { biomarkers } from '@shared/schema';
  */
 
 // Mapping of biomarker names to daily metric names
+// This mapping handles both exact matches and pattern-based matching
 const BIOMARKER_TO_METRIC_MAP: Record<string, string> = {
   // Sleep metrics
   'sleep_duration': 'sleep_duration_hours',
@@ -47,6 +48,21 @@ const BIOMARKER_TO_METRIC_MAP: Record<string, string> = {
   'respiratory_rate': 'respiratory_rate_bpm',
 };
 
+/**
+ * Get metric name for a biomarker, handling unmapped biomarkers
+ * For lab results, we create lab entries instead of metrics
+ */
+function getMetricNameForBiomarker(biomarkerName: string): string | null {
+  // Check exact match first
+  if (BIOMARKER_TO_METRIC_MAP[biomarkerName]) {
+    return BIOMARKER_TO_METRIC_MAP[biomarkerName];
+  }
+  
+  // For unmapped biomarkers, return null to skip
+  // These will be handled by the labs table instead
+  return null;
+}
+
 async function migrateBiomarkersToMetrics() {
   console.log('🔄 Starting biomarker → daily metrics migration...');
   
@@ -61,49 +77,68 @@ async function migrateBiomarkersToMetrics() {
 
     console.log(`📊 Found ${allBiomarkers.length} biomarkers to migrate`);
 
-    let migrated = 0;
-    let skipped = 0;
+    let migratedMetrics = 0;
+    let migratedLabs = 0;
     let errors = 0;
 
     for (const biomarker of allBiomarkers) {
       try {
         // Check if this biomarker type is mapped to a daily metric
-        const metricName = BIOMARKER_TO_METRIC_MAP[biomarker.name];
+        const metricName = getMetricNameForBiomarker(biomarker.name);
         
-        if (!metricName) {
-          console.log(`⚠️ Skipping unmapped biomarker: ${biomarker.name}`);
-          skipped++;
-          continue;
-        }
-
         // Determine baseline eligibility
-        // For migrated data, we'll mark it as eligible if it has a value
         const isBaselineEligible = biomarker.value !== null && biomarker.value !== undefined;
         const exclusionReason = !isBaselineEligible ? 'Missing value' : null;
 
-        // Create daily metric from biomarker
-        await storage.createDailyMetric({
-          userId: biomarker.userId,
-          name: metricName,
-          value: biomarker.value,
-          unit: biomarker.unit || 'unit',
-          observedAt: biomarker.recordedAt,
-          source: 'migration', // Mark as migrated data
-          qualityFlag: 'good', // Assume good quality for existing data
-          isBaselineEligible,
-          exclusionReason,
-          ingestionMetadata: {
-            migratedFrom: 'biomarkers',
-            originalBiomarkerId: biomarker.id,
-            migratedAt: new Date().toISOString(),
-          },
-        });
+        if (metricName) {
+          // Migrate to daily_metrics table
+          await storage.createDailyMetric({
+            userId: biomarker.userId,
+            name: metricName,
+            value: biomarker.value,
+            unit: biomarker.unit || 'unit',
+            observedAt: biomarker.recordedAt,
+            source: 'migration',
+            qualityFlag: 'good',
+            isBaselineEligible,
+            exclusionReason,
+            ingestionMetadata: {
+              migratedFrom: 'biomarkers',
+              originalBiomarkerId: biomarker.id,
+              migratedAt: new Date().toISOString(),
+            },
+          });
 
-        migrated++;
+          migratedMetrics++;
+        } else {
+          // Migrate to labs table (lipids, glucose, hormones, etc.)
+          await storage.createLab({
+            userId: biomarker.userId,
+            panel: 'migrated_biomarkers', // Generic panel for migrated data
+            marker: biomarker.name,
+            value: biomarker.value,
+            unit: biomarker.unit || 'unit',
+            refLow: null, // Biomarkers table doesn't have reference ranges
+            refHigh: null,
+            observedAt: biomarker.recordedAt,
+            source: 'migration',
+            qualityFlag: 'good',
+            isBaselineEligible,
+            exclusionReason,
+            ingestionMetadata: {
+              migratedFrom: 'biomarkers',
+              originalBiomarkerId: biomarker.id,
+              migratedAt: new Date().toISOString(),
+            },
+          });
+
+          migratedLabs++;
+        }
 
         // Log progress every 100 items
-        if (migrated % 100 === 0) {
-          console.log(`✓ Migrated ${migrated} biomarkers...`);
+        const total = migratedMetrics + migratedLabs;
+        if (total % 100 === 0) {
+          console.log(`✓ Migrated ${total} biomarkers...`);
         }
       } catch (error: any) {
         console.error(`❌ Error migrating biomarker ${biomarker.id}:`, error.message);
@@ -112,8 +147,8 @@ async function migrateBiomarkersToMetrics() {
     }
 
     console.log(`\n✅ Migration complete!`);
-    console.log(`   Migrated: ${migrated}`);
-    console.log(`   Skipped: ${skipped}`);
+    console.log(`   Daily Metrics: ${migratedMetrics} (sleep, HRV, steps, etc.)`);
+    console.log(`   Labs: ${migratedLabs} (lipids, glucose, hormones, etc.)`);
     console.log(`   Errors: ${errors}`);
     console.log(`   Total: ${allBiomarkers.length}\n`);
   } catch (error: any) {
