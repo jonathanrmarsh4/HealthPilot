@@ -74,7 +74,94 @@ export class ExerciseDBService {
   }
 
   /**
-   * Search for exercises by name (fuzzy matching)
+   * Normalize exercise names for better matching
+   */
+  private normalizeExerciseName(name: string): string {
+    return name
+      .toLowerCase()
+      .trim()
+      // Remove common plurals
+      .replace(/\s+/g, ' ')
+      .replace(/^(.*?)s$/, '$1')  // Remove trailing 's'
+      .replace(/pushups?/g, 'push up')
+      .replace(/pullups?/g, 'pull up')
+      .replace(/situps?/g, 'sit up')
+      .replace(/curls?$/g, 'curl')
+      .replace(/rows?$/g, 'row')
+      .replace(/flyes?$/g, 'fly')
+      .replace(/raises?$/g, 'raise')
+      .replace(/presses?$/g, 'press')
+      .replace(/squats?$/g, 'squat')
+      .replace(/lunges?$/g, 'lunge')
+      .replace(/dips?$/g, 'dip');
+  }
+
+  /**
+   * Calculate match score between search term and exercise
+   */
+  private calculateMatchScore(searchName: string, exercise: ExerciseDBExercise): number {
+    const normalized = this.normalizeExerciseName(searchName);
+    const exName = this.normalizeExerciseName(exercise.name);
+    
+    // Exact match
+    if (normalized === exName) return 100;
+    
+    // One contains the other (full substring)
+    if (exName.includes(normalized) || normalized.includes(exName)) return 90;
+    
+    // Split into words for more detailed matching
+    const searchWords = normalized.split(/\s+/).filter(w => w.length > 2);
+    const exWords = exName.split(/\s+/).filter(w => w.length > 2);
+    
+    let score = 0;
+    
+    // Check for equipment match (very important for correct exercise variant)
+    const equipmentWords = ['barbell', 'dumbbell', 'cable', 'machine', 'band', 'bodyweight', 'kettlebell', 'smith'];
+    const searchEquipment = searchWords.find(w => equipmentWords.includes(w));
+    const exEquipment = exWords.find(w => equipmentWords.includes(w));
+    
+    if (searchEquipment && exEquipment) {
+      if (searchEquipment === exEquipment) {
+        score += 30; // Matching equipment is very important
+      } else {
+        score -= 20; // Different equipment is a bad sign
+      }
+    }
+    
+    // Check for main exercise type match
+    const exerciseTypes = ['press', 'curl', 'row', 'squat', 'deadlift', 'pulldown', 'fly', 'raise', 'extension', 'pullup', 'pushup', 'dip', 'lunge', 'crunch', 'plank'];
+    const searchType = searchWords.find(w => exerciseTypes.some(t => w.includes(t) || t.includes(w)));
+    const exType = exWords.find(w => exerciseTypes.some(t => w.includes(t) || t.includes(w)));
+    
+    if (searchType && exType) {
+      // Normalize the types for comparison
+      const normalizedSearchType = exerciseTypes.find(t => searchType.includes(t) || t.includes(searchType)) || searchType;
+      const normalizedExType = exerciseTypes.find(t => exType.includes(t) || t.includes(exType)) || exType;
+      
+      if (normalizedSearchType === normalizedExType) {
+        score += 40; // Main exercise type match is crucial
+      } else {
+        score -= 10; // Different main exercise type
+      }
+    }
+    
+    // Count matching words
+    const matchingWords = searchWords.filter(sw => 
+      exWords.some(ew => ew === sw || ew.includes(sw) || sw.includes(ew))
+    );
+    score += matchingWords.length * 15;
+    
+    // Penalize if too many unmatched words
+    const unmatchedSearchWords = searchWords.filter(sw => 
+      !exWords.some(ew => ew === sw || ew.includes(sw) || sw.includes(ew))
+    );
+    score -= unmatchedSearchWords.length * 5;
+    
+    return score;
+  }
+
+  /**
+   * Search for exercises by name (improved fuzzy matching)
    * Now queries from database instead of API
    */
   async searchExercisesByName(exerciseName: string): Promise<ExerciseDBExercise | null> {
@@ -102,67 +189,49 @@ export class ExerciseDBService {
         gifUrl: `/api/exercisedb/image?exerciseId=${ex.exerciseId}`,
       }));
       
-      // Normalize the search name
-      const searchName = exerciseName.toLowerCase().trim();
-      
-      // Try exact match first
-      let match = allExercises.find(ex => ex.name.toLowerCase() === searchName);
-      if (match) {
-        console.log(`[ExerciseDB] Found exact match: ${match.name}`);
-        return match;
-      }
-      
-      // If no exact match, try substring matching (both directions)
-      match = allExercises.find(ex => 
-        ex.name.toLowerCase().includes(searchName) || 
-        searchName.includes(ex.name.toLowerCase())
+      // Try exact match first (case insensitive)
+      const normalizedSearch = this.normalizeExerciseName(exerciseName);
+      let exactMatch = allExercises.find(ex => 
+        this.normalizeExerciseName(ex.name) === normalizedSearch
       );
-      if (match) {
-        console.log(`[ExerciseDB] Found substring match: ${match.name}`);
-        return match;
+      
+      if (exactMatch) {
+        console.log(`[ExerciseDB] Found exact match: "${exactMatch.name}" for search "${exerciseName}"`);
+        return exactMatch;
       }
       
-      // Try matching with equipment prefix (e.g., "squats" → "barbell squat" or "bodyweight squat")
-      const searchWords = searchName.split(/\s+/);
-      const mainWord = searchWords[searchWords.length - 1]; // Get the last word (e.g., "squat" from "barbell squat")
+      // Score all exercises and find best match
+      const scoredExercises = allExercises
+        .map(ex => ({
+          exercise: ex,
+          score: this.calculateMatchScore(exerciseName, ex)
+        }))
+        .filter(item => item.score > 20) // Minimum threshold
+        .sort((a, b) => b.score - a.score);
       
-      // Look for exercises where the main word appears
-      match = allExercises.find(ex => {
-        const exName = ex.name.toLowerCase();
-        return exName.includes(mainWord) && mainWord.length >= 4; // Require at least 4 chars
-      });
-      if (match) {
-        console.log(`[ExerciseDB] Found main word match: ${match.name}`);
-        return match;
-      }
-      
-      // Try partial word matching (any word overlaps)
-      match = allExercises.find(ex => {
-        const exWords = ex.name.toLowerCase().split(/\s+/);
-        return searchWords.some(sw => 
-          exWords.some(ew => 
-            (ew.includes(sw) || sw.includes(ew)) && sw.length >= 3 // Require at least 3 chars
-          )
-        );
-      });
-      
-      if (match) {
-        console.log(`[ExerciseDB] Found word overlap match: ${match.name}`);
-      } else {
-        console.log(`[ExerciseDB] No match found for: "${exerciseName}"`);
-        // Log some similar exercises for debugging
-        const similar = allExercises
-          .filter(ex => searchWords.some(word => 
-            word.length >= 3 && ex.name.toLowerCase().includes(word)
-          ))
-          .slice(0, 5)
-          .map(ex => ex.name);
-        if (similar.length > 0) {
-          console.log(`[ExerciseDB] Similar exercises:`, similar);
+      if (scoredExercises.length > 0) {
+        const bestMatch = scoredExercises[0];
+        console.log(`[ExerciseDB] Best match: "${bestMatch.exercise.name}" (score: ${bestMatch.score}) for search "${exerciseName}"`);
+        
+        // Log top 3 matches for debugging
+        if (scoredExercises.length > 1) {
+          console.log(`[ExerciseDB] Other potential matches:`);
+          scoredExercises.slice(1, 3).forEach((item, idx) => {
+            console.log(`  ${idx + 2}. "${item.exercise.name}" (score: ${item.score})`);
+          });
+        }
+        
+        // Only return if score is high enough to be confident
+        if (bestMatch.score >= 30) {
+          return bestMatch.exercise;
+        } else {
+          console.warn(`[ExerciseDB] Best match score too low (${bestMatch.score}). Returning null to avoid incorrect GIF.`);
+          return null;
         }
       }
       
-      return match || null;
+      console.log(`[ExerciseDB] No suitable match found for: "${exerciseName}"`);
+      return null;
     } catch (error) {
       console.error('Error searching exercises by name:', error);
       return null;
