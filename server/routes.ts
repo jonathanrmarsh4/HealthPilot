@@ -2393,7 +2393,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/meal-plans/generate", isAuthenticated, requirePremium(PremiumFeature.MEAL_PLANS), async (req, res) => {
+  app.post("/api/meal-plans/generate", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
 
     try {
@@ -2827,7 +2827,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Advanced Meal Recommendation Endpoints
-  app.post("/api/meals/recommend", isAuthenticated, requirePremium(PremiumFeature.MEAL_PLANS), async (req, res) => {
+  app.post("/api/meals/recommend", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
     const { mealSlot = "lunch", maxResults = 10, forDate } = req.body;
 
