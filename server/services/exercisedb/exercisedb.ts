@@ -115,16 +115,59 @@ export class ExerciseDBService {
     
     let score = 0;
     
-    // Check for equipment match (very important for correct exercise variant)
-    const equipmentWords = ['barbell', 'dumbbell', 'cable', 'machine', 'band', 'bodyweight', 'kettlebell', 'smith'];
-    const searchEquipment = searchWords.find(w => equipmentWords.includes(w));
-    const exEquipment = exWords.find(w => equipmentWords.includes(w));
+    // Check for equipment match (CRITICAL for correct exercise variant)
+    // Map common equipment variations to database values
+    const equipmentMap: Record<string, string> = {
+      'barbell': 'barbell',
+      'dumbbell': 'dumbbell',
+      'dumbell': 'dumbbell', // Common misspelling
+      'cable': 'cable',
+      'machine': 'machine',
+      'band': 'band',
+      'bodyweight': 'body weight',
+      'kettlebell': 'kettlebell',
+      'smith': 'smith machine',
+    };
     
-    if (searchEquipment && exEquipment) {
-      if (searchEquipment === exEquipment) {
-        score += 30; // Matching equipment is very important
+    // Extract equipment from search term
+    let searchEquipmentType: string | null = null;
+    for (const word of searchWords) {
+      if (equipmentMap[word]) {
+        searchEquipmentType = equipmentMap[word];
+        break;
+      }
+    }
+    
+    // Use the actual equipment field from the exercise
+    const exerciseEquipment = exercise.equipment.toLowerCase().trim();
+    
+    // Compare search equipment intent vs actual exercise equipment
+    if (searchEquipmentType) {
+      // Check for equipment match with tolerance for variants
+      const exactMatch = exerciseEquipment === searchEquipmentType;
+      const partialMatch = !exactMatch && (exerciseEquipment.includes(searchEquipmentType) || searchEquipmentType.includes(exerciseEquipment));
+      
+      // Detect equipment conflicts: find which specific equipment each uses
+      const conflictingEquipment = ['barbell', 'dumbbell', 'kettlebell', 'cable'];
+      const searchEquipmentKeyword = conflictingEquipment.find(eq => searchEquipmentType.includes(eq));
+      const exerciseEquipmentKeyword = conflictingEquipment.find(eq => exerciseEquipment.includes(eq));
+      
+      // If both have equipment keywords and they're different, it's a conflict
+      const hasConflict = searchEquipmentKeyword && exerciseEquipmentKeyword && searchEquipmentKeyword !== exerciseEquipmentKeyword;
+      
+      if (exactMatch) {
+        score += 50; // Perfect equipment match
+      } else if (hasConflict) {
+        score -= 100; // Conflicting equipment (e.g., barbell vs dumbbell) = WRONG exercise!
+      } else if (partialMatch) {
+        score += 30; // Partial match (e.g., "machine" matches "leverage machine")
       } else {
-        score -= 20; // Different equipment is a bad sign
+        score -= 50; // Different equipment but not directly conflicting
+      }
+    } else {
+      // Search doesn't specify equipment - slight preference for non-equipment-specific names
+      if (exerciseEquipment === 'body weight' || !exerciseEquipment) {
+        score += 5; // Slight bonus for bodyweight/generic exercises when no equipment specified
       }
     }
     
@@ -184,8 +227,8 @@ export class ExerciseDBService {
         bodyPart: ex.bodyPart,
         equipment: ex.equipment,
         target: ex.target,
-        secondaryMuscles: ex.secondaryMuscles,
-        instructions: ex.instructions,
+        secondaryMuscles: (ex.secondaryMuscles as string[]) || [],
+        instructions: (ex.instructions as string[]) || [],
         gifUrl: `/api/exercisedb/image?exerciseId=${ex.exerciseId}`,
       }));
       
@@ -206,7 +249,7 @@ export class ExerciseDBService {
           exercise: ex,
           score: this.calculateMatchScore(exerciseName, ex)
         }))
-        .filter(item => item.score > 20) // Minimum threshold
+        .filter(item => item.score > 15) // Minimum threshold (lowered to 15 to catch edge cases)
         .sort((a, b) => b.score - a.score);
       
       if (scoredExercises.length > 0) {
@@ -222,7 +265,7 @@ export class ExerciseDBService {
         }
         
         // Only return if score is high enough to be confident
-        if (bestMatch.score >= 30) {
+        if (bestMatch.score >= 25) {
           return bestMatch.exercise;
         } else {
           console.warn(`[ExerciseDB] Best match score too low (${bestMatch.score}). Returning null to avoid incorrect GIF.`);
@@ -258,8 +301,8 @@ export class ExerciseDBService {
         bodyPart: dbExercise.bodyPart,
         equipment: dbExercise.equipment,
         target: dbExercise.target,
-        secondaryMuscles: dbExercise.secondaryMuscles,
-        instructions: dbExercise.instructions,
+        secondaryMuscles: (dbExercise.secondaryMuscles as string[]) || [],
+        instructions: (dbExercise.instructions as string[]) || [],
         gifUrl: `/api/exercisedb/image?exerciseId=${dbExercise.exerciseId}`,
       };
     } catch (error) {
@@ -287,8 +330,8 @@ export class ExerciseDBService {
         bodyPart: ex.bodyPart,
         equipment: ex.equipment,
         target: ex.target,
-        secondaryMuscles: ex.secondaryMuscles,
-        instructions: ex.instructions,
+        secondaryMuscles: (ex.secondaryMuscles as string[]) || [],
+        instructions: (ex.instructions as string[]) || [],
         gifUrl: `/api/exercisedb/image?exerciseId=${ex.exerciseId}`,
       }));
 
