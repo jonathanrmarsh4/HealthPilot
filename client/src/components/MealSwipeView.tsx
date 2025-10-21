@@ -44,6 +44,7 @@ export function MealSwipeView({ meals, onMealTap, onBackToCalendar }: MealSwipeV
   const feedbackMutation = useMutation({
     mutationFn: async (feedback: {
       mealPlanId: string;
+      mealLibraryId?: string;
       feedback: string;
       swipeDirection: string;
       mealName: string;
@@ -64,6 +65,7 @@ export function MealSwipeView({ meals, onMealTap, onBackToCalendar }: MealSwipeV
     // Left swipe = Session skip (temporary pass, might see again in future)
     feedbackMutation.mutate({
       mealPlanId: meal.id,
+      mealLibraryId: meal.mealLibraryId,
       feedback: "session_skip",
       swipeDirection: "left",
       mealName: meal.name,
@@ -81,6 +83,7 @@ export function MealSwipeView({ meals, onMealTap, onBackToCalendar }: MealSwipeV
     // Right swipe = Permanent dislike (never show again)
     feedbackMutation.mutate({
       mealPlanId: meal.id,
+      mealLibraryId: meal.mealLibraryId,
       feedback: "permanent_dislike",
       swipeDirection: "right",
       mealName: meal.name,
