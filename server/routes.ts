@@ -2859,26 +2859,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
         );
 
       // Transform meals to candidate format
-      const mealCandidates = candidateMeals.map(meal => ({
-        mealId: meal.id,
-        title: meal.title,
-        mealSlot: meal.mealType || [],
-        serving: {
-          kcal: meal.calories || 0,
-          proteinG: meal.protein || 0,
-          carbsG: meal.carbs || 0,
-          fatG: meal.fat || 0,
-          fiberG: meal.fiber,
-          sodiumMg: meal.sodium
-        },
-        tags: meal.tags || [],
-        cuisine: meal.cuisine || "international",
-        ingredients: meal.ingredients || [],
-        allergens: meal.allergens || [],
-        prepTimeMin: meal.prepTime || 30,
-        imageUrl: meal.imageUrl,
-        sourceUrl: meal.recipeUrl
-      }));
+      const mealCandidates = candidateMeals.map(meal => {
+        // Extract ingredient names from the jsonb array
+        let ingredientNames: string[] = [];
+        if (meal.ingredients && Array.isArray(meal.ingredients)) {
+          ingredientNames = meal.ingredients
+            .map((ing: any) => ing.name || ing.nameClean || '')
+            .filter((name: string) => name.length > 0);
+        }
+
+        return {
+          mealId: meal.id,
+          title: meal.title,
+          mealSlot: meal.meal_types || [], // Fixed: use correct field name meal_types
+          serving: {
+            kcal: meal.calories || 0,
+            proteinG: meal.protein || 0,
+            carbsG: meal.carbs || 0,
+            fatG: meal.fat || 0,
+            fiberG: null, // Field doesn't exist in database
+            sodiumMg: null // Field doesn't exist in database
+          },
+          tags: meal.diets || [], // Use diets field instead of non-existent tags
+          cuisine: meal.cuisines?.[0] || "international", // Use first cuisine from array
+          ingredients: ingredientNames, // Extracted ingredient names
+          allergens: [], // Field doesn't exist in database
+          prepTimeMin: meal.ready_in_minutes || 30, // Use correct field name
+          imageUrl: meal.image_url, // Use correct field name
+          sourceUrl: meal.source_url // Use correct field name
+        };
+      });
 
       // Build user profile for recommendations
       const userProfile = {
