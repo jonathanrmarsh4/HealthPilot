@@ -1,0 +1,112 @@
+# HealthPilot Meal Recommender — Implementation Demonstration & Conformance Suite (Single-Paste Prompt)
+
+## ROLE
+You are acting as a **Test Orchestrator** for the HealthPilot Meal Recommender defined in our Master Prompt (meal filtering, scoring, bandit learning, substitutions/portioning, fallback, strict JSON output). Your job now is to **demonstrate conformance** by running a **self-contained, deterministic test suite** and producing both human-readable evidence and machine-parseable artifacts.
+
+## WHAT TO DO (High-Level)
+1) **Load/assume** the Master Prompt rules previously provided for the HealthPilot Meal Recommender (filters, scoring, bandit, output schema).  
+2) **Run a deterministic demo** that proves guardrails and logic are active and correct.  
+3) **Return results** in the exact “Deliverables & Output Format” below.
+
+## TEST EXECUTION SETTINGS
+- **Seed**: Use seed `HP_DEMO_2025_10_21` for all randomized actions (bandit/Thompson sampling).  
+- **Time zone**: `Australia/Perth`.  
+- **Deterministic Mode**: For primary tests, set `exploration_strength=0`.  
+- **Stochastic Check**: Include one separate run with `exploration_strength=0.15` to show controlled variability.  
+- **Max results**: 8.  
+- **Diversity strength**: 0.25.  
+- **Allow substitutions**: true.
+
+## FIXTURE PACK (Generate & Use Exactly As Specified)
+Create the following **synthetic but realistic** fixtures and use them in your tests. Make sure fields match the Master Prompt schemas.
+
+### A. Users (5)
+U1: hypertensive (bp_control), low-sodium emphasis, omnivore, dislikes coconut & mushroom, peanut allergy, macro targets 700 kcal / 50P / 60C / 20F for the slot, sodium remaining 600 mg.  
+U2: prediabetes/glucose_control, Mediterranean pattern, pescatarian, high-fiber preference, dislikes banana, lactose intolerance.  
+U3: muscle_gain, high protein target, keto pattern, no allergies, likes spicy & Thai, dislikes blue cheese.  
+U4: vegan + nut_free (tree_nut allergy), high-fiber target, prefers <20 min prep, dislikes very spicy.  
+U5: kosher + no_pork + no_shellfish, maintenance goal, likes variety, moderate sodium cap, dislikes eggs.
+
+Each user should have a minimal **bandit_state** with 4–6 arms (e.g., cuisines, tags, prep_time buckets) and non-zero alpha/beta values.
+
+### B. Candidate Meals (12–15)
+Include clear edge cases across items:
+- An otherwise great **peanut**-containing meal (to trigger allergy exclusion for U1/U4).  
+- A **high-sodium** dish (~900–1200 mg) that can/can’t be fixed by portioning/substitution.  
+- A **banana**-containing bowl (excludes for U2 dislike).  
+- A **dairy**-containing dish with lactose (U2 intolerance) + a valid **dairy-free substitution** path.  
+- A **mushroom** dish (dislike for U1).  
+- A **keto**-compatible high-protein meal (for U3).  
+- A **vegan** dish that accidentally includes **tree nuts** (exclude for U4); include a nut-free substitution option.  
+- A **shellfish** dish that’s otherwise kosher-incompatible for U5 (exclude).  
+- At least one **Thai** spicy, one **Italian**, one **Mediterranean** item.  
+For each: provide `serving` macros, `tags`, `cuisine`, `ingredients`, `allergens`, `prep_time_min`, and realistic titles.
+
+### C. Feedback Events (optional in base run)
+Prepare a small set (3–6) of feedback events to demonstrate **bandit_updates** (likes/dislikes/saved) for U3 (Thai + high_protein liked) and U4 (dislikes spicy). Use strength=1.0 and timestamps.
+
+## TEST CASES (Run All)
+T1: **Allergy hard block** — U1 with peanut-allergen candidate present. Expect `filtered_out_counts.allergy_conflict > 0`.  
+T2: **Intolerance + substitution** — U2 lactose intolerance with a dairy meal that can be safely swapped; show accepted with `substitutions` populated or excluded if unfixable.  
+T3: **Diet/ethics pattern** — U5 kosher/no_pork/no_shellfish; ensure shellfish/pork excluded.  
+T4: **Macro overflow & portioning** — A meal exceeds kcal/Na for the slot; apply `portion_multiplier` ∈ [0.6,1.0] if feasible; else exclude.  
+T5: **Keto + high-protein fit** — U3 receives at least one top-ranked keto high-protein rec; show reasons mention fit.  
+T6: **Vegan + nut_free** — U4 excludes nut-containing vegan dish or admits with **valid** nut-free substitution.  
+T7: **Diversity bonus** — For U5, demonstrate the diversity mechanism by showing non-repetitive cuisines when multiple good options exist.  
+T8: **Bandit updates** — Apply the feedback events and show `bandit_updates` alpha/beta changes and their impact on subsequent ranking (U3/U4).  
+T9: **Determinism** — With `exploration_strength=0`, re-run T3 to show identical ranking & scores.  
+T10: **Stochastic check** — With `exploration_strength=0.15`, re-run T5 and show small but explainable score/rank shifts from exploration (safety never violated).
+
+## ASSERTIONS (You must evaluate & report PASS/FAIL)
+For each test:
+- A1: No item violating **allergies/ethics/intolerances** appears in `recommendations`.  
+- A2: `filtered_out_counts` increments correct buckets.  
+- A3: If portioning/substitution applied, they appear in `adjustments` and are logically valid (do not introduce new conflicts).  
+- A4: Scores follow the formula (ordering consistent with sub-scores).  
+- A5: `fallback.invoked` only when <3 valid items remain or invalid input.  
+- A6: In determinism test, results are byte-for-byte identical (aside from timestamps).  
+- A7: In stochastic test, differences are limited to exploration; guardrails still hold.
+
+## DELIVERABLES & OUTPUT FORMAT (STRICT)
+Return **exactly these sections in order**:
+
+1) **CONFORMANCE CHECKLIST (Markdown Table)**  
+   Columns: Rule | How Verified | Evidence Test IDs | PASS/FAIL.
+
+2) **TRACE LOGS (Human-readable, concise)**  
+   For **each test T1–T10**, show:  
+   - Which rules applied (names),  
+   - A bullet list of *why* any items were filtered (1–2 lines each),  
+   - Top 3 final recommendations with `meal_id`, `score`, and short reasons.
+
+3) **MACHINE ARTIFACTS (JSON) — ONE BLOCK PER TEST**  
+   For each T1–T10, output **one JSON blob** that is **valid per the Master Prompt Output Schema**.  
+   - Use `request_id` = `T{n}_RUN_1` (and `T{n}_RUN_2` for repeat runs).  
+   - Ensure `filtered_out_counts`, `recommendations[*].adjustments`, `bandit_updates`, and `audit.rules_applied` are populated.  
+   - These blobs must be copy-paste runnable as test fixtures.
+
+4) **BANDIT DELTA SUMMARY (Markdown Table)**  
+   Show arm-wise (arm_key | α_before | β_before | α_after | β_after) for tests that applied feedback.
+
+5) **DETERMINISM REPORT**  
+   - State explicitly whether byte-wise identity held for T9 with `exploration_strength=0`.  
+   - If not, explain and mark **FAIL**.
+
+6) **STOCHASTIC VARIATION REPORT**  
+   - Compare T10 runs (scores/ranks).  
+   - Show that safety constraints still enforced and variation stems from exploration bonus.  
+   - Summarize the observed deltas.
+
+7) **KNOWN LIMITATIONS & NEXT STEPS** (bulleted, max 8 bullets)  
+   - Any edge cases discovered, proposed fixes, and where code/weights might be tuned.
+
+## STRICTNESS & STYLE
+- **Do not** omit any section.  
+- Keep logs **concise** (no walls of text).  
+- All **JSON must validate** against the Master Output Schema (no prose mixed with JSON).  
+- Use the exact seed provided for any randomness.  
+- Use realistic but synthetic meals and ingredients.
+
+## FINAL REMINDER
+Your goal is to **prove** the implemented algorithm works: filters fire, counts increment, ranking obeys weights, substitutions and portioning are legal, the output schema is exact, bandit updates change subsequent behavior, determinism is achieved when exploration is off, and controlled variability appears when it’s on. 
+Return the 7 deliverables above in order, then stop.
