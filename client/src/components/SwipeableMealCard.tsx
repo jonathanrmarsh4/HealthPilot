@@ -247,6 +247,25 @@ export function SwipeableMealCard({
             </div>
           </div>
 
+          {/* Ingredients */}
+          {meal.ingredients && meal.ingredients.length > 0 && (
+            <div className="space-y-2" data-testid="container-ingredients">
+              <h4 className="text-sm font-medium">Ingredients</h4>
+              <div className="text-sm text-muted-foreground">
+                <ul className="list-disc list-inside space-y-1">
+                  {meal.ingredients.slice(0, 5).map((ingredient, index) => (
+                    <li key={index} className="line-clamp-1" data-testid={`text-ingredient-${index}`}>
+                      {ingredient}
+                    </li>
+                  ))}
+                  {meal.ingredients.length > 5 && (
+                    <li className="text-xs italic">+{meal.ingredients.length - 5} more...</li>
+                  )}
+                </ul>
+              </div>
+            </div>
+          )}
+
           {/* AI Reasoning - why this meal was recommended */}
           {meal.aiReasoning && (
             <div className="p-3 rounded-lg bg-primary/10 border border-primary/20" data-testid="container-ai-reasoning">
