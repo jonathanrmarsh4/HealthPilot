@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Shield, Users, TrendingUp, FileText, Activity, Search, Trash2, ChefHat, Tag, ArrowRight } from "lucide-react";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Shield, Users, TrendingUp, FileText, Activity, Search, Trash2, ChefHat, Tag, ArrowRight, Layout } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { User } from "@shared/schema";
@@ -284,14 +285,43 @@ export default function Admin() {
         </CardContent>
       </Card>
 
-      <Card data-testid="card-user-management">
+      <Card data-testid="card-landing-page-link" className="hover-elevate cursor-pointer" onClick={() => setLocation("/admin/landing-page")}>
         <CardHeader>
-          <CardTitle data-testid="text-user-management-title">User Management</CardTitle>
-          <CardDescription data-testid="text-user-management-description">
-            View and manage user accounts, roles, and subscriptions
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Layout className="w-6 h-6 text-primary" />
+              <div>
+                <CardTitle data-testid="text-landing-page-link-title">Landing Page CMS</CardTitle>
+                <CardDescription data-testid="text-landing-page-link-description">
+                  Manage landing page content and sections
+                </CardDescription>
+              </div>
+            </div>
+            <ArrowRight className="w-5 h-5 text-muted-foreground" />
+          </div>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            Edit hero content, features, testimonials, pricing plans, social links, and SEO metadata
+          </p>
+        </CardContent>
+      </Card>
+
+      <Accordion type="single" collapsible className="w-full">
+        <AccordionItem value="user-management">
+          <Card data-testid="card-user-management">
+            <CardHeader>
+              <AccordionTrigger className="hover:no-underline" data-testid="trigger-user-management">
+                <div className="text-left">
+                  <CardTitle data-testid="text-user-management-title">User Management</CardTitle>
+                  <CardDescription data-testid="text-user-management-description">
+                    View and manage user accounts, roles, and subscriptions
+                  </CardDescription>
+                </div>
+              </AccordionTrigger>
+            </CardHeader>
+            <AccordionContent>
+              <CardContent className="space-y-4">
           <div className="flex items-center gap-2">
             <Search className="w-4 h-4 text-muted-foreground" />
             <Input
@@ -434,8 +464,11 @@ export default function Admin() {
               )}
             </>
           )}
-        </CardContent>
-      </Card>
+              </CardContent>
+            </AccordionContent>
+          </Card>
+        </AccordionItem>
+      </Accordion>
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent data-testid="dialog-delete-user">
