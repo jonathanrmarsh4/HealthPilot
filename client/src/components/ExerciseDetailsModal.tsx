@@ -27,7 +27,7 @@ interface ExerciseDetailsModalProps {
 export function ExerciseDetailsModal({ exerciseName, open, onClose }: ExerciseDetailsModalProps) {
   const [imageError, setImageError] = useState(false);
 
-  const { data: exercise, isLoading, error } = useQuery<ExerciseDBExercise>({
+  const { data: exercise, isLoading, error } = useQuery<ExerciseDBExercise | null>({
     queryKey: ['/api/exercisedb/search', exerciseName],
     queryFn: async () => {
       const res = await fetch(`/api/exercisedb/search?name=${encodeURIComponent(exerciseName)}`, {
@@ -36,7 +36,8 @@ export function ExerciseDetailsModal({ exerciseName, open, onClose }: ExerciseDe
       if (!res.ok) {
         throw new Error('Exercise not found');
       }
-      return res.json();
+      const data = await res.json();
+      return data; // Can be null if no match found
     },
     enabled: open && !!exerciseName,
     staleTime: 1000 * 60 * 60 * 24, // Cache for 24 hours
@@ -96,6 +97,16 @@ export function ExerciseDetailsModal({ exerciseName, open, onClose }: ExerciseDe
               <p className="text-sm text-muted-foreground mt-2">
                 We couldn't find demonstration details for "{exerciseName}". 
                 This exercise might not be in the database yet.
+              </p>
+            </div>
+          )}
+
+          {!isLoading && !error && exercise === null && (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <Dumbbell className="h-12 w-12 text-muted-foreground mb-4" />
+              <p className="text-lg font-medium">Coming Soon</p>
+              <p className="text-sm text-muted-foreground mt-2">
+                Exercise demonstration for "{exerciseName}" is not available yet.
               </p>
             </div>
           )}
