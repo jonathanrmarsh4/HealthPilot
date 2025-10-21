@@ -1,0 +1,169 @@
+{
+  "role": "system",
+  "name": "daily_insights_mvp_builder",
+  "overview": "Build and run a lightweight daily insights engine for HealthPilot that ONLY uses data verified by devices/labs or explicitly marked 'complete' by the user. At 02:00 local time per user, analyze the previous day's data, compare against 7-day baselines (with fallbacks), detect notable deviations using metric-specific thresholds, generate 1–3 concise insights, store them, and expose them via a simple API for the AI Insights tile. Exclude meals or any unverified/low-quality entries. Keep compute and code surface area small.",
+  "objectives": [
+    "Compute yesterday's metrics for each active user using ONLY eligible data.",
+    "Compare metrics to personal baselines and detect notable deviations.",
+    "Generate 1–3 human-readable insights (title + message with concrete numbers).",
+    "Persist insights and expose GET /api/insights/today for the client tile.",
+    "No scheduling of interventions in MVP; insights only."
+  ],
+  "acceptance_criteria": [
+    "Daily job runs at 02:00 user-local time and completes successfully for >95% of active users.",
+    "If eligible data exists, API returns date and 1–3 insights; otherwise returns empty list.",
+    "Insights include numeric context (yesterday vs baseline), severity, and confidence.",
+    "System ignores ineligible data (wrong source, poor quality, not user-complete).",
+    "No more than 3 insights per user per day; deduplicate overlapping signals."
+  ],
+  "runtime_schedule": "02:00 local time per user (respect user timezone).",
+  "data_rules": {
+    "eligibility": {
+      "sources_allowed": ["apple_healthkit", "oura", "fitbit", "garmin", "lab"],
+      "user_completion_status_allowed": ["complete"],
+      "quality_allowed": ["good", "ok"]
+    },
+    "time_window": "Use data observed between 00:00 and 23:59 of the previous day in the user's timezone.",
+    "rejection": "Reject meals/food logs and any data with quality_flag ∉ {good, ok} or unknown/poor source."
+  },
+  "metrics_tracked": [
+    "sleep_duration_min",
+    "sleep_efficiency",
+    "sleep_latency_min",
+    "rem_pct",
+    "deep_pct",
+    "hrv_night_ms",
+    "resting_hr_bpm",
+    "steps",
+    "active_minutes",
+    "training_load",
+    "bp_systolic",
+    "bp_diastolic",
+    "spo2_pct",
+    "resp_rate",
+    "weight_kg",
+    "bodyfat_pct",
+    "vo2max",
+    "skin_temp_c"
+  ],
+  "baselines": {
+    "window_days_primary": 7,
+    "fallback_days": [14, 30],
+    "min_days_required": 4,
+    "notes": "Compute baselines using ONLY eligible historical data for each metric."
+  },
+  "thresholds": {
+    "hrv_night_ms": { "delta_pct_max": -15.0 },
+    "resting_hr_bpm": { "delta_pct_min": 10.0, "delta_abs_min": 5.0 },
+    "sleep_duration_min": { "delta_pct_max": -15.0, "delta_abs_min": -45.0 },
+    "sleep_efficiency": { "delta_abs_min": -5.0 },
+    "steps": { "delta_pct_min": 20.0, "delta_pct_max": -20.0 },
+    "bp": { "systolic_abs_min": 140.0, "diastolic_abs_min": 90.0 },
+    "weight_kg": { "delta_abs_min": 1.0 },
+    "spo2_pct": { "abs_min": 94.0 },
+    "vo2max": { "delta_abs_min": 1.0 }
+  },
+  "ranking_and_limits": {
+    "scoring_formula": "score = impact_weight * abs(effect_size) * data_quality * recency",
+    "defaults": {
+      "impact_weight": { "sleep_recovery_vitals": 1.2, "activity": 1.0, "body_comp": 0.8 },
+      "data_quality": { "verified": 1.0, "user_complete": 0.8 },
+      "recency": 1.0
+    },
+    "max_insights_per_day": 3,
+    "deduplication_rule": "If multiple candidates point to the same underlying story (e.g., HRV↓ and RHR↑ both indicating fatigue), keep the higher-scoring one."
+  },
+  "api": {
+    "endpoints": {
+      "ingest_metrics": "/events",
+      "ingest_labs": "/labs",
+      "get_today_insights": "/api/insights/today"
+    },
+    "contracts": {
+      "ingest_metrics_example": {
+        "user_id": "u_123",
+        "type": "metric.upserted",
+        "source": "apple_healthkit",
+        "observed_at": "2025-10-20T22:41:00+08:00",
+        "quality_flag": "good",
+        "user_completion_status": "complete",
+        "metrics": [
+          { "name": "sleep_duration_min", "value": 385, "unit": "min" },
+          { "name": "hrv_night_ms", "value": 57, "unit": "ms" },
+          { "name": "resting_hr_bpm", "value": 63, "unit": "bpm" },
+          { "name": "steps", "value": 12412, "unit": "count" }
+        ],
+        "schema_version": 1
+      },
+      "ingest_labs_example": {
+        "user_id": "u_123",
+        "panel": "lipid_panel",
+        "observed_at": "2025-10-20T10:02:00+08:00",
+        "markers": [
+          { "name": "ldl_cholesterol", "value": 3.6, "unit": "mmol/L", "ref_low": 0.0, "ref_high": 3.0 },
+          { "name": "hdl_cholesterol", "value": 1.2, "unit": "mmol/L", "ref_low": 1.0, "ref_high": 2.5 }
+        ],
+        "source": "lab",
+        "quality_flag": "good"
+      },
+      "get_today_response_example": {
+        "date": "2025-10-21",
+        "insights": [
+          {
+            "title": "Reduced recovery",
+            "message": "HRV 57 ms (−18% vs avg 69 ms). Go lighter today.",
+            "metric": "hrv_night_ms",
+            "severity": "moderate",
+            "confidence": 0.9
+          },
+          {
+            "title": "Short sleep",
+            "message": "6h 10m (−55 min vs your average). Aim for earlier lights-out.",
+            "metric": "sleep_duration_min",
+            "severity": "moderate",
+            "confidence": 0.9
+          }
+        ]
+      }
+    }
+  },
+  "storage": {
+    "technology": "Postgres (or Supabase) for simplicity. Timeseries can also be Postgres in MVP.",
+    "schemas_sql": {
+      "daily_metrics": "CREATE TABLE IF NOT EXISTS daily_metrics (\n  user_id TEXT,\n  name TEXT,\n  observed_at TIMESTAMPTZ,\n  value DOUBLE PRECISION,\n  unit TEXT,\n  source TEXT,\n  quality_flag TEXT,\n  user_completion_status TEXT,\n  PRIMARY KEY (user_id, name, observed_at)\n);",
+      "labs": "CREATE TABLE IF NOT EXISTS labs (\n  user_id TEXT,\n  panel TEXT,\n  marker TEXT,\n  value DOUBLE PRECISION,\n  unit TEXT,\n  ref_low DOUBLE PRECISION,\n  ref_high DOUBLE PRECISION,\n  observed_at TIMESTAMPTZ,\n  source TEXT,\n  quality_flag TEXT\n);",
+      "insights": "CREATE TABLE IF NOT EXISTS insights (\n  id TEXT PRIMARY KEY,\n  user_id TEXT,\n  date DATE,\n  title TEXT,\n  message TEXT,\n  metric TEXT,\n  severity TEXT,\n  confidence DOUBLE PRECISION,\n  evidence JSONB,\n  status TEXT DEFAULT 'active',\n  created_at TIMESTAMPTZ DEFAULT now()\n);"
+    }
+  },
+  "pipeline": {
+    "language": "Python preferred (FastAPI + cron or a daily background task).",
+    "scheduler": "Simple cron or serverless scheduler (e.g., Replit cron, AWS EventBridge).",
+    "pseudocode": "def daily_review(user):\n    yesterday = get_yesterday_range(user.tz)\n    data = fetch_verified_or_complete_metrics(user.id, yesterday)  # filter by eligibility rules\n    if not data:\n        save_insights(user.id, date=yesterday.date(), insights=[])\n        return\n\n    baselines = get_baselines(user.id, windows=[7,14,30], min_days=4)  # eligible data only\n    candidates = []\n\n    def add_if(cond, title, message, metric, severity=\"moderate\", confidence=0.9, details=None):\n        if cond:\n            candidates.append({\n                \"title\": title,\n                \"message\": message,\n                \"metric\": metric,\n                \"severity\": severity,\n                \"confidence\": confidence,\n                \"details\": details or {}\n            })\n\n    # HRV\n    hrv = data.get(\"hrv_night_ms\"); base = baselines.get(\"hrv_night_ms\")\n    if hrv and base and base[\"n\"] >= 4:\n        delta_pct = (hrv - base[\"avg\"]) / base[\"avg\"] * 100\n        add_if(delta_pct <= -15.0,\n               \"Reduced recovery\",\n               f\"Your HRV was {abs(int(delta_pct))}% below your 7-day average ({hrv:.0f} ms vs {base['avg']:.0f} ms). Consider light training and stress management today.\",\n               \"hrv_night_ms\",\n               details={\"delta_pct\": delta_pct})\n\n    # Resting HR\n    rhr = data.get(\"resting_hr_bpm\"); base = baselines.get(\"resting_hr_bpm\")\n    if rhr and base and base[\"n\"] >= 4:\n        delta_pct = (rhr - base[\"avg\"]) / base[\"avg\"] * 100\n        add_if(delta_pct >= 10.0 or (rhr - base[\"avg\"]) >= 5.0,\n               \"Elevated resting HR\",\n               f\"Resting HR increased to {rhr:.0f} bpm (↑{int(delta_pct)}%). Consider extra recovery and hydration.\",\n               \"resting_hr_bpm\",\n               details={\"delta_pct\": delta_pct})\n\n    # Sleep duration\n    sd = data.get(\"sleep_duration_min\"); base = baselines.get(\"sleep_duration_min\")\n    if sd and base and base[\"n\"] >= 4:\n        diff_min = sd - base[\"avg\"]\n        add_if(diff_min <= -45.0 or (diff_min / base[\"avg\"]) <= -0.15,\n               \"Short sleep\",\n               f\"You slept {sd:.0f} min ({int(diff_min)} vs 7-day avg {base['avg']:.0f}). Aim for an earlier bedtime tonight.\",\n               \"sleep_duration_min\",\n               details={\"diff_min\": diff_min})\n\n    # Steps\n    steps = data.get(\"steps\"); base = baselines.get(\"steps\")\n    if steps and base and base[\"n\"] >= 4:\n        delta_pct = (steps - base[\"avg\"]) / base[\"avg\"] * 100\n        add_if(delta_pct >= 20.0,\n               \"Great activity\",\n               f\"You walked {steps} steps (↑{int(delta_pct)}% vs avg). Nice work—keep it steady.\",\n               \"steps\",\n               severity=\"positive\",\n               details={\"delta_pct\": delta_pct})\n        add_if(delta_pct <= -20.0,\n               \"Low activity\",\n               f\"Only {steps} steps yesterday (↓{int(abs(delta_pct))}%). A 20–30 min walk today can help recovery.\",\n               \"steps\",\n               details={\"delta_pct\": delta_pct})\n\n    # Blood pressure (latest eligible reading yesterday)\n    bp = data.get(\"bp_latest\")  # {\"systolic\":129, \"diastolic\":86}\n    if bp:\n        add_if(bp[\"systolic\"] >= 140.0 or bp[\"diastolic\"] >= 90.0,\n               \"High blood pressure reading\",\n               f\"Yesterday’s BP was {bp['systolic']}/{bp['diastolic']} mmHg. Consider a calm day and recheck. Seek medical advice if elevated persists.\",\n               \"bp\",\n               severity=\"high\",\n               confidence=0.95)\n\n    # New labs posted yesterday\n    labs = fetch_new_labs(user.id, yesterday)\n    for m in labs.get(\"out_of_range_markers\", []):\n        candidates.append({\n            \"title\": f\"{m['name'].upper()} outside reference range\",\n            \"message\": f\"New lab: {m['value']} {m['unit']} (ref {m['ref_low']}-{m['ref_high']}). Consider discussing with a clinician.\",\n            \"metric\": f\"lab:{m['name']}\",\n            \"severity\": \"high\",\n            \"confidence\": 0.95\n        })\n\n    insights = rank_and_deduplicate(candidates)[:3]\n    save_insights(user.id, date=yesterday.date(), insights=insights)"
+  },
+  "insight_record_format": {
+    "example": {
+      "id": "ins_001",
+      "user_id": "u_123",
+      "date": "2025-10-21",
+      "title": "Reduced recovery",
+      "message": "Your HRV was 18% below your 7-day average (57 ms vs 69 ms). Consider lighter training and earlier bedtime today.",
+      "metric": "hrv_night_ms",
+      "severity": "moderate",
+      "confidence": 0.9,
+      "evidence": { "baseline_days": 7, "method": "delta_rel", "delta_pct": -18.0 },
+      "status": "active",
+      "created_at": "2025-10-21T02:05:00+08:00"
+    }
+  },
+  "frontend_tile_spec": {
+    "component": "AI Insights Tile",
+    "behavior": "Fetch and display up to 3 insights for today; show date; allow 'Acknowledge' and 'See last 7 days'; optional manual Refresh.",
+    "api": "GET /api/insights/today",
+    "example_ui": "🧠 AI Insights (Oct 21)\\n1️⃣ Reduced Recovery — HRV down 18%\\n2️⃣ Short Sleep — 6h10m vs 7h avg\\n3️⃣ High Activity — 12,400 steps!\\n[See more insights] [Refresh]"
+  },
+  "non_goals_mvp": [
+    "Do not generate or schedule interventions.",
+    "Do not include meals/food logs or unverified entries.",
+    "Do not run heavy multivariate/causal models; keep it simple and inexpensive."
+  ]
+}
