@@ -2735,6 +2735,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   // Increment served count for library meal
                   await storage.updateMealPerformance(meal.id, true);
                   
+                  // Convert complex ingredient objects to simple strings for display
+                  let simpleIngredients: string[] = [];
+                  if (Array.isArray(meal.ingredients)) {
+                    simpleIngredients = meal.ingredients.map((ing: any) => {
+                      // Handle ingredient object structure from Spoonacular
+                      if (typeof ing === 'object' && ing !== null) {
+                        const amount = ing.amount || '';
+                        const unit = ing.unit || '';
+                        const name = ing.originalName || ing.name || '';
+                        return `${amount} ${unit} ${name}`.trim();
+                      }
+                      // If it's already a string, use it as is
+                      return String(ing);
+                    });
+                  }
+                  
                   // Save meal plan from library with AI reasoning
                   const saved = await storage.createMealPlan({
                     userId,
@@ -2747,7 +2763,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     fat: meal.fat || 0,
                     prepTime: meal.readyInMinutes || 30,
                     servings: meal.servings || 1,
-                    ingredients: Array.isArray(meal.ingredients) ? meal.ingredients : [],
+                    ingredients: simpleIngredients,
                     detailedRecipe: meal.instructions || '',
                     recipe: meal.instructions || '',
                     tags: meal.diets || [],
