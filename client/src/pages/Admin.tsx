@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Shield, Users, TrendingUp, FileText, Activity, Search, Trash2, ChefHat, Tag, ArrowRight, Layout } from "lucide-react";
+import { Shield, Users, TrendingUp, FileText, Activity, Search, Trash2, ChefHat, Tag, ArrowRight, Layout, DollarSign } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { User } from "@shared/schema";
@@ -303,6 +303,28 @@ export default function Admin() {
         <CardContent>
           <p className="text-sm text-muted-foreground">
             Edit hero content, features, testimonials, pricing plans, social links, and SEO metadata
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card data-testid="card-cost-control-link" className="hover-elevate cursor-pointer" onClick={() => setLocation("/admin/cost")}>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <DollarSign className="w-6 h-6 text-primary" />
+              <div>
+                <CardTitle data-testid="text-cost-control-link-title">Cost Control Dashboard</CardTitle>
+                <CardDescription data-testid="text-cost-control-link-description">
+                  Monitor resource usage and manage platform costs
+                </CardDescription>
+              </div>
+            </div>
+            <ArrowRight className="w-5 h-5 text-muted-foreground" />
+          </div>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            Track LLM API usage, job execution costs, user spending patterns, and configure budget caps
           </p>
         </CardContent>
       </Card>
