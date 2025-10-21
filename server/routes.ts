@@ -1413,6 +1413,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Import recipes from Spoonacular
       const { bulkImportToMealLibrary } = await import("./spoonacular");
+      const { deriveAllPossibleMealTypes } = await import("./utils/mealTypeDerivation");
+      
       const importResult = await bulkImportToMealLibrary({
         count: count || 100,
         cuisines,
@@ -1429,6 +1431,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const value = recipe.nutrition?.nutrients?.find(n => n.name === nutrientName)?.amount;
           return value !== undefined ? Math.round(value) : null;
         };
+
+        // Use intelligent meal type derivation
+        const derivedMealTypes = deriveAllPossibleMealTypes({
+          title: recipe.title,
+          dishTypes: recipe.dishTypes,
+          mealTypes: recipe.dishTypes,
+          cuisines: recipe.cuisines
+        });
 
         const mealData = {
           spoonacularRecipeId: recipe.id,
@@ -1448,7 +1458,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           cuisines: recipe.cuisines || [],
           dishTypes: recipe.dishTypes || [],
           diets: recipe.diets || [],
-          mealTypes: recipe.dishTypes?.filter(t => ['breakfast', 'lunch', 'dinner', 'snack'].includes(t.toLowerCase())) || [],
+          mealTypes: derivedMealTypes,
           difficulty: recipe.readyInMinutes < 30 ? 'easy' : recipe.readyInMinutes < 60 ? 'medium' : 'hard',
         };
 
