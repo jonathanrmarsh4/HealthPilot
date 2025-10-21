@@ -162,7 +162,7 @@ export function AppSidebar() {
           if (section.adminOnly && !isAdmin) return null;
 
           return (
-            <Collapsible key={section.title} defaultOpen={true} className="group/collapsible">
+            <Collapsible key={section.title} defaultOpen={false} className="group/collapsible">
               <SidebarGroup>
                 <SidebarGroupLabel asChild>
                   <CollapsibleTrigger className="flex w-full items-center gap-2 hover-elevate active-elevate-2 rounded-md px-2 py-1.5">
