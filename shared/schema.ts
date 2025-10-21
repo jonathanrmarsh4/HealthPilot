@@ -1834,6 +1834,7 @@ export const dailyHealthInsights = pgTable("daily_health_insights", {
   status: varchar("status", { length: 16 }).notNull().default("active"), // active, acknowledged, dismissed
   score: real("score"), // Ranking score used to select top 3 insights
   issuedBy: varchar("issued_by", { length: 64 }).default("system"), // system, manual, etc.
+  recommendationId: varchar("recommendation_id"), // Link to recommendations table if actionable recommendation was generated
   acknowledgedAt: timestamp("acknowledged_at", { withTimezone: true }),
   dismissedAt: timestamp("dismissed_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
