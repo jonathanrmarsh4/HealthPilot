@@ -1,0 +1,230 @@
+{
+  "role": "senior_software_engineer",
+  "project": "HealthPilot Cost Control Instrumentation v1",
+  "constraints": {
+    "runtime": "Node.js 20 + React + Vite (TypeScript strict)",
+    "env": "Replit (NixOS)",
+    "do_not_change": ["replit.nix"],
+    "package_manager": "npm",
+    "style": "Prettier + ESLint (no disabling rules)",
+    "frontend": ["React 18", "shadcn/ui", "Tailwind", "Radix", "TanStack Query v5", "Wouter"],
+    "backend": ["Express.js + TypeScript", "Drizzle ORM + PostgreSQL", "Zod validation", "BullMQ (Redis) if present; else in-memory priority queue"],
+    "ai": ["OpenAI GPT-4o/mini via existing client wrapper"]
+  },
+  "deliverables": {
+    "format": [
+      "PLAN (bulleted steps)",
+      "PATCH (unified diff-only, correct paths, minimal changes, no unrelated edits, no renames/moves unless required)",
+      "POST-CHANGE CHECKS (npm commands + expected success)",
+      "ROLLBACK NOTES (how to revert these changes only)"
+    ]
+  },
+  "scope": {
+    "db": {
+      "migrations": [
+        {
+          "table": "telemetry_job_events",
+          "columns": {
+            "id": "serial primary key",
+            "job_id": "varchar(40)",
+            "job_type": "varchar(40)",
+            "user_id": "varchar(40) not null",
+            "tier": "varchar(16) not null",
+            "domain": "varchar(16) not null",
+            "queued_at": "timestamptz",
+            "started_at": "timestamptz",
+            "finished_at": "timestamptz",
+            "duration_ms": "int",
+            "queue_wait_ms": "int",
+            "success": "boolean",
+            "error_code": "varchar(64)",
+            "attempt": "int default 1",
+            "rows_read": "int default 0",
+            "rows_written": "int default 0",
+            "cpu_ms": "int default 0",
+            "mem_mb_peak": "int default 0",
+            "created_at": "timestamptz default now()"
+          },
+          "indexes": ["(user_id, started_at)", "(job_type, started_at)", "(tier, started_at)"]
+        },
+        {
+          "table": "telemetry_llm_events",
+          "columns": {
+            "id": "serial primary key",
+            "user_id": "varchar(40) not null",
+            "tier": "varchar(16) not null",
+            "llm_model": "varchar(40) not null",
+            "context_type": "varchar(32) not null",
+            "input_tokens": "int not null",
+            "output_tokens": "int not null",
+            "cache_hit": "boolean default false",
+            "duration_ms": "int",
+            "success": "boolean",
+            "error_code": "varchar(64)",
+            "created_at": "timestamptz default now()"
+          },
+          "indexes": ["(user_id, created_at)", "(llm_model, created_at)"]
+        },
+        {
+          "table": "cost_user_daily",
+          "columns": {
+            "user_id": "varchar(40) not null",
+            "date": "date not null",
+            "tier": "varchar(16) not null",
+            "jobs": "int default 0",
+            "ai_calls": "int default 0",
+            "cpu_ms": "bigint default 0",
+            "tokens_in": "bigint default 0",
+            "tokens_out": "bigint default 0",
+            "cost_usd": "numeric(12,6) default 0",
+            "created_at": "timestamptz default now()",
+            "updated_at": "timestamptz default now()",
+            "PRIMARY_KEY": "(user_id, date)"
+          },
+          "indexes": ["(date)", "(tier, date)"]
+        },
+        {
+          "table": "cost_global_daily",
+          "columns": {
+            "date": "date primary key",
+            "jobs": "int default 0",
+            "ai_calls": "int default 0",
+            "cpu_ms": "bigint default 0",
+            "tokens_in": "bigint default 0",
+            "tokens_out": "bigint default 0",
+            "cost_usd": "numeric(12,6) default 0",
+            "tier_breakdown_json": "jsonb",
+            "created_at": "timestamptz default now()",
+            "updated_at": "timestamptz default now()"
+          }
+        },
+        {
+          "table": "cost_budgets",
+          "columns": {
+            "id": "serial primary key",
+            "daily_cpu_ms_cap": "bigint not null",
+            "daily_jobs_cap": "int not null",
+            "llm_input_tokens_cap": "bigint not null",
+            "llm_output_tokens_cap": "bigint not null",
+            "apply_scope": "varchar(16) not null",
+            "updated_by": "varchar(80)",
+            "updated_at": "timestamptz default now()"
+          }
+        }
+      ]
+    },
+    "backend": {
+      "instrumentation": [
+        {
+          "file": "apps/server/src/lib/telemetry.ts",
+          "exports": [
+            "withJobTelemetry(jobName, userCtx, fn)",
+            "recordLLMEvent(evt)",
+            "rollupCostsForDate(date)"
+          ],
+          "notes": "withJobTelemetry wraps async jobs, auto-writes telemetry_job_events; recordLLMEvent is used wherever OpenAI is called; rollupCostsForDate aggregates into cost_user_daily and cost_global_daily using env cost constants."
+        }
+      ],
+      "env_config": {
+        "COST_CPU_MS": "0.00000002",
+        "COST_DB_ROW_1K": "0.0005",
+        "COST_LLM_INPUT_TOKEN": "0.00000015",
+        "COST_LLM_OUTPUT_TOKEN": "0.0000006"
+      },
+      "routes": [
+        {
+          "method": "GET",
+          "path": "/api/admin/cost/summary?days=7",
+          "auth": "admin",
+          "returns": "cards + sparkline series"
+        },
+        {
+          "method": "GET",
+          "path": "/api/admin/cost/users?days=7",
+          "auth": "admin",
+          "returns": "top users by cost_usd"
+        },
+        {
+          "method": "POST",
+          "path": "/api/admin/cost/budgets",
+          "auth": "admin",
+          "body": "daily caps + scope",
+          "effect": "upsert cost_budgets row"
+        },
+        {
+          "method": "POST",
+          "path": "/api/admin/cost/alert:test",
+          "auth": "admin",
+          "effect": "send test alert"
+        }
+      ],
+      "jobs": [
+        {
+          "script": "apps/server/src/workers/costRollup.ts",
+          "schedule": "nightly 02:30 local",
+          "desc": "roll up raw events into cost_user_daily and cost_global_daily"
+        }
+      ],
+      "throttling": {
+        "file": "apps/server/src/lib/throttle.ts",
+        "features": [
+          "in-memory counters of cpu_ms and jobs for 'today' per tier",
+          "checkBudgetAndMaybeDefer({tier, domain, estCpuMs}) -> boolean",
+          "when over budget: downgrade or requeue with delay for free tier first"
+        ],
+        "queue": "if BullMQ present: use priorities; else simple FIFO with weights"
+      }
+    },
+    "frontend": {
+      "route": "/admin/cost",
+      "files": [
+        "apps/web/src/routes/admin/CostDashboard.tsx",
+        "apps/web/src/components/admin/cost/Cards.tsx",
+        "apps/web/src/components/admin/cost/CostCharts.tsx",
+        "apps/web/src/components/admin/cost/TopUsersTable.tsx",
+        "apps/web/src/components/admin/cost/BudgetControls.tsx"
+      ],
+      "ui": "shadcn/ui + recharts; mobile-first; dark mode default",
+      "charts": [
+        "AreaChart cost per day (stacked by tier)",
+        "BarChart jobs & queue wait by domain",
+        "LineChart LLM tokens + cache hit-rate"
+      ]
+    },
+    "ai_wrapper_changes": {
+      "file": "apps/server/src/lib/ai.ts",
+      "add": [
+        "record input/output tokens, duration_ms, cache_hit to telemetry_llm_events via recordLLMEvent",
+        "short-circuit: if insight text unchanged vs last run, skip LLM call and set cache_hit=true"
+      ]
+    }
+  },
+  "tests": {
+    "unit": [
+      "withJobTelemetry writes success and failure events",
+      "rollupCostsForDate aggregates correctly given synthetic events",
+      "throttle defers free-tier when cpu_ms cap reached"
+    ],
+    "integration": [
+      "admin cost endpoints return data with auth",
+      "dashboard renders on iPad viewport without overflow",
+      "alert:test sends webhook"
+    ]
+  },
+  "acceptance": [
+    "Build passes",
+    "Typecheck passes (no TS errors)",
+    "ESLint: no new warnings/errors",
+    "Existing tests pass; new tests for telemetry, rollup, throttle added",
+    "Admin dashboard shows 7/30d data and lets me update caps",
+    "Throttle triggers when cap lowered during manual test"
+  ],
+  "post_change_checks": [
+    "npm run build",
+    "npm run lint",
+    "npm run test",
+    "npm run dev (open /admin/cost)",
+    "seed synthetic telemetry, run rollup job, verify charts"
+  ],
+  "rollback": "Drop new routes and modules; revert migrations; remove env vars; delete UI route and components."
+}
