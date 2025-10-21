@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Card,
   CardContent,
@@ -18,22 +18,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Target,
   Plus,
   Trash2,
@@ -42,95 +26,34 @@ import {
   CheckCircle2,
   AlertCircle,
   Clock,
-  Loader2,
   MessageCircle,
   Sparkles,
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { format } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "wouter";
-
-const goalFormSchema = z.object({
-  metricType: z.string().min(1, "Metric type is required"),
-  targetValue: z.coerce.number().gt(0, "Target value must be greater than 0"),
-  startValue: z.coerce
-    .number()
-    .min(0, "Start value must be 0 or greater")
-    .optional(),
-  currentValue: z.coerce
-    .number()
-    .min(0, "Current value must be 0 or greater")
-    .optional(),
-  deadline: z.string().min(1, "Deadline is required"),
-});
-
-type GoalFormValues = z.infer<typeof goalFormSchema>;
+import { GoalForm } from "@/components/goals/GoalForm";
+import { getMetric } from "@/lib/metrics/registry";
 
 interface Goal {
   id: string;
   userId: string;
   metricType: string;
-  targetValue: number;
+  targetValue: number | null;
+  targetValueData?: any;
   currentValue: number | null;
+  currentValueData?: any;
   startValue: number | null;
+  startValueData?: any;
   deadline: string;
+  unit: string;
   status: "active" | "completed" | "overdue";
   createdByAI: number;
   createdAt: string;
 }
-
-const METRIC_OPTIONS = [
-  { value: "weight", label: "Weight", unit: "kg", decreaseGoal: true },
-  {
-    value: "lean-body-mass",
-    label: "Lean Body Mass",
-    unit: "kg",
-    decreaseGoal: false,
-  },
-  {
-    value: "body-fat-percentage",
-    label: "Body Fat %",
-    unit: "%",
-    decreaseGoal: true,
-  },
-  {
-    value: "heart-rate",
-    label: "Resting Heart Rate",
-    unit: "bpm",
-    decreaseGoal: true,
-  },
-  {
-    value: "blood-pressure",
-    label: "Blood Pressure",
-    unit: "mmHg",
-    decreaseGoal: true,
-  },
-  {
-    value: "blood-glucose",
-    label: "Blood Glucose",
-    unit: "mg/dL",
-    decreaseGoal: true,
-  },
-  {
-    value: "cholesterol",
-    label: "Cholesterol",
-    unit: "mg/dL",
-    decreaseGoal: true,
-  },
-  { value: "steps", label: "Daily Steps", unit: "steps", decreaseGoal: false },
-  {
-    value: "sleep-hours",
-    label: "Sleep Hours",
-    unit: "hours",
-    decreaseGoal: false,
-  },
-];
 
 export default function Goals() {
   const { toast } = useToast();
@@ -141,81 +64,9 @@ export default function Goals() {
     queryKey: ["/api/goals"],
   });
 
-  const form = useForm<GoalFormValues>({
-    resolver: zodResolver(goalFormSchema),
-    defaultValues: {
-      metricType: "",
-      targetValue: 0,
-      startValue: undefined,
-      currentValue: undefined,
-      deadline: "",
-    },
-  });
-
-  // Watch for metric type changes to auto-populate values
-  const selectedMetricType = form.watch("metricType");
-
-  useEffect(() => {
-    // Only auto-populate when creating a new goal (not editing)
-    if (!editingGoal && selectedMetricType) {
-      // Fetch latest biomarker value for this metric type
-      fetch(`/api/biomarkers/latest/${selectedMetricType}`)
-        .then((res) => {
-          if (!res.ok) {
-            // No biomarker data available, clear fields for manual entry
-            form.setValue("startValue", undefined);
-            form.setValue("currentValue", undefined);
-            return null;
-          }
-          return res.json();
-        })
-        .then((data) => {
-          if (data?.value !== undefined) {
-            // Auto-populate both start and current values with latest biomarker
-            form.setValue("startValue", data.value);
-            form.setValue("currentValue", data.value);
-          } else if (data === null) {
-            // Already cleared above, no action needed
-          }
-        })
-        .catch(() => {
-          // Handle errors - clear fields for manual entry
-          form.setValue("startValue", undefined);
-          form.setValue("currentValue", undefined);
-        });
-    }
-  }, [selectedMetricType, editingGoal, form]);
-
-  // Reset form when editing goal changes
-  useEffect(() => {
-    if (editingGoal) {
-      form.reset({
-        metricType: editingGoal.metricType,
-        targetValue: editingGoal.targetValue,
-        startValue: editingGoal.startValue ?? undefined,
-        currentValue: editingGoal.currentValue ?? undefined,
-        deadline: format(new Date(editingGoal.deadline), "yyyy-MM-dd"),
-      });
-    } else {
-      form.reset({
-        metricType: "",
-        targetValue: 0,
-        startValue: undefined,
-        currentValue: undefined,
-        deadline: "",
-      });
-    }
-  }, [editingGoal, form]);
-
   const createMutation = useMutation({
-    mutationFn: async (data: GoalFormValues) => {
-      const res = await apiRequest("POST", "/api/goals", {
-        metricType: data.metricType,
-        targetValue: data.targetValue,
-        startValue: data.startValue,
-        currentValue: data.currentValue,
-        deadline: data.deadline,
-      });
+    mutationFn: async (data: any) => {
+      const res = await apiRequest("POST", "/api/goals", data);
       return res.json();
     },
     onSuccess: () => {
@@ -226,7 +77,6 @@ export default function Goals() {
       });
       setIsDialogOpen(false);
       setEditingGoal(null);
-      form.reset();
     },
     onError: (error: Error) => {
       toast({
@@ -238,14 +88,9 @@ export default function Goals() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async (data: GoalFormValues & { id: string }) => {
-      const res = await apiRequest("PATCH", `/api/goals/${data.id}`, {
-        metricType: data.metricType,
-        targetValue: data.targetValue,
-        startValue: data.startValue,
-        currentValue: data.currentValue,
-        deadline: data.deadline,
-      });
+    mutationFn: async (data: any & { id: string }) => {
+      const { id, ...payload } = data;
+      const res = await apiRequest("PATCH", `/api/goals/${id}`, payload);
       return res.json();
     },
     onSuccess: () => {
@@ -256,7 +101,6 @@ export default function Goals() {
       });
       setIsDialogOpen(false);
       setEditingGoal(null);
-      form.reset();
     },
     onError: (error: Error) => {
       toast({
@@ -288,7 +132,7 @@ export default function Goals() {
     },
   });
 
-  const onSubmit = (data: GoalFormValues) => {
+  const handleFormSubmit = (data: any) => {
     if (editingGoal) {
       updateMutation.mutate({ ...data, id: editingGoal.id });
     } else {
@@ -305,7 +149,6 @@ export default function Goals() {
     setIsDialogOpen(open);
     if (!open) {
       setEditingGoal(null);
-      form.reset();
     }
   };
 
@@ -329,406 +172,271 @@ export default function Goals() {
     }
   };
 
+  const getValue = (goal: Goal, field: "targetValue" | "currentValue" | "startValue") => {
+    const dataField = `${field}Data` as keyof Goal;
+    const simpleField = field as keyof Goal;
+    const dataValue = goal[dataField];
+    const simpleValue = goal[simpleField];
+    
+    // Return complex value if exists, otherwise simple value
+    return dataValue !== null && dataValue !== undefined ? dataValue : simpleValue;
+  };
+
   const calculateProgress = (goal: Goal): number => {
-    if (goal.currentValue === null || goal.startValue === null) return 0;
+    const currentValue = getValue(goal, "currentValue");
+    const startValue = getValue(goal, "startValue");
+    const targetValue = getValue(goal, "targetValue");
 
-    // Handle edge case where start equals target (goal already achieved)
-    if (goal.startValue === goal.targetValue) return 100;
+    if (currentValue === null || startValue === null) return 0;
 
-    const metricConfig = METRIC_OPTIONS.find(
-      (m) => m.value === goal.metricType,
-    );
-    const isDecreaseGoal = metricConfig?.decreaseGoal || false;
-
-    // For decrease goals (weight loss, lower cholesterol, etc.)
-    if (isDecreaseGoal) {
-      // If startValue > target, we want to decrease
-      if (goal.startValue > goal.targetValue) {
-        const totalChange = goal.startValue - goal.targetValue;
-        const currentChange = goal.startValue - goal.currentValue;
-        const progress = (currentChange / totalChange) * 100;
-        return Math.min(Math.max(progress, 0), 100);
+    // For complex values (pairs, multi), use first field for progress
+    const extractNumeric = (val: any): number | null => {
+      if (typeof val === "number") return val;
+      if (typeof val === "object" && val !== null) {
+        const firstKey = Object.keys(val)[0];
+        return firstKey ? Number(val[firstKey]) : null;
       }
-    }
+      return null;
+    };
 
-    // For increase goals (more steps, better sleep, etc.)
-    else {
-      // If startValue < target, we want to increase
-      if (goal.startValue < goal.targetValue) {
-        const totalChange = goal.targetValue - goal.startValue;
-        const currentChange = goal.currentValue - goal.startValue;
-        const progress = (currentChange / totalChange) * 100;
-        return Math.min(Math.max(progress, 0), 100);
-      }
+    const current = extractNumeric(currentValue);
+    const start = extractNumeric(startValue);
+    const target = extractNumeric(targetValue);
+
+    if (current === null || start === null || target === null) return 0;
+
+    // Handle edge case where start equals target
+    if (start === target) return 100;
+
+    // Get metric to determine if it's a decrease or increase goal
+    const metric = getMetric(goal.metricType);
+    // Most health metrics are decrease goals (lower is better)
+    const isDecreaseGoal = ["blood-pressure", "blood-glucose", "cholesterol", "weight", "body-fat-percentage", "heart-rate"].includes(goal.metricType);
+
+    if (isDecreaseGoal && start > target) {
+      const totalChange = start - target;
+      const currentChange = start - current;
+      const progress = (currentChange / totalChange) * 100;
+      return Math.min(Math.max(progress, 0), 100);
+    } else if (!isDecreaseGoal && start < target) {
+      const totalChange = target - start;
+      const currentChange = current - start;
+      const progress = (currentChange / totalChange) * 100;
+      return Math.min(Math.max(progress, 0), 100);
     }
 
     return 0;
   };
 
   const getMetricLabel = (metricType: string) => {
-    return (
-      METRIC_OPTIONS.find((m) => m.value === metricType)?.label || metricType
-    );
+    const metric = getMetric(metricType);
+    return metric?.label || metricType;
   };
 
   const getMetricUnit = (metricType: string) => {
-    return METRIC_OPTIONS.find((m) => m.value === metricType)?.unit || "";
+    const metric = getMetric(metricType);
+    return metric?.unit || "";
   };
 
-  const activeGoals = goals?.filter((g) => g.status === "active") || [];
-  const completedGoals = goals?.filter((g) => g.status === "completed") || [];
-  const overdueGoals = goals?.filter((g) => g.status === "overdue") || [];
+  const formatValue = (value: any, metricType: string): string => {
+    const metric = getMetric(metricType);
+    
+    if (value === null || value === undefined) return "—";
+    
+    if (typeof value === "number") {
+      const decimals = metric?.format?.decimals ?? 1;
+      return value.toFixed(decimals);
+    }
+    
+    if (typeof value === "object" && value !== null) {
+      // Format pair values (e.g., blood pressure)
+      if (value.systolic !== undefined && value.diastolic !== undefined) {
+        return `${value.systolic}/${value.diastolic}`;
+      }
+      // Format multi values
+      return Object.entries(value)
+        .map(([key, val]) => `${key}: ${val}`)
+        .join(", ");
+    }
+    
+    return String(value);
+  };
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-4xl font-bold tracking-tight">Health Goals</h1>
-          <p className="text-muted-foreground mt-2">
-            Let AI help you set personalized health goals, or create them
-            manually
-          </p>
-        </div>
-        <div className="flex gap-3 flex-wrap">
-          <Link href="/chat">
+    <div className="container mx-auto p-6 max-w-6xl">
+      <div className="flex flex-col gap-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold flex items-center gap-2" data-testid="heading-goals">
+              <Target className="h-8 w-8" />
+              Health Goals
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              Track your health and fitness progress
+            </p>
+          </div>
+          <div className="flex gap-2">
             <Button
-              className="bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600 no-default-hover-elevate"
-              data-testid="button-chat-ai"
+              variant="outline"
+              asChild
+              className="gap-2"
+              data-testid="button-ai-suggestions"
             >
-              <Sparkles className="mr-2 h-4 w-4" />
-              Chat with AI
+              <Link href="/ai-coach">
+                <Sparkles className="h-4 w-4" />
+                AI Suggestions
+              </Link>
             </Button>
-          </Link>
-          <Dialog open={isDialogOpen} onOpenChange={handleDialogClose}>
-            <DialogTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                data-testid="button-create-goal"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Manual Entry
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle>
-                  {editingGoal ? "Edit Goal" : "Create New Goal"}
-                </DialogTitle>
-                <DialogDescription>
-                  Set a target value and deadline for your health metric
-                </DialogDescription>
-              </DialogHeader>
-              <Form {...form}>
-                <form
-                  onSubmit={form.handleSubmit(onSubmit)}
-                  className="space-y-4"
-                >
-                  <FormField
-                    control={form.control}
-                    name="metricType"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Metric Type</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          value={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger data-testid="select-metric-type">
-                              <SelectValue placeholder="Select a metric" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {METRIC_OPTIONS.map((option) => (
-                              <SelectItem
-                                key={option.value}
-                                value={option.value}
-                              >
-                                {option.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="targetValue"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Target Value</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            step="0.1"
-                            placeholder="Enter target value"
-                            {...field}
-                            data-testid="input-target"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="startValue"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Start Value (Optional)</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            step="0.1"
-                            placeholder="Enter starting baseline"
-                            {...field}
-                            value={field.value ?? ""}
-                            data-testid="input-start"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="currentValue"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Current Value (Optional)</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            step="0.1"
-                            placeholder="Enter current value"
-                            {...field}
-                            value={field.value ?? ""}
-                            data-testid="input-current"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="deadline"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Deadline</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="date"
-                            {...field}
-                            data-testid="input-deadline"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <div className="flex justify-end gap-2 pt-4">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => handleDialogClose(false)}
-                      data-testid="button-cancel-goal"
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      type="submit"
-                      disabled={
-                        createMutation.isPending || updateMutation.isPending
-                      }
-                      data-testid="button-submit-goal"
-                    >
-                      {createMutation.isPending || updateMutation.isPending ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          {editingGoal ? "Updating..." : "Creating..."}
-                        </>
-                      ) : editingGoal ? (
-                        "Update Goal"
-                      ) : (
-                        "Create Goal"
-                      )}
-                    </Button>
-                  </div>
-                </form>
-              </Form>
-            </DialogContent>
-          </Dialog>
+            <Dialog open={isDialogOpen} onOpenChange={handleDialogClose}>
+              <DialogTrigger asChild>
+                <Button className="gap-2" data-testid="button-create-goal">
+                  <Plus className="h-4 w-4" />
+                  New Goal
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>
+                    {editingGoal ? "Edit Goal" : "Create New Goal"}
+                  </DialogTitle>
+                  <DialogDescription>
+                    {editingGoal
+                      ? "Update your health goal"
+                      : "Set a new health goal to track your progress"}
+                  </DialogDescription>
+                </DialogHeader>
+                <GoalForm
+                  goal={editingGoal}
+                  onSubmit={handleFormSubmit}
+                  isPending={createMutation.isPending || updateMutation.isPending}
+                />
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
-      </div>
 
-      <div className="grid gap-6 md:grid-cols-3">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Clock className="h-5 w-5 text-chart-3" />
-              Active Goals
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{activeGoals.length}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <CheckCircle2 className="h-5 w-5 text-chart-4" />
-              Completed
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{completedGoals.length}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <AlertCircle className="h-5 w-5 text-chart-1" />
-              Overdue
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{overdueGoals.length}</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div>
-        <h2 className="text-2xl font-semibold mb-6">Your Goals</h2>
+        {/* Goals List */}
         {isLoading ? (
-          <div className="space-y-4">
-            {[...Array(3)].map((_, i) => (
+          <div className="grid gap-4">
+            {[1, 2, 3].map((i) => (
               <Card key={i}>
-                <CardContent className="p-6">
-                  <Skeleton className="h-24 w-full" />
+                <CardHeader>
+                  <Skeleton className="h-6 w-48" />
+                  <Skeleton className="h-4 w-32" />
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="h-2 w-full" />
                 </CardContent>
               </Card>
             ))}
           </div>
         ) : goals && goals.length > 0 ? (
           <div className="grid gap-4">
-            {goals.map((goal) => (
-              <Card key={goal.id} data-testid={`card-goal-${goal.id}`}>
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between gap-4 flex-wrap">
-                    <div className="flex items-start gap-4 flex-1">
-                      <div className="mt-1">{getStatusIcon(goal.status)}</div>
-                      <div className="flex-1 space-y-3">
-                        <div className="flex items-start justify-between gap-4 flex-wrap">
-                          <div>
-                            <div className="flex items-center gap-2 mb-1">
-                              <h3 className="text-lg font-semibold">
-                                {getMetricLabel(goal.metricType)}
-                              </h3>
-                              {goal.createdByAI === 1 && (
-                                <Badge
-                                  className="bg-gradient-to-r from-purple-600 to-purple-500 text-white border-0"
-                                  data-testid={`badge-ai-${goal.id}`}
-                                >
-                                  <Sparkles className="h-3 w-3 mr-1" />
-                                  AI
-                                </Badge>
-                              )}
-                            </div>
-                            <p className="text-sm text-muted-foreground">
-                              Target: {goal.targetValue}{" "}
-                              {getMetricUnit(goal.metricType)}
-                              {goal.startValue !== null &&
-                                ` (from ${goal.startValue} ${getMetricUnit(goal.metricType)})`}
-                            </p>
-                          </div>
+            {goals.map((goal) => {
+              const progress = calculateProgress(goal);
+              return (
+                <Card key={goal.id} className="overflow-hidden" data-testid={`card-goal-${goal.id}`}>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          {getStatusIcon(goal.status)}
+                          <CardTitle className="text-lg" data-testid={`title-goal-${goal.id}`}>
+                            {getMetricLabel(goal.metricType)}
+                          </CardTitle>
                           {getStatusBadge(goal.status)}
-                        </div>
-
-                        {goal.currentValue !== null &&
-                          goal.startValue !== null && (
-                            <div className="space-y-2">
-                              <div className="flex items-center justify-between text-sm">
-                                <span className="text-muted-foreground">
-                                  Progress
-                                </span>
-                                <span
-                                  className="font-medium"
-                                  data-testid={`text-progress-${goal.id}`}
-                                >
-                                  {goal.currentValue} / {goal.targetValue}{" "}
-                                  {getMetricUnit(goal.metricType)} (
-                                  {calculateProgress(goal).toFixed(0)}%)
-                                </span>
-                              </div>
-                              <Progress
-                                value={calculateProgress(goal)}
-                                className="h-2"
-                              />
-                            </div>
+                          {goal.createdByAI === 1 && (
+                            <Badge variant="outline" className="gap-1">
+                              <Sparkles className="h-3 w-3" />
+                              AI
+                            </Badge>
                           )}
+                        </div>
+                        <CardDescription className="flex items-center gap-2">
+                          <Calendar className="h-3.5 w-3.5" />
+                          Deadline: {format(new Date(goal.deadline), "MMM dd, yyyy")}
+                        </CardDescription>
+                      </div>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEditClick(goal)}
+                          data-testid={`button-edit-goal-${goal.id}`}
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => deleteMutation.mutate(goal.id)}
+                          disabled={deleteMutation.isPending}
+                          data-testid={`button-delete-goal-${goal.id}`}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {/* Progress Bar */}
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Progress</span>
+                        <span className="font-medium" data-testid={`progress-${goal.id}`}>
+                          {progress.toFixed(0)}%
+                        </span>
+                      </div>
+                      <Progress value={progress} className="h-2" />
+                    </div>
 
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                          <div className="flex items-center gap-2">
-                            <Calendar className="h-4 w-4" />
-                            <span>
-                              Deadline:{" "}
-                              {format(new Date(goal.deadline), "MMM dd, yyyy")}
-                            </span>
-                          </div>
+                    {/* Values */}
+                    <div className="grid grid-cols-3 gap-4 text-sm">
+                      <div>
+                        <div className="text-muted-foreground mb-1">Start</div>
+                        <div className="font-medium" data-testid={`start-value-${goal.id}`}>
+                          {formatValue(getValue(goal, "startValue"), goal.metricType)} {getMetricUnit(goal.metricType)}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-muted-foreground mb-1">Current</div>
+                        <div className="font-medium" data-testid={`current-value-${goal.id}`}>
+                          {formatValue(getValue(goal, "currentValue"), goal.metricType)} {getMetricUnit(goal.metricType)}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-muted-foreground mb-1">Target</div>
+                        <div className="font-medium text-chart-3" data-testid={`target-value-${goal.id}`}>
+                          {formatValue(getValue(goal, "targetValue"), goal.metricType)} {getMetricUnit(goal.metricType)}
                         </div>
                       </div>
                     </div>
-
-                    <div className="flex gap-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleEditClick(goal)}
-                        data-testid={`button-edit-${goal.id}`}
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => deleteMutation.mutate(goal.id)}
-                        disabled={deleteMutation.isPending}
-                        data-testid={`button-delete-${goal.id}`}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         ) : (
           <Card>
-            <CardContent className="p-12 text-center">
-              <Target className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-              <h3 className="text-lg font-semibold mb-2">No Goals Yet</h3>
-              <p className="text-muted-foreground mb-4">
-                Start tracking your health journey by creating your first goal
+            <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+              <Target className="h-16 w-16 text-muted-foreground mb-4" />
+              <h3 className="text-lg font-semibold mb-2">No goals yet</h3>
+              <p className="text-muted-foreground mb-6 max-w-sm">
+                Set your first health goal to start tracking your progress. The AI can also suggest goals based on your health data.
               </p>
-              <Button
-                onClick={() => setIsDialogOpen(true)}
-                data-testid="button-create-first-goal"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Create Your First Goal
-              </Button>
+              <div className="flex gap-2">
+                <Button onClick={() => setIsDialogOpen(true)} data-testid="button-create-first-goal">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Goal
+                </Button>
+                <Button variant="outline" asChild>
+                  <Link href="/ai-coach">
+                    <MessageCircle className="h-4 w-4 mr-2" />
+                    Ask AI for Help
+                  </Link>
+                </Button>
+              </div>
             </CardContent>
           </Card>
         )}

@@ -1,0 +1,90 @@
+{
+  "biomarkers": {
+    "lipid_panel": [
+      "ldl-cholesterol",
+      "hdl-cholesterol",
+      "total-cholesterol",
+      "cholesterol",
+      "triglycerides",
+      "vldl-cholesterol"
+    ],
+    "liver_function": [
+      "alt",
+      "ast",
+      "alp",
+      "bilirubin",
+      "albumin",
+      "ggt",
+      "total-protein",
+      "globulin"
+    ],
+    "kidney_function": ["creatinine", "bun", "egfr", "urea"],
+    "blood_counts": [
+      "rbc",
+      "wbc",
+      "hemoglobin",
+      "hematocrit",
+      "platelets",
+      "mcv",
+      "mch",
+      "mchc",
+      "rdw",
+      "neutrophils",
+      "lymphocytes",
+      "monocytes",
+      "eosinophils",
+      "basophils"
+    ],
+    "thyroid_function": ["tsh", "t3", "t4", "free-t3", "free-t4"],
+    "diabetes_metabolic": [
+      "hba1c",
+      "blood-glucose",
+      "fasting-glucose",
+      "insulin"
+    ],
+    "vitamins_minerals": [
+      "vitamin-d",
+      "vitamin-b12",
+      "iron",
+      "ferritin",
+      "calcium",
+      "corrected-calcium",
+      "magnesium",
+      "folate"
+    ],
+    "inflammation": ["crp", "esr"],
+    "electrolytes": ["sodium", "potassium", "chloride", "bicarbonate"],
+    "vitals_body_metrics": [
+      "blood-pressure",
+      "heart-rate",
+      "hrv",
+      "temperature",
+      "respiratory-rate",
+      "oxygen-saturation",
+      "weight",
+      "lean-body-mass",
+      "body-fat-percentage",
+      "height",
+      "bmi",
+      "waist-circumference",
+      "steps",
+      "calories"
+    ],
+    "hormones": ["cortisol", "testosterone", "estrogen", "progesterone"],
+    "iron_studies": [
+      "iron",
+      "transferrin",
+      "transferrin-saturation",
+      "ferritin"
+    ],
+    "other": ["uric-acid", "psa", "ldh"]
+  },
+  "total_biomarker_types": 85,
+  "features": {
+    "unit_conversion": "Supports both imperial and metric units with automatic conversion",
+    "reference_ranges": "Clinical reference ranges for optimal health assessment",
+    "trend_tracking": "6-month to 2-year trend analysis with visual charts",
+    "ai_interpretation": "AI-powered analysis and recommendations based on biomarker values",
+    "medical_report_extraction": "Automatic extraction from uploaded lab reports, ECGs, and medical documents"
+  }
+}

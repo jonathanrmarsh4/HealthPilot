@@ -497,6 +497,10 @@ export const goals = pgTable("goals", {
   targetValue: real("target_value").notNull(),
   currentValue: real("current_value"),
   startValue: real("start_value"), // baseline when goal was created
+  // JSONB fields for complex values (pairs, multi-field metrics)
+  targetValueData: jsonb("target_value_data"), // e.g., {systolic: 120, diastolic: 80} for blood pressure
+  currentValueData: jsonb("current_value_data"),
+  startValueData: jsonb("start_value_data"),
   unit: text("unit").notNull(), // kg, %, bpm, etc.
   deadline: timestamp("deadline").notNull(),
   status: text("status").notNull().default("active"), // active, achieved, missed, abandoned
