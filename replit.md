@@ -117,6 +117,7 @@ You are my senior software engineer working in this exact stack and repo.
 - **Exercise Demonstration System (ExerciseDB Integration):** Integration with ExerciseDB API providing animated GIF demonstrations, step-by-step instructions, target muscle groups, and equipment information. Includes database storage, fuzzy name matching, and sophisticated equipment matching.
 - **Landing Page CMS:** Custom-built content management system for the landing page allowing admin users to manage all content (Hero, Features, Testimonials, Social, SEO) without code changes, providing full CRUD operations.
 - **Mobile Scrolling Optimization:** Comprehensive improvements for mobile/tablet scrolling across all admin interfaces, ensuring proper horizontal scrolling for wide data tables.
+- **Unified Insights Hub (Oct 2025 - ✅ COMPLETED):** Integrated three insight systems (Daily Health, AI Coach, Trend Analysis) into a single tabbed interface at /insights while maintaining each system's unique capabilities. Key features: Daily Health Insights auto-generate actionable recommendations for notable+ severity deviations, linking insights to specific actions via recommendationId; tabbed navigation with URL query parameter sync using Wouter; SPA navigation throughout with /daily-insights redirecting to /insights?tab=daily; AIInsightsWidget displays "View Action" button for insights with linked recommendations; seamless integration flow from insight detection to actionable recommendation.
 
 ## External Dependencies
 - **Database:** PostgreSQL (via Drizzle ORM)
