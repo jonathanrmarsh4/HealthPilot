@@ -26,9 +26,7 @@ import Training from "@/pages/Training";
 import ReadinessSettings from "@/pages/ReadinessSettings";
 import FitnessProfile from "@/pages/FitnessProfile";
 import WorkoutSession from "@/pages/WorkoutSession";
-import AIInsights from "@/pages/AIInsights";
-import DailyInsights from "@/pages/DailyInsights";
-import Insights from "@/pages/Insights";
+import InsightsHub from "@/pages/InsightsHub";
 import Goals from "@/pages/Goals";
 import Supplements from "@/pages/Supplements";
 import BiologicalAge from "@/pages/BiologicalAge";
@@ -71,9 +69,12 @@ function Router() {
       <Route path="/training/fitness-profile" component={FitnessProfile} />
       <Route path="/workout/:id" component={WorkoutSession} />
       <Route path="/supplements" component={Supplements} />
-      <Route path="/insights" component={AIInsights} />
-      <Route path="/daily-insights" component={DailyInsights} />
-      <Route path="/data-insights" component={Insights} />
+      <Route path="/insights" component={InsightsHub} />
+      <Route path="/daily-insights" component={() => {
+        const [, setLocation] = useLocation();
+        setLocation('/insights?tab=daily');
+        return null;
+      }} />
       <Route path="/goals" component={Goals} />
       <Route path="/biological-age" component={BiologicalAge} />
       <Route path="/chat" component={Chat} />
@@ -121,9 +122,8 @@ function AppLayout() {
     "/meals/nutrition-profile": "Nutrition Profile",
     "/training": "Training",
     "/supplements": "Supplement Stack",
-    "/insights": "AI Insights",
-    "/daily-insights": "Daily Health Insights",
-    "/data-insights": "Data Insights",
+    "/insights": "Insights Hub",
+    "/daily-insights": "Insights Hub",
     "/goals": "Health Goals",
     "/biological-age": "Biological Age",
     "/chat": "Health Coach",

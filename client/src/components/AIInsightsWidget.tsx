@@ -1,12 +1,13 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Sparkles, TrendingUp, Activity, Brain, Check, X, RefreshCw, Heart, Zap, Moon, Apple } from "lucide-react";
+import { Sparkles, TrendingUp, Activity, Brain, Check, X, RefreshCw, Heart, Zap, Moon, Apple, ArrowRight } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { motion, AnimatePresence } from "framer-motion";
+import { useLocation } from "wouter";
 
 type InsightCategory = "sleep" | "recovery" | "performance" | "health";
 type InsightSeverity = "normal" | "notable" | "significant" | "critical";
@@ -26,6 +27,7 @@ interface DailyHealthInsight {
   baselineValue: number | null;
   deviationPercent: number;
   severity: InsightSeverity;
+  recommendationId: string | null;
   acknowledgedAt: Date | null;
   dismissedAt: Date | null;
   createdAt: Date;
@@ -60,6 +62,7 @@ const severityColors = {
 
 export function AIInsightsWidget() {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
 
   const { data: response, isLoading } = useQuery<InsightsResponse>({
     queryKey: ['/api/insights/today'],
@@ -193,6 +196,18 @@ export function AIInsightsWidget() {
 
                     {/* Action Buttons */}
                     <div className="flex items-center gap-2 pt-2 border-t">
+                      {insight.recommendationId && (
+                        <Button
+                          variant="default"
+                          size="sm"
+                          className="h-8 gap-2"
+                          onClick={() => setLocation('/insights?tab=ai-coach')}
+                          data-testid={`button-view-recommendation-${insight.id}`}
+                        >
+                          <ArrowRight className="h-4 w-4" />
+                          View Action
+                        </Button>
+                      )}
                       <Button
                         variant="outline"
                         size="sm"

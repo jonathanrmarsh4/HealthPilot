@@ -185,20 +185,40 @@ export async function generateDailyInsightsForUser(userId: string): Promise<Insi
   // Store insights in database
   for (const insight of topInsights) {
     try {
+      let recommendationId: string | null = null;
+
+      // For notable+ severity deviations, create an actionable recommendation
+      if (['notable', 'significant', 'critical'].includes(insight.severity)) {
+        const recommendation = await storage.createRecommendation({
+          userId,
+          title: insight.title,
+          description: insight.recommendation, // Use the actionable recommendation text
+          category: insight.category,
+          priority: insight.severity === 'critical' ? 'high' : insight.severity === 'significant' ? 'medium' : 'low',
+          details: `${insight.description}\n\nCurrent: ${insight.currentValue.toFixed(1)}, Baseline: ${insight.baselineValue?.toFixed(1) || 'N/A'} (${insight.deviation > 0 ? '+' : ''}${insight.deviation.toFixed(1)}%)`,
+          actionLabel: 'View Details',
+        });
+        recommendationId = recommendation.id;
+      }
+
+      // Store the daily health insight (linked to recommendation if created)
       await storage.createDailyHealthInsight({
         userId,
         date: todayStr,
-        category: insight.category,
+        generatedFor: yesterday.toISOString().split('T')[0],
         title: insight.title,
-        description: insight.description,
-        recommendation: insight.recommendation,
-        score: insight.score,
-        status: 'pending',
-        metricName: insight.metricName,
-        metricValue: insight.currentValue,
-        baselineValue: insight.baselineValue,
-        deviationPercent: insight.deviation,
+        message: insight.description,
+        metric: insight.metricName,
         severity: insight.severity,
+        confidence: 0.85, // High confidence from AI generation
+        evidence: {
+          currentValue: insight.currentValue,
+          baselineValue: insight.baselineValue,
+          deviation: insight.deviation,
+          recommendation: insight.recommendation,
+        },
+        score: insight.score,
+        recommendationId, // Link to recommendation if created
       });
       result.insightsGenerated++;
     } catch (error: any) {

@@ -35,7 +35,7 @@ const COMPARISON_PRESETS = [
   { label: "Last Quarter vs Previous", period1Days: 90, period2Days: 180 },
 ];
 
-export default function Insights() {
+export default function DataInsights() {
   const { toast } = useToast();
   
   // Trend prediction state
@@ -139,14 +139,7 @@ export default function Insights() {
   };
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-4xl font-bold tracking-tight">Data Insights</h1>
-        <p className="text-muted-foreground mt-2">
-          AI-powered trend predictions and period comparisons for your health metrics
-        </p>
-      </div>
-
+    <div className="space-y-6">
       <Tabs defaultValue="trends" className="space-y-6">
         <TabsList className="grid w-full max-w-md grid-cols-2">
           <TabsTrigger value="trends" data-testid="tab-trends">

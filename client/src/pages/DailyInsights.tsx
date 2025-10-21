@@ -99,16 +99,6 @@ export default function DailyInsights() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tight">Daily Health Insights</h1>
-          <p className="text-muted-foreground mt-2 text-sm md:text-base">
-            AI-powered analysis of your health trends and deviations from baseline
-          </p>
-        </div>
-      </div>
-
       {/* Date Range Selector */}
       <div className="flex items-center gap-2">
         <Calendar className="h-5 w-5 text-muted-foreground" />

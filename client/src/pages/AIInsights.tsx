@@ -203,14 +203,8 @@ export default function AIInsights() {
   ));
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-4xl font-bold tracking-tight">AI Insights</h1>
-          <p className="text-muted-foreground mt-2">
-            Personalized health recommendations powered by artificial intelligence
-          </p>
-        </div>
+    <div className="space-y-6">
+      <div className="flex justify-end">
         <Button 
           onClick={() => generateMutation.mutate()} 
           disabled={generateMutation.isPending}
