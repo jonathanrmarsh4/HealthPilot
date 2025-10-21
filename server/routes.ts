@@ -10208,6 +10208,8 @@ DATA AVAILABILITY:
   app.get("/api/exercisedb/image", isAuthenticated, async (req, res) => {
     const { exerciseId } = req.query;
     
+    console.log(`[ExerciseDB Image] Fetching GIF for exercise ID: ${exerciseId}`);
+    
     if (!exerciseId || typeof exerciseId !== 'string') {
       return res.status(400).send('exerciseId parameter is required');
     }
@@ -10219,6 +10221,7 @@ DATA AVAILABILITY:
 
       // ExerciseDB image endpoint format: /image?exerciseId={id}&resolution={res}
       // ULTRA tier has access to 1080p high-resolution GIFs
+      console.log(`[ExerciseDB Image] Requesting from API: exerciseId=${exerciseId}, resolution=1080`);
       const response = await axios.default.get(`https://${RAPIDAPI_HOST}/image`, {
         params: {
           exerciseId,
@@ -10231,6 +10234,7 @@ DATA AVAILABILITY:
         responseType: 'arraybuffer',
       });
 
+      console.log(`[ExerciseDB Image] Successfully fetched GIF for exercise ID: ${exerciseId}`);
       // Forward the content type and image data
       res.set('Content-Type', response.headers['content-type'] || 'image/gif');
       res.set('Cache-Control', 'public, max-age=86400'); // Cache for 24 hours
