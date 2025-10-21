@@ -7,6 +7,7 @@ import { db } from "../db";
 import { mealLibrary, mealPlans, users, nutritionProfiles, biomarkers } from "@shared/schema";
 import { and, eq, inArray, not, sql, desc, gte, lte, or, isNull } from "drizzle-orm";
 import type { MealLibrary, MealPlan, NutritionProfile, Biomarker } from "@shared/schema";
+import type { IStorage } from "../storage";
 
 // Types for the recommendation system
 interface UserProfile {
@@ -168,6 +169,8 @@ export class MealRecommenderService {
     prepTimeBonus: 0.05   // Same
   };
 
+  constructor(private storage: IStorage) {}
+
   /**
    * Main recommendation function
    */
@@ -251,6 +254,20 @@ export class MealRecommenderService {
     const rankedMeals = scoredMeals
       .sort((a, b) => b.score - a.score)
       .slice(0, context.maxResults);
+
+    // Persist updated bandit state if it was modified
+    if (banditApplied && userProfile.userId) {
+      await this.persistBanditState(userProfile.userId, updatedArms);
+    }
+
+    // Save recommendation history for learning
+    if (userProfile.userId && rankedMeals.length > 0) {
+      await this.saveRecommendationHistory(
+        userProfile.userId,
+        context,
+        rankedMeals
+      );
+    }
 
     return {
       version: "1.0",
@@ -984,6 +1001,77 @@ export class MealRecommenderService {
       nonKosherKeywords.some(keyword => ing.toLowerCase().includes(keyword))
     ) || (hasDairy && hasMeat);
   }
+
+  /**
+   * Persistence methods for bandit state and recommendation history
+   */
+  private async persistBanditState(
+    userId: string,
+    arms: Record<string, { alpha: number; beta: number }>
+  ): Promise<void> {
+    try {
+      // Save each arm to the database
+      for (const [armKey, params] of Object.entries(arms)) {
+        await this.storage.updateUserBanditState(userId, armKey, params.alpha, params.beta);
+      }
+    } catch (error) {
+      console.error('Failed to persist bandit state:', error);
+      // Non-critical error, don't throw
+    }
+  }
+
+  private async saveRecommendationHistory(
+    userId: string,
+    context: RecommendationContext,
+    recommendations: MealRecommendation[]
+  ): Promise<void> {
+    try {
+      await this.storage.saveMealRecommendationHistory({
+        userId,
+        mealSlot: context.mealSlot,
+        recommendationDate: new Date(),
+        recommendationContext: {
+          requestId: context.requestId,
+          maxResults: context.maxResults,
+          dayPlanMacrosRemaining: context.dayPlanMacrosRemaining
+        },
+        recommendedMeals: recommendations.map(r => ({
+          mealId: r.mealId,
+          score: r.score,
+          reasons: r.reasons,
+          adjustments: r.adjustments
+        })),
+        filteringStats: {} // Could add filtering stats if needed
+      });
+    } catch (error) {
+      console.error('Failed to save recommendation history:', error);
+      // Non-critical error, don't throw
+    }
+  }
+
+  /**
+   * Load bandit state from storage
+   */
+  async loadBanditState(userId: string): Promise<Record<string, { alpha: number; beta: number }>> {
+    try {
+      const states = await this.storage.getUserBanditState(userId);
+      const arms: Record<string, { alpha: number; beta: number }> = {};
+      
+      for (const state of states) {
+        arms[state.armKey] = {
+          alpha: state.alpha,
+          beta: state.beta
+        };
+      }
+      
+      return arms;
+    } catch (error) {
+      console.error('Failed to load bandit state:', error);
+      return {}; // Return empty state on error
+    }
+  }
 }
 
-export const mealRecommenderService = new MealRecommenderService();
+// Create a singleton instance with storage
+import { getStorage } from "../storage";
+export const mealRecommenderService = new MealRecommenderService(getStorage());

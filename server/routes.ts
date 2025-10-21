@@ -2945,7 +2945,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         strength: pref.strength
       }));
 
-      // Get recommendations
+      // Get recommendations (service now handles persistence internally)
       const { mealRecommenderService } = await import('./services/meal-recommender');
       const recommendations = await mealRecommenderService.recommendMeals(
         userProfile,
@@ -2953,24 +2953,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         mealCandidates,
         feedbackEvents
       );
-
-      // Save recommendation history
-      await storage.saveMealRecommendationHistory({
-        userId,
-        requestId,
-        mealSlot,
-        recommendations: recommendations.recommendations,
-        filterStats: recommendations.filteredOutCounts,
-        scoringWeights: recommendations.audit.scoringWeights,
-        contextData: { userProfile, context }
-      });
-
-      // Update bandit states if needed
-      if (recommendations.banditUpdates.applied) {
-        for (const [armKey, state] of Object.entries(recommendations.banditUpdates.arms)) {
-          await storage.updateUserBanditState(userId, armKey, state.alpha, state.beta);
-        }
-      }
 
       // Fetch full meal data for recommendations
       const recommendedMealIds = recommendations.recommendations.map(r => r.mealId);
