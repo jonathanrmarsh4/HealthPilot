@@ -10449,5 +10449,166 @@ DATA AVAILABILITY:
     }
   });
 
+  // ============================================================================
+  // DAILY INSIGHTS SYSTEM - Data Ingestion Endpoints
+  // ============================================================================
+  
+  // Ingest health metrics from devices (Apple Health, Oura, Fitbit, Garmin, etc.)
+  app.post("/api/events", isAuthenticated, async (req, res) => {
+    try {
+      const authenticatedUserId = (req.user as any).claims.sub;
+      const { user_id, type, source, observed_at, quality_flag, user_completion_status, metrics, schema_version } = req.body;
+
+      // Authorization: Ensure user_id matches authenticated user
+      if (user_id !== authenticatedUserId) {
+        return res.status(403).json({ error: "Forbidden: Cannot ingest data for other users" });
+      }
+
+      // Validate required fields
+      if (!user_id || !type || !source || !observed_at || !metrics || !Array.isArray(metrics)) {
+        return res.status(400).json({ error: "Missing required fields: user_id, type, source, observed_at, metrics" });
+      }
+
+      // Validate source is allowed
+      const allowedSources = ['apple_healthkit', 'oura', 'fitbit', 'garmin', 'lab'];
+      if (!allowedSources.includes(source)) {
+        return res.status(400).json({ error: `Invalid source. Allowed sources: ${allowedSources.join(', ')}` });
+      }
+
+      // Validate quality flag
+      const allowedQualityFlags = ['good', 'ok', 'poor', 'unknown'];
+      const qualityFlagValue = quality_flag || 'unknown';
+      if (!allowedQualityFlags.includes(qualityFlagValue)) {
+        return res.status(400).json({ error: `Invalid quality_flag. Allowed values: ${allowedQualityFlags.join(', ')}` });
+      }
+
+      // Validate user_completion_status if provided
+      const allowedCompletionStatuses = ['complete', 'partial'];
+      if (user_completion_status && !allowedCompletionStatuses.includes(user_completion_status)) {
+        return res.status(400).json({ error: `Invalid user_completion_status. Allowed values: ${allowedCompletionStatuses.join(', ')}` });
+      }
+
+      // Determine baseline eligibility based on data quality and completion
+      const isBaselineEligible = 
+        (qualityFlagValue === 'good' || qualityFlagValue === 'ok') &&
+        allowedSources.includes(source) &&
+        (!user_completion_status || user_completion_status === 'complete');
+
+      const exclusionReason = !isBaselineEligible
+        ? `Quality: ${qualityFlagValue}, Completion: ${user_completion_status || 'none'}, Source: ${source}`
+        : null;
+
+      // Insert each metric
+      const insertedMetrics = [];
+      for (const metric of metrics) {
+        if (!metric.name || metric.value === undefined || !metric.unit) {
+          console.warn(`Skipping invalid metric:`, metric);
+          continue;
+        }
+
+        const insertedMetric = await storage.createDailyMetric({
+          userId: user_id,
+          name: metric.name,
+          value: metric.value,
+          unit: metric.unit,
+          observedAt: new Date(observed_at),
+          source,
+          qualityFlag: qualityFlagValue,
+          userCompletionStatus: user_completion_status || null,
+          isBaselineEligible,
+          exclusionReason,
+          ingestionMetadata: {
+            eventType: type,
+            schemaVersion: schema_version || 1,
+            ingestedAt: new Date().toISOString(),
+          },
+        });
+
+        insertedMetrics.push(insertedMetric);
+      }
+
+      console.log(`✅ Ingested ${insertedMetrics.length} metrics for user ${user_id} from ${source}`);
+      
+      res.json({
+        success: true,
+        metricsIngested: insertedMetrics.length,
+        metrics: insertedMetrics,
+      });
+    } catch (error: any) {
+      console.error("Error ingesting health metrics:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Ingest lab results
+  app.post("/api/labs", isAuthenticated, async (req, res) => {
+    try {
+      const authenticatedUserId = (req.user as any).claims.sub;
+      const { user_id, panel, observed_at, markers, source, quality_flag } = req.body;
+
+      // Authorization: Ensure user_id matches authenticated user
+      if (user_id !== authenticatedUserId) {
+        return res.status(403).json({ error: "Forbidden: Cannot ingest data for other users" });
+      }
+
+      // Validate required fields
+      if (!user_id || !panel || !observed_at || !markers || !Array.isArray(markers)) {
+        return res.status(400).json({ error: "Missing required fields: user_id, panel, observed_at, markers" });
+      }
+
+      // Validate quality flag
+      const allowedQualityFlags = ['good', 'ok', 'poor', 'unknown'];
+      const qualityFlagValue = quality_flag || 'good';
+      if (!allowedQualityFlags.includes(qualityFlagValue)) {
+        return res.status(400).json({ error: `Invalid quality_flag. Allowed values: ${allowedQualityFlags.join(', ')}` });
+      }
+
+      // Determine baseline eligibility for lab results
+      const isBaselineEligible = qualityFlagValue === 'good' || qualityFlagValue === 'ok';
+      const exclusionReason = !isBaselineEligible ? `Quality: ${qualityFlagValue}` : null;
+
+      // Insert each lab marker
+      const insertedMarkers = [];
+      for (const marker of markers) {
+        if (!marker.name || marker.value === undefined || !marker.unit) {
+          console.warn(`Skipping invalid lab marker:`, marker);
+          continue;
+        }
+
+        const insertedMarker = await storage.createLab({
+          userId: user_id,
+          panel,
+          marker: marker.name,
+          value: marker.value,
+          unit: marker.unit,
+          refLow: marker.ref_low || null,
+          refHigh: marker.ref_high || null,
+          observedAt: new Date(observed_at),
+          source: source || 'lab',
+          qualityFlag: qualityFlagValue,
+          isBaselineEligible,
+          exclusionReason,
+          ingestionMetadata: {
+            panel,
+            ingestedAt: new Date().toISOString(),
+          },
+        });
+
+        insertedMarkers.push(insertedMarker);
+      }
+
+      console.log(`✅ Ingested ${insertedMarkers.length} lab markers for user ${user_id} from panel ${panel}`);
+      
+      res.json({
+        success: true,
+        markersIngested: insertedMarkers.length,
+        markers: insertedMarkers,
+      });
+    } catch (error: any) {
+      console.error("Error ingesting lab results:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   return httpServer;
 }

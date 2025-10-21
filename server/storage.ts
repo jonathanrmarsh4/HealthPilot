@@ -116,6 +116,12 @@ import {
   type InsertCostBudget,
   type CostUserDaily,
   type CostGlobalDaily,
+  type DailyMetric,
+  type InsertDailyMetric,
+  type Lab,
+  type InsertLab,
+  type DailyHealthInsight,
+  type InsertDailyHealthInsight,
   users,
   healthRecords,
   biomarkers,
@@ -174,6 +180,9 @@ import {
   costBudgets,
   costUserDaily,
   costGlobalDaily,
+  dailyMetrics,
+  labs,
+  dailyHealthInsights,
 } from "@shared/schema";
 import { eq, desc, and, gte, lte, lt, sql, or, like, count, isNull, inArray, notInArray } from "drizzle-orm";
 
@@ -574,6 +583,18 @@ export interface IStorage {
   }>>;
   getCostBudgets(): Promise<CostBudget[]>;
   upsertCostBudget(budget: InsertCostBudget): Promise<CostBudget>;
+
+  // Daily Insights System
+  createDailyMetric(metric: InsertDailyMetric): Promise<DailyMetric>;
+  getDailyMetrics(userId: string, metricName: string, startDate: Date, endDate: Date): Promise<DailyMetric[]>;
+  getEligibleDailyMetrics(userId: string, metricName: string, startDate: Date, endDate: Date): Promise<DailyMetric[]>;
+  createLab(lab: InsertLab): Promise<Lab>;
+  getLabs(userId: string, marker: string, startDate: Date, endDate: Date): Promise<Lab[]>;
+  getEligibleLabs(userId: string, marker: string, startDate: Date, endDate: Date): Promise<Lab[]>;
+  createDailyHealthInsight(insight: InsertDailyHealthInsight): Promise<DailyHealthInsight>;
+  getDailyHealthInsights(userId: string, date: Date): Promise<DailyHealthInsight[]>;
+  getDailyHealthInsightsDateRange(userId: string, startDate: Date, endDate: Date): Promise<DailyHealthInsight[]>;
+  updateDailyHealthInsightStatus(id: string, userId: string, status: string): Promise<void>;
 }
 
 export class DbStorage implements IStorage {
@@ -4499,6 +4520,127 @@ export class DbStorage implements IStorage {
         .returning();
       return created;
     }
+  }
+
+  // Daily Insights System Implementations
+  async createDailyMetric(metric: InsertDailyMetric): Promise<DailyMetric> {
+    const [created] = await db.insert(dailyMetrics).values(metric).returning();
+    return created;
+  }
+
+  async getDailyMetrics(userId: string, metricName: string, startDate: Date, endDate: Date): Promise<DailyMetric[]> {
+    return await db.select()
+      .from(dailyMetrics)
+      .where(
+        and(
+          eq(dailyMetrics.userId, userId),
+          eq(dailyMetrics.name, metricName),
+          gte(dailyMetrics.observedAt, startDate),
+          lte(dailyMetrics.observedAt, endDate)
+        )
+      )
+      .orderBy(desc(dailyMetrics.observedAt));
+  }
+
+  async getEligibleDailyMetrics(userId: string, metricName: string, startDate: Date, endDate: Date): Promise<DailyMetric[]> {
+    return await db.select()
+      .from(dailyMetrics)
+      .where(
+        and(
+          eq(dailyMetrics.userId, userId),
+          eq(dailyMetrics.name, metricName),
+          eq(dailyMetrics.isBaselineEligible, true),
+          gte(dailyMetrics.observedAt, startDate),
+          lte(dailyMetrics.observedAt, endDate)
+        )
+      )
+      .orderBy(desc(dailyMetrics.observedAt));
+  }
+
+  async createLab(lab: InsertLab): Promise<Lab> {
+    const [created] = await db.insert(labs).values(lab).returning();
+    return created;
+  }
+
+  async getLabs(userId: string, marker: string, startDate: Date, endDate: Date): Promise<Lab[]> {
+    return await db.select()
+      .from(labs)
+      .where(
+        and(
+          eq(labs.userId, userId),
+          eq(labs.marker, marker),
+          gte(labs.observedAt, startDate),
+          lte(labs.observedAt, endDate)
+        )
+      )
+      .orderBy(desc(labs.observedAt));
+  }
+
+  async getEligibleLabs(userId: string, marker: string, startDate: Date, endDate: Date): Promise<Lab[]> {
+    return await db.select()
+      .from(labs)
+      .where(
+        and(
+          eq(labs.userId, userId),
+          eq(labs.marker, marker),
+          eq(labs.isBaselineEligible, true),
+          gte(labs.observedAt, startDate),
+          lte(labs.observedAt, endDate)
+        )
+      )
+      .orderBy(desc(labs.observedAt));
+  }
+
+  async createDailyHealthInsight(insight: InsertDailyHealthInsight): Promise<DailyHealthInsight> {
+    const [created] = await db.insert(dailyHealthInsights).values(insight).returning();
+    return created;
+  }
+
+  async getDailyHealthInsights(userId: string, date: Date): Promise<DailyHealthInsight[]> {
+    const dateStr = date.toISOString().split('T')[0]; // Convert to YYYY-MM-DD
+    return await db.select()
+      .from(dailyHealthInsights)
+      .where(
+        and(
+          eq(dailyHealthInsights.userId, userId),
+          eq(dailyHealthInsights.date, dateStr)
+        )
+      )
+      .orderBy(desc(dailyHealthInsights.score));
+  }
+
+  async getDailyHealthInsightsDateRange(userId: string, startDate: Date, endDate: Date): Promise<DailyHealthInsight[]> {
+    const startDateStr = startDate.toISOString().split('T')[0];
+    const endDateStr = endDate.toISOString().split('T')[0];
+    return await db.select()
+      .from(dailyHealthInsights)
+      .where(
+        and(
+          eq(dailyHealthInsights.userId, userId),
+          gte(dailyHealthInsights.date, startDateStr),
+          lte(dailyHealthInsights.date, endDateStr)
+        )
+      )
+      .orderBy(desc(dailyHealthInsights.date), desc(dailyHealthInsights.score));
+  }
+
+  async updateDailyHealthInsightStatus(id: string, userId: string, status: string): Promise<void> {
+    const updateData: any = { status };
+    
+    if (status === 'acknowledged') {
+      updateData.acknowledgedAt = new Date();
+    } else if (status === 'dismissed') {
+      updateData.dismissedAt = new Date();
+    }
+
+    await db.update(dailyHealthInsights)
+      .set(updateData)
+      .where(
+        and(
+          eq(dailyHealthInsights.id, id),
+          eq(dailyHealthInsights.userId, userId)
+        )
+      );
   }
 }
 
