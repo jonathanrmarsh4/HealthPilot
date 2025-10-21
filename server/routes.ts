@@ -10110,8 +10110,9 @@ DATA AVAILABILITY:
       const { exerciseDBService } = await import('./services/exercisedb/exercisedb');
       const exercise = await exerciseDBService.searchExercisesByName(name);
       
+      // Return null for low-confidence matches (frontend will show "BETA function, coming soon")
       if (!exercise) {
-        return res.status(404).json({ error: 'Exercise not found' });
+        return res.json(null);
       }
       
       res.json(exercise);

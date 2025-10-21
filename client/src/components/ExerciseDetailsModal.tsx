@@ -37,10 +37,11 @@ export function ExerciseDetailsModal({ exerciseName, open, onClose }: ExerciseDe
         throw new Error('Exercise not found');
       }
       const data = await res.json();
-      return data; // Can be null if no match found
+      return data; // Can be null if no high-confidence match found
     },
     enabled: open && !!exerciseName,
     staleTime: 1000 * 60 * 60 * 24, // Cache for 24 hours
+    retry: false, // Don't retry on null responses
   });
 
   return (
@@ -92,22 +93,15 @@ export function ExerciseDetailsModal({ exerciseName, open, onClose }: ExerciseDe
 
           {error && (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
-              <p className="text-lg font-medium">Exercise details not found</p>
-              <p className="text-sm text-muted-foreground mt-2">
-                We couldn't find demonstration details for "{exerciseName}". 
-                This exercise might not be in the database yet.
-              </p>
+              <Dumbbell className="h-12 w-12 text-muted-foreground mb-4" />
+              <p className="text-lg font-medium">This is a BETA function, coming soon</p>
             </div>
           )}
 
           {!isLoading && !error && exercise === null && (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <Dumbbell className="h-12 w-12 text-muted-foreground mb-4" />
-              <p className="text-lg font-medium">Coming Soon</p>
-              <p className="text-sm text-muted-foreground mt-2">
-                Exercise demonstration for "{exerciseName}" is not available yet.
-              </p>
+              <p className="text-lg font-medium">This is a BETA function, coming soon</p>
             </div>
           )}
 
