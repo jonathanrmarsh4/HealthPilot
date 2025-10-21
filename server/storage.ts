@@ -168,7 +168,7 @@ import {
   userBanditState,
   mealRecommendationHistory,
 } from "@shared/schema";
-import { eq, desc, and, gte, lte, lt, sql, or, like, count, isNull, inArray } from "drizzle-orm";
+import { eq, desc, and, gte, lte, lt, sql, or, like, count, isNull, inArray, notInArray } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -1031,7 +1031,24 @@ export class DbStorage implements IStorage {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
-    return await db
+    // Get all permanently disliked meal IDs for this user
+    const dislikedFeedback = await db
+      .select({ mealPlanId: mealFeedback.mealPlanId })
+      .from(mealFeedback)
+      .where(
+        and(
+          eq(mealFeedback.userId, userId),
+          eq(mealFeedback.feedback, "permanent_dislike"),
+          eq(mealFeedback.feedbackType, "permanent")
+        )
+      );
+    
+    const dislikedMealIds = dislikedFeedback
+      .filter(f => f.mealPlanId !== null)
+      .map(f => f.mealPlanId as string);
+    
+    // Build the query with dislike filtering
+    const query = db
       .select()
       .from(mealPlans)
       .where(
@@ -1042,10 +1059,16 @@ export class DbStorage implements IStorage {
           or(
             gte(mealPlans.scheduledDate, today),
             isNull(mealPlans.scheduledDate)
-          )
+          ),
+          // Exclude permanently disliked meals
+          dislikedMealIds.length > 0 
+            ? notInArray(mealPlans.id, dislikedMealIds)
+            : undefined
         )
       )
       .orderBy(mealPlans.scheduledDate, mealPlans.mealType);
+    
+    return await query;
   }
 
   async updateMealFeedback(mealId: string, userId: string, feedback: string): Promise<MealPlan | undefined> {
