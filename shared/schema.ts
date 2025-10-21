@@ -1770,3 +1770,104 @@ export type InsertCostGlobalDaily = z.infer<typeof insertCostGlobalDailySchema>;
 
 export type CostBudget = typeof costBudgets.$inferSelect;
 export type InsertCostBudget = z.infer<typeof insertCostBudgetSchema>;
+
+// ============================================================================
+// DAILY INSIGHTS SYSTEM
+// ============================================================================
+
+// Daily metrics from devices and labs - stores verified health data
+export const dailyMetrics = pgTable("daily_metrics", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id", { length: 40 }).notNull(),
+  name: varchar("name", { length: 64 }).notNull(), // sleep_duration_min, hrv_night_ms, etc.
+  value: real("value").notNull(),
+  unit: varchar("unit", { length: 32 }).notNull(),
+  observedAt: timestamp("observed_at", { withTimezone: true }).notNull(),
+  source: varchar("source", { length: 64 }).notNull(), // apple_healthkit, oura, fitbit, garmin, lab
+  qualityFlag: varchar("quality_flag", { length: 16 }).notNull(), // good, ok, poor, unknown
+  userCompletionStatus: varchar("user_completion_status", { length: 16 }), // complete, partial, null
+  isBaselineEligible: boolean("is_baseline_eligible").notNull().default(true), // Can this row be used for baseline calculation?
+  exclusionReason: varchar("exclusion_reason", { length: 128 }), // Why this row was excluded from baselines
+  ingestionMetadata: jsonb("ingestion_metadata"), // Additional context about data source and processing
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+}, (table) => [
+  index("daily_metrics_user_name_observed_desc_idx").on(table.userId, table.name, table.observedAt.desc()),
+  index("daily_metrics_user_name_baseline_idx").on(table.userId, table.name, table.isBaselineEligible).where(sql`${table.isBaselineEligible} = true`),
+  index("daily_metrics_observed_idx").on(table.observedAt),
+]);
+
+// Lab results with reference ranges
+export const labs = pgTable("labs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id", { length: 40 }).notNull(),
+  panel: varchar("panel", { length: 64 }).notNull(), // lipid_panel, metabolic_panel, etc.
+  marker: varchar("marker", { length: 64 }).notNull(), // ldl_cholesterol, glucose, etc.
+  value: real("value").notNull(),
+  unit: varchar("unit", { length: 32 }).notNull(),
+  refLow: real("ref_low"),
+  refHigh: real("ref_high"),
+  observedAt: timestamp("observed_at", { withTimezone: true }).notNull(),
+  source: varchar("source", { length: 64 }).notNull().default("lab"),
+  qualityFlag: varchar("quality_flag", { length: 16 }).notNull().default("good"),
+  isBaselineEligible: boolean("is_baseline_eligible").notNull().default(true), // Can this row be used for baseline calculation?
+  exclusionReason: varchar("exclusion_reason", { length: 128 }), // Why this row was excluded from baselines
+  ingestionMetadata: jsonb("ingestion_metadata"), // Additional context about data source and processing
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+}, (table) => [
+  index("labs_user_marker_observed_desc_idx").on(table.userId, table.marker, table.observedAt.desc()),
+  index("labs_user_marker_baseline_idx").on(table.userId, table.marker, table.isBaselineEligible).where(sql`${table.isBaselineEligible} = true`),
+  index("labs_observed_idx").on(table.observedAt),
+]);
+
+// Generated daily health insights - up to 3 per user per day
+export const dailyHealthInsights = pgTable("daily_health_insights", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id", { length: 40 }).notNull(),
+  date: date("date").notNull(),
+  generatedFor: date("generated_for").notNull(), // Which day this insight analyzes (usually date - 1 day)
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  metric: varchar("metric", { length: 64 }).notNull(), // Which metric triggered this insight
+  severity: varchar("severity", { length: 16 }).notNull(), // low, moderate, high
+  confidence: real("confidence").notNull(), // 0.0 to 1.0
+  evidence: jsonb("evidence"), // { baseline_days, method, delta_pct, etc. }
+  status: varchar("status", { length: 16 }).notNull().default("active"), // active, acknowledged, dismissed
+  score: real("score"), // Ranking score used to select top 3 insights
+  issuedBy: varchar("issued_by", { length: 64 }).default("system"), // system, manual, etc.
+  acknowledgedAt: timestamp("acknowledged_at", { withTimezone: true }),
+  dismissedAt: timestamp("dismissed_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+}, (table) => [
+  index("daily_health_insights_user_date_status_score_idx").on(table.userId, table.date, table.status, table.score.desc()),
+  index("daily_health_insights_user_date_idx").on(table.userId, table.date),
+  index("daily_health_insights_date_idx").on(table.date),
+  uniqueIndex("daily_health_insights_user_date_metric_active_idx")
+    .on(table.userId, table.date, table.metric)
+    .where(sql`${table.status} = 'active'`),
+]);
+
+// Zod insert schemas for Daily Insights tables
+export const insertDailyMetricSchema = createInsertSchema(dailyMetrics).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertLabSchema = createInsertSchema(labs).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertDailyHealthInsightSchema = createInsertSchema(dailyHealthInsights).omit({
+  id: true,
+  createdAt: true,
+});
+
+// Types for Daily Insights tables
+export type DailyMetric = typeof dailyMetrics.$inferSelect;
+export type InsertDailyMetric = z.infer<typeof insertDailyMetricSchema>;
+
+export type Lab = typeof labs.$inferSelect;
+export type InsertLab = z.infer<typeof insertLabSchema>;
+
+export type DailyHealthInsight = typeof dailyHealthInsights.$inferSelect;
+export type InsertDailyHealthInsight = z.infer<typeof insertDailyHealthInsightSchema>;
