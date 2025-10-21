@@ -1102,5 +1102,5 @@ export class MealRecommenderService {
 }
 
 // Create a singleton instance with storage
-import { getStorage } from "../storage";
-export const mealRecommenderService = new MealRecommenderService(getStorage());
+import { storage } from "../storage";
+export const mealRecommenderService = new MealRecommenderService(storage);
