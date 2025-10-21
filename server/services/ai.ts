@@ -1,10 +1,71 @@
 import OpenAI from "openai";
 import { buildGuardrailsSystemPrompt, checkAutoRegulation, getGoalGuidance } from "../config/guardrails";
+import { recordLLMEvent } from "./telemetry";
 
-const openai = new OpenAI({
+const rawOpenAI = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
   baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
 });
+
+// Instrumented OpenAI client that automatically records telemetry for all LLM calls
+const openai = new Proxy(rawOpenAI, {
+  get(target, prop) {
+    if (prop === 'chat') {
+      return new Proxy(target.chat, {
+        get(chatTarget, chatProp) {
+          if (chatProp === 'completions') {
+            return new Proxy(chatTarget.completions, {
+              get(completionsTarget, completionsProp) {
+                if (completionsProp === 'create') {
+                  return async function instrumentedCreate(...args: any[]) {
+                    const startTime = Date.now();
+                    try {
+                      const result = await completionsTarget.create.apply(completionsTarget, args);
+                      const duration = Date.now() - startTime;
+                      
+                      // Record telemetry event with default 'system' context
+                      const inputTokens = result.usage?.prompt_tokens || 0;
+                      const outputTokens = result.usage?.completion_tokens || 0;
+                      
+                      recordLLMEvent({
+                        llmModel: args[0]?.model || 'unknown',
+                        inputTokens,
+                        outputTokens,
+                        durationMs: duration,
+                        success: true,
+                      }).catch(err => {
+                        console.error('Failed to record LLM telemetry:', err);
+                      });
+                      
+                      return result;
+                    } catch (error) {
+                      const duration = Date.now() - startTime;
+                      // Record failed attempts too
+                      recordLLMEvent({
+                        llmModel: args[0]?.model || 'unknown',
+                        inputTokens: 0,
+                        outputTokens: 0,
+                        durationMs: duration,
+                        success: false,
+                        errorCode: (error as any).status?.toString(),
+                      }).catch(err => {
+                        console.error('Failed to record LLM telemetry:', err);
+                      });
+                      throw error;
+                    }
+                  };
+                }
+                return completionsTarget[completionsProp as keyof typeof completionsTarget];
+              }
+            });
+          }
+          return chatTarget[chatProp as keyof typeof chatTarget];
+        }
+      });
+    }
+    return target[prop as keyof typeof target];
+  }
+}) as OpenAI;
 
 // Retry helper with exponential backoff for rate limit errors
 async function retryWithBackoff<T>(

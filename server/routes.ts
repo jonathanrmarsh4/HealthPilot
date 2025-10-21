@@ -393,6 +393,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Cost Control & Telemetry Routes
+  app.get("/api/admin/cost/summary", isAdmin, async (req, res) => {
+    try {
+      const days = parseInt(req.query.days as string) || 7;
+      const summary = await storage.getCostSummary(days);
+      res.json(summary);
+    } catch (error: any) {
+      console.error("Error fetching cost summary:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/admin/cost/users", isAdmin, async (req, res) => {
+    try {
+      const days = parseInt(req.query.days as string) || 7;
+      const limit = parseInt(req.query.limit as string) || 25;
+      const topUsers = await storage.getTopUsersByCost(days, limit);
+      res.json(topUsers);
+    } catch (error: any) {
+      console.error("Error fetching top users by cost:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/admin/cost/budgets", isAdmin, async (req, res) => {
+    try {
+      const budgets = await storage.getCostBudgets();
+      res.json(budgets);
+    } catch (error: any) {
+      console.error("Error fetching cost budgets:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/admin/cost/budgets", isAdmin, async (req, res) => {
+    try {
+      const { dailyCpuMsCap, dailyJobsCap, llmInputTokensCap, llmOutputTokensCap, applyScope } = req.body;
+      const userId = (req.user as any).claims.sub;
+      
+      const budget = await storage.upsertCostBudget({
+        dailyCpuMsCap,
+        dailyJobsCap,
+        llmInputTokensCap,
+        llmOutputTokensCap,
+        applyScope,
+        updatedBy: userId,
+      });
+      
+      res.json(budget);
+    } catch (error: any) {
+      console.error("Error upserting cost budget:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Privacy & Data Control Routes
   app.post("/api/privacy/export", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;

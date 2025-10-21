@@ -112,6 +112,10 @@ import {
   type InsertUserBanditState,
   type MealRecommendationHistory,
   type InsertMealRecommendationHistory,
+  type CostBudget,
+  type InsertCostBudget,
+  type CostUserDaily,
+  type CostGlobalDaily,
   users,
   healthRecords,
   biomarkers,
@@ -167,6 +171,9 @@ import {
   userMealPreferences,
   userBanditState,
   mealRecommendationHistory,
+  costBudgets,
+  costUserDaily,
+  costGlobalDaily,
 } from "@shared/schema";
 import { eq, desc, and, gte, lte, lt, sql, or, like, count, isNull, inArray, notInArray } from "drizzle-orm";
 
@@ -541,6 +548,32 @@ export interface IStorage {
   saveUserMealPreference(preference: InsertUserMealPreference): Promise<UserMealPreference>;
   getUserMealPreferences(userId: string, days: number): Promise<UserMealPreference[]>;
   saveMealRecommendationHistory(history: InsertMealRecommendationHistory): Promise<MealRecommendationHistory>;
+  
+  // Cost Control & Telemetry
+  getCostSummary(days: number): Promise<{
+    totalCost: number;
+    totalJobs: number;
+    totalAiCalls: number;
+    totalTokensIn: number;
+    totalTokensOut: number;
+    dailyData: Array<{
+      date: string;
+      cost: number;
+      jobs: number;
+      aiCalls: number;
+      tierBreakdown: Record<string, number>;
+    }>;
+  }>;
+  getTopUsersByCost(days: number, limit: number): Promise<Array<{
+    userId: string;
+    user: User | null;
+    totalCost: number;
+    jobs: number;
+    aiCalls: number;
+    tier: string;
+  }>>;
+  getCostBudgets(): Promise<CostBudget[]>;
+  upsertCostBudget(budget: InsertCostBudget): Promise<CostBudget>;
 }
 
 export class DbStorage implements IStorage {
@@ -4327,6 +4360,145 @@ export class DbStorage implements IStorage {
       .values(history)
       .returning();
     return created;
+  }
+  
+  // Cost Control & Telemetry implementations
+  async getCostSummary(days: number): Promise<{
+    totalCost: number;
+    totalJobs: number;
+    totalAiCalls: number;
+    totalTokensIn: number;
+    totalTokensOut: number;
+    dailyData: Array<{
+      date: string;
+      cost: number;
+      jobs: number;
+      aiCalls: number;
+      tierBreakdown: Record<string, number>;
+    }>;
+  }> {
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+    const startDateStr = startDate.toISOString().split('T')[0];
+    
+    // Get daily aggregates
+    const dailyRecords = await db.select()
+      .from(costGlobalDaily)
+      .where(gte(costGlobalDaily.date, startDateStr))
+      .orderBy(desc(costGlobalDaily.date));
+    
+    let totalCost = 0;
+    let totalJobs = 0;
+    let totalAiCalls = 0;
+    let totalTokensIn = 0;
+    let totalTokensOut = 0;
+    
+    const dailyData = dailyRecords.map(record => {
+      const cost = parseFloat(record.costUsd as string);
+      totalCost += cost;
+      totalJobs += record.jobs || 0;
+      totalAiCalls += record.aiCalls || 0;
+      totalTokensIn += Number(record.tokensIn) || 0;
+      totalTokensOut += Number(record.tokensOut) || 0;
+      
+      return {
+        date: record.date,
+        cost,
+        jobs: record.jobs || 0,
+        aiCalls: record.aiCalls || 0,
+        tierBreakdown: (record.tierBreakdownJson as Record<string, number>) || {},
+      };
+    });
+    
+    return {
+      totalCost,
+      totalJobs,
+      totalAiCalls,
+      totalTokensIn,
+      totalTokensOut,
+      dailyData,
+    };
+  }
+  
+  async getTopUsersByCost(days: number, limit: number): Promise<Array<{
+    userId: string;
+    user: User | null;
+    totalCost: number;
+    jobs: number;
+    aiCalls: number;
+    tier: string;
+  }>> {
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+    const startDateStr = startDate.toISOString().split('T')[0];
+    
+    // Aggregate user costs
+    const userCosts = await db.execute<{
+      user_id: string;
+      tier: string;
+      total_cost: string;
+      jobs: string;
+      ai_calls: string;
+    }>(sql`
+      SELECT 
+        user_id,
+        tier,
+        SUM(cost_usd)::text as total_cost,
+        SUM(jobs)::text as jobs,
+        SUM(ai_calls)::text as ai_calls
+      FROM cost_user_daily
+      WHERE date >= ${startDateStr}
+      GROUP BY user_id, tier
+      ORDER BY SUM(cost_usd) DESC
+      LIMIT ${limit}
+    `);
+    
+    const results = [];
+    for (const row of userCosts.rows) {
+      const user = await this.getUser(row.user_id);
+      results.push({
+        userId: row.user_id,
+        user,
+        totalCost: parseFloat(row.total_cost),
+        jobs: parseInt(row.jobs),
+        aiCalls: parseInt(row.ai_calls),
+        tier: row.tier,
+      });
+    }
+    
+    return results;
+  }
+  
+  async getCostBudgets(): Promise<CostBudget[]> {
+    return await db.select().from(costBudgets).orderBy(desc(costBudgets.updatedAt));
+  }
+  
+  async upsertCostBudget(budget: InsertCostBudget): Promise<CostBudget> {
+    // Check if budget exists for this scope
+    const existing = await db.select()
+      .from(costBudgets)
+      .where(eq(costBudgets.applyScope, budget.applyScope));
+    
+    if (existing.length > 0) {
+      // Update existing budget
+      const [updated] = await db.update(costBudgets)
+        .set({
+          ...budget,
+          updatedAt: new Date(),
+        })
+        .where(eq(costBudgets.applyScope, budget.applyScope))
+        .returning();
+      return updated;
+    } else {
+      // Create new budget
+      const [created] = await db.insert(costBudgets)
+        .values({
+          ...budget,
+          updatedAt: new Date(),
+        })
+        .returning();
+      return created;
+    }
   }
 }
 

@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, integer, real, jsonb, index, uniqueIndex, unique } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, integer, real, jsonb, index, uniqueIndex, unique, serial, bigint, numeric, date, boolean, primaryKey } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -1635,3 +1635,138 @@ export type InsertUserBanditState = z.infer<typeof insertUserBanditStateSchema>;
 
 export type MealRecommendationHistory = typeof mealRecommendationHistory.$inferSelect;
 export type InsertMealRecommendationHistory = z.infer<typeof insertMealRecommendationHistorySchema>;
+
+// ===== Cost Control & Telemetry Tables =====
+
+// Job telemetry events - tracks all async job executions
+export const telemetryJobEvents = pgTable("telemetry_job_events", {
+  id: serial("id").primaryKey(),
+  jobId: varchar("job_id", { length: 40 }),
+  jobType: varchar("job_type", { length: 40 }),
+  userId: varchar("user_id", { length: 40 }).notNull(),
+  tier: varchar("tier", { length: 16 }).notNull(), // free, premium, enterprise
+  domain: varchar("domain", { length: 16 }).notNull(), // insights, metrics, workouts, meals, etc.
+  queuedAt: timestamp("queued_at", { withTimezone: true }),
+  startedAt: timestamp("started_at", { withTimezone: true }),
+  finishedAt: timestamp("finished_at", { withTimezone: true }),
+  durationMs: integer("duration_ms"),
+  queueWaitMs: integer("queue_wait_ms"),
+  success: boolean("success"),
+  errorCode: varchar("error_code", { length: 64 }),
+  attempt: integer("attempt").default(1),
+  rowsRead: integer("rows_read").default(0),
+  rowsWritten: integer("rows_written").default(0),
+  cpuMs: integer("cpu_ms").default(0),
+  memMbPeak: integer("mem_mb_peak").default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+}, (table) => [
+  index("telemetry_job_events_user_started_idx").on(table.userId, table.startedAt),
+  index("telemetry_job_events_type_started_idx").on(table.jobType, table.startedAt),
+  index("telemetry_job_events_tier_started_idx").on(table.tier, table.startedAt),
+]);
+
+// LLM call telemetry - tracks all OpenAI API calls
+export const telemetryLlmEvents = pgTable("telemetry_llm_events", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id", { length: 40 }).notNull(),
+  tier: varchar("tier", { length: 16 }).notNull(),
+  llmModel: varchar("llm_model", { length: 40 }).notNull(), // gpt-4o, gpt-4o-mini, etc.
+  contextType: varchar("context_type", { length: 32 }).notNull(), // chat, insights, workout, meal, etc.
+  inputTokens: integer("input_tokens").notNull(),
+  outputTokens: integer("output_tokens").notNull(),
+  cacheHit: boolean("cache_hit").default(false),
+  durationMs: integer("duration_ms"),
+  success: boolean("success"),
+  errorCode: varchar("error_code", { length: 64 }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+}, (table) => [
+  index("telemetry_llm_events_user_created_idx").on(table.userId, table.createdAt),
+  index("telemetry_llm_events_model_created_idx").on(table.llmModel, table.createdAt),
+]);
+
+// Daily cost rollup per user
+export const costUserDaily = pgTable("cost_user_daily", {
+  userId: varchar("user_id", { length: 40 }).notNull(),
+  date: date("date").notNull(),
+  tier: varchar("tier", { length: 16 }).notNull(),
+  jobs: integer("jobs").default(0),
+  aiCalls: integer("ai_calls").default(0),
+  cpuMs: bigint("cpu_ms", { mode: "number" }).default(0),
+  tokensIn: bigint("tokens_in", { mode: "number" }).default(0),
+  tokensOut: bigint("tokens_out", { mode: "number" }).default(0),
+  costUsd: numeric("cost_usd", { precision: 12, scale: 6 }).default("0"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.userId, table.date] }),
+  dateIdx: index("cost_user_daily_date_idx").on(table.date),
+  tierDateIdx: index("cost_user_daily_tier_date_idx").on(table.tier, table.date),
+}));
+
+// Global daily cost rollup
+export const costGlobalDaily = pgTable("cost_global_daily", {
+  date: date("date").primaryKey(),
+  jobs: integer("jobs").default(0),
+  aiCalls: integer("ai_calls").default(0),
+  cpuMs: bigint("cpu_ms", { mode: "number" }).default(0),
+  tokensIn: bigint("tokens_in", { mode: "number" }).default(0),
+  tokensOut: bigint("tokens_out", { mode: "number" }).default(0),
+  costUsd: numeric("cost_usd", { precision: 12, scale: 6 }).default("0"),
+  tierBreakdownJson: jsonb("tier_breakdown_json"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
+// Cost budgets and caps
+export const costBudgets = pgTable("cost_budgets", {
+  id: serial("id").primaryKey(),
+  dailyCpuMsCap: bigint("daily_cpu_ms_cap", { mode: "number" }).notNull(),
+  dailyJobsCap: integer("daily_jobs_cap").notNull(),
+  llmInputTokensCap: bigint("llm_input_tokens_cap", { mode: "number" }).notNull(),
+  llmOutputTokensCap: bigint("llm_output_tokens_cap", { mode: "number" }).notNull(),
+  applyScope: varchar("apply_scope", { length: 16 }).notNull(), // global, free, premium, enterprise
+  updatedBy: varchar("updated_by", { length: 80 }),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
+// Zod insert schemas for cost control tables
+export const insertTelemetryJobEventSchema = createInsertSchema(telemetryJobEvents).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertTelemetryLlmEventSchema = createInsertSchema(telemetryLlmEvents).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertCostUserDailySchema = createInsertSchema(costUserDaily).omit({
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCostGlobalDailySchema = createInsertSchema(costGlobalDaily).omit({
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCostBudgetSchema = createInsertSchema(costBudgets).omit({
+  id: true,
+  updatedAt: true,
+});
+
+// Types for cost control tables
+export type TelemetryJobEvent = typeof telemetryJobEvents.$inferSelect;
+export type InsertTelemetryJobEvent = z.infer<typeof insertTelemetryJobEventSchema>;
+
+export type TelemetryLlmEvent = typeof telemetryLlmEvents.$inferSelect;
+export type InsertTelemetryLlmEvent = z.infer<typeof insertTelemetryLlmEventSchema>;
+
+export type CostUserDaily = typeof costUserDaily.$inferSelect;
+export type InsertCostUserDaily = z.infer<typeof insertCostUserDailySchema>;
+
+export type CostGlobalDaily = typeof costGlobalDaily.$inferSelect;
+export type InsertCostGlobalDaily = z.infer<typeof insertCostGlobalDailySchema>;
+
+export type CostBudget = typeof costBudgets.$inferSelect;
+export type InsertCostBudget = z.infer<typeof insertCostBudgetSchema>;
