@@ -2850,7 +2850,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Advanced Meal Recommendation Endpoints
+  // Simplified Meal Recommendation Endpoint (v1.0)
   app.post("/api/meals/recommend", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
     const { mealSlot = "lunch", maxResults = 10, forDate } = req.body;
@@ -2859,17 +2859,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate unique request ID
       const requestId = `req_${Date.now()}_${Math.random().toString(36).substring(7)}`;
       
-      // Get user profile data
-      const [nutritionProfile, user, recentBiomarkers, goals, banditStates] = await Promise.all([
-        storage.getNutritionProfile(userId),
-        storage.getUser(userId),
-        storage.getBiomarkers(userId, 30), // Last 30 days
-        storage.getGoals(userId),
-        storage.getUserBanditState(userId)
-      ]);
-
-      // Get recent meal preferences
-      const recentPreferences = await storage.getUserMealPreferences(userId, 30);
+      // Get user nutrition profile
+      const nutritionProfile = await storage.getNutritionProfile(userId);
 
       // Get all active meals from library
       const candidateMeals = await db
@@ -2882,7 +2873,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           )
         );
 
-      // Transform meals to candidate format
+      // Transform meals to simplified candidate format
       const mealCandidates = candidateMeals.map(meal => {
         // Extract ingredient names from the jsonb array
         let ingredientNames: string[] = [];
@@ -2895,97 +2886,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return {
           mealId: meal.id,
           title: meal.title,
-          mealSlot: meal.meal_types || [], // Fixed: use correct field name meal_types
+          mealSlot: meal.meal_types || [],
           serving: {
             kcal: meal.calories || 0,
             proteinG: meal.protein || 0,
             carbsG: meal.carbs || 0,
             fatG: meal.fat || 0,
-            fiberG: null, // Field doesn't exist in database
-            sodiumMg: null // Field doesn't exist in database
           },
-          tags: meal.diets || [], // Use diets field instead of non-existent tags
-          cuisine: meal.cuisines?.[0] || "international", // Use first cuisine from array
-          ingredients: ingredientNames, // Extracted ingredient names
-          allergens: [], // Field doesn't exist in database
-          prepTimeMin: meal.ready_in_minutes || 30, // Use correct field name
-          imageUrl: meal.image_url, // Use correct field name
-          sourceUrl: meal.source_url // Use correct field name
+          cuisine: meal.cuisines?.[0] || "international",
+          ingredients: ingredientNames,
+          allergens: [], // Can be enhanced later
+          prepTimeMin: meal.ready_in_minutes || 30,
+          imageUrl: meal.image_url,
         };
       });
 
-      // Build user profile for recommendations
+      // Build simplified user profile (safety-critical filters only)
       const userProfile = {
         userId,
-        age: user?.age,
-        sex: user?.sex as any,
-        heightCm: user?.heightCm,
-        weightKg: user?.weightKg,
-        goals: goals.filter(g => g.status === 'active').map(g => g.metricType),
         dietaryPattern: nutritionProfile?.dietaryPreferences || [],
         allergies: nutritionProfile?.allergies || [],
         intolerances: nutritionProfile?.intolerances || [],
-        culturalEthics: [],
-        biomarkers: {
-          // Extract latest biomarker values
-          ldlMgDl: recentBiomarkers.find(b => b.type === 'ldl_cholesterol')?.value,
-          hdlMgDl: recentBiomarkers.find(b => b.type === 'hdl_cholesterol')?.value,
-          tgMgDl: recentBiomarkers.find(b => b.type === 'triglycerides')?.value,
-          hba1cPct: recentBiomarkers.find(b => b.type === 'hba1c')?.value,
-          fastingGlucoseMgDl: recentBiomarkers.find(b => b.type === 'glucose_fasting')?.value,
-          bpSystolic: recentBiomarkers.find(b => b.type === 'blood_pressure_systolic')?.value,
-          bpDiastolic: recentBiomarkers.find(b => b.type === 'blood_pressure_diastolic')?.value,
-        },
-        calorieTargetKcal: nutritionProfile?.calorieTarget,
-        macroTargets: {
-          proteinG: nutritionProfile?.proteinTarget,
-          carbsG: nutritionProfile?.carbsTarget,
-          fatG: nutritionProfile?.fatTarget,
-          fiberG: nutritionProfile?.fiberTarget,
-          sodiumMg: nutritionProfile?.sodiumTarget
-        },
-        tastePreferences: {
-          likedTags: nutritionProfile?.likedFoodTags || [],
-          dislikedTags: nutritionProfile?.dislikedFoodTags || [],
-          likedIngredients: nutritionProfile?.favoriteIngredients || [],
-          dislikedIngredients: nutritionProfile?.avoidIngredients || []
-        },
-        banditState: {
-          lastUpdated: new Date(),
-          arms: banditStates.reduce((acc, state) => {
-            acc[state.armKey] = { alpha: state.alpha, beta: state.beta };
-            return acc;
-          }, {} as Record<string, { alpha: number; beta: number }>)
-        }
       };
 
-      // Build recommendation context
+      // Build simplified context
       const context = {
         requestId,
-        timezone: user?.timezone || 'UTC',
         mealSlot: mealSlot as any,
         maxResults,
-        diversityStrength: 0.3,
-        explorationStrength: 0.2,
-        allowSubstitutions: true
       };
 
-      // Transform recent preferences to feedback events
-      const feedbackEvents = recentPreferences.map(pref => ({
-        userId: pref.userId,
-        mealId: pref.mealId,
-        timestamp: pref.timestamp,
-        signal: pref.signal as any,
-        strength: pref.strength
-      }));
-
-      // Get recommendations (service now handles persistence internally)
-      const { mealRecommenderService } = await import('./services/meal-recommender');
-      const recommendations = await mealRecommenderService.recommendMeals(
+      // Use simplified recommender service
+      const { SimplifiedMealRecommenderService } = await import('./services/meal-recommender-simple');
+      const simplifiedService = new SimplifiedMealRecommenderService(storage);
+      const recommendations = await simplifiedService.recommendMeals(
         userProfile,
         context,
-        mealCandidates,
-        feedbackEvents
+        mealCandidates
       );
 
       // Fetch full meal data for recommendations
@@ -3000,9 +2937,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const meal = fullMeals.find(m => m.id === rec.mealId);
         return {
           ...meal,
-          score: rec.score,
-          reasons: rec.reasons,
-          adjustments: rec.adjustments
+          reason: rec.reason, // Simple reason text
         };
       });
 
@@ -3011,8 +2946,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         recommendations: enrichedRecommendations,
         meta: {
           filteredOutCounts: recommendations.filteredOutCounts,
-          fallback: recommendations.fallback,
-          auditInfo: recommendations.audit
+          version: recommendations.version,
         }
       });
     } catch (error: any) {
@@ -3021,58 +2955,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Save meal preference/feedback
+  // Simplified meal feedback (like/dislike only)
   app.post("/api/meals/:mealId/preference", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
     const { mealId } = req.params;
-    const { signal, strength = 1.0, mealType, context } = req.body;
+    const { signal } = req.body;
 
     try {
-      // Validate signal type
-      if (!['like', 'dislike', 'saved', 'completed'].includes(signal)) {
-        return res.status(400).json({ error: 'Invalid signal type' });
-      }
+      // Simplify to just like/dislike
+      const feedback = signal === 'like' || signal === 'saved' || signal === 'completed' ? 'like' : 'dislike';
 
-      // Save preference
-      const preference = await storage.saveUserMealPreference({
-        userId,
-        mealId,
-        signal,
-        strength: Math.max(0, Math.min(1, strength)), // Clamp between 0 and 1
-        mealType,
-        context
-      });
+      // Use simplified service to record feedback
+      const { SimplifiedMealRecommenderService } = await import('./services/meal-recommender-simple');
+      const simplifiedService = new SimplifiedMealRecommenderService(storage);
+      await simplifiedService.recordFeedback(userId, mealId, feedback);
 
-      // Update bandit state for this meal's attributes
-      const meal = await db
-        .select()
-        .from(mealLibrary)
-        .where(eq(mealLibrary.id, mealId))
-        .limit(1);
-
-      if (meal.length > 0) {
-        const m = meal[0];
-        
-        // Update cuisine arm
-        if (m.cuisine) {
-          const cuisineKey = `cuisine:${m.cuisine}`;
-          const alpha = signal === 'like' || signal === 'completed' ? strength : 0;
-          const beta = signal === 'dislike' ? strength : 0;
-          await storage.updateUserBanditState(userId, cuisineKey, alpha, beta);
-        }
-
-        // Update tag arms
-        if (m.tags && m.tags.length > 0) {
-          for (const tag of m.tags.slice(0, 3)) {
-            const tagKey = `tag:${tag}`;
-            const alpha = signal === 'like' || signal === 'completed' ? strength * 0.5 : 0;
-            const beta = signal === 'dislike' ? strength * 0.5 : 0;
-            await storage.updateUserBanditState(userId, tagKey, alpha, beta);
-          }
-        }
-      }
-
-      res.json(preference);
+      res.json({ success: true, feedback });
     } catch (error: any) {
       console.error("Error saving meal preference:", error);
       res.status(500).json({ error: error.message });
