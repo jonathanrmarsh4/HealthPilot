@@ -6,8 +6,81 @@ HealthPilot is an AI-powered health and wellness platform designed to optimize u
 ## User Preferences
 I prefer simple language and clear explanations. I want iterative development where I can provide feedback at each stage. Ask before making major changes to the project structure or core functionalities. Do not make changes to the `replit.nix` file. I primarily use iPad and iPhone for my work. All features must be fully functional and properly responsive on mobile/tablet devices.
 
-## System Architecture
-HealthPilot is a full-stack application built with React, TypeScript, Tailwind CSS, and shadcn/ui for the frontend, and Express.js with TypeScript for the backend. PostgreSQL, accessed via Drizzle ORM, is the primary database. OpenAI GPT-4o powers the AI capabilities.
+## Agent Instructions (Senior Software Engineer Role)
+You are my senior software engineer working in this exact stack and repo.
+
+**Context**
+- Runtime: Node.js 20 + React + Vite, TypeScript strict mode ON
+- Environment: Replit (NixOS). Use only package.json scripts to run tasks
+- Code style: Prettier + ESLint (no disabling rules unless requested)
+- Output discipline: 
+  1. First, show a short PLAN (bulleted steps)
+  2. Then produce DIFF-ONLY patches using unified diff format with correct file paths
+  3. Do not rename, move, or create files unless explicitly allowed in my task
+  4. Do not change unrelated code
+
+**Verification gates (must pass before you show me code)**
+- Build passes
+- Typecheck: no TS errors
+- Lint: no new warnings/errors
+- Tests: existing tests still pass; add new tests when acceptance criteria require them
+
+**When you think**
+- Think step-by-step privately. Only show the final plan, diffs, and verification notes
+- If anything is ambiguous, propose 1–2 minimal options with trade-offs; pick one and proceed
+
+**Deliverables for every task**
+- PLAN (concise)
+- PATCH (diff-only)
+- POST-CHANGE CHECKS: commands I should run and what success looks like
+- ROLLBACK NOTES: how to revert just this change
+
+## System Architecture & Tech Stack
+**Runtime Environment:**
+- Node.js 20 (on NixOS via Replit)
+- TypeScript 5.x (strict mode enabled)
+- Package manager: npm
+- Process management: npm scripts
+
+**Frontend:**
+- React 18 + TypeScript
+- Build tool: Vite 5.x (with HMR)
+- Router: Wouter (lightweight client-side routing)
+- UI Framework: shadcn/ui + Radix UI primitives
+- Styling: Tailwind CSS 3.x + PostCSS
+- State Management: TanStack Query v5 (React Query)
+- Forms: React Hook Form + Zod validation
+- Icons: Lucide React + React Icons
+
+**Backend:**
+- Express.js + TypeScript
+- API: RESTful endpoints with Zod validation
+- Sessions: express-session with PostgreSQL store
+- WebSocket: ws (for Voice Chat feature)
+- File uploads: Multer
+
+**Database:**
+- PostgreSQL (Neon-backed, managed by Replit)
+- ORM: Drizzle ORM
+- Migrations: `npm run db:push` (schema sync)
+- Type safety: Drizzle-Zod for runtime validation
+
+**External Services:**
+- AI: OpenAI GPT-4o + Realtime API (voice)
+- Authentication: Replit Auth (OpenID Connect via openid-client)
+- Payments: Stripe SDK with webhooks
+- Exercise data: ExerciseDB API (via RapidAPI)
+- Health data: Apple HealthKit (via Capacitor plugin)
+
+**Mobile:**
+- Framework: Capacitor 7 (iOS native app)
+- Health integration: capacitor-health plugin
+
+**Development Tools:**
+- Linter: ESLint
+- Formatter: Prettier
+- Type checking: TypeScript compiler (tsc)
+- Hot reload: Vite HMR + Express watch mode (via tsx)
 
 **UI/UX Decisions:**
 - Dark mode, responsive design optimized for mobile/tablet, and PWA support for iOS.
