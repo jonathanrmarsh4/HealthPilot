@@ -157,67 +157,40 @@ function SortableExerciseCard({
   // Local state for input values (for responsive typing)
   const [localValues, setLocalValues] = useState<Map<string, { weight: string; reps: string; distance: string; duration: string }>>(new Map());
 
-  // Initialize local values when sets change (sync with database)
+  // Initialize and sync local values with database (simple approach)
   useEffect(() => {
     setLocalValues(prev => {
+      let hasChanges = false;
       const newValues = new Map(prev);
       
       exerciseSets.forEach(set => {
-        const existing = newValues.get(set.id);
-        const dbWeight = set.weight !== null && set.weight !== undefined && set.weight > 0 ? set.weight.toString() : '';
-        const dbReps = set.reps !== null && set.reps !== undefined ? set.reps.toString() : '';
-        const dbDistance = set.distance !== null && set.distance !== undefined ? set.distance.toString() : '';
-        const dbDuration = set.duration !== null && set.duration !== undefined ? (set.duration / 60).toString() : '';
-        
-        if (!existing) {
-          // Initialize new sets with database values
-          newValues.set(set.id, {
-            weight: dbWeight,
-            reps: dbReps,
-            distance: dbDistance,
-            duration: dbDuration,
-          });
-        } else {
-          // For existing sets, sync database values but preserve user's unsaved changes
-          // Special case: if DB weight is null/0 and we had a value, clear it (BW toggle)
-          const shouldClearWeight = (set.weight === null || set.weight === 0) && existing.weight !== '';
+        // Check if this set already has local values
+        if (!newValues.has(set.id)) {
+          hasChanges = true;
+          // New set: initialize from database, then prepopulate if needed
+          const dbWeight = set.weight !== null && set.weight !== undefined && set.weight > 0 ? set.weight.toString() : '';
+          const initialWeight = dbWeight || (
+            exercise.trackingType === 'weight_reps' && 
+            progressiveSuggestion?.suggestedWeight !== null && 
+            progressiveSuggestion?.suggestedWeight !== undefined && 
+            set.completed === 0 
+              ? progressiveSuggestion.suggestedWeight.toString() 
+              : ''
+          );
           
           newValues.set(set.id, {
-            weight: shouldClearWeight ? '' : (dbWeight || existing.weight),
-            reps: dbReps || existing.reps,
-            distance: dbDistance || existing.distance,
-            duration: dbDuration || existing.duration,
+            weight: initialWeight,
+            reps: set.reps !== null && set.reps !== undefined ? set.reps.toString() : '',
+            distance: set.distance !== null && set.distance !== undefined ? set.distance.toString() : '',
+            duration: set.duration !== null && set.duration !== undefined ? (set.duration / 60).toString() : '',
           });
         }
       });
       
-      return newValues;
-    });
-  }, [exerciseSets, exercise.trackingType]);
-  
-  // Prepopulate empty weight fields with progressive overload suggestions (runs separately)
-  useEffect(() => {
-    if (!progressiveSuggestion?.suggestedWeight || exercise.trackingType !== 'weight_reps') return;
-    
-    setLocalValues(prev => {
-      const newValues = new Map(prev);
-      let hasChanges = false;
-      
-      exerciseSets.forEach(set => {
-        const existing = newValues.get(set.id);
-        // Only prepopulate if: (1) set exists in map, (2) has no weight value, (3) is incomplete
-        if (existing && existing.weight === '' && set.completed === 0) {
-          newValues.set(set.id, {
-            ...existing,
-            weight: progressiveSuggestion.suggestedWeight.toString(),
-          });
-          hasChanges = true;
-        }
-      });
-      
+      // Only return new Map if something actually changed (prevents infinite loop)
       return hasChanges ? newValues : prev;
     });
-  }, [progressiveSuggestion, exercise.trackingType, exerciseSets]);
+  }, [exerciseSets, exercise.trackingType, progressiveSuggestion]);
 
   const getLocalValue = (setId: string, field: 'weight' | 'reps' | 'distance' | 'duration') => {
     return localValues.get(setId)?.[field] ?? '';
@@ -295,7 +268,7 @@ function SortableExerciseCard({
             </p>
             
             {/* Progressive Overload Suggestion - Compact - Only show when expanded and suggestion exists */}
-            {isExpanded && progressiveSuggestion?.suggestedWeight !== null && (
+            {isExpanded && progressiveSuggestion?.suggestedWeight !== null && progressiveSuggestion && (
               <div className="mt-2 flex items-center gap-1.5 text-xs" data-testid={`suggestion-${exerciseIndex}`}>
                 <TrendingUp className="h-3.5 w-3.5 text-primary flex-shrink-0" />
                 {progressiveSuggestion.lastWeight !== null ? (
