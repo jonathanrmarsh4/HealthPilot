@@ -1,0 +1,149 @@
+{
+  "mode": "debug_then_decide",
+  "context": {
+    "product": "HealthPilot",
+    "feature": "Meal Planner (browse + categorize + select)",
+    "stack": {
+      "language": "TypeScript",
+      "frontend": "React (Vite or Next.js — repo dependent)",
+      "state": "Local React state + simple services (no heavy global state unless present)",
+      "platform": "Web now; iOS later via CapacitorJS wrapper",
+      "data_source": "Internal DB of ~400 meals (previously also explored Spoonacular); images + ingredients + macros + instructions available"
+    },
+    "current_problems": [
+      "1) Only 2–3 meals are being served despite ~400 in DB.",
+      "2) Breakfast/Lunch/Dinner categorization is frequently wrong."
+    ],
+    "goal": "Stabilize the Meal Planner quickly, correcting querying, categorization, and UI data flow. If stability fails the decision gate, output a clean rebuild plan."
+  },
+  "inputs_provided_by_user": {
+    "repo_paths": [
+      "src/features/meal-planner/**",
+      "src/components/meal/**",
+      "src/services/meals/**",
+      "src/api/**",
+      "src/shared/**"
+    ],
+    "logs": "Paste recent console/build/test logs if available",
+    "env_notes": "Node version, package manager, framework version",
+    "db_notes": "Briefly state ORM/DB (e.g., Prisma+Postgres, Knex, direct SQL, Mongo); if unknown, detect from repo"
+  },
+  "debug_strategy": {
+    "overview_model": [
+      "In 5–7 bullets, restate intended Meal Planner UX: category browsing, pagination/scroll, filters (diet, macros), and item detail view."
+    ],
+    "static_scan": [
+      "Locate meal fetch path: UI → service → API → DB.",
+      "List anti-patterns: incorrect imports, stale types, nullable fields not handled, incorrect enum/string unions for meal type.",
+      "Verify runtime validation (zod/io-ts) around meal payloads; add if missing."
+    ],
+    "runtime_scan": [
+      "Map each reported symptom to root-cause hypotheses:",
+      "A) Tiny result set: default LIMIT too small, hardcoded filter narrowing to few tags, missing pagination wiring, server returning cached subset, WHERE clause combining AND instead of OR, incorrect DISTINCT/GROUP BY collapsing results, feature-flag or 'is_active' filter set to false by default, environment filter (e.g., 'user_preferences_only') unintentionally enabled.",
+      "B) Wrong categorization: mealType derivation wrong (enum mismatch), tag mapping table missing/incorrect, fallback classifier using title keywords overly strict, time-of-day heuristics leaking into browsing query, migrated data lacking mealType field."
+    ],
+    "db_interrogation": {
+      "checks": [
+        "Count sanity: SELECT COUNT(*) FROM meals;",
+        "Distribution: SELECT meal_type, COUNT(*) FROM meals GROUP BY meal_type;",
+        "Active filter: SELECT COUNT(*) FROM meals WHERE is_active = true;",
+        "Example page: SELECT id,title,meal_type FROM meals ORDER BY created_at DESC LIMIT 24 OFFSET 0;",
+        "Filter fan-out: emulate UI filters as raw SQL to confirm > 50 results exist under common settings."
+      ],
+      "note": "If ORM present (e.g., Prisma), produce equivalent queries and add a temporary script to print counts and distributions."
+    },
+    "contracts_and_types": {
+      "ts_models": [
+        "Define a strict Meal type:",
+        "type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';",
+        "interface Meal { id: string; title: string; mealType: MealType; tags: string[]; macros: { calories: number; protein: number; carbs: number; fat: number }; ingredients: { name: string; amount: string }[]; instructions: string[]; imageUrl?: string; isActive: boolean; popularityScore?: number; createdAt: string; updatedAt: string; }"
+      ],
+      "runtime_validation": "Add zod schema mirroring Meal; validate all API responses server→client. If invalid, log structured error and skip only invalid records, not the entire page."
+    },
+    "categorization_fix": {
+      "approach": [
+        "Introduce a deterministic mapping function deriveMealType(meal) that uses:",
+        "1) Explicit meal.mealType if present and valid.",
+        "2) Tag dictionary mapping (e.g., tags containing: ['breakfast', 'brunch', 'oats', 'pancake', 'omelette'] → 'breakfast'; ['sandwich','bowl','salad','wrap'] → 'lunch'; ['pasta','steak','curry','stirfry'] → 'dinner'; ['snack','shake','smoothie','bar'] → 'snack').",
+        "3) Title keyword fallback with a curated keyword set.",
+        "4) If still ambiguous, default to 'lunch' and add a QA flag for review.",
+        "Ship the mapping table (JSON) and make it editable."
+      ],
+      "tests": [
+        "Create unit tests for deriveMealType covering 30–50 titles/tags with edge cases."
+      ]
+    },
+    "result_set_fix": {
+      "approach": [
+        "Pagination: Ensure API accepts page/limit (default limit 24).",
+        "Sorting: default deterministic sort (popularityScore DESC, createdAt DESC) with optional randomize seed per session.",
+        "Filtering: verify diet/goals filters are additive only when intended; convert impossible AND chains to OR where appropriate.",
+        "Visibility: require isActive=true unless explicitly in admin/debug mode.",
+        "Sampling (optional): if randomization required, use server-side reservoir sampling or ORDER BY RANDOM() with upper bound caution + cache."
+      ],
+      "tests": [
+        "Integration test: fetch /meals?page=0&limit=24 (no filters) → expect >= 24 when DB has >= 24 active.",
+        "Distribution test: request each mealType filter and assert non-zero results when DB distribution confirms entries.",
+        "Regression test: ensure removing all filters returns more than 3 items."
+      ]
+    },
+    "api_layer": {
+      "server_contract": [
+        "GET /api/meals: query params { page, limit, mealType?, diet?, tags?, minProtein?, maxCalories? }",
+        "Responses: { items: Meal[], page: number, total: number, totalPages: number }",
+        "Always include total and totalPages to prove pagination works; never drop items silently on validation failure — log and continue."
+      ],
+      "error_handling": "Typed errors; 4xx for bad filters, 5xx for unexpected; return hint messages for the UI."
+    },
+    "ui_wireup": [
+      "Verify the hook (e.g., useMealsQuery) correctly forwards filters and pagination; no stale closures; include key in SWR/React Query to avoid cache collisions.",
+      "Ensure category tabs map to mealType exactly (case-sensitive) and don’t double-apply filters.",
+      "Show empty states only when total=0; otherwise render paginated grid."
+    ],
+    "patch_plan_output": "Produce a numbered list of exact file changes (path + before/after rationale) followed by full file replacements (no ellipses).",
+    "tests_required": [
+      "Unit: deriveMealType, filter builder, pagination util.",
+      "Integration (API): happy path (no filters), by mealType, with combined filters.",
+      "UI smoke: render grid for breakfast/lunch/dinner and assert > 6 cards each when DB shows availability."
+    ],
+    "verification": [
+      "npm run lint → 0 errors",
+      "npm run typecheck → 0 errors",
+      "npm test → all pass",
+      "npm run build → succeeds",
+      "Manual run: switch categories, paginate, apply a simple tag filter; observe no console errors."
+    ]
+  },
+  "decision_gate": {
+    "acceptance_criteria": [
+      "All tests pass.",
+      "Build + typecheck + lint are clean.",
+      "Default unfiltered browse returns >= 24 items (given DB >= 24 active).",
+      "Each category tab shows non-zero results if DB distribution indicates items exist.",
+      "Categorization accuracy ≥ 95% on the curated test set."
+    ],
+    "scoring": {
+      "stability": "0-5",
+      "complexity": "0-5",
+      "diff_churn": "0-5",
+      "confidence": "0-5",
+      "interpretation": {
+        "keep_and_merge": "Total ≥ 16 AND all acceptance criteria met",
+        "rebuild_recommended": "Total ≤ 15 OR any acceptance criteria not met"
+      }
+    },
+    "output": "Return KEEP_AND_MERGE or REBUILD_RECOMMENDED with a one-paragraph justification."
+  },
+  "deliverables": [
+    "Bug list with root causes tied to code/queries.",
+    "Patch plan (files + line ranges) and full updated files.",
+    "zod schema and deriveMealType with tests.",
+    "API contract (typed) + integration tests.",
+    "Verification notes with expected CLI outputs.",
+    "Decision verdict per gate."
+  ],
+  "extras": {
+    "observability": "Add lightweight structured logs around query params and counts (server-side) for 48h to confirm field usage and distributions.",
+    "data_hygiene": "Optional script to backfill missing mealType from tags/title via deriveMealType; idempotent and dry-run capable."
+  }
+}
