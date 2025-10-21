@@ -58,7 +58,16 @@ export function WeeklyMealCalendar({ meals, onMealClick }: WeeklyMealCalendarPro
   );
 
   if (sortedDays.length === 0) {
-    return null;
+    return (
+      <Card>
+        <CardContent className="p-12 text-center text-muted-foreground space-y-2">
+          <p className="text-lg font-medium">No Scheduled Meals</p>
+          <p className="text-sm">
+            Generate new meal plans to see them in the calendar view, or switch to Swipe view to browse unscheduled meals.
+          </p>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (

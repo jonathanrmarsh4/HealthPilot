@@ -2728,7 +2728,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 const mealsToSave = rankedLibraryMeals.slice(0, mealsPerType);
                 console.log(`📚 Creating ${mealsToSave.length} AI-curated ${mealType} options from library`);
                 
-                for (const meal of mealsToSave) {
+                // Distribute meals across the week
+                for (let i = 0; i < mealsToSave.length; i++) {
+                  const meal = mealsToSave[i];
+                  
                   // Generate AI reasoning for this meal
                   const aiReasoning = generateAIReasoning(meal);
                   
@@ -2751,6 +2754,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     });
                   }
                   
+                  // Assign scheduled date - distribute across the next 7 days
+                  const scheduledDate = new Date();
+                  scheduledDate.setHours(0, 0, 0, 0);
+                  scheduledDate.setDate(scheduledDate.getDate() + (i % 7)); // Cycle through 7 days
+                  
                   // Save meal plan from library with AI reasoning
                   const saved = await storage.createMealPlan({
                     userId,
@@ -2769,7 +2777,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     tags: meal.diets || [],
                     imageUrl: meal.imageUrl,
                     spoonacularRecipeId: meal.spoonacularRecipeId,
-                    scheduledDate: null, // No fixed schedule - user browses and selects
+                    scheduledDate, // Scheduled across the week for calendar view
                     sourceUrl: meal.sourceUrl,
                     readyInMinutes: meal.readyInMinutes,
                     healthScore: meal.healthScore || null,
