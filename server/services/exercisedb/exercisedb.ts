@@ -182,6 +182,8 @@ export class ExerciseDBService {
       'bodyweight': 'body weight',
       'kettlebell': 'kettlebell',
       'smith': 'smith machine',
+      'trx': 'body weight', // TRX suspension training uses body weight
+      'suspension': 'body weight',
     };
     
     // Extract equipment from search term
@@ -203,7 +205,8 @@ export class ExerciseDBService {
       const partialMatch = !exactMatch && (exerciseEquipment.includes(searchEquipmentType) || searchEquipmentType.includes(exerciseEquipment));
       
       // Detect equipment conflicts: find which specific equipment each uses
-      const conflictingEquipment = ['barbell', 'dumbbell', 'kettlebell', 'cable'];
+      // Expanded list to include body weight as a distinct equipment type
+      const conflictingEquipment = ['barbell', 'dumbbell', 'kettlebell', 'cable', 'body weight', 'band', 'machine'];
       const searchEquipmentKeyword = conflictingEquipment.find(eq => searchEquipmentType.includes(eq));
       const exerciseEquipmentKeyword = conflictingEquipment.find(eq => exerciseEquipment.includes(eq));
       
@@ -213,7 +216,8 @@ export class ExerciseDBService {
       if (exactMatch) {
         score += 50; // Perfect equipment match
       } else if (hasConflict) {
-        score -= 100; // Conflicting equipment (e.g., barbell vs dumbbell) = WRONG exercise!
+        score -= 200; // MAJOR PENALTY: Conflicting equipment (e.g., TRX vs barbell, barbell vs dumbbell)
+        console.log(`[ExerciseDB Scoring] Equipment conflict: search wants "${searchEquipmentType}" but exercise uses "${exerciseEquipment}" (-200)`);
       } else if (partialMatch) {
         score += 30; // Partial match (e.g., "machine" matches "leverage machine")
       } else {
@@ -304,7 +308,7 @@ export class ExerciseDBService {
           exercise: ex,
           score: this.calculateMatchScore(exerciseName, ex)
         }))
-        .filter(item => item.score > 15) // Minimum threshold (lowered to 15 to catch edge cases)
+        .filter(item => item.score > 25) // Minimum threshold - reject poor matches with equipment conflicts
         .sort((a, b) => b.score - a.score);
       
       if (scoredExercises.length > 0) {
