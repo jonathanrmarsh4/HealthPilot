@@ -308,7 +308,7 @@ export class ExerciseDBService {
           exercise: ex,
           score: this.calculateMatchScore(exerciseName, ex)
         }))
-        .filter(item => item.score > 25) // Minimum threshold - reject poor matches with equipment conflicts
+        .filter(item => item.score > 50) // High confidence threshold - only show good matches
         .sort((a, b) => b.score - a.score);
       
       if (scoredExercises.length > 0) {
