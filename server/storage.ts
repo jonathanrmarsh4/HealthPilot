@@ -3430,9 +3430,7 @@ export class DbStorage implements IStorage {
         and(
           eq(mealLibrary.status, 'active'),
           // Exclude ALL meals user disliked (permanent_dislike, thumbs_down, dislike)
-          dislikedMealIds.length > 0 ? sql`${mealLibrary.id} NOT IN (${sql.join(dislikedMealIds.map(id => sql`${id}`), sql`, `)})` : undefined,
-          // Filter out meals with <60% approval (approval = thumbs_up / total_served >= 0.6)
-          sql`(${mealLibrary.totalServed} = 0 OR ${mealLibrary.thumbsUpCount}::float / ${mealLibrary.totalServed} >= 0.6)`
+          dislikedMealIds.length > 0 ? sql`${mealLibrary.id} NOT IN (${sql.join(dislikedMealIds.map(id => sql`${id}`), sql`, `)})` : undefined
         )
       );
 
