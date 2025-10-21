@@ -1,0 +1,202 @@
+Use the pinned Project System Prompt.
+
+[TASK CARD]
+
+Goal (1–2 sentences):
+- Refactor the Goals feature so that each goal’s input fields align with the specific metric being tracked (e.g., weight = single value; blood pressure = systolic/diastolic pair). Build a central Metric Registry using the provided JSON of biomarkers, and automatically pre-populate “current” and “starting” values from stored data if available.
+
+Scope:
+- Allowed to change/create only:
+  - frontend/lib/metrics/biomarkers.json (NEW)
+  - frontend/lib/metrics/registry.ts (NEW)
+  - frontend/lib/metrics/prefill.ts (NEW)
+  - frontend/components/goals/GoalFieldRenderer.tsx (NEW)
+  - frontend/components/goals/GoalForm.tsx (EDIT)
+  - backend/services/measurements/* (READ-ONLY edits)
+  - backend/models/Goal.* (if needed)
+  - tests/unit/* and tests/integration/* for the above
+- Do NOT add new libraries or touch unrelated code.
+
+Input:
+Paste this JSON as `frontend/lib/metrics/biomarkers.json`
+{
+  "biomarkers": {
+    "lipid_panel": [
+      "ldl-cholesterol","hdl-cholesterol","total-cholesterol","cholesterol","triglycerides","vldl-cholesterol"
+    ],
+    "liver_function": ["alt","ast","alp","bilirubin","albumin","ggt","total-protein","globulin"],
+    "kidney_function": ["creatinine","bun","egfr","urea"],
+    "blood_counts": ["rbc","wbc","hemoglobin","hematocrit","platelets","mcv","mch","mchc","rdw","neutrophils","lymphocytes","monocytes","eosinophils","basophils"],
+    "thyroid_function": ["tsh","t3","t4","free-t3","free-t4"],
+    "diabetes_metabolic": ["hba1c","blood-glucose","fasting-glucose","insulin"],
+    "vitamins_minerals": ["vitamin-d","vitamin-b12","iron","ferritin","calcium","corrected-calcium","magnesium","folate"],
+    "inflammation": ["crp","esr"],
+    "electrolytes": ["sodium","potassium","chloride","bicarbonate"],
+    "vitals_body_metrics": ["blood-pressure","heart-rate","hrv","temperature","respiratory-rate","oxygen-saturation","weight","lean-body-mass","body-fat-percentage","height","bmi","waist-circumference","steps","calories"],
+    "hormones": ["cortisol","testosterone","estrogen","progesterone"],
+    "iron_studies": ["iron","transferrin","transferrin-saturation","ferritin"],
+    "other": ["uric-acid","psa","ldh"]
+  },
+  "total_biomarker_types": 85,
+  "features": {
+    "unit_conversion": "Supports both imperial and metric units with automatic conversion",
+    "reference_ranges": "Clinical reference ranges for optimal health assessment",
+    "trend_tracking": "6-month to 2-year trend analysis with visual charts",
+    "ai_interpretation": "AI-powered analysis and recommendations based on biomarker values",
+    "medical_report_extraction": "Automatic extraction from uploaded lab reports, ECGs, and medical documents"
+  }
+}
+
+Acceptance Criteria:
+- [ ] Selecting a metric in the Goal form dynamically renders the correct input fields based on the registry schema.
+- [ ] Prepopulate “current” and “starting” values from stored data when available.
+- [ ] Weight → single numeric field (kg). BP → two numeric inputs (systolic/diastolic). Lipids → multi-field panel.
+- [ ] Validation enforces plausible ranges.
+- [ ] Registry defines canonical units (metric defaults).
+- [ ] Prefill converts units (mg/dL↔mmol/L, lbs↔kg, etc.).
+- [ ] Existing goals load normally; backward compatible.
+- [ ] Tests added for registry, renderer, prefill.
+
+Verification (must pass before output):
+- npm run typecheck
+- npm run lint
+- npm test
+- npm run build
+
+Output Required:
+- PLAN
+- PATCH (diff-only)
+- POST-CHANGE CHECKS
+- ROLLBACK NOTES
+
+---
+
+--- reference implementation below ---
+(frontend/lib/metrics/registry.ts)
+```ts
+import biomarkers from "./biomarkers.json";
+
+export type SchemaKind = "single" | "pair" | "multi";
+export type FieldRule = { label: string; min?: number; max?: number; integer?: boolean; decimals?: number };
+export type MetricDef = {
+  id: string;
+  label: string;
+  category: string;
+  valueSchema: SchemaKind;
+  fields?: Record<string, FieldRule>;
+  unit?: string;
+  validation?: FieldRule;
+  prefill?: { sources?: string[]; pick?: "latest" | "earliest"; convert?: (raw: number) => number };
+  format?: { decimals?: number };
+  isPanel?: boolean;
+};
+
+// Canonical units (AU defaults)
+const UNIT: Record<string, string> = {
+  weight: "kg",
+  height: "cm",
+  bmi: "kg/m²",
+  "body-fat-percentage": "%",
+  "blood-pressure": "mmHg",
+  "heart-rate": "bpm",
+  "blood-glucose": "mmol/L",
+  "fasting-glucose": "mmol/L",
+  "ldl-cholesterol": "mmol/L",
+  "hdl-cholesterol": "mmol/L",
+  "total-cholesterol": "mmol/L",
+  triglycerides: "mmol/L",
+  sodium: "mmol/L",
+  potassium: "mmol/L"
+};
+
+// Example ranges
+const RANGE: Record<string, { min: number; max: number; decimals?: number; integer?: boolean }> = {
+  weight: { min: 20, max: 300, decimals: 1 },
+  "blood-pressure_systolic": { min: 70, max: 250 },
+  "blood-pressure_diastolic": { min: 40, max: 150 },
+  "heart-rate": { min: 30, max: 220 },
+  "fasting-glucose": { min: 2, max: 20, decimals: 1 }
+};
+
+const mgdlToMmolL = { glucose: 1 / 18.0 };
+
+const exemplars: Record<string, MetricDef> = {
+  weight: {
+    id: "weight",
+    label: "Weight",
+    category: "vitals_body_metrics",
+    valueSchema: "single",
+    unit: "kg",
+    validation: RANGE.weight,
+    prefill: { sources: ["HKQuantityTypeIdentifierBodyMass"], pick: "latest" },
+    format: { decimals: 1 }
+  },
+  "blood-pressure": {
+    id: "blood-pressure",
+    label: "Blood Pressure",
+    category: "vitals_body_metrics",
+    valueSchema: "pair",
+    unit: "mmHg",
+    fields: {
+      systolic: RANGE["blood-pressure_systolic"],
+      diastolic: RANGE["blood-pressure_diastolic"]
+    },
+    prefill: {
+      sources: ["HKQuantityTypeIdentifierBloodPressureSystolic", "HKQuantityTypeIdentifierBloodPressureDiastolic"],
+      pick: "latest"
+    },
+    format: { decimals: 0 }
+  },
+  "fasting-glucose": {
+    id: "fasting-glucose",
+    label: "Fasting Glucose",
+    category: "diabetes_metabolic",
+    valueSchema: "single",
+    unit: "mmol/L",
+    validation: RANGE["fasting-glucose"],
+    prefill: {
+      sources: ["HKQuantityTypeIdentifierBloodGlucose"],
+      pick: "latest",
+      convert: (mgdl: number) => +(mgdl * mgdlToMmolL.glucose).toFixed(1)
+    },
+    format: { decimals: 1 }
+  }
+};
+
+// Helper functions
+function titleCase(id: string) {
+  return id.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function defFor(id: string, category: string): MetricDef {
+  if (exemplars[id]) return exemplars[id];
+  const unit = UNIT[id] ?? "";
+  const vr = RANGE[id];
+  return {
+    id,
+    label: titleCase(id),
+    category,
+    valueSchema: "single",
+    unit,
+    validation: vr,
+    prefill: { sources: [], pick: "latest" },
+    format: vr?.decimals ? { decimals: vr.decimals } : undefined
+  };
+}
+
+const registry: Record<string, MetricDef> = { ...exemplars };
+Object.entries(biomarkers.biomarkers).forEach(([category, ids]) => {
+  ids.forEach((id) => {
+    if (!registry[id]) registry[id] = defFor(id, category);
+  });
+});
+
+export function getMetric(id: string): MetricDef | undefined {
+  return registry[id];
+}
+
+export function listMetrics(): MetricDef[] {
+  return Object.values(registry);
+}
+
+export default registry;
