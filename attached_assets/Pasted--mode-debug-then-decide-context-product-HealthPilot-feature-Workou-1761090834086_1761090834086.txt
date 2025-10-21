@@ -1,0 +1,156 @@
+{
+  "mode": "debug_then_decide",
+  "context": {
+    "product": "HealthPilot",
+    "feature": "Workout Planner (exercise selection + how-to instructions + demo GIFs)",
+    "stack": {
+      "language": "TypeScript",
+      "frontend": "React (Vite or Next.js — use what's in repo)",
+      "state": "Local React state + light data fetching (SWR/React Query if present)",
+      "platform": "Web today; iOS later via CapacitorJS wrapper",
+      "external_api": "ExerciseDB (instructions + gifUrl per exercise)",
+      "db": "Internal DB for exercises/workouts; ~unknown ORM (detect: Prisma/Knex/Mongo/etc.)"
+    },
+    "reported_symptoms": [
+      "Instructions align correctly with exercises.",
+      "GIFs are incorrect for nearly all exercises (systematic mismatch)."
+    ],
+    "goal": "Identify and fix the mapping between HealthPilot exercises and ExerciseDB GIF media so that each rendered card shows the correct GIF for its exercise, with robust type/contract checks and tests."
+  },
+  "inputs_required_from_user": {
+    "repo_paths": [
+      "src/features/workout/**",
+      "src/components/workout/**",
+      "src/services/exercises/**",
+      "src/api/**",
+      "src/shared/**"
+    ],
+    "logs": "Paste recent console/build/test logs if available",
+    "env_notes": "Node version, package manager, framework version",
+    "db_notes": "State ORM/DB if known; otherwise detect from repo",
+    "sample_data": "Export 20 representative exercise records (id, name, target/bodyPart/equipment, externalId if any)"
+  },
+  "debug_strategy": {
+    "overview_model": [
+      "Summarize intended UX in 5–7 bullets: program/day view → exercise list → each card shows: name, target/bodyPart, instructions (text), GIF (demo).",
+      "List the data flow and where GIF URLs come from (local cache? direct ExerciseDB field? proxy endpoint?)."
+    ],
+    "static_scan": [
+      "Trace mapping: Workout selection → Exercise entity → Media/GIF URL resolution path.",
+      "Verify TypeScript types for Exercise and Media. Look for any mismatch between 'id', 'externalId', 'exerciseId', 'slug', or index usage.",
+      "Check that React list keys use stable IDs (NOT array indices).",
+      "Search for places where the GIF is joined using array position or parallel arrays instead of a shared ID.",
+      "Check for field name differences: 'gifUrl' vs 'gifURL' vs 'image' (case/prop mismatch).",
+      "Inspect any memoization or caching layers (SWR/React Query keys): ensure keys include the exercise ID and filter params to avoid cache collisions."
+    ],
+    "runtime_scan": [
+      "For a single workout day, log the tuple for each row: { exercise.id, exercise.name, hp.externalId?, api.exerciseId?, api.name?, api.gifUrl } before render.",
+      "Detect ordering issues (async races): are GIF fetches returned in different order than the list and then naively zipped by index?",
+      "Check virtualization effects (e.g., react-window) reusing rows with stale GIF props due to missing 'key' or unstable memoization.",
+      "Confirm that when instructions are fetched and GIFs are fetched, both use the SAME lookup key (id/externalId) and not name fuzzy-matching alone."
+    ],
+    "db_interrogation": {
+      "checks": [
+        "Does HealthPilot store a canonical mapping to ExerciseDB? e.g., exercises.externalId (string) that equals ExerciseDB ID?",
+        "If not, is matching done by name? If name, confirm normalization steps (case, punctuation, hyphens, accents) and collision handling.",
+        "If multiple ExerciseDB results share similar names, ensure deterministic selection using additional fields (target, bodyPart, equipment)."
+      ],
+      "actions": [
+        "If externalId is missing: propose a one-time reconciliation script to resolve and persist externalId for each exercise using a deterministic resolver (see below)."
+      ]
+    },
+    "contracts_and_types": {
+      "ts_models": [
+        "type MuscleGroup = 'chest'|'back'|'legs'|'shoulders'|'arms'|'core'|'full'|string;",
+        "interface Exercise { id: string; name: string; target: string; bodyPart: string; equipment?: string; externalId?: string; slug?: string; }",
+        "interface ExerciseDBItem { id: string; name: string; bodyPart: string; target: string; equipment: string; gifUrl: string; }",
+        "interface ExerciseMedia { exerciseId: string; source: 'ExerciseDB'; url: string; width?: number; height?: number; }"
+      ],
+      "runtime_validation": "Create zod schemas for ExerciseDB responses. Validate 'gifUrl' presence and shape; if invalid, log structured error and fallback to placeholder."
+    },
+    "deterministic_resolver": {
+      "intent": "Resolve the correct ExerciseDB item for a HealthPilot exercise deterministically and idempotently.",
+      "deriveExternalId_function": [
+        "Inputs: { name, target, bodyPart, equipment } from HealthPilot.",
+        "Lookup: query ExerciseDB by name (or by preindexed catalog) to a candidate set.",
+        "Score candidates by: +2 exact name (case-insensitive), +1 normalized name match (strip punctuation), +2 exact target, +1 exact bodyPart, +1 exact equipment. Ties → pick most common/generic equipment; persist chosen 'id' as externalId.",
+        "Return: { externalId, gifUrl } from the chosen item."
+      ],
+      "tests": [
+        "Create 30–50 unit tests with known ambiguous names (e.g., 'row', 'fly', 'curl') ensuring tie-breaking picks correct target/bodyPart."
+      ]
+    },
+    "ui_wireup_fixes": [
+      "Ensure React list keys use exercise.id.",
+      "Ensure the GIF component receives props keyed by exercise.id or externalId; avoid index-based mapping.",
+      "If using SWR/React Query, compose key as ['exercise-media', exercise.id] or ['exercise-media', exercise.externalId].",
+      "Guard against stale closures when mapping responses to state; verify setState uses functional updates where needed."
+    ],
+    "fetching_and_cache": [
+      "Introduce a 'getExerciseMedia(exerciseId)' service that: (1) resolves externalId (from DB or resolver), (2) fetches ExerciseDB item (or reads from catalog cache), (3) returns a typed 'ExerciseMedia'.",
+      "Cache by externalId for session; invalidate when name/target/bodyPart changes.",
+      "Add a tiny TTL (e.g., hours) if API limits are a concern."
+    ],
+    "image_sanity_checks": [
+      "When a GIF URL is selected, also store the ExerciseDB 'name'. If the name differs drastically from the HP exercise name (e.g., Levenshtein distance > threshold and target/bodyPart mismatch), treat as mismatch and refetch candidates.",
+      "Optional: HEAD request (if infra allows) to validate URL is reachable; fallback to placeholder on failure."
+    ],
+    "patch_plan_output": "Produce a numbered list of exact file changes (path + before/after rationale) followed by full file replacements (no ellipses).",
+    "tests_required": [
+      "Unit: deriveExternalId/resolveMedia scorer; name normalization; cache key builder.",
+      "Integration (API): given HP exercise record, the service returns the expected ExerciseDB item and gifUrl.",
+      "UI smoke/e2e: render a workout with 10+ varied exercises; assert that each card’s GIF corresponds to the instruction’s exercise (by comparing ExerciseDB 'name' with HP 'name' and target/bodyPart)."
+    ],
+    "observability": [
+      "Add structured logs (server-side or dev-only) printing for 48h: exercise.id, HP name→resolved ExerciseDB name, externalId, gifUrl, matchScore.",
+      "Emit a 'mismatch' event when fallback occurs to measure real-world rate (should trend to ~0%)."
+    ],
+    "verification": [
+      "npm run lint → 0 errors",
+      "npm run typecheck → 0 errors",
+      "npm test → all pass",
+      "npm run build → succeeds",
+      "Manual: open a workout day with varied exercises; confirm each GIF visually matches the exercise; change sort/order and confirm no mis-binding (keys stable)."
+    ]
+  },
+  "common_root_causes_checklist": [
+    "❒ GIFs joined by array index instead of exercise ID/externalId.",
+    "❒ React list 'key' uses index → row reuse shows wrong GIF.",
+    "❒ Instructions fetched by ID, GIFs fetched by name-only fuzzy match without tie-breakers.",
+    "❒ SWR/React Query keys too generic → cache collisions return wrong media.",
+    "❒ Field mismatch ('gifUrl' vs 'gifURL' or from different API property).",
+    "❒ Parallel fetch race condition overwriting correct media with last-resolved item.",
+    "❒ Stale mapping persisted (legacy 'slug' vs new 'externalId') without migration."
+  ],
+  "decision_gate": {
+    "acceptance_criteria": [
+      "0 cache collisions in logs during manual test run.",
+      "≥ 98% correct GIF binding on a 100-exercise QA set (spot-checked by comparing HP name+target with ExerciseDB name+target).",
+      "No console errors during render and navigation.",
+      "Lint/typecheck/test/build all clean."
+    ],
+    "scoring": {
+      "stability": "0-5",
+      "correctness": "0-5",
+      "diff_churn": "0-5",
+      "confidence": "0-5",
+      "interpretation": {
+        "keep_and_merge": "Total ≥ 16 AND all acceptance criteria met",
+        "rebuild_recommended": "Total ≤ 15 OR any acceptance criteria not met"
+      }
+    },
+    "output": "Return KEEP_AND_MERGE or REBUILD_RECOMMENDED with a one-paragraph justification."
+  },
+  "deliverables": [
+    "Root cause report tied to code paths.",
+    "Patched code (full file replacements).",
+    "Deterministic resolver with tests.",
+    "Updated services/hooks for media fetching with typed contracts.",
+    "Observability logs and a short verification note with expected CLI outputs.",
+    "Decision verdict per gate."
+  ],
+  "migration_plan_if_needed": {
+    "script": "Create a one-off script to backfill exercises.externalId by running the deterministic resolver and persisting matches (dry-run mode first).",
+    "safety": "Log per-record decisions; allow manual overrides; idempotent reruns."
+  }
+}
