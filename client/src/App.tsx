@@ -27,6 +27,7 @@ import ReadinessSettings from "@/pages/ReadinessSettings";
 import FitnessProfile from "@/pages/FitnessProfile";
 import WorkoutSession from "@/pages/WorkoutSession";
 import AIInsights from "@/pages/AIInsights";
+import DailyInsights from "@/pages/DailyInsights";
 import Insights from "@/pages/Insights";
 import Goals from "@/pages/Goals";
 import Supplements from "@/pages/Supplements";
@@ -71,6 +72,7 @@ function Router() {
       <Route path="/workout/:id" component={WorkoutSession} />
       <Route path="/supplements" component={Supplements} />
       <Route path="/insights" component={AIInsights} />
+      <Route path="/daily-insights" component={DailyInsights} />
       <Route path="/data-insights" component={Insights} />
       <Route path="/goals" component={Goals} />
       <Route path="/biological-age" component={BiologicalAge} />
@@ -120,6 +122,7 @@ function AppLayout() {
     "/training": "Training",
     "/supplements": "Supplement Stack",
     "/insights": "AI Insights",
+    "/daily-insights": "Daily Health Insights",
     "/data-insights": "Data Insights",
     "/goals": "Health Goals",
     "/biological-age": "Biological Age",
