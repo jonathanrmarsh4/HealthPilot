@@ -5,8 +5,157 @@
  * Timezone: Australia/Perth
  */
 
-import { MealRecommenderService } from './meal-recommender';
-import type { UserProfile, MealCandidate, FeedbackEvent, RecommendationContext, RecommendationResponse } from './meal-recommender';
+import { MealRecommenderService } from './meal-recommender.js';
+
+// Type definitions (copied from meal-recommender.ts)
+interface UserProfile {
+  userId: string;
+  age?: number;
+  sex?: "male" | "female" | "other" | "unspecified";
+  heightCm?: number;
+  weightKg?: number;
+  goals: string[];
+  dietaryPattern: string[];
+  allergies: string[];
+  intolerances: string[];
+  culturalEthics: string[];
+  biomarkers: {
+    ldlMgDl?: number;
+    hdlMgDl?: number;
+    tgMgDl?: number;
+    hba1cPct?: number;
+    fastingGlucoseMgDl?: number;
+    bpSystolic?: number;
+    bpDiastolic?: number;
+    ckdStage?: number;
+  };
+  healthkit?: {
+    tdeeKcal?: number;
+    recentActivity?: {
+      steps7dAvg?: number;
+      vo2maxMlKgMin?: number;
+    };
+    weightTrend30d?: number;
+  };
+  calorieTargetKcal?: number;
+  macroTargets?: {
+    proteinG?: number;
+    carbsG?: number;
+    fatG?: number;
+    fiberG?: number;
+    sodiumMg?: number;
+  };
+  tastePreferences?: {
+    likedTags?: string[];
+    dislikedTags?: string[];
+    likedIngredients?: string[];
+    dislikedIngredients?: string[];
+  };
+  banditState?: {
+    lastUpdated: Date;
+    arms: Record<string, { alpha: number; beta: number }>;
+  };
+}
+
+interface MealCandidate {
+  mealId: string;
+  title: string;
+  mealSlot: string[];
+  serving: {
+    kcal: number;
+    proteinG: number;
+    carbsG: number;
+    fatG: number;
+    fiberG?: number;
+    sodiumMg?: number;
+  };
+  tags: string[];
+  cuisine: string;
+  ingredients: string[];
+  allergens: string[];
+  prepTimeMin: number;
+  imageUrl?: string;
+  sourceUrl?: string;
+  thirdPartyId?: string;
+  sourceData?: any;
+}
+
+interface RecommendationContext {
+  requestId: string;
+  timezone: string;
+  mealSlot: "breakfast" | "lunch" | "dinner" | "snack";
+  dayPlanMacrosRemaining?: {
+    kcal?: number;
+    proteinG?: number;
+    carbsG?: number;
+    fatG?: number;
+    sodiumMg?: number;
+  };
+  maxResults: number;
+  diversityStrength: number;
+  explorationStrength: number;
+  allowSubstitutions: boolean;
+}
+
+interface FeedbackEvent {
+  userId: string;
+  mealId: string;
+  timestamp: Date;
+  signal: "like" | "dislike" | "saved" | "completed";
+  strength: number;
+}
+
+interface FilteredOutCounts {
+  allergyConflict: number;
+  intoleranceConflict: number;
+  dietaryPatternConflict: number;
+  biomarkerRuleConflict: number;
+  macroOverflowConflict: number;
+  slotMismatch: number;
+  duplicates: number;
+  other: number;
+}
+
+interface MealRecommendation {
+  mealId: string;
+  score: number;
+  reasons: string[];
+  adjustments: {
+    portionMultiplier: number;
+    substitutions: Array<{
+      from: string;
+      to: string;
+      reason: string;
+    }>;
+  };
+}
+
+interface RecommendationResponse {
+  version: string;
+  requestId: string;
+  filteredOutCounts: FilteredOutCounts;
+  recommendations: MealRecommendation[];
+  fallback: {
+    invoked: boolean;
+    reason: string;
+    suggestions: string[];
+  };
+  banditUpdates: {
+    applied: boolean;
+    arms: Record<string, { alpha: number; beta: number }>;
+  };
+  audit: {
+    rulesApplied: string[];
+    scoringWeights: {
+      goalAlignment: number;
+      macroFit: number;
+      tasteMatch: number;
+      diversityBonus: number;
+      explorationBonus: number;
+      prepTimeBonus: number;
+    };
+  };
+}
 
 // Test configuration constants
 const TEST_SEED = 'HP_DEMO_2025_10_21';
@@ -104,6 +253,10 @@ const testUsers: Record<string, UserProfile> = {
     allergies: [],
     intolerances: [],
     culturalEthics: [],
+    biomarkers: {
+      bpSystolic: 118,
+      bpDiastolic: 75
+    },
     calorieTargetKcal: 900,
     macroTargets: {
       proteinG: 80,
@@ -137,6 +290,10 @@ const testUsers: Record<string, UserProfile> = {
     allergies: ['tree_nut'],
     intolerances: [],
     culturalEthics: ['no_animal_products'],
+    biomarkers: {
+      bpSystolic: 115,
+      bpDiastolic: 72
+    },
     calorieTargetKcal: 650,
     macroTargets: {
       proteinG: 40,
@@ -171,6 +328,10 @@ const testUsers: Record<string, UserProfile> = {
     allergies: [],
     intolerances: [],
     culturalEthics: ['kosher', 'no_pork', 'no_shellfish'],
+    biomarkers: {
+      bpSystolic: 120,
+      bpDiastolic: 80
+    },
     calorieTargetKcal: 700,
     macroTargets: {
       proteinG: 45,
@@ -555,12 +716,22 @@ class ConformanceTestRunner {
   private conformanceResults: Map<string, boolean> = new Map();
   
   constructor() {
-    // Mock storage for testing
+    // Mock storage for testing with all required methods
     const mockStorage: any = {
       getUserMealFeedback: async () => [],
       getMealFeedback: async () => [],
       updateMealPerformance: async () => {},
-      createMealFeedback: async () => ({})
+      createMealFeedback: async () => ({}),
+      saveMealRecommendationHistory: async () => ({}),
+      getUserPreferences: async () => null,
+      getUser: async () => ({
+        id: 'test-user',
+        email: 'test@example.com',
+        role: 'user',
+        subscriptionTier: 'premium'
+      }),
+      getBiomarkers: async () => [],
+      getNutritionProfile: async () => null
     };
     this.recommender = new MealRecommenderService(mockStorage);
   }
@@ -1129,6 +1300,4 @@ export async function runConformanceTests() {
 }
 
 // Run if executed directly
-if (require.main === module) {
-  runConformanceTests().catch(console.error);
-}
+runConformanceTests().catch(console.error);
