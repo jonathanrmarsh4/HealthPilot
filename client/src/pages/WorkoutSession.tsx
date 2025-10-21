@@ -157,19 +157,67 @@ function SortableExerciseCard({
   // Local state for input values (for responsive typing)
   const [localValues, setLocalValues] = useState<Map<string, { weight: string; reps: string; distance: string; duration: string }>>(new Map());
 
-  // Initialize local values when sets change
+  // Initialize local values when sets change (sync with database)
   useEffect(() => {
-    const newValues = new Map<string, { weight: string; reps: string; distance: string; duration: string }>();
-    exerciseSets.forEach(set => {
-      newValues.set(set.id, {
-        weight: set.weight !== null && set.weight !== undefined ? set.weight.toString() : '',
-        reps: set.reps !== null && set.reps !== undefined ? set.reps.toString() : '',
-        distance: set.distance !== null && set.distance !== undefined ? set.distance.toString() : '',
-        duration: set.duration !== null && set.duration !== undefined ? (set.duration / 60).toString() : '' // Convert seconds to minutes with decimals
+    setLocalValues(prev => {
+      const newValues = new Map(prev);
+      
+      exerciseSets.forEach(set => {
+        const existing = newValues.get(set.id);
+        const dbWeight = set.weight !== null && set.weight !== undefined && set.weight > 0 ? set.weight.toString() : '';
+        const dbReps = set.reps !== null && set.reps !== undefined ? set.reps.toString() : '';
+        const dbDistance = set.distance !== null && set.distance !== undefined ? set.distance.toString() : '';
+        const dbDuration = set.duration !== null && set.duration !== undefined ? (set.duration / 60).toString() : '';
+        
+        if (!existing) {
+          // Initialize new sets with database values
+          newValues.set(set.id, {
+            weight: dbWeight,
+            reps: dbReps,
+            distance: dbDistance,
+            duration: dbDuration,
+          });
+        } else {
+          // For existing sets, sync database values but preserve user's unsaved changes
+          // Special case: if DB weight is null/0 and we had a value, clear it (BW toggle)
+          const shouldClearWeight = (set.weight === null || set.weight === 0) && existing.weight !== '';
+          
+          newValues.set(set.id, {
+            weight: shouldClearWeight ? '' : (dbWeight || existing.weight),
+            reps: dbReps || existing.reps,
+            distance: dbDistance || existing.distance,
+            duration: dbDuration || existing.duration,
+          });
+        }
       });
+      
+      return newValues;
     });
-    setLocalValues(newValues);
-  }, [exerciseSets]);
+  }, [exerciseSets, exercise.trackingType]);
+  
+  // Prepopulate empty weight fields with progressive overload suggestions (runs separately)
+  useEffect(() => {
+    if (!progressiveSuggestion?.suggestedWeight || exercise.trackingType !== 'weight_reps') return;
+    
+    setLocalValues(prev => {
+      const newValues = new Map(prev);
+      let hasChanges = false;
+      
+      exerciseSets.forEach(set => {
+        const existing = newValues.get(set.id);
+        // Only prepopulate if: (1) set exists in map, (2) has no weight value, (3) is incomplete
+        if (existing && existing.weight === '' && set.completed === 0) {
+          newValues.set(set.id, {
+            ...existing,
+            weight: progressiveSuggestion.suggestedWeight.toString(),
+          });
+          hasChanges = true;
+        }
+      });
+      
+      return hasChanges ? newValues : prev;
+    });
+  }, [progressiveSuggestion, exercise.trackingType, exerciseSets]);
 
   const getLocalValue = (setId: string, field: 'weight' | 'reps' | 'distance' | 'duration') => {
     return localValues.get(setId)?.[field] ?? '';
@@ -246,18 +294,29 @@ function SortableExerciseCard({
               {exercise.muscles.slice(0, 2).join(", ")} • {exercise.equipment}
             </p>
             
-            {/* Progressive Overload Suggestion - Compact - Only show when expanded */}
-            {isExpanded && progressiveSuggestion?.lastWeight !== null && progressiveSuggestion && (
+            {/* Progressive Overload Suggestion - Compact - Only show when expanded and suggestion exists */}
+            {isExpanded && progressiveSuggestion?.suggestedWeight !== null && (
               <div className="mt-2 flex items-center gap-1.5 text-xs" data-testid={`suggestion-${exerciseIndex}`}>
                 <TrendingUp className="h-3.5 w-3.5 text-primary flex-shrink-0" />
-                <span className="text-muted-foreground">Last:</span>
-                <span className="font-medium">
-                  {progressiveSuggestion.lastWeight}kg × {progressiveSuggestion.lastReps}
-                </span>
-                {progressiveSuggestion.suggestedWeight !== progressiveSuggestion.lastWeight && (
-                  <span className="text-primary font-semibold">
-                    → {progressiveSuggestion.suggestedWeight}kg
-                  </span>
+                {progressiveSuggestion.lastWeight !== null ? (
+                  <>
+                    <span className="text-muted-foreground">Last:</span>
+                    <span className="font-medium">
+                      {progressiveSuggestion.lastWeight}kg × {progressiveSuggestion.lastReps}
+                    </span>
+                    {progressiveSuggestion.suggestedWeight !== progressiveSuggestion.lastWeight && (
+                      <span className="text-primary font-semibold">
+                        → {progressiveSuggestion.suggestedWeight}kg
+                      </span>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <span className="text-muted-foreground">Suggested:</span>
+                    <span className="text-primary font-semibold">
+                      {progressiveSuggestion.suggestedWeight}kg
+                    </span>
+                  </>
                 )}
               </div>
             )}
@@ -577,9 +636,8 @@ export default function WorkoutSession() {
     }
   }, [exercises]);
 
-  // Store progressive overload suggestions and track auto-populated sets
+  // Store progressive overload suggestions
   const [progressiveSuggestions, setProgressiveSuggestions] = useState<Map<string, ProgressiveOverloadSuggestion>>(new Map());
-  const [autoPopulatedSetIds, setAutoPopulatedSetIds] = useState<Set<string>>(new Set());
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
 
   // Fetch progressive overload suggestions for all exercises
@@ -618,51 +676,6 @@ export default function WorkoutSession() {
     fetchSuggestions();
   }, [exercises]);
 
-  // Auto-populate weight and reps from progressive overload suggestions (per-set tracking)
-  useEffect(() => {
-    if (!sets.length || !progressiveSuggestions.size) return;
-
-    const updatePromises: Promise<any>[] = [];
-    const newlyPopulatedIds: string[] = [];
-
-    sets.forEach((set) => {
-      // Skip if already auto-populated
-      if (autoPopulatedSetIds.has(set.id)) return;
-      
-      const suggestion = progressiveSuggestions.get(set.exerciseId);
-      if (!suggestion) return;
-
-      // Only auto-populate if the set is empty and not completed
-      if (set.completed === 0 && !set.weight && !set.reps) {
-        const updateData: Partial<ExerciseSet> = {};
-        
-        if (suggestion.suggestedWeight !== null) {
-          updateData.weight = suggestion.suggestedWeight;
-        }
-        if (suggestion.lastReps !== null) {
-          updateData.reps = suggestion.lastReps;
-        }
-
-        if (Object.keys(updateData).length > 0) {
-          newlyPopulatedIds.push(set.id);
-          updatePromises.push(
-            apiRequest("PATCH", `/api/exercise-sets/${set.id}`, updateData)
-          );
-        }
-      }
-    });
-
-    if (updatePromises.length > 0) {
-      Promise.all(updatePromises).then(() => {
-        setAutoPopulatedSetIds(prev => {
-          const updated = new Set(prev);
-          newlyPopulatedIds.forEach(id => updated.add(id));
-          return updated;
-        });
-        queryClient.invalidateQueries({ queryKey: ["/api/workout-sessions", sessionId, "sets"] });
-      });
-    }
-  }, [sets, progressiveSuggestions, autoPopulatedSetIds, sessionId]);
 
   // Timer for elapsed time
   useEffect(() => {
@@ -1071,6 +1084,7 @@ export default function WorkoutSession() {
                   handleAddSet={(exerciseId) => addSetMutation.mutate({ exerciseId })}
                   isExpanded={expandedExercises.has(exercise.id)}
                   onToggleExpand={() => toggleExpandExercise(exercise.id)}
+                  wasDragging={false}
                 />
               );
             })}
