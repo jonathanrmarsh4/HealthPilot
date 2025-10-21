@@ -61,10 +61,10 @@ export function MealSwipeView({ meals, onMealTap, onBackToCalendar }: MealSwipeV
   });
 
   const handleSwipeLeft = (meal: MealPlan) => {
-    // Left swipe = Permanent dislike (never show again)
+    // Left swipe = Session skip (temporary pass, might see again in future)
     feedbackMutation.mutate({
       mealPlanId: meal.id,
-      feedback: "permanent_dislike",
+      feedback: "session_skip",
       swipeDirection: "left",
       mealName: meal.name,
       mealType: selectedMealType,
@@ -78,10 +78,10 @@ export function MealSwipeView({ meals, onMealTap, onBackToCalendar }: MealSwipeV
   };
 
   const handleSwipeRight = (meal: MealPlan) => {
-    // Right swipe = Session skip (temporary pass, might see again in future)
+    // Right swipe = Permanent dislike (never show again)
     feedbackMutation.mutate({
       mealPlanId: meal.id,
-      feedback: "session_skip",
+      feedback: "permanent_dislike",
       swipeDirection: "right",
       mealName: meal.name,
       mealType: selectedMealType,
