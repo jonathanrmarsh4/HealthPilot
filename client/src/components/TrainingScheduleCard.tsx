@@ -258,11 +258,12 @@ export function TrainingScheduleCard({
           <div className="space-y-2">
             <div className="text-xs font-medium text-muted-foreground">Exercises</div>
             <div className="space-y-1">
+              {/* Use exercise.name as stable key to prevent React misbinding during re-renders */}
               {exercises.map((exercise, idx) => {
                 const muscleGroups = getExerciseMuscleGroups(exercise.name);
                 return (
                   <ExerciseItem 
-                    key={idx} 
+                    key={exercise.name} 
                     exercise={exercise} 
                     muscleGroups={muscleGroups} 
                     idx={idx}
