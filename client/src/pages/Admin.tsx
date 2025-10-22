@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Shield, Users, TrendingUp, FileText, Activity, Search, Trash2, ChefHat, Tag, ArrowRight, Layout, DollarSign } from "lucide-react";
+import { Shield, Users, TrendingUp, FileText, Activity, Search, Trash2, ChefHat, Tag, ArrowRight, Layout, DollarSign, Image } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { User } from "@shared/schema";
@@ -303,6 +303,28 @@ export default function Admin() {
         <CardContent>
           <p className="text-sm text-muted-foreground">
             Edit hero content, features, testimonials, pricing plans, social links, and SEO metadata
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card data-testid="card-media-review-link" className="hover-elevate cursor-pointer" onClick={() => setLocation("/admin/media-review")}>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Image className="w-6 h-6 text-primary" />
+              <div>
+                <CardTitle data-testid="text-media-review-link-title">Exercise Media Review</CardTitle>
+                <CardDescription data-testid="text-media-review-link-description">
+                  Review and approve exercise-to-GIF matches
+                </CardDescription>
+              </div>
+            </div>
+            <ArrowRight className="w-5 h-5 text-muted-foreground" />
+          </div>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            Manually review low-confidence exercise media matches, approve correct mappings, and improve the scoring algorithm through labeled data
           </p>
         </CardContent>
       </Card>
