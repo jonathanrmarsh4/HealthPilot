@@ -1,0 +1,70 @@
+{
+  "mode": "WORKOUT_BINDING_DIAG_AND_FIX",
+  "context": {
+    "product": "HealthPilot",
+    "feature": "Workout/Training module",
+    "symptom": "Clicking an exercise (e.g., Lat Pulldown) shows instructions + GIF for a different exercise. Instructions and GIF match each other, but not the exercise title."
+  },
+  "goal": "Eliminate row misbinding by (1) making all lookups id-keyed, (2) removing index-based joins, (3) hardening React Query keys and effects, (4) proving correctness with a minimal reproducible test and a debug overlay.",
+  "deliverables": [
+    "Refactor any parallel arrays/joins to id-keyed maps",
+    "Stable React keys and React Query keys (include exercise.id and externalId)",
+    "Safe effects (deps include exercise.id/externalId; no stale closures)",
+    "Server join order hardened (no index zip after async)",
+    "Debug overlay showing IDs at a glance",
+    "Regression tests (unit + UI smoke)"
+  ],
+  "patches": [
+    {
+      "title": "Enforce id-keyed dictionaries for instructions/media",
+      "path": "src/features/workout/state/useExerciseData.ts",
+      "content": "import { useMemo } from 'react';\nimport type { Exercise } from '@/domain/exercise';\n\nexport function useExerciseMaps(exercises: Exercise[]) {\n  return useMemo(() => {\n    const byId: Record<string, Exercise> = {};\n    for (const ex of exercises) byId[ex.id] = ex; // <— id-keyed source of truth\n    return { byId };\n  }, [exercises]);\n}\n"
+    },
+    {
+      "title": "Harden WorkoutDay list rendering (stable keys, no inline sort/filter)",
+      "path": "src/features/workout/pages/WorkoutDay.tsx",
+      "replace_file_content": "import { useEffect, useMemo } from 'react';\nimport { useQuery } from '@tanstack/react-query';\nimport { fetchWorkoutDay } from '@/features/workout/api/fetchWorkoutDay';\nimport { ExerciseCard } from '@/features/workout/components/ExerciseCard';\nimport { useExerciseMaps } from '@/features/workout/state/useExerciseData';\n\nexport default function WorkoutDayPage({ dayId }:{ dayId:string }){\n  const { data, isLoading, error } = useQuery({ queryKey:['workout-day', dayId], queryFn:()=>fetchWorkoutDay(dayId) });\n  useEffect(()=>{ if (error) console.error(error); },[error]);\n  if (isLoading) return <div>Loading…</div>;\n  if (!data) return <div>No workout found</div>;\n\n  const exercises = useMemo(()=> [...data.exercises], [data.exercises]); // DO NOT sort in render\n  const { byId } = useExerciseMaps(exercises);\n\n  return (\n    <div className=\"p-4 space-y-4\">\n      <h1 className=\"text-lg font-semibold\">{data.title}</h1>\n      <div className=\"grid md:grid-cols-2 gap-4\">\n        {exercises.map(ex => (\n          <ExerciseCard key={`${ex.id}-${ex.externalId ?? 'none'}`} exercise={byId[ex.id]} />\n        ))}\n      </div>\n    </div>\n  );\n}\n"
+    },
+    {
+      "title": "Harden ExerciseCard (cache keys + effects + debug overlay)",
+      "path": "src/features/workout/components/ExerciseCard.tsx",
+      "replace_file_content": "import { useQuery } from '@tanstack/react-query';\nimport type { Exercise } from '@/domain/exercise';\nimport { getMediaSafe } from '@/server/services/exerciseMedia/getMediaSafe';\n\nexport function ExerciseCard({ exercise }: { exercise: Exercise }){\n  // React Query: tie cache strictly to this exercise identity\n  const { data: media } = useQuery({\n    queryKey: ['exercise-media', exercise.id, exercise.externalId ?? null],\n    queryFn: () => getMediaSafe({\n      id: exercise.id,\n      name: exercise.name,\n      target: exercise.target,\n      bodyPart: exercise.bodyPart,\n      equipment: exercise.equipment ?? null,\n      externalId: exercise.externalId ?? null\n    }),\n    enabled: true,\n    keepPreviousData: false,\n    staleTime: 1000 * 60 * 60\n  });\n\n  return (\n    <div className=\"rounded-xl border p-3\">\n      {/* Debug ribbon (dev only) */}\n      {process.env.NODE_ENV !== 'production' && (\n        <div className=\"text-[10px] opacity-60 mb-1\">id:{exercise.id} ext:{exercise.externalId ?? '—'}</div>\n      )}\n\n      <div className=\"text-sm font-medium\">{exercise.name}</div>\n      <div className=\"text-xs text-neutral-600\">{exercise.bodyPart} • {exercise.target}{exercise.equipment?` • ${exercise.equipment}`:''}</div>\n      <ol className=\"list-decimal pl-5 mt-2 space-y-1\">\n        {exercise.instructions.map((s,i)=>(<li key={`${exercise.id}-inst-${i}`}>{s}</li>))}\n      </ol>\n      <div className=\"mt-2 aspect-video bg-neutral-100 rounded overflow-hidden grid place-items-center\">\n        {media?.url ? (\n          <img src={media.url} alt={`${exercise.name} demo`} className=\"w-full h-full object-contain\" loading=\"lazy\"/>\n        ) : (\n          <div className=\"text-xs text-neutral-500\">No demo</div>\n        )}\n      </div>\n    </div>\n  );\n}\n"
+    },
+    {
+      "title": "Guarantee media service is id-consistent and never index-joins",
+      "path": "src/server/services/exerciseMedia/getMediaSafe.ts",
+      "ensure_content_contains": [
+        "if (hp.externalId) {",
+        "return chosen.gifUrl ? { url: chosen.gifUrl, id: chosen.id, source: 'ExerciseDB' } : null;"
+      ],
+      "note": "Confirm the function never builds a result array and then zips by index. It should always return a single media object for the provided exercise id/externalId."
+    },
+    {
+      "title": "Fix any async zip on server (Promise.all with index join → map by id)",
+      "path": "src/server/handlers/workout/composeDay.ts",
+      "optional": true,
+      "content": "import type { Exercise } from '@/domain/exercise';\n\nexport async function composeWorkoutDay(day:any){\n  // Ensure we return exercises as-is; if we enrich, do it id-keyed\n  const exercises: Exercise[] = day.exercises;\n  const mediaById: Record<string, {url:string; id:string} | null> = {};\n  await Promise.all(exercises.map(async (ex) => {\n    mediaById[ex.id] = null; // initialise\n    // If you enrich server-side, always assign by ex.id here\n    // mediaById[ex.id] = await getMediaSafe(ex);\n  }));\n  return { ...day, exercises, mediaById }; // client can ignore mediaById if not used\n}\n"
+    },
+    {
+      "title": "UI smoke test to catch misbinding",
+      "path": "src/features/workout/__tests__/mismatch.smoke.test.tsx",
+      "content": "import { render, screen } from '@testing-library/react';\nimport React from 'react';\nimport { ExerciseCard } from '../components/ExerciseCard';\n\nconst mk = (id:string,name:string,ext?:string)=>({ id, name, target:'lats', bodyPart:'back', equipment:'cable', externalId: ext, instructions:['Step 1','Step 2'] });\n\ntest('title, instructions, and media scope to the same exercise id', ()=>{\n  const a = mk('id-A','Lat Pulldown','EXT_LAT');\n  const b = mk('id-B','Seated Row','EXT_ROW');\n  render(<>\n    <ExerciseCard exercise={a}/>\n    <ExerciseCard exercise={b}/>\n  </>);\n  expect(screen.getByText('Lat Pulldown')).toBeInTheDocument();\n  expect(screen.getByText('Seated Row')).toBeInTheDocument();\n});\n"
+    },
+    {
+      "title": "Dev-only overlay switch",
+      "path": "src/config/dev.ts",
+      "content": "export const DEV_DEBUG_OVERLAY = process.env.NODE_ENV !== 'production';\n"
+    }
+  ],
+  "safety_checks": [
+    "Search codebase for `key={i}` or `key: i` under workout paths; replace with `key={ex.id}` (or ex.id/externalId combo).",
+    "Search for `.map(async (...) => ...)` followed by index-based merges; replace with id-keyed assignment.",
+    "Ensure all React Query keys for exercise media include BOTH exercise.id and exercise.externalId."
+  ],
+  "acceptance": [
+    "Clicking any exercise shows its own instructions and its own media (no cross-bleed).",
+    "No index-based React keys remain in workout UI.",
+    "Tests pass; typecheck/lint/build clean."
+  ],
+  "output": "Return a patch plan and full file diffs for all touched files."
+}

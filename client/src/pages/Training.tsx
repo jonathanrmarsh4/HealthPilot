@@ -986,16 +986,17 @@ export default function Training() {
                     </div>
 
                     <div className="space-y-2">
+                      {/* Use exercise.name as stable key (not index) to prevent React from mismatching components during re-renders */}
                       {currentPlan.exercises.map((exercise, idx) => (
                         <div 
-                          key={idx} 
+                          key={exercise.name} 
                           className="p-2.5 rounded-lg border bg-card hover-elevate"
-                          data-testid={`exercise-${selectedPlan}-${idx}`}
+                          data-testid={`exercise-${selectedPlan}-${exercise.name.replace(/\s+/g, '-').toLowerCase()}`}
                         >
                           <div className="flex items-center justify-between gap-3">
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">
-                                <h4 className="font-medium text-sm truncate" data-testid={`text-exercise-name-${idx}`}>
+                                <h4 className="font-medium text-sm truncate" data-testid={`text-exercise-name-${exercise.name.replace(/\s+/g, '-').toLowerCase()}`}>
                                   {exercise.name}
                                 </h4>
                                 <Badge variant="secondary" className="text-xs shrink-0">
@@ -1004,12 +1005,12 @@ export default function Training() {
                               </div>
                               <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-2 flex-wrap">
                                 {exercise.sets && exercise.reps && (
-                                  <span data-testid={`text-exercise-sets-${idx}`}>
+                                  <span data-testid={`text-exercise-sets-${exercise.name.replace(/\s+/g, '-').toLowerCase()}`}>
                                     {exercise.sets} sets × {exercise.reps}
                                   </span>
                                 )}
                                 {exercise.duration && (
-                                  <span data-testid={`text-exercise-duration-${idx}`}>
+                                  <span data-testid={`text-exercise-duration-${exercise.name.replace(/\s+/g, '-').toLowerCase()}`}>
                                     {exercise.duration}
                                   </span>
                                 )}
@@ -1021,7 +1022,7 @@ export default function Training() {
                                 variant={exerciseFeedback[exercise.name] === 'up' ? 'default' : 'ghost'}
                                 onClick={() => handleExerciseFeedback(exercise.name, 'up')}
                                 className="h-7 w-7"
-                                data-testid={`button-feedback-up-${idx}`}
+                                data-testid={`button-feedback-up-${exercise.name.replace(/\s+/g, '-').toLowerCase()}`}
                               >
                                 <ThumbsUp className="h-3.5 w-3.5" />
                               </Button>
@@ -1030,7 +1031,7 @@ export default function Training() {
                                 variant={exerciseFeedback[exercise.name] === 'down' ? 'destructive' : 'ghost'}
                                 onClick={() => handleExerciseFeedback(exercise.name, 'down')}
                                 className="h-7 w-7"
-                                data-testid={`button-feedback-down-${idx}`}
+                                data-testid={`button-feedback-down-${exercise.name.replace(/\s+/g, '-').toLowerCase()}`}
                               >
                                 <ThumbsDown className="h-3.5 w-3.5" />
                               </Button>
