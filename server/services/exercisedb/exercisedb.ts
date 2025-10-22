@@ -265,10 +265,23 @@ export class ExerciseDBService {
   /**
    * Search for exercises by name (improved fuzzy matching)
    * Now queries from database instead of API
+   * 
+   * IMPORTANT: Respects EXERCISE_MEDIA_AUTOMAP_ENABLED flag
+   * - When flag is FALSE (baseline mode): Returns null (no fuzzy matching allowed)
+   * - When flag is TRUE (AI mode): Uses fuzzy matching algorithm
    */
   async searchExercisesByName(exerciseName: string): Promise<ExerciseDBExercise | null> {
     try {
-      console.log(`[ExerciseDB] Searching for exercise: "${exerciseName}"`);
+      // Import flags
+      const { canUseExerciseMediaAutomap } = await import('../../shared/config/flags');
+      
+      // Check if fuzzy matching is enabled
+      if (!canUseExerciseMediaAutomap()) {
+        console.log(`[ExerciseDB] Fuzzy matching disabled (EXERCISE_MEDIA_AUTOMAP_ENABLED=false). Returning null for name-based search: "${exerciseName}"`);
+        return null;
+      }
+      
+      console.log(`[ExerciseDB] Searching for exercise with fuzzy matching: "${exerciseName}"`);
       
       // Get all exercises from database
       const dbExercises = await storage.getAllExercisedbExercises();

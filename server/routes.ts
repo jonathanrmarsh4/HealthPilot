@@ -10392,8 +10392,8 @@ DATA AVAILABILITY:
     }
   });
 
-  // Sync all exercises from ExerciseDB API to database
-  app.post("/api/exercisedb/sync", isAuthenticated, async (req, res) => {
+  // Sync all exercises from ExerciseDB API to database (admin only)
+  app.post("/api/exercisedb/sync", isAdmin, async (req, res) => {
     try {
       const { exerciseDBService } = await import('./services/exercisedb/exercisedb');
       const result = await exerciseDBService.syncExercisesToDatabase();
