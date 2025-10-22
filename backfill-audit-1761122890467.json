@@ -1,0 +1,805 @@
+{
+  "timestamp": "2025-10-22T08:48:10.462Z",
+  "matcher": "SimpleMatcher",
+  "stats": {
+    "total": 88,
+    "corrected": 4,
+    "added": 1,
+    "unchanged": 0,
+    "noMatch": 83
+  },
+  "results": [
+    {
+      "exerciseId": "566f8b4f-dc47-4d6f-a4d2-c238dfb8f8a3",
+      "exerciseName": "Band Pull-Apart",
+      "oldExercisedbId": "0970",
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "f8c92bd6-8dda-4a1c-a307-3e504c9129b7",
+      "exerciseName": "Band-Assisted Chin-Ups",
+      "oldExercisedbId": "3672",
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "ex-6",
+      "exerciseName": "Barbell Back Squat",
+      "oldExercisedbId": "0033",
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "ex-7",
+      "exerciseName": "Barbell Bench Press",
+      "oldExercisedbId": "0032",
+      "newExercisedbId": "0025",
+      "newExercisedbName": "barbell bench press",
+      "confidence": "high",
+      "action": "corrected"
+    },
+    {
+      "exerciseId": "ex-8",
+      "exerciseName": "Barbell Deadlift",
+      "oldExercisedbId": "0034",
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "ex-3",
+      "exerciseName": "Bent-Over Dumbbell Rows",
+      "oldExercisedbId": "0123",
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "ex-15",
+      "exerciseName": "Bicep Curls",
+      "oldExercisedbId": "0293",
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "36fe6faa-01ee-4910-83ed-9a9385d03658",
+      "exerciseName": "Bird Dog (Core Stability)",
+      "oldExercisedbId": null,
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "1d50442f-5c80-4862-bb97-370d881cad81",
+      "exerciseName": "Bird Dog Exercise",
+      "oldExercisedbId": null,
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "ex-1",
+      "exerciseName": "Bodyweight Squats",
+      "oldExercisedbId": "3533",
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "fbada5b5-07d0-4dc8-ae9a-ce8c050ec8fe",
+      "exerciseName": "Breathing Exercises (Diaphragmatic Breathwork)",
+      "oldExercisedbId": null,
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "d9790d0c-24ac-44ca-abaf-37e241502955",
+      "exerciseName": "Brisk Walk",
+      "oldExercisedbId": "2612",
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "86ddb9da-5042-4f3b-a687-c73becd620ab",
+      "exerciseName": "Cable Face Pulls",
+      "oldExercisedbId": "0380",
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "da6124f9-86d8-4ec2-812b-dd73918548f3",
+      "exerciseName": "Cable Rotational Core Pulls",
+      "oldExercisedbId": "0150",
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "0a4b4059-64e7-4346-a88b-0d76f63f28ef",
+      "exerciseName": "Cat-Cow Mobility Flow",
+      "oldExercisedbId": "0501",
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "b5cbd2a1-bd52-49f2-a9bd-e53c07cb280d",
+      "exerciseName": "Cat-Cow Stretch",
+      "oldExercisedbId": null,
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "bd1ed366-980a-47da-8c70-d3b1ff761e44",
+      "exerciseName": "Chest Press with Dumbbells",
+      "oldExercisedbId": "0255",
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "24e9c207-4789-4a12-a3b0-720ce0d62b97",
+      "exerciseName": "Chest-Supported Row",
+      "oldExercisedbId": "0032",
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "e724c955-949f-4c36-9f55-d4d57d19885a",
+      "exerciseName": "Child's Pose",
+      "oldExercisedbId": null,
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "0e34835f-c4c1-4aca-9230-0a1cd2157617",
+      "exerciseName": "Core Strength Circuit",
+      "oldExercisedbId": null,
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "57b0fb8c-7fbd-41d3-afd1-4cfab012d033",
+      "exerciseName": "Deadbug Core Activation",
+      "oldExercisedbId": null,
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "89eeb4d4-c2d8-46c2-b018-3a79ec9e1a73",
+      "exerciseName": "Dumbbell Bench Press",
+      "oldExercisedbId": "0255",
+      "newExercisedbId": "0289",
+      "newExercisedbName": "dumbbell bench press",
+      "confidence": "high",
+      "action": "corrected"
+    },
+    {
+      "exerciseId": "ex-12",
+      "exerciseName": "Dumbbell Shoulder Press",
+      "oldExercisedbId": "1401",
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "e47dd62f-cb48-40ef-ac30-3fc8629ddd3e",
+      "exerciseName": "Dynamic Hamstring Stretch/Mobility Circuit",
+      "oldExercisedbId": null,
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "74506e9c-c6ea-4399-8313-85d1ea8ec351",
+      "exerciseName": "Dynamic Mobility Warm-Up",
+      "oldExercisedbId": null,
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "c3327134-9ef4-493d-a720-0ebfa67b8548",
+      "exerciseName": "Dynamic Stretching Series",
+      "oldExercisedbId": null,
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "2930c622-4352-4d4f-9a1a-3478484d2e91",
+      "exerciseName": "Farmer's Walks",
+      "oldExercisedbId": null,
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "9dcab60b-f271-4693-9434-bf737a009b4a",
+      "exerciseName": "Foam Roller Mobility - Full Body",
+      "oldExercisedbId": "0501",
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "d82b8151-72f7-48a2-9dbe-551ac43bd03b",
+      "exerciseName": "Foam Roller Thoracic Extension",
+      "oldExercisedbId": null,
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "c0d314fa-074b-4b37-87a0-39d0e58822c4",
+      "exerciseName": "Foam Rolling & Static Stretching",
+      "oldExercisedbId": null,
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "60a560e9-9777-47d4-a03a-e439c060fbe9",
+      "exerciseName": "Foam Rolling (choose large muscle groups)",
+      "oldExercisedbId": "2612",
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "4a3dcbd4-f747-439b-b726-980498f33c87",
+      "exerciseName": "Foam Rolling + Hip Mobility Drills",
+      "oldExercisedbId": null,
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "255509ec-c14f-4ef8-988d-a752d9e62907",
+      "exerciseName": "Foam rolling: quads, hamstrings, and upper back",
+      "oldExercisedbId": "0087",
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "38a0e088-384a-4d2d-be0b-7a2c714d9051",
+      "exerciseName": "Forward Lunges",
+      "oldExercisedbId": "0034",
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "a656522c-3259-4216-b762-24891a17bd2c",
+      "exerciseName": "Glute Bridges",
+      "oldExercisedbId": null,
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "cd4b4e04-0302-4b70-bb53-b996614fe6b3",
+      "exerciseName": "Goblet Squat (Light Weight)",
+      "oldExercisedbId": "0034",
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "445c1e53-c08c-4797-9e9c-fb20334cdb29",
+      "exerciseName": "Goblet Squats with Mobility Focus",
+      "oldExercisedbId": "0012",
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "c0cd667c-ec76-4f08-a154-1eb902c6d426",
+      "exerciseName": "Hip Bridge",
+      "oldExercisedbId": null,
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "6253a429-2d29-46a0-a808-95210084cc5e",
+      "exerciseName": "Hip Flexor Stretch",
+      "oldExercisedbId": null,
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "de1c6d82-6a1f-4625-9286-fae5b916cd48",
+      "exerciseName": "Hip Mobility Flow",
+      "oldExercisedbId": null,
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "fc3d0a5d-27b2-4301-8ade-6aa6d298078a",
+      "exerciseName": "Hip Thrust (Bodyweight or Light Resistance)",
+      "oldExercisedbId": null,
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "4c338a3c-781e-4336-8a36-5443593c6baf",
+      "exerciseName": "Incline Dumbbell Press",
+      "oldExercisedbId": "0255",
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "ex-2",
+      "exerciseName": "Incline Push-Ups",
+      "oldExercisedbId": "0663",
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "a466dc12-d615-4a82-8e03-c7398b61c445",
+      "exerciseName": "Kettlebell Deadlifts",
+      "oldExercisedbId": "0535",
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "8f0c35a3-d19a-4f98-97bf-6fddd103c4b9",
+      "exerciseName": "Kettlebell Swing",
+      "oldExercisedbId": null,
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "ex-13",
+      "exerciseName": "Lat Pulldown",
+      "oldExercisedbId": "0380",
+      "newExercisedbId": "0818",
+      "newExercisedbName": "twin handle parallel grip lat pulldown",
+      "confidence": "medium",
+      "action": "corrected"
+    },
+    {
+      "exerciseId": "ex-14",
+      "exerciseName": "Leg Press",
+      "oldExercisedbId": "0349",
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "7adad86f-9ba0-4f19-a871-c0148285e582",
+      "exerciseName": "Low Cable Row (Technique Focus)",
+      "oldExercisedbId": "0380",
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "8166bc97-8642-49f8-a268-b67e3a0656bd",
+      "exerciseName": "Machine Chest Press",
+      "oldExercisedbId": "0349",
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "446649d2-284d-47b9-937a-69439b30e047",
+      "exerciseName": "Mobility Stretching (focus on hips, shoulders, and hamstrings)",
+      "oldExercisedbId": null,
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "ex-9",
+      "exerciseName": "Overhead Press",
+      "oldExercisedbId": "0088",
+      "newExercisedbId": "0091",
+      "newExercisedbName": "barbell seated overhead press",
+      "confidence": "medium",
+      "action": "corrected"
+    },
+    {
+      "exerciseId": "75619f5d-9578-481f-8ca4-934b12896b5b",
+      "exerciseName": "Paloff Press (Cable or Band)",
+      "oldExercisedbId": "0151",
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "a993d460-46a5-4b0a-b484-2397c94a8220",
+      "exerciseName": "Plank (Core Stability)",
+      "oldExercisedbId": "0543",
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "58387392-1f16-47f4-9792-59d2ff376e85",
+      "exerciseName": "Plank (Elbows or Straight Arms)",
+      "oldExercisedbId": "0464",
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "21e2e422-c33c-4004-bf67-183d522ca3c8",
+      "exerciseName": "Plank (Forearm or Knee variation)",
+      "oldExercisedbId": "0543",
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "7d273a70-bb7c-43ff-a7df-512b3cea1238",
+      "exerciseName": "Plank (Knee Modified if Needed)",
+      "oldExercisedbId": "0543",
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "54f9cd85-350a-4e47-aee8-91ee449fa264",
+      "exerciseName": "Plank (Standard or Modified)",
+      "oldExercisedbId": "0464",
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "ex-4",
+      "exerciseName": "Plank Hold",
+      "oldExercisedbId": "0543",
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "0dd3fbdf-7d3f-42ba-a27e-fe29a14b989b",
+      "exerciseName": "Plank to Side Reach",
+      "oldExercisedbId": "0543",
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "a0ee2983-aa55-4932-8608-5e7a8e74d3c9",
+      "exerciseName": "Plank with Knee Drop",
+      "oldExercisedbId": "0543",
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "4bb08a72-085b-436c-a094-49f06197d374",
+      "exerciseName": "Plank with Reach",
+      "oldExercisedbId": "0464",
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "1427320e-d954-45f1-b707-b18db1d75289",
+      "exerciseName": "Plank with Shoulder Taps",
+      "oldExercisedbId": "0543",
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "a31e8d65-02b5-4d93-b69e-fde9298e72c7",
+      "exerciseName": "Plank with Thoracic Spine Rotation",
+      "oldExercisedbId": "0543",
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "ex-10",
+      "exerciseName": "Pull-Ups",
+      "oldExercisedbId": null,
+      "newExercisedbId": "3019",
+      "newExercisedbName": "bench pull-ups",
+      "confidence": "medium",
+      "action": "added"
+    },
+    {
+      "exerciseId": "fe36a8c8-378b-4893-898b-fd3edc4af63e",
+      "exerciseName": "Pull-throughs (Cable)",
+      "oldExercisedbId": "0380",
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "13b3254a-bce9-40f7-8216-03ee84d9894a",
+      "exerciseName": "Push-Up (Modified if needed)",
+      "oldExercisedbId": "0663",
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "7137b3b1-845d-44b8-b02a-87f0b076a105",
+      "exerciseName": "Push-Ups (Knee or Regular)",
+      "oldExercisedbId": "0663",
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "4856080a-5ce5-47d0-a598-3dc911c76782",
+      "exerciseName": "Quadruped Thoracic Rotations",
+      "oldExercisedbId": null,
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "ex-11",
+      "exerciseName": "Romanian Deadlift",
+      "oldExercisedbId": "0581",
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "9ce60549-7c81-45d5-a56a-5d44d9356fe3",
+      "exerciseName": "Seated Cable Rows",
+      "oldExercisedbId": "0890",
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "9196c968-0077-401c-9e53-e6e6c8be6d67",
+      "exerciseName": "Seated Hamstring Stretch",
+      "oldExercisedbId": null,
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "420bfb59-0174-4f6f-b4b8-a07264595eea",
+      "exerciseName": "Seated Row Machine",
+      "oldExercisedbId": null,
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "5dfef3dd-ca10-4ba2-9964-9d52315e0220",
+      "exerciseName": "Seated Row with Resistance Band",
+      "oldExercisedbId": null,
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "137f7cd7-26c8-4087-b682-8c55286d5586",
+      "exerciseName": "Seated Shoulder External Rotations",
+      "oldExercisedbId": "0088",
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "a17b3bca-490d-489a-bc35-356e1b57972c",
+      "exerciseName": "Seated Shoulder Press (Machine)",
+      "oldExercisedbId": "0349",
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "65ecf845-6f17-4fbe-b135-a0029c79629e",
+      "exerciseName": "Single-Arm Dumbbell Row",
+      "oldExercisedbId": "0123",
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "8cacbd95-85d8-424b-b389-ceef883e30e5",
+      "exerciseName": "Spiderman Stretch",
+      "oldExercisedbId": null,
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "5be8c406-0833-4679-9a8f-b94ccc968bba",
+      "exerciseName": "Static Stretching with Deep Breathing",
+      "oldExercisedbId": null,
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "5561c7ef-c6f5-4e53-9bd1-e2f394af57f8",
+      "exerciseName": "Step-Ups (Bodyweight)",
+      "oldExercisedbId": null,
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "300cddb3-d346-4a51-b1ad-8aba16408b00",
+      "exerciseName": "Superman Holds",
+      "oldExercisedbId": "2612",
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "ebefc63a-76f9-4478-a27c-6ae7f6d5e02c",
+      "exerciseName": "Swimming Session",
+      "oldExercisedbId": null,
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "8d70716e-dfb7-4c12-8cd3-86d74532aa0f",
+      "exerciseName": "TRX Rows",
+      "oldExercisedbId": "0087",
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "f825533a-1ebb-436f-935d-0d6e7c1c03eb",
+      "exerciseName": "Walking Lunges",
+      "oldExercisedbId": "0012",
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "59643abe-26d2-4790-b904-38a373757be7",
+      "exerciseName": "Walking or Steady-State Cardio (Zone 2)",
+      "oldExercisedbId": null,
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "c7719b97-9218-4db4-8340-dcef6771674c",
+      "exerciseName": "Wall Sit",
+      "oldExercisedbId": "3636",
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "61d352a1-f344-425f-acce-8f0f9f684d28",
+      "exerciseName": "Yoga or Mobility Flow",
+      "oldExercisedbId": null,
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "ad061c2a-cbc7-45ca-90e6-cb62f8df83ec",
+      "exerciseName": "Zone 2 Cardio (Cycling or Treadmill)",
+      "oldExercisedbId": null,
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    },
+    {
+      "exerciseId": "ex-5",
+      "exerciseName": "Zone 2 Cardio (light jogging or cycling)",
+      "oldExercisedbId": null,
+      "newExercisedbId": null,
+      "newExercisedbName": null,
+      "confidence": null,
+      "action": "no_match"
+    }
+  ]
+}

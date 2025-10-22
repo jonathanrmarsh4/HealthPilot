@@ -54,8 +54,12 @@ export async function resolveExternalId(
 async function resolveWithSimpleMatcher(
   exercise: ExerciseInput
 ): Promise<ResolveResult | null> {
-  // Search for candidates
-  const candidates = await storage.searchExercisedbCandidates(exercise.name);
+  // Search for candidates using structured filters (equipment, muscles, name)
+  const candidates = await storage.searchExercisedbCandidates({
+    name: exercise.name,
+    muscles: exercise.muscles,
+    equipment: exercise.equipment,
+  });
   
   if (candidates.length === 0) {
     console.warn(`[SimpleMatcher] No candidates found for "${exercise.name}"`);

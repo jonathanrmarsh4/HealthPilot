@@ -534,7 +534,12 @@ export interface IStorage {
   getAllExercisedbExercises(): Promise<ExercisedbExercise[]>;
   getExercisedbExerciseById(exerciseId: string): Promise<ExercisedbExercise | undefined>;
   searchExercisedbExercisesByName(name: string): Promise<ExercisedbExercise | null>;
-  searchExercisedbCandidates(name: string, limit?: number): Promise<ExercisedbExercise[]>;
+  searchExercisedbCandidates(filters: {
+    name?: string;
+    muscles?: string[];
+    equipment?: string;
+    limit?: number;
+  }): Promise<ExercisedbExercise[]>;
   bulkInsertExercisedbExercises(exercises: InsertExercisedbExercise[]): Promise<void>;
   clearExercisedbExercises(): Promise<void>;
   
@@ -4201,14 +4206,92 @@ export class DbStorage implements IStorage {
     return results[0] || null;
   }
   
-  async searchExercisedbCandidates(name: string, limit: number = 50): Promise<ExercisedbExercise[]> {
+  async searchExercisedbCandidates(filters: {
+    name?: string;
+    muscles?: string[];
+    equipment?: string;
+    limit?: number;
+  }): Promise<ExercisedbExercise[]> {
     // Return multiple candidates for deterministic scoring by SimpleMatcher
-    // Broad search: match any word in the name for maximum recall
-    const searchTerm = `%${name.toLowerCase()}%`;
+    // Strategy: Filter by structured data (equipment, muscles) first for better recall
+    const { name, muscles, equipment, limit = 100 } = filters;
+    
+    // Build WHERE conditions
+    const conditions: any[] = [];
+    
+    // Equipment filter (most specific, highest signal)
+    if (equipment) {
+      const equipmentMapping: Record<string, string[]> = {
+        'barbell': ['barbell'],
+        'dumbbell': ['dumbbell', 'dumbbells'],
+        'dumbbells': ['dumbbell', 'dumbbells'],
+        'cable': ['cable'],
+        'machine': ['leverage machine', 'sled machine', 'smith machine'],
+        'bodyweight': ['body weight'],
+        'kettlebell': ['kettlebell'],
+        'band': ['band', 'resistance band'],
+        'other': [],  // Don't filter by equipment for "other"
+      };
+      
+      const mappedEquipment = equipmentMapping[equipment.toLowerCase()] || [equipment];
+      if (mappedEquipment.length > 0) {
+        const equipmentConditions = mappedEquipment.map(eq => 
+          sql`LOWER(${exercisedbExercises.equipment}) = ${eq.toLowerCase()}`
+        );
+        conditions.push(sql`(${sql.join(equipmentConditions, sql` OR `)})`);
+      }
+    }
+    
+    // Muscle/target filter (medium signal)
+    if (muscles && muscles.length > 0) {
+      const targetMapping: Record<string, string[]> = {
+        'chest': ['pectorals'],
+        'back': ['lats', 'traps', 'upper back'],
+        'lats': ['lats'],
+        'shoulders': ['delts'],
+        'biceps': ['biceps'],
+        'triceps': ['triceps'],
+        'legs': ['quads', 'hamstrings', 'glutes', 'calves', 'adductors', 'abductors'],
+        'quadriceps': ['quads'],
+        'hamstrings': ['hamstrings'],
+        'glutes': ['glutes'],
+        'calves': ['calves'],
+        'abs': ['abs'],
+        'core': ['abs'],
+      };
+      
+      const allTargets = muscles.flatMap(m => targetMapping[m.toLowerCase()] || [m]);
+      if (allTargets.length > 0) {
+        const muscleConditions = allTargets.map(target =>
+          sql`LOWER(${exercisedbExercises.target}) = ${target.toLowerCase()}`
+        );
+        conditions.push(sql`(${sql.join(muscleConditions, sql` OR `)})`);
+      }
+    }
+    
+    // Name filter (lower signal, but still useful)
+    if (name) {
+      // Split name into words and search for any word
+      const words = name.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+      if (words.length > 0) {
+        const nameConditions = words.map(word =>
+          sql`LOWER(${exercisedbExercises.name}) LIKE ${'%' + word + '%'}`
+        );
+        conditions.push(sql`(${sql.join(nameConditions, sql` OR `)})`);
+      }
+    }
+    
+    // Execute query with filters
+    if (conditions.length === 0) {
+      // No filters - return empty to avoid returning all 1,300 exercises
+      return [];
+    }
+    
     const results = await db.select()
       .from(exercisedbExercises)
-      .where(sql`LOWER(${exercisedbExercises.name}) LIKE ${searchTerm}`)
+      .where(sql.join(conditions, sql` OR `))  // OR logic for maximum recall
       .limit(limit);
+    
     return results;
   }
   
