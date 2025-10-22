@@ -2003,6 +2003,14 @@ export class DbStorage implements IStorage {
     return result[0];
   }
 
+  async getGeneratedWorkoutById(id: string, userId: string): Promise<GeneratedWorkout | undefined> {
+    const result = await db
+      .select()
+      .from(generatedWorkouts)
+      .where(and(eq(generatedWorkouts.id, id), eq(generatedWorkouts.userId, userId)));
+    return result[0];
+  }
+
   async getGeneratedWorkouts(userId: string, startDate?: string, endDate?: string): Promise<GeneratedWorkout[]> {
     if (startDate && endDate) {
       return await db
@@ -2035,6 +2043,67 @@ export class DbStorage implements IStorage {
   }
 
   async acceptGeneratedWorkout(id: string, userId: string): Promise<void> {
+    // Get the generated workout by ID
+    const workout = await this.getGeneratedWorkoutById(id, userId);
+    if (!workout) {
+      throw new Error("Generated workout not found");
+    }
+
+    const workoutData = workout.workoutData;
+    
+    // Create a new workout session
+    const session = await this.createWorkoutSession({
+      userId,
+      workoutType: workoutData.focus || "AI Generated Training",
+      sessionType: "workout",
+      startTime: new Date(),
+      endTime: new Date(Date.now() + 60 * 60 * 1000), // 1 hour default
+      duration: 60,
+      sourceType: "ai_generated",
+      notes: `AI-Generated Workout: ${workoutData.focus}`,
+    });
+
+    // Helper to match exercise name to library
+    const matchExerciseByName = async (name: string) => {
+      const nameLower = name.toLowerCase();
+      const allExercises = await db.select().from(exercises);
+      
+      // Try exact match
+      let match = allExercises.find(ex => ex.name.toLowerCase() === nameLower);
+      if (match) return match;
+      
+      // Try partial match
+      match = allExercises.find(ex => {
+        const exNameLower = ex.name.toLowerCase();
+        return exNameLower.includes(nameLower) || nameLower.includes(exNameLower);
+      });
+      
+      return match;
+    };
+
+    // Add main exercises
+    for (const exercise of workoutData.main || []) {
+      const matched = await matchExerciseByName(exercise.exercise);
+      if (matched) {
+        // Create sets for this exercise
+        for (let i = 0; i < exercise.sets; i++) {
+          await this.addExerciseSet(session.id, matched.id, userId);
+        }
+      }
+    }
+
+    // Add accessory exercises
+    for (const exercise of workoutData.accessories || []) {
+      const matched = await matchExerciseByName(exercise.exercise);
+      if (matched) {
+        // Create sets for this exercise
+        for (let i = 0; i < exercise.sets; i++) {
+          await this.addExerciseSet(session.id, matched.id, userId);
+        }
+      }
+    }
+
+    // Update the generated workout status
     await db
       .update(generatedWorkouts)
       .set({ status: 'accepted', acceptedAt: new Date() })

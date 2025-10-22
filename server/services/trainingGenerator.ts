@@ -148,9 +148,9 @@ export async function buildUserContext(storage: IStorage, userId: string, target
   // Calculate sleep score (0-100)
   let sleepScore = 75; // default
   if (latestSleep) {
-    const duration = latestSleep.duration || 420; // in minutes
-    const quality = latestSleep.quality || 0.7;
-    sleepScore = Math.min(100, (duration / 480) * quality * 100);
+    const duration = latestSleep.totalMinutes || 420; // in minutes
+    const quality = latestSleep.sleepScore || 75;
+    sleepScore = quality; // Use the sleep score directly
   }
 
   // Determine recovery state
@@ -221,7 +221,7 @@ export async function buildUserContext(storage: IStorage, userId: string, target
     sleep_score: Math.round(sleepScore),
     recovery_state: recoveryState,
     hrv_status: hrvStatus,
-    readiness_notes: latestReadiness?.notes || ""
+    readiness_notes: latestReadiness?.reasoning || ""
   };
 
   return {
@@ -251,6 +251,7 @@ Guardrails:
 - Weekly volume: 8-20 sets per muscle group
 - Session time caps: beginner 45min, intermediate 60min, advanced 75min
 - HR Zones: HRmax = 208 - 0.7*age, Z2 = 60-70% HRmax, Z3 = 70-80% HRmax
+- REQUIRED: Include 3-4 main compound exercises and 2-4 accessory exercises per session
 
 Safety Rules:
 - If contraindications or red flags detected: set safety.flag=true
@@ -343,9 +344,6 @@ REQUIRED OUTPUT SCHEMA (return this exact structure at the root level):
 
   const content = response.choices[0].message?.content ?? "{}";
   const parsed = JSON.parse(content);
-  
-  // Debug: Log the AI response to see its structure
-  console.log("🤖 AI Response Structure:", JSON.stringify(parsed, null, 2));
 
   // Validate output structure & guardrails
   const result = DailyWorkoutSchema.parse(parsed);
@@ -355,7 +353,7 @@ REQUIRED OUTPUT SCHEMA (return this exact structure at the root level):
     (a: number, b: number) => a + b,
     0
   );
-  if (totalSets > 25) {
+  if (totalSets > 35) {
     throw new Error(`Unsafe volume (${totalSets} sets). Regenerate session.`);
   }
 
