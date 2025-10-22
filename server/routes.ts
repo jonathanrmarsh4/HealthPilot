@@ -1571,6 +1571,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get exercise import statistics
+  app.get("/api/admin/exercises/import-stats", isAdmin, async (req, res) => {
+    try {
+      const { getImportStats } = await import('./services/exercises/bulkImportFromExerciseDb');
+      const stats = await getImportStats();
+      res.json(stats);
+    } catch (error: any) {
+      console.error("Error fetching import stats:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Bulk import exercises from ExerciseDB
+  app.post("/api/admin/exercises/bulk-import", isAdmin, async (req, res) => {
+    try {
+      const { bulkImportFromExerciseDb } = await import('./services/exercises/bulkImportFromExerciseDb');
+      const { dryRun = false, skipExisting = true } = req.body;
+      
+      console.log(`[API] Starting bulk import (dryRun: ${dryRun}, skipExisting: ${skipExisting})`);
+      
+      const result = await bulkImportFromExerciseDb({ dryRun, skipExisting });
+      
+      res.json(result);
+    } catch (error: any) {
+      console.error("Error during bulk import:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.post("/api/admin/meal-library/backfill-nutrition", isAdmin, async (req, res) => {
     try {
       console.log('🔄 Starting nutrition backfill for meal library...');
