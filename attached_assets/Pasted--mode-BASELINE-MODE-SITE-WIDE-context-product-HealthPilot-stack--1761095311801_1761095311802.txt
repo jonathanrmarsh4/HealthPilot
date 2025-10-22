@@ -1,0 +1,151 @@
+{
+  "mode": "BASELINE_MODE_SITE_WIDE",
+  "context": {
+    "product": "HealthPilot",
+    "stack": {
+      "language": "TypeScript",
+      "frontend": "React (Vite or Next.js, detect from repo)",
+      "state": "Local React state + light data fetching (SWR/React Query if present)",
+      "platform": "Web now; iOS later via CapacitorJS wrapper",
+      "db_orm": "Detect from repo (Prisma/Knex/Mongo/etc.)"
+    },
+    "goal": "Disable ALL AI/ML selection and filtering logic across Meals and Workouts. Provide a deterministic, testable, catalog-like baseline that proves core functionality (query → paginate → render) before reintroducing algorithms behind feature flags."
+  },
+  "scope": {
+    "features": [
+      "Meal Planner (browse, category tabs, pagination, meal detail)",
+      "Workout Planner (exercise list, instructions, media placeholders)",
+      "Any shared filtering/ranking utilities used by these"
+    ],
+    "site_wide_effects": "No AI-based filtering or ranking anywhere; simple deterministic behavior only."
+  },
+  "feature_flags": {
+    "flags": [
+      { "name": "BASELINE_MODE_ENABLED", "default": true, "level": "site" },
+      { "name": "AI_MEAL_FILTERS_ENABLED", "default": false, "level": "site" },
+      { "name": "AI_MEAL_RANKING_ENABLED", "default": false, "level": "site" },
+      { "name": "MEAL_GOAL_FILTER_ENABLED", "default": false, "level": "site" },
+      { "name": "MEAL_PREFERENCE_WEIGHTING_ENABLED", "default": false, "level": "user" },
+      { "name": "BIOMARKER_FILTER_ENABLED", "default": false, "level": "site" },
+      { "name": "AI_WORKOUT_SELECTION_ENABLED", "default": false, "level": "site" },
+      { "name": "EXERCISE_MEDIA_AUTOMAP_ENABLED", "default": false, "level": "site" }
+    ],
+    "implementation": "Provide env-driven toggles (e.g., .env, process.env) and a tiny config module `src/config/flags.ts` with typed getters. All calling sites must reference flags, not env directly."
+  },
+  "baseline_requirements": {
+    "meals": {
+      "query": "Return ALL active meals with strict pagination. Do NOT apply AI/ML or user-preference logic.",
+      "filters": "Only deterministic user-selected filters allowed when BASELINE_MODE_ENABLED=true: mealType, simple tag (e.g., 'vegetarian'). Disable composite/goal/biomarker filters.",
+      "sort": "Deterministic: popularityScore DESC, createdAt DESC (fallback to createdAt DESC). No randomization.",
+      "category_mapping": "Use canonical `meal.mealType` only. Do not infer from tags or title when baseline mode is on.",
+      "response_contract": "{ items: Meal[], page: number, total: number, totalPages: number }"
+    },
+    "workouts": {
+      "selection": "Return the planned set without AI substitution/augmentation.",
+      "instructions": "Show existing instructions if present; do not fetch alternates by model.",
+      "media": "If a trusted externalId exists → fetch GIF by ID; else show placeholder. Do NOT do name-based auto-mapping when EXERCISE_MEDIA_AUTOMAP_ENABLED=false."
+    },
+    "ui": {
+      "pagination": "Visible and functional; page size default 24 for meals; keep existing for workouts.",
+      "empty_states": "Only show when API returns total=0. Never due to hidden filters.",
+      "loading/errors": "Standard spinners and typed error boundaries."
+    }
+  },
+  "data_contracts": {
+    "types": {
+      "Meal": "id, title, mealType ('breakfast'|'lunch'|'dinner'|'snack'), tags[], macros{calories,protein,carbs,fat}, ingredients[], instructions[], imageUrl?, isActive:boolean, popularityScore?, createdAt, updatedAt",
+      "Exercise": "id, name, target, bodyPart, equipment?, externalId?, instructions[]?"
+    },
+    "validation": "Add zod schemas for API responses. Invalid records are skipped individually with a structured warning; never drop whole pages."
+  },
+  "code_tasks": [
+    "1) Create `src/config/flags.ts` with typed getters and .env wiring. Add unit tests for truth table.",
+    "2) Meals API: implement `/api/meals` (or equivalent) to ignore AI/ML filters when BASELINE_MODE_ENABLED=true. Accept {page,limit,mealType?,tag?}. Return total + totalPages.",
+    "3) Meals UI: ensure category tabs map strictly to mealType; verify pagination (>=24 items when available); remove any AI-driven ranking or preference blending.",
+    "4) Workout UI: remove AI substitution; use existing list; media only by externalId (ID-only path). Show placeholder otherwise.",
+    "5) Remove or bypass all AI/ML pipes when flags are off: goal filters, biomarker filters, user preference weighting, similarity search, randomization.",
+    "6) Add lightweight telemetry (see below).",
+    "7) Add tests (see below).",
+    "8) Add a README section: Baseline Mode toggles and how to re-enable layer-by-layer."
+  ],
+  "telemetry": {
+    "schema": {
+      "MealBaselineEvent": "{ ts, page, limit, filters:{mealType?,tag?}, returnedCount, total, totalPages }",
+      "WorkoutBaselineEvent": "{ ts, workoutId, exerciseCount, withMediaCount }"
+    },
+    "implementation": "Log to console in dev and to a lightweight server endpoint in staging (JSONL/DB). Sample rate 1.0 for 7 days, then 0.1."
+  },
+  "tests": {
+    "unit": [
+      "flags: combinations ensure BASELINE_MODE overrides AI flags",
+      "mealType guard: category tabs only use meal.mealType",
+      "api contract: zod schemas for Meal and API response"
+    ],
+    "integration_api": [
+      "GET /api/meals?page=0&limit=24 (no filters) → expect >= 24 when DB has it",
+      "GET /api/meals?mealType=breakfast → non-zero if DB has breakfast",
+      "Ensure AI params are ignored while BASELINE_MODE_ENABLED=true"
+    ],
+    "ui_smoke": [
+      "Meals grid renders > 6 cards per category when DB has data",
+      "Pagination next/prev works; no console errors",
+      "Workout day renders list; GIFs only for exercises with externalId"
+    ]
+  },
+  "acceptance_criteria": [
+    "All tests pass (unit+integration+UI smoke).",
+    "Build, lint, and typecheck are clean.",
+    "Default meals browse (no filters) returns a full page (≥24) when DB has enough active rows.",
+    "Each category tab shows items when DB has them; no empty results caused by hidden filters.",
+    "Workout views show stable lists; no incorrect GIFs (placeholders allowed).",
+    "Telemetry shows stable counts and page totals with no unexplained drops."
+  ],
+  "non_goals_now": [
+    "No goal-based filtering",
+    "No biomarker-based filtering",
+    "No like/dislike preference weighting",
+    "No AI/ML ranking or randomization",
+    "No auto-mapping of exercise media by name"
+  ],
+  "deliverables": [
+    "PR with feature flags and baseline wiring",
+    "Meals API and UI patches (full files, no ellipses)",
+    "Workout UI/media patches",
+    "zod schemas and tests",
+    "Telemetry endpoint + README instructions",
+    "Verification note with CLI commands and expected outputs"
+  ],
+  "rollout_plan": [
+    "Stage 1 (staging): Enable BASELINE_MODE_ENABLED=true; verify acceptance criteria against real DB.",
+    "Stage 2 (prod canary): 10% traffic for 24h; monitor telemetry; compare meals returned vs historical.",
+    "Stage 3 (prod full): 100% rollout.",
+    "Freeze this state as 'Functional Gold Version' tag."
+  ],
+  "post_baseline_reintroduction": {
+    "order": [
+      "1) MEAL_GOAL_FILTER_ENABLED",
+      "2) MEAL_PREFERENCE_WEIGHTING_ENABLED",
+      "3) BIOMARKER_FILTER_ENABLED",
+      "4) AI_MEAL_FILTERS_ENABLED",
+      "5) AI_MEAL_RANKING_ENABLED",
+      "6) AI_WORKOUT_SELECTION_ENABLED",
+      "7) EXERCISE_MEDIA_AUTOMAP_ENABLED"
+    ],
+    "rule": "Re-enable ONE flag at a time; add tests + telemetry deltas; roll back if acceptance criteria degrade."
+  },
+  "cli": {
+    "lint": "npm run lint || pnpm lint || yarn lint",
+    "typecheck": "npm run typecheck || tsc --noEmit",
+    "test": "npm test -- --watch=false",
+    "build": "npm run build"
+  },
+  "verification_checklist": [
+    "Run lint/typecheck/test/build → all clean",
+    "Browse meals with no filters: see ≥24 cards, correct totals",
+    "Click breakfast/lunch/dinner: items appear; categories correct",
+    "Paginate forward/backward with stable counts",
+    "Open a workout: list renders; GIFs only when externalId exists",
+    "Telemetry events visible with expected totals"
+  ],
+  "output": "Return a patch plan (file paths + before/after rationale) and full updated files; include test files and README snippet for flags."
+}
