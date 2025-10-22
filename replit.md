@@ -51,6 +51,7 @@ I prefer simple language and clear explanations. I want iterative development wh
 - **Mobile Scrolling Optimization:** Improvements for mobile/tablet scrolling in admin interfaces.
 - **Unified Insights Hub:** Integration of Daily Health, AI Coach, and Trend Analysis into a single tabbed interface.
 - **Baseline Mode & Feature Flag System:** Comprehensive feature flag infrastructure allowing progressive AI/ML feature rollout with a `BASELINE_MODE_ENABLED` master override. Infrastructure flags (like `EXERCISE_MEDIA_STRICT_BINDING_ENABLED`) operate independently of baseline mode for data quality/safety features.
+- **Daily AI Training Generator:** Standards-based AI workout generation system that creates personalized daily training sessions following ACSM/NSCA/WHO guidelines. Generates workouts at 4am user timezone via cron scheduler with on-demand fallback. Includes safety validation, exercise fuzzy matching to native library, and accept/reject/regenerate workflow. Controlled by `DAILY_AI_TRAINING_GENERATOR_ENABLED` feature flag.
 
 ## External Dependencies
 - **Database:** PostgreSQL

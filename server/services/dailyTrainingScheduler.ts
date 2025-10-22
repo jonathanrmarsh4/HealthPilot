@@ -5,6 +5,7 @@
 
 import cron from 'node-cron';
 import { format } from 'date-fns';
+import { utcToZonedTime, getHours } from 'date-fns-tz';
 import { storage } from '../storage';
 import { buildUserContext, generateDailySession } from './trainingGenerator';
 import { canUseDailyAITrainingGenerator } from '../../shared/config/flags';
@@ -35,9 +36,10 @@ async function processUsersAtLocalTime(targetHour: number) {
         // Get user's timezone (default to UTC if not set)
         const userTimezone = user.timezone || 'UTC';
         
-        // Calculate what the local time is for this user right now
+        // Calculate what the local time is for this user right now using date-fns-tz
         const now = new Date();
-        const userLocalHour = new Date(now.toLocaleString('en-US', { timeZone: userTimezone })).getHours();
+        const userLocalTime = utcToZonedTime(now, userTimezone);
+        const userLocalHour = getHours(userLocalTime);
         
         // Check if it's the target hour for this user
         if (userLocalHour !== targetHour) {
@@ -46,31 +48,33 @@ async function processUsersAtLocalTime(targetHour: number) {
 
         processedCount++;
         
-        // Check if workout already generated today
-        const today = format(now, 'yyyy-MM-dd');
-        const existing = await storage.getGeneratedWorkout(user.id, today);
+        // Calculate the user's local date (not server date)
+        const userLocalDate = format(userLocalTime, 'yyyy-MM-dd');
+        
+        // Check if workout already generated for this user's local date
+        const existing = await storage.getGeneratedWorkout(user.id, userLocalDate);
         
         if (existing) {
-          console.log(`[DailyTraining] Skipping ${user.id} - workout already generated for ${today}`);
+          console.log(`[DailyTraining] Skipping ${user.id} - workout already generated for ${userLocalDate}`);
           continue;
         }
 
-        // Generate workout
-        console.log(`[DailyTraining] Generating workout for user ${user.id}`);
+        // Generate workout for the user's local date
+        console.log(`[DailyTraining] Generating workout for user ${user.id} on ${userLocalDate}`);
         
-        const context = await buildUserContext(storage, user.id, today);
+        const context = await buildUserContext(storage, user.id, userLocalDate);
         const workoutData = await generateDailySession(context);
         
         await storage.createGeneratedWorkout({
           userId: user.id,
-          date: today,
+          date: userLocalDate,
           workoutData: workoutData as any,
           status: 'pending',
           regenerationCount: 0
         });
         
         generatedCount++;
-        console.log(`[DailyTraining] ✅ Generated workout for user ${user.id}`);
+        console.log(`[DailyTraining] ✅ Generated workout for user ${user.id} on ${userLocalDate}`);
         
       } catch (userError: any) {
         errorCount++;
