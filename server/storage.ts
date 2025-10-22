@@ -534,6 +534,7 @@ export interface IStorage {
   getAllExercisedbExercises(): Promise<ExercisedbExercise[]>;
   getExercisedbExerciseById(exerciseId: string): Promise<ExercisedbExercise | undefined>;
   searchExercisedbExercisesByName(name: string): Promise<ExercisedbExercise | null>;
+  searchExercisedbCandidates(name: string, limit?: number): Promise<ExercisedbExercise[]>;
   bulkInsertExercisedbExercises(exercises: InsertExercisedbExercise[]): Promise<void>;
   clearExercisedbExercises(): Promise<void>;
   
@@ -4198,6 +4199,17 @@ export class DbStorage implements IStorage {
       .where(sql`LOWER(${exercisedbExercises.name}) LIKE ${searchTerm}`)
       .limit(1);
     return results[0] || null;
+  }
+  
+  async searchExercisedbCandidates(name: string, limit: number = 50): Promise<ExercisedbExercise[]> {
+    // Return multiple candidates for deterministic scoring by SimpleMatcher
+    // Broad search: match any word in the name for maximum recall
+    const searchTerm = `%${name.toLowerCase()}%`;
+    const results = await db.select()
+      .from(exercisedbExercises)
+      .where(sql`LOWER(${exercisedbExercises.name}) LIKE ${searchTerm}`)
+      .limit(limit);
+    return results;
   }
   
   async bulkInsertExercisedbExercises(exercises: InsertExercisedbExercise[]): Promise<void> {

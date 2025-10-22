@@ -69,6 +69,12 @@ export const FLAG_DEFINITIONS: Record<string, FlagConfig> = {
     level: 'site',
     description: 'Auto-map exercise names to media (GIFs) using fuzzy matching'
   },
+  EXERCISE_SIMPLE_MATCHER_ENABLED: {
+    name: 'EXERCISE_SIMPLE_MATCHER_ENABLED',
+    default: false,
+    level: 'site',
+    description: 'Use deterministic exercise matcher with transparent scoring (replaces legacy fuzzy matcher)'
+  },
 } as const;
 
 // Type-safe flag names
@@ -137,13 +143,16 @@ class FeatureFlags {
     // Apply BASELINE_MODE override logic
     let finalValue = rawValue;
     
-    // If this is baseline mode itself, return the raw value
-    if (flagName === 'BASELINE_MODE_ENABLED') {
+    // Infrastructure flags that work independently of baseline mode
+    const infrastructureFlags: FlagName[] = ['BASELINE_MODE_ENABLED', 'EXERCISE_SIMPLE_MATCHER_ENABLED'];
+    
+    // If this is an infrastructure flag, return the raw value
+    if (infrastructureFlags.includes(flagName)) {
       finalValue = rawValue;
     } else {
       // For AI features: if BASELINE_MODE is enabled, force all AI features OFF
       const isBaselineEnabled = this.isEnabled('BASELINE_MODE_ENABLED');
-      if (isBaselineEnabled && flagName !== 'BASELINE_MODE_ENABLED') {
+      if (isBaselineEnabled) {
         finalValue = false;
       }
     }
@@ -196,6 +205,7 @@ export const canUseMealPreferenceWeighting = () => flags.isEnabled('MEAL_PREFERE
 export const canUseBiomarkerFilter = () => flags.isEnabled('BIOMARKER_FILTER_ENABLED');
 export const canUseAIWorkoutSelection = () => flags.isEnabled('AI_WORKOUT_SELECTION_ENABLED');
 export const canUseExerciseMediaAutomap = () => flags.isEnabled('EXERCISE_MEDIA_AUTOMAP_ENABLED');
+export const canUseSimpleMatcher = () => flags.isEnabled('EXERCISE_SIMPLE_MATCHER_ENABLED');
 
 /**
  * Development helper: log all flag states
