@@ -95,11 +95,14 @@ export async function getMediaSafe(
       return null;
     }
 
-    // 6) We have a confident match
+    // 6) We have a confident match - persist the link for future fast-path lookups
     const chosen = top.c;
     if (chosen.gifUrl) {
       // Log successful match for telemetry
       await logSuccess(hp, top.score, candidates.length, chosen);
+      
+      // Persist the external ID to enable fast-path lookups in future
+      await persistExternalId(hp.id, chosen.id);
       
       return {
         url: chosen.gifUrl,

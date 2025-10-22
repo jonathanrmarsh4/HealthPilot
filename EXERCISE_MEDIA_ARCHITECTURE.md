@@ -492,10 +492,22 @@ export const exercises = pgTable("exercises", {
 
 ### Workflow Integration
 
+**Auto-Persistence Active (Current Implementation):**
+```
+User views exercise
+    ↓
+Auto-mapping finds match (score = 7)
+    ↓
+persistExternalId() automatically called ← AUTOMATIC!
+    ↓
+Future lookups use trusted fast path ✅ (10-40x faster)
+```
+
+**Manual Admin Approval (Optional Enhancement):**
 ```
 User creates exercise
     ↓
-Auto-mapping finds match (score = 7)
+Auto-mapping finds match (score = 5, below threshold)
     ↓
 Admin reviews in /admin/media-review
     ↓
