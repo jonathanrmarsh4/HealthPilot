@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dumbbell, Target, Wrench, X, AlertCircle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { canUseExerciseMediaAutomap } from "@shared/config/flags";
 
 interface ExerciseDBExercise {
   id: string;
@@ -27,19 +28,32 @@ interface ExerciseDetailsModalProps {
 
 export function ExerciseDetailsModal({ exerciseName, exercisedbId, open, onClose }: ExerciseDetailsModalProps) {
   const [imageError, setImageError] = useState(false);
+  const canUseFuzzyMatching = canUseExerciseMediaAutomap();
 
   const { data: exercise, isLoading, error } = useQuery<ExerciseDBExercise | null>({
     queryKey: exercisedbId 
       ? ['/api/exercisedb/exercise', exercisedbId]  // Direct ID lookup (deterministic)
       : ['/api/exercisedb/search', exerciseName],    // Fallback to fuzzy name search
     queryFn: async () => {
+      // BASELINE MODE: Only allow direct ID lookups (no fuzzy matching)
+      if (!canUseFuzzyMatching && !exercisedbId) {
+        console.log('[ExerciseDB] Fuzzy matching disabled in baseline mode - exercisedbId required');
+        return null; // Return null instead of attempting fuzzy search
+      }
+      
       // Prefer direct ID lookup when available
       if (exercisedbId) {
         const res = await fetch(`/api/exercisedb/exercise/${encodeURIComponent(exercisedbId)}`, {
           credentials: 'include',
         });
         if (!res.ok) {
-          // If direct lookup fails, fall back to name search
+          // In baseline mode, don't fall back to name search
+          if (!canUseFuzzyMatching) {
+            console.warn(`[ExerciseDB] ID ${exercisedbId} not found, fuzzy matching disabled`);
+            return null;
+          }
+          
+          // AI mode: fall back to name search
           console.warn(`ExerciseDB ID ${exercisedbId} not found, falling back to name search`);
           const searchRes = await fetch(`/api/exercisedb/search?name=${encodeURIComponent(exerciseName)}`, {
             credentials: 'include',
@@ -52,7 +66,7 @@ export function ExerciseDetailsModal({ exerciseName, exercisedbId, open, onClose
         return await res.json();
       }
       
-      // Fallback: fuzzy name-based search (legacy behavior)
+      // Fallback: fuzzy name-based search (only in AI mode)
       const res = await fetch(`/api/exercisedb/search?name=${encodeURIComponent(exerciseName)}`, {
         credentials: 'include',
       });
@@ -62,7 +76,7 @@ export function ExerciseDetailsModal({ exerciseName, exercisedbId, open, onClose
       const data = await res.json();
       return data; // Can be null if no high-confidence match found
     },
-    enabled: open && (!!exercisedbId || !!exerciseName),
+    enabled: open && (!!exercisedbId || (canUseFuzzyMatching && !!exerciseName)),
     staleTime: 1000 * 60 * 60 * 24, // Cache for 24 hours
     retry: false, // Don't retry on null responses
   });
@@ -124,7 +138,16 @@ export function ExerciseDetailsModal({ exerciseName, exercisedbId, open, onClose
           {!isLoading && !error && exercise === null && (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <Dumbbell className="h-12 w-12 text-muted-foreground mb-4" />
-              <p className="text-lg font-medium">This is a BETA function, coming soon</p>
+              <p className="text-lg font-medium">
+                {!canUseFuzzyMatching 
+                  ? "Exercise demonstration unavailable" 
+                  : "This is a BETA function, coming soon"}
+              </p>
+              {!canUseFuzzyMatching && (
+                <p className="text-sm text-muted-foreground mt-2">
+                  Exercise media requires direct ExerciseDB mapping
+                </p>
+              )}
             </div>
           )}
 
