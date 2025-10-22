@@ -1154,78 +1154,82 @@ export default function WorkoutSession() {
 
       {/* Swap Exercise Dialog */}
       <Dialog open={swapDialogOpen} onOpenChange={setSwapDialogOpen}>
-        <DialogContent className="max-w-md" data-testid="dialog-swap-exercise">
-          <DialogHeader>
+        <DialogContent className="max-w-md max-h-[85vh] flex flex-col" data-testid="dialog-swap-exercise">
+          <DialogHeader className="flex-shrink-0">
             <DialogTitle>Swap Exercise</DialogTitle>
             <DialogDescription>
               Choose an alternative for {selectedExerciseForSwap?.name}
             </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-3 mt-4">
-            {loadingAlternatives ? (
-              <div className="text-center py-8">
-                <p className="text-sm text-muted-foreground">Loading alternatives...</p>
-              </div>
-            ) : alternativesError ? (
-              <div className="text-center py-8">
-                <p className="text-sm text-destructive">{alternativesError}</p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="mt-4"
-                  onClick={() => selectedExerciseForSwap && handleShowAlternatives(selectedExerciseForSwap)}
-                  data-testid="button-retry-alternatives"
-                >
-                  Retry
-                </Button>
-              </div>
-            ) : alternatives.length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-sm text-muted-foreground">No alternatives found</p>
-              </div>
-            ) : (
-              alternatives.map((alt, index) => (
-                <Card
-                  key={alt.id}
-                  className="cursor-pointer hover-elevate active-elevate-2"
-                  onClick={() => handleSwapExercise(alt)}
-                  data-testid={`alternative-${index}`}
-                >
-                  <CardContent className="p-4">
-                    <h3 className="font-semibold" data-testid={`alternative-name-${index}`}>
-                      {alt.name}
-                    </h3>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {alt.muscles.join(", ")} • {alt.equipment}
-                    </p>
-                    <div className="flex gap-2 mt-2">
-                      <Badge variant="secondary" className="text-xs">
-                        {alt.category}
-                      </Badge>
-                      <Badge variant="outline" className="text-xs">
-                        {alt.difficulty || "intermediate"}
-                      </Badge>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            )}
-          </div>
+          <ScrollArea className="flex-1 -mx-6 px-6 my-4" style={{ maxHeight: 'calc(85vh - 180px)' }}>
+            <div className="space-y-3 pr-4">
+              {loadingAlternatives ? (
+                <div className="text-center py-8">
+                  <p className="text-sm text-muted-foreground">Loading alternatives...</p>
+                </div>
+              ) : alternativesError ? (
+                <div className="text-center py-8">
+                  <p className="text-sm text-destructive">{alternativesError}</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-4"
+                    onClick={() => selectedExerciseForSwap && handleShowAlternatives(selectedExerciseForSwap)}
+                    data-testid="button-retry-alternatives"
+                  >
+                    Retry
+                  </Button>
+                </div>
+              ) : alternatives.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-sm text-muted-foreground">No alternatives found</p>
+                </div>
+              ) : (
+                alternatives.map((alt, index) => (
+                  <Card
+                    key={alt.id}
+                    className="cursor-pointer hover-elevate active-elevate-2"
+                    onClick={() => handleSwapExercise(alt)}
+                    data-testid={`alternative-${index}`}
+                  >
+                    <CardContent className="p-4">
+                      <h3 className="font-semibold" data-testid={`alternative-name-${index}`}>
+                        {alt.name}
+                      </h3>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {alt.muscles.join(", ")} • {alt.equipment}
+                      </p>
+                      <div className="flex gap-2 mt-2">
+                        <Badge variant="secondary" className="text-xs">
+                          {alt.category}
+                        </Badge>
+                        <Badge variant="outline" className="text-xs">
+                          {alt.difficulty || "intermediate"}
+                        </Badge>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </div>
+          </ScrollArea>
 
-          <Button
-            variant="outline"
-            className="w-full mt-4"
-            onClick={() => {
-              setSwapDialogOpen(false);
-              setSelectedExerciseForSwap(null);
-              setAlternatives([]);
-              setAlternativesError(null);
-            }}
-            data-testid="button-cancel-swap"
-          >
-            Cancel
-          </Button>
+          <div className="flex-shrink-0">
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => {
+                setSwapDialogOpen(false);
+                setSelectedExerciseForSwap(null);
+                setAlternatives([]);
+                setAlternativesError(null);
+              }}
+              data-testid="button-cancel-swap"
+            >
+              Cancel
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 
