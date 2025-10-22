@@ -129,10 +129,13 @@ async function fetchMediaById(id: string): Promise<{ url: string; id: string; so
     // Use storage layer to fetch from database
     const exercise = await storage.getExercisedbExerciseById(id);
 
-    if (exercise?.gifUrl) {
+    if (exercise) {
+      // Construct the GIF URL from the exercise ID
+      const gifUrl = `/api/exercisedb/image?exerciseId=${exercise.exerciseId}`;
+      
       return {
-        url: exercise.gifUrl,
-        id: exercise.id,
+        url: gifUrl,
+        id: exercise.exerciseId,
         source: "ExerciseDB" as const,
       };
     }
@@ -162,19 +165,19 @@ async function searchExerciseDBCandidates(name: string): Promise<Array<{
     const allExercises = await storage.getAllExercisedbExercises();
     const searchTerm = name.toLowerCase().trim();
     
-    // Filter exercises that contain the search term
-    const matches = allExercises.filter((ex) => 
-      ex.name.toLowerCase().includes(searchTerm)
-    );
+    // Filter exercises that contain the search term and construct gifUrl
+    const matches = allExercises
+      .filter((ex) => ex.name.toLowerCase().includes(searchTerm))
+      .map((ex) => ({
+        id: ex.exerciseId,
+        name: ex.name,
+        target: ex.target,
+        bodyPart: ex.bodyPart,
+        equipment: ex.equipment,
+        gifUrl: `/api/exercisedb/image?exerciseId=${ex.exerciseId}`,
+      }));
     
-    return matches.map((e) => ({
-      id: e.id,
-      name: e.name,
-      target: e.target,
-      bodyPart: e.bodyPart,
-      equipment: e.equipment,
-      gifUrl: e.gifUrl,
-    }));
+    return matches;
   } catch (error) {
     console.error("[searchExerciseDBCandidates] Search failed:", error);
     return [];
