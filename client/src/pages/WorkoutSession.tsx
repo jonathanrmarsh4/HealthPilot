@@ -66,6 +66,7 @@ interface Exercise {
   difficulty?: string;
   category: string;
   trackingType: string; // 'weight_reps', 'bodyweight_reps', 'distance_duration', 'duration_only'
+  exercisedbId?: string | null; // ExerciseDB ID for stable GIF linking
 }
 
 interface ExerciseSet {
@@ -521,6 +522,7 @@ function SortableExerciseCard({
       )}
       <ExerciseDetailsModal
         exerciseName={exercise.name}
+        exercisedbId={exercise.exercisedbId}
         open={showExerciseDetails}
         onClose={() => setShowExerciseDetails(false)}
       />

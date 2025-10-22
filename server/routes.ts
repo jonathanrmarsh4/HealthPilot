@@ -1545,6 +1545,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Exercise ExerciseDB Diagnostic Endpoint
+  app.get("/api/admin/exercises/unlinked", isAdmin, async (req, res) => {
+    try {
+      // Get all exercises without exercisedbId
+      const unlinkedExercises = await db
+        .select()
+        .from(exercises)
+        .where(isNull(exercises.exercisedbId))
+        .orderBy(exercises.name);
+      
+      res.json({
+        count: unlinkedExercises.length,
+        exercises: unlinkedExercises.map(ex => ({
+          id: ex.id,
+          name: ex.name,
+          muscles: ex.muscles,
+          equipment: ex.equipment,
+          category: ex.category,
+        })),
+      });
+    } catch (error: any) {
+      console.error("Error fetching unlinked exercises:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.post("/api/admin/meal-library/backfill-nutrition", isAdmin, async (req, res) => {
     try {
       console.log('🔄 Starting nutrition backfill for meal library...');
@@ -4622,6 +4648,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Good match found (minimum 60% confidence to avoid mismatches)
           matchedExercise = matchResult.exercise;
           console.log(`✅ Matched "${planExercise.name}" to database exercise "${matchedExercise.name}" (score: ${matchResult.score})`);
+          
+          // CRITICAL FIX: Resolve exercisedbId for existing exercises that don't have one
+          if (!matchedExercise.exercisedbId) {
+            console.log(`   ⚠️  Exercise "${matchedExercise.name}" has no ExerciseDB link. Resolving...`);
+            const { deriveExercisedbId } = await import('./utils/exercisedbResolver');
+            const exercisedbMatch = await deriveExercisedbId({
+              name: matchedExercise.name,
+              muscles: matchedExercise.muscles,
+              equipment: matchedExercise.equipment,
+              category: matchedExercise.category,
+            });
+            
+            if (exercisedbMatch) {
+              // Update the exercise in the database with the resolved exercisedbId
+              const updated = await db
+                .update(exercises)
+                .set({ exercisedbId: exercisedbMatch.exercisedbId })
+                .where(eq(exercises.id, matchedExercise.id))
+                .returning();
+              
+              matchedExercise = updated[0]; // Use the updated exercise
+              console.log(`   ✅ Linked to ExerciseDB: "${exercisedbMatch.name}" (ID: ${exercisedbMatch.exercisedbId}, confidence: ${exercisedbMatch.confidence})`);
+              
+              // Update in allExercises array for future matches in this request
+              const indexInAll = allExercises.findIndex(ex => ex.id === matchedExercise.id);
+              if (indexInAll >= 0) {
+                allExercises[indexInAll] = matchedExercise;
+              }
+            } else {
+              console.warn(`   → No ExerciseDB match found (GIF/instructions unavailable)`);
+            }
+          }
         } else {
           // No good match - create exercise on-the-fly
           console.log(`⚠️ No good match for "${planExercise.name}" (best score: ${matchResult?.score || 0}). Creating new exercise...`);
@@ -4721,6 +4779,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           else if (nameLower.includes('calf')) muscles = ['calves'];
           else if (nameLower.includes('ab') || nameLower.includes('core') || nameLower.includes('plank')) muscles = ['abs'];
           
+          // Resolve ExerciseDB ID for GIF/instruction lookups
+          const { deriveExercisedbId } = await import('./utils/exercisedbResolver');
+          const exercisedbMatch = await deriveExercisedbId({
+            name: planExercise.name,
+            muscles,
+            equipment,
+            category,
+          });
+          
           const newExercise = await db.insert(exercises).values({
             name: planExercise.name,
             muscles,
@@ -4731,11 +4798,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
             difficulty: 'intermediate',
             category,
             trackingType,
+            exercisedbId: exercisedbMatch?.exercisedbId || null,
           }).returning();
           
           matchedExercise = newExercise[0];
           exercisesCreated.push(planExercise.name);
           console.log(`✨ Created new exercise: "${planExercise.name}" (equipment: ${equipment}, muscles: ${muscles.join(', ')})`);
+          if (exercisedbMatch) {
+            console.log(`   → Linked to ExerciseDB: "${exercisedbMatch.name}" (ID: ${exercisedbMatch.exercisedbId}, confidence: ${exercisedbMatch.confidence})`);
+          } else {
+            console.warn(`   → No ExerciseDB match found (GIF/instructions unavailable)`);
+          }
           
           // Add to allExercises for subsequent matches
           allExercises.push(matchedExercise);

@@ -245,6 +245,7 @@ export const exercises = pgTable("exercises", {
   difficulty: text("difficulty").default("intermediate"), // 'beginner', 'intermediate', 'advanced'
   category: text("category").notNull(), // 'compound', 'isolation', 'cardio', 'flexibility'
   trackingType: text("tracking_type").notNull().default("weight_reps"), // 'weight_reps', 'bodyweight_reps', 'distance_duration', 'duration_only'
+  exercisedbId: text("exercisedb_id"), // Stable link to ExerciseDB exercise ID for GIF/instructions lookups
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

@@ -20,16 +20,39 @@ interface ExerciseDBExercise {
 
 interface ExerciseDetailsModalProps {
   exerciseName: string;
+  exercisedbId?: string | null; // Stable ExerciseDB ID for direct lookup (preferred)
   open: boolean;
   onClose: () => void;
 }
 
-export function ExerciseDetailsModal({ exerciseName, open, onClose }: ExerciseDetailsModalProps) {
+export function ExerciseDetailsModal({ exerciseName, exercisedbId, open, onClose }: ExerciseDetailsModalProps) {
   const [imageError, setImageError] = useState(false);
 
   const { data: exercise, isLoading, error } = useQuery<ExerciseDBExercise | null>({
-    queryKey: ['/api/exercisedb/search', exerciseName],
+    queryKey: exercisedbId 
+      ? ['/api/exercisedb/exercise', exercisedbId]  // Direct ID lookup (deterministic)
+      : ['/api/exercisedb/search', exerciseName],    // Fallback to fuzzy name search
     queryFn: async () => {
+      // Prefer direct ID lookup when available
+      if (exercisedbId) {
+        const res = await fetch(`/api/exercisedb/exercise/${encodeURIComponent(exercisedbId)}`, {
+          credentials: 'include',
+        });
+        if (!res.ok) {
+          // If direct lookup fails, fall back to name search
+          console.warn(`ExerciseDB ID ${exercisedbId} not found, falling back to name search`);
+          const searchRes = await fetch(`/api/exercisedb/search?name=${encodeURIComponent(exerciseName)}`, {
+            credentials: 'include',
+          });
+          if (!searchRes.ok) {
+            throw new Error('Exercise not found');
+          }
+          return await searchRes.json();
+        }
+        return await res.json();
+      }
+      
+      // Fallback: fuzzy name-based search (legacy behavior)
       const res = await fetch(`/api/exercisedb/search?name=${encodeURIComponent(exerciseName)}`, {
         credentials: 'include',
       });
@@ -39,7 +62,7 @@ export function ExerciseDetailsModal({ exerciseName, open, onClose }: ExerciseDe
       const data = await res.json();
       return data; // Can be null if no high-confidence match found
     },
-    enabled: open && !!exerciseName,
+    enabled: open && (!!exercisedbId || !!exerciseName),
     staleTime: 1000 * 60 * 60 * 24, // Cache for 24 hours
     retry: false, // Don't retry on null responses
   });
