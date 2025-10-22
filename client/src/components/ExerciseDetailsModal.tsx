@@ -61,6 +61,7 @@ export function ExerciseDetailsModal({ exercise, open, onClose }: Props) {
     queryFn: () =>
       exercise.externalId ? fetchByExternalId(exercise.externalId) : Promise.resolve(null),
     enabled: open,                 // only fetch when modal is open
+    placeholderData: undefined,    // critical: don't show previous card's media (TanStack Query v5)
     staleTime: 1000 * 60 * 60,
     retry: false,
     select: (m) => {
