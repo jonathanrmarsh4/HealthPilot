@@ -152,6 +152,96 @@ if (isBaselineMode()) {
 - ❌ **Fuzzy matching:** Name-based exercise matching is disabled
 - 🖼️ **Fallback:** Show placeholder image when `exercisedbId` is null
 
+#### Training Phase 1: Baseline Debug (Oct 2025)
+
+**Implementation Status:** ✅ **COMPLETED**
+
+**Goal:** Establish strict exercise media validation with deterministic behavior and comprehensive telemetry.
+
+**Key Changes:**
+
+1. **Flag Guards in ExerciseDBService** (`server/services/exercisedb/exercisedb.ts`)
+   - `searchExercisesByName()` respects `EXERCISE_MEDIA_AUTOMAP_ENABLED` flag
+   - When flag is `false`: Returns `null` immediately (no fuzzy matching)
+   - When flag is `true`: Uses fuzzy matching algorithm
+   - Prevents accidental AI usage in baseline mode
+
+2. **Exercise Data Normalizer** (`server/lib/normalizers/exerciseNormalizer.ts`)
+   - **Purpose:** Ensure consistent data format from database → frontend
+   - **Key Functions:**
+     - `normalizeInstructions()`: Converts any format → `string[]` (handles string, array, JSONB)
+     - `logMissingExercisedbId()`: Telemetry for exercises without external IDs
+     - `validateExerciseForMedia()`: Strict boolean check for `exercisedbId` presence
+   - **Output:** `NormalizedExercise` interface with `hasExternalMedia` flag
+
+3. **Workout Session Start Logic** (`server/routes.ts` line 4825-4863)
+   - Guards `deriveExercisedbId()` call with `canUseExerciseMediaAutomap()` check
+   - **Baseline mode:** Skips exercisedbId resolution entirely
+   - **AI mode:** Attempts fuzzy matching to link exercises to ExerciseDB catalog
+   - Logs clear messages: `"BASELINE_MODE: Skipping exercisedbId resolution..."`
+
+4. **Frontend Component** (`client/src/components/ExerciseDetailsModal.tsx`)
+   - Already implements baseline-aware behavior
+   - Shows "Exercise demonstration unavailable" when `exercisedbId` is `null`
+   - Displays "Exercise media requires direct ExerciseDB mapping" explanation
+   - Disables fuzzy search queries when `canUseExerciseMediaAutomap() === false`
+
+**Telemetry:**
+
+```typescript
+// Logged via exerciseNormalizer.ts
+{
+  exerciseId: 123,
+  name: "Barbell Squat",
+  reason: "NO_EXTERNAL_ID",
+  timestamp: "2025-10-22T03:00:00.000Z"
+}
+```
+
+**Data Requirements:**
+
+- **ExerciseDB Database:** Requires 1,300+ exercises from ExerciseDB API
+- **Current Status:** ⚠️ Only 10 exercises synced (RapidAPI BASIC tier, not ULTRA tier)
+- **Root Cause:** API subscription limitation (10 exercises vs. 1,300+ on ULTRA tier)
+- **Resolution:** Upgrade RapidAPI key to ULTRA tier, then run `/api/exercisedb/sync`
+
+**Admin Endpoints:**
+
+- `POST /api/exercisedb/sync` (admin-only): Bulk import exercises from ExerciseDB API
+- Auto-sync runs on server start if no sync log exists or >30 days old
+
+**Validation Rules:**
+
+| Scenario | exercisedbId | EXERCISE_MEDIA_AUTOMAP_ENABLED | Behavior |
+|----------|--------------|-------------------------------|----------|
+| Direct ID match | Present | `false` (baseline) | ✅ Show GIF via `/api/exercisedb/image?exerciseId={id}` |
+| Direct ID match | Present | `true` (AI) | ✅ Show GIF via direct lookup |
+| No ID, name-based | `null` | `false` (baseline) | ❌ Show placeholder, no fuzzy matching |
+| No ID, name-based | `null` | `true` (AI) | ✅ Attempt fuzzy match, show GIF if confident |
+
+**Testing:**
+
+```bash
+# 1. Verify baseline mode is enabled
+curl http://localhost:5000/api/meals | jq '.baselineMode'
+
+# 2. Check ExerciseDB sync status
+curl http://localhost:5000/api/exercisedb/sync-status -H "Cookie: ..." | jq
+
+# 3. Test exercise with exercisedbId (should show GIF)
+# Open workout session, click "View Exercise" on any synced exercise
+
+# 4. Test exercise without exercisedbId (should show placeholder)
+# Create custom exercise, verify placeholder appears
+```
+
+**Known Issues:**
+
+- ⚠️ **Limited Exercise Variety:** Only 10 exercises in database due to BASIC tier API
+  - **Impact:** Most exercises will show placeholders
+  - **Fix:** Upgrade RapidAPI subscription to ULTRA tier
+  - **Verification:** After upgrade, run sync and confirm ~1,300 exercises imported
+
 ### AI Health Coach
 
 **Endpoint:** `POST /api/chat`
