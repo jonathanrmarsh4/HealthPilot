@@ -6340,6 +6340,19 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
     const userId = (req.user as any).claims.sub;
 
     try {
+      // Import feature flags
+      const { isBaselineMode } = await import('../shared/config/flags');
+      
+      // In baseline mode, AI chat is completely disabled
+      if (isBaselineMode()) {
+        console.log('[Chat] AI chat disabled in baseline mode');
+        return res.status(403).json({
+          error: 'AI chat is currently disabled',
+          message: 'The AI health coach feature is not available in baseline mode. This is a core AI feature that will be re-enabled after establishing stable foundational functionality.',
+          baselineMode: true,
+        });
+      }
+      
       const { message, currentPage } = req.body;
       
       if (!message || typeof message !== 'string') {
