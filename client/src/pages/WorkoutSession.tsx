@@ -539,10 +539,13 @@ function SortableExerciseCard({
                   if (Array.isArray(parsed)) return parsed;
                 } catch {}
                 
-                // Split by newlines or sentences
+                // Split by newlines - split on both \n and \\n
                 const text = exercise.instructions.trim();
-                if (text.includes('\n')) {
-                  return text.split('\n').map(s => s.trim()).filter(Boolean);
+                // Check for literal backslash-n or actual newline
+                if (text.includes('\n') || text.includes('\\n')) {
+                  // Replace escaped newlines with actual newlines first
+                  const normalized = text.replace(/\\n/g, '\n');
+                  return normalized.split('\n').map(s => s.trim()).filter(Boolean);
                 }
                 
                 // Split by periods but keep the period
