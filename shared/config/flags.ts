@@ -63,24 +63,6 @@ export const FLAG_DEFINITIONS: Record<string, FlagConfig> = {
     level: 'site',
     description: 'Use AI to generate and customize workout plans'
   },
-  EXERCISE_MEDIA_AUTOMAP_ENABLED: {
-    name: 'EXERCISE_MEDIA_AUTOMAP_ENABLED',
-    default: false,
-    level: 'site',
-    description: 'Auto-map exercise names to media (GIFs) using fuzzy matching'
-  },
-  EXERCISE_SIMPLE_MATCHER_ENABLED: {
-    name: 'EXERCISE_SIMPLE_MATCHER_ENABLED',
-    default: false,
-    level: 'site',
-    description: 'Use deterministic exercise matcher with transparent scoring (replaces legacy fuzzy matcher)'
-  },
-  EXERCISE_MEDIA_STRICT_BINDING_ENABLED: {
-    name: 'EXERCISE_MEDIA_STRICT_BINDING_ENABLED',
-    default: true,
-    level: 'site',
-    description: 'Enforce strict verification that ExerciseDB media matches clicked exercise (name+target/bodyPart) before displaying GIF'
-  },
 } as const;
 
 // Type-safe flag names
@@ -153,9 +135,7 @@ class FeatureFlags {
     
     // Infrastructure flags that work independently of baseline mode
     const infrastructureFlags: FlagName[] = [
-      'BASELINE_MODE_ENABLED',
-      'EXERCISE_SIMPLE_MATCHER_ENABLED',
-      'EXERCISE_MEDIA_STRICT_BINDING_ENABLED'
+      'BASELINE_MODE_ENABLED'
     ];
     
     // If this is an infrastructure flag, return the raw value
@@ -216,9 +196,6 @@ export const canUseMealGoalFilter = () => flags.isEnabled('MEAL_GOAL_FILTER_ENAB
 export const canUseMealPreferenceWeighting = () => flags.isEnabled('MEAL_PREFERENCE_WEIGHTING_ENABLED');
 export const canUseBiomarkerFilter = () => flags.isEnabled('BIOMARKER_FILTER_ENABLED');
 export const canUseAIWorkoutSelection = () => flags.isEnabled('AI_WORKOUT_SELECTION_ENABLED');
-export const canUseExerciseMediaAutomap = () => flags.isEnabled('EXERCISE_MEDIA_AUTOMAP_ENABLED');
-export const canUseSimpleMatcher = () => flags.isEnabled('EXERCISE_SIMPLE_MATCHER_ENABLED');
-export const canUseStrictMediaBinding = () => flags.isEnabled('EXERCISE_MEDIA_STRICT_BINDING_ENABLED');
 
 /**
  * Development helper: log all flag states
