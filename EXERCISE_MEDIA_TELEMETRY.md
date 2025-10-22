@@ -43,15 +43,15 @@ Provide operational visibility into the ExerciseDB fuzzy name matching algorithm
 
 ### Logging Reasons
 - **SUPPRESSED**: `EXERCISE_MEDIA_AUTOMAP_ENABLED` flag is OFF, no lookup attempted
-- **NO_MATCH**: No candidates found in ExerciseDB database
-- **LOW_CONFIDENCE**: Match found but score below threshold (50)
-- **OK**: Successful match with acceptable confidence
+- **NO_MATCH**: No candidates found in ExerciseDB database (all exercises scored < 5)
+- **LOW_CONFIDENCE**: Match found with score = 5 (just above threshold but below confident)
+- **OK**: Successful match with score >= 6 (confident match)
 
-### Score Thresholds
-- **HIGH confidence**: score >= 200
-- **MEDIUM confidence**: score >= 100
-- **LOW confidence**: score >= 50
-- **Rejected**: score < 50
+### Score Thresholds (0-10 Confidence Scale)
+- **SCORE_GOOD** (7+): Exact name + target + bodyPart or near-perfect combo
+- **SCORE_OK** (6+): Acceptable if other signals align (confident match threshold)
+- **SCORE_LOW** (5): Just above threshold but below confident
+- **Rejected**: score < 5 (not logged, too unreliable)
 
 ### Sampling Logic
 To prevent log spam, sampling is applied:
@@ -75,7 +75,7 @@ await storage.logMediaAttempt({
   reason: "LOW_CONFIDENCE",
   chosenId: "0001",
   chosenName: "barbell full squat",
-  score: 75,
+  score: 5,
   candidateCount: 5,
 });
 ```
@@ -149,7 +149,7 @@ Retrieve media attempt logs with filters.
       "reason": "LOW_CONFIDENCE",
       "chosenId": "0001",
       "chosenName": "barbell full squat",
-      "score": 75,
+      "score": 5,
       "candidateCount": 5,
       "reviewStatus": "pending",
       "createdAt": "2025-10-22T03:45:00.000Z"
@@ -233,87 +233,90 @@ abc123,42,"Barbell Squat",quads,legs,barbell,LOW_CONFIDENCE,,0001,"barbell full 
 
 ## ExerciseDB Service Integration
 
+### Confidence Scoring Algorithm (0-10 Scale)
+
+The fuzzy matching algorithm evaluates three dimensions:
+
+**1. Name Match (0-4 points)**
+- Exact match: 4 points
+- Full substring: 3 points
+- Most words match (≥80%): 3 points
+- Half words match (≥50%): 2 points
+- Some words match (≥30%): 1 point
+- Poor match: 0 points
+
+**2. Target Muscle (0-3 points)**
+- Matches target muscle: +3 points
+- No muscle specified: 0 points
+- Wrong muscle: -1 point
+
+**3. Equipment (0-3 points)**
+- Exact equipment match: +3 points
+- Partial match: +2 points
+- No equipment specified: 0 points
+- Different equipment: -1 point
+- Conflicting equipment: -2 points
+
+**Examples:**
+- "Barbell Squat" → "barbell squat": 4 (name) + 3 (target) + 3 (equip) = **10/10** ✅ EXCELLENT
+- "Leg Press" → "lever leg press": 3 (name) + 3 (target) + 2 (equip) = **8/10** ✅ GOOD
+- "Squat" → "barbell squat": 3 (name) + 0 (no muscle) + 0 (no equip) = **6/10** ✅ OK
+- "Barbell Curl" → "dumbbell curl": 3 (name) + 3 (target) + (-2) (conflict) = **4/10** ❌ REJECTED
+
 ### Instrumentation Point
 Located in `server/services/exercisedb/exercisedb.ts`:
 
 ```typescript
-async findBestMediaMatch(exercise: Exercise): Promise<MatchResult | null> {
+// Thresholds
+const SCORE_GOOD = 7;   // exact name + target + bodyPart or near-perfect combo
+const SCORE_OK = 6;     // acceptable if other signals align
+const SCORE_LOW = 5;    // suppressed by default
+function isConfident(score: number) { return score >= SCORE_OK; }
+
+async searchExerciseByName(exerciseName: string): Promise<ExerciseDBExercise | null> {
   // Check feature flag
-  if (!EXERCISE_MEDIA_AUTOMAP_ENABLED) {
+  if (!canUseExerciseMediaAutomap()) {
     // Sample 50% of suppressed attempts
-    if (shouldSample(0.5)) {
-      await logMediaAttempt({
-        hpExerciseId: exercise.id,
-        hpExerciseName: exercise.name,
-        target: exercise.target,
-        bodyPart: exercise.bodyPart,
-        equipment: exercise.equipment,
-        reason: "SUPPRESSED",
-      });
+    await logMediaAttempt({ reason: "SUPPRESSED", ... });
+    return null;
+  }
+  
+  // ... exact match check (returns immediately with score 10) ...
+  
+  // Score all exercises (0-10 scale)
+  const scoredExercises = allExercises
+    .map(ex => ({
+      exercise: ex,
+      score: calculateMatchScore(exerciseName, ex) // Returns 0-10
+    }))
+    .filter(item => item.score >= SCORE_LOW) // Keep candidates >= 5
+    .sort((a, b) => b.score - a.score);
+  
+  if (scoredExercises.length > 0) {
+    const bestMatch = scoredExercises[0];
+    
+    // Only return if confident (>= 6)
+    if (isConfident(bestMatch.score)) {
+      await logMediaAttempt({ reason: "OK", score: bestMatch.score, ... });
+      return bestMatch.exercise;
+    } else {
+      // Score is 5 (LOW_CONFIDENCE): sampled at 50%
+      await logMediaAttempt({ reason: "LOW_CONFIDENCE", score: bestMatch.score, ... });
+      return null;
     }
-    return null;
   }
   
-  // ... fuzzy matching logic ...
-  
-  if (candidates.length === 0) {
-    await logMediaAttempt({
-      hpExerciseId: exercise.id,
-      hpExerciseName: exercise.name,
-      target: exercise.target,
-      bodyPart: exercise.bodyPart,
-      equipment: exercise.equipment,
-      reason: "NO_MATCH",
-      candidateCount: 0,
-    });
-    return null;
-  }
-  
-  const bestMatch = candidates[0];
-  
-  if (bestMatch.score < 50) {
-    // Sample 50% of low-confidence attempts
-    if (shouldSample(0.5)) {
-      await logMediaAttempt({
-        hpExerciseId: exercise.id,
-        hpExerciseName: exercise.name,
-        target: exercise.target,
-        bodyPart: exercise.bodyPart,
-        equipment: exercise.equipment,
-        reason: "LOW_CONFIDENCE",
-        chosenId: bestMatch.exercisedbId,
-        chosenName: bestMatch.name,
-        score: bestMatch.score,
-        candidateCount: candidates.length,
-      });
-    }
-    return null;
-  }
-  
-  // Successful match
-  await logMediaAttempt({
-    hpExerciseId: exercise.id,
-    hpExerciseName: exercise.name,
-    target: exercise.target,
-    bodyPart: exercise.bodyPart,
-    equipment: exercise.equipment,
-    reason: "OK",
-    chosenId: bestMatch.exercisedbId,
-    chosenName: bestMatch.name,
-    score: bestMatch.score,
-    candidateCount: candidates.length,
-  });
-  
-  return bestMatch;
+  // No candidates found
+  await logMediaAttempt({ reason: "NO_MATCH", candidateCount: 0, ... });
+  return null;
 }
 ```
 
-### Sampling Helper
-```typescript
-function shouldSample(rate: number): boolean {
-  return Math.random() < rate;
-}
-```
+### Sampling Behavior
+- **SUPPRESSED**: 50% sampled (flag disabled)
+- **NO_MATCH**: Always logged (100%)
+- **LOW_CONFIDENCE**: 50% sampled (score = 5)
+- **OK**: Always logged (100%, score >= 6)
 
 ## Testing Guide
 

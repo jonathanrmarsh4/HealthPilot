@@ -11,10 +11,11 @@ const TELEMETRY_DAILY_CAP = 500; // Max events per day
 let telemetryDailyCount = 0;
 let telemetryResetDate = new Date().toDateString();
 
-// Scoring thresholds (aligned with existing algorithm)
-const SCORE_THRESHOLD_GOOD = 100; // High confidence
-const SCORE_THRESHOLD_OK = 50;   // Medium confidence
-const SCORE_THRESHOLD_LOW = 25;  // Minimum acceptable
+// Confidence scoring thresholds (0-10 scale)
+const SCORE_GOOD = 7;   // exact name + target + bodyPart or near-perfect combo
+const SCORE_OK = 6;     // acceptable if other signals align
+const SCORE_LOW = 5;    // suppressed by default
+function isConfident(score: number) { return score >= SCORE_OK; }
 
 // API Response from ExerciseDB
 interface ExerciseDBAPIResponse {
@@ -173,36 +174,60 @@ export class ExerciseDBService {
   }
 
   /**
-   * Calculate match score between search term and exercise
+   * Calculate match score between search term and exercise (0-10 confidence scale)
+   * Score breakdown:
+   * - Name match (0-4): Exact=4, Substring=3, Word matches=1-3
+   * - Target muscle (0-3): Match=+3, None=0, Wrong=-1
+   * - Equipment (0-3): Exact=+3, Partial=+2, None=0, Wrong=-1, Conflict=-2
    */
   private calculateMatchScore(searchName: string, exercise: ExerciseDBExercise): number {
     const normalized = this.normalizeExerciseName(searchName);
     const exName = this.normalizeExerciseName(exercise.name);
     
-    // Exact match
-    if (normalized === exName) return 100;
+    console.log(`[ExerciseDB Scoring] Scoring "${searchName}" vs "${exercise.name}"`);
     
-    // One contains the other (full substring)
-    if (exName.includes(normalized) || normalized.includes(exName)) return 90;
+    let nameScore = 0;
+    let targetScore = 0;
+    let equipmentScore = 0;
     
-    // Split into words for more detailed matching
-    const searchWords = normalized.split(/\s+/).filter(w => w.length > 2);
-    const exWords = exName.split(/\s+/).filter(w => w.length > 2);
+    // ===== 1. NAME MATCHING (0-4 points) =====
+    if (normalized === exName) {
+      nameScore = 4; // Perfect match
+      console.log(`[ExerciseDB Scoring] Name: Exact match (+4)`);
+    } else if (exName.includes(normalized) || normalized.includes(exName)) {
+      nameScore = 3; // Full substring
+      console.log(`[ExerciseDB Scoring] Name: Substring match (+3)`);
+    } else {
+      // Word-level matching
+      const searchWords = normalized.split(/\s+/).filter(w => w.length > 2);
+      const exWords = exName.split(/\s+/).filter(w => w.length > 2);
+      
+      const matchingWords = searchWords.filter(sw => 
+        exWords.some(ew => ew === sw || ew.includes(sw) || sw.includes(ew))
+      );
+      
+      const matchRatio = searchWords.length > 0 ? matchingWords.length / searchWords.length : 0;
+      
+      if (matchRatio >= 0.8) {
+        nameScore = 3; // Most words match
+      } else if (matchRatio >= 0.5) {
+        nameScore = 2; // Half of words match
+      } else if (matchRatio >= 0.3) {
+        nameScore = 1; // Some words match
+      } else {
+        nameScore = 0; // Poor name match
+      }
+      
+      console.log(`[ExerciseDB Scoring] Name: Word match ratio ${matchRatio.toFixed(2)} (${nameScore} points)`);
+    }
     
-    let score = 0;
-    
-    console.log(`[ExerciseDB Scoring] Starting detailed scoring for "${searchName}" vs "${exercise.name}"`);
-    console.log(`[ExerciseDB Scoring] Search words:`, searchWords);
-    console.log(`[ExerciseDB Scoring] Exercise target muscle:`, exercise.target);
-    
-    // Target muscle matching - CRITICAL for correct exercise selection
-    // Map common muscle terms in search queries to ExerciseDB target muscle names
+    // ===== 2. TARGET MUSCLE MATCHING (0-3 points) =====
     const muscleMap: Record<string, string[]> = {
-      'chest': ['pectorals', 'upper pectorals', 'lower pectorals'],
-      'bench': ['pectorals', 'upper pectorals', 'lower pectorals'], // "bench press" = chest exercise
+      'chest': ['pectorals'],
+      'bench': ['pectorals'], // "bench press" targets chest
       'back': ['lats', 'upper back', 'lower back', 'spine', 'traps'],
-      'shoulder': ['deltoids', 'anterior deltoid', 'posterior deltoid', 'lateral deltoid'],
-      'shoulders': ['deltoids', 'anterior deltoid', 'posterior deltoid', 'lateral deltoid'],
+      'shoulder': ['delts'],
+      'shoulders': ['delts'],
       'bicep': ['biceps'],
       'biceps': ['biceps'],
       'tricep': ['triceps'],
@@ -217,52 +242,54 @@ export class ExerciseDBService {
       'glutes': ['glutes'],
       'calf': ['calves'],
       'calves': ['calves'],
-      'core': ['abs', 'abdominals'],
-      'ab': ['abs', 'abdominals'],
-      'abs': ['abs', 'abdominals'],
+      'core': ['abs'],
+      'ab': ['abs'],
+      'abs': ['abs'],
     };
     
-    // Check if search term mentions a specific muscle group
-    let targetMuscleBonus = 0;
+    const searchWords = normalized.split(/\s+/).filter(w => w.length > 2);
+    let foundMuscle = false;
+    
     for (const word of searchWords) {
       const mappedTargets = muscleMap[word];
       if (mappedTargets) {
-        // Check if this exercise targets that muscle group
+        foundMuscle = true;
         const exerciseTarget = exercise.target.toLowerCase();
         const matchesTarget = mappedTargets.some(target => 
           exerciseTarget.includes(target) || target.includes(exerciseTarget)
         );
         
         if (matchesTarget) {
-          targetMuscleBonus += 60; // MAJOR bonus for matching target muscle
-          console.log(`[ExerciseDB Scoring] Muscle match bonus: "${word}" maps to "${exerciseTarget}" (+60)`);
+          targetScore = 3; // Target muscle matches
+          console.log(`[ExerciseDB Scoring] Target: "${word}" matches "${exerciseTarget}" (+3)`);
         } else {
-          // Penalize if search specifies a muscle but exercise targets a different one
-          targetMuscleBonus -= 30;
-          console.log(`[ExerciseDB Scoring] Muscle mismatch penalty: search wants "${word}" but exercise targets "${exerciseTarget}" (-30)`);
+          targetScore = -1; // Wrong muscle specified
+          console.log(`[ExerciseDB Scoring] Target: "${word}" ≠ "${exerciseTarget}" (-1)`);
         }
-        break; // Only consider the first muscle term found
+        break;
       }
     }
-    score += targetMuscleBonus;
     
-    // Check for equipment match (CRITICAL for correct exercise variant)
-    // Map common equipment variations to database values
+    if (!foundMuscle) {
+      targetScore = 0; // No muscle specified
+      console.log(`[ExerciseDB Scoring] Target: Not specified (0)`);
+    }
+    
+    // ===== 3. EQUIPMENT MATCHING (0-3 points) =====
     const equipmentMap: Record<string, string> = {
       'barbell': 'barbell',
       'dumbbell': 'dumbbell',
-      'dumbell': 'dumbbell', // Common misspelling
+      'dumbell': 'dumbbell',
       'cable': 'cable',
       'machine': 'machine',
       'band': 'band',
       'bodyweight': 'body weight',
       'kettlebell': 'kettlebell',
       'smith': 'smith machine',
-      'trx': 'body weight', // TRX suspension training uses body weight
+      'trx': 'body weight',
       'suspension': 'body weight',
     };
     
-    // Extract equipment from search term
     let searchEquipmentType: string | null = null;
     for (const word of searchWords) {
       if (equipmentMap[word]) {
@@ -271,71 +298,42 @@ export class ExerciseDBService {
       }
     }
     
-    // Use the actual equipment field from the exercise
     const exerciseEquipment = exercise.equipment.toLowerCase().trim();
     
-    // Compare search equipment intent vs actual exercise equipment
     if (searchEquipmentType) {
-      // Check for equipment match with tolerance for variants
       const exactMatch = exerciseEquipment === searchEquipmentType;
       const partialMatch = !exactMatch && (exerciseEquipment.includes(searchEquipmentType) || searchEquipmentType.includes(exerciseEquipment));
       
-      // Detect equipment conflicts: find which specific equipment each uses
-      // Expanded list to include body weight as a distinct equipment type
       const conflictingEquipment = ['barbell', 'dumbbell', 'kettlebell', 'cable', 'body weight', 'band', 'machine'];
-      const searchEquipmentKeyword = conflictingEquipment.find(eq => searchEquipmentType.includes(eq));
-      const exerciseEquipmentKeyword = conflictingEquipment.find(eq => exerciseEquipment.includes(eq));
-      
-      // If both have equipment keywords and they're different, it's a conflict
-      const hasConflict = searchEquipmentKeyword && exerciseEquipmentKeyword && searchEquipmentKeyword !== exerciseEquipmentKeyword;
+      const searchKeyword = conflictingEquipment.find(eq => searchEquipmentType.includes(eq));
+      const exerciseKeyword = conflictingEquipment.find(eq => exerciseEquipment.includes(eq));
+      const hasConflict = searchKeyword && exerciseKeyword && searchKeyword !== exerciseKeyword;
       
       if (exactMatch) {
-        score += 50; // Perfect equipment match
+        equipmentScore = 3; // Perfect equipment match
+        console.log(`[ExerciseDB Scoring] Equipment: Exact match "${searchEquipmentType}" (+3)`);
       } else if (hasConflict) {
-        score -= 200; // MAJOR PENALTY: Conflicting equipment (e.g., TRX vs barbell, barbell vs dumbbell)
-        console.log(`[ExerciseDB Scoring] Equipment conflict: search wants "${searchEquipmentType}" but exercise uses "${exerciseEquipment}" (-200)`);
+        equipmentScore = -2; // Major conflict (e.g., barbell vs dumbbell)
+        console.log(`[ExerciseDB Scoring] Equipment: Conflict "${searchEquipmentType}" vs "${exerciseEquipment}" (-2)`);
       } else if (partialMatch) {
-        score += 30; // Partial match (e.g., "machine" matches "leverage machine")
+        equipmentScore = 2; // Partial match
+        console.log(`[ExerciseDB Scoring] Equipment: Partial match (+2)`);
       } else {
-        score -= 50; // Different equipment but not directly conflicting
+        equipmentScore = -1; // Different but not conflicting
+        console.log(`[ExerciseDB Scoring] Equipment: Different (-1)`);
       }
     } else {
-      // Search doesn't specify equipment - slight preference for non-equipment-specific names
-      if (exerciseEquipment === 'body weight' || !exerciseEquipment) {
-        score += 5; // Slight bonus for bodyweight/generic exercises when no equipment specified
-      }
+      equipmentScore = 0; // No equipment specified
+      console.log(`[ExerciseDB Scoring] Equipment: Not specified (0)`);
     }
     
-    // Check for main exercise type match
-    const exerciseTypes = ['press', 'curl', 'row', 'squat', 'deadlift', 'pulldown', 'fly', 'raise', 'extension', 'pullup', 'pushup', 'dip', 'lunge', 'crunch', 'plank'];
-    const searchType = searchWords.find(w => exerciseTypes.some(t => w.includes(t) || t.includes(w)));
-    const exType = exWords.find(w => exerciseTypes.some(t => w.includes(t) || t.includes(w)));
+    // ===== FINAL SCORE (0-10 scale) =====
+    const totalScore = nameScore + targetScore + equipmentScore;
+    const finalScore = Math.max(0, Math.min(10, totalScore)); // Clamp to 0-10
     
-    if (searchType && exType) {
-      // Normalize the types for comparison
-      const normalizedSearchType = exerciseTypes.find(t => searchType.includes(t) || t.includes(searchType)) || searchType;
-      const normalizedExType = exerciseTypes.find(t => exType.includes(t) || t.includes(exType)) || exType;
-      
-      if (normalizedSearchType === normalizedExType) {
-        score += 40; // Main exercise type match is crucial
-      } else {
-        score -= 10; // Different main exercise type
-      }
-    }
+    console.log(`[ExerciseDB Scoring] Final: ${nameScore}(name) + ${targetScore}(target) + ${equipmentScore}(equip) = ${totalScore} → ${finalScore}/10`);
     
-    // Count matching words
-    const matchingWords = searchWords.filter(sw => 
-      exWords.some(ew => ew === sw || ew.includes(sw) || sw.includes(ew))
-    );
-    score += matchingWords.length * 15;
-    
-    // Penalize if too many unmatched words
-    const unmatchedSearchWords = searchWords.filter(sw => 
-      !exWords.some(ew => ew === sw || ew.includes(sw) || sw.includes(ew))
-    );
-    score -= unmatchedSearchWords.length * 5;
-    
-    return score;
+    return finalScore;
   }
 
   /**
@@ -418,12 +416,12 @@ export class ExerciseDBService {
           reason: 'OK',
           chosenId: exactMatch.id,
           chosenName: exactMatch.name,
-          score: 100, // Exact matches get perfect score
+          score: 10, // Exact matches get perfect score (0-10 scale)
           candidateCount: 1,
           candidates: [{
             id: exactMatch.id,
             name: exactMatch.name,
-            score: 100,
+            score: 10,
             target: exactMatch.target,
             bodyPart: exactMatch.bodyPart,
             equipment: exactMatch.equipment,
@@ -440,7 +438,7 @@ export class ExerciseDBService {
           exercise: ex,
           score: this.calculateMatchScore(exerciseName, ex)
         }))
-        .filter(item => item.score > SCORE_THRESHOLD_OK) // Filter by OK threshold
+        .filter(item => item.score >= SCORE_LOW) // Filter by LOW threshold (5+)
         .sort((a, b) => b.score - a.score);
       
       if (scoredExercises.length > 0) {
@@ -465,8 +463,8 @@ export class ExerciseDBService {
           equipment: item.exercise.equipment,
         }));
         
-        // Only return if score is high enough to be confident
-        if (bestMatch.score >= SCORE_THRESHOLD_LOW) {
+        // Only return if score is high enough to be confident (>= SCORE_OK = 6)
+        if (isConfident(bestMatch.score)) {
           // Log successful match
           await this.logMediaAttempt({
             hpExerciseName: exerciseName,
@@ -481,9 +479,9 @@ export class ExerciseDBService {
           
           return bestMatch.exercise;
         } else {
-          console.warn(`[ExerciseDB] Best match score too low (${bestMatch.score}). Returning null to avoid incorrect GIF.`);
+          console.warn(`[ExerciseDB] Best match score too low (${bestMatch.score}/10). Returning null to avoid incorrect GIF.`);
           
-          // Log low-confidence match
+          // Log low-confidence match (score 5, just above threshold but below confident)
           await this.logMediaAttempt({
             hpExerciseName: exerciseName,
             reason: 'LOW_CONFIDENCE',
