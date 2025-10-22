@@ -12,7 +12,7 @@ import { calculateReadinessScore } from "./services/readiness";
 import { runInterpretationPipeline } from "./services/medical-interpreter/pipeline";
 import { extractBiomarkersFromLabs } from "./services/medical-interpreter/biomarkerExtractor";
 import { parseISO, isValid, subDays } from "date-fns";
-import { eq, and, gte, or, inArray, isNull, isNotNull } from "drizzle-orm";
+import { eq, and, gte, or, inArray, isNull, isNotNull, sql } from "drizzle-orm";
 import { isAuthenticated, isAdmin, webhookAuth } from "./replitAuth";
 import { checkMessageLimit, incrementMessageCount, requirePremium, PremiumFeature, isPremiumUser, filterHistoricalData, canAddBiomarkerType } from "./premiumMiddleware";
 import { z } from "zod";
@@ -2937,6 +2937,121 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(updated);
     } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Baseline Mode: Simple meal browsing with deterministic pagination
+  // GET /api/meals?page=0&limit=24&mealType=breakfast&tag=vegetarian
+  app.get("/api/meals", isAuthenticated, async (req, res) => {
+    try {
+      // Import feature flags
+      const { isBaselineMode, canUseAIMealFilters, canUseAIMealRanking } = await import('../shared/config/flags');
+      const { MealQueryParamsSchema, parseMealsSafely } = await import('../shared/types/api-contracts');
+      
+      // Parse and validate query parameters
+      const rawParams = {
+        page: req.query.page ? parseInt(req.query.page as string) : 0,
+        limit: req.query.limit ? parseInt(req.query.limit as string) : 24,
+        mealType: req.query.mealType as string | undefined,
+        tag: req.query.tag as string | undefined,
+      };
+      
+      const params = MealQueryParamsSchema.parse(rawParams);
+      
+      // In baseline mode, use deterministic sorting and filtering only
+      const baselineEnabled = isBaselineMode();
+      
+      // Build WHERE clause - only allow mealType and tag in baseline mode
+      const whereConditions: any[] = [
+        eq(mealLibrary.status, 'active'),
+        isNotNull(mealLibrary.calories), // Ensure complete meal data
+      ];
+      
+      // MealType filter (deterministic)
+      if (params.mealType) {
+        // Filter by mealTypes array containing the requested type
+        whereConditions.push(
+          sql`${params.mealType} = ANY(${mealLibrary.mealTypes})`
+        );
+      }
+      
+      // Tag filter (deterministic) - can filter by diets array
+      if (params.tag) {
+        // Support filtering by diet tags (vegetarian, vegan, etc.)
+        whereConditions.push(
+          sql`${params.tag} = ANY(${mealLibrary.diets})`
+        );
+      }
+      
+      // Count total matching meals
+      const countQuery = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(mealLibrary)
+        .where(and(...whereConditions));
+      
+      const total = countQuery[0]?.count || 0;
+      const totalPages = Math.ceil(total / params.limit);
+      
+      // Query meals with deterministic sorting
+      // Sort by: conversionRate DESC (popularityScore), then createdAt DESC
+      const offset = params.page * params.limit;
+      const rawMeals = await db
+        .select()
+        .from(mealLibrary)
+        .where(and(...whereConditions))
+        .orderBy(
+          sql`${mealLibrary.conversionRate} DESC NULLS LAST`,
+          sql`${mealLibrary.importedAt} DESC`
+        )
+        .limit(params.limit)
+        .offset(offset);
+      
+      // Validate meal data with safe parsing
+      const { valid: meals, errors } = parseMealsSafely(rawMeals);
+      
+      if (errors.length > 0) {
+        console.warn(`[MealAPI] Skipped ${errors.length} invalid meals out of ${rawMeals.length}`);
+      }
+      
+      // Telemetry logging for baseline mode monitoring
+      const telemetryEvent = {
+        ts: new Date().toISOString(),
+        page: params.page,
+        limit: params.limit,
+        filters: {
+          mealType: params.mealType || null,
+          tag: params.tag || null,
+        },
+        returnedCount: meals.length,
+        total,
+        totalPages,
+        baselineMode: baselineEnabled,
+        skippedInvalid: errors.length,
+      };
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[MealBaselineEvent]', JSON.stringify(telemetryEvent));
+      }
+      
+      // Return paginated response
+      res.json({
+        items: meals,
+        page: params.page,
+        limit: params.limit,
+        total,
+        totalPages,
+      });
+    } catch (error: any) {
+      console.error("[MealAPI] Error fetching meals:", error);
+      
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ 
+          error: 'Invalid query parameters',
+          details: error.errors 
+        });
+      }
+      
       res.status(500).json({ error: error.message });
     }
   });
