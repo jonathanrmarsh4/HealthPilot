@@ -1,0 +1,74 @@
+{
+  "mode": "EXERCISE_MATCHER_SIMPLE_V1",
+  "context": {
+    "product": "HealthPilot",
+    "goal": "Replace complex/fragile ExerciseDB matching with a transparent, deterministic resolver that is easy to audit and tune.",
+    "promise": "No index-based joins. No fuzzy AI. Only accept confident matches; otherwise show placeholder."
+  },
+  "deliverables": [
+    "Deterministic resolver + tiny config",
+    "Zod-validated ExerciseDB candidates",
+    "Confidence threshold + hard floors",
+    "Unit tests covering common confusions (row/fly/curl/pulldown)",
+    "Optional backfill script to persist externalId for future loads",
+    "Feature flag for safe rollout"
+  ],
+  "flags": {
+    "introduce": [{ "name": "EXERCISE_SIMPLE_MATCHER_ENABLED", "default": true }]
+  },
+  "files": [
+    {
+      "path": "src/server/services/exerciseDb/types.ts",
+      "content": "import { z } from 'zod';\nexport const ZExerciseDBItem = z.object({ id: z.string(), name: z.string(), bodyPart: z.string(), target: z.string(), equipment: z.string().optional(), gifUrl: z.string().url().optional() });\nexport type ExerciseDBItem = z.infer<typeof ZExerciseDBItem>;"
+    },
+    {
+      "path": "src/server/services/exerciseDb/searchByName.ts",
+      "content": "import { ZExerciseDBItem, ExerciseDBItem } from './types';\nexport async function searchExerciseDBCandidates(name: string): Promise<ExerciseDBItem[]> {\n  const base = process.env.EXERCISE_DB_PROXY_BASE;\n  const res = await fetch(`${base}/search?name=${encodeURIComponent(name)}`);\n  if (!res.ok) return [];\n  const data = await res.json();\n  return (Array.isArray(data) ? data : []).map((x) => ZExerciseDBItem.safeParse(x)).filter((r:any)=>r.success).map((r:any)=>r.data);\n}"
+    },
+    {
+      "path": "src/server/services/exerciseMatcher/config.ts",
+      "content": "export const MATCH_THRESHOLD = 7; // accept >= 7\nexport const BOOSTS = { exactName: 5, closeName: 2, exactTarget: 3, exactBodyPart: 2, exactEquipment: 1 } as const;\nexport const PENALTIES = { disjointTarget: 4, disjointBodyPart: 3 } as const;\nexport const SYNONYMS: Record<string,string> = { 'lat pulldown': 'lat pulldown', 'lat pull down': 'lat pulldown', 'seated row': 'seated row', 'bench press': 'bench press', 'barbell bench press': 'barbell bench press', 'dumbbell curl': 'dumbbell curl', 'incline dumbbell curl': 'incline dumbbell curl' };"
+    },
+    {
+      "path": "src/server/services/exerciseMatcher/simpleResolver.ts",
+      "content": "import { ExerciseDBItem } from '@/server/services/exerciseDb/types';\nimport { MATCH_THRESHOLD, BOOSTS, PENALTIES, SYNONYMS } from './config';\n\ntype HP = { id:string; name:string; target:string; bodyPart:string; equipment?:string|null };\nconst norm = (s?:string|null)=> (s||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();\nconst alias = (s:string)=> SYNONYMS[norm(s)] ?? norm(s);\n\nfunction score(hp: HP, ex: ExerciseDBItem){\n  const hpName = alias(hp.name), exName = alias(ex.name);\n  let s = 0;\n  if (hpName === exName) s += BOOSTS.exactName;\n  else if (hpName.includes(exName) || exName.includes(hpName)) s += BOOSTS.closeName;\n  if (norm(hp.target) === norm(ex.target)) s += BOOSTS.exactTarget; else s -= PENALTIES.disjointTarget;\n  if (norm(hp.bodyPart) === norm(ex.bodyPart)) s += BOOSTS.exactBodyPart; else s -= PENALTIES.disjointBodyPart;\n  if (hp.equipment && ex.equipment && norm(hp.equipment) === norm(ex.equipment)) s += BOOSTS.exactEquipment;\n  return s;\n}\n\nexport function resolveSimple(hp: HP, candidates: ExerciseDBItem[]){\n  if (!candidates.length) return null;\n  const ranked = candidates.map(c=>({ c, score: score(hp,c) })).sort((a,b)=>b.score-a.score);\n  const top = ranked[0];\n  if (!top) return null;\n  return top.score >= MATCH_THRESHOLD ? { externalId: top.c.id, gifUrl: top.c.gifUrl, chosen: top.c, score: top.score } : null;\n}"
+    },
+    {
+      "path": "src/server/services/exerciseMedia/getMediaSafe.ts",
+      "replace_or_insert_at_top": "import { resolveSimple } from '@/server/services/exerciseMatcher/simpleResolver';\nimport { searchExerciseDBCandidates } from '@/server/services/exerciseDb/searchByName';\nimport { ZExerciseDBItem } from '@/server/services/exerciseDb/types';",
+      "replace_file_content": "import { resolveSimple } from '@/server/services/exerciseMatcher/simpleResolver';\nimport { searchExerciseDBCandidates } from '@/server/services/exerciseDb/searchByName';\n\ntype HP = { id:string; name:string; target:string; bodyPart:string; equipment?:string|null; externalId?:string|null };\n\nasync function fetchById(id:string){\n  const base = process.env.EXERCISE_DB_PROXY_BASE; const res = await fetch(`${base}/item?id=${encodeURIComponent(id)}`);\n  if (!res.ok) return null; const j = await res.json();\n  return j?.gifUrl ? { url:j.gifUrl, id, source:'ExerciseDB' as const } : null;\n}\n\nexport async function getMediaSafe(hp: HP, opts?: { allowAutomap?: boolean }){\n  // 1) If we already have a trusted id, use it\n  if (hp.externalId) { const m = await fetchById(hp.externalId); if (m) return m; }\n  // 2) Optional auto-map (flag from caller)\n  if (!opts?.allowAutomap) return null;\n  const candidates = await searchExerciseDBCandidates(hp.name);\n  const res = resolveSimple({ id: hp.id, name: hp.name, target: hp.target, bodyPart: hp.bodyPart, equipment: hp.equipment ?? null }, candidates);\n  if (!res || !res.gifUrl) return null;\n  return { url: res.gifUrl, id: res.externalId, source: 'ExerciseDB' as const };\n}"
+    },
+    {
+      "path": "src/features/workout/components/ExerciseCard.tsx",
+      "ensure_content_contains": [
+        "queryKey: ['exercise-media', exercise.id, exercise.externalId ?? null]",
+        "keepPreviousData: false"
+      ]
+    },
+    {
+      "path": "src/server/services/exerciseMatcher/__tests__/simpleResolver.test.ts",
+      "content": "import { resolveSimple } from '../simpleResolver';\n\ntest('exact name + target + bodyPart wins', ()=>{\n  const hp = { id:'1', name:'Lat Pulldown', target:'lats', bodyPart:'back', equipment:'cable' };\n  const cands = [\n    { id:'A', name:'Seated Row', target:'lats', bodyPart:'back', equipment:'cable', gifUrl:'https://x' },\n    { id:'B', name:'Lat Pulldown', target:'lats', bodyPart:'back', equipment:'cable', gifUrl:'https://y' }\n  ];\n  const r = resolveSimple(hp, cands)!; expect(r.externalId).toBe('B');\n});\n\ntest('reject low score (mismatch target/bodyPart)', ()=>{\n  const hp = { id:'1', name:'Lat Pulldown', target:'lats', bodyPart:'back' };\n  const cands = [ { id:'A', name:'Lat Pulldown', target:'quads', bodyPart:'legs', gifUrl:'https://x' } ];\n  const r = resolveSimple(hp, cands); expect(r).toBeNull();\n});\n\ntest('synonym handling (lat pull down → lat pulldown)', ()=>{\n  const hp = { id:'1', name:'Lat Pull Down', target:'lats', bodyPart:'back' };\n  const cands = [ { id:'B', name:'Lat Pulldown', target:'lats', bodyPart:'back', gifUrl:'https://y' } ];\n  const r = resolveSimple(hp, cands)!; expect(r.externalId).toBe('B');\n});"
+    }
+  ],
+  "integration": {
+    "wire_up": [
+      "Ensure all media lookups go through getMediaSafe(exercise, { allowAutomap: EXERCISE_SIMPLE_MATCHER_ENABLED }).",
+      "NEVER join by array index; always key by exercise.id/externalId.",
+      "If you persist externalId later, do it only for accepted matches (score >= MATCH_THRESHOLD)."
+    ]
+  },
+  "backfill_optional": {
+    "path": "scripts/backfill-exercise-externalIds.ts",
+    "content": "import { searchExerciseDBCandidates } from '@/server/services/exerciseDb/searchByName';\nimport { resolveSimple } from '@/server/services/exerciseMatcher/simpleResolver';\n\nasync function main(){\n  const rows = await db.exercise.findMany({ where: { externalId: null } });\n  let updated = 0;\n  for (const hp of rows){\n    const cands = await searchExerciseDBCandidates(hp.name);\n    const r = resolveSimple({ id: hp.id, name: hp.name, target: hp.target, bodyPart: hp.bodyPart, equipment: hp.equipment }, cands);\n    if (r?.externalId){ await db.exercise.update({ where:{ id: hp.id }, data:{ externalId: r.externalId } }); updated++; }\n  }\n  console.log({ updated });\n}\nmain().catch(e=>{ console.error(e); process.exit(1); });"
+  },
+  "acceptance": [
+    "For a QA list of ~50 exercises, ≥98% of resolved GIFs match the exercise title/target/bodyPart.",
+    "No wrong GIF appears; unresolved items show the placeholder.",
+    "All tests pass; build/typecheck/lint clean."
+  ],
+  "rollout": [
+    "Keep EXERCISE_MEDIA_AUTOMAP_ENABLED=false (if you had it) — the new simple resolver is called only when EXERCISE_SIMPLE_MATCHER_ENABLED=true and allowAutomap=true in the UI call.",
+    "Staging: enable EXERCISE_SIMPLE_MATCHER_ENABLED=true; test 50 exercises.",
+    "Prod canary: 10% traffic; monitor mismatches; then 100% if clean."
+  ]
+}
