@@ -1,0 +1,163 @@
+{
+  "mode": "REMOVE_EXERCISEDB_INTEGRATION",
+  "context": {
+    "product": "HealthPilot",
+    "intent": "Completely remove ExerciseDB integration and any related algorithms, routes, env vars, tests, and flags. Keep the training app functional using ONLY HealthPilot's own exercise data (name, target, bodyPart, equipment, instructions). Show a neutral placeholder where GIFs used to appear."
+  },
+  "preflight": {
+    "branch_and_tag": [
+      "git checkout -b chore/remove-exercisedb",
+      "git tag pre-exercisedb-removal"
+    ],
+    "accept_on_green": "Merge only after all checks pass and UI looks good."
+  },
+  "search_and_destroy": {
+    "patterns": [
+      "ExerciseDB",
+      "exerciseDb",
+      "EXERCISE_DB_PROXY_BASE",
+      "getExerciseDbItemById",
+      "getExerciseDbItemByIdFull",
+      "searchExerciseDBCandidates",
+      "resolveExternalId",
+      "resolveSimple",
+      "exerciseMatcher",
+      "EXERCISE_MEDIA_AUTOMAP_ENABLED",
+      "EXERCISE_SIMPLE_MATCHER_ENABLED",
+      "EXERCISE_MEDIA_STRICT_BINDING_ENABLED",
+      "getMediaByExternalId",
+      "getMediaSafe",
+      "getMediaStrict",
+      "media_withheld_mismatch",
+      "workout_media",
+      "pool/fetchExerciseDbAll"
+    ],
+    "note": "Delete files/modules matching these names; replace imports with local placeholders."
+  },
+  "deletions": [
+    "src/server/services/exerciseDb/**",
+    "src/server/services/exerciseMedia/getMediaByExternalId.ts",
+    "src/server/services/exerciseMedia/getMediaSafe.ts",
+    "src/server/services/exerciseMedia/getMediaStrict.ts",
+    "src/server/services/exerciseMedia/verifyMatch.ts",
+    "src/services/exercises/resolveExternalId.ts",
+    "src/server/services/exerciseMatcher/**",
+    "src/server/workout/pool/fetchExerciseDbAll.ts",
+    "src/server/telemetry/workoutMediaLog.ts",
+    "src/server/telemetry/biomarkersTelemetry.ts"
+  ],
+  "routes_to_remove": [
+    "src/pages/api/workout/recommend.ts",
+    "src/pages/api/workout/instances/index.ts",
+    "src/pages/api/workout/instances/[id].ts"
+  ],
+  "env_cleanup": {
+    "remove_vars": ["EXERCISE_DB_PROXY_BASE", "EXERCISE_MEDIA_AUTOMAP_ENABLED", "EXERCISE_SIMPLE_MATCHER_ENABLED", "EXERCISE_MEDIA_STRICT_BINDING_ENABLED", "WORKOUT_POOL_WIDE_ENABLED", "WORKOUT_COOLDOWN_DAYS"],
+    "files": [".env.local", ".env", ".env.example", "docs/*"]
+  },
+  "flags_cleanup": {
+    "file": "src/config/flags.ts",
+    "remove_getters": [
+      "AI_WORKOUT_SELECTION_ENABLED",
+      "EXERCISE_MEDIA_AUTOMAP_ENABLED",
+      "EXERCISE_SIMPLE_MATCHER_ENABLED",
+      "EXERCISE_MEDIA_STRICT_BINDING_ENABLED",
+      "WORKOUT_POOL_WIDE_ENABLED"
+    ],
+    "note": "Keep non-ExerciseDB flags as-is."
+  },
+  "schema_and_types": {
+    "keep_columns_but_ignore": ["externalId"],
+    "update_types": {
+      "path": "src/domain/exercise.ts",
+      "edits": [
+        "Make externalId?: string | null; // unused now",
+        "Ensure instructions: string[] (always array)"
+      ]
+    },
+    "normalizers": [
+      {
+        "path": "src/server/adapters/exercises/normalizeExercise.ts",
+        "ensure": "instructions normalized to string[]; never fetch from external sources"
+      }
+    ]
+  },
+  "ui_rewire": {
+    "goal": "No network calls for media; just show a neutral block. Instructions come entirely from HP data.",
+    "replace_modal_and_card_media": [
+      {
+        "path": "src/features/workout/components/ExerciseModal.tsx",
+        "replace_file_content": "import React from 'react';\nexport type ModalExercise = { id:string; name:string; target:string; bodyPart:string; equipment?:string|null; instructions?: string[] };\nexport default function ExerciseModal({ exercise, open, onClose }: { exercise: ModalExercise; open:boolean; onClose:()=>void }){\n  if (!open) return null;\n  return (\n    <div role='dialog' aria-modal='true' className='fixed inset-0 z-50 grid place-items-center bg-black/40'>\n      <div className='w-full max-w-xl rounded-2xl bg-white p-4 shadow-xl max-h-[88vh] overflow-auto'>\n        <div className='text-lg font-semibold'>{exercise.name}</div>\n        <div className='text-xs text-neutral-600'>{exercise.bodyPart} • {exercise.target}{exercise.equipment?` • ${exercise.equipment}`:''}</div>\n        <div className='mt-3 aspect-video min-h-[240px] bg-neutral-100 rounded-xl grid place-items-center text-xs text-neutral-500'>No demo available</div>\n        {Array.isArray(exercise.instructions) && exercise.instructions.length>0 ? (\n          <>\n            <h3 className='mt-4 font-medium text-sm'>How to do it</h3>\n            <ol className='list-decimal pl-5 space-y-1'>\n              {exercise.instructions.map((t,i)=>(<li key={`${exercise.id}-inst-${i}`}>{t}</li>))}\n            </ol>\n          </>\n        ) : (<div className='mt-4 text-xs text-neutral-500'>No instructions available</div>)}\n        <div className='mt-4 flex justify-end'><button onClick={onClose} className='rounded-md border px-3 py-1.5 text-sm'>Close</button></div>\n      </div>\n    </div>\n  );\n}\n"
+      },
+      {
+        "path": "src/features/workout/components/ExerciseCard.tsx",
+        "ensure_content_contains": [
+          "const snap = { id: exercise.id, name: exercise.name, target: exercise.target, bodyPart: exercise.bodyPart, equipment: exercise.equipment ?? null, instructions: exercise.instructions ?? [] };",
+          "<ExerciseModal open={open} onClose={() => setOpen(false)} exercise={snap} />"
+        ]
+      }
+    ]
+  },
+  "server_recommendation_cleanup": {
+    "goal": "Use ONLY HealthPilot exercises table. Remove ExerciseDB pool/rotation code.",
+    "files_to_edit": [
+      {
+        "path": "src/server/workout/recommend.ts",
+        "replace_file_content": "export async function recommendWorkouts({ userId, count }:{ userId:string; count:number }){\n  // Deterministic but simple: pull from HP DB only, order by (popularity DESC, createdAt DESC) and slice\n  const items = await db.exercise.findMany({ where: { isActive:true }, orderBy: [{ popularityScore: 'desc' }, { createdAt: 'desc' }], take: count, select: { id:true, name:true, target:true, bodyPart:true, equipment:true, instructions:true } });\n  return items;\n}\n"
+      }
+    ],
+    "remove_rotation_pool": [
+      "src/server/workout/pool/**"
+    ]
+  },
+  "api_cleanup": {
+    "goal": "No endpoints that call ExerciseDB or expose its data.",
+    "actions": [
+      "Delete any API proxies to ExerciseDB (list/search/item).",
+      "Ensure /api/workout/day and related endpoints only return HP data."
+    ]
+  },
+  "tests_cleanup": {
+    "remove_or_update": [
+      "All tests under src/server/services/exerciseDb/**",
+      "All resolver/matcher tests",
+      "Any tests expecting gifUrl from external sources"
+    ],
+    "add_smoke": [
+      {
+        "path": "src/features/workout/__tests__/no-external-media.smoke.test.tsx",
+        "content": "import { render, screen } from '@testing-library/react';\nimport ExerciseModal from '../components/ExerciseModal';\n\ntest('modal shows HP instructions and neutral media', ()=>{\n  const ex = { id:'e1', name:'Lat Pulldown', target:'lats', bodyPart:'back', instructions:['Sit','Pull'] };\n  render(<ExerciseModal open={true} onClose={()=>{}} exercise={ex} />);\n  expect(screen.getByText('Lat Pulldown')).toBeInTheDocument();\n  expect(screen.getByText('Sit')).toBeInTheDocument();\n  expect(screen.getByText('No demo available')).toBeInTheDocument();\n});\n"
+      }
+    ]
+  },
+  "docs": [
+    {
+      "path": "docs/workout-without-exercisedb.md",
+      "content": "# Training App (Local Only)\n\n- ExerciseDB integration removed.\n- Media: neutral placeholder only.\n- Instructions: from HealthPilot DB only; ensure `instructions` is an array.\n- Env: removed `EXERCISE_DB_PROXY_BASE` and all ExerciseDB flags.\n- Recommendation: `db.exercise` only; deterministic order.\n"
+    }
+  ],
+  "build_and_verify": {
+    "commands": [
+      "npm run lint",
+      "npm run typecheck",
+      "npm test -- --watch=false",
+      "npm run build",
+      "npm run dev"
+    ],
+    "ui_checklist": [
+      "Open workout list → items render.",
+      "Click Start Workout → workflow renders same items (snapshot logic stays).",
+      "Open several modals → titles stable; placeholder shown; HP instructions render.",
+      "No network calls to ExerciseDB; network tab clean.",
+      "No console errors/warnings about missing modules or env vars."
+    ]
+  },
+  "post_merge": {
+    "tag": "git tag post-exercisedb-removal",
+    "next_steps": [
+      "If desired later: re-introduce media via your own curated CDN and a tiny `imageUrl` column in HP DB.",
+      "Optional migration: drop `externalId` column in a future PR once you’re certain you won’t need it."
+    ]
+  },
+  "output": "Return a patch plan (files removed/edited) and the full contents for all edited files. Confirm all imports are updated and the build/test pass."
+}
