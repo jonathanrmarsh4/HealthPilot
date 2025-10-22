@@ -271,6 +271,56 @@ Exercise Variety Guidelines:
 - For accessories: Rotate between different movement patterns and equipment
 - Aim for <30% overlap with recently_used_exercises when possible
 - If regenerating (look for regeneration context), be MORE creative and select completely different exercises
+
+REQUIRED OUTPUT SCHEMA (return this exact structure at the root level):
+{
+  "date": "YYYY-MM-DD",
+  "focus": "description of today's training focus",
+  "safety": {
+    "flag": false,
+    "notes": "safety considerations",
+    "seek_medical_advice": false
+  },
+  "warmup": ["exercise 1", "exercise 2"],
+  "main": [
+    {
+      "exercise": "Exercise Name",
+      "goal": "strength" | "hypertrophy" | "power",
+      "sets": 3,
+      "reps": 8,
+      "intensity": "RPE 7 or 70% 1RM",
+      "rest_seconds": 90,
+      "alternative_if_limited": "Alternative exercise if equipment unavailable"
+    }
+  ],
+  "accessories": [
+    {
+      "exercise": "Exercise Name",
+      "goal": "hypertrophy",
+      "sets": 3,
+      "reps": 12,
+      "intensity": "RPE 7",
+      "rest_seconds": 60
+    }
+  ],
+  "conditioning": {
+    "include": true,
+    "type": "none" | "steady_state" | "intervals" | "tempo_run" | "circuit",
+    "duration_minutes": 15,
+    "intensity_zone": "Z2",
+    "notes": "optional notes"
+  },
+  "cooldown": ["stretch 1", "stretch 2"],
+  "progression_notes": "notes about progression",
+  "compliance_summary": {
+    "volume_sets_estimate": {
+      "chest": 8,
+      "back": 10
+    },
+    "weekly_volume_guardrail_ok": true,
+    "reasoning": "explanation"
+  }
+}
 `;
 
   const response = await client.chat.completions.create({
@@ -293,6 +343,9 @@ Exercise Variety Guidelines:
 
   const content = response.choices[0].message?.content ?? "{}";
   const parsed = JSON.parse(content);
+  
+  // Debug: Log the AI response to see its structure
+  console.log("🤖 AI Response Structure:", JSON.stringify(parsed, null, 2));
 
   // Validate output structure & guardrails
   const result = DailyWorkoutSchema.parse(parsed);
