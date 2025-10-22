@@ -35,7 +35,19 @@ export function MealCatalogBrowser() {
 
   // Fetch meals for the selected category and page
   const { data, isLoading } = useQuery<MealCatalogResponse>({
-    queryKey: ["/api/meals", { page: currentPage, limit: ITEMS_PER_PAGE, mealType: selectedMealType }],
+    queryKey: ["/api/meals", selectedMealType, currentPage],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        mealType: selectedMealType,
+        page: String(currentPage),
+        limit: String(ITEMS_PER_PAGE),
+      });
+      const response = await fetch(`/api/meals?${params.toString()}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch meals: ${response.statusText}`);
+      }
+      return response.json();
+    },
   });
 
   const handleTabChange = (newMealType: string) => {
