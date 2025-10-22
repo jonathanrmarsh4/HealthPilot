@@ -176,13 +176,22 @@ export async function buildUserContext(storage: IStorage, userId: string, target
     availableEquipment.push("bodyweight"); // fallback
   }
 
+  // Collect recently used exercises from recent training
+  const recentlyUsedExercises = recentTraining.flatMap(session => 
+    session.exercises.map(ex => ex.name)
+  );
+  
+  // Get unique list of recently used exercises
+  const uniqueRecentExercises = Array.from(new Set(recentlyUsedExercises));
+
   // Build preferences
   const preferences = {
     split_style: fitnessProfile?.preferredWorkoutTypes?.[0] || "push_pull_legs",
     available_equipment: availableEquipment,
     setting: fitnessProfile?.hasGymAccess ? "gym" : "home",
     liked_exercises: [], // TODO: get from exercise feedback
-    disliked_exercises: [] // TODO: get from exercise feedback
+    disliked_exercises: [], // TODO: get from exercise feedback
+    recently_used_exercises: uniqueRecentExercises.slice(0, 20) // Last 20 unique exercises
   };
 
   // Build user profile object
@@ -229,7 +238,7 @@ export async function buildUserContext(storage: IStorage, userId: string, target
 // ──────────────────────────────────────────────
 // Core function to generate one daily plan
 // ──────────────────────────────────────────────
-export async function generateDailySession(data: any): Promise<DailyWorkout> {
+export async function generateDailySession(data: any, regenerationCount: number = 0): Promise<DailyWorkout> {
   const systemPrompt = `
 You are HealthPilot Coach, an expert strength & conditioning planner.
 Always follow ACSM, NSCA and WHO guardrails.
@@ -255,6 +264,13 @@ Output Requirements:
 - Provide progression notes based on recent training history
 - Estimate total volume per muscle group
 - Ensure weekly volume stays within 8-20 sets per muscle group
+
+Exercise Variety Guidelines:
+- PRIORITIZE variety: Select different exercises from those listed in recently_used_exercises
+- For main compound movements: Choose variations (e.g., if "Back Squat" was recent, consider "Front Squat", "Bulgarian Split Squat", or "Leg Press")
+- For accessories: Rotate between different movement patterns and equipment
+- Aim for <30% overlap with recently_used_exercises when possible
+- If regenerating (look for regeneration context), be MORE creative and select completely different exercises
 `;
 
   const response = await client.chat.completions.create({
@@ -265,12 +281,14 @@ Output Requirements:
       {
         role: "user",
         content: JSON.stringify({
-          instruction: "Generate today's safe and standards-aligned workout session.",
+          instruction: regenerationCount > 0 
+            ? `REGENERATION REQUEST (attempt #${regenerationCount + 1}): User rejected previous workout. Generate a COMPLETELY DIFFERENT workout with maximum variety. Avoid all exercises from recently_used_exercises if possible.`
+            : "Generate today's safe and standards-aligned workout session.",
           input: data
         })
       }
     ],
-    temperature: 0.7
+    temperature: regenerationCount > 0 ? 0.9 : 0.7 // Higher creativity when regenerating
   });
 
   const content = response.choices[0].message?.content ?? "{}";

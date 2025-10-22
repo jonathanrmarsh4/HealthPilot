@@ -5202,8 +5202,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Build user context
           const context = await buildUserContext(storage, userId, targetDate);
           
-          // Generate workout
-          const workoutData = await generateDailySession(context);
+          // Generate workout with regeneration count for variety
+          const workoutData = await generateDailySession(context, regenerationCount);
           
           // Update existing record
           const updated = await storage.updateGeneratedWorkout(existing.id, userId, {
