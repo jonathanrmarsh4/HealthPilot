@@ -249,6 +249,22 @@ export const exercises = pgTable("exercises", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// Workout Instances - Immutable snapshots of exercises when "Start Workout" is clicked
+// This ensures the exact exercises shown in recommendations are preserved throughout the workout
+export const workoutInstances = pgTable("workout_instances", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  workoutSessionId: varchar("workout_session_id"), // FK to workout session when workout is started
+  workoutType: text("workout_type").notNull(), // e.g., "Upper Body Strength", "Full Body HIIT"
+  sourceType: text("source_type").notNull().default("daily_recommendation"), // 'daily_recommendation', 'training_schedule', 'manual'
+  sourceId: varchar("source_id"), // ID of the source (e.g., training schedule ID)
+  snapshotData: jsonb("snapshot_data").notNull(), // Complete immutable snapshot of exercises with all metadata
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => [
+  index("workout_instances_user_id_idx").on(table.userId),
+  index("workout_instances_session_id_idx").on(table.workoutSessionId),
+]);
+
 // Individual set tracking - one row per set
 export const exerciseSets = pgTable("exercise_sets", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -658,6 +674,11 @@ export const insertInsightSchema = createInsertSchema(insights).omit({
 });
 
 export const insertWorkoutSessionSchema = createInsertSchema(workoutSessions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertWorkoutInstanceSchema = createInsertSchema(workoutInstances).omit({
   id: true,
   createdAt: true,
 });
@@ -1081,6 +1102,9 @@ export type Insight = typeof insights.$inferSelect;
 
 export type InsertWorkoutSession = z.infer<typeof insertWorkoutSessionSchema>;
 export type WorkoutSession = typeof workoutSessions.$inferSelect;
+
+export type InsertWorkoutInstance = z.infer<typeof insertWorkoutInstanceSchema>;
+export type WorkoutInstance = typeof workoutInstances.$inferSelect;
 
 export type InsertExerciseLog = z.infer<typeof insertExerciseLogSchema>;
 export type ExerciseLog = typeof exerciseLogs.$inferSelect;

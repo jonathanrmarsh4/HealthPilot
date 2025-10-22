@@ -1,0 +1,78 @@
+{
+  "mode": "WORKOUT_SNAPSHOT_IMMUTABLE_INSTANCE",
+  "context": {
+    "product": "HealthPilot",
+    "feature": "Workout/Training workflow",
+    "symptom": "Exercises in the workflow screen are different from the recommendation list; detail views show a different exercise altogether (although GIF + instructions match each other).",
+    "goal": "Freeze the exact list the user saw into an immutable workout instance at 'Start Workout' and render only from that snapshot. No re-selection, no re-fetch-by-name, no randomization on mount."
+  },
+  "deliverables": [
+    "Domain types for WorkoutInstance",
+    "Server: create+read APIs for instances",
+    "Client: Start Workout posts snapshot, navigates by instanceId",
+    "Workflow screen: fetches by instanceId only, renders snapshot order",
+    "Exercise detail: reads snapshot item, not live DB",
+    "React Query keys include instanceId (no cache collisions)",
+    "Remove any randomization/reselection from workflow mount",
+    "Minimal tests and a debug overlay"
+  ],
+  "files": [
+    {
+      "path": "src/domain/workoutInstance.ts",
+      "content": "import { z } from 'zod';\nexport const ZInstanceItem = z.object({\n  instanceExerciseId: z.string(), // unique per instance item\n  exerciseId: z.string(),\n  name: z.string(),\n  target: z.string(),\n  bodyPart: z.string(),\n  equipment: z.string().optional(),\n  externalId: z.string().optional(), // for media\n  instructions: z.array(z.string()).default([])\n});\nexport const ZWorkoutInstance = z.object({\n  id: z.string(),\n  createdAt: z.string(),\n  source: z.object({ planId: z.string().optional(), dayId: z.string().optional() }).optional(),\n  items: z.array(ZInstanceItem), // immutable order to render\n});\nexport type WorkoutInstance = z.infer<typeof ZWorkoutInstance>;"
+    },
+    {
+      "path": "src/server/handlers/workoutInstances/createInstance.ts",
+      "content": "import { randomUUID } from 'crypto';\nimport { ZWorkoutInstance } from '@/domain/workoutInstance';\n\nexport async function createWorkoutInstance({ source, items }:{ source?: {planId?:string; dayId?:string}, items: Array<{ exerciseId:string; name:string; target:string; bodyPart:string; equipment?:string; externalId?:string; instructions:string[] }> }){\n  const instanceId = randomUUID();\n  const now = new Date().toISOString();\n  const instance = { id: instanceId, createdAt: now, source, items: items.map((it, idx)=> ({ instanceExerciseId: `${instanceId}-${idx+1}`, ...it })) };\n  // Persist in DB (preferred) or kv/cache; replace with ORM call\n  await db.workoutInstance.create({ data: instance });\n  const parsed = ZWorkoutInstance.safeParse(instance);\n  if (!parsed.success) throw new Error('Instance schema invalid');\n  return parsed.data;\n}"
+    },
+    {
+      "path": "src/server/handlers/workoutInstances/getInstance.ts",
+      "content": "import { ZWorkoutInstance } from '@/domain/workoutInstance';\nexport async function getWorkoutInstance(id:string){\n  const row = await db.workoutInstance.findUnique({ where:{ id } });\n  if (!row) return null;\n  const parsed = ZWorkoutInstance.safeParse(row);\n  return parsed.success ? parsed.data : null;\n}"
+    },
+    {
+      "path": "src/pages/api/workout/instances/index.ts",
+      "content": "import type { NextApiRequest, NextApiResponse } from 'next';\nimport { createWorkoutInstance } from '@/server/handlers/workoutInstances/createInstance';\n\nexport default async function handler(req:NextApiRequest,res:NextApiResponse){\n  if (req.method !== 'POST') return res.status(405).end();\n  try {\n    const body = req.body; // { source?, items:[{exerciseId, name, target, bodyPart, equipment?, externalId?, instructions:[]}] }\n    const instance = await createWorkoutInstance(body);\n    res.status(200).json(instance);\n  } catch (e:any) {\n    res.status(500).json({ error: e.message });\n  }\n}"
+    },
+    {
+      "path": "src/pages/api/workout/instances/[id].ts",
+      "content": "import type { NextApiRequest, NextApiResponse } from 'next';\nimport { getWorkoutInstance } from '@/server/handlers/workoutInstances/getInstance';\nexport default async function handler(req:NextApiRequest,res:NextApiResponse){\n  if (req.method !== 'GET') return res.status(405).end();\n  try {\n    const { id } = req.query as { id:string };\n    const instance = await getWorkoutInstance(id);\n    if (!instance) return res.status(404).json({ error:'Not found' });\n    res.status(200).json(instance);\n  } catch (e:any) { res.status(500).json({ error: e.message }); }\n}"
+    },
+    {
+      "path": "src/features/workout/actions/startWorkout.ts",
+      "content": "import { ZWorkoutInstance } from '@/domain/workoutInstance';\n\nexport async function startWorkoutFromRecommended({ source, exercises }:{ source?:{planId?:string; dayId?:string}, exercises: Array<{ id:string; name:string; target:string; bodyPart:string; equipment?:string; externalId?:string; instructions:string[] }> }){\n  const payload = { source, items: exercises.map(e=> ({ exerciseId:e.id, name:e.name, target:e.target, bodyPart:e.bodyPart, equipment:e.equipment, externalId:e.externalId, instructions:e.instructions })) };\n  const res = await fetch('/api/workout/instances', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });\n  if (!res.ok) throw new Error('Failed to create workout instance');\n  const json = await res.json();\n  const parsed = ZWorkoutInstance.safeParse(json);\n  if (!parsed.success) throw new Error('Invalid instance response');\n  return parsed.data; // includes id\n}"
+    },
+    {
+      "path": "src/features/workout/pages/RecommendedList.tsx",
+      "content": "import { startWorkoutFromRecommended } from '@/features/workout/actions/startWorkout';\nimport { useRouter } from 'next/router';\n\nexport function RecommendedList({ items, source }:{ items: any[]; source?:{planId?:string; dayId?:string} }){\n  const router = useRouter();\n  async function onStart(){\n    const instance = await startWorkoutFromRecommended({ source, exercises: items });\n    router.push(`/workout/${instance.id}`); // navigate by immutable instance id\n  }\n  return (\n    <div>\n      {/* render list of items here */}\n      <button onClick={onStart} className=\"btn btn-primary\">Start Workout</button>\n    </div>\n  );\n}"
+    },
+    {
+      "path": "src/features/workout/pages/WorkoutInstance.tsx",
+      "content": "import { useQuery } from '@tanstack/react-query';\nimport { useRouter } from 'next/router';\nimport { ZWorkoutInstance } from '@/domain/workoutInstance';\nimport { ExerciseCard } from '@/features/workout/components/ExerciseCard';\n\nasync function fetchInstance(id:string){\n  const res = await fetch(`/api/workout/instances/${id}`);\n  if (!res.ok) throw new Error('Instance not found');\n  const json = await res.json();\n  const parsed = ZWorkoutInstance.safeParse(json);\n  if (!parsed.success) throw new Error('Invalid instance');\n  return parsed.data;\n}\n\nexport default function WorkoutInstancePage(){\n  const { query } = useRouter();\n  const id = String(query.id || '');\n  const { data, isLoading, error } = useQuery({ queryKey:['workout-instance', id], queryFn:()=>fetchInstance(id), enabled: !!id });\n  if (isLoading) return <div>Loading…</div>;\n  if (error || !data) return <div>Error</div>;\n  return (\n    <div className=\"p-4 space-y-4\">\n      <h1 className=\"text-lg font-semibold\">Workout</h1>\n      <div className=\"grid md:grid-cols-2 gap-4\">\n        {data.items.map(it => (\n          <ExerciseCard key={it.instanceExerciseId} exercise={{\n            id: it.exerciseId,\n            name: it.name,\n            target: it.target,\n            bodyPart: it.bodyPart,\n            equipment: it.equipment,\n            externalId: it.externalId,\n            instructions: it.instructions\n          }} />\n        ))}\n      </div>\n    </div>\n  );\n}"
+    },
+    {
+      "path": "src/features/workout/components/ExerciseCard.tsx",
+      "ensure_content_contains": [
+        "queryKey: ['exercise-media', exercise.id, exercise.externalId ?? null]",
+        "keepPreviousData: false"
+      ],
+      "note": "Card keeps its current hardened behavior; it now receives data from the immutable snapshot."
+    },
+    {
+      "path": "src/features/workout/__tests__/instance.snapshot.test.ts",
+      "content": "import { ZWorkoutInstance } from '@/domain/workoutInstance';\n\ntest('instance schema validates immutable items with stable order', ()=>{\n  const inst = { id:'i1', createdAt:new Date().toISOString(), items:[{ instanceExerciseId:'i1-1', exerciseId:'e1', name:'Lat Pulldown', target:'lats', bodyPart:'back', externalId:'X1', instructions:['Sit','Pull'] }] };\n  expect(ZWorkoutInstance.safeParse(inst).success).toBe(true);\n});\n"
+    }
+  ],
+  "safety_checks": [
+    "Remove any re-selection logic in the workflow screen/component. It must NOT hit recommendation endpoints.",
+    "Ensure no ORDER BY RANDOM(), seed changes, or time-based shuffles occur on workflow mount.",
+    "React Query keys for workflow use ['workout-instance', instanceId] (not generic keys).",
+    "Exercise detail pages (if any) read from instance.items using instanceExerciseId/exerciseId, not by name."
+  ],
+  "acceptance": [
+    "The exercises shown in the workflow are exactly the ones from the recommendation list (same order).",
+    "Clicking any exercise shows the same exercise’s instructions + GIF (no cross-bleed).",
+    "Page refresh preserves the same instance via instanceId.",
+    "Tests/typecheck/lint/build pass."
+  ],
+  "output": "Return a patch plan, full file contents, and a short note explaining where re-selection was removed."
+}
