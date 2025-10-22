@@ -1,12 +1,11 @@
-import { useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Dumbbell, Target, Wrench, X, AlertCircle } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { canUseExerciseMediaAutomap } from "@shared/config/flags";
+import { Dumbbell, Target, Wrench, X } from "lucide-react";
 
 interface ExerciseDBExercise {
   id: string;
@@ -20,75 +19,65 @@ interface ExerciseDBExercise {
 }
 
 interface ExerciseDetailsModalProps {
-  exerciseName: string;
-  exercisedbId?: string | null; // Stable ExerciseDB ID for direct lookup (preferred)
+  exerciseName: string;           // The name from the clicked card (preserved, never overwritten)
+  exercisedbId?: string | null;   // ExerciseDB ID for stable GIF lookup
   open: boolean;
   onClose: () => void;
 }
 
-export function ExerciseDetailsModal({ exerciseName, exercisedbId, open, onClose }: ExerciseDetailsModalProps) {
-  const [imageError, setImageError] = useState(false);
-  const canUseFuzzyMatching = canUseExerciseMediaAutomap();
+/**
+ * SAFE: Fetches exercise media ONLY by trusted exercisedbId.
+ * Never performs name-based lookups. No automap here.
+ */
+async function fetchByExercisedbId(exercisedbId: string): Promise<ExerciseDBExercise | null> {
+  const res = await fetch(`/api/exercisedb/exercise/${encodeURIComponent(exercisedbId)}`, {
+    credentials: 'include',
+  });
+  if (!res.ok) return null;
+  return await res.json();
+}
 
-  const { data: exercise, isLoading, error } = useQuery<ExerciseDBExercise | null>({
-    queryKey: exercisedbId 
-      ? ['/api/exercisedb/exercise', exercisedbId]  // Direct ID lookup (deterministic)
-      : ['/api/exercisedb/search', exerciseName],    // Fallback to fuzzy name search
-    queryFn: async () => {
-      // BASELINE MODE: Only allow direct ID lookups (no fuzzy matching)
-      if (!canUseFuzzyMatching && !exercisedbId) {
-        console.log('[ExerciseDB] Fuzzy matching disabled in baseline mode - exercisedbId required');
-        return null; // Return null instead of attempting fuzzy search
-      }
-      
-      // Prefer direct ID lookup when available
-      if (exercisedbId) {
-        const res = await fetch(`/api/exercisedb/exercise/${encodeURIComponent(exercisedbId)}`, {
-          credentials: 'include',
-        });
-        if (!res.ok) {
-          // In baseline mode, don't fall back to name search
-          if (!canUseFuzzyMatching) {
-            console.warn(`[ExerciseDB] ID ${exercisedbId} not found, fuzzy matching disabled`);
-            return null;
-          }
-          
-          // AI mode: fall back to name search
-          console.warn(`ExerciseDB ID ${exercisedbId} not found, falling back to name search`);
-          const searchRes = await fetch(`/api/exercisedb/search?name=${encodeURIComponent(exerciseName)}`, {
-            credentials: 'include',
-          });
-          if (!searchRes.ok) {
-            throw new Error('Exercise not found');
-          }
-          return await searchRes.json();
-        }
-        return await res.json();
-      }
-      
-      // Fallback: fuzzy name-based search (only in AI mode)
-      const res = await fetch(`/api/exercisedb/search?name=${encodeURIComponent(exerciseName)}`, {
-        credentials: 'include',
-      });
-      if (!res.ok) {
-        throw new Error('Exercise not found');
-      }
-      const data = await res.json();
-      return data; // Can be null if no high-confidence match found
-    },
-    enabled: open && (!!exercisedbId || (canUseFuzzyMatching && !!exerciseName)),
-    staleTime: 1000 * 60 * 60 * 24, // Cache for 24 hours
-    retry: false, // Don't retry on null responses
+export function ExerciseDetailsModal({ 
+  exerciseName, 
+  exercisedbId, 
+  open, 
+  onClose 
+}: ExerciseDetailsModalProps) {
+  // Force a fresh instance when the exercise changes (prevents stale data)
+  const modalKey = useMemo(
+    () => `exercise-modal-${exerciseName}-${exercisedbId ?? "none"}`, 
+    [exerciseName, exercisedbId]
+  );
+
+  // Track the current exercise name to ignore late responses (belt & suspenders)
+  const currentNameRef = useRef(exerciseName);
+  useEffect(() => { 
+    currentNameRef.current = exerciseName; 
+  }, [exerciseName]);
+
+  // Fetch media only by trusted exercisedbId. No automap here.
+  const { data: exercise, isLoading } = useQuery<ExerciseDBExercise | null>({
+    queryKey: ["exercise-details-modal", exercisedbId ?? null],
+    queryFn: () => exercisedbId ? fetchByExercisedbId(exercisedbId) : Promise.resolve(null),
+    enabled: open && !!exercisedbId, // Only fetch when modal is open AND we have an ID
+    staleTime: 1000 * 60 * 60 * 24,  // Cache for 24 hours
+    retry: false,
+    select: (data) => {
+      // If some wiring bug returns a result for a different exercise (shouldn't happen), ignore it
+      if (!data) return null;
+      return currentNameRef.current === exerciseName ? data : null;
+    }
   });
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    <Dialog key={modalKey} open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh]" data-testid="dialog-exercise-details">
         <DialogHeader>
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
+              {/* CRITICAL: Title is ALWAYS the clicked exercise name. Never overwrite with fetched name. */}
               <DialogTitle className="text-2xl font-bold capitalize pr-8">
-                {exercise?.name || exerciseName}
+                {exerciseName}
               </DialogTitle>
               {exercise && (
                 <div className="flex flex-wrap gap-2 mt-3">
@@ -128,26 +117,15 @@ export function ExerciseDetailsModal({ exerciseName, exercisedbId, open, onClose
             </div>
           )}
 
-          {error && (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Dumbbell className="h-12 w-12 text-muted-foreground mb-4" />
-              <p className="text-lg font-medium">This is a BETA function, coming soon</p>
-            </div>
-          )}
-
-          {!isLoading && !error && exercise === null && (
+          {!isLoading && !exercise && (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <Dumbbell className="h-12 w-12 text-muted-foreground mb-4" />
               <p className="text-lg font-medium">
-                {!canUseFuzzyMatching 
-                  ? "Exercise demonstration unavailable" 
-                  : "This is a BETA function, coming soon"}
+                Exercise demonstration unavailable
               </p>
-              {!canUseFuzzyMatching && (
-                <p className="text-sm text-muted-foreground mt-2">
-                  Exercise media requires direct ExerciseDB mapping
-                </p>
-              )}
+              <p className="text-sm text-muted-foreground mt-2">
+                This exercise doesn't have a linked demonstration yet
+              </p>
             </div>
           )}
 
@@ -159,20 +137,17 @@ export function ExerciseDetailsModal({ exerciseName, exercisedbId, open, onClose
                   Demonstration
                 </h3>
                 <div className="relative rounded-md overflow-hidden bg-background aspect-video flex items-center justify-center">
-                  {!imageError ? (
-                    <img
-                      src={exercise.gifUrl}
-                      alt={`${exercise.name} demonstration`}
-                      className="max-w-full max-h-full object-contain"
-                      onError={() => setImageError(true)}
-                      data-testid="img-exercise-gif"
-                    />
-                  ) : (
-                    <div className="flex flex-col items-center justify-center text-muted-foreground p-8">
-                      <Dumbbell className="h-16 w-16 mb-4" />
-                      <p className="text-sm">Animation unavailable</p>
-                    </div>
-                  )}
+                  <img
+                    src={exercise.gifUrl}
+                    alt={`${exerciseName} demonstration`}
+                    className="max-w-full max-h-full object-contain"
+                    loading="lazy"
+                    data-testid="img-exercise-gif"
+                    onError={(e) => {
+                      // Hide broken images gracefully
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
                 </div>
               </div>
 

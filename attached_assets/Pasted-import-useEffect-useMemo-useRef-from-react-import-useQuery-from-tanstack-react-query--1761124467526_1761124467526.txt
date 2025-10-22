@@ -1,0 +1,81 @@
+import { useEffect, useMemo, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
+
+type ModalExercise = {
+  id: string;               // HP exercise id (immutable)
+  name: string;             // from the clicked card (DO NOT overwrite)
+  target: string;
+  bodyPart: string;
+  equipment?: string | null;
+  externalId?: string | null; // ExerciseDB id (if present)
+};
+
+type Props = {
+  exercise: ModalExercise;      // pass from the card you clicked
+  open: boolean;
+  onClose: () => void;
+};
+
+async function fetchByExternalId(externalId: string) {
+  const base = process.env.EXERCISE_DB_PROXY_BASE;
+  const res = await fetch(`${base}/item?id=${encodeURIComponent(externalId)}`);
+  if (!res.ok) return null;
+  const json = await res.json(); // { id, name, target, bodyPart, equipment, gifUrl }
+  return json?.gifUrl ? { id: json.id, url: json.gifUrl } : null;
+}
+
+// SAFE: never fetch by name here. Name-based lookups live behind explicit flags elsewhere.
+export default function ExerciseModal({ exercise, open, onClose }: Props) {
+  // Force a fresh instance when the exercise changes
+  const modalKey = useMemo(() => `exercise-modal-${exercise.id}-${exercise.externalId ?? "none"}`, [exercise.id, exercise.externalId]);
+
+  // Track the current exercise id to ignore late responses (belt & suspenders)
+  const currentIdRef = useRef(exercise.id);
+  useEffect(() => { currentIdRef.current = exercise.id; }, [exercise.id]);
+
+  // Fetch media only by trusted externalId. No automap here.
+  const { data: media } = useQuery({
+    queryKey: ["exercise-media-for-modal", exercise.id, exercise.externalId ?? null],
+    queryFn: () => exercise.externalId ? fetchByExternalId(exercise.externalId) : Promise.resolve(null),
+    enabled: open,                 // only fetch when modal is open
+    keepPreviousData: false,       // critical: don't show previous card's media
+    staleTime: 1000 * 60 * 60,
+    select: (m) => {
+      // If some wiring bug returns a result for a different exercise (shouldn't happen), ignore it.
+      if (!m) return null;
+      return currentIdRef.current === exercise.id ? m : null;
+    }
+  });
+
+  if (!open) return null;
+
+  return (
+    <div key={modalKey} role="dialog" aria-modal="true" className="fixed inset-0 z-50 grid place-items-center bg-black/40">
+      <div className="w-full max-w-xl rounded-2xl bg-white p-4 shadow-xl">
+        {/* Title is ALWAYS the clicked exercise name. Do not overwrite with fetched name. */}
+        <div className="text-lg font-semibold">{exercise.name}</div>
+        <div className="text-xs text-neutral-600">
+          {exercise.bodyPart} • {exercise.target}{exercise.equipment ? ` • ${exercise.equipment}` : ""}
+        </div>
+
+        <div className="mt-3 aspect-video bg-neutral-100 rounded-xl overflow-hidden grid place-items-center">
+          {media?.url ? (
+            <img src={media.url} alt={`${exercise.name} demo`} className="w-full h-full object-contain" loading="lazy" />
+          ) : (
+            <div className="text-xs text-neutral-500">No demo</div>
+          )}
+        </div>
+
+        {/* Instructions come from the clicked card (snapshot), not re-fetched by name */}
+        <ol className="mt-4 list-decimal pl-5 space-y-1">
+          {/* You should pass instructions in via the card; if not, add them to ModalExercise */}
+          {/* Example: exercise.instructions?.map((t, i) => <li key={`${exercise.id}-inst-${i}`}>{t}</li>) */}
+        </ol>
+
+        <div className="mt-4 flex justify-end">
+          <button onClick={onClose} className="rounded-md border px-3 py-1.5 text-sm">Close</button>
+        </div>
+      </div>
+    </div>
+  );
+}
