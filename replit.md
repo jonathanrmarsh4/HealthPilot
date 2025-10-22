@@ -46,11 +46,11 @@ I prefer simple language and clear explanations. I want iterative development wh
 - **Muscle Group Frequency Tracking System:** Tracks training frequency across 8 major muscle groups.
 - **Voice Chat System (Premium Feature):** WebSocket + OpenAI Realtime API for natural voice interaction.
 - **Universal Medical Data Interpreter:** AI-powered system for ingesting and interpreting medical data (PDFs, images, FHIR, HL7).
-- **Exercise Demonstration System (ExerciseDB Integration):** Integration with ExerciseDB API for exercise demonstrations; includes Exercise Matcher Simple V1 for deterministic matching.
+- **Exercise Demonstration System (ExerciseDB Integration):** Integration with ExerciseDB API for exercise demonstrations; includes Exercise Matcher Simple V1 for deterministic matching and Exercise Media Strict Binding System for zero-tolerance mismatch prevention.
 - **Landing Page CMS:** Custom-built content management system for landing page content.
 - **Mobile Scrolling Optimization:** Improvements for mobile/tablet scrolling in admin interfaces.
 - **Unified Insights Hub:** Integration of Daily Health, AI Coach, and Trend Analysis into a single tabbed interface.
-- **Baseline Mode & Feature Flag System:** Comprehensive feature flag infrastructure allowing progressive AI/ML feature rollout with a `BASELINE_MODE_ENABLED` master override.
+- **Baseline Mode & Feature Flag System:** Comprehensive feature flag infrastructure allowing progressive AI/ML feature rollout with a `BASELINE_MODE_ENABLED` master override. Infrastructure flags (like `EXERCISE_MEDIA_STRICT_BINDING_ENABLED`) operate independently of baseline mode for data quality/safety features.
 
 ## External Dependencies
 - **Database:** PostgreSQL
