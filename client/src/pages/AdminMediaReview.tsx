@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CheckCircle2, XCircle, Dumbbell, Target, Package } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { searchExerciseDBCandidates, type Candidate } from "@/lib/exercisedb";
 
 interface MediaLog {
   id: number;
@@ -18,15 +19,6 @@ interface MediaLog {
   candidateCount: number;
   chosenId: string | null;
   chosenName: string | null;
-}
-
-interface ExerciseCandidate {
-  id: string;
-  name: string;
-  target: string;
-  bodyPart: string;
-  equipment: string;
-  gifUrl: string;
 }
 
 export default function AdminMediaReview() {
@@ -153,7 +145,7 @@ function ReviewCard({
   item: MediaLog;
   onChoose: (chosenId: string | null) => void;
 }) {
-  const [candidates, setCandidates] = useState<ExerciseCandidate[]>([]);
+  const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -163,13 +155,11 @@ function ReviewCard({
   async function loadCandidates() {
     try {
       setLoading(true);
-      const response = await fetch(
-        `/api/exercisedb/exercises?name=${encodeURIComponent(item.hpName)}`
-      );
-      const data = await response.json();
-      setCandidates(data || []);
+      const results = await searchExerciseDBCandidates(item.hpName);
+      setCandidates(results);
     } catch (error) {
       console.error('Failed to load candidates:', error);
+      setCandidates([]);
     } finally {
       setLoading(false);
     }
