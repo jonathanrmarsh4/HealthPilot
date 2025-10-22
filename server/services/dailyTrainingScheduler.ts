@@ -4,8 +4,8 @@
  */
 
 import cron from 'node-cron';
-import { format } from 'date-fns';
-import { utcToZonedTime, getHours } from 'date-fns-tz';
+import { format, getHours } from 'date-fns';
+import { toZonedTime } from 'date-fns-tz';
 import { storage } from '../storage';
 import { buildUserContext, generateDailySession } from './trainingGenerator';
 import { canUseDailyAITrainingGenerator } from '../../shared/config/flags';
@@ -38,7 +38,7 @@ async function processUsersAtLocalTime(targetHour: number) {
         
         // Calculate what the local time is for this user right now using date-fns-tz
         const now = new Date();
-        const userLocalTime = utcToZonedTime(now, userTimezone);
+        const userLocalTime = toZonedTime(now, userTimezone);
         const userLocalHour = getHours(userLocalTime);
         
         // Check if it's the target hour for this user

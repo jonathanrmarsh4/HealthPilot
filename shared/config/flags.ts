@@ -23,7 +23,7 @@ export interface FlagConfig {
 export const FLAG_DEFINITIONS: Record<string, FlagConfig> = {
   BASELINE_MODE_ENABLED: {
     name: 'BASELINE_MODE_ENABLED',
-    default: true,
+    default: false,
     level: 'site',
     description: 'Master flag: enables deterministic catalog mode, disables all AI/ML features'
   },
@@ -65,7 +65,7 @@ export const FLAG_DEFINITIONS: Record<string, FlagConfig> = {
   },
   DAILY_AI_TRAINING_GENERATOR_ENABLED: {
     name: 'DAILY_AI_TRAINING_GENERATOR_ENABLED',
-    default: false,
+    default: true,
     level: 'site',
     description: 'Enable AI-powered daily training session generator with standards-based workouts'
   },
