@@ -340,6 +340,11 @@ export interface IStorage {
     restingHR: { workoutDays: number; nonWorkoutDays: number; improvement: number };
   }>;
   
+  // Exercise management
+  getExerciseById(exerciseId: string): Promise<Exercise | undefined>;
+  getAllExercises(): Promise<Exercise[]>;
+  updateExerciseExternalId(exerciseId: string, externalId: string): Promise<Exercise | undefined>;
+
   // Muscle Group Frequency Tracking methods
   recordMuscleGroupEngagement(userId: string, workoutSessionId: string, muscleGroup: string, engagementLevel: 'primary' | 'secondary', totalSets: number, totalVolume?: number): Promise<void>;
   getMuscleGroupEngagements(userId: string, startDate: Date, endDate: Date): Promise<Array<{ muscleGroup: string; engagementLevel: string; totalSets: number; totalVolume: number | null; createdAt: Date }>>;
@@ -2119,6 +2124,16 @@ export class DbStorage implements IStorage {
       .select()
       .from(exercises)
       .orderBy(exercises.name);
+  }
+
+  async updateExerciseExternalId(exerciseId: string, externalId: string): Promise<Exercise | undefined> {
+    const result = await db
+      .update(exercises)
+      .set({ exercisedbId: externalId })
+      .where(eq(exercises.id, exerciseId))
+      .returning();
+    
+    return result[0];
   }
 
   async swapExerciseInSession(

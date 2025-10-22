@@ -256,3 +256,38 @@ async function logSuccess(
     console.error("[getMediaSafe] Failed to log success:", error);
   }
 }
+
+/**
+ * Persist ExerciseDB external ID to HealthPilot exercise
+ * 
+ * This creates a trusted link between the HealthPilot exercise and ExerciseDB,
+ * enabling fast-path media lookups in the future.
+ * 
+ * @param hpExerciseId - HealthPilot exercise ID
+ * @param externalId - ExerciseDB exercise ID
+ * @returns Updated exercise or undefined if not found
+ */
+export async function persistExternalId(
+  hpExerciseId: string,
+  externalId: string
+): Promise<void> {
+  try {
+    const updated = await storage.updateExerciseExternalId(hpExerciseId, externalId);
+    
+    if (updated) {
+      console.log(
+        `[persistExternalId] Successfully linked exercise ${hpExerciseId} to ExerciseDB ID ${externalId}`
+      );
+    } else {
+      console.warn(
+        `[persistExternalId] Exercise ${hpExerciseId} not found - cannot persist external ID`
+      );
+    }
+  } catch (error) {
+    console.error(
+      `[persistExternalId] Failed to persist external ID for exercise ${hpExerciseId}:`,
+      error
+    );
+    throw error;
+  }
+}
