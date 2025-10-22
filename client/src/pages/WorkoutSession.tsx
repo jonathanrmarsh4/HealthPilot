@@ -521,8 +521,14 @@ function SortableExerciseCard({
         </CardContent>
       )}
       <ExerciseDetailsModal
-        exerciseName={exercise.name}
-        exercisedbId={exercise.exercisedbId}
+        exercise={{
+          id: exercise.id,
+          name: exercise.name,
+          target: exercise.muscles[0] || "unknown",
+          bodyPart: exercise.muscles[0] || "unknown",
+          equipment: exercise.equipment,
+          externalId: exercise.exercisedbId,
+        }}
         open={showExerciseDetails}
         onClose={() => setShowExerciseDetails(false)}
       />

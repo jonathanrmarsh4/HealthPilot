@@ -7,6 +7,21 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dumbbell, Target, Wrench, X } from "lucide-react";
 
+type ModalExercise = {
+  id: string;                      // HP exercise id (immutable)
+  name: string;                    // from the clicked card (DO NOT overwrite)
+  target: string;
+  bodyPart: string;
+  equipment?: string | null;
+  externalId?: string | null;      // ExerciseDB id (if present)
+};
+
+type Props = {
+  exercise: ModalExercise;         // pass from the card you clicked
+  open: boolean;
+  onClose: () => void;
+};
+
 interface ExerciseDBExercise {
   id: string;
   name: string;
@@ -18,56 +33,44 @@ interface ExerciseDBExercise {
   gifUrl: string;
 }
 
-interface ExerciseDetailsModalProps {
-  exerciseName: string;           // The name from the clicked card (preserved, never overwritten)
-  exercisedbId?: string | null;   // ExerciseDB ID for stable GIF lookup
-  open: boolean;
-  onClose: () => void;
-}
-
-/**
- * SAFE: Fetches exercise media ONLY by trusted exercisedbId.
- * Never performs name-based lookups. No automap here.
- */
-async function fetchByExercisedbId(exercisedbId: string): Promise<ExerciseDBExercise | null> {
-  const res = await fetch(`/api/exercisedb/exercise/${encodeURIComponent(exercisedbId)}`, {
+async function fetchByExternalId(externalId: string): Promise<ExerciseDBExercise | null> {
+  const res = await fetch(`/api/exercisedb/exercise/${encodeURIComponent(externalId)}`, {
     credentials: 'include',
   });
   if (!res.ok) return null;
   return await res.json();
 }
 
-export function ExerciseDetailsModal({ 
-  exerciseName, 
-  exercisedbId, 
-  open, 
-  onClose 
-}: ExerciseDetailsModalProps) {
-  // Force a fresh instance when the exercise changes (prevents stale data)
+// SAFE: never fetch by name here. Name-based lookups live behind explicit flags elsewhere.
+export function ExerciseDetailsModal({ exercise, open, onClose }: Props) {
+  // Force a fresh instance when the exercise changes
   const modalKey = useMemo(
-    () => `exercise-modal-${exerciseName}-${exercisedbId ?? "none"}`, 
-    [exerciseName, exercisedbId]
+    () => `exercise-modal-${exercise.id}-${exercise.externalId ?? "none"}`,
+    [exercise.id, exercise.externalId]
   );
 
-  // Track the current exercise name to ignore late responses (belt & suspenders)
-  const currentNameRef = useRef(exerciseName);
-  useEffect(() => { 
-    currentNameRef.current = exerciseName; 
-  }, [exerciseName]);
+  // Track the current exercise id to ignore late responses (belt & suspenders)
+  const currentIdRef = useRef(exercise.id);
+  useEffect(() => {
+    currentIdRef.current = exercise.id;
+  }, [exercise.id]);
 
-  // Fetch media only by trusted exercisedbId. No automap here.
-  const { data: exercise, isLoading } = useQuery<ExerciseDBExercise | null>({
-    queryKey: ["exercise-details-modal", exercisedbId ?? null],
-    queryFn: () => exercisedbId ? fetchByExercisedbId(exercisedbId) : Promise.resolve(null),
-    enabled: open && !!exercisedbId, // Only fetch when modal is open AND we have an ID
-    staleTime: 1000 * 60 * 60 * 24,  // Cache for 24 hours
+  // Fetch media only by trusted externalId. No automap here.
+  const { data: media, isLoading } = useQuery<ExerciseDBExercise | null>({
+    queryKey: ["exercise-media-for-modal", exercise.id, exercise.externalId ?? null],
+    queryFn: () =>
+      exercise.externalId ? fetchByExternalId(exercise.externalId) : Promise.resolve(null),
+    enabled: open,                 // only fetch when modal is open
+    staleTime: 1000 * 60 * 60,
     retry: false,
-    select: (data) => {
-      // If some wiring bug returns a result for a different exercise (shouldn't happen), ignore it
-      if (!data) return null;
-      return currentNameRef.current === exerciseName ? data : null;
-    }
+    select: (m) => {
+      // If some wiring bug returns a result for a different exercise (shouldn't happen), ignore it.
+      if (!m) return null;
+      return currentIdRef.current === exercise.id ? m : null;
+    },
   });
+
+  if (!open) return null;
 
   return (
     <Dialog key={modalKey} open={open} onOpenChange={onClose}>
@@ -75,26 +78,26 @@ export function ExerciseDetailsModal({
         <DialogHeader>
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
-              {/* CRITICAL: Title is ALWAYS the clicked exercise name. Never overwrite with fetched name. */}
+              {/* Title is ALWAYS the clicked exercise name. Do not overwrite with fetched name. */}
               <DialogTitle className="text-2xl font-bold capitalize pr-8">
-                {exerciseName}
+                {exercise.name}
               </DialogTitle>
-              {exercise && (
-                <div className="flex flex-wrap gap-2 mt-3">
-                  <Badge variant="outline" className="capitalize">
-                    <Target className="h-3 w-3 mr-1" />
-                    {exercise.target}
-                  </Badge>
-                  <Badge variant="outline" className="capitalize">
-                    <Dumbbell className="h-3 w-3 mr-1" />
-                    {exercise.bodyPart}
-                  </Badge>
+              <div className="flex flex-wrap gap-2 mt-3">
+                <Badge variant="outline" className="capitalize">
+                  <Target className="h-3 w-3 mr-1" />
+                  {exercise.target}
+                </Badge>
+                <Badge variant="outline" className="capitalize">
+                  <Dumbbell className="h-3 w-3 mr-1" />
+                  {exercise.bodyPart}
+                </Badge>
+                {exercise.equipment && (
                   <Badge variant="outline" className="capitalize">
                     <Wrench className="h-3 w-3 mr-1" />
                     {exercise.equipment}
                   </Badge>
-                </div>
-              )}
+                )}
+              </div>
             </div>
             <Button
               size="icon"
@@ -117,19 +120,17 @@ export function ExerciseDetailsModal({
             </div>
           )}
 
-          {!isLoading && !exercise && (
+          {!isLoading && !media && (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <Dumbbell className="h-12 w-12 text-muted-foreground mb-4" />
-              <p className="text-lg font-medium">
-                Exercise demonstration unavailable
-              </p>
+              <p className="text-lg font-medium">Exercise demonstration unavailable</p>
               <p className="text-sm text-muted-foreground mt-2">
                 This exercise doesn't have a linked demonstration yet
               </p>
             </div>
           )}
 
-          {exercise && (
+          {media && (
             <div className="space-y-6">
               {/* GIF Demonstration */}
               <div className="rounded-md bg-muted/50 p-4">
@@ -138,27 +139,27 @@ export function ExerciseDetailsModal({
                 </h3>
                 <div className="relative rounded-md overflow-hidden bg-background aspect-video flex items-center justify-center">
                   <img
-                    src={exercise.gifUrl}
-                    alt={`${exerciseName} demonstration`}
+                    src={media.gifUrl}
+                    alt={`${exercise.name} demonstration`}
                     className="max-w-full max-h-full object-contain"
                     loading="lazy"
                     data-testid="img-exercise-gif"
                     onError={(e) => {
                       // Hide broken images gracefully
-                      (e.target as HTMLImageElement).style.display = 'none';
+                      (e.target as HTMLImageElement).style.display = "none";
                     }}
                   />
                 </div>
               </div>
 
               {/* Secondary Muscles */}
-              {exercise.secondaryMuscles && exercise.secondaryMuscles.length > 0 && (
+              {media.secondaryMuscles && media.secondaryMuscles.length > 0 && (
                 <div>
                   <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
                     Secondary Muscles
                   </h3>
                   <div className="flex flex-wrap gap-2">
-                    {exercise.secondaryMuscles.map((muscle, idx) => (
+                    {media.secondaryMuscles.map((muscle, idx) => (
                       <Badge key={idx} variant="secondary" className="capitalize">
                         {muscle}
                       </Badge>
@@ -168,13 +169,13 @@ export function ExerciseDetailsModal({
               )}
 
               {/* Instructions */}
-              {exercise.instructions && exercise.instructions.length > 0 && (
+              {media.instructions && media.instructions.length > 0 && (
                 <div>
                   <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
                     Instructions
                   </h3>
                   <ol className="space-y-3">
-                    {exercise.instructions.map((instruction, idx) => (
+                    {media.instructions.map((instruction, idx) => (
                       <li key={idx} className="flex gap-3">
                         <span className="flex items-center justify-center h-6 w-6 rounded-full bg-primary/10 text-primary text-sm font-semibold shrink-0">
                           {idx + 1}

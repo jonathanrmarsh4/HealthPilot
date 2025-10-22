@@ -48,7 +48,14 @@ function ExerciseItem({ exercise, muscleGroups, idx }: { exercise: Exercise; mus
         </div>
       </div>
       <ExerciseDetailsModal
-        exerciseName={exercise.name}
+        exercise={{
+          id: `temp-${exercise.name.replace(/\s+/g, '-').toLowerCase()}`,
+          name: exercise.name,
+          target: muscleGroups[0]?.toLowerCase() || "unknown",
+          bodyPart: muscleGroups[0]?.toLowerCase() || "unknown",
+          equipment: null,
+          externalId: null,
+        }}
         open={showDetails}
         onClose={() => setShowDetails(false)}
       />
