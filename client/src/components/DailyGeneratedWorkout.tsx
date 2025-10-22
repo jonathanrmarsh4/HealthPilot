@@ -110,7 +110,7 @@ export function DailyGeneratedWorkout() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
-            <CardTitle>Daily AI Training Session</CardTitle>
+            <CardTitle>Today's Recommended Workout</CardTitle>
           </div>
           {workout && (
             <Badge 

@@ -695,16 +695,15 @@ export default function Training() {
       renderTile: () => <ScheduledInsightsCard />
     },
     {
-      id: "daily-recommendation",
-      title: "Daily Workout Recommendation",
+      id: "daily-recommendation-old",
+      title: "Daily Workout Recommendation (Old)",
       description: "AI-powered workout plan based on readiness",
-      alwaysVisible: true,
       renderTile: () => (
-        <Card data-testid="card-todays-workout">
+        <Card data-testid="card-todays-workout-old">
           <CardHeader>
             <div className="flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-primary" />
-              <CardTitle>Today's Recommended Workout</CardTitle>
+              <CardTitle>Today's Recommended Workout (Old System)</CardTitle>
             </div>
             <CardDescription>
               Personalized workout based on your current readiness level
@@ -1163,8 +1162,9 @@ export default function Training() {
     },
     {
       id: "daily-generated-workout",
-      title: "Daily AI Training Session",
-      description: "Standards-based AI-generated workouts",
+      title: "Today's Recommended Workout",
+      description: "AI-powered workout plan based on your profile",
+      alwaysVisible: true,
       renderTile: () => <DailyGeneratedWorkout />
     },
     {
