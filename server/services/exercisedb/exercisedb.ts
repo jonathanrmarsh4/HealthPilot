@@ -348,7 +348,7 @@ export class ExerciseDBService {
   }): Promise<ExerciseDBExercise | null> {
     try {
       // Import flags
-      const { canUseExerciseMediaAutomap } = await import('../../shared/config/flags');
+      const { canUseExerciseMediaAutomap } = await import('../../../shared/config/flags');
       
       // Check if fuzzy matching is enabled
       if (!canUseExerciseMediaAutomap()) {
