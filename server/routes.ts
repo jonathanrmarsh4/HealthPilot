@@ -4824,8 +4824,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Feature flags control FUZZY MATCHING fallbacks, not stable ID population
           if (!matchedExercise.exercisedbId) {
             console.log(`   ⚠️  Exercise "${matchedExercise.name}" has no ExerciseDB link. Resolving...`);
-            const { deriveExercisedbId } = await import('./utils/exercisedbResolver');
-            const exercisedbMatch = await deriveExercisedbId({
+            const { resolveExternalId } = await import('./services/exercises/resolveExternalId');
+            const exercisedbMatch = await resolveExternalId({
               name: matchedExercise.name,
               muscles: matchedExercise.muscles,
               equipment: matchedExercise.equipment,
@@ -4952,8 +4952,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           else if (nameLower.includes('ab') || nameLower.includes('core') || nameLower.includes('plank')) muscles = ['abs'];
           
           // Resolve ExerciseDB ID for GIF/instruction lookups
-          const { deriveExercisedbId } = await import('./utils/exercisedbResolver');
-          const exercisedbMatch = await deriveExercisedbId({
+          const { resolveExternalId } = await import('./services/exercises/resolveExternalId');
+          const exercisedbMatch = await resolveExternalId({
             name: planExercise.name,
             muscles,
             equipment,
