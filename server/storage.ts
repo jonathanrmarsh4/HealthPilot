@@ -120,6 +120,8 @@ import {
   type InsertLab,
   type DailyHealthInsight,
   type InsertDailyHealthInsight,
+  type GeneratedWorkout,
+  type InsertGeneratedWorkout,
   users,
   healthRecords,
   biomarkers,
@@ -142,6 +144,7 @@ import {
   exerciseSets,
   sessionPRs,
   muscleGroupEngagements,
+  generatedWorkouts,
   goals,
   aiActions,
   exerciseFeedback,
@@ -309,6 +312,14 @@ export interface IStorage {
     distance: number | null;
     duration: number | null;
   } | null>;
+  
+  // Generated workout methods
+  createGeneratedWorkout(workout: InsertGeneratedWorkout): Promise<GeneratedWorkout>;
+  getGeneratedWorkout(userId: string, date: string): Promise<GeneratedWorkout | undefined>;
+  getGeneratedWorkouts(userId: string, startDate?: string, endDate?: string): Promise<GeneratedWorkout[]>;
+  updateGeneratedWorkout(id: string, userId: string, data: Partial<GeneratedWorkout>): Promise<GeneratedWorkout | undefined>;
+  acceptGeneratedWorkout(id: string, userId: string): Promise<void>;
+  rejectGeneratedWorkout(id: string, userId: string): Promise<void>;
   
   createWorkoutInstance(instance: InsertWorkoutInstance): Promise<WorkoutInstance>;
   getWorkoutInstance(id: string, userId: string): Promise<WorkoutInstance | undefined>;
@@ -1976,6 +1987,65 @@ export class DbStorage implements IStorage {
         completionStatus,
       });
     }
+  }
+
+  // Generated workout methods
+  async createGeneratedWorkout(workout: InsertGeneratedWorkout): Promise<GeneratedWorkout> {
+    const result = await db.insert(generatedWorkouts).values(workout).returning();
+    return result[0];
+  }
+
+  async getGeneratedWorkout(userId: string, date: string): Promise<GeneratedWorkout | undefined> {
+    const result = await db
+      .select()
+      .from(generatedWorkouts)
+      .where(and(eq(generatedWorkouts.userId, userId), eq(generatedWorkouts.date, date)));
+    return result[0];
+  }
+
+  async getGeneratedWorkouts(userId: string, startDate?: string, endDate?: string): Promise<GeneratedWorkout[]> {
+    if (startDate && endDate) {
+      return await db
+        .select()
+        .from(generatedWorkouts)
+        .where(
+          and(
+            eq(generatedWorkouts.userId, userId),
+            gte(generatedWorkouts.date, startDate),
+            lte(generatedWorkouts.date, endDate)
+          )
+        )
+        .orderBy(desc(generatedWorkouts.date));
+    }
+    
+    return await db
+      .select()
+      .from(generatedWorkouts)
+      .where(eq(generatedWorkouts.userId, userId))
+      .orderBy(desc(generatedWorkouts.date));
+  }
+
+  async updateGeneratedWorkout(id: string, userId: string, data: Partial<GeneratedWorkout>): Promise<GeneratedWorkout | undefined> {
+    const result = await db
+      .update(generatedWorkouts)
+      .set(data)
+      .where(and(eq(generatedWorkouts.id, id), eq(generatedWorkouts.userId, userId)))
+      .returning();
+    return result[0];
+  }
+
+  async acceptGeneratedWorkout(id: string, userId: string): Promise<void> {
+    await db
+      .update(generatedWorkouts)
+      .set({ status: 'accepted', acceptedAt: new Date() })
+      .where(and(eq(generatedWorkouts.id, id), eq(generatedWorkouts.userId, userId)));
+  }
+
+  async rejectGeneratedWorkout(id: string, userId: string): Promise<void> {
+    await db
+      .update(generatedWorkouts)
+      .set({ status: 'rejected' })
+      .where(and(eq(generatedWorkouts.id, id), eq(generatedWorkouts.userId, userId)));
   }
 
   async getRecentWorkoutFeedback(userId: string, limit: number = 10): Promise<Array<{
