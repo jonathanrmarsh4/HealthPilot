@@ -5172,6 +5172,127 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Generate daily workout session with AI
+  app.post("/api/training/generate-daily-session", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    
+    try {
+      const { buildUserContext, generateDailySession } = await import("./services/trainingGenerator");
+      const { format } = await import("date-fns");
+      
+      // Get target date from request body (defaults to today)
+      const targetDate = req.body.date || format(new Date(), "yyyy-MM-dd");
+      
+      // Check if workout already exists for this date
+      const existing = await storage.getGeneratedWorkout(userId, targetDate);
+      if (existing && existing.status !== 'rejected') {
+        // If regenerating, increment counter
+        if (req.body.regenerate) {
+          const regenerationCount = (existing.regenerationCount || 0) + 1;
+          
+          // Build user context
+          const context = await buildUserContext(storage, userId, targetDate);
+          
+          // Generate workout
+          const workoutData = await generateDailySession(context);
+          
+          // Update existing record
+          const updated = await storage.updateGeneratedWorkout(existing.id, userId, {
+            workoutData: workoutData as any,
+            regenerationCount,
+            status: 'pending'
+          });
+          
+          return res.json({
+            status: "success",
+            data: updated,
+            regenerated: true
+          });
+        }
+        
+        // Return existing workout
+        return res.json({
+          status: "success",
+          data: existing,
+          cached: true
+        });
+      }
+      
+      // Build user context
+      const context = await buildUserContext(storage, userId, targetDate);
+      
+      // Generate workout
+      const workoutData = await generateDailySession(context);
+      
+      // Store to database
+      const savedWorkout = await storage.createGeneratedWorkout({
+        userId,
+        date: targetDate,
+        workoutData: workoutData as any,
+        status: 'pending',
+        regenerationCount: 0
+      });
+      
+      console.log(`✅ Generated daily workout for ${userId} on ${targetDate}`);
+      res.json({
+        status: "success",
+        data: savedWorkout
+      });
+    } catch (error: any) {
+      console.error("Workout generation error:", error);
+      res.status(500).json({
+        status: "error",
+        message: error.message || "Failed to generate workout"
+      });
+    }
+  });
+
+  // Get generated workout for a specific date
+  app.get("/api/training/generated-workout/:date", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { date } = req.params;
+    
+    try {
+      const workout = await storage.getGeneratedWorkout(userId, date);
+      if (!workout) {
+        return res.status(404).json({ error: "No generated workout found for this date" });
+      }
+      
+      res.json(workout);
+    } catch (error: any) {
+      console.error("Error fetching generated workout:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Accept generated workout
+  app.post("/api/training/generated-workout/:id/accept", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { id } = req.params;
+    
+    try {
+      await storage.acceptGeneratedWorkout(id, userId);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error accepting workout:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Reject generated workout
+  app.post("/api/training/generated-workout/:id/reject", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { id } = req.params;
+    
+    try {
+      await storage.rejectGeneratedWorkout(id, userId);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error rejecting workout:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Update exercise set
   app.patch("/api/exercise-sets/:id", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
