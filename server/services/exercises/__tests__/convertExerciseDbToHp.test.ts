@@ -134,6 +134,63 @@ describe('convertExerciseDbToHp', () => {
     const chestCount = result.muscles.filter(m => m === 'chest').length;
     expect(chestCount).toBe(1);
   });
+
+  it('handles medicine ball exercises (other equipment) correctly', () => {
+    const dbExercise = {
+      exerciseId: '0600',
+      name: 'Medicine Ball Slam',
+      bodyPart: 'core',
+      equipment: 'medicine ball',
+      target: 'abs',
+      secondaryMuscles: ['shoulders', 'lats'],
+      instructions: ['Hold medicine ball', 'Slam to ground', 'Catch on bounce'],
+    };
+
+    const result = convertExerciseDbToHp(dbExercise);
+
+    expect(result.equipment).toBe('other'); // medicine ball normalized to other
+    expect(result.category).toBe('compound'); // core + shoulders + back
+    expect(result.category).not.toBe('cardio'); // should NOT be cardio
+    expect(result.muscles).toContain('core');
+    expect(result.muscles).toContain('shoulders');
+    expect(result.muscles).toContain('back');
+  });
+
+  it('handles stability ball exercises (other equipment) correctly', () => {
+    const dbExercise = {
+      exerciseId: '0700',
+      name: 'Stability Ball Crunch',
+      bodyPart: 'core',
+      equipment: 'stability ball',
+      target: 'abs',
+      secondaryMuscles: [],
+      instructions: ['Lie on ball', 'Perform crunch', 'Control movement'],
+    };
+
+    const result = convertExerciseDbToHp(dbExercise);
+
+    expect(result.equipment).toBe('other'); // stability ball normalized to other
+    expect(result.category).toBe('isolation'); // only core targeted
+    expect(result.category).not.toBe('cardio'); // should NOT be cardio
+  });
+
+  it('handles weighted exercises (other equipment) correctly', () => {
+    const dbExercise = {
+      exerciseId: '0800',
+      name: 'Weighted Step-Up',
+      bodyPart: 'legs',
+      equipment: 'weighted',
+      target: 'quads',
+      secondaryMuscles: ['glutes', 'hamstrings'],
+      instructions: ['Step up', 'Extend leg', 'Step down'],
+    };
+
+    const result = convertExerciseDbToHp(dbExercise);
+
+    expect(result.equipment).toBe('other'); // weighted normalized to other
+    expect(result.category).toBe('compound'); // legs + glutes
+    expect(result.category).not.toBe('cardio'); // should NOT be cardio
+  });
 });
 
 describe('validateConvertedExercise', () => {

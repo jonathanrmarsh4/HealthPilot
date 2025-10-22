@@ -108,8 +108,8 @@ function normalizeMuscle(muscle: string): string {
  * Determine exercise category based on muscles and equipment
  */
 function determineCategory(muscles: string[], equipment: string): string {
-  // Cardio equipment
-  if (equipment === 'other' || muscles.includes('cardio')) {
+  // Cardio only if muscles specifically indicate cardio work
+  if (muscles.includes('cardio')) {
     return 'cardio';
   }
 
