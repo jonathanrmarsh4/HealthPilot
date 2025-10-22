@@ -1,0 +1,56 @@
+{
+  "name": "HealthPilot — Daily Workout Storage + Scheduler Integration",
+  "version": "1.0.0",
+  "purpose": "Extend the HealthPilot /api/training/generate-daily-session endpoint with persistent storage, daily 04:00 cron regeneration, and on-app-open fallback logic.",
+  "instructions": "Paste this into your development AI or code assistant once the base endpoint is functional. It will generate the DB integration and scheduler components automatically. Adjust DB client per environment (Prisma, Supabase, Mongo, etc.).",
+  "environment_options": {
+    "supported_databases": ["PostgreSQL (Prisma ORM)", "Supabase", "MongoDB", "SQLite (local dev)"],
+    "runtime": ["Next.js API routes", "Express.js backend"],
+    "scheduler_modes": ["Node-cron local", "Vercel Cron Job", "Cloudflare Worker Scheduled Event"]
+  },
+  "core_components": [
+    {
+      "component": "Database Schema (Prisma example)",
+      "content": "model User { id String @id @default(uuid()) email String workouts Workout[] biometrics Json? preferences Json? createdAt DateTime @default(now()) updatedAt DateTime @updatedAt } model Workout { id String @id @default(uuid()) userId String date String workout Json @db.Json user User @relation(fields: [userId], references: [id]) createdAt DateTime @default(now()) updatedAt DateTime @updatedAt @@unique([userId, date]) }"
+    },
+    {
+      "component": "DB Integration Module (db.ts)",
+      "content": "import { PrismaClient } from '@prisma/client'; export const db = new PrismaClient();"
+    },
+    {
+      "component": "Workout Generation Wrapper",
+      "content": "import { generateDailySession } from './generate-daily-session'; import { db } from './db'; export async function createOrUpdateWorkout(userId, userData) { const today = new Date().toISOString().split('T')[0]; const workout = await generateDailySession(userData); await db.workout.upsert({ where: { userId_date: { userId, date: today } }, update: { workout }, create: { userId, date: today, workout } }); return workout; }"
+    },
+    {
+      "component": "Daily Cron Scheduler",
+      "content": "import cron from 'node-cron'; import { db } from './db'; import { createOrUpdateWorkout } from './createOrUpdateWorkout'; // Schedule for 4:00 AM local time cron.schedule('0 4 * * *', async () => { console.log('Running 4AM HealthPilot regeneration job...'); const users = await db.user.findMany(); for (const user of users) { try { const payload = buildUserPayload(user); await createOrUpdateWorkout(user.id, payload); console.log(`✅ Regenerated workout for ${user.email}`); } catch (err) { console.error(`❌ Error generating workout for ${user.email}`, err); } } }); function buildUserPayload(user) { return { user_profile: user.biometricProfile || {}, preferences: user.preferences || {}, availability: { days_per_week: 5, session_minutes: 60 }, recent_training: [], biometrics: user.biometrics || {}, environment: { timezone: 'Australia/Perth' } }; }"
+    },
+    {
+      "component": "On-App-Open Fallback (Next.js Example)",
+      "content": "export async function ensureDailyWorkout(userId) { const today = new Date().toISOString().split('T')[0]; const existing = await db.workout.findUnique({ where: { userId_date: { userId, date: today } } }); if (existing) return existing.workout; const user = await db.user.findUnique({ where: { id: userId } }); if (!user) throw new Error('User not found'); const payload = buildUserPayload(user); return await createOrUpdateWorkout(user.id, payload); }"
+    }
+  ],
+  "trigger_strategy": {
+    "primary": "Cron-driven regeneration at 04:00 local time per user timezone",
+    "secondary": "On-app-open fallback triggers workout generation if none exists for today"
+  },
+  "safety_layer": {
+    "pre_validation": "User profile and biometrics loaded fresh from DB",
+    "post_validation": "Server-side Zod schema validation on AI output",
+    "failover_policy": "If AI output invalid or unsafe, regenerate with stricter prompt parameters"
+  },
+  "data_flow_summary": [
+    "1️⃣ User opens app → call ensureDailyWorkout(userId)",
+    "2️⃣ Server checks if workout exists for today",
+    "3️⃣ If missing, call /api/training/generate-daily-session → validate → store",
+    "4️⃣ At 4AM daily cron job regenerates all user sessions",
+    "5️⃣ All workouts validated via Zod schema before storage"
+  ],
+  "future_extensions": {
+    "progression_tracking": "Add rolling 14-day load tracking and weekly volume analytics table",
+    "auto-deload": "Integrate fatigue indicators (HRV, sleep_score) into generation payload",
+    "user_dashboard": "Expose last 7-day summary and readiness score to client"
+  },
+  "ready_to_use": true,
+  "final_instruction": "After the base endpoint works, feed this JSON to your development AI. It will scaffold DB models, cron scheduler, and fallback logic using your existing environment. Confirm DB choice (Prisma, Supabase, etc.) before executing."
+}

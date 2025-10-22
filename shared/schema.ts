@@ -1911,6 +1911,25 @@ export const dailyHealthInsights = pgTable("daily_health_insights", {
     .where(sql`${table.status} = 'active'`),
 ]);
 
+// AI-generated daily training sessions
+export const generatedWorkouts = pgTable("generated_workouts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id", { length: 40 }).notNull(),
+  date: date("date").notNull(), // The date this workout is generated for
+  workoutData: jsonb("workout_data").notNull(), // Full workout plan matching DailyWorkoutSchema
+  status: varchar("status", { length: 16 }).notNull().default("pending"), // pending, accepted, modified, rejected, completed
+  userModifications: jsonb("user_modifications"), // Track any user changes to the generated plan
+  feedbackNotes: text("feedback_notes"), // User feedback about the workout
+  regenerationCount: integer("regeneration_count").notNull().default(0), // How many times user regenerated this day
+  acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+  completedAt: timestamp("completed_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+}, (table) => [
+  index("generated_workouts_user_date_idx").on(table.userId, table.date),
+  index("generated_workouts_user_status_idx").on(table.userId, table.status),
+  uniqueIndex("generated_workouts_user_date_unique_idx").on(table.userId, table.date),
+]);
+
 // Zod insert schemas for Daily Insights tables
 export const insertDailyMetricSchema = createInsertSchema(dailyMetrics).omit({
   id: true,
@@ -1927,6 +1946,11 @@ export const insertDailyHealthInsightSchema = createInsertSchema(dailyHealthInsi
   createdAt: true,
 });
 
+export const insertGeneratedWorkoutSchema = createInsertSchema(generatedWorkouts).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types for Daily Insights tables
 export type DailyMetric = typeof dailyMetrics.$inferSelect;
 export type InsertDailyMetric = z.infer<typeof insertDailyMetricSchema>;
@@ -1936,3 +1960,6 @@ export type InsertLab = z.infer<typeof insertLabSchema>;
 
 export type DailyHealthInsight = typeof dailyHealthInsights.$inferSelect;
 export type InsertDailyHealthInsight = z.infer<typeof insertDailyHealthInsightSchema>;
+
+export type GeneratedWorkout = typeof generatedWorkouts.$inferSelect;
+export type InsertGeneratedWorkout = z.infer<typeof insertGeneratedWorkoutSchema>;
