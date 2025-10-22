@@ -1,0 +1,110 @@
+{
+  "mode": "TRAINING_APP_PHASE_1_BASELINE_DEBUG",
+  "context": {
+    "product": "HealthPilot",
+    "feature": "Workout/Training module (program view, daily session, exercise cards, instructions, media)",
+    "prereq": "Global Baseline Mode is active for meals; workout AI is OFF",
+    "stack": {
+      "language": "TypeScript",
+      "frontend": "React (Vite or Next.js — detect from repo)",
+      "state": "Local state + SWR/React Query if present",
+      "platform": "Web now; iOS later via CapacitorJS",
+      "db_orm": "Detect from repo (Prisma/Knex/Mongo/etc.)",
+      "external_api": "ExerciseDB (instructions, gifUrl)"
+    },
+    "goal": "Deliver a fully deterministic, bug-free workout experience with correct instructions, safe media handling, stable keys, and zero silent substitutions. No AI/ML logic in this phase."
+  },
+  "flags": {
+    "introduce": [
+      { "name": "AI_WORKOUT_SELECTION_ENABLED", "default": false, "level": "site" },
+      { "name": "EXERCISE_MEDIA_AUTOMAP_ENABLED", "default": false, "level": "site" }
+    ],
+    "rule": "All code must reference flags via src/config/flags.ts typed getters."
+  },
+  "deliverables": [
+    "Typed domain models + zod schemas for Exercise and WorkoutDay",
+    "Deterministic media fetch that ONLY uses trusted externalId",
+    "Strict normalisers for instructions and media",
+    "Stable React keys (never array indices) and cache keys",
+    "Minimal admin telemetry for suppressed media",
+    "Unit + integration + UI smoke tests",
+    "README snippet with env/flags and verification steps"
+  ],
+  "files": [
+    {
+      "path": "src/config/flags.ts",
+      "content": "export const flags = {\n  get AI_WORKOUT_SELECTION_ENABLED() { return process.env.AI_WORKOUT_SELECTION_ENABLED === 'true'; },\n  get EXERCISE_MEDIA_AUTOMAP_ENABLED() { return process.env.EXERCISE_MEDIA_AUTOMAP_ENABLED === 'true'; }\n} as const;\n"
+    },
+    {
+      "path": "src/domain/exercise.ts",
+      "content": "import { z } from 'zod';\nexport const ZInstruction = z.object({ text: z.string() });\nexport const ZExercise = z.object({\n  id: z.string(),\n  name: z.string(),\n  target: z.string(),\n  bodyPart: z.string(),\n  equipment: z.string().optional(),\n  externalId: z.string().optional(),\n  instructions: z.array(z.string()).optional().default([])\n});\nexport type Exercise = z.infer<typeof ZExercise>;\n\nexport const ZWorkoutDay = z.object({\n  id: z.string(),\n  title: z.string(),\n  date: z.string().optional(),\n  exercises: z.array(ZExercise)\n});\nexport type WorkoutDay = z.infer<typeof ZWorkoutDay>;\n"
+    },
+    {
+      "path": "src/server/adapters/exercises/normalizeExercise.ts",
+      "content": "import { ZExercise } from '@/domain/exercise';\nexport function toStringArray(v:any): string[] {\n  if (!v) return [];\n  if (Array.isArray(v)) return v.map(x => String(x)).filter(Boolean);\n  if (typeof v === 'string') return v.split(/\\r?\\n/).map(s=>s.trim()).filter(Boolean);\n  return [];\n}\nexport function normalizeExercise(dbRow:any){\n  const api = {\n    id: String(dbRow.id),\n    name: String(dbRow.name),\n    target: String(dbRow.target),\n    bodyPart: String(dbRow.bodyPart),\n    equipment: dbRow.equipment ? String(dbRow.equipment) : undefined,\n    externalId: dbRow.externalId ? String(dbRow.externalId) : undefined,\n    instructions: toStringArray(dbRow.instructions ?? dbRow.howTo ?? dbRow.steps)\n  };\n  const parsed = ZExercise.safeParse(api);\n  if (!parsed.success) { console.warn('normalizeExercise failed', dbRow.id, parsed.error.flatten()); return null; }\n  return parsed.data;\n}\n"
+    },
+    {
+      "path": "src/server/services/exerciseDb/types.ts",
+      "content": "import { z } from 'zod';\nexport const ZExerciseDBItem = z.object({\n  id: z.string(),\n  name: z.string(),\n  bodyPart: z.string(),\n  target: z.string(),\n  equipment: z.string().optional(),\n  gifUrl: z.string().url().optional()\n});\nexport type ExerciseDBItem = z.infer<typeof ZExerciseDBItem>;\n"
+    },
+    {
+      "path": "src/server/services/exerciseDb/getById.ts",
+      "content": "import { ZExerciseDBItem } from './types';\nexport async function getExerciseDbItemById(id:string){\n  const res = await fetch(`${process.env.EXERCISE_DB_PROXY_BASE}/item?id=${encodeURIComponent(id)}`);\n  if (!res.ok) return null;\n  const json = await res.json();\n  const parsed = ZExerciseDBItem.safeParse(json);\n  return parsed.success ? parsed.data : null;\n}\n"
+    },
+    {
+      "path": "src/server/services/exerciseMedia/getMediaByExternalId.ts",
+      "content": "import { getExerciseDbItemById } from '@/server/services/exerciseDb/getById';\nexport async function getMediaByExternalId(externalId?:string){\n  if (!externalId) return null;\n  const item = await getExerciseDbItemById(externalId);\n  if (!item?.gifUrl) return null;\n  return { url: item.gifUrl, source: 'ExerciseDB', id: item.id } as const;\n}\n"
+    },
+    {
+      "path": "src/features/workout/api/fetchWorkoutDay.ts",
+      "content": "import { ZWorkoutDay } from '@/domain/exercise';\nexport async function fetchWorkoutDay(dayId: string){\n  const res = await fetch(`/api/workout/day?id=${encodeURIComponent(dayId)}`);\n  if (!res.ok) throw new Error('Failed to fetch workout day');\n  const data = await res.json();\n  const parsed = ZWorkoutDay.safeParse(data);\n  if (!parsed.success) throw new Error('WorkoutDay schema invalid');\n  return parsed.data;\n}\n"
+    },
+    {
+      "path": "src/features/workout/components/ExerciseCard.tsx",
+      "content": "import { useQuery } from '@tanstack/react-query';\nimport type { Exercise } from '@/domain/exercise';\nimport { getMediaByExternalId } from '@/server/services/exerciseMedia/getMediaByExternalId';\n\nexport function ExerciseCard({ exercise }: { exercise: Exercise }){\n  const { data: media } = useQuery({\n    queryKey: ['exercise-media', exercise.id, exercise.externalId],\n    queryFn: () => getMediaByExternalId(exercise.externalId),\n    enabled: Boolean(exercise.externalId),\n    staleTime: 1000 * 60 * 60\n  });\n  return (\n    <div className=\"rounded-xl border p-3\" key={exercise.id}>\n      <div className=\"text-sm font-medium\">{exercise.name}</div>\n      <div className=\"text-xs text-neutral-600\">{exercise.bodyPart} • {exercise.target}{exercise.equipment?` • ${exercise.equipment}`:''}</div>\n      <ol className=\"list-decimal pl-5 mt-2 space-y-1\">\n        {exercise.instructions.map((s,i)=>(<li key={i}>{s}</li>))}\n      </ol>\n      <div className=\"mt-2 aspect-video bg-neutral-100 rounded overflow-hidden grid place-items-center\">\n        {media?.url ? (<img src={media.url} alt={`${exercise.name} demo`} className=\"w-full h-full object-contain\" loading=\"lazy\"/>) : (<div className=\"text-xs text-neutral-500\">No demo</div>)}\n      </div>\n    </div>\n  );\n}\n"
+    },
+    {
+      "path": "src/features/workout/pages/WorkoutDay.tsx",
+      "content": "import { useEffect } from 'react';\nimport { useQuery } from '@tanstack/react-query';\nimport { fetchWorkoutDay } from '@/features/workout/api/fetchWorkoutDay';\n\nexport default function WorkoutDayPage({ dayId }:{ dayId:string }){\n  const { data, isLoading, error } = useQuery({ queryKey:['workout-day', dayId], queryFn:()=>fetchWorkoutDay(dayId) });\n  useEffect(()=>{ if (error) console.error(error); },[error]);\n  if (isLoading) return <div>Loading…</div>;\n  if (!data) return <div>No workout found</div>;\n  return (\n    <div className=\"p-4 space-y-4\">\n      <h1 className=\"text-lg font-semibold\">{data.title}</h1>\n      <div className=\"grid md:grid-cols-2 gap-4\">\n        {data.exercises.map(ex => (<div key={ex.id}><(require('../components/ExerciseCard') as any).ExerciseCard exercise={ex}/></div>))}\n      </div>\n    </div>\n  );\n}\n"
+    },
+    {
+      "path": "src/server/telemetry/workoutMediaLog.ts",
+      "content": "export async function logSuppressedMedia(evt:{ ts:string; exerciseId:string; name:string; reason:'NO_EXTERNAL_ID'|'NO_MEDIA'; }){\n  try { console.log('[workout_media]', JSON.stringify(evt)); } catch {}\n}\n"
+    },
+    {
+      "path": "src/server/services/exerciseMedia/getMediaSafe.ts",
+      "content": "import { getMediaByExternalId } from './getMediaByExternalId';\nimport { logSuppressedMedia } from '@/server/telemetry/workoutMediaLog';\nexport async function getMediaSafe(ex:{ id:string; name:string; externalId?:string; }){\n  if (!ex.externalId) { await logSuppressedMedia({ ts:new Date().toISOString(), exerciseId: ex.id, name: ex.name, reason:'NO_EXTERNAL_ID' }); return null; }\n  const media = await getMediaByExternalId(ex.externalId);\n  if (!media) { await logSuppressedMedia({ ts:new Date().toISOString(), exerciseId: ex.id, name: ex.name, reason:'NO_MEDIA' }); }\n  return media;\n}\n"
+    },
+    {
+      "path": "src/server/handlers/workout/__tests__/normalizeExercise.test.ts",
+      "content": "import { normalizeExercise, toStringArray } from '../../adapters/exercises/normalizeExercise';\n\ntest('string instructions become array', ()=>{\n  const n = normalizeExercise({ id:'1', name:'Bench', target:'pectorals', bodyPart:'chest', instructions:'Lay down\\nPress bar' });\n  expect(n?.instructions).toEqual(['Lay down','Press bar']);\n});\n\ntest('array instructions pass through', ()=>{\n  const n = normalizeExercise({ id:'1', name:'Row', target:'lats', bodyPart:'back', instructions:['Sit','Pull'] });\n  expect(n?.instructions).toEqual(['Sit','Pull']);\n});\n"
+    },
+    {
+      "path": "docs/training-phase1-baseline.md",
+      "content": "# Training App — Phase 1 (Baseline Debug)\n\n**What this does**\n- Validates exercise and workout day payloads with zod\n- Normalises instructions to arrays (no `.match` on strings)\n- Fetches media **only by trusted externalId**; otherwise shows a neutral placeholder\n- Adds lightweight telemetry for suppressed media reasons\n- Disables AI selection and auto-mapping via flags\n\n**Flags**\n- `AI_WORKOUT_SELECTION_ENABLED=false`\n- `EXERCISE_MEDIA_AUTOMAP_ENABLED=false`\n\n**Verify**\n1. Open any workout day → list loads with correct instructions\n2. GIFs show **only** for exercises with `externalId`; others show placeholder\n3. No incorrect GIFs; no console errors; keys are stable\n\n**Next phases**\n- Phase 2 (later): introduce safe auto-map with admin review and confidence thresholds\n- Phase 3 (later): AI workout swaps/progressions behind explicit user action\n"
+    }
+  ],
+  "integration": {
+    "wire_up": [
+      "Ensure /api/workout/day returns a WorkoutDay that passes ZWorkoutDay validation (add normalisation in server handler if needed).",
+      "Client pages use ExerciseCard with stable keys and no index-based joins.",
+      "All media fetching goes through externalId; EXERCISE_MEDIA_AUTOMAP_ENABLED=false prevents name-based guesses."
+    ]
+  },
+  "tests": {
+    "unit": [
+      "normalizeExercise converts strings to arrays",
+      "ZWorkoutDay accepts a valid workout with 5–10 exercises"
+    ],
+    "ui_smoke": [
+      "Workout day renders 8+ exercises without console errors",
+      "Cards show placeholder when no media; correct GIF if externalId exists"
+    ]
+  },
+  "acceptance": [
+    "Zero incorrect GIFs (placeholders allowed where no externalId).",
+    "No runtime errors in workout views.",
+    "Build/typecheck/lint/tests all pass."
+  ],
+  "output": "Return a patch plan and full file contents; include any modified server routes in the plan."
+}

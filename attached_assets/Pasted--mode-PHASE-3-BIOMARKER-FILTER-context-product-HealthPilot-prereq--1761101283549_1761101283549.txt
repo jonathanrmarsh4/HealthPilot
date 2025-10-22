@@ -1,0 +1,113 @@
+{
+  "mode": "PHASE_3_BIOMARKER_FILTER",
+  "context": {
+    "product": "HealthPilot",
+    "prereq": "Phase 2 (preference weighting) is live and stable; Baseline flags exist",
+    "flags": {
+      "enable": "BIOMARKER_FILTER_ENABLED=true",
+      "others": "Keep all other AI flags OFF"
+    },
+    "stack": {
+      "language": "TypeScript",
+      "frontend": "React (Vite/Next)",
+      "state": "Local + SWR/React Query (if present)",
+      "platform": "Web (iOS later via CapacitorJS)",
+      "db_orm": "Detect from repo (Prisma/Knex/Mongo/etc.)"
+    }
+  },
+  "goal": "Add a deterministic biomarker-aware filter that acts AFTER goal filters and BEFORE preference weighting/ranking. It must never zero the result set: it uses hard vetoes with safe wideners and, if needed, falls back to soft penalties.",
+  "deliverables": [
+    "Typed biomarker profile schema (zod) + adapter from your user profile store",
+    "Deterministic constraints map → meal predicate builder",
+    "Server-side filter stage + soft-penalty fallback",
+    "Unit tests for mapping + predicate generation",
+    "API integration tests for common biomarker scenarios",
+    "Telemetry + README snippet"
+  ],
+  "contracts": {
+    "biomarker_profile": "src/domain/biomarkers.ts",
+    "zod_schema": "ZBiomarkers with optional fields only; undefined means 'no constraint'.",
+    "shape": {
+      "ldl_mmol_l": "number | undefined",
+      "hdl_mmol_l": "number | undefined",
+      "triglycerides_mmol_l": "number | undefined",
+      "a1c_pct": "number | undefined",
+      "fasting_glucose_mmol_l": "number | undefined",
+      "systolic_bp": "number | undefined",
+      "diastolic_bp": "number | undefined",
+      "ckd_stage": "0|1|2|3|4|5 | undefined",
+      "liver_flags": "('elevated_alt'|'elevated_ast')[] | undefined",
+      "notes": "string | undefined"
+    }
+  },
+  "logic": {
+    "order_of_operations": [
+      "1) Baseline deterministic meal query (active + pagination-ready).",
+      "2) Goal filters (Phase 1) → narrow by kcal/macros windows.",
+      "3) Biomarker stage (THIS PHASE):",
+      "   3a) Build constraints from biomarker profile → meal predicate(s).",
+      "   3b) Apply **hard vetoes** first.",
+      "   3c) If remaining < pageSize (e.g., 24), progressively relax → convert some vetoes to **soft penalties** (ranking downgrades).",
+      "   3d) Never return 0 unless DB truly empty.",
+      "4) Preference weighting (Phase 2) on the post-biomarker set."
+    ],
+    "constraints_map_examples": [
+      "High LDL (e.g., ldl_mmol_l >= 3.5): cap saturated_fat_g per meal (e.g., <= 8g) → veto meals above cap; if too strict, soften with penalty on sat_fat density.",
+      "High triglycerides (e.g., triglycerides_mmol_l >= 1.7): limit added sugars and very high refined carbs → veto desserts/sugary drinks tags; soften via penalty on very high sugar per kcal.",
+      "Elevated A1c OR fasting_glucose (e.g., a1c_pct >= 6.0 OR fasting_glucose_mmol_l >= 5.6): bound carbs per meal within goal window → veto extreme high-carb outliers; soften via penalty.",
+      "Hypertension (e.g., systolic_bp >= 130 OR diastolic_bp >= 80): cap sodium per meal (e.g., <= 700–900 mg) → veto top outliers; soften via penalty if page underfills.",
+      "CKD stage >= 3: avoid extremely high protein and very high sodium outliers → veto extremes; soften via penalty if needed.",
+      "Liver flags present: downrank alcohol-containing meals; veto if explicitly tagged 'alcohol'."
+    ],
+    "notes": "Exact numeric thresholds are config-driven; expose them in a single config file so clinicians can review later. Do not claim medical outcomes; this is product logic only."
+  },
+  "files": [
+    {
+      "path": "src/domain/biomarkers.ts",
+      "content": "import { z } from 'zod';\nexport const ZBiomarkers = z.object({\n  ldl_mmol_l: z.number().optional(),\n  hdl_mmol_l: z.number().optional(),\n  triglycerides_mmol_l: z.number().optional(),\n  a1c_pct: z.number().optional(),\n  fasting_glucose_mmol_l: z.number().optional(),\n  systolic_bp: z.number().optional(),\n  diastolic_bp: z.number().optional(),\n  ckd_stage: z.union([z.literal(0),z.literal(1),z.literal(2),z.literal(3),z.literal(4),z.literal(5)]).optional(),\n  liver_flags: z.array(z.enum(['elevated_alt','elevated_ast'])).optional(),\n  notes: z.string().optional()\n});\nexport type Biomarkers = z.infer<typeof ZBiomarkers>;\n"
+    },
+    {
+      "path": "src/server/biomarkers/constraintsConfig.ts",
+      "content": "export const BiomarkerConfig = {\n  ldl: { threshold: 3.5, satFat_g_cap: 8 },\n  triglycerides: { threshold: 1.7, sugar_g_per_meal_cap: 20 },\n  glycemia: { a1c: 6.0, fpg: 5.6, carb_g_cap: 80 },\n  bp: { sys: 130, dia: 80, sodium_mg_cap: 900 },\n  ckd: { stage_soft_limit: 3, protein_g_per_kg_cap: 2.0, sodium_mg_cap: 900 },\n  liver: { alcohol_tag: 'alcohol' }\n} as const;\n"
+    },
+    {
+      "path": "src/server/biomarkers/buildPredicates.ts",
+      "content": "import type { Biomarkers } from '@/domain/biomarkers';\nimport { BiomarkerConfig as C } from './constraintsConfig';\n\nexport type Predicate = { vetoTags?: string[]; maxSatFat_g?: number; maxSugar_g?: number; maxCarb_g?: number; maxSodium_mg?: number; notes?: string[] };\nexport function buildPredicates(bm: Biomarkers): Predicate[] {\n  const res: Predicate[] = [];\n  if (bm.ldl_mmol_l !== undefined && bm.ldl_mmol_l >= C.ldl.threshold) {\n    res.push({ maxSatFat_g: C.ldl.satFat_g_cap, notes:['ldl_saturated_fat_cap'] });\n  }\n  if (bm.triglycerides_mmol_l !== undefined && bm.triglycerides_mmol_l >= C.triglycerides.threshold) {\n    res.push({ maxSugar_g: C.triglycerides.sugar_g_per_meal_cap, notes:['triglycerides_sugar_cap'] });\n  }\n  const glycemia = (bm.a1c_pct !== undefined && bm.a1c_pct >= C.glycemia.a1c) || (bm.fasting_glucose_mmol_l !== undefined && bm.fasting_glucose_mmol_l >= C.glycemia.fpg);\n  if (glycemia) res.push({ maxCarb_g: C.glycemia.carb_g_cap, notes:['glycemia_carb_cap'] });\n  const highBP = (bm.systolic_bp !== undefined && bm.systolic_bp >= C.bp.sys) || (bm.diastolic_bp !== undefined && bm.diastolic_bp >= C.bp.dia);\n  if (highBP) res.push({ maxSodium_mg: C.bp.sodium_mg_cap, notes:['bp_sodium_cap'] });\n  if (bm.ckd_stage !== undefined && bm.ckd_stage >= C.ckd.stage_soft_limit) {\n    res.push({ maxSodium_mg: C.ckd.sodium_mg_cap, notes:['ckd_sodium_cap'] });\n  }\n  if (bm.liver_flags && bm.liver_flags.length) {\n    res.push({ vetoTags: [C.liver.alcohol_tag], notes:['liver_alcohol_veto'] });\n  }\n  return res;\n}\n"
+    },
+    {
+      "path": "src/server/biomarkers/applyBiomarkerFilter.ts",
+      "content": "import type { Meal } from '@/domain/meal';\nimport type { Predicate } from './buildPredicates';\n\nexport type FilterResult = { kept: Meal[]; vetoed: { mealId: string; reasons: string[] }[] };\nexport function applyBiomarkerFilter(meals: Meal[], preds: Predicate[]): FilterResult {\n  const vetoed: { mealId: string; reasons: string[] }[] = [];\n  const kept: Meal[] = [];\n\n  meals.forEach(m => {\n    const reasons: string[] = [];\n    for (const p of preds) {\n      if (p.vetoTags && m.tags?.some(t => p.vetoTags!.includes(t))) reasons.push('tag_veto');\n      if (p.maxSatFat_g !== undefined && (m.macros as any).satFat_g !== undefined && (m.macros as any).satFat_g > p.maxSatFat_g) reasons.push('sat_fat_cap');\n      if (p.maxSugar_g !== undefined && (m.macros as any).sugar_g !== undefined && (m.macros as any).sugar_g > p.maxSugar_g) reasons.push('sugar_cap');\n      if (p.maxCarb_g !== undefined && m.macros.carbs > p.maxCarb_g) reasons.push('carb_cap');\n      if (p.maxSodium_mg !== undefined && (m as any).sodium_mg !== undefined && (m as any).sodium_mg > p.maxSodium_mg) reasons.push('sodium_cap');\n    }\n    if (reasons.length) vetoed.push({ mealId: m.id, reasons }); else kept.push(m);\n  });\n  return { kept, vetoed };\n}\n"
+    },
+    {
+      "path": "src/server/biomarkers/softPenalty.ts",
+      "content": "import type { Meal } from '@/domain/meal';\nimport type { Predicate } from './buildPredicates';\n\nexport function applySoftPenalty(meals: Meal[], preds: Predicate[]): Meal[] {\n  // Simple additive penalty score; lower is better\n  return [...meals].sort((a,b)=> score(a,preds) - score(b,preds));\n}\n\nfunction score(m: Meal, preds: Predicate[]): number {\n  let s = 0;\n  for (const p of preds) {\n    if (p.vetoTags && m.tags?.some(t=>p.vetoTags!.includes(t))) s += 3;\n    if (p.maxSatFat_g !== undefined && (m.macros as any).satFat_g !== undefined && (m.macros as any).satFat_g > p.maxSatFat_g) s += 2;\n    if (p.maxSugar_g !== undefined && (m.macros as any).sugar_g !== undefined && (m.macros as any).sugar_g > p.maxSugar_g) s += 2;\n    if (p.maxCarb_g !== undefined && m.macros.carbs > p.maxCarb_g) s += 1;\n    if (p.maxSodium_mg !== undefined && (m as any).sodium_mg !== undefined && (m as any).sodium_mg > p.maxSodium_mg) s += 2;\n  }\n  return s;\n}\n"
+    },
+    {
+      "path": "src/server/handlers/meals/pipeline.ts",
+      "content": "import { ZBiomarkers } from '@/domain/biomarkers';\nimport { buildPredicates } from '@/server/biomarkers/buildPredicates';\nimport { applyBiomarkerFilter } from '@/server/biomarkers/applyBiomarkerFilter';\nimport { applySoftPenalty } from '@/server/biomarkers/softPenalty';\nimport { flags } from '@/config/flags';\n\nexport async function biomarkerStage({ meals, biomarkerProfile, pageSize }:{ meals:any[]; biomarkerProfile:any; pageSize:number }){\n  if (!flags.BIOMARKER_FILTER_ENABLED) return { items: meals, info: { phase:'skip' } };\n  const parsed = ZBiomarkers.safeParse(biomarkerProfile);\n  if (!parsed.success) return { items: meals, info: { phase:'invalid_profile' } };\n\n  const preds = buildPredicates(parsed.data);\n  if (!preds.length) return { items: meals, info: { phase:'no_constraints' } };\n\n  const { kept, vetoed } = applyBiomarkerFilter(meals, preds);\n  if (kept.length >= pageSize) return { items: kept, info: { phase:'veto', vetoedCount: vetoed.length } };\n\n  // Not enough items → soften\n  const softened = applySoftPenalty(meals, preds);\n  return { items: softened, info: { phase:'soft_penalty', vetoedCount: vetoed.length } };\n}\n"
+    },
+    {
+      "path": "src/server/handlers/meals/__tests__/biomarkerStage.test.ts",
+      "content": "import { biomarkerStage } from '../pipeline';\n\ntest('vetoes high sat fat when LDL high, but softens if underfills', async () => {\n  const meals = [\n    { id:'a', title:'Lean Chicken', mealType:'dinner', tags:[], macros:{ calories:450, protein:40, carbs:30, fat:15, satFat_g:3 } },\n    { id:'b', title:'Creamy Alfredo', mealType:'dinner', tags:[], macros:{ calories:800, protein:25, carbs:70, fat:45, satFat_g:18 } }\n  ];\n  const profile = { ldl_mmol_l: 4.2 };\n  const res = await biomarkerStage({ meals, biomarkerProfile: profile, pageSize: 24 });\n  expect(['veto','soft_penalty']).toContain(res.info.phase);\n  expect(res.items.length).toBe(2); // never zero, page filled by soften if needed\n});\n"
+    },
+    {
+      "path": "src/server/telemetry/biomarkersTelemetry.ts",
+      "content": "export function logBiomarkerPhase(event:{ ts:string; userId?:string; requestId:string; phase:string; vetoedCount?:number; soft?:boolean }){\n  try { console.log('[biomarker_phase]', JSON.stringify(event)); } catch {}\n}\n"
+    },
+    {
+      "path": "docs/phase3-biomarker-filter.md",
+      "content": "# Phase 3 — Biomarker Filter\n\n**What it does**: Applies deterministic constraints from a user's biomarker profile to the meal pipeline. Uses hard vetoes first, then soft penalties if the page underfills. Never silently return 0 unless DB is empty.\n\n**Order**: Baseline → Goal filters → **Biomarker filter (this)** → Preference weighting.\n\n**Flags**: `BIOMARKER_FILTER_ENABLED=true` (others remain off).\n\n**Config**: `src/server/biomarkers/constraintsConfig.ts` holds the numeric caps. These are product logic defaults and can be adjusted.\n\n**Tests**: See `__tests__/biomarkerStage.test.ts`.\n"
+    }
+  ],
+  "integration": {
+    "wire_in": "In meals list endpoint, after goal filters but before preference weighting, call `biomarkerStage`. Pass the parsed biomarker profile for the logged-in user.",
+    "telemetry": "Emit {phase, vetoedCount, requestId} per request. Sample at 1.0 in staging, 0.2 in prod."
+  },
+  "acceptance": [
+    "API never returns an empty page just because of biomarker rules (unless DB empty).",
+    "With common profiles (LDL high, TG high, elevated BP), page still returns ≥ 18 items when baseline had ≥ 24.",
+    "Unit + integration tests pass; typecheck/lint/build clean.",
+    "Telemetry shows proportion of veto vs soft_penalty without spikes."
+  ],
+  "rollback": "Set BIOMARKER_FILTER_ENABLED=false to revert instantly to Phase 2 behavior."
+}
