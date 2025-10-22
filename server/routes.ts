@@ -3062,6 +3062,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const { mealSlot = "lunch", maxResults = 10, forDate } = req.body;
 
     try {
+      // Import feature flags
+      const { isBaselineMode, canUseMealPreferenceWeighting } = await import('../shared/config/flags');
+      
+      // In baseline mode, redirect to simple catalog endpoint
+      if (isBaselineMode()) {
+        console.log('[MealRecommend] Baseline mode enabled - using simple catalog instead of AI recommender');
+        
+        // Fetch meals using deterministic catalog approach
+        const meals = await db
+          .select()
+          .from(mealLibrary)
+          .where(
+            and(
+              eq(mealLibrary.status, 'active'),
+              isNotNull(mealLibrary.calories),
+              sql`${mealSlot} = ANY(${mealLibrary.mealTypes})`
+            )
+          )
+          .orderBy(
+            sql`${mealLibrary.conversionRate} DESC NULLS LAST`,
+            sql`${mealLibrary.importedAt} DESC`
+          )
+          .limit(maxResults);
+        
+        return res.json({
+          requestId: `baseline_${Date.now()}`,
+          recommendations: meals.map(meal => ({
+            ...meal,
+            reason: 'Catalog selection' // No AI reasoning in baseline mode
+          })),
+          meta: {
+            filteredOutCounts: { total: 0 },
+            version: 'baseline-v1.0',
+            baselineMode: true,
+          }
+        });
+      }
+      
       // Generate unique request ID
       const requestId = `req_${Date.now()}_${Math.random().toString(36).substring(7)}`;
       
@@ -3433,6 +3471,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const userId = (req.user as any).claims.sub;
 
     try {
+      // Import feature flags
+      const { canUseAIWorkoutSelection } = await import('../shared/config/flags');
+      
+      // Check if AI workout generation is enabled
+      if (!canUseAIWorkoutSelection()) {
+        console.log('[TrainingSchedule] AI workout generation disabled - baseline mode active');
+        return res.status(403).json({ 
+          error: 'AI workout generation is currently disabled',
+          message: 'This feature requires AI capabilities which are not available in baseline mode. Please manually select exercises from the exercise library.',
+          baselineMode: true,
+        });
+      }
+      
       const userProfile = req.body;
       
       const chatHistory = await storage.getChatMessages(userId);
