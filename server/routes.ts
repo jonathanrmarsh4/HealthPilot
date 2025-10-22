@@ -2946,7 +2946,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/meals", isAuthenticated, async (req, res) => {
     try {
       // Import feature flags
-      const { isBaselineMode, canUseAIMealFilters, canUseAIMealRanking } = await import('../shared/config/flags');
+      const { isBaselineMode, canUseAIMealFilters, canUseAIMealRanking } = await import('@shared/config/flags');
       const { MealQueryParamsSchema, parseMealsSafely } = await import('../shared/types/api-contracts');
       
       // Parse and validate query parameters
@@ -3067,7 +3067,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       // Import feature flags
-      const { isBaselineMode, canUseMealPreferenceWeighting } = await import('../shared/config/flags');
+      const { isBaselineMode, canUseMealPreferenceWeighting } = await import('@shared/config/flags');
       
       // In baseline mode, redirect to simple catalog endpoint
       if (isBaselineMode()) {
@@ -3476,7 +3476,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       // Import feature flags
-      const { canUseAIWorkoutSelection } = await import('../shared/config/flags');
+      const { canUseAIWorkoutSelection } = await import('@shared/config/flags');
       
       // Check if AI workout generation is enabled
       if (!canUseAIWorkoutSelection()) {
@@ -4823,7 +4823,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // ONLY when EXERCISE_MEDIA_AUTOMAP_ENABLED=true (AI mode)
           if (!matchedExercise.exercisedbId) {
             // Check if fuzzy matching is enabled
-            const { canUseExerciseMediaAutomap } = await import('./shared/config/flags');
+            const { canUseExerciseMediaAutomap } = await import('@shared/config/flags');
             
             if (canUseExerciseMediaAutomap()) {
               console.log(`   ⚠️  Exercise "${matchedExercise.name}" has no ExerciseDB link. Resolving...`);
@@ -6051,7 +6051,7 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
 
     try {
       // Import feature flags
-      const { isBaselineMode } = await import('../shared/config/flags');
+      const { isBaselineMode } = await import('@shared/config/flags');
       
       // In baseline mode, AI insights generation is disabled
       if (isBaselineMode()) {
@@ -6406,7 +6406,7 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
 
     try {
       // Import feature flags
-      const { isBaselineMode } = await import('../shared/config/flags');
+      const { isBaselineMode } = await import('@shared/config/flags');
       
       // In baseline mode, AI chat is completely disabled
       if (isBaselineMode()) {

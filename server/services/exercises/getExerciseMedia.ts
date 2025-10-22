@@ -11,7 +11,7 @@
 import { resolve } from "./resolveExternalId";
 import { SCORE_OK } from "./confidence";
 import { storage } from "../../storage";
-import { canUseExerciseMediaAutomap } from "../../../shared/config/flags";
+import { canUseExerciseMediaAutomap } from "@shared/config/flags";
 
 type HP = {
   id: string;
