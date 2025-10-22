@@ -5090,6 +5090,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Create workout instance (immutable exercise snapshot)
+  app.post("/api/workout-instances", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    
+    try {
+      const { workoutSessionId, workoutType, sourceType, sourceId, snapshotData } = req.body;
+      
+      // Validate required fields
+      if (!workoutType || !sourceType || !snapshotData) {
+        return res.status(400).json({ 
+          error: "Missing required fields: workoutType, sourceType, snapshotData" 
+        });
+      }
+
+      const instance = await storage.createWorkoutInstance({
+        userId,
+        workoutSessionId: workoutSessionId || null,
+        workoutType,
+        sourceType,
+        sourceId: sourceId || null,
+        snapshotData,
+      });
+      
+      res.json(instance);
+    } catch (error: any) {
+      console.error("Error creating workout instance:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get workout instance by ID
+  app.get("/api/workout-instances/:id", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { id } = req.params;
+    
+    try {
+      const instance = await storage.getWorkoutInstance(id, userId);
+      if (!instance) {
+        return res.status(404).json({ error: "Workout instance not found" });
+      }
+      res.json(instance);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Get exercises for a workout session
   app.get("/api/workout-sessions/:id/exercises", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
