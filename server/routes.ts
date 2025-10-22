@@ -5369,6 +5369,46 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
     }
   });
 
+  // Get exercise media (GIF) with intelligent fallback
+  app.get("/api/exercises/media", async (req, res) => {
+    const { id, name, target, bodyPart, equipment, externalId } = req.query;
+
+    // Validate required fields
+    if (!id || !name || !target || !bodyPart) {
+      return res.status(400).json({ 
+        error: "Missing required fields: id, name, target, bodyPart" 
+      });
+    }
+
+    try {
+      const { getMediaSafe } = await import("./services/exercises/getExerciseMedia");
+      
+      const media = await getMediaSafe(
+        {
+          id: id as string,
+          name: name as string,
+          target: target as string,
+          bodyPart: bodyPart as string,
+          equipment: equipment ? (equipment as string) : null,
+          externalId: externalId ? (externalId as string) : null,
+        }
+        // allowAutomap defaults to feature flag value
+      );
+
+      if (!media) {
+        return res.status(404).json({ 
+          error: "No media found for this exercise",
+          media: null 
+        });
+      }
+
+      res.json({ media });
+    } catch (error: any) {
+      console.error("Error fetching exercise media:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Swap exercise in a workout session
   app.post("/api/workout-sessions/:sessionId/swap-exercise", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
