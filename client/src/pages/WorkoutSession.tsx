@@ -852,8 +852,9 @@ export default function WorkoutSession() {
     setAlternativesError(null);
     
     try {
-      const response = await fetch(`/api/exercises/${exercise.id}/alternatives?limit=3`, {
+      const response = await fetch(`/api/exercises/${exercise.id}/alternatives?limit=10&_=${Date.now()}`, {
         credentials: 'include',
+        cache: 'no-cache',
       });
       
       if (!response.ok) {

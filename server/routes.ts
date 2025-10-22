@@ -5373,7 +5373,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get AI-suggested exercise alternatives
   app.get("/api/exercises/:exerciseId/alternatives", isAuthenticated, async (req, res) => {
     const { exerciseId } = req.params;
-    const { limit = '3' } = req.query;
+    const { limit = '10' } = req.query;
     
     try {
       // Get the current exercise
