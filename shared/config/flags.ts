@@ -89,16 +89,18 @@ export type FlagName = keyof typeof FLAG_DEFINITIONS;
 /**
  * Get environment variable value with fallback
  * Works on both client (Vite) and server (Node.js)
+ * 
+ * Priority: process.env (Node.js/tests) > import.meta.env (Vite)
  */
 function getEnvVar(name: string): string | undefined {
+  // Server-side (Node.js) - check this first for tests and server
+  if (typeof process !== 'undefined' && process.env && process.env[name] !== undefined) {
+    return process.env[name];
+  }
+  
   // Client-side (Vite)
   if (typeof import.meta !== 'undefined' && import.meta.env) {
     return import.meta.env[`VITE_${name}`];
-  }
-  
-  // Server-side (Node.js)
-  if (typeof process !== 'undefined' && process.env) {
-    return process.env[name];
   }
   
   return undefined;

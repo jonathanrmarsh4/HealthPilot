@@ -10464,15 +10464,29 @@ DATA AVAILABILITY:
   app.post("/api/exercisedb/media/strict", isAuthenticated, async (req, res) => {
     try {
       const { getMediaStrict } = await import('./services/exerciseMedia/getMediaStrict');
+      const { z } = await import('zod');
       
-      // Validate request body
-      const { id, name, target, bodyPart, equipment, externalId } = req.body;
+      // Zod schema for strict validation
+      const strictMediaSchema = z.object({
+        id: z.string().min(1),
+        name: z.string().min(1),
+        target: z.string().min(1),
+        bodyPart: z.string().min(1),
+        equipment: z.string().nullable().optional(),
+        externalId: z.string().nullable().optional(),
+      });
       
-      if (!id || !name || !target || !bodyPart) {
+      // Validate request body with Zod
+      const parseResult = strictMediaSchema.safeParse(req.body);
+      
+      if (!parseResult.success) {
         return res.status(400).json({ 
-          error: 'Missing required fields: id, name, target, bodyPart' 
+          error: 'Invalid request body',
+          details: parseResult.error.errors 
         });
       }
+      
+      const { id, name, target, bodyPart, equipment, externalId } = parseResult.data;
 
       // Fetch media with strict verification
       const result = await getMediaStrict({
