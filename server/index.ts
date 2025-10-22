@@ -113,5 +113,16 @@ app.use((req, res, next) => {
         log(`❌ Daily Insights Scheduler error: ${error.message}`);
       }
     }, 7000); // Wait 7 seconds after startup
+    
+    // Start Daily Training Generator Scheduler (runs at 04:00 user local time)
+    setTimeout(async () => {
+      try {
+        log('💪 Starting Daily Training Generator Scheduler...');
+        const { startDailyTrainingScheduler } = await import('./services/dailyTrainingScheduler');
+        startDailyTrainingScheduler();
+      } catch (error: any) {
+        log(`❌ Daily Training Generator Scheduler error: ${error.message}`);
+      }
+    }, 8000); // Wait 8 seconds after startup
   });
 })();
