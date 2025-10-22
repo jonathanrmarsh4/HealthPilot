@@ -429,9 +429,10 @@ export class ExerciseDBService {
 
     try {
       console.log(`[ExerciseDB API] Fetching exercises from API...`);
-      // Note: RapidAPI ExerciseDB returns all exercises at once (no pagination support)
-      // BASIC tier has limited exercises (10), ULTRA tier gets full 1,300+ exercises
-      const response = await axios.get<ExerciseDBAPIResponse[]>(`${BASE_URL}/exercises`, {
+      // Note: ExerciseDB API requires explicit limit parameter
+      // Default limit is 10, ULTRA tier allows up to 10,000
+      // Request 10,000 to get all ~1,300 exercises
+      const response = await axios.get<ExerciseDBAPIResponse[]>(`${BASE_URL}/exercises?limit=10000`, {
         headers: this.getHeaders(),
       });
 

@@ -201,9 +201,11 @@ if (isBaselineMode()) {
 **Data Requirements:**
 
 - **ExerciseDB Database:** Requires 1,300+ exercises from ExerciseDB API
-- **Current Status:** ⚠️ Only 10 exercises synced (RapidAPI BASIC tier, not ULTRA tier)
-- **Root Cause:** API subscription limitation (10 exercises vs. 1,300+ on ULTRA tier)
-- **Resolution:** Upgrade RapidAPI key to ULTRA tier, then run `/api/exercisedb/sync`
+- **Current Status:** ✅ 1,324 exercises synced successfully
+- **Issue Fixed (Oct 2025):** API call was missing `?limit=10000` parameter
+  - Root cause: ExerciseDB API defaults to 10 exercises without explicit limit
+  - Fix: Added `?limit=10000` to `/exercises` endpoint in `exercisedb.ts` line 438
+  - Result: Full catalog now syncs automatically on server start
 
 **Admin Endpoints:**
 
@@ -237,10 +239,11 @@ curl http://localhost:5000/api/exercisedb/sync-status -H "Cookie: ..." | jq
 
 **Known Issues:**
 
-- ⚠️ **Limited Exercise Variety:** Only 10 exercises in database due to BASIC tier API
-  - **Impact:** Most exercises will show placeholders
-  - **Fix:** Upgrade RapidAPI subscription to ULTRA tier
-  - **Verification:** After upgrade, run sync and confirm ~1,300 exercises imported
+- ✅ **RESOLVED (Oct 2025):** Exercise variety issue fixed
+  - Database now contains 1,324 exercises from ExerciseDB API
+  - All exercises have valid `exercise_id` for GIF lookup
+  - Auto-sync runs on server start when database is empty or >30 days old
+  - Manual sync available via admin endpoint: `POST /api/exercisedb/sync`
 
 ### AI Health Coach
 
