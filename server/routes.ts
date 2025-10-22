@@ -4792,40 +4792,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Good match found (minimum 60% confidence to avoid mismatches)
           matchedExercise = matchResult.exercise;
           console.log(`✅ Matched "${planExercise.name}" to database exercise "${matchedExercise.name}" (score: ${matchResult.score})`);
-          
-          // CRITICAL FIX: Always resolve exercisedbId for existing exercises that don't have one
-          // This ensures stable GIF/instruction linking regardless of feature flags
-          // Feature flags control FUZZY MATCHING fallbacks, not stable ID population
-          if (!matchedExercise.exercisedbId) {
-            console.log(`   ⚠️  Exercise "${matchedExercise.name}" has no ExerciseDB link. Resolving...`);
-            const { resolveExternalId } = await import('./services/exercises/resolveExternalId');
-            const exercisedbMatch = await resolveExternalId({
-              name: matchedExercise.name,
-              muscles: matchedExercise.muscles,
-              equipment: matchedExercise.equipment,
-              category: matchedExercise.category,
-            });
-            
-            if (exercisedbMatch) {
-              // Update the exercise in the database with the resolved exercisedbId
-              const updated = await db
-                .update(exercises)
-                .set({ exercisedbId: exercisedbMatch.exercisedbId })
-                .where(eq(exercises.id, matchedExercise.id))
-                .returning();
-              
-              matchedExercise = updated[0]; // Use the updated exercise
-              console.log(`   ✅ Linked to ExerciseDB: "${exercisedbMatch.name}" (ID: ${exercisedbMatch.exercisedbId}, confidence: ${exercisedbMatch.confidence})`);
-              
-              // Update in allExercises array for future matches in this request
-              const indexInAll = allExercises.findIndex(ex => ex.id === matchedExercise.id);
-              if (indexInAll >= 0) {
-                allExercises[indexInAll] = matchedExercise;
-              }
-            } else {
-              console.warn(`   → No ExerciseDB match found (GIF/instructions unavailable)`);
-            }
-          }
         } else {
           // No good match - create exercise on-the-fly
           console.log(`⚠️ No good match for "${planExercise.name}" (best score: ${matchResult?.score || 0}). Creating new exercise...`);
@@ -4925,15 +4891,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           else if (nameLower.includes('calf')) muscles = ['calves'];
           else if (nameLower.includes('ab') || nameLower.includes('core') || nameLower.includes('plank')) muscles = ['abs'];
           
-          // Resolve ExerciseDB ID for GIF/instruction lookups
-          const { resolveExternalId } = await import('./services/exercises/resolveExternalId');
-          const exercisedbMatch = await resolveExternalId({
-            name: planExercise.name,
-            muscles,
-            equipment,
-            category,
-          });
-          
           const newExercise = await db.insert(exercises).values({
             name: planExercise.name,
             muscles,
@@ -4944,17 +4901,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             difficulty: 'intermediate',
             category,
             trackingType,
-            exercisedbId: exercisedbMatch?.exercisedbId || null,
           }).returning();
           
           matchedExercise = newExercise[0];
           exercisesCreated.push(planExercise.name);
-          console.log(`✨ Created new exercise: "${planExercise.name}" (equipment: ${equipment}, muscles: ${muscles.join(', ')})`);
-          if (exercisedbMatch) {
-            console.log(`   → Linked to ExerciseDB: "${exercisedbMatch.name}" (ID: ${exercisedbMatch.exercisedbId}, confidence: ${exercisedbMatch.confidence})`);
-          } else {
-            console.warn(`   → No ExerciseDB match found (GIF/instructions unavailable)`);
-          }
+          console.log(`✨ Created new exercise: "${planExercise.name}" (equipment: ${equipment}, muscles: ${muscles.join(', ')})`)
           
           // Add to allExercises for subsequent matches
           allExercises.push(matchedExercise);

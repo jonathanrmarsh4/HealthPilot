@@ -103,17 +103,6 @@ app.use((req, res, next) => {
       }
     }, 5000); // Wait 5 seconds after startup
     
-    // Auto-sync ExerciseDB exercises on startup if needed
-    setTimeout(async () => {
-      try {
-        log('🏋️ Checking ExerciseDB sync status...');
-        const { exerciseDBService } = await import('./services/exercisedb/exercisedb');
-        await exerciseDBService.autoSyncIfNeeded();
-      } catch (error: any) {
-        log(`❌ ExerciseDB auto-sync error: ${error.message}`);
-      }
-    }, 6000); // Wait 6 seconds after startup (after proactive monitoring)
-    
     // Start Daily Insights Scheduler (runs at 02:00 user local time)
     setTimeout(async () => {
       try {

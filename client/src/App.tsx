@@ -46,7 +46,6 @@ import AdminMealLibrary from "@/pages/AdminMealLibrary";
 import AdminPromoCodes from "@/pages/AdminPromoCodes";
 import AdminLandingPage from "@/pages/AdminLandingPage";
 import AdminCostDashboard from "@/pages/AdminCostDashboard";
-import AdminMediaReview from "@/pages/AdminMediaReview";
 import AIAuditLog from "@/pages/AIAuditLog";
 import Login from "@/pages/Login";
 import Logout from "@/pages/Logout";
@@ -94,7 +93,6 @@ function Router() {
       <Route path="/admin/promo-codes" component={AdminPromoCodes} />
       <Route path="/admin/landing-page" component={AdminLandingPage} />
       <Route path="/admin/cost" component={AdminCostDashboard} />
-      <Route path="/admin/media-review" component={AdminMediaReview} />
       <Route path="/admin/ai-audit" component={AIAuditLog} />
       <Route path="/logged-out" component={Logout} />
       <Route component={NotFound} />
