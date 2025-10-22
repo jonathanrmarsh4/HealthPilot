@@ -1,0 +1,61 @@
+{
+  "mode": "WORKOUT_STRICT_BINDING_INTERLOCKS",
+  "context": {
+    "product": "HealthPilot",
+    "goal": "Eliminate incorrect GIFs/instructions by enforcing strict, verifiable binding to the clicked exercise snapshot.",
+    "summary": [
+      "Instructions: render ONLY from the snapshot passed by the card/instance.",
+      "Media (GIF): fetch ONLY by externalId and verify it matches name/target/bodyPart; otherwise withhold media.",
+      "Never fetch by name inside the modal."
+    ]
+  },
+  "flags": {
+    "introduce": [
+      { "name": "EXERCISE_MEDIA_STRICT_BINDING_ENABLED", "default": true }
+    ]
+  },
+  "files": [
+    {
+      "path": "src/server/services/exerciseDb/getById.ts",
+      "content": "import { z } from 'zod';\nexport const ZExerciseDBItemFull = z.object({\n  id: z.string(), name: z.string(), bodyPart: z.string(), target: z.string(), equipment: z.string().optional(), gifUrl: z.string().url().optional()\n});\nexport type ExerciseDBItemFull = z.infer<typeof ZExerciseDBItemFull>;\n\nexport async function getExerciseDbItemByIdFull(id:string){\n  const base = process.env.EXERCISE_DB_PROXY_BASE;\n  const res = await fetch(`${base}/item?id=${encodeURIComponent(id)}`);\n  if (!res.ok) return null;\n  const json = await res.json();\n  const parsed = ZExerciseDBItemFull.safeParse(json);\n  return parsed.success ? parsed.data : null;\n}\n"
+    },
+    {
+      "path": "src/server/services/exerciseMedia/verifyMatch.ts",
+      "content": "import type { ExerciseDBItemFull } from '@/server/services/exerciseDb/getById';\n\ntype HP = { name:string; target:string; bodyPart:string; equipment?:string|null };\nconst norm = (s?:string|null)=> (s||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();\n\nexport type VerifyResult = { ok: boolean; reasons?: string[] };\n\nexport function verifyDbItemMatches(hp: HP, db: ExerciseDBItemFull): VerifyResult {\n  const reasons: string[] = [];\n  const nameEq = norm(hp.name) === norm(db.name) || norm(hp.name).includes(norm(db.name)) || norm(db.name).includes(norm(hp.name));\n  if (!nameEq) reasons.push('name_mismatch');\n  const targetEq = norm(hp.target) === norm(db.target);\n  if (!targetEq) reasons.push('target_mismatch');\n  const bodyEq = norm(hp.bodyPart) === norm(db.bodyPart);\n  if (!bodyEq) reasons.push('bodypart_mismatch');\n  const equipEq = hp.equipment && db.equipment ? norm(hp.equipment) === norm(db.equipment) : true;\n  if (!equipEq) reasons.push('equipment_mismatch');\n\n  // Require: (nameEq AND (targetEq OR bodyEq)). Equipment is a soft check.\n  const ok = nameEq && (targetEq || bodyEq);\n  return ok ? { ok:true } : { ok:false, reasons };\n}\n"
+    },
+    {
+      "path": "src/server/services/exerciseMedia/getMediaStrict.ts",
+      "content": "import { getExerciseDbItemByIdFull } from '@/server/services/exerciseDb/getById';\nimport { verifyDbItemMatches } from './verifyMatch';\n\nexport async function getMediaStrict(hp: { id:string; name:string; target:string; bodyPart:string; equipment?:string|null; externalId?:string|null }){\n  if (!hp.externalId) return { media:null, withheld:true, reason:'no_external_id' } as const;\n  const db = await getExerciseDbItemByIdFull(hp.externalId);\n  if (!db) return { media:null, withheld:true, reason:'db_not_found' } as const;\n  const v = verifyDbItemMatches(hp, db);\n  if (!v.ok) {\n    console.warn('[media_withheld_mismatch]', { exerciseId: hp.id, hp: { name: hp.name, target: hp.target, bodyPart: hp.bodyPart, equipment: hp.equipment }, db: { id: db.id, name: db.name, target: db.target, bodyPart: db.bodyPart, equipment: db.equipment }, reasons: v.reasons });\n    return { media:null, withheld:true, reason:'mismatch' as const };\n  }\n  return db.gifUrl ? { media: { url: db.gifUrl, id: db.id, source: 'ExerciseDB' as const }, withheld:false as const } : { media:null, withheld:true, reason:'no_gif' as const };\n}\n"
+    },
+    {
+      "path": "src/features/workout/components/ExerciseModal.tsx",
+      "replace_file_content": "import { useEffect, useMemo, useRef } from 'react';\nimport { useQuery } from '@tanstack/react-query';\nimport { getMediaStrict } from '@/server/services/exerciseMedia/getMediaStrict';\n\nexport type ModalExercise = {\n  id: string;\n  name: string;\n  target: string;\n  bodyPart: string;\n  equipment?: string | null;\n  externalId?: string | null;\n  instructions?: string[]; // snapshot instructions come from caller\n};\n\nexport default function ExerciseModal({ exercise, open, onClose }: { exercise: ModalExercise; open: boolean; onClose: () => void; }) {\n  const modalKey = useMemo(() => `exercise-modal-${exercise.id}-${exercise.externalId ?? 'none'}`, [exercise.id, exercise.externalId]);\n  const currentIdRef = useRef(exercise.id);\n  useEffect(() => { currentIdRef.current = exercise.id; }, [exercise.id]);\n\n  const { data } = useQuery({\n    queryKey: ['exercise-media-for-modal', exercise.id, exercise.externalId ?? null],\n    queryFn: () => getMediaStrict(exercise),\n    enabled: open,\n    keepPreviousData: false,\n    staleTime: 1000 * 60 * 60\n  });\n\n  if (!open) return null;\n\n  const withheld = data?.withheld;\n  const media = data?.media ?? null;\n\n  return (\n    <div key={modalKey} role=\"dialog\" aria-modal=\"true\" className=\"fixed inset-0 z-50 grid place-items-center bg-black/40\">\n      <div className=\"w-full max-w-xl rounded-2xl bg-white p-4 shadow-xl\">\n        <div className=\"text-lg font-semibold\">{exercise.name}</div>\n        <div className=\"text-xs text-neutral-600\">{exercise.bodyPart} • {exercise.target}{exercise.equipment ? ` • ${exercise.equipment}` : ''}</div>\n\n        <div className=\"mt-3 aspect-video bg-neutral-100 rounded-xl overflow-hidden grid place-items-center\">\n          {media?.url ? (\n            <img src={media.url} alt={`${exercise.name} demo`} className=\"w-full h-full object-contain\" loading=\"lazy\" />\n          ) : (\n            <div className=\"text-xs text-neutral-500\">{withheld ? 'Demo withheld (mismatch)' : 'No demo'}</div>\n          )}\n        </div>\n\n        {Array.isArray(exercise.instructions) && exercise.instructions.length > 0 && (\n          <>\n            <h3 className=\"mt-4 font-medium text-sm\">How to do it</h3>\n            <ol className=\"list-decimal pl-5 space-y-1\">\n              {exercise.instructions.map((t, i) => (<li key={`${exercise.id}-inst-${i}`}>{t}</li>))}\n            </ol>\n          </>\n        )}\n\n        <div className=\"mt-4 flex justify-end\">\n          <button onClick={onClose} className=\"rounded-md border px-3 py-1.5 text-sm\">Close</button>\n        </div>\n      </div>\n    </div>\n  );\n}\n"
+    },
+    {
+      "path": "src/features/workout/components/ExerciseCard.tsx",
+      "ensure_content_contains": [
+        "const snap = {",
+        "instructions: exercise.instructions ?? []",
+        "<ExerciseModal open={open} onClose={() => setOpen(false)} exercise={snap} />"
+      ],
+      "note": "Ensure the card passes snapshot instructions to the modal. No instruction fetch in modal."
+    }
+  ],
+  "tests": [
+    {
+      "path": "src/server/services/exerciseMedia/__tests__/verifyMatch.test.ts",
+      "content": "import { verifyDbItemMatches } from '../verifyMatch';\n\ntest('accepts same name + same target', ()=>{\n  const hp = { name:'Lat Pulldown', target:'lats', bodyPart:'back' } as any;\n  const db = { id:'X', name:'Lat Pulldown', target:'lats', bodyPart:'back' } as any;\n  expect(verifyDbItemMatches(hp, db).ok).toBe(true);\n});\n\ntest('rejects name mismatch even if gif exists', ()=>{\n  const hp = { name:'Lat Pulldown', target:'lats', bodyPart:'back' } as any;\n  const db = { id:'X', name:'Barbell Squat', target:'quads', bodyPart:'legs' } as any;\n  expect(verifyDbItemMatches(hp, db).ok).toBe(false);\n});\n"
+    }
+  ],
+  "acceptance": [
+    "Modal title stays as clicked (already fixed).",
+    "Instructions shown are the snapshot’s instructions (no fetch).",
+    "GIF is only shown when ExerciseDB item by externalId matches (name AND (target OR bodyPart)); otherwise it shows 'Demo withheld (mismatch)'.",
+    "No cases where the modal shows a different exercise’s demo."
+  ],
+  "operator_steps": [
+    "Run: npm run lint && npm run typecheck && npm test -- --watch=false && npm run build",
+    "Open a workout → click Lat Pulldown → wait 5s → title stays; GIF is either correct or withheld",
+    "Repeat across multiple exercises; verify no wrong demos appear"
+  ]
+}
