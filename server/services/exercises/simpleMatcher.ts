@@ -31,7 +31,7 @@ export const BOOSTS = {
 export const PENALTIES = {
   disjointTarget: 4,      // Target muscle completely different
   disjointBodyPart: 3,    // Body part completely different
-  equipmentConflict: 2,   // Equipment incompatible (e.g., barbell vs dumbbell)
+  equipmentConflict: 5,   // Equipment incompatible (e.g., barbell vs dumbbell) - CRITICAL to prevent wrong matches
 } as const;
 
 /** Synonym mappings for common exercise name variations */

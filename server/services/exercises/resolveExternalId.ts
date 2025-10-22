@@ -1,83 +1,120 @@
 /**
- * Simplified Exercise External ID Resolution
+ * ExerciseDB External ID Resolver
  * 
- * Clean, maintainable scoring algorithm for matching HealthPilot exercises
- * to ExerciseDB media based on name, target, bodyPart, and equipment.
+ * Orchestrates between SimpleMatcher (deterministic) and legacy resolver (fuzzy)
+ * based on EXERCISE_SIMPLE_MATCHER_ENABLED feature flag.
  */
 
-type HP = { 
-  id: string; 
-  name: string; 
-  target: string; 
-  bodyPart: string; 
-  equipment?: string | null 
-};
+import { canUseSimpleMatcher } from '@shared/config/flags';
+import { resolveSimple, type HPExercise, type MatchResult } from './simpleMatcher';
+import { deriveExercisedbId, type ExerciseDBMatch } from '../../utils/exercisedbResolver';
+import { storage } from '../../storage';
 
-type ExDB = { 
-  id: string; 
-  name: string; 
-  target: string; 
-  bodyPart: string; 
-  equipment?: string | null; 
-  gifUrl?: string 
-};
+export interface ExerciseInput {
+  name: string;
+  muscles: string[];
+  equipment: string;
+  category?: string;
+}
 
-/**
- * Normalize string for comparison (lowercase, alphanumeric only)
- */
-const norm = (s?: string | null) => 
-  (s || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
-
-/**
- * Score a candidate match (0-9 scale)
- * 
- * Scoring breakdown:
- * - Name exact match: +3
- * - Name substring match: +1
- * - Target match: +3
- * - BodyPart match: +2
- * - Equipment match: +1
- * 
- * Maximum score: 9 (exact name + all fields match)
- */
-export function score(hp: HP, c: ExDB): number {
-  let s = 0;
-  
-  // Name matching (3 points max)
-  if (norm(hp.name) === norm(c.name)) {
-    s += 3;
-  } else if (norm(hp.name).includes(norm(c.name)) || norm(c.name).includes(norm(hp.name))) {
-    s += 1;
-  }
-  
-  // Target muscle (3 points)
-  if (norm(hp.target) === norm(c.target)) {
-    s += 3;
-  }
-  
-  // Body part (2 points)
-  if (norm(hp.bodyPart) === norm(c.bodyPart)) {
-    s += 2;
-  }
-  
-  // Equipment (1 point)
-  if (hp.equipment && c.equipment && norm(hp.equipment) === norm(c.equipment)) {
-    s += 1;
-  }
-  
-  return s;
+export interface ResolveResult {
+  exercisedbId: string;
+  name: string;
+  confidence: 'high' | 'medium' | 'low';
 }
 
 /**
- * Resolve best matching exercise from candidates
+ * Resolve ExerciseDB ID for a HealthPilot exercise
  * 
- * @returns Object with top match and full ranked list, or null if no candidates
+ * Routes to SimpleMatcher (if flag enabled) or legacy resolver (if flag disabled)
+ * 
+ * @param exercise - Exercise to resolve
+ * @returns Match result or null if no confident match found
  */
-export function resolve(hp: HP, candidates: ExDB[]) {
-  const ranked = candidates
-    .map(c => ({ c, score: score(hp, c) }))
-    .sort((a, b) => b.score - a.score);
+export async function resolveExternalId(
+  exercise: ExerciseInput
+): Promise<ResolveResult | null> {
+  const useSimpleMatcher = canUseSimpleMatcher();
   
-  const top = ranked[0];
-  return top ? { top, ranked } : null;
+  console.log(
+    `[ResolveExternalId] Resolving "${exercise.name}" ` +
+    `(simple matcher: ${useSimpleMatcher ? 'ENABLED' : 'DISABLED'})`
+  );
+  
+  if (useSimpleMatcher) {
+    return await resolveWithSimpleMatcher(exercise);
+  } else {
+    return await resolveWithLegacy(exercise);
+  }
+}
+
+/**
+ * Resolve using SimpleMatcher (deterministic scoring)
+ */
+async function resolveWithSimpleMatcher(
+  exercise: ExerciseInput
+): Promise<ResolveResult | null> {
+  // Search for candidates
+  const candidates = await storage.searchExercisedbCandidates(exercise.name);
+  
+  if (candidates.length === 0) {
+    console.warn(`[SimpleMatcher] No candidates found for "${exercise.name}"`);
+    return null;
+  }
+  
+  console.log(`[SimpleMatcher] Found ${candidates.length} candidates for "${exercise.name}"`);
+  
+  // Convert to SimpleMatcher format
+  const hpExercise: HPExercise = {
+    id: 'temp-id',
+    name: exercise.name,
+    muscles: exercise.muscles,
+    equipment: exercise.equipment,
+    category: exercise.category,
+  };
+  
+  const dbCandidates = candidates.map(c => ({
+    exerciseId: c.exerciseId,
+    name: c.name,
+    target: c.target,
+    bodyPart: c.bodyPart,
+    equipment: c.equipment,
+  }));
+  
+  // Score and match
+  const match = resolveSimple(hpExercise, dbCandidates);
+  
+  if (!match) {
+    return null;
+  }
+  
+  return {
+    exercisedbId: match.exercisedbId,
+    name: match.name,
+    confidence: match.confidence,
+  };
+}
+
+/**
+ * Resolve using legacy fuzzy matcher
+ */
+async function resolveWithLegacy(
+  exercise: ExerciseInput
+): Promise<ResolveResult | null> {
+  const match: ExerciseDBMatch | null = await deriveExercisedbId({
+    name: exercise.name,
+    muscles: exercise.muscles,
+    equipment: exercise.equipment,
+    category: exercise.category || 'strength',
+  });
+  
+  if (!match) {
+    return null;
+  }
+  
+  return {
+    exercisedbId: match.exercisedbId,
+    name: match.name,
+    confidence: match.confidence,
+  };
 }
