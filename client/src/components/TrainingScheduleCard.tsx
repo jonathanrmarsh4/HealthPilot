@@ -258,12 +258,14 @@ export function TrainingScheduleCard({
           <div className="space-y-2">
             <div className="text-xs font-medium text-muted-foreground">Exercises</div>
             <div className="space-y-1">
-              {/* Use exercise.name as stable key to prevent React misbinding during re-renders */}
+              {/* Use composite key with fallback tokens to handle duplicate exercise names and null values */}
               {exercises.map((exercise, idx) => {
                 const muscleGroups = getExerciseMuscleGroups(exercise.name);
+                // Mirror Training.tsx robust key generation - include ALL fields with fallbacks
+                const uniqueKey = `${exercise.name}-${exercise.sets ?? 'nosets'}-${exercise.reps ?? 'noreps'}-${exercise.duration ?? 'nodur'}`;
                 return (
                   <ExerciseItem 
-                    key={exercise.name} 
+                    key={uniqueKey} 
                     exercise={exercise} 
                     muscleGroups={muscleGroups} 
                     idx={idx}

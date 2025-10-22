@@ -8,28 +8,35 @@
 import { describe, it, expect } from 'vitest';
 
 describe('Exercise Binding Integrity', () => {
-  it('should use stable keys (name-based) instead of index-based keys', () => {
+  it('should use stable composite keys instead of index-based keys', () => {
     // This test ensures we don't regress to using index-based keys
     // which cause misbinding issues when exercises are reordered
     
     const exercises = [
-      { name: 'Lat Pulldown', sets: 3, reps: '8-12', intensity: 'moderate' },
-      { name: 'Bench Press', sets: 4, reps: '6-10', intensity: 'high' },
-      { name: 'Squats', sets: 3, reps: '10-15', intensity: 'moderate' }
+      { name: 'Lat Pulldown', sets: 3, reps: '8-12', intensity: 'moderate', duration: null },
+      { name: 'Bench Press', sets: 4, reps: '6-10', intensity: 'high', duration: null },
+      { name: 'Squats', sets: 3, reps: '10-15', intensity: 'moderate', duration: null }
     ];
 
-    // Simulate React key generation using name (correct)
-    const correctKeys = exercises.map(ex => ex.name);
-    expect(correctKeys).toEqual(['Lat Pulldown', 'Bench Press', 'Squats']);
+    // Simulate React key generation using composite key (CORRECT)
+    const generateKey = (ex: typeof exercises[0]) => 
+      `${ex.name}-${ex.sets ?? 'nosets'}-${ex.reps ?? 'noreps'}-${ex.duration ?? 'nodur'}`;
+    
+    const correctKeys = exercises.map(generateKey);
+    expect(correctKeys).toEqual([
+      'Lat Pulldown-3-8-12-nodur',
+      'Bench Press-4-6-10-nodur',
+      'Squats-3-10-15-nodur'
+    ]);
     
     // Simulate what happens when exercises are reordered
     const reordered = [exercises[2], exercises[0], exercises[1]];
-    const reorderedKeys = reordered.map(ex => ex.name);
+    const reorderedKeys = reordered.map(generateKey);
     
-    // With name-based keys, each exercise maintains its identity
-    expect(reorderedKeys[0]).toBe('Squats');
-    expect(reorderedKeys[1]).toBe('Lat Pulldown');
-    expect(reorderedKeys[2]).toBe('Bench Press');
+    // With composite keys, each exercise maintains its unique identity
+    expect(reorderedKeys[0]).toBe('Squats-3-10-15-nodur');
+    expect(reorderedKeys[1]).toBe('Lat Pulldown-3-8-12-nodur');
+    expect(reorderedKeys[2]).toBe('Bench Press-4-6-10-nodur');
     
     // ANTI-PATTERN: Index-based keys (would fail on reorder)
     const badKeys = exercises.map((_, idx) => idx);
@@ -58,20 +65,25 @@ describe('Exercise Binding Integrity', () => {
     expect(exercise1Key).not.toEqual(exercise2Key);
   });
 
-  it('should handle exercises with same name but different IDs', () => {
-    // Edge case: Two variations of same exercise
+  it('should handle duplicate exercise names with different parameters', () => {
+    // Edge case: Same exercise appearing twice with different sets/reps
     const exercises = [
-      { id: 'ex-1', name: 'Push-ups', externalId: '1234' },
-      { id: 'ex-2', name: 'Push-ups', externalId: '5678' } // Different variation
+      { name: 'Push-ups', sets: 3, reps: '10', duration: null },
+      { name: 'Push-ups', sets: 2, reps: '15', duration: null } // Different variation
     ];
+    
+    const generateKey = (ex: typeof exercises[0]) => 
+      `${ex.name}-${ex.sets ?? 'nosets'}-${ex.reps ?? 'noreps'}-${ex.duration ?? 'nodur'}`;
     
     // Using just name as key would cause collision
     const nameKeys = exercises.map(ex => ex.name);
     expect(nameKeys[0]).toBe(nameKeys[1]); // Duplicate keys!
     
-    // Better: Use ID when available
-    const idKeys = exercises.map(ex => ex.id);
-    expect(idKeys[0]).not.toBe(idKeys[1]); // Unique keys
+    // Better: Use composite key with sets/reps/duration
+    const compositeKeys = exercises.map(generateKey);
+    expect(compositeKeys[0]).toBe('Push-ups-3-10-nodur');
+    expect(compositeKeys[1]).toBe('Push-ups-2-15-nodur');
+    expect(compositeKeys[0]).not.toBe(compositeKeys[1]); // Unique keys!
   });
 
   it('should sanitize exercise names for data-testid attributes', () => {

@@ -986,10 +986,12 @@ export default function Training() {
                     </div>
 
                     <div className="space-y-2">
-                      {/* Use exercise.name as stable key (not index) to prevent React from mismatching components during re-renders */}
-                      {currentPlan.exercises.map((exercise, idx) => (
+                      {/* Use composite key to handle duplicate exercise names (e.g., "Push-ups" appearing twice with different sets/reps) */}
+                      {currentPlan.exercises.map((exercise, idx) => {
+                        const uniqueKey = `${exercise.name}-${exercise.sets ?? 'nosets'}-${exercise.reps ?? 'noreps'}-${exercise.duration ?? 'nodur'}`;
+                        return (
                         <div 
-                          key={exercise.name} 
+                          key={uniqueKey} 
                           className="p-2.5 rounded-lg border bg-card hover-elevate"
                           data-testid={`exercise-${selectedPlan}-${exercise.name.replace(/\s+/g, '-').toLowerCase()}`}
                         >
@@ -1038,7 +1040,8 @@ export default function Training() {
                             </div>
                           </div>
                         </div>
-                      ))}
+                      );
+                      })}
                       
                       {/* AI-added workouts for today */}
                       {todayScheduledWorkouts.map((workout) => {
