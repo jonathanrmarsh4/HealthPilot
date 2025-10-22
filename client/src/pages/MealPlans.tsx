@@ -1,6 +1,7 @@
 import { WeeklyMealCalendar } from "@/components/WeeklyMealCalendar";
 import { RecipeDetailModal } from "@/components/RecipeDetailModal";
 import { MealSwipeView } from "@/components/MealSwipeView";
+import { MealCatalogBrowser } from "@/components/MealCatalogBrowser";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Sparkles, Loader2, Lock, LayoutGrid, Flame } from "lucide-react";
@@ -13,10 +14,18 @@ import { UpgradePrompt } from "@/components/UpgradePrompt";
 import type { MealPlan } from "@shared/schema";
 import { useState } from "react";
 import { format, min, max, parseISO } from "date-fns";
+import { isBaselineMode } from "@shared/config/flags";
 
 type ViewMode = "calendar" | "swipe";
 
 export default function MealPlans() {
+  // Check if baseline mode is enabled
+  const baselineEnabled = isBaselineMode();
+  
+  // In baseline mode, show catalog browser instead of AI meal plans
+  if (baselineEnabled) {
+    return <MealCatalogBrowser />;
+  }
   const { toast } = useToast();
   const [selectedMeal, setSelectedMeal] = useState<MealPlan | null>(null);
   const [modalOpen, setModalOpen] = useState(false);

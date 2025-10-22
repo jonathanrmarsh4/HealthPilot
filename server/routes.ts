@@ -5998,6 +5998,19 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
     const userId = (req.user as any).claims.sub;
 
     try {
+      // Import feature flags
+      const { isBaselineMode } = await import('../shared/config/flags');
+      
+      // In baseline mode, AI insights generation is disabled
+      if (isBaselineMode()) {
+        console.log('[Insights] AI insights generation disabled in baseline mode');
+        return res.status(403).json({
+          error: 'AI insights generation is currently disabled',
+          message: 'Daily health insights require AI analysis which is not available in baseline mode.',
+          baselineMode: true,
+        });
+      }
+      
       const userSettings = await storage.getUserSettings(userId);
       const timezone = userSettings.timezone || 'UTC';
       
