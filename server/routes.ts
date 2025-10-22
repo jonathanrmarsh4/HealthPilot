@@ -5177,6 +5177,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const userId = (req.user as any).claims.sub;
     
     try {
+      // Check feature flag
+      const { canUseDailyAITrainingGenerator } = await import("../shared/config/flags");
+      if (!canUseDailyAITrainingGenerator()) {
+        return res.status(403).json({
+          status: "error",
+          message: "Daily AI Training Generator is not enabled"
+        });
+      }
+      
       const { buildUserContext, generateDailySession } = await import("./services/trainingGenerator");
       const { format } = await import("date-fns");
       

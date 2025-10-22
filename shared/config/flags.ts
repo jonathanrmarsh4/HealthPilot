@@ -63,6 +63,12 @@ export const FLAG_DEFINITIONS: Record<string, FlagConfig> = {
     level: 'site',
     description: 'Use AI to generate and customize workout plans'
   },
+  DAILY_AI_TRAINING_GENERATOR_ENABLED: {
+    name: 'DAILY_AI_TRAINING_GENERATOR_ENABLED',
+    default: false,
+    level: 'site',
+    description: 'Enable AI-powered daily training session generator with standards-based workouts'
+  },
 } as const;
 
 // Type-safe flag names
@@ -196,6 +202,7 @@ export const canUseMealGoalFilter = () => flags.isEnabled('MEAL_GOAL_FILTER_ENAB
 export const canUseMealPreferenceWeighting = () => flags.isEnabled('MEAL_PREFERENCE_WEIGHTING_ENABLED');
 export const canUseBiomarkerFilter = () => flags.isEnabled('BIOMARKER_FILTER_ENABLED');
 export const canUseAIWorkoutSelection = () => flags.isEnabled('AI_WORKOUT_SELECTION_ENABLED');
+export const canUseDailyAITrainingGenerator = () => flags.isEnabled('DAILY_AI_TRAINING_GENERATOR_ENABLED');
 
 /**
  * Development helper: log all flag states
