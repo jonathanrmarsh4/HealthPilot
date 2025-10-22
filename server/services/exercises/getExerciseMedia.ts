@@ -8,7 +8,7 @@
  * - Telemetry logging for continuous improvement
  */
 
-import { resolve } from "./resolveExternalId";
+import { resolveSimple } from "./simpleMatcher";
 import { SCORE_OK } from "./confidence";
 import { storage } from "../../storage";
 import { canUseExerciseMediaAutomap } from "@shared/config/flags";
@@ -71,7 +71,7 @@ export async function getMediaSafe(
     }
 
     // 4) Resolve best match using deterministic scoring
-    const result = resolve(
+    const result = resolveSimple(
       {
         id: hp.id,
         name: hp.name,
