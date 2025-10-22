@@ -554,6 +554,34 @@ export const exercisedbSyncLog = pgTable("exercisedb_sync_log", {
   errorMessage: text("error_message"),
 });
 
+// ExerciseDB Media Attempt Logs - telemetry for media matching attempts (debugging/tuning)
+export const exerciseMediaAttemptLogs = pgTable("exercise_media_attempt_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id"), // Optional - may not have user context in all cases
+  hpExerciseId: varchar("hp_exercise_id"), // HealthPilot exercise ID (from exercises table)
+  hpExerciseName: text("hp_exercise_name").notNull(), // Name of the HP exercise
+  target: text("target"), // Target muscle group
+  bodyPart: text("body_part"), // Body part
+  equipment: text("equipment"), // Equipment type
+  reason: text("reason").notNull(), // 'LOW_CONFIDENCE' | 'NO_MATCH' | 'OK' | 'SUPPRESSED'
+  externalId: text("external_id"), // ExerciseDB ID if available
+  chosenId: text("chosen_id"), // ID of the matched ExerciseDB exercise
+  chosenName: text("chosen_name"), // Name of the matched ExerciseDB exercise
+  score: real("score"), // Match confidence score
+  candidateCount: integer("candidate_count"), // Number of candidates evaluated
+  candidates: jsonb("candidates"), // Top 5 candidates with scores [{id, name, score, target, bodyPart, equipment}]
+  reviewStatus: text("review_status").notNull().default("pending"), // 'pending', 'reviewed', 'approved', 'rejected'
+  reviewedBy: varchar("reviewed_by"), // Admin user who reviewed
+  reviewedAt: timestamp("reviewed_at"),
+  approvedExercisedbId: text("approved_exercisedb_id"), // Admin-approved correct ExerciseDB ID
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => [
+  index("media_attempt_logs_reason_idx").on(table.reason),
+  index("media_attempt_logs_review_status_idx").on(table.reviewStatus),
+  index("media_attempt_logs_hp_exercise_idx").on(table.hpExerciseId),
+  index("media_attempt_logs_created_at_idx").on(table.createdAt),
+]);
+
 export const insertHealthRecordSchema = createInsertSchema(healthRecords).omit({
   id: true,
   uploadedAt: true,
@@ -1395,6 +1423,15 @@ export const insertExercisedbSyncLogSchema = createInsertSchema(exercisedbSyncLo
 
 export type InsertExercisedbSyncLog = z.infer<typeof insertExercisedbSyncLogSchema>;
 export type ExercisedbSyncLog = typeof exercisedbSyncLog.$inferSelect;
+
+export const insertExerciseMediaAttemptLogSchema = createInsertSchema(exerciseMediaAttemptLogs).omit({
+  id: true,
+  createdAt: true,
+  reviewedAt: true,
+});
+
+export type InsertExerciseMediaAttemptLog = z.infer<typeof insertExerciseMediaAttemptLogSchema>;
+export type ExerciseMediaAttemptLog = typeof exerciseMediaAttemptLogs.$inferSelect;
 
 // ===== LANDING PAGE CMS =====
 

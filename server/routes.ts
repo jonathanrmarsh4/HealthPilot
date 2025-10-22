@@ -10503,6 +10503,135 @@ DATA AVAILABILITY:
     }
   });
 
+  // ===== EXERCISEDB MEDIA TELEMETRY (Admin Only) =====
+  
+  // Get media attempt logs with filters (admin only)
+  app.get("/api/admin/media-logs", isAdmin, async (req, res) => {
+    try {
+      const { reason, reviewStatus, limit, offset } = req.query;
+      
+      const logs = await storage.getMediaAttemptLogs({
+        reason: reason as string | undefined,
+        reviewStatus: reviewStatus as string | undefined,
+        limit: limit ? parseInt(limit as string) : 100,
+        offset: offset ? parseInt(offset as string) : 0,
+      });
+      
+      res.json({
+        logs,
+        count: logs.length,
+      });
+    } catch (error: any) {
+      console.error("Error fetching media logs:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Get media attempt log statistics (admin only)
+  app.get("/api/admin/media-logs/stats", isAdmin, async (req, res) => {
+    try {
+      const stats = await storage.getMediaAttemptStats();
+      res.json(stats);
+    } catch (error: any) {
+      console.error("Error fetching media log stats:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Update media attempt log review status (admin only)
+  app.patch("/api/admin/media-logs/:id/review", isAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { reviewStatus, approvedExercisedbId } = req.body;
+      const userId = (req.user as any).claims.sub;
+      
+      if (!reviewStatus || !['reviewed', 'approved', 'rejected'].includes(reviewStatus)) {
+        return res.status(400).json({ error: "Invalid review status" });
+      }
+      
+      const updated = await storage.updateMediaAttemptReview(id, {
+        reviewStatus,
+        reviewedBy: userId,
+        approvedExercisedbId,
+      });
+      
+      if (!updated) {
+        return res.status(404).json({ error: "Media log not found" });
+      }
+      
+      res.json({
+        success: true,
+        log: updated,
+      });
+    } catch (error: any) {
+      console.error("Error updating media log review:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Export media logs to CSV/JSON (admin only)
+  app.get("/api/admin/media-logs/export", isAdmin, async (req, res) => {
+    try {
+      const { format = 'csv', reason, reviewStatus } = req.query;
+      
+      // Get all logs matching filters
+      const logs = await storage.getMediaAttemptLogs({
+        reason: reason as string | undefined,
+        reviewStatus: reviewStatus as string | undefined,
+        limit: 10000, // High limit for export
+      });
+      
+      if (format === 'json') {
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Content-Disposition', 'attachment; filename=media-logs.json');
+        return res.json(logs);
+      }
+      
+      // CSV format with proper escaping
+      // Helper to escape CSV values (quote and escape all strings)
+      const escapeCsv = (value: any): string => {
+        if (value === null || value === undefined) return '';
+        const str = String(value);
+        // Always quote strings to prevent comma/newline issues
+        return `"${str.replace(/"/g, '""')}"`;
+      };
+      
+      const csvRows = [
+        // Header
+        'id,hpExerciseId,hpExerciseName,target,bodyPart,equipment,reason,externalId,chosenId,chosenName,score,candidateCount,reviewStatus,createdAt'
+      ];
+      
+      logs.forEach(log => {
+        const row = [
+          escapeCsv(log.id),
+          log.hpExerciseId || '',
+          escapeCsv(log.hpExerciseName),
+          escapeCsv(log.target),
+          escapeCsv(log.bodyPart),
+          escapeCsv(log.equipment),
+          escapeCsv(log.reason),
+          escapeCsv(log.externalId),
+          escapeCsv(log.chosenId),
+          escapeCsv(log.chosenName),
+          log.score || '',
+          log.candidateCount || 0,
+          escapeCsv(log.reviewStatus),
+          escapeCsv(log.createdAt?.toISOString()),
+        ].join(',');
+        csvRows.push(row);
+      });
+      
+      const csv = csvRows.join('\n');
+      
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename=media-logs.csv');
+      res.send(csv);
+    } catch (error: any) {
+      console.error("Error exporting media logs:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // ===== LANDING PAGE CMS ROUTES =====
   
   // Public endpoint - get all landing page content

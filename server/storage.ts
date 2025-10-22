@@ -96,6 +96,8 @@ import {
   type InsertExercisedbExercise,
   type ExercisedbSyncLog,
   type InsertExercisedbSyncLog,
+  type ExerciseMediaAttemptLog,
+  type InsertExerciseMediaAttemptLog,
   type LandingPageContent,
   type InsertLandingPageContent,
   type LandingPageFeature,
@@ -169,6 +171,7 @@ import {
   trainingLoadSessions,
   exercisedbExercises,
   exercisedbSyncLog,
+  exerciseMediaAttemptLogs,
   landingPageContent,
   landingPageFeatures,
   landingPageTestimonials,
@@ -526,6 +529,29 @@ export interface IStorage {
   // ExerciseDB sync log
   getLatestExercisedbSync(): Promise<ExercisedbSyncLog | undefined>;
   logExercisedbSync(log: InsertExercisedbSyncLog): Promise<ExercisedbSyncLog>;
+  
+  // ExerciseDB media attempt logs (telemetry for media matching debugging)
+  logMediaAttempt(log: InsertExerciseMediaAttemptLog): Promise<ExerciseMediaAttemptLog>;
+  getMediaAttemptLogs(filters?: {
+    reason?: string;
+    reviewStatus?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<ExerciseMediaAttemptLog[]>;
+  updateMediaAttemptReview(
+    id: string,
+    reviewData: {
+      reviewStatus: string;
+      reviewedBy: string;
+      approvedExercisedbId?: string;
+    }
+  ): Promise<ExerciseMediaAttemptLog | undefined>;
+  getMediaAttemptStats(): Promise<{
+    totalLogs: number;
+    byReason: Record<string, number>;
+    byReviewStatus: Record<string, number>;
+    pendingCount: number;
+  }>;
   
   // Landing Page CMS
   getLandingPageContent(): Promise<LandingPageContent | undefined>;
@@ -4167,6 +4193,95 @@ export class DbStorage implements IStorage {
   async logExercisedbSync(log: InsertExercisedbSyncLog): Promise<ExercisedbSyncLog> {
     const [syncLog] = await db.insert(exercisedbSyncLog).values(log).returning();
     return syncLog;
+  }
+  
+  // ExerciseDB media attempt logs (telemetry for media matching debugging)
+  async logMediaAttempt(log: InsertExerciseMediaAttemptLog): Promise<ExerciseMediaAttemptLog> {
+    const [attemptLog] = await db.insert(exerciseMediaAttemptLogs).values(log).returning();
+    return attemptLog;
+  }
+  
+  async getMediaAttemptLogs(filters?: {
+    reason?: string;
+    reviewStatus?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<ExerciseMediaAttemptLog[]> {
+    let query = db.select().from(exerciseMediaAttemptLogs);
+    
+    const conditions = [];
+    if (filters?.reason) {
+      conditions.push(eq(exerciseMediaAttemptLogs.reason, filters.reason));
+    }
+    if (filters?.reviewStatus) {
+      conditions.push(eq(exerciseMediaAttemptLogs.reviewStatus, filters.reviewStatus));
+    }
+    
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions)) as any;
+    }
+    
+    query = query.orderBy(desc(exerciseMediaAttemptLogs.createdAt)) as any;
+    
+    if (filters?.limit) {
+      query = query.limit(filters.limit) as any;
+    }
+    if (filters?.offset) {
+      query = query.offset(filters.offset) as any;
+    }
+    
+    return await query;
+  }
+  
+  async updateMediaAttemptReview(
+    id: string,
+    reviewData: {
+      reviewStatus: string;
+      reviewedBy: string;
+      approvedExercisedbId?: string;
+    }
+  ): Promise<ExerciseMediaAttemptLog | undefined> {
+    const [updated] = await db.update(exerciseMediaAttemptLogs)
+      .set({
+        ...reviewData,
+        reviewedAt: new Date(),
+      })
+      .where(eq(exerciseMediaAttemptLogs.id, id))
+      .returning();
+    return updated;
+  }
+  
+  async getMediaAttemptStats(): Promise<{
+    totalLogs: number;
+    byReason: Record<string, number>;
+    byReviewStatus: Record<string, number>;
+    pendingCount: number;
+  }> {
+    const [totalResult] = await db.select({ count: count() }).from(exerciseMediaAttemptLogs);
+    const reasonStats = await db.select({
+      reason: exerciseMediaAttemptLogs.reason,
+      count: count(),
+    })
+      .from(exerciseMediaAttemptLogs)
+      .groupBy(exerciseMediaAttemptLogs.reason);
+    
+    const reviewStats = await db.select({
+      reviewStatus: exerciseMediaAttemptLogs.reviewStatus,
+      count: count(),
+    })
+      .from(exerciseMediaAttemptLogs)
+      .groupBy(exerciseMediaAttemptLogs.reviewStatus);
+    
+    const [pendingResult] = await db.select({ count: count() })
+      .from(exerciseMediaAttemptLogs)
+      .where(eq(exerciseMediaAttemptLogs.reviewStatus, 'pending'));
+    
+    return {
+      totalLogs: totalResult?.count || 0,
+      byReason: Object.fromEntries(reasonStats.map(r => [r.reason, r.count])),
+      byReviewStatus: Object.fromEntries(reviewStats.map(r => [r.reviewStatus!, r.count])),
+      pendingCount: pendingResult?.count || 0,
+    };
   }
   
   // ===== LANDING PAGE CMS =====

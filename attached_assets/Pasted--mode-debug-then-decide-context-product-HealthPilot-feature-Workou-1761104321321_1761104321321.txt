@@ -1,0 +1,57 @@
+{
+  "mode": "debug_then_decide",
+  "context": {
+    "product": "HealthPilot",
+    "feature": "Workout media (ExerciseDB GIFs + instructions)",
+    "stack": {
+      "language": "TypeScript",
+      "frontend": "React (Vite/Next)",
+      "state": "React Query/SWR (if present), otherwise fetch + local state",
+      "platform": "Web now; iOS later via CapacitorJS",
+      "db": "Whatever ORM exists; detect (Prisma/Knex/Mongo).",
+      "external_api": "ExerciseDB"
+    },
+    "symptom": "Low-confidence matches are suppressed, leaving too few examples to debug."
+  },
+  "goal": "Instrument and export 100–200 suppressed media candidates to a review queue so we can label truth, tune resolver thresholds, and backfill externalId."
+  ,
+  "deliverables": [
+    "Telemetry schema + instrumentation",
+    "A temporary sampler that logs suppressed cases",
+    "An admin review page to label a small batch",
+    "A CSV/JSON export with HP exercise ↔ top ExerciseDB candidates",
+    "Threshold tuning note + backfill script update"
+  ],
+  "work_plan": {
+    "1_telemetry_schema": {
+      "typescript": [
+        "export interface MediaAttemptLog { ts: string; hpExerciseId: string; hpName: string; target: string; bodyPart: string; equipment?: string; reason: 'LOW_CONFIDENCE'|'NO_MATCH'|'OK'; externalId?: string|null; chosenId?: string|null; chosenName?: string|null; score?: number; candidateCount?: number; }"
+      ],
+      "persistence": "Create a server endpoint /api/admin/media-log that appends JSONL to a dev-only store (file, S3, or DB table)."
+    },
+    "2_sampler_patch": {
+      "actions": [
+        "Wrap media resolver: when confidence < THRESHOLD, do not render GIF but POST a MediaAttemptLog to /api/admin/media-log.",
+        "Sample rate: 50% of suppressed attempts (configurable).",
+        "Cap events/day (e.g., 500) with a simple counter."
+      ],
+      "thresholds": [
+        "Define SCORE_GOOD=7, SCORE_OK=6, SCORE_LOW<6. (Tune later.)"
+      ]
+    },
+    "3_admin_review_ui": {
+      "brief": "Create /admin/media-review: lists unsolved logs; for each HP exercise, fetch and show top 5 ExerciseDB candidates (name, target, bodyPart, equipment, gif preview). Admin selects the correct one or 'none'.",
+      "output": "Persist chosen ExerciseDB id → hp.exercises.externalId."
+    },
+    "4_export_job": {
+      "brief": "CLI job to dump JSONL → CSV with columns: hpId, hpName, target, bodyPart, equipment, candidateId, candidateName, candidateTarget, candidateBodyPart, candidateEquip, score, gifUrl."
+    },
+    "5_decision_gate": {
+      "acceptance": [
+        "We can review 100–200 suppressed cases within 30–60 minutes.",
+        "Post-review, resolver hits ≥98% correctness on a validation slice.",
+        "ExternalId backfill succeeds for ≥90% of reviewed cases."
+      ]
+    }
+  }
+}

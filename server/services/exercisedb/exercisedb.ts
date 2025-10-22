@@ -5,6 +5,17 @@ const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY;
 const RAPIDAPI_HOST = 'exercisedb.p.rapidapi.com';
 const BASE_URL = `https://${RAPIDAPI_HOST}`;
 
+// Telemetry configuration
+const TELEMETRY_SAMPLE_RATE = 0.5; // 50% sampling rate
+const TELEMETRY_DAILY_CAP = 500; // Max events per day
+let telemetryDailyCount = 0;
+let telemetryResetDate = new Date().toDateString();
+
+// Scoring thresholds (aligned with existing algorithm)
+const SCORE_THRESHOLD_GOOD = 100; // High confidence
+const SCORE_THRESHOLD_OK = 50;   // Medium confidence
+const SCORE_THRESHOLD_LOW = 25;  // Minimum acceptable
+
 // API Response from ExerciseDB
 interface ExerciseDBAPIResponse {
   id: string;
@@ -51,6 +62,71 @@ export class ExerciseDBService {
       'X-RapidAPI-Key': this.apiKey,
       'X-RapidAPI-Host': RAPIDAPI_HOST,
     };
+  }
+
+  /**
+   * Log a media matching attempt to the telemetry system
+   * Implements sampling and daily cap to control volume
+   */
+  private async logMediaAttempt(data: {
+    hpExerciseName: string;
+    hpExerciseId?: string;
+    target?: string;
+    bodyPart?: string;
+    equipment?: string;
+    reason: 'LOW_CONFIDENCE' | 'NO_MATCH' | 'OK' | 'SUPPRESSED';
+    externalId?: string;
+    chosenId?: string;
+    chosenName?: string;
+    score?: number;
+    candidateCount?: number;
+    candidates?: Array<{id: string; name: string; score: number; target: string; bodyPart: string; equipment: string}>;
+    userId?: string;
+  }): Promise<void> {
+    try {
+      // Reset daily counter if it's a new day
+      const today = new Date().toDateString();
+      if (today !== telemetryResetDate) {
+        telemetryDailyCount = 0;
+        telemetryResetDate = today;
+      }
+
+      // Check daily cap
+      if (telemetryDailyCount >= TELEMETRY_DAILY_CAP) {
+        return; // Silently skip if we've hit the cap
+      }
+
+      // Sampling: only apply to SUPPRESSED and LOW_CONFIDENCE to reduce noise
+      // NO_MATCH and OK are always logged (subject to daily cap) for complete data coverage
+      const shouldSample = data.reason === 'SUPPRESSED' || data.reason === 'LOW_CONFIDENCE';
+      if (shouldSample && Math.random() > TELEMETRY_SAMPLE_RATE) {
+        return; // Skip this sampled event
+      }
+
+      // Log the attempt
+      await storage.logMediaAttempt({
+        userId: data.userId || null,
+        hpExerciseId: data.hpExerciseId || null,
+        hpExerciseName: data.hpExerciseName,
+        target: data.target || null,
+        bodyPart: data.bodyPart || null,
+        equipment: data.equipment || null,
+        reason: data.reason,
+        externalId: data.externalId || null,
+        chosenId: data.chosenId || null,
+        chosenName: data.chosenName || null,
+        score: data.score || null,
+        candidateCount: data.candidateCount || 0,
+        candidates: data.candidates || null,
+        reviewStatus: 'pending',
+      });
+
+      telemetryDailyCount++;
+      console.log(`[Telemetry] Logged media attempt: ${data.reason} for "${data.hpExerciseName}" (count: ${telemetryDailyCount}/${TELEMETRY_DAILY_CAP})`);
+    } catch (error) {
+      // Never fail the main operation due to telemetry errors
+      console.error('[Telemetry] Error logging media attempt:', error);
+    }
   }
 
   /**
@@ -270,7 +346,13 @@ export class ExerciseDBService {
    * - When flag is FALSE (baseline mode): Returns null (no fuzzy matching allowed)
    * - When flag is TRUE (AI mode): Uses fuzzy matching algorithm
    */
-  async searchExercisesByName(exerciseName: string): Promise<ExerciseDBExercise | null> {
+  async searchExercisesByName(exerciseName: string, metadata?: {
+    userId?: string;
+    hpExerciseId?: string;
+    target?: string;
+    bodyPart?: string;
+    equipment?: string;
+  }): Promise<ExerciseDBExercise | null> {
     try {
       // Import flags
       const { canUseExerciseMediaAutomap } = await import('../../shared/config/flags');
@@ -278,6 +360,14 @@ export class ExerciseDBService {
       // Check if fuzzy matching is enabled
       if (!canUseExerciseMediaAutomap()) {
         console.log(`[ExerciseDB] Fuzzy matching disabled (EXERCISE_MEDIA_AUTOMAP_ENABLED=false). Returning null for name-based search: "${exerciseName}"`);
+        
+        // Log suppressed attempt
+        await this.logMediaAttempt({
+          hpExerciseName: exerciseName,
+          reason: 'SUPPRESSED',
+          ...metadata,
+        });
+        
         return null;
       }
       
@@ -289,6 +379,15 @@ export class ExerciseDBService {
       
       if (dbExercises.length === 0) {
         console.warn('[ExerciseDB] Database is empty. Please sync exercises first.');
+        
+        // Log no-match attempt
+        await this.logMediaAttempt({
+          hpExerciseName: exerciseName,
+          reason: 'NO_MATCH',
+          candidateCount: 0,
+          ...metadata,
+        });
+        
         return null;
       }
       
@@ -312,6 +411,26 @@ export class ExerciseDBService {
       
       if (exactMatch) {
         console.log(`[ExerciseDB] Found exact match: "${exactMatch.name}" for search "${exerciseName}"`);
+        
+        // Log successful exact match
+        await this.logMediaAttempt({
+          hpExerciseName: exerciseName,
+          reason: 'OK',
+          chosenId: exactMatch.id,
+          chosenName: exactMatch.name,
+          score: 100, // Exact matches get perfect score
+          candidateCount: 1,
+          candidates: [{
+            id: exactMatch.id,
+            name: exactMatch.name,
+            score: 100,
+            target: exactMatch.target,
+            bodyPart: exactMatch.bodyPart,
+            equipment: exactMatch.equipment,
+          }],
+          ...metadata,
+        });
+        
         return exactMatch;
       }
       
@@ -321,7 +440,7 @@ export class ExerciseDBService {
           exercise: ex,
           score: this.calculateMatchScore(exerciseName, ex)
         }))
-        .filter(item => item.score > 50) // High confidence threshold - only show good matches
+        .filter(item => item.score > SCORE_THRESHOLD_OK) // Filter by OK threshold
         .sort((a, b) => b.score - a.score);
       
       if (scoredExercises.length > 0) {
@@ -336,16 +455,58 @@ export class ExerciseDBService {
           });
         }
         
+        // Prepare candidates for telemetry (top 5)
+        const topCandidates = scoredExercises.slice(0, 5).map(item => ({
+          id: item.exercise.id,
+          name: item.exercise.name,
+          score: item.score,
+          target: item.exercise.target,
+          bodyPart: item.exercise.bodyPart,
+          equipment: item.exercise.equipment,
+        }));
+        
         // Only return if score is high enough to be confident
-        if (bestMatch.score >= 25) {
+        if (bestMatch.score >= SCORE_THRESHOLD_LOW) {
+          // Log successful match
+          await this.logMediaAttempt({
+            hpExerciseName: exerciseName,
+            reason: 'OK',
+            chosenId: bestMatch.exercise.id,
+            chosenName: bestMatch.exercise.name,
+            score: bestMatch.score,
+            candidateCount: scoredExercises.length,
+            candidates: topCandidates,
+            ...metadata,
+          });
+          
           return bestMatch.exercise;
         } else {
           console.warn(`[ExerciseDB] Best match score too low (${bestMatch.score}). Returning null to avoid incorrect GIF.`);
+          
+          // Log low-confidence match
+          await this.logMediaAttempt({
+            hpExerciseName: exerciseName,
+            reason: 'LOW_CONFIDENCE',
+            score: bestMatch.score,
+            candidateCount: scoredExercises.length,
+            candidates: topCandidates,
+            ...metadata,
+          });
+          
           return null;
         }
       }
       
       console.log(`[ExerciseDB] No suitable match found for: "${exerciseName}"`);
+      
+      // Log no-match attempt
+      await this.logMediaAttempt({
+        hpExerciseName: exerciseName,
+        reason: 'NO_MATCH',
+        candidateCount: 0,
+        ...metadata,
+      });
+      
       return null;
     } catch (error) {
       console.error('Error searching exercises by name:', error);
