@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { storage } from '../../storage';
+import { SCORE_GOOD, SCORE_OK, SCORE_LOW, isConfident } from '../exercises/confidence';
 
 const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY;
 const RAPIDAPI_HOST = 'exercisedb.p.rapidapi.com';
@@ -10,12 +11,6 @@ const TELEMETRY_SAMPLE_RATE = 0.5; // 50% sampling rate
 const TELEMETRY_DAILY_CAP = 500; // Max events per day
 let telemetryDailyCount = 0;
 let telemetryResetDate = new Date().toDateString();
-
-// Confidence scoring thresholds (0-10 scale)
-const SCORE_GOOD = 7;   // exact name + target + bodyPart or near-perfect combo
-const SCORE_OK = 6;     // acceptable if other signals align
-const SCORE_LOW = 5;    // suppressed by default
-function isConfident(score: number) { return score >= SCORE_OK; }
 
 // API Response from ExerciseDB
 interface ExerciseDBAPIResponse {
