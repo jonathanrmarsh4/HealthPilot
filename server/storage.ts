@@ -30,6 +30,8 @@ import {
   type InsertInsight,
   type WorkoutSession,
   type InsertWorkoutSession,
+  type WorkoutInstance,
+  type InsertWorkoutInstance,
   type ExerciseLog,
   type InsertExerciseLog,
   type Exercise,
@@ -140,6 +142,7 @@ import {
   fitnessProfiles,
   insights,
   workoutSessions,
+  workoutInstances,
   exerciseLogs,
   exercises,
   exerciseSets,
@@ -315,6 +318,9 @@ export interface IStorage {
     distance: number | null;
     duration: number | null;
   } | null>;
+  
+  createWorkoutInstance(instance: InsertWorkoutInstance): Promise<WorkoutInstance>;
+  getWorkoutInstance(id: string, userId: string): Promise<WorkoutInstance | undefined>;
   
   createExerciseLog(log: InsertExerciseLog): Promise<ExerciseLog>;
   getExerciseLogs(workoutSessionId: string): Promise<ExerciseLog[]>;
@@ -1909,6 +1915,19 @@ export class DbStorage implements IStorage {
       .select()
       .from(workoutSessions)
       .where(and(eq(workoutSessions.id, id), eq(workoutSessions.userId, userId)));
+    return result[0];
+  }
+
+  async createWorkoutInstance(instance: InsertWorkoutInstance): Promise<WorkoutInstance> {
+    const result = await db.insert(workoutInstances).values(instance).returning();
+    return result[0];
+  }
+
+  async getWorkoutInstance(id: string, userId: string): Promise<WorkoutInstance | undefined> {
+    const result = await db
+      .select()
+      .from(workoutInstances)
+      .where(and(eq(workoutInstances.id, id), eq(workoutInstances.userId, userId)));
     return result[0];
   }
 
