@@ -236,6 +236,8 @@ export const exercises = pgTable("exercises", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull().unique(),
   muscles: text("muscles").array().notNull(), // ['chest', 'triceps', 'shoulders']
+  target: text("target"), // Primary muscle group from ExerciseDB (e.g., 'pectorals', 'quads')
+  bodyPart: text("body_part"), // Body region from ExerciseDB (e.g., 'chest', 'legs', 'back')
   equipment: text("equipment").notNull(), // 'barbell', 'dumbbell', 'machine', 'cable', 'bodyweight', 'kettlebell', 'band', 'other'
   incrementStep: real("increment_step").notNull().default(2.5), // kg to increase by for progressive overload
   tempoDefault: text("tempo_default"), // e.g., "3-1-1" (eccentric-pause-concentric)

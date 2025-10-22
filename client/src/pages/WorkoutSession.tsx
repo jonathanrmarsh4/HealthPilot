@@ -57,6 +57,8 @@ interface Exercise {
   id: string;
   name: string;
   muscles: string[];
+  target?: string | null; // Primary muscle from ExerciseDB
+  bodyPart?: string | null; // Body region from ExerciseDB
   equipment: string;
   incrementStep: number;
   tempoDefault?: string;
@@ -524,8 +526,8 @@ function SortableExerciseCard({
         exercise={{
           id: exercise.id,
           name: exercise.name,
-          target: exercise.muscles[0] || "unknown",
-          bodyPart: exercise.muscles[0] || "unknown",
+          target: exercise.target || exercise.muscles[0] || "unknown",
+          bodyPart: exercise.bodyPart || exercise.muscles[0] || "unknown",
           equipment: exercise.equipment,
           externalId: exercise.exercisedbId,
           instructions: exercise.instructions ? [exercise.instructions] : [],
