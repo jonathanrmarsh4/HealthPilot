@@ -52,6 +52,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { WorkoutFeedbackModal, WorkoutFeedback } from "@/components/WorkoutFeedbackModal";
 import { ExerciseDetailsModal } from "@/components/ExerciseDetailsModal";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface Exercise {
   id: string;
