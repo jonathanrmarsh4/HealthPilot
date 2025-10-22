@@ -531,7 +531,30 @@ function SortableExerciseCard({
           bodyPart: exercise.bodyPart || exercise.muscles[0] || "unknown",
           equipment: exercise.equipment,
           externalId: exercise.exercisedbId,
-          instructions: exercise.instructions ? [exercise.instructions] : [],
+          instructions: exercise.instructions 
+            ? (() => {
+                // Try to parse as JSON array first
+                try {
+                  const parsed = JSON.parse(exercise.instructions);
+                  if (Array.isArray(parsed)) return parsed;
+                } catch {}
+                
+                // Split by newlines or sentences
+                const text = exercise.instructions.trim();
+                if (text.includes('\n')) {
+                  return text.split('\n').map(s => s.trim()).filter(Boolean);
+                }
+                
+                // Split by periods but keep the period
+                const sentences = text.match(/[^.!?]+[.!?]+/g);
+                if (sentences && sentences.length > 1) {
+                  return sentences.map(s => s.trim()).filter(Boolean);
+                }
+                
+                // Single instruction
+                return [text];
+              })()
+            : [],
         }}
         open={showExerciseDetails}
         onClose={() => setShowExerciseDetails(false)}
@@ -1165,8 +1188,8 @@ export default function WorkoutSession() {
             </DialogDescription>
           </DialogHeader>
           
-          <ScrollArea className="flex-1 -mx-6 px-6 my-4" style={{ maxHeight: 'calc(85vh - 180px)' }}>
-            <div className="space-y-3 pr-4">
+          <ScrollArea className="flex-1 my-4 px-1" style={{ maxHeight: 'calc(85vh - 200px)' }}>
+            <div className="space-y-3 px-1">
               {loadingAlternatives ? (
                 <div className="text-center py-8">
                   <p className="text-sm text-muted-foreground">Loading alternatives...</p>
