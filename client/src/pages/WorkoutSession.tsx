@@ -52,7 +52,6 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { WorkoutFeedbackModal, WorkoutFeedback } from "@/components/WorkoutFeedbackModal";
 import { ExerciseDetailsModal } from "@/components/ExerciseDetailsModal";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface Exercise {
   id: string;
@@ -1191,8 +1190,11 @@ export default function WorkoutSession() {
             </DialogDescription>
           </DialogHeader>
           
-          <ScrollArea className="flex-1 my-4 px-1" style={{ maxHeight: 'calc(85vh - 200px)' }}>
-            <div className="space-y-3 px-1">
+          <div className="flex-1 overflow-hidden my-4">
+            <div className="h-full overflow-y-auto space-y-3 px-1" style={{ 
+              maxHeight: 'calc(85vh - 200px)',
+              WebkitOverflowScrolling: 'touch'
+            }}>
               {loadingAlternatives ? (
                 <div className="text-center py-8">
                   <p className="text-sm text-muted-foreground">Loading alternatives...</p>
@@ -1242,7 +1244,7 @@ export default function WorkoutSession() {
                 ))
               )}
             </div>
-          </ScrollArea>
+          </div>
 
           <div className="flex-shrink-0">
             <Button
