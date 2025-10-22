@@ -6,8 +6,8 @@
  */
 
 import { convertExerciseDbToHp, validateConvertedExercise } from './convertExerciseDbToHp';
-import { db } from '@db';
-import { exercises, exercisedbExercises } from '@shared/schema';
+import { db } from '../../db';
+import { exercises, exercisedbExercises } from '../../../shared/schema';
 import { eq } from 'drizzle-orm';
 
 export type ImportResult = {

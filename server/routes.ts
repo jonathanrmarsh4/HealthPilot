@@ -1600,6 +1600,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Development-only: Seed exercises (no auth required, only in dev)
+  if (process.env.NODE_ENV !== 'production') {
+    app.post("/api/dev/seed-exercises", async (req, res) => {
+      try {
+        const { bulkImportFromExerciseDb } = await import('./services/exercises/bulkImportFromExerciseDb');
+        const { dryRun = true } = req.body;
+        
+        console.log(`[DEV] Seeding exercises (dryRun: ${dryRun})`);
+        
+        const result = await bulkImportFromExerciseDb({ dryRun, skipExisting: true });
+        
+        res.json({
+          ...result,
+          message: dryRun 
+            ? 'Dry run complete - POST with {dryRun: false} to actually import' 
+            : 'Import complete!',
+        });
+      } catch (error: any) {
+        console.error("Error during dev seed:", error);
+        res.status(500).json({ error: error.message });
+      }
+    });
+  }
+
   app.post("/api/admin/meal-library/backfill-nutrition", isAdmin, async (req, res) => {
     try {
       console.log('🔄 Starting nutrition backfill for meal library...');
