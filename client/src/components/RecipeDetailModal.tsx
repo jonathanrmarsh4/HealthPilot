@@ -104,10 +104,30 @@ export function RecipeDetailModal({ meal, open, onOpenChange }: RecipeDetailModa
   const scaleFactor = servings / originalServings;
 
   // Function to scale ingredient quantities
-  const scaleIngredient = (ingredient: string): string => {
+  const scaleIngredient = (ingredient: string | any): string => {
+    // Defensive: Convert non-string ingredients to string format
+    let ingredientStr: string;
+    if (typeof ingredient === 'string') {
+      ingredientStr = ingredient;
+    } else if (ingredient && typeof ingredient === 'object') {
+      // Handle object format: {name: string, amount?: string, original?: string}
+      if (ingredient.original) {
+        ingredientStr = ingredient.original;
+      } else if (ingredient.amount && ingredient.name) {
+        ingredientStr = `${ingredient.amount} ${ingredient.name}`;
+      } else if (ingredient.name) {
+        ingredientStr = ingredient.name;
+      } else {
+        ingredientStr = String(ingredient);
+      }
+    } else {
+      // Fallback for any other type
+      ingredientStr = String(ingredient);
+    }
+    
     // Skip scaling for range quantities like "1-2 cloves" or "2-3 pieces"
-    if (/^\d+\s*-\s*\d+/.test(ingredient)) {
-      return ingredient;
+    if (/^\d+\s*-\s*\d+/.test(ingredientStr)) {
+      return ingredientStr;
     }
     
     // Match patterns including:
@@ -117,7 +137,7 @@ export function RecipeDetailModal({ meal, open, onOpenChange }: RecipeDetailModa
     
     // Try mixed fraction pattern first: "1 1/2 cups flour"
     const mixedPattern = /^(\d+)\s+(\d+)\/(\d+)\s*([a-zA-Z]+)?\s*(.+)$/;
-    const mixedMatch = ingredient.match(mixedPattern);
+    const mixedMatch = ingredientStr.match(mixedPattern);
     
     if (mixedMatch) {
       const [, whole, numerator, denominator, unit, rest] = mixedMatch;
@@ -134,7 +154,7 @@ export function RecipeDetailModal({ meal, open, onOpenChange }: RecipeDetailModa
     
     // Standard pattern: number (fraction or decimal) + optional space + optional unit + rest
     const quantityPattern = /^(\d+(?:\.\d+)?(?:\/\d+)?)\s*([a-zA-Z]+)?\s*(.+)$/;
-    const match = ingredient.match(quantityPattern);
+    const match = ingredientStr.match(quantityPattern);
     
     if (match) {
       const [, quantity, unit, rest] = match;
@@ -160,7 +180,7 @@ export function RecipeDetailModal({ meal, open, onOpenChange }: RecipeDetailModa
     }
     
     // If no quantity match, return original
-    return ingredient;
+    return ingredientStr;
   };
   
   // Format scaled values with better precision

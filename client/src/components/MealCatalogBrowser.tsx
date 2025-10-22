@@ -124,9 +124,9 @@ export function MealCatalogBrowser() {
                       data-testid={`card-meal-${meal.id}`}
                     >
                       <CardHeader className="p-0">
-                        {meal.image ? (
+                        {meal.imageUrl ? (
                           <img
-                            src={meal.image}
+                            src={meal.imageUrl}
                             alt={meal.title}
                             className="w-full h-40 object-cover rounded-t-lg"
                           />

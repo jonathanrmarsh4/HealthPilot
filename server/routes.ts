@@ -3007,8 +3007,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .limit(params.limit)
         .offset(offset);
       
+      // Normalize meals first (handle ingredients format and imageUrl)
+      const { normalizeMeals } = await import('./lib/normalizers/mealNormalizer');
+      const normalizedMeals = normalizeMeals(rawMeals);
+      
       // Validate meal data with safe parsing
-      const { valid: meals, errors } = parseMealsSafely(rawMeals);
+      const { valid: meals, errors } = parseMealsSafely(normalizedMeals);
       
       if (errors.length > 0) {
         console.warn(`[MealAPI] Skipped ${errors.length} invalid meals out of ${rawMeals.length}`);

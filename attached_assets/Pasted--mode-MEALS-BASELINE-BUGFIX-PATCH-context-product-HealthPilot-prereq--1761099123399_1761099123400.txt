@@ -1,0 +1,99 @@
+{
+  "mode": "MEALS_BASELINE_BUGFIX_PATCH",
+  "context": {
+    "product": "HealthPilot",
+    "prereq": "Baseline Mode is ON; AI/ML disabled",
+    "goal": "Fix two baseline bugs: (1) meal images not rendering; (2) clicking a meal throws `TypeError: Ingredients.match is not a function`."
+  },
+  "deliverables": [
+    "Create/Update files exactly as specified below with full contents (no ellipses).",
+    "Return a patch plan listing each changed file and the rationale.",
+    "Include minimal unit tests to guard against regression.",
+    "At the end, include a short README note with env var instructions."
+  ],
+  "tasks": [
+    {
+      "title": "Add strict Meal schema (shared)",
+      "files": [
+        {
+          "path": "src/domain/meal.ts",
+          "content": "import { z } from 'zod';\n\nexport const ZIngredient = z.object({ name: z.string(), amount: z.string().optional() });\nexport const ZMeal = z.object({\n  id: z.string(),\n  title: z.string(),\n  mealType: z.enum(['breakfast','lunch','dinner','snack']),\n  tags: z.array(z.string()).default([]),\n  macros: z.object({ calories: z.number(), protein: z.number(), carbs: z.number(), fat: z.number() }),\n  ingredients: z.array(ZIngredient),\n  instructions: z.array(z.string()).default([]),\n  imageUrl: z.string().url().nullable().optional(),\n  imageKey: z.string().optional(),\n  isActive: z.boolean(),\n  popularityScore: z.number().optional(),\n  createdAt: z.string(),\n  updatedAt: z.string()\n});\nexport type Meal = z.infer<typeof ZMeal>;\n"
+        }
+      ]
+    },
+    {
+      "title": "Normalize ingredients (fix .match error by ensuring array shape)",
+      "files": [
+        {
+          "path": "src/server/adapters/meals/normalizeIngredients.ts",
+          "content": "export type IngredientInput = string | { name: string; amount?: string } | Array<string | { name: string; amount?: string }> | null | undefined;\n\nexport function toIngredientArray(ing: IngredientInput) {\n  if (!ing) return [] as { name: string; amount?: string }[];\n  if (typeof ing === 'string') {\n    return ing\n      .split(/\\r?\\n|,/g)\n      .map(s => s.trim())\n      .filter(Boolean)\n      .map(s => ({ name: s }));\n  }\n  if (Array.isArray(ing)) {\n    return ing\n      .map((x) => (typeof x === 'string' ? { name: x.trim() } : { name: String(x.name).trim(), amount: x.amount?.toString() }))\n      .filter(i => i.name.length > 0);\n  }\n  if (typeof ing === 'object' && (ing as any).name) {\n    return [{ name: String((ing as any).name).trim(), amount: (ing as any).amount?.toString() }];\n  }\n  return [];\n}\n"
+        }
+      ]
+    },
+    {
+      "title": "Normalize meals at the API boundary (compose imageUrl if needed)",
+      "files": [
+        {
+          "path": "src/server/adapters/meals/normalizeMeal.ts",
+          "content": "import { ZMeal } from '@/domain/meal';\nimport { toIngredientArray } from './normalizeIngredients';\n\nconst IMAGE_BASE_URL = process.env.IMAGE_BASE_URL || '';\n\nexport function normalizeMeal(dbRow: any) {\n  // Map probable DB fields to API shape\n  let imageUrl: string | null | undefined = dbRow.imageUrl;\n  if (!imageUrl && typeof dbRow.image === 'string') imageUrl = dbRow.image;\n  if ((!imageUrl || !/^https?:\\/\\//i.test(imageUrl)) && dbRow.imageKey && IMAGE_BASE_URL) {\n    const base = IMAGE_BASE_URL.replace(/\\/+$/,'');\n    const key = String(dbRow.imageKey).replace(/^\\/+/, '');\n    imageUrl = `${base}/${key}`;\n  }\n\n  const apiMeal = {\n    id: String(dbRow.id),\n    title: String(dbRow.title),\n    mealType: String(dbRow.mealType),\n    tags: Array.isArray(dbRow.tags) ? dbRow.tags : [],\n    macros: dbRow.macros,\n    ingredients: toIngredientArray(dbRow.ingredients),\n    instructions: Array.isArray(dbRow.instructions) ? dbRow.instructions : Array.isArray(dbRow.steps) ? dbRow.steps : [],\n    imageUrl: imageUrl ?? null,\n    imageKey: dbRow.imageKey,\n    isActive: Boolean(dbRow.isActive),\n    popularityScore: dbRow.popularityScore ?? undefined,\n    createdAt: String(dbRow.createdAt),\n    updatedAt: String(dbRow.updatedAt)\n  };\n\n  const parsed = ZMeal.safeParse(apiMeal);\n  if (!parsed.success) {\n    // Log and drop bad rows so a single bad record doesn't break the page\n    console.warn('normalizeMeal failed', dbRow.id, parsed.error.flatten());\n    return null;\n  }\n  return parsed.data;\n}\n"
+        }
+      ]
+    },
+    {
+      "title": "Use normalizer inside meals API (paginate, skip invalid rows)",
+      "instructions": "Find the meals API handler (e.g., src/pages/api/meals.ts or app/api/meals/route.ts) and wire in normalizeMeal so all responses are validated and safe.",
+      "files": [
+        {
+          "path": "src/server/handlers/meals/listMeals.ts",
+          "content": "import { normalizeMeal } from '@/server/adapters/meals/normalizeMeal';\n\nexport async function listMeals({ page = 0, limit = 24, mealType, tag }: { page?: number; limit?: number; mealType?: string; tag?: string; }) {\n  // Replace with actual DB access; pseudocode shown\n  const offset = page * limit;\n  const where: any = { isActive: true };\n  if (mealType) where.mealType = mealType;\n  if (tag) where.tags = { has: tag };\n\n  const [rows, total] = await Promise.all([\n    db.meals.findMany({ where, orderBy: [{ popularityScore: 'desc' }, { createdAt: 'desc' }], skip: offset, take: limit }),\n    db.meals.count({ where })\n  ]);\n\n  const items = rows.map(normalizeMeal).filter(Boolean) as any[];\n  return { items, page, total, totalPages: Math.ceil(total / limit) };\n}\n"
+        }
+      ]
+    },
+    {
+      "title": "Make client fetch Zod-validated meals only",
+      "files": [
+        {
+          "path": "src/features/meals/api/fetchMeals.ts",
+          "content": "import { ZMeal } from '@/domain/meal';\n\nexport async function fetchMeals(params: URLSearchParams) {\n  const res = await fetch(`/api/meals?${params.toString()}`);\n  if (!res.ok) throw new Error('Failed to fetch meals');\n  const data = await res.json();\n  const items = (data.items || []).map((x: unknown) => ZMeal.safeParse(x)).filter((r: any) => r.success).map((r: any) => r.data);\n  return { ...data, items };\n}\n"
+        }
+      ]
+    },
+    {
+      "title": "Render image safely with fallback (MealCard)",
+      "files": [
+        {
+          "path": "src/features/meals/components/MealCard.tsx",
+          "content": "import type { Meal } from '@/domain/meal';\n\nexport function MealCard({ meal, onClick }: { meal: Meal; onClick: () => void }) {\n  const hasImg = !!meal.imageUrl;\n  return (\n    <button className=\"group text-left\" onClick={onClick} aria-label={meal.title}>\n      <div className=\"aspect-[4/3] w-full rounded-xl overflow-hidden bg-neutral-100\">\n        {hasImg ? (\n          <img src={meal.imageUrl!} alt={meal.title} className=\"w-full h-full object-cover\" loading=\"lazy\" />\n        ) : (\n          <div className=\"w-full h-full grid place-items-center text-sm text-neutral-500\">No image</div>\n        )}\n      </div>\n      <div className=\"mt-2 font-medium\">{meal.title}</div>\n      <div className=\"text-xs text-neutral-600 capitalize\">{meal.mealType}</div>\n    </button>\n  );\n}\n"
+        }
+      ]
+    },
+    {
+      "title": "Render ingredients as array only (MealDetail)",
+      "files": [
+        {
+          "path": "src/features/meals/pages/MealDetail.tsx",
+          "content": "import type { Meal } from '@/domain/meal';\n\nexport function MealDetail({ meal }: { meal: Meal }) {\n  return (\n    <div className=\"space-y-6\">\n      <header>\n        <h1 className=\"text-xl font-semibold\">{meal.title}</h1>\n        <p className=\"text-sm text-neutral-600 capitalize\">{meal.mealType}</p>\n      </header>\n\n      <section>\n        <h2 className=\"font-medium mb-2\">Ingredients</h2>\n        <ul className=\"list-disc pl-6 space-y-1\">\n          {meal.ingredients.map((i, idx) => (\n            <li key={idx}>{i.amount ? `${i.amount} ` : ''}{i.name}</li>\n          ))}\n        </ul>\n      </section>\n\n      <section>\n        <h2 className=\"font-medium mb-2\">Instructions</h2>\n        <ol className=\"list-decimal pl-6 space-y-1\">\n          {meal.instructions.map((step, idx) => (\n            <li key={idx}>{step}</li>\n          ))}\n        </ol>\n      </section>\n    </div>\n  );\n}\n"
+        }
+      ]
+    },
+    {
+      "title": "Minimal tests to lock shapes",
+      "files": [
+        {
+          "path": "src/server/adapters/meals/__tests__/normalizeIngredients.test.ts",
+          "content": "import { toIngredientArray } from '../normalizeIngredients';\n\ntest('string blob splits to array', () => {\n  expect(toIngredientArray('egg, milk\\nflour')).toEqual([{name:'egg'},{name:'milk'},{name:'flour'}]);\n});\n\ntest('array of strings to objects', () => {\n  expect(toIngredientArray(['egg','milk'])).toEqual([{name:'egg'},{name:'milk'}]);\n});\n\ntest('single object stays object', () => {\n  expect(toIngredientArray({name:'egg',amount:'2'})).toEqual([{name:'egg',amount:'2'}]);\n});\n"
+        }
+      ]
+    },
+    {
+      "title": "README note (env + why)",
+      "files": [
+        {
+          "path": "docs/meals-baseline-bugfix.md",
+          "content": "# Meals Baseline Bugfix\n\n## What changed\n- API now normalizes `ingredients` to an array to avoid `.match` errors.\n- `imageUrl` is composed from `imageKey` + `IMAGE_BASE_URL` when needed.\n- UI renders images with a safe fallback and renders ingredients as an array.\n\n## Env\n- Set `IMAGE_BASE_URL=https://cdn.yourdomain.com` (or your bucket/CDN origin). If you already store full URLs in `imageUrl`, this can be left blank.\n\n## Tests/Verification\n- Run: `npm run lint && npm run typecheck && npm test && npm run build`.\n- Hit `/api/meals?page=0&limit=6` and confirm each item has `ingredients` as an array and `imageUrl` as a full URL or `null`.\n- Click any meal → detail page renders without errors.\n"
+        }
+      ]
+    }
+  ],
+  "output": "Return a patch plan, full file contents, and a short summary of what changed."
+}
