@@ -528,6 +528,7 @@ function SortableExerciseCard({
           bodyPart: exercise.muscles[0] || "unknown",
           equipment: exercise.equipment,
           externalId: exercise.exercisedbId,
+          instructions: exercise.instructions ? [exercise.instructions] : [],
         }}
         open={showExerciseDetails}
         onClose={() => setShowExerciseDetails(false)}

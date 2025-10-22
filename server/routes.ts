@@ -10460,6 +10460,37 @@ DATA AVAILABILITY:
     }
   });
 
+  // Strict media binding endpoint - verifies exercise match before serving media
+  app.post("/api/exercisedb/media/strict", isAuthenticated, async (req, res) => {
+    try {
+      const { getMediaStrict } = await import('./services/exerciseMedia/getMediaStrict');
+      
+      // Validate request body
+      const { id, name, target, bodyPart, equipment, externalId } = req.body;
+      
+      if (!id || !name || !target || !bodyPart) {
+        return res.status(400).json({ 
+          error: 'Missing required fields: id, name, target, bodyPart' 
+        });
+      }
+
+      // Fetch media with strict verification
+      const result = await getMediaStrict({
+        id,
+        name,
+        target,
+        bodyPart,
+        equipment: equipment || null,
+        externalId: externalId || null,
+      });
+
+      res.json(result);
+    } catch (error: any) {
+      console.error("Error fetching strict media:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Clear ExerciseDB cache (useful after upgrading API tier)
   app.post("/api/exercisedb/clear-cache", isAuthenticated, async (req, res) => {
     try {

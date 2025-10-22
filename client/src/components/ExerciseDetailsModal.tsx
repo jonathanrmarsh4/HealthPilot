@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Dumbbell, Target, Wrench, X } from "lucide-react";
+import { Dumbbell, Target, Wrench, X, AlertTriangle } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
 
 type ModalExercise = {
   id: string;                      // HP exercise id (immutable)
@@ -14,6 +15,7 @@ type ModalExercise = {
   bodyPart: string;
   equipment?: string | null;
   externalId?: string | null;      // ExerciseDB id (if present)
+  instructions?: string[];         // snapshot instructions from caller (DO NOT fetch)
 };
 
 type Props = {
@@ -22,26 +24,25 @@ type Props = {
   onClose: () => void;
 };
 
-interface ExerciseDBExercise {
-  id: string;
-  name: string;
-  bodyPart: string;
-  equipment: string;
-  target: string;
-  secondaryMuscles: string[];
-  instructions: string[];
-  gifUrl: string;
-}
+type MediaResult =
+  | { media: { url: string; id: string }; withheld: false; reason?: never }
+  | { media: null; withheld: true; reason: 'no_external_id' | 'not_found' | 'verification_failed' | 'strict_binding_disabled'; details?: string[] };
 
-async function fetchByExternalId(externalId: string): Promise<ExerciseDBExercise | null> {
-  const res = await fetch(`/api/exercisedb/exercise/${encodeURIComponent(externalId)}`, {
-    credentials: 'include',
+async function fetchStrictMedia(exercise: ModalExercise): Promise<MediaResult> {
+  return await apiRequest<MediaResult>("/api/exercisedb/media/strict", {
+    method: "POST",
+    body: JSON.stringify({
+      id: exercise.id,
+      name: exercise.name,
+      target: exercise.target,
+      bodyPart: exercise.bodyPart,
+      equipment: exercise.equipment,
+      externalId: exercise.externalId,
+    }),
   });
-  if (!res.ok) return null;
-  return await res.json();
 }
 
-// SAFE: never fetch by name here. Name-based lookups live behind explicit flags elsewhere.
+// SAFE: never fetch by name here. Strict binding only uses trusted externalId with verification.
 export function ExerciseDetailsModal({ exercise, open, onClose }: Props) {
   // Force a fresh instance when the exercise changes
   const modalKey = useMemo(
@@ -55,23 +56,26 @@ export function ExerciseDetailsModal({ exercise, open, onClose }: Props) {
     currentIdRef.current = exercise.id;
   }, [exercise.id]);
 
-  // Fetch media only by trusted externalId. No automap here.
-  const { data: media, isLoading } = useQuery<ExerciseDBExercise | null>({
-    queryKey: ["exercise-media-for-modal", exercise.id, exercise.externalId ?? null],
-    queryFn: () =>
-      exercise.externalId ? fetchByExternalId(exercise.externalId) : Promise.resolve(null),
+  // Fetch media with strict verification
+  const { data: mediaResult, isLoading } = useQuery<MediaResult>({
+    queryKey: ["exercise-media-strict", exercise.id, exercise.externalId ?? null],
+    queryFn: () => fetchStrictMedia(exercise),
     enabled: open,                 // only fetch when modal is open
     placeholderData: undefined,    // critical: don't show previous card's media (TanStack Query v5)
     staleTime: 1000 * 60 * 60,
     retry: false,
-    select: (m) => {
+    select: (result) => {
       // If some wiring bug returns a result for a different exercise (shouldn't happen), ignore it.
-      if (!m) return null;
-      return currentIdRef.current === exercise.id ? m : null;
+      return currentIdRef.current === exercise.id ? result : { media: null, withheld: true, reason: 'not_found' as const };
     },
   });
 
   if (!open) return null;
+
+  // Determine what to display
+  const hasMedia = mediaResult && !mediaResult.withheld && mediaResult.media;
+  const isWithheld = mediaResult && mediaResult.withheld;
+  const hasInstructions = exercise.instructions && exercise.instructions.length > 0;
 
   return (
     <Dialog key={modalKey} open={open} onOpenChange={onClose}>
@@ -121,62 +125,69 @@ export function ExerciseDetailsModal({ exercise, open, onClose }: Props) {
             </div>
           )}
 
-          {!isLoading && !media && (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Dumbbell className="h-12 w-12 text-muted-foreground mb-4" />
-              <p className="text-lg font-medium">Exercise demonstration unavailable</p>
-              <p className="text-sm text-muted-foreground mt-2">
-                This exercise doesn't have a linked demonstration yet
-              </p>
-            </div>
-          )}
-
-          {media && (
+          {!isLoading && (
             <div className="space-y-6">
               {/* GIF Demonstration */}
-              <div className="rounded-md bg-muted/50 p-4">
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-                  Demonstration
-                </h3>
-                <div className="relative rounded-md overflow-hidden bg-background aspect-video flex items-center justify-center">
-                  <img
-                    src={media.gifUrl}
-                    alt={`${exercise.name} demonstration`}
-                    className="max-w-full max-h-full object-contain"
-                    loading="lazy"
-                    data-testid="img-exercise-gif"
-                    onError={(e) => {
-                      // Hide broken images gracefully
-                      (e.target as HTMLImageElement).style.display = "none";
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* Secondary Muscles */}
-              {media.secondaryMuscles && media.secondaryMuscles.length > 0 && (
-                <div>
+              {hasMedia && (
+                <div className="rounded-md bg-muted/50 p-4">
                   <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-                    Secondary Muscles
+                    Demonstration
                   </h3>
-                  <div className="flex flex-wrap gap-2">
-                    {media.secondaryMuscles.map((muscle, idx) => (
-                      <Badge key={idx} variant="secondary" className="capitalize">
-                        {muscle}
-                      </Badge>
-                    ))}
+                  <div className="relative rounded-md overflow-hidden bg-background aspect-video flex items-center justify-center">
+                    <img
+                      src={mediaResult.media.url}
+                      alt={`${exercise.name} demonstration`}
+                      className="max-w-full max-h-full object-contain"
+                      loading="lazy"
+                      data-testid="img-exercise-gif"
+                      onError={(e) => {
+                        // Hide broken images gracefully
+                        (e.target as HTMLImageElement).style.display = "none";
+                      }}
+                    />
                   </div>
                 </div>
               )}
 
-              {/* Instructions */}
-              {media.instructions && media.instructions.length > 0 && (
+              {/* Withheld Media Warning */}
+              {isWithheld && (
+                <div className="rounded-md bg-yellow-500/10 border border-yellow-500/20 p-4">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-500 shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <h3 className="text-sm font-semibold text-yellow-800 dark:text-yellow-200 mb-1">
+                        Demo Withheld
+                      </h3>
+                      <p className="text-sm text-yellow-700 dark:text-yellow-300">
+                        {mediaResult.reason === 'no_external_id' && 
+                          'This exercise does not have a linked demonstration in our database.'}
+                        {mediaResult.reason === 'not_found' && 
+                          'The linked demonstration could not be found in ExerciseDB.'}
+                        {mediaResult.reason === 'verification_failed' && 
+                          'The linked demonstration did not match this exercise (safety check prevented display).'}
+                        {mediaResult.reason === 'strict_binding_disabled' && 
+                          'Strict binding verification is disabled.'}
+                      </p>
+                      {mediaResult.details && mediaResult.details.length > 0 && (
+                        <div className="mt-2 text-xs text-yellow-600 dark:text-yellow-400 space-y-1">
+                          {mediaResult.details.map((detail, idx) => (
+                            <div key={idx}>• {detail}</div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Instructions from snapshot (NEVER fetch) */}
+              {hasInstructions && (
                 <div>
                   <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
                     Instructions
                   </h3>
                   <ol className="space-y-3">
-                    {media.instructions.map((instruction, idx) => (
+                    {exercise.instructions!.map((instruction, idx) => (
                       <li key={idx} className="flex gap-3">
                         <span className="flex items-center justify-center h-6 w-6 rounded-full bg-primary/10 text-primary text-sm font-semibold shrink-0">
                           {idx + 1}
@@ -187,6 +198,17 @@ export function ExerciseDetailsModal({ exercise, open, onClose }: Props) {
                       </li>
                     ))}
                   </ol>
+                </div>
+              )}
+
+              {/* Empty state when no media and no instructions */}
+              {!hasMedia && !isWithheld && !hasInstructions && !isLoading && (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <Dumbbell className="h-12 w-12 text-muted-foreground mb-4" />
+                  <p className="text-lg font-medium">No demonstration or instructions available</p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    This exercise doesn't have linked content yet
+                  </p>
                 </div>
               )}
             </div>
