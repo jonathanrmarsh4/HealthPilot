@@ -46,8 +46,7 @@ I prefer simple language and clear explanations. I want iterative development wh
 - **Muscle Group Frequency Tracking System:** Tracks training frequency across 8 major muscle groups.
 - **Voice Chat System (Premium Feature):** WebSocket + OpenAI Realtime API for natural voice interaction.
 - **Universal Medical Data Interpreter:** AI-powered system for ingesting and interpreting medical data (PDFs, images, FHIR, HL7).
-- **Exercise Demonstration System (ExerciseDB Integration):** Integration with ExerciseDB API for exercise demonstrations; includes Exercise Matcher Simple V1 for deterministic matching and Exercise Media Strict Binding System for zero-tolerance mismatch prevention.
-- **Exercise Variety Expansion System:** Intelligent bulk import system that converted and imported 1,009 exercises from ExerciseDB (11.5x increase from 89 to 1,038 total exercises). Features ExerciseDB-to-HP converter with muscle normalization, category detection (compound/isolation), equipment mapping, difficulty classification, and comprehensive validation. Production-ready with 12 passing tests covering all equipment types and edge cases.
+- **Native Exercise Library:** HealthPilot maintains a comprehensive library of 1,000+ exercises with internal metadata (muscles, equipment, category, instructions). Exercise details modal displays exercise information with neutral placeholder instead of external media.
 - **Landing Page CMS:** Custom-built content management system for landing page content.
 - **Mobile Scrolling Optimization:** Improvements for mobile/tablet scrolling in admin interfaces.
 - **Unified Insights Hub:** Integration of Daily Health, AI Coach, and Trend Analysis into a single tabbed interface.
@@ -60,4 +59,3 @@ I prefer simple language and clear explanations. I want iterative development wh
 - **Health Data Integration:** Apple Health (via Health Auto Export iOS app webhook and native HealthKit integration via Capacitor)
 - **Mobile Platform:** Capacitor 7
 - **Payment Processing:** Stripe
-- **Exercise Database:** ExerciseDB API (via RapidAPI)
