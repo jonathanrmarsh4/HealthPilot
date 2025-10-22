@@ -276,17 +276,37 @@ export default function Training() {
 
   const startWorkoutMutation = useMutation({
     mutationFn: async (workoutPlan: WorkoutPlan) => {
-      const response = await apiRequest("POST", "/api/workout-sessions/start", { 
+      // Step 1: Create workout session (which creates full exercise objects in DB)
+      const sessionResponse = await apiRequest("POST", "/api/workout-sessions/start", { 
         workoutPlan 
       });
-      return await response.json();
+      const session = await sessionResponse.json();
+      
+      // Step 2: Fetch the created exercises with full details
+      const exercisesResponse = await apiRequest("GET", `/api/workout-sessions/${session.id}/exercises`);
+      const exercises = await exercisesResponse.json();
+      
+      // Step 3: Create immutable workout instance with snapshot of full exercise objects
+      const instanceResponse = await apiRequest("POST", "/api/workout-instances", {
+        workoutSessionId: session.id,
+        workoutType: workoutPlan.title,
+        sourceType: "daily_recommendation",
+        sourceId: null,
+        snapshotData: {
+          exercises, // Full exercise objects with all properties
+          workoutPlan, // Also store original workout plan for reference
+        },
+      });
+      const instance = await instanceResponse.json();
+      
+      return { session, instanceId: instance.id };
     },
-    onSuccess: (session) => {
+    onSuccess: ({ session, instanceId }) => {
       toast({
         title: "Workout Started!",
         description: "Get ready to train",
       });
-      setLocation(`/workout/${session.id}`);
+      setLocation(`/workout/${session.id}?instanceId=${instanceId}`);
     },
     onError: (error: Error) => {
       toast({

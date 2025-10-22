@@ -536,6 +536,9 @@ export default function WorkoutSession() {
   const sessionId = params?.id;
   const { toast } = useToast();
 
+  // Get instanceId from URL query parameters
+  const instanceId = new URLSearchParams(window.location.search).get('instanceId');
+
   const [restTimer, setRestTimer] = useState<number | null>(null);
   const [restTimerInterval, setRestTimerInterval] = useState<NodeJS.Timeout | null>(null);
   const [sessionStartTime] = useState<Date>(new Date());
@@ -552,11 +555,24 @@ export default function WorkoutSession() {
     enabled: !!sessionId,
   });
 
-  // Fetch exercises for this session
-  const { data: exercises = [], isLoading: exercisesLoading } = useQuery<Exercise[]>({
-    queryKey: ["/api/workout-sessions", sessionId, "exercises"],
-    enabled: !!sessionId,
+  // Fetch workout instance if instanceId is provided
+  const { data: workoutInstance, isLoading: instanceLoading } = useQuery({
+    queryKey: ["/api/workout-instances", instanceId],
+    enabled: !!instanceId,
   });
+
+  // Fetch exercises from instance snapshot OR database (backward compatibility)
+  const { data: dbExercises = [], isLoading: dbExercisesLoading } = useQuery<Exercise[]>({
+    queryKey: ["/api/workout-sessions", sessionId, "exercises"],
+    enabled: !!sessionId && !instanceId, // Only fetch if no instance
+  });
+
+  // Use exercises from instance snapshot if available, otherwise from database
+  const exercises = instanceId && workoutInstance
+    ? (workoutInstance.snapshotData?.exercises || [])
+    : dbExercises;
+  
+  const exercisesLoading = instanceId ? instanceLoading : dbExercisesLoading;
 
   // Fetch sets for this session
   const { data: sets = [], isLoading: setsLoading } = useQuery<ExerciseSet[]>({
