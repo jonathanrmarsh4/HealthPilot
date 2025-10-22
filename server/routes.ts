@@ -4820,34 +4820,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log(`✅ Matched "${planExercise.name}" to database exercise "${matchedExercise.name}" (score: ${matchResult.score})`);
           
           // CRITICAL FIX: Resolve exercisedbId for existing exercises that don't have one
+          // ONLY when EXERCISE_MEDIA_AUTOMAP_ENABLED=true (AI mode)
           if (!matchedExercise.exercisedbId) {
-            console.log(`   ⚠️  Exercise "${matchedExercise.name}" has no ExerciseDB link. Resolving...`);
-            const { deriveExercisedbId } = await import('./utils/exercisedbResolver');
-            const exercisedbMatch = await deriveExercisedbId({
-              name: matchedExercise.name,
-              muscles: matchedExercise.muscles,
-              equipment: matchedExercise.equipment,
-              category: matchedExercise.category,
-            });
+            // Check if fuzzy matching is enabled
+            const { canUseExerciseMediaAutomap } = await import('./shared/config/flags');
             
-            if (exercisedbMatch) {
-              // Update the exercise in the database with the resolved exercisedbId
-              const updated = await db
-                .update(exercises)
-                .set({ exercisedbId: exercisedbMatch.exercisedbId })
-                .where(eq(exercises.id, matchedExercise.id))
-                .returning();
+            if (canUseExerciseMediaAutomap()) {
+              console.log(`   ⚠️  Exercise "${matchedExercise.name}" has no ExerciseDB link. Resolving...`);
+              const { deriveExercisedbId } = await import('./utils/exercisedbResolver');
+              const exercisedbMatch = await deriveExercisedbId({
+                name: matchedExercise.name,
+                muscles: matchedExercise.muscles,
+                equipment: matchedExercise.equipment,
+                category: matchedExercise.category,
+              });
               
-              matchedExercise = updated[0]; // Use the updated exercise
-              console.log(`   ✅ Linked to ExerciseDB: "${exercisedbMatch.name}" (ID: ${exercisedbMatch.exercisedbId}, confidence: ${exercisedbMatch.confidence})`);
-              
-              // Update in allExercises array for future matches in this request
-              const indexInAll = allExercises.findIndex(ex => ex.id === matchedExercise.id);
-              if (indexInAll >= 0) {
-                allExercises[indexInAll] = matchedExercise;
+              if (exercisedbMatch) {
+                // Update the exercise in the database with the resolved exercisedbId
+                const updated = await db
+                  .update(exercises)
+                  .set({ exercisedbId: exercisedbMatch.exercisedbId })
+                  .where(eq(exercises.id, matchedExercise.id))
+                  .returning();
+                
+                matchedExercise = updated[0]; // Use the updated exercise
+                console.log(`   ✅ Linked to ExerciseDB: "${exercisedbMatch.name}" (ID: ${exercisedbMatch.exercisedbId}, confidence: ${exercisedbMatch.confidence})`);
+                
+                // Update in allExercises array for future matches in this request
+                const indexInAll = allExercises.findIndex(ex => ex.id === matchedExercise.id);
+                if (indexInAll >= 0) {
+                  allExercises[indexInAll] = matchedExercise;
+                }
+              } else {
+                console.warn(`   → No ExerciseDB match found (GIF/instructions unavailable)`);
               }
             } else {
-              console.warn(`   → No ExerciseDB match found (GIF/instructions unavailable)`);
+              console.log(`   ℹ️  BASELINE_MODE: Skipping exercisedbId resolution (EXERCISE_MEDIA_AUTOMAP_ENABLED=false). Media unavailable for "${matchedExercise.name}".`);
             }
           }
         } else {
