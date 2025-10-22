@@ -1,0 +1,169 @@
+/**
+ * HealthPilot – Daily Training Generator
+ * -------------------------------------------------------------
+ * POST /api/training/generate-daily-session
+ * Generates one standards-aligned daily session based on profile,
+ * preferences, biometrics, and recent training history.
+ * -------------------------------------------------------------
+ */
+
+import OpenAI from "openai";
+import { z } from "zod";
+
+// ──────────────────────────────────────────────
+// 1️⃣  Define validation schema (mirrors OUTPUT_SCHEMA)
+// ──────────────────────────────────────────────
+export const DailyWorkoutSchema = z.object({
+  date: z.string(),
+  focus: z.string(),
+  safety: z.object({
+    flag: z.boolean(),
+    notes: z.string(),
+    seek_medical_advice: z.boolean().optional()
+  }),
+  warmup: z.array(z.string()),
+  main: z.array(
+    z.object({
+      exercise: z.string(),
+      goal: z.enum(["strength", "hypertrophy", "power"]),
+      sets: z.number().min(1).max(6),
+      reps: z.number().min(1).max(15),
+      intensity: z.string(),
+      rest_seconds: z.number().min(45).max(360)
+    })
+  ),
+  accessories: z.array(
+    z.object({
+      exercise: z.string(),
+      goal: z.string(),
+      sets: z.number(),
+      reps: z.number(),
+      intensity: z.string(),
+      rest_seconds: z.number()
+    })
+  ),
+  conditioning: z.object({
+    include: z.boolean(),
+    type: z.enum(["none", "steady_state", "intervals", "tempo_run", "circuit"]),
+    duration_minutes: z.number(),
+    intensity_zone: z.enum(["Z1", "Z2", "Z3", "Z4", "Z5"]),
+    notes: z.string().optional()
+  }),
+  cooldown: z.array(z.string()),
+  progression_notes: z.string(),
+  compliance_summary: z.object({
+    volume_sets_estimate: z.record(z.number()),
+    weekly_volume_guardrail_ok: z.boolean(),
+    reasoning: z.string()
+  })
+});
+
+// ──────────────────────────────────────────────
+// 2️⃣  Initialise OpenAI client
+// ──────────────────────────────────────────────
+const client = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
+
+// ──────────────────────────────────────────────
+// 3️⃣  Core function to generate one daily plan
+// ──────────────────────────────────────────────
+export async function generateDailySession(data: any) {
+  const systemPrompt = `
+You are HealthPilot Coach, an expert strength & conditioning planner.
+Always follow ACSM, NSCA and WHO guardrails.
+Never output text or commentary—JSON only.
+Guardrails:
+- Strength 1–6 reps @75–90%1RM RPE7–9
+- Hypertrophy 6–12 reps @65–80%1RM RPE6–8
+- Endurance 12–20 reps @50–70%1RM RPE5–7
+- ≤20 total sets per muscle group / ≤75min session
+- Respect injuries and equipment limits.
+`;
+
+  const response = await client.chat.completions.create({
+    model: "gpt-4o",
+    response_format: { type: "json_object" },
+    messages: [
+      { role: "system", content: systemPrompt },
+      {
+        role: "user",
+        content: JSON.stringify({
+          instruction: "Generate today's safe and standards-aligned workout.",
+          input: data
+        })
+      }
+    ]
+  });
+
+  const content = response.choices[0].message?.content ?? "{}";
+  const parsed = JSON.parse(content);
+
+  // ──────────────────────────────────────────────
+  // 4️⃣  Validate output structure & guardrails
+  // ──────────────────────────────────────────────
+  const result = DailyWorkoutSchema.parse(parsed);
+
+  // Basic safety layer checks
+  const totalSets = Object.values(result.compliance_summary.volume_sets_estimate).reduce(
+    (a, b) => a + b,
+    0
+  );
+  if (totalSets > 20)
+    throw new Error(`Unsafe volume (${totalSets} sets). Regenerate session.`);
+
+  if (data.user_profile?.injuries_limitations?.includes("shoulder") && result.focus.toLowerCase().includes("shoulder"))
+    result.safety.notes += " | Server check: reduced shoulder loading.";
+
+  return result;
+}
+
+// ──────────────────────────────────────────────
+// 5️⃣  HTTP handler (Next.js or Express compatible)
+// ──────────────────────────────────────────────
+export default async function handler(req: any, res: any) {
+  try {
+    if (req.method !== "POST")
+      return res.status(405).json({ error: "Method not allowed" });
+
+    const body = req.body || {};
+    if (!body.user_profile) {
+      return res.status(400).json({ error: "Missing user data" });
+    }
+
+    const workout = await generateDailySession(body);
+
+    // TODO:  store to DB or cache here  (user_id + date)
+    // e.g.  await db.workouts.upsert({ user_id, date, workout })
+
+    res.status(200).json({
+      status: "success",
+      data: workout
+    });
+  } catch (error: any) {
+    console.error("Workout generation error:", error);
+    res.status(500).json({
+      status: "error",
+      message: error.message || "Internal Server Error"
+    });
+  }
+}
+
+// ──────────────────────────────────────────────
+// 6️⃣  Example hybrid trigger setup (optional)
+// ──────────────────────────────────────────────
+// Cron job: 04:00 user timezone
+// import cron from "node-cron";
+// cron.schedule("0 4 * * *", async () => {
+//   const users = await db.users.findAll();
+//   for (const user of users) {
+//     try {
+//       const data = buildUserPayload(user); // user profile + biometrics + history
+//       const workout = await generateDailySession(data);
+//       await db.workouts.upsert({ user_id: user.id, date: new Date().toISOString().split("T")[0], workout });
+//     } catch (err) {
+//       console.error("Cron generation failed for user", user.id, err);
+//     }
+//   }
+// });
+// App-open fallback: call /api/training/generate-daily-session if no workout cached today.

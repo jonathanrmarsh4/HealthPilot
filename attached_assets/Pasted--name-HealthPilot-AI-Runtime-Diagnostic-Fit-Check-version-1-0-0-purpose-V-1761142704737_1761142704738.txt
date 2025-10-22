@@ -1,0 +1,139 @@
+{
+  "name": "HealthPilot — AI Runtime Diagnostic & Fit Check",
+  "version": "1.0.0",
+  "purpose": "Verify that the development AI can accept standards-aligned prompts, ingest structured JSON inputs, and return JSON-only outputs that match a schema for daily workout generation.",
+  "instructions_to_ai": "You are a diagnostic assistant. Read this JSON and answer the questions precisely. Respond ONLY with JSON that strictly matches the OUTPUT_SCHEMA below. Do NOT include any extra commentary, markdown, or code fences.",
+  "what_this_checks": [
+    "Prompt architecture compatibility (system + schema vs single-string)",
+    "Structured JSON input ingestion",
+    "Raw JSON-only output support (no prose)",
+    "Function/tool-calling and schema validation availability",
+    "Trigger model (cron/app-open/event-driven) readiness",
+    "Token/rate limits that could impact daily generation",
+    "Safety/standards alignment capability (ACSM/NSCA/WHO)",
+    "A minimal end-to-end sample generation using a tiny input"
+  ],
+  "QUESTIONS_FOR_YOU_AI": [
+    "1) PROMPT ARCHITECTURE: Can you accept a prompt defined as distinct sections (system_message, guardrails, input_schema, output_schema, prompt_template)? If not, should everything be concatenated into one string?",
+    "2) INPUT INGEST: Can you consume a structured JSON input object for the user/session data (instead of plain text)?",
+    "3) OUTPUT MODE: Can you guarantee returning raw JSON ONLY, with no extra text, matching a provided schema?",
+    "4) FUNCTION/TOOLS: Do you support function or tool calling to enforce schemas? If yes, how should the function signature be declared?",
+    "5) SCHEMA VALIDATION: Can you validate your own output against the given schema? If not, should the app perform validation client- or server-side?",
+    "6) TRIGGERS: Which daily trigger pattern should we use (cron/scheduler, on-app-open, wearable event)? Any preferences or constraints?",
+    "7) LIMITS: What are your approximate max token limits, rate limits, and any relevant cost implications for daily per-user generation?",
+    "8) SAFETY/STANDARDS: Can you consistently enforce ACSM/NSCA/WHO-aligned guardrails if we include them in the prompt? Any constraints we should know?",
+    "9) JSON-ONLY PROOF: Return the boolean field `json_mode_ok` = true if you can comply with JSON-only responses.",
+    "10) SAMPLE RUN: Using the MINIMAL_SAMPLE_INPUT below, generate a single-day session that conforms to MINIMAL_OUTPUT_SCHEMA and the guardrails summary provided."
+  ],
+  "GUARDRAILS_SUMMARY": {
+    "rep_ranges": {
+      "strength": "1-6 reps @ 75-90%1RM, RPE 7-9",
+      "hypertrophy": "6-12 reps @ 65-80%1RM, RPE 6-8",
+      "endurance_local": "12-20 reps @ 50-70%1RM, RPE 5-7"
+    },
+    "rest_seconds": { "strength": "120-240", "hypertrophy": "60-120", "endurance_local": "45-90" },
+    "weekly_volume_sets_per_muscle": { "min": 8, "target": 10, "max": 20 },
+    "progression_caps": { "load_increase_percent": "0-5/session if last RPE ≤7 and technique ok" },
+    "hr_zones": { "calc": "HRmax = 208 - 0.7*age", "Z2": "60-70% HRmax", "Z3": "70-80% HRmax" },
+    "session_time_caps_minutes": { "beginner": 45, "intermediate": 60, "advanced": 75 },
+    "safety_rules": [
+      "If contraindications or red flags -> set safety.flag=true; output mobility/breathing only (≤20m) and seek_medical_advice=true."
+    ]
+  },
+  "MINIMAL_SAMPLE_INPUT": {
+    "date": "2025-10-23",
+    "user_profile": { "age": 51, "sex": "male", "experience_level": "intermediate", "goal": "muscle_gain", "injuries_limitations": ["right shoulder impingement"] },
+    "preferences": { "split_style": "push_pull_legs", "available_equipment": ["barbell", "dumbbells", "cables", "bench", "pullup_bar"], "setting": "gym", "liked_exercises": ["incline dumbbell press", "seated cable row"], "disliked_exercises": ["overhead press"] },
+    "availability": { "days_per_week": 5, "session_minutes": 60 },
+    "environment": { "timezone": "Australia/Perth", "today_is_rest_day": false },
+    "recent_training": [
+      { "date": "2025-10-21", "muscle_groups": ["chest", "triceps"], "exercises": [ { "name": "Incline dumbbell press", "sets": 4, "reps": 8, "load": "34kg", "rpe": 7 } ], "session_rpe": 7, "notes": "Good form", "technique_flags": [] }
+    ],
+    "biometrics": { "resting_hr": 62, "sleep_score": 84, "recovery_state": "green", "hrv_status": "baseline", "readiness_notes": "" }
+  },
+  "MINIMAL_OUTPUT_SCHEMA": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "required": ["json_mode_ok", "model_support", "prompt_architecture", "input_ingest", "output_format", "json_only_mode", "function_calling_support", "schema_validation", "daily_trigger", "limits", "safety_alignment", "notes", "sample_session"],
+    "properties": {
+      "json_mode_ok": { "type": "boolean" },
+      "model_support": { "type": "string", "description": "Model name/version or environment" },
+      "prompt_architecture": { "type": "string", "enum": ["separate_sections_supported", "single_string_only", "either_ok"] },
+      "input_ingest": { "type": "string", "enum": ["structured_json_supported", "plain_text_only", "either_ok"] },
+      "output_format": { "type": "string", "enum": ["raw_json_only_supported", "json_wrapped_in_text", "unknown"] },
+      "json_only_mode": { "type": "boolean" },
+      "function_calling_support": { "type": "string", "enum": ["yes_native", "yes_emulated", "no"] },
+      "schema_validation": { "type": "string", "enum": ["model_validates", "app_validates_client", "app_validates_server", "none"] },
+      "daily_trigger": { "type": "string", "enum": ["cron", "app_open", "wearable_event", "hybrid", "unspecified"] },
+      "limits": {
+        "type": "object",
+        "required": ["max_tokens", "rate_limits", "cost_notes"],
+        "properties": {
+          "max_tokens": { "type": "integer" },
+          "rate_limits": { "type": "string" },
+          "cost_notes": { "type": "string" }
+        }
+      },
+      "safety_alignment": {
+        "type": "object",
+        "required": ["standards_enforcement", "known_constraints"],
+        "properties": {
+          "standards_enforcement": { "type": "string", "enum": ["robust", "partial", "manual_prompting_needed"] },
+          "known_constraints": { "type": "string" }
+        }
+      },
+      "notes": { "type": "string" },
+      "sample_session": {
+        "type": "object",
+        "required": ["date", "focus", "safety", "warmup", "main", "accessories", "conditioning", "cooldown", "progression_notes"],
+        "properties": {
+          "date": { "type": "string", "format": "date" },
+          "focus": { "type": "string" },
+          "safety": {
+            "type": "object",
+            "required": ["flag", "notes", "seek_medical_advice"],
+            "properties": {
+              "flag": { "type": "boolean" },
+              "notes": { "type": "string" },
+              "seek_medical_advice": { "type": "boolean" }
+            }
+          },
+          "warmup": { "type": "array", "items": { "type": "string" } },
+          "main": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["exercise", "goal", "sets", "reps", "intensity", "rest_seconds"],
+              "properties": {
+                "exercise": { "type": "string" },
+                "goal": { "type": "string", "enum": ["strength", "hypertrophy", "power"] },
+                "sets": { "type": "integer", "minimum": 1, "maximum": 6 },
+                "reps": { "type": "integer", "minimum": 1, "maximum": 15 },
+                "intensity": { "type": "string" },
+                "rest_seconds": { "type": "integer", "minimum": 45, "maximum": 360 },
+                "alternative_if_limited": { "type": "string" }
+              }
+            }
+          },
+          "accessories": { "type": "array", "items": { "$ref": "#/properties/main/items" } },
+          "conditioning": {
+            "type": "object",
+            "required": ["include", "type", "duration_minutes", "intensity_zone"],
+            "properties": {
+              "include": { "type": "boolean" },
+              "type": { "type": "string", "enum": ["none", "steady_state", "intervals", "circuit"] },
+              "duration_minutes": { "type": "integer" },
+              "intensity_zone": { "type": "string", "enum": ["Z1", "Z2", "Z3", "Z4", "Z5"] },
+              "notes": { "type": "string" }
+            }
+          },
+          "cooldown": { "type": "array", "items": { "type": "string" } },
+          "progression_notes": { "type": "string" }
+        }
+      }
+    }
+  },
+  "RESPONSE_CONTRACT": "Return ONLY a JSON object that validates against MINIMAL_OUTPUT_SCHEMA. No prose.",
+  "END_TO_END_HINT": "In the sample_session, respect preferences (avoid overhead press; use available equipment), manage time for 60 minutes, apply ACSM/NSCA ranges, and include an alternative if the shoulder impingement conflicts with any movement.",
+  "RETURN_ONLY_JSON": true
+}
