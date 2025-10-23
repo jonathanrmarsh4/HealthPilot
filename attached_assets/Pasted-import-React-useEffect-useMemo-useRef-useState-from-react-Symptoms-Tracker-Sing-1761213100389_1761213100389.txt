@@ -1,0 +1,813 @@
+import React, { useEffect, useMemo, useRef, useState } from "react";
+
+/**
+ * Symptoms Tracker — Single File, Ready to Paste
+ * ------------------------------------------------
+ * What you get in this file:
+ * 1) <SymptomsTile /> — mobile-first dashboard tile with one‑tap chips: Better | Worse | Same | Resolved
+ * 2) <AddSymptomModal /> — zero/low-typing add/edit flow with smart suggestions & context chips
+ * 3) In-memory + localStorage Mock API (window.mockSymptomsAPI) with offline queue & episode grouping
+ * 4) Minimal styling (inline) to avoid extra deps — drop in any React/CapacitorJS app
+ *
+ * How to use:
+ *   - Render <SymptomsTile /> anywhere on your dashboard.
+ *   - To open the add modal from elsewhere, dispatch: window.dispatchEvent(new CustomEvent("openAddSymptom"))
+ *   - See `window.mockSymptomsAPI` for debug helpers in DevTools.
+ *
+ * Notes:
+ *   - No diagnosis. Uses neutral “trend” terminology.
+ *   - Idempotent writes via clientEventId.
+ *   - Episode groups auto-close after 48h of no events (on next load) or immediately via "Resolved".
+ */
+
+/****************************\
+|*         Types            *|
+\****************************/
+
+type Trend = "better" | "worse" | "same" | null;
+
+type SymptomEvent = {
+  id: string;
+  userId: string;
+  name: string; // e.g., "headache"
+  coding?: { system: string; code: string; display: string }[];
+  episodeId: string;
+  status: "new" | "ongoing" | "resolved";
+  severity?: number; // 0..10, undefined when resolved event
+  trend: Trend;
+  context: string[]; // e.g., ["after_workout", "poor_sleep"]
+  notes?: string;
+  signals?: Record<string, any>; // snapshot at record time
+  startedAt: string; // ISO when symptom started (first event)
+  recordedAt: string; // ISO when this event recorded
+  endedAt?: string | null; // ISO when resolved
+  source: "user" | "ai_autolog";
+  version: number;
+};
+
+type SymptomEpisode = {
+  episodeId: string;
+  name: string;
+  lastSeverity: number; // derived from latest non-resolved event
+  lastTrend: Exclude<Trend, null> | undefined;
+  sparkline: number[]; // last 7 days severities
+  active: boolean; // true if not resolved
+  lastEventAt: string; // ISO
+};
+
+/****************************\
+|*     Utilities/Helpers    *|
+\****************************/
+const uid = () => (window.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2));
+const nowISO = () => new Date().toISOString();
+
+const clamp = (v: number, lo = 0, hi = 10) => Math.max(lo, Math.min(hi, v));
+
+function daysAgo(n: number): Date {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function isSameDay(a: Date, b: Date) {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+
+function startOfDayISO(date = new Date()): string {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  return d.toISOString();
+}
+
+/****************************\
+|*       Mock Signals       *|
+\****************************/
+// Lightweight heuristics to auto-suggest context chips without hitting real services
+function computeAutoContext(): string[] {
+  const contexts: string[] = [];
+  // Mock rules: randomly simulate conditions with gentle probabilities
+  const rand = Math.random();
+  if (rand < 0.25) contexts.push("after_workout");
+  if (rand >= 0.25 && rand < 0.45) contexts.push("poor_sleep");
+  if (rand >= 0.45 && rand < 0.6) contexts.push("stress_high");
+  if (rand >= 0.6 && rand < 0.7) contexts.push("new_med");
+  if (rand >= 0.7 && rand < 0.8) contexts.push("travel_shift");
+  return contexts;
+}
+
+/****************************\
+|*        Mock API          *|
+\****************************/
+// Storage keys
+const LS_EVENTS = "hp_symptom_events_v1";
+const LS_QUEUE = "hp_symptom_offline_queue_v1";
+
+function loadEvents(): SymptomEvent[] {
+  try {
+    const raw = localStorage.getItem(LS_EVENTS);
+    return raw ? (JSON.parse(raw) as SymptomEvent[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveEvents(events: SymptomEvent[]) {
+  localStorage.setItem(LS_EVENTS, JSON.stringify(events));
+}
+
+function loadQueue(): any[] {
+  try {
+    const raw = localStorage.getItem(LS_QUEUE);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveQueue(q: any[]) {
+  localStorage.setItem(LS_QUEUE, JSON.stringify(q));
+}
+
+// Simple network toggle to simulate offline/online
+let NETWORK_ONLINE = true;
+
+const mockAPI = {
+  setOnline(v: boolean) {
+    NETWORK_ONLINE = v;
+  },
+  isOnline() {
+    return NETWORK_ONLINE;
+  },
+  reset() {
+    saveEvents([]);
+    saveQueue([]);
+  },
+  // Compacts episodes: if no event in last 48h and not explicitly resolved, auto-resolve
+  compact() {
+    const events = loadEvents();
+    const byEpisode = new Map<string, SymptomEvent[]>();
+    events.forEach((e) => {
+      const arr = byEpisode.get(e.episodeId) || [];
+      arr.push(e);
+      byEpisode.set(e.episodeId, arr);
+    });
+    const now = Date.now();
+    const TWO_D = 48 * 60 * 60 * 1000;
+    byEpisode.forEach((arr) => {
+      arr.sort((a, b) => new Date(a.recordedAt).getTime() - new Date(b.recordedAt).getTime());
+      const last = arr[arr.length - 1];
+      if (last.status !== "resolved" && now - new Date(last.recordedAt).getTime() > TWO_D) {
+        // auto-resolve
+        const resolveEvent: SymptomEvent = {
+          id: uid(),
+          userId: "user-1",
+          name: last.name,
+          episodeId: last.episodeId,
+          status: "resolved",
+          trend: null,
+          context: [],
+          startedAt: arr[0].startedAt,
+          recordedAt: nowISO(),
+          endedAt: nowISO(),
+          source: "ai_autolog",
+          version: 1,
+        };
+        events.push(resolveEvent);
+      }
+    });
+    saveEvents(events);
+  },
+  async getToday(): Promise<{ items: SymptomEpisode[] }> {
+    // simulate latency
+    await new Promise((r) => setTimeout(r, 120));
+    if (!NETWORK_ONLINE) throw new Error("Network offline");
+
+    this.compact();
+
+    const events = loadEvents();
+    const today = new Date();
+    const startToday = startOfDayISO(today);
+
+    // build episodes: latest event per episode + 7d sparkline
+    const byEpisode = new Map<string, SymptomEvent[]>();
+    events.forEach((e) => {
+      const arr = byEpisode.get(e.episodeId) || [];
+      arr.push(e);
+      byEpisode.set(e.episodeId, arr);
+    });
+
+    const episodes: SymptomEpisode[] = [];
+    byEpisode.forEach((arr) => {
+      arr.sort((a, b) => new Date(a.recordedAt).getTime() - new Date(b.recordedAt).getTime());
+      const name = arr[0].name;
+      const latest = arr[arr.length - 1];
+
+      // derive last severity from latest non-resolved event
+      const lastNonResolved = [...arr].reverse().find((e) => e.status !== "resolved");
+      const lastSeverity = clamp(lastNonResolved?.severity ?? 0);
+      const lastTrend = latest.trend ?? undefined as SymptomEpisode["lastTrend"];
+
+      const active = latest.status !== "resolved";
+
+      // sparkline over last 7 days: take last severity for each day
+      const sparkline: number[] = [];
+      for (let i = 6; i >= 0; i--) {
+        const day = daysAgo(i);
+        const dayEvents = arr.filter((e) => isSameDay(new Date(e.recordedAt), day) && e.status !== "resolved");
+        const sev = dayEvents.length ? dayEvents[dayEvents.length - 1].severity ?? 0 : 0;
+        sparkline.push(clamp(sev));
+      }
+
+      // episode considered "today" if there is an update today or if active and started in last 72h
+      const hasTodayUpdate = arr.some((e) => isSameDay(new Date(e.recordedAt), new Date(startToday)));
+      const within72h = new Date().getTime() - new Date(arr[0].recordedAt).getTime() < 72 * 60 * 60 * 1000;
+      if (hasTodayUpdate || (active && within72h)) {
+        episodes.push({ episodeId: arr[0].episodeId, name, lastSeverity, lastTrend, sparkline, active, lastEventAt: latest.recordedAt });
+      }
+    });
+
+    // sort: active first, then newest
+    episodes.sort((a, b) => Number(b.active) - Number(a.active) || new Date(b.lastEventAt).getTime() - new Date(a.lastEventAt).getTime());
+
+    return { items: episodes };
+  },
+  async postEvent(payload: Partial<SymptomEvent> & { clientEventId?: string }) {
+    // optimistic idempotency: if same clientEventId exists in queue or events, drop duplicate
+    const queue = loadQueue();
+    if (payload.clientEventId && queue.some((q) => q.clientEventId === payload.clientEventId)) return { ok: true };
+
+    const commit = () => {
+      const events = loadEvents();
+      // create episode if needed
+      const episodeId = payload.episodeId || uid();
+      const startedAt = payload.startedAt || nowISO();
+      const isResolve = payload.status === "resolved";
+
+      const base: SymptomEvent = {
+        id: uid(),
+        userId: "user-1",
+        name: payload.name || "symptom",
+        episodeId,
+        status: isResolve ? "resolved" : (payload.status as any) || "ongoing",
+        severity: isResolve ? undefined : clamp((payload.severity as number) ?? 0),
+        trend: isResolve ? null : (payload.trend as Trend) ?? null,
+        context: Array.isArray(payload.context) ? payload.context : [],
+        notes: payload.notes,
+        signals: payload.signals,
+        startedAt: startedAt,
+        recordedAt: payload.recordedAt || nowISO(),
+        endedAt: isResolve ? nowISO() : null,
+        source: "user",
+        version: 1,
+      };
+
+      // If this is the first event for episode, ensure status=new and severity exists
+      const existing = events.filter((e) => e.episodeId === episodeId);
+      if (existing.length === 0 && base.status !== "resolved") {
+        base.status = "new";
+      }
+
+      events.push(base);
+      saveEvents(events);
+      return { ok: true, episodeId };
+    };
+
+    if (!NETWORK_ONLINE) {
+      const q = loadQueue();
+      q.push({ ...payload, queuedAt: nowISO() });
+      saveQueue(q);
+      return { ok: true, queued: true };
+    }
+
+    await new Promise((r) => setTimeout(r, 100));
+    return commit();
+  },
+  async resolveEpisode(episodeId: string) {
+    if (!NETWORK_ONLINE) {
+      const q = loadQueue();
+      q.push({ resolve: true, episodeId, queuedAt: nowISO() });
+      saveQueue(q);
+      return { ok: true, queued: true };
+    }
+    await new Promise((r) => setTimeout(r, 80));
+    return this.postEvent({ episodeId, status: "resolved" });
+  },
+  async flushQueue() {
+    if (!NETWORK_ONLINE) return;
+    let q = loadQueue();
+    if (!q.length) return;
+    for (const item of q) {
+      if (item.resolve) {
+        await this.postEvent({ episodeId: item.episodeId, status: "resolved" });
+      } else {
+        await this.postEvent(item);
+      }
+    }
+    q = [];
+    saveQueue(q);
+  },
+};
+
+// Expose for debugging
+;(window as any).mockSymptomsAPI = mockAPI;
+
+/****************************\
+|*      UI: SymptomsTile    *|
+\****************************/
+export default function SymptomsTile() {
+  const [loading, setLoading] = useState(true);
+  const [episodes, setEpisodes] = useState<SymptomEpisode[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+
+  const load = async () => {
+    try {
+      setError(null);
+      const res = await mockAPI.getToday();
+      setEpisodes(res.items.slice(0, 3));
+    } catch (e: any) {
+      setError(e?.message || "Failed to load");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    load();
+    const openHandler = () => setModalOpen(true);
+    window.addEventListener("openAddSymptom", openHandler);
+    const onlineHandler = async () => {
+      await mockAPI.flushQueue();
+      load();
+    };
+    window.addEventListener("online", onlineHandler);
+    return () => {
+      window.removeEventListener("openAddSymptom", openHandler);
+      window.removeEventListener("online", onlineHandler);
+    };
+  }, []);
+
+  const update = async (episodeId: string, action: "better" | "worse" | "same" | "resolved") => {
+    // optimistic UI
+    setEpisodes((prev) => {
+      const next: SymptomEpisode[] = [];
+      for (const ep of prev) {
+        if (ep.episodeId !== episodeId) { next.push(ep); continue; }
+        if (action === "resolved") { continue; }
+        const delta = action === "better" ? -1 : action === "worse" ? 1 : 0;
+        next.push({ ...ep, lastSeverity: clamp(ep.lastSeverity + delta), lastTrend: action, lastEventAt: nowISO() });
+      }
+      return next;
+    });
+
+    const payload = {
+      clientEventId: uid(),
+      episodeId,
+      status: action === "resolved" ? ("resolved" as const) : ("ongoing" as const),
+      trend: action === "resolved" ? null : (action as Trend),
+      severity: action === "resolved" ? undefined : episodes.find((e) => e.episodeId === episodeId)?.lastSeverity,
+      recordedAt: nowISO(),
+    };
+
+    if (action === "resolved") {
+      await mockAPI.resolveEpisode(episodeId);
+    } else {
+      await mockAPI.postEvent(payload);
+    }
+
+    // Reload to sync sparkline + filters
+    load();
+  };
+
+  return (
+    <div style={sx.card}>
+      <div style={sx.header}>
+        <h3 style={sx.title}>Symptoms</h3>
+        <button style={sx.addBtn} onClick={() => setModalOpen(true)}>+ Log Symptom</button>
+      </div>
+
+      {loading ? (
+        <div style={sx.skeleton} />
+      ) : error ? (
+        <div style={sx.error}>⚠️ {error}</div>
+      ) : episodes.length === 0 ? (
+        <div style={sx.empty}>No symptoms today • Try “headache”, “low energy”, “joint pain”.</div>
+      ) : (
+        <div style={sx.list}>
+          {episodes.map((s) => (
+            <div key={s.episodeId} style={sx.item}>
+              <div style={sx.itemHead}>
+                <div style={sx.name}>{capitalize(s.name)}</div>
+                <div style={sx.badge}>{s.lastSeverity}</div>
+              </div>
+              <Sparkline points={s.sparkline} />
+              <div style={sx.chips}>
+                <Chip onClick={() => update(s.episodeId, "better")}>Better</Chip>
+                <Chip onClick={() => update(s.episodeId, "worse")}>Worse</Chip>
+                <Chip onClick={() => update(s.episodeId, "same")}>Same</Chip>
+                <Chip danger onClick={() => update(s.episodeId, "resolved")}>Resolved</Chip>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {modalOpen && (
+        <AddSymptomModal
+          onClose={() => setModalOpen(false)}
+          onSaved={() => {
+            setModalOpen(false);
+            load();
+          }}
+        />)
+      }
+    </div>
+  );
+}
+
+/****************************\
+|*   UI: AddSymptomModal    *|
+\****************************/
+function AddSymptomModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
+  const [name, setName] = useState("");
+  const [severity, setSeverity] = useState<number>(3);
+  const [status, setStatus] = useState<"new" | "ongoing">("new");
+  const [context, setContext] = useState<string[]>(() => computeAutoContext());
+  const [notes, setNotes] = useState("");
+
+  const inputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => { inputRef.current?.focus(); }, []);
+
+  // Suggestion seeds: last used + common (persist across sessions)
+  const suggestions = useSuggestions(name);
+
+  const toggleContext = (tag: string) => {
+    setContext((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]));
+  };
+
+  const quickSetSeverity = (v: number) => setSeverity(v);
+
+  const save = async () => {
+    if (!name.trim()) return;
+
+    // Prefill: if user picked a name seen this week, default to last severity
+    const lastSev = getLastSeverityForName(name);
+    const sev = typeof lastSev === "number" ? lastSev : severity;
+
+    await mockAPI.postEvent({
+      clientEventId: uid(),
+      name: name.trim().toLowerCase(),
+      status,
+      severity: clamp(sev),
+      trend: null,
+      context,
+      notes: notes || undefined,
+      recordedAt: nowISO(),
+      startedAt: nowISO(),
+    });
+
+    // Add to suggestion memory
+    pushHistoryName(name.trim().toLowerCase());
+
+    onSaved();
+  };
+
+  return (
+    <div style={sx.modalBackdrop}>
+      <div style={sx.modal} role="dialog" aria-modal="true" aria-label="Add symptom">
+        <div style={sx.modalHeader}>
+          <div style={sx.modalTitle}>Log Symptom</div>
+          <button aria-label="Close" onClick={onClose} style={sx.closeBtn}>✕</button>
+        </div>
+
+        <div style={sx.field}>
+          <label style={sx.label}>What’s going on?</label>
+          <input
+            ref={inputRef}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="e.g., headache, low energy, joint pain"
+            style={sx.input}
+          />
+          {suggestions.length > 0 && (
+            <div style={sx.suggestions}>
+              {suggestions.slice(0, 5).map((s) => (
+                <button key={s} style={sx.suggestionBtn} onClick={() => setName(s)}>{capitalize(s)}</button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div style={sx.field}>
+          <label style={sx.label}>Severity</label>
+          <input type="range" min={0} max={10} value={severity} onChange={(e) => setSeverity(parseInt(e.target.value))} style={sx.range} />
+          <div style={sx.severityRow}>
+            {[0, 3, 6, 8, 10].map((v) => (
+              <button key={v} style={{ ...sx.pill, ...(severity === v ? sx.pillActive : {}) }} onClick={() => quickSetSeverity(v)}>{v}</button>
+            ))}
+            <div style={sx.severityBadge}>{severity}</div>
+          </div>
+        </div>
+
+        <div style={sx.field}>
+          <label style={sx.label}>Status</label>
+          <div style={sx.chipsRow}>
+            <button style={{ ...sx.chip, ...(status === "new" ? sx.chipActive : {}) }} onClick={() => setStatus("new")}>New</button>
+            <button style={{ ...sx.chip, ...(status === "ongoing" ? sx.chipActive : {}) }} onClick={() => setStatus("ongoing")}>Ongoing</button>
+          </div>
+        </div>
+
+        <div style={sx.field}>
+          <label style={sx.label}>Context</label>
+          <div style={sx.chipsRowWrap}>
+            {ALL_CONTEXTS.map((c) => (
+              <button key={c} style={{ ...sx.chip, ...(context.includes(c) ? sx.chipActive : {}) }} onClick={() => toggleContext(c)}>{humanizeContext(c)}</button>
+            ))}
+          </div>
+          <div style={{ marginTop: 8 }}>
+            <input
+              placeholder="Add context (type to search)…"
+              style={sx.input}
+              onChange={(e) => {
+                const val = e.target.value.toLowerCase();
+                const typed = ALL_CONTEXTS.filter((c) => c.includes(val));
+                const predicted = predictContextsFromName(name);
+                const auto = Array.from(new Set([...typed, ...predicted]));
+                (window as any).__ctxSuggest = auto;
+              }}
+            />
+            {((window as any).__ctxSuggest || []).length > 0 && (
+              <div style={sx.suggestions}>
+                {((window as any).__ctxSuggest as string[]).slice(0,6).map((c) => (
+                  <button key={c} style={sx.suggestionBtn} onClick={() => toggleContext(c)}>{humanizeContext(c)}</button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <details style={sx.notesDetails}>
+          <summary style={sx.notesSummary}>Add note (optional)</summary>
+          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} style={sx.textarea} />
+        </details>
+
+        <div style={sx.actions}>
+          <button onClick={onClose} style={sx.secondaryBtn}>Cancel</button>
+          <button onClick={save} style={sx.primaryBtn}>Save</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/****************************\
+|*       UI Primitives      *|
+\****************************/
+function Chip({ children, onClick, danger }: { children: React.ReactNode; onClick: () => void; danger?: boolean }) {
+  return (
+    <button onClick={onClick} style={{ ...sx.chip, ...(danger ? sx.chipDanger : {}) }}>{children}</button>
+  );
+}
+
+function Sparkline({ points }: { points: number[] }) {
+  const width = 80, height = 24;
+  const max = Math.max(1, ...points), min = Math.min(0, ...points);
+  const coords = points.map((v, i) => {
+    const x = (i / Math.max(1, points.length - 1)) * width;
+    const y = height - ((v - min) / Math.max(1, max - min)) * height;
+    return `${x},${y}`;
+  });
+  const d = `M ${coords.join(" L ")}`;
+  return (
+    <svg width={width} height={height} style={{ marginTop: 4 }}>
+      <path d={d} fill="none" stroke="currentColor" strokeWidth={1.5} />
+    </svg>
+  );
+}
+
+/****************************\
+|*     Suggestion Logic     *|
+\****************************/
+const LS_HISTORY_NAMES = "hp_symptom_names_hist_v1";
+const COMMON_SYMPTOMS = [
+  "headache","migraine","low energy","fatigue","muscle soreness","delayed onset muscle soreness",
+  "back pain","neck pain","joint pain","knee pain","shoulder pain","elbow pain",
+  "brain fog","dizziness","lightheadedness","nausea","bloating","indigestion","reflux",
+  "insomnia","trouble sleeping","night sweats","restless legs",
+  "anxiety","low mood","irritability","stress",
+  "skin rash","acne","itching","hives",
+  "shortness of breath","cough","sore throat","runny nose",
+  "palpitations","chest discomfort","elevated blood pressure",
+  "cramps","dehydration","constipation","diarrhea",
+  "eye strain","dry eyes","head pressure"
+];
+
+const SYMPTOM_SYNONYMS: Record<string, string[]> = {
+  headache: ["head pressure","head pain","tension headache"],
+  fatigue: ["low energy","tired","exhaustion"],
+  nausea: ["queasy","sick to stomach"],
+  insomnia: ["trouble sleeping","can't sleep"],
+  palpitations: ["racing heart","fluttering"],
+};
+
+function getHistoryNames(): string[] {
+  try { return JSON.parse(localStorage.getItem(LS_HISTORY_NAMES) || "[]"); } catch { return []; }
+}
+function pushHistoryName(n: string) {
+  const set = new Set(getHistoryNames());
+  set.add(n.toLowerCase());
+  localStorage.setItem(LS_HISTORY_NAMES, JSON.stringify([...set].slice(-60)));
+}
+
+// --- Fuzzy search helpers ---
+function levenshtein(a: string, b: string) {
+  const m = a.length, n = b.length;
+  const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+  for (let i = 0; i <= m; i++) dp[i][0] = i;
+  for (let j = 0; j <= n; j++) dp[0][j] = j;
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      dp[i][j] = Math.min(
+        dp[i - 1][j] + 1,
+        dp[i][j - 1] + 1,
+        dp[i - 1][j - 1] + cost
+      );
+    }
+  }
+  return dp[m][n];
+}
+function jaccardScore(a: string, b: string) {
+  const A = new Set(a.split(/[^a-z0-9]+/g).filter(Boolean));
+  const B = new Set(b.split(/[^a-z0-9]+/g).filter(Boolean));
+  const inter = new Set([...A].filter((x) => B.has(x))).size;
+  const uni = new Set([...A, ...B]).size || 1;
+  return inter / uni;
+}
+function fuzzyScore(query: string, cand: string) {
+  if (!query) return 0;
+  const q = query.toLowerCase();
+  const c = cand.toLowerCase();
+  if (c.startsWith(q)) return 1.1; // prefix boost
+  const lev = levenshtein(q, c);
+  const levNorm = 1 - Math.min(1, lev / Math.max(c.length, 1));
+  const jac = jaccardScore(q, c);
+  return 0.6 * levNorm + 0.4 * jac;
+}
+
+function expandCandidates(): string[] {
+  const base = new Set([...getHistoryNames(), ...COMMON_SYMPTOMS]);
+  for (const [k, syns] of Object.entries(SYMPTOM_SYNONYMS)) {
+    base.add(k);
+    syns.forEach((s) => base.add(s));
+  }
+  return [...base];
+}
+
+function useSuggestions(input: string) {
+  const mem = React.useMemo(() => {
+    const pool = expandCandidates();
+    const q = input.trim().toLowerCase();
+    if (!q) return pool.slice(0, 8);
+    return pool
+      .map((c) => ({ c, score: fuzzyScore(q, c) }))
+      .filter((x) => x.score > 0.35)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 8)
+      .map((x) => x.c);
+  }, [input]);
+  return mem;
+}
+
+function getLastSeverityForName(name: string): number | undefined {
+  const events = loadEvents().filter((e) => e.name.toLowerCase() === name.toLowerCase() && e.status !== "resolved");
+  if (!events.length) return undefined;
+  events.sort((a, b) => new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime());
+  return events[0].severity ?? undefined;
+}
+
+// Context prediction from text: lightweight keyword → context mapping
+const KEYWORD_TO_CONTEXT: Record<string, string[]> = {
+  headache: ["dehydration","poor_sleep","stress_high"],
+  migraine: ["poor_sleep","travel_shift","stress_high"],
+  soreness: ["after_workout"],
+  cramps: ["dehydration","after_workout"],
+  reflux: ["after_meal"],
+  nausea: ["after_meal","travel_shift"],
+  anxiety: ["stress_high","poor_sleep"],
+  diarrhea: ["after_meal","travel_shift"],
+};
+
+function predictContextsFromName(name: string): string[] {
+  const n = name.toLowerCase();
+  const hits = new Set<string>();
+  for (const [k, ctxs] of Object.entries(KEYWORD_TO_CONTEXT)) {
+    if (n.includes(k)) ctxs.forEach((c) => hits.add(c));
+  }
+  return [...hits];
+}
+
+/****************************\
+|*       UI: Styles         *|
+\****************************/
+const sx: Record<string, React.CSSProperties> = {
+  card: { background: "#fff", borderRadius: 16, padding: 12, boxShadow: "0 2px 10px rgba(0,0,0,0.05)", border: "1px solid #eef0f3" },
+  header: { display: "flex", alignItems: "center", justifyContent: "space-between" },
+  title: { margin: 0, fontSize: 16 },
+  addBtn: { padding: "8px 10px", borderRadius: 12, border: "1px solid #e5e7eb", background: "#fff" },
+  skeleton: { height: 140, background: "#f5f5f7", borderRadius: 12 },
+  error: { color: "#991b1b", fontSize: 14, padding: "6px 0" },
+  empty: { color: "#6b7280", fontSize: 14, padding: "8px 0" },
+  list: { display: "grid", gap: 10 },
+  item: { border: "1px solid #eef0f3", borderRadius: 14, padding: 10 },
+  itemHead: { display: "flex", justifyContent: "space-between", alignItems: "center" },
+  name: { fontWeight: 600, textTransform: "capitalize" },
+  badge: { background: "#111827", color: "#fff", borderRadius: 12, padding: "2px 8px", fontSize: 12, minWidth: 26, textAlign: "center" },
+  chips: { display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" },
+  chip: { padding: "10px 12px", borderRadius: 14, border: "1px solid #e5e7eb", background: "#fff", fontSize: 14, minWidth: 84 },
+  chipDanger: { borderColor: "#fecaca", color: "#991b1b" },
+
+  modalBackdrop: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.35)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50 },
+  modal: { width: "min(520px, 92vw)", background: "#fff", borderRadius: 16, padding: 16, boxShadow: "0 10px 30px rgba(0,0,0,0.2)" },
+  modalHeader: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 },
+  modalTitle: { fontWeight: 700, fontSize: 18 },
+  closeBtn: { border: "none", background: "transparent", fontSize: 18, cursor: "pointer" },
+
+  field: { marginTop: 12 },
+  label: { fontSize: 13, color: "#374151", display: "block", marginBottom: 6 },
+  input: { width: "100%", padding: "10px 12px", borderRadius: 12, border: "1px solid #e5e7eb", outline: "none" },
+  suggestions: { display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" },
+  suggestionBtn: { padding: "8px 10px", borderRadius: 12, border: "1px solid #e5e7eb", background: "#fff", fontSize: 14 },
+
+  range: { width: "100%" },
+  severityRow: { display: "flex", alignItems: "center", gap: 8, marginTop: 6 },
+  pill: { padding: "6px 10px", border: "1px solid #e5e7eb", borderRadius: 12, background: "#fff", fontSize: 12 },
+  pillActive: { background: "#111827", color: "#fff", borderColor: "#111827" },
+  severityBadge: { marginLeft: "auto", background: "#111827", color: "#fff", borderRadius: 12, padding: "2px 8px", fontSize: 12 },
+
+  chipsRow: { display: "flex", gap: 8 },
+  chipsRowWrap: { display: "flex", gap: 8, flexWrap: "wrap" },
+  chipActive: { background: "#111827", color: "#fff", borderColor: "#111827" },
+
+  notesDetails: { marginTop: 8 },
+  notesSummary: { cursor: "pointer", fontSize: 14 },
+  textarea: { width: "100%", padding: 10, borderRadius: 12, border: "1px solid #e5e7eb", marginTop: 8 },
+
+  actions: { display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 16 },
+  secondaryBtn: { padding: "10px 12px", borderRadius: 12, border: "1px solid #e5e7eb", background: "#fff" },
+  primaryBtn: { padding: "10px 12px", borderRadius: 12, border: "1px solid #111827", background: "#111827", color: "#fff" },
+};
+
+/****************************\
+|*       Constants          *|
+\****************************/
+const ALL_CONTEXTS = ["after_workout", "poor_sleep", "stress_high", "new_med", "travel_shift", "after_meal"] as const;
+function humanizeContext(c: string) {
+  return c.replace(/_/g, " ").replace(/\b\w/g, (m) => m.toUpperCase());
+}
+function capitalize(s: string) {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+/****************************\
+|*    Demo Seed (optional)  *|
+\****************************/
+// Seed a couple of episodes on first load for demo purposes
+(function seedDemo() {
+  const already = loadEvents();
+  if (already.length) return;
+  const epi1 = uid();
+  const epi2 = uid();
+  const baseTime = new Date();
+  baseTime.setHours(9, 0, 0, 0);
+
+  const mkEvent = (episodeId: string, name: string, daysBack: number, severity: number): SymptomEvent => ({
+    id: uid(),
+    userId: "user-1",
+    name,
+    episodeId,
+    status: daysBack === 6 ? "new" : "ongoing",
+    severity,
+    trend: null,
+    context: [],
+    startedAt: new Date(baseTime.getTime() - daysBack * 86400000).toISOString(),
+    recordedAt: new Date(baseTime.getTime() - daysBack * 86400000).toISOString(),
+    endedAt: null,
+    source: "user",
+    version: 1,
+  });
+
+  const events: SymptomEvent[] = [
+    mkEvent(epi1, "headache", 6, 5),
+    mkEvent(epi1, "headache", 4, 4),
+    mkEvent(epi1, "headache", 2, 3),
+    mkEvent(epi1, "headache", 0, 3),
+
+    mkEvent(epi2, "low energy", 5, 6),
+    mkEvent(epi2, "low energy", 3, 6),
+    mkEvent(epi2, "low energy", 1, 5),
+  ];
+
+  saveEvents(events);
+})();
