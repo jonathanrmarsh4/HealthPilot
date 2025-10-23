@@ -9192,6 +9192,75 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
     }
   });
 
+  // Admin endpoint: Manually recompute insights for a user/date
+  app.post("/api/admin/insights/recompute", isAdmin, async (req, res) => {
+    try {
+      const { userId, localDate } = req.body;
+      
+      // Validate inputs
+      if (!userId || typeof userId !== 'string' || userId.trim() === '') {
+        return res.status(400).json({ error: "Invalid userId: must be non-empty string" });
+      }
+      
+      if (!localDate || typeof localDate !== 'string') {
+        return res.status(400).json({ error: "Invalid localDate: must be string" });
+      }
+      
+      // Validate date format (YYYY-MM-DD)
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(localDate)) {
+        return res.status(400).json({ error: "Invalid localDate format: must be YYYY-MM-DD" });
+      }
+      
+      // Validate date is valid
+      const testDate = new Date(localDate);
+      if (isNaN(testDate.getTime())) {
+        return res.status(400).json({ error: "Invalid localDate: not a valid date" });
+      }
+      
+      console.log(`[Admin] Manual insights recompute requested for user ${userId} on ${localDate}`);
+      
+      // Delete existing insights for this date
+      const dateObj = new Date(localDate);
+      await db
+        .delete(dailyHealthInsights)
+        .where(
+          and(
+            eq(dailyHealthInsights.userId, userId),
+            eq(dailyHealthInsights.date, dateObj)
+          )
+        );
+      
+      // Run the dynamic insights engine
+      const { computeDailyInsights } = await import('./insights/engine');
+      
+      // Get user timezone
+      const user = await storage.getUser(userId);
+      const timezone = user?.timezone || 'Australia/Perth';
+      
+      // Compute insights
+      const insights = await computeDailyInsights(userId, localDate, timezone);
+      
+      console.log(`[Admin] Recompute complete: Generated ${insights.length} insights`);
+      
+      res.json({
+        success: true,
+        userId,
+        localDate,
+        insightsGenerated: insights.length,
+        insights: insights.map(i => ({
+          id: i.id,
+          title: i.title,
+          score: i.score,
+          family: i.family,
+          metric: i.metric
+        }))
+      });
+    } catch (error: any) {
+      console.error("[Admin] Insights recompute error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Junction (Vital) webhook endpoint with Svix signature verification
   app.post("/api/junction/webhook", async (req, res) => {
     try {

@@ -8,7 +8,7 @@ import { biomarkers, sleepSessions, hkEventsRaw } from "../../shared/schema";
 import { eq, and, gte, lte, sql, desc } from "drizzle-orm";
 import { MetricSpec } from "./registry";
 import { ilog } from "./debug";
-import { formatInTimeZone } from "date-fns-tz";
+import { formatInTimeZone, zonedTimeToUtc } from "date-fns-tz";
 import { addDays } from "date-fns";
 
 export interface DayWindow {
@@ -26,19 +26,23 @@ export interface SeriesPoint {
 
 /**
  * Compute UTC window for a local date in a timezone
+ * Uses half-open interval [start, end) for proper overlap detection
  */
 export function perthLocalDay(dateStr: string, tz = "Australia/Perth"): DayWindow {
-  // Parse as local midnight
-  const localStart = new Date(dateStr + "T00:00:00");
-  const localEnd = new Date(dateStr + "T23:59:59.999");
+  // Parse dateStr in the user's timezone and convert to UTC
+  // Example: "2025-01-15" in "America/New_York" means Jan 15 00:00:00 EST → Jan 15 05:00:00 UTC
+  const localStart = zonedTimeToUtc(`${dateStr}T00:00:00`, tz);
   
-  // Convert to UTC ISO strings
-  const startUtcIso = formatInTimeZone(localStart, tz, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
-  const endUtcIso = formatInTimeZone(localEnd, tz, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+  // Use next day's midnight as exclusive upper bound
+  // This ensures events at 23:59:59.999 are included (start < nextMidnight)
+  const nextDay = new Date(dateStr);
+  nextDay.setDate(nextDay.getDate() + 1);
+  const nextDayStr = nextDay.toISOString().split('T')[0];
+  const localEndExclusive = zonedTimeToUtc(`${nextDayStr}T00:00:00`, tz);
   
   return {
-    startUtcIso,
-    endUtcIso,
+    startUtcIso: localStart.toISOString(),
+    endUtcIso: localEndExclusive.toISOString(),
     tz,
     localDate: dateStr
   };
@@ -174,8 +178,10 @@ async function readRaw(
       and(
         eq(hkEventsRaw.userId, userId),
         eq(hkEventsRaw.type, metric.id),
-        gte(hkEventsRaw.startDateUtc, startUtc),
-        lte(hkEventsRaw.endDateUtc, endUtc)
+        // Event overlaps with [start, end) window: start < end AND eventEnd >= start
+        // Uses >= on lower bound to include zero-duration samples at midnight
+        sql`${hkEventsRaw.startDateUtc} < ${endUtc}`,
+        sql`${hkEventsRaw.endDateUtc} >= ${startUtc}`
       )
     )
     .orderBy(desc(hkEventsRaw.startDateUtc));

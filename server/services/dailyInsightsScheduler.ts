@@ -122,115 +122,48 @@ export async function generateDailyInsightsForUser(userId: string): Promise<Insi
   // Get yesterday's date (we analyze yesterday's completed data)
   const yesterday = new Date(today);
   yesterday.setDate(yesterday.getDate() - 1);
-
-  // Analyze all supported metrics
-  const supportedMetrics = getSupportedMetrics();
-  const allDeviations: Array<{ metric: string; deviation: any }> = [];
-
-  for (const metricName of supportedMetrics) {
-    try {
-      result.metricsAnalyzed++;
-      
-      // Get yesterday's metrics
-      const yesterdayMetrics = await storage.getDailyMetrics(
-        userId,
-        metricName,
-        yesterday,
-        yesterday
-      );
-
-      if (yesterdayMetrics.length === 0) {
-        continue; // No data for this metric yesterday
-      }
-
-      // Use the most recent metric from yesterday
-      const latestMetric = yesterdayMetrics[0];
-
-      // Calculate baseline
-      const baseline = await calculateMetricBaseline(userId, metricName, yesterday);
-
-      // Detect deviation
-      const deviation = detectMetricDeviation(latestMetric.value, baseline, metricName);
-
-      if (deviation.detected) {
-        allDeviations.push({
-          metric: metricName,
-          deviation,
-        });
-      }
-    } catch (error: any) {
-      console.error(`[DailyInsights] Error analyzing metric ${metricName}:`, error);
-      result.errors.push(`${metricName}: ${error.message}`);
-    }
-  }
+  const yesterdayStr = yesterday.toISOString().split('T')[0];
 
   //============================================================================
-  // BIOMARKER ANALYSIS
+  // DYNAMIC INSIGHTS ENGINE (NEW) - Analyzes ALL metrics
   //============================================================================
   
-  // Analyze all supported biomarkers (50+ types)
-  const supportedBiomarkers = getSupportedLabMarkers();
-  console.log(`[DailyInsights] Analyzing ${supportedBiomarkers.length} biomarker types for user ${userId}...`);
-  
-  for (const biomarkerType of supportedBiomarkers) {
-    try {
-      // Get biomarkers of this type from the last 7 days
-      const sevenDaysAgo = new Date(yesterday);
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-      
-      const biomarkers = await storage.getBiomarkersByTimeRange(
-        userId,
-        biomarkerType,
-        sevenDaysAgo,
-        yesterday
-      );
-      
-      if (biomarkers.length === 0) {
-        continue; // No data for this biomarker
-      }
-      
-      // Use the most recent biomarker value
-      const latestBiomarker = biomarkers[0];
-      result.metricsAnalyzed++;
-      
-      // Calculate baseline for this biomarker
-      const baseline = await calculateLabBaseline(userId, biomarkerType, yesterday);
-      
-      // Detect deviation
-      const deviation = detectLabDeviation(latestBiomarker.value, baseline, biomarkerType);
-      
-      if (deviation.detected) {
-        allDeviations.push({
-          metric: biomarkerType,
-          deviation,
-        });
-        console.log(`[DailyInsights] Biomarker deviation detected: ${biomarkerType} = ${latestBiomarker.value} (${deviation.direction} ${Math.abs(deviation.percentageDeviation).toFixed(1)}%)`);
-      }
-    } catch (error: any) {
-      console.error(`[DailyInsights] Error analyzing biomarker ${biomarkerType}:`, error);
-      result.errors.push(`${biomarkerType}: ${error.message}`);
-    }
-  }
-
-  // Log biomarker deviation results but continue to symptom analysis
-  if (allDeviations.length === 0) {
-    console.log(`[DailyInsights] No significant biomarker deviations detected for user ${userId}`);
-  } else {
-    console.log(`[DailyInsights] Found ${allDeviations.length} deviations for user ${userId} (HealthKit metrics + biomarkers)`);
-  }
-
-  // Generate AI insights for each deviation
   const generatedInsights: GeneratedInsight[] = [];
-  for (const { metric, deviation } of allDeviations) {
-    try {
-      const insight = await generateInsightFromDeviation(userId, deviation, yesterday);
-      if (insight) {
-        generatedInsights.push(insight);
-      }
-    } catch (error: any) {
-      console.error(`[DailyInsights] Error generating insight for ${metric}:`, error);
-      result.errors.push(`${metric} insight: ${error.message}`);
+  
+  try {
+    console.log(`[DailyInsights] Running Dynamic Insights Engine for user ${userId}...`);
+    
+    // Import and run the new dynamic engine
+    const { computeDailyInsights } = await import('../insights/engine');
+    
+    // Get user timezone
+    const user = await storage.getUser(userId);
+    const timezone = user?.timezone || 'Australia/Perth';
+    
+    // Compute insights for yesterday (completed data)
+    const dynamicInsights = await computeDailyInsights(userId, yesterdayStr, timezone);
+    
+    console.log(`[DailyInsights] Dynamic engine generated ${dynamicInsights.length} insights`);
+    result.metricsAnalyzed += dynamicInsights.length; // Approximate - each insight represents metrics analyzed
+    
+    // Convert dynamic insights to GeneratedInsight format
+    for (const insight of dynamicInsights) {
+      generatedInsights.push({
+        category: mapFamilyToCategory(insight.family),
+        title: insight.title,
+        description: insight.body,
+        recommendation: getSuggestionFromInsight(insight),
+        score: insight.score * 100, // Convert 0-1 to 0-100
+        severity: mapScoreToSeverity(insight.score),
+        metricName: insight.metric,
+        currentValue: 0, // Not always available in new system
+        baselineValue: null,
+        deviation: 0,
+      });
     }
+  } catch (error: any) {
+    console.error(`[DailyInsights] Dynamic engine error:`, error);
+    result.errors.push(`Dynamic engine: ${error.message}`);
   }
 
   //============================================================================
@@ -407,4 +340,45 @@ function getCurrentLocalTime(timezone: string): Date {
     console.error(`Invalid timezone: ${timezone}`);
     return new Date(); // Fallback to UTC
   }
+}
+
+/**
+ * Map insight family to category
+ */
+function mapFamilyToCategory(family: string): "sleep" | "recovery" | "performance" | "health" {
+  switch (family) {
+    case "sleep":
+      return "sleep";
+    case "cardio":
+    case "activity":
+      return "performance";
+    case "bp":
+    case "biomarker":
+    case "glucose":
+    case "resp":
+      return "health";
+    case "body_comp":
+      return "recovery";
+    default:
+      return "health";
+  }
+}
+
+/**
+ * Map score (0-1) to severity
+ */
+function mapScoreToSeverity(score: number): "normal" | "notable" | "significant" | "critical" {
+  if (score >= 0.8) return "critical";
+  if (score >= 0.6) return "significant";
+  if (score >= 0.4) return "notable";
+  return "normal";
+}
+
+/**
+ * Extract suggestion/recommendation from insight body
+ */
+function getSuggestionFromInsight(insight: any): string {
+  // For now, use the body as the recommendation
+  // Could be enhanced with specific recommendation extraction
+  return insight.body || insight.title;
 }

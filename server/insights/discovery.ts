@@ -9,6 +9,7 @@ import { eq, and, gte, lte, sql } from "drizzle-orm";
 import { MetricSpec, registerMetric, getRegistry } from "./registry";
 import { ilog, ilogSection, ilogMetrics } from "./debug";
 import { config } from "./config";
+import { perthLocalDay } from "./readers";
 
 export interface DiscoveryResult {
   specs: MetricSpec[];
@@ -20,16 +21,18 @@ export interface DiscoveryResult {
  */
 export async function discoverMetrics(
   userId: string,
-  localDate: string
+  localDate: string,
+  tz = "Australia/Perth"
 ): Promise<DiscoveryResult> {
   ilogSection(`Discovering metrics for user ${userId} on ${localDate}`);
   
   const discovered = new Set<string>();
   const counts: Record<string, number> = {};
   
-  // 1. Check curated: biomarkers table
-  const dateStart = new Date(localDate + "T00:00:00");
-  const dateEnd = new Date(localDate + "T23:59:59");
+  // 1. Get proper UTC window for the local date in user's timezone
+  const win = perthLocalDay(localDate, tz);
+  const dateStart = new Date(win.startUtcIso);
+  const dateEnd = new Date(win.endUtcIso);
   
   const biomarkerRows = await db
     .select({ type: biomarkers.type })
@@ -100,6 +103,7 @@ export async function discoverMetrics(
   if (config.dynamicDiscovery || config.includeAll) {
     ilog("Dynamic discovery enabled - querying hk_events_raw...");
     
+    // Use the computed DayWindow (already in correct UTC bounds) instead of DATE() comparison
     const rawTypes = await db
       .select({
         type: hkEventsRaw.type,
@@ -109,7 +113,10 @@ export async function discoverMetrics(
       .where(
         and(
           eq(hkEventsRaw.userId, userId),
-          sql`DATE(${hkEventsRaw.startDateUtc}) = ${localDate} OR DATE(${hkEventsRaw.endDateUtc}) = ${localDate}`
+          // Event overlaps with [start, end) window: start < end AND eventEnd >= start
+          // Uses >= on lower bound to include zero-duration samples at midnight
+          sql`${hkEventsRaw.startDateUtc} < ${dateEnd}`,
+          sql`${hkEventsRaw.endDateUtc} >= ${dateStart}`
         )
       )
       .groupBy(hkEventsRaw.type);
@@ -121,7 +128,7 @@ export async function discoverMetrics(
       discovered.add(type);
       counts[type] = (counts[type] || 0) + count;
       
-      // Auto-register unknown metrics
+      // Auto-register unknown metrics with proper mapper
       const registry = getRegistry();
       if (!registry.metrics[type]) {
         const newSpec: MetricSpec = {
@@ -129,11 +136,18 @@ export async function discoverMetrics(
           family: mapTypeToFamily(type),
           kind: "value",
           source: "raw",
-          mapper: "hk_events_raw",
+          mapper: "hk_events_raw",  // Always hk_events_raw for dynamic discovery
           preferredAgg: "mean"
         };
+        
+        // Validate that mapper is set before registration
+        if (!newSpec.mapper) {
+          console.warn(`[Discovery] Skipping dynamic registration of ${type}: no mapper defined`);
+          continue;
+        }
+        
         registerMetric(newSpec);
-        ilog(`Auto-registered new metric: ${type} (family: ${newSpec.family})`);
+        ilog(`Auto-registered new metric: ${type} (family: ${newSpec.family}, mapper: ${newSpec.mapper})`);
       }
     }
     
