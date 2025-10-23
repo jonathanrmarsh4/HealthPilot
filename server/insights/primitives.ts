@@ -236,7 +236,7 @@ export function dayChange(series: SeriesPoint[]): DayChangeResult {
 /**
  * Get descriptive statistics summary
  */
-export interface StatsSum mary {
+export interface StatsSummary {
   min: number;
   max: number;
   mean: number;
