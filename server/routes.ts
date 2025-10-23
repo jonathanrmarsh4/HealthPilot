@@ -8399,6 +8399,10 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
         });
       }
 
+      // Debug logging for AutoExport webhooks
+      const { logWebhookPayload, alog } = await import('./lib/aeDebug');
+      logWebhookPayload(userId, req.body);
+
       console.log(`📊 Processing ${metrics.length} metric(s)`);
       metrics.forEach((m, i) => console.log(`  ${i + 1}. ${m.name || m.type || 'unknown'}: ${Array.isArray(m.data) ? m.data.length : 1} data point(s)`));
 
@@ -8455,39 +8459,81 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
       };
 
       const metricMapping: Record<string, string> = {
+        // Heart Rate variations
         "Heart Rate": "heart-rate",
         "heart_rate": "heart-rate",
+        "heartRate": "heart-rate",
         "Resting Heart Rate": "heart-rate",
         "resting_heart_rate": "heart-rate",
+        "restingHeartRate": "heart-rate",
+        
+        // HRV variations
         "Heart Rate Variability SDNN": "hrv",
         "heart_rate_variability_sdnn": "hrv",
         "Heart Rate Variability": "hrv",
         "heart_rate_variability": "hrv",
+        "heartRateVariability": "hrv",
         "HRV": "hrv",
         "hrv": "hrv",
+        
+        // Blood Glucose
         "Blood Glucose": "blood-glucose",
         "blood_glucose": "blood-glucose",
+        "bloodGlucose": "blood-glucose",
+        
+        // Weight variations
         "Weight": "weight",
         "weight": "weight",
         "weight_body_mass": "weight",
+        "weightBodyMass": "weight",
+        "Body Weight": "weight",
+        "body_weight": "weight",
+        "bodyWeight": "weight",
+        
+        // Lean Body Mass variations
         "Lean Body Mass": "lean-body-mass",
         "lean_body_mass": "lean-body-mass",
+        "leanBodyMass": "lean-body-mass",
+        
+        // Steps variations
         "Steps": "steps",
         "step_count": "steps",
+        "stepCount": "steps",
+        "Step Count": "steps",
+        
+        // Energy/Calories variations
         "Active Energy": "calories",
         "active_energy": "calories",
+        "activeEnergy": "calories",
         "Active Energy Burned": "calories",
         "active_energy_burned": "calories",
+        "activeEnergyBurned": "calories",
+        
+        // Blood Pressure variations (note: BP is handled specially below)
+        "Blood Pressure": "blood-pressure",
+        "blood_pressure": "blood-pressure",
+        "bloodPressure": "blood-pressure",
         "Blood Pressure Systolic": "blood-pressure-systolic",
         "blood_pressure_systolic": "blood-pressure-systolic",
+        "bloodPressureSystolic": "blood-pressure-systolic",
         "Blood Pressure Diastolic": "blood-pressure-diastolic",
         "blood_pressure_diastolic": "blood-pressure-diastolic",
+        "bloodPressureDiastolic": "blood-pressure-diastolic",
+        
+        // Oxygen Saturation
         "Oxygen Saturation": "oxygen-saturation",
         "oxygen_saturation": "oxygen-saturation",
+        "oxygenSaturation": "oxygen-saturation",
+        
+        // Body Temperature
         "Body Temperature": "body-temperature",
         "body_temperature": "body-temperature",
+        "bodyTemperature": "body-temperature",
+        
+        // Sleep Analysis
         "Sleep Analysis": "sleep-hours",
         "sleep_analysis": "sleep-hours",
+        "sleepAnalysis": "sleep-hours",
       };
 
       let insertedCount = 0;
@@ -8801,40 +8847,59 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
         const biomarkerType = metricMapping[metric.name];
         
         if (!biomarkerType) {
+          alog(`⚠️ Unmapped metric type: "${metric.name}" - skipping`);
           continue;
         }
 
-        if (metric.name === "Blood Pressure" && metric.data) {
+        // Special handling for Blood Pressure - supports multiple name variations
+        const isBPMetric = metric.name === "Blood Pressure" || 
+                          metric.name === "blood_pressure" || 
+                          metric.name === "bloodPressure" ||
+                          biomarkerType === "blood-pressure";
+        
+        if (isBPMetric && metric.data) {
+          alog(`🩺 Processing Blood Pressure data: ${metric.data.length} readings`);
           // Batch process blood pressure data in parallel
           const bpPromises = [];
           for (const dataPoint of metric.data) {
-            if (dataPoint.systolic) {
+            // Support both systolic/diastolic and sys/dia field names
+            const systolic = dataPoint.systolic || dataPoint.sys;
+            const diastolic = dataPoint.diastolic || dataPoint.dia;
+            
+            if (systolic) {
+              alog(`  📈 Systolic: ${systolic} mmHg at ${dataPoint.date}`);
               bpPromises.push(
                 storage.upsertBiomarker({
                   userId,
                   type: "blood-pressure-systolic",
-                  value: dataPoint.systolic,
+                  value: systolic,
                   unit: "mmHg",
                   source: "health-auto-export",
                   recordedAt: new Date(dataPoint.date),
                 })
               );
             }
-            if (dataPoint.diastolic) {
+            if (diastolic) {
+              alog(`  📉 Diastolic: ${diastolic} mmHg at ${dataPoint.date}`);
               bpPromises.push(
                 storage.upsertBiomarker({
                   userId,
                   type: "blood-pressure-diastolic",
-                  value: dataPoint.diastolic,
+                  value: diastolic,
                   unit: "mmHg",
                   source: "health-auto-export",
                   recordedAt: new Date(dataPoint.date),
                 })
               );
             }
+            
+            if (!systolic && !diastolic) {
+              alog(`  ⚠️ BP data point missing systolic/diastolic:`, dataPoint);
+            }
           }
           await Promise.all(bpPromises);
           insertedCount += bpPromises.length;
+          alog(`✅ Inserted ${bpPromises.length} BP readings`);
         } else if (metric.data && Array.isArray(metric.data)) {
           // Batch process other biomarkers in parallel
           const biomarkerPromises = [];

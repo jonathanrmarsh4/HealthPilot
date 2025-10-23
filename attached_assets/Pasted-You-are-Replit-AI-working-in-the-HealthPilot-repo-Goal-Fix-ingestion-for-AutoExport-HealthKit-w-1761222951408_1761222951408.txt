@@ -1,0 +1,181 @@
+You are Replit AI working in the HealthPilot repo.
+
+🎯 Goal
+Fix ingestion for AutoExport HealthKit webhooks so ALL configured data types are stored and visible:
+- Expected from user’s AutoExport: Blood Pressure (systolic/diastolic), Heart Rate, Heart Rate Variability (RMSSD/SDNN as provided), Lean Body Mass, Resting Heart Rate, Sleep Analysis, Step Count, Weight.
+- Currently arriving/visible: Heart Rate, HRV, Steps, Calories (active/total energy).
+=> Identify and fix why BP, Sleep, Weight, Lean Body Mass, Resting HR are not being persisted/read.
+
+Do this without asking the user to change their AutoExport setup (it’s confirmed correct).
+
+--------------------------------
+A) LIKELY ROOT CAUSES (CHECK ALL)
+--------------------------------
+1) **Webhook parser whitelist** only maps a subset of resource types (HR/HRV/Steps/Calories).
+2) **Field names** differ from our expectations (e.g., "blood_pressure_systolic" vs "bpSystolic"; "lean_body_mass" vs "leanMassKg"; "sleepAnalysis" vs "sleep").
+3) **Units conversion** missing → records dropped by validation (kg vs lb, mmHg, ms vs s, kcal vs kJ).
+4) **Schema/version mismatch**: AutoExport payload format != our schema; AJV/validation fails silently.
+5) **Time buckets**: Sleep segments cross midnight; query logic misses them.
+6) **DB schema** lacks columns (e.g., diastolic), wrong enum, or wrong table bound to API.
+7) **Auth/user routing**: rows saved under wrong user/tenant/env.
+8) **Idempotency or dedupe** incorrectly rejects non-HR types.
+9) **Background cache**: UI reads from a view/cache that never includes the missing metrics.
+
+--------------------------------
+B) DELIVERABLES
+--------------------------------
+1) Request **capture + debug logging** for AutoExport webhooks (behind `AE_DEBUG=1`).
+2) **JSON schema** for AutoExport events + strict validator with error logs.
+3) A **mapper** that normalizes ALL listed types into our internal models (BP, Sleep, Weight, LeanMass, RestingHR, HR, HRV, Steps, Calories).
+4) **DB migration checks** / queries to confirm tables/columns exist and are used.
+5) **Replay script** with sample payloads for each type; proves end-to-end persistence.
+6) **Unit/integration tests**; CI green.
+7) Minimal code **fixes** (do not require user config changes).
+8) A short **runbook** in `docs/autoexport_debug.md`.
+
+--------------------------------
+C) IMPLEMENTATION PLAN
+--------------------------------
+1) Add request capture:
+   - File: `src/lib/aeDebug.ts`
+     ```
+     export const AE_DEBUG = process.env.AE_DEBUG === "1";
+     export function alog(...args: any[]) { if (AE_DEBUG) console.log("[AE_DEBUG]", ...args); }
+     ```
+   - In the webhook handler (e.g., `api/autoexport/webhook.ts`), before parse:
+     - Log headers of interest (idempotency key, content-type), raw body length.
+     - Save the RAW JSON to `storage/autoexport_inbox/<ts>-<userId>.json` (S3 or local `/tmp` in dev).
+     - Log a summary: resource types, count per type, first/last timestamps.
+
+2) Define schema + validator:
+   - File: `src/autoexport/schema.ts`
+   - Use AJV or a small manual validator to accept both snakeCase and camelCase commonly used by AutoExport.
+   - Key fields to support:
+     - `type` (e.g., "blood_pressure", "heart_rate", "hrv", "resting_heart_rate", "lean_body_mass", "weight", "sleep", "steps", "active_energy", "basal_energy")
+     - `startDate` / `endDate` / `timestamp`
+     - `value` (number or object), `unit`
+     - For BP: `systolic` + `diastolic` in mmHg (may arrive as separate samples or combined object)
+     - For sleep: stages like `asleep_rem`, `asleep_core/light`, `asleep_deep`, `awake`, `in_bed`
+   - On schema failure: DO NOT drop silently. Log with `alog("schema-fail", errors, sample)` and quarantine to `autoexport_quarantine` table.
+
+3) Create a robust mapper:
+   - File: `src/autoexport/mapper.ts`
+   - Export: `mapAutoExportEvent(evt, userId) => Array<UpsertCommand>`
+   - Handle all types:
+     - **Heart Rate** → `metrics_heart_rate`
+     - **HRV** → `metrics_hrv` (store ms; accept "sdnn" or "rmssd" but tag method)
+     - **Resting Heart Rate** → `metrics_resting_hr`
+     - **Steps** → `metrics_steps` (with interval)
+     - **Energy** (active/basal/total) → `metrics_energy`
+     - **Weight** → `metrics_weight` (kg)
+     - **Lean Body Mass** → `metrics_body_comp` (lean_mass_kg)
+     - **Blood Pressure**:
+         - Accept either combined object `{systolic, diastolic}` or separate entries.
+         - Store `systolic_mmHg`, `diastolic_mmHg`, `measured_at_utc`.
+     - **Sleep**:
+         - Persist each segment with `start_utc`, `end_utc`, `stage` normalized to:
+           `awake | asleep_rem | asleep_core | asleep_deep | in_bed`
+         - Do not discard unknown stages; store as `unknown_stage` for visibility.
+   - Units:
+     - Weight lb→kg, LeanMass lb→kg, HR in bpm, HRV in ms, BP in mmHg, Energy in kcal, Steps count.
+   - Idempotency:
+     - Create a hash of `userId|type|start|end|value` to avoid duplicates per source.
+
+4) DB checks / migrations:
+   - Verify tables exist with necessary columns:
+     - `metrics_blood_pressure(user_id, systolic_mmHg, diastolic_mmHg, measured_at_utc, source)`
+     - `metrics_sleep(user_id, start_utc, end_utc, stage, source)`
+     - `metrics_weight(user_id, kg, measured_at_utc, source)`
+     - `metrics_body_comp(user_id, lean_mass_kg, measured_at_utc, source)`
+     - `metrics_resting_hr(user_id, bpm, measured_at_utc, source)`
+   - If missing, create migrations. Ensure read-side queries include these tables.
+
+5) Replay script:
+   - File: `scripts/autoexport_replay.ts`
+   - Usage: `ts-node scripts/autoexport_replay.ts --user U123 --fixture all` OR `--file storage/autoexport_inbox/sample.json`
+   - Loads fixtures for each type (add under `fixtures/autoexport/*.json`) and posts them to the local webhook, then reads back via our public APIs:
+     - `/api/metrics/bp?date=YYYY-MM-DD`
+     - `/api/metrics/sleep?date=...`
+     - `/api/metrics/weight?date=...`
+     - `/api/metrics/lean_mass?date=...`
+     - `/api/metrics/resting_hr?date=...`
+     - `/api/metrics/heart_rate?date=...`
+     - `/api/metrics/hrv?date=...`
+     - `/api/metrics/steps?date=...`
+   - Prints a table of counts per metric for the specified local day (Australia/Perth), with UTC window used.
+
+6) Tests:
+   - File: `tests/autoexport.ingest.test.ts`
+   - Cases:
+     a) **Blood Pressure**: combined and split formats both store systolic+diastolic in mmHg.
+     b) **Sleep**: segments crossing midnight Perth time show up for correct local day window; unknown stage persisted (not dropped).
+     c) **Weight/Lean mass**: lb inputs convert to kg and persist; read API returns recent value for day.
+     d) **Resting HR**: stored and distinct from generic HR series.
+     e) **Idempotency**: duplicate payload ignored; counts unchanged.
+     f) **Validation**: bad payload quarantined and does not crash the endpoint.
+     g) **Read side**: API endpoints return the inserted rows; response shape matches frontend expectations.
+
+7) Frontend/API verification:
+   - Ensure dashboards and insights queries include these metrics.
+   - If the UI reads a cache, **invalidate/warm** cache on ingest for these types (especially sleep and BP).
+   - Add `console.debug` under dev flag to print counts returned for each metric call.
+
+8) Docs:
+   - `docs/autoexport_debug.md` with:
+     - Example payloads accepted for each metric.
+     - Unit mapping table.
+     - Replay instructions.
+     - Known gotchas (sleep midnight crossing, BP split samples).
+     - How to turn on `AE_DEBUG`.
+
+--------------------------------
+D) MAPPING REFERENCE (use this)
+--------------------------------
+Normalize incoming `type` to internal:
+- "blood_pressure" → BP (supports `{ systolic, diastolic }` and/or separate samples)
+- "heart_rate" → HR (bpm)
+- "resting_heart_rate" → RHR (bpm)
+- "hrv" | "heart_rate_variability" → HRV (ms; store `method`: "RMSSD" or "SDNN" if given)
+- "weight" → Weight (kg)
+- "lean_body_mass" | "leanMass" → Lean Mass (kg)
+- "sleep" | "sleep_analysis" → Sleep segments (stage mapping below)
+- "steps" | "step_count" → Steps
+- "active_energy" | "activeEnergy" → Energy (kcal)
+
+Sleep stage map:
+- accept: awake, in_bed, asleep, asleep_rem, asleep_core/light, asleep_deep
+- canonical: awake | in_bed | asleep_rem | asleep_core | asleep_deep
+- unknown → unknown_stage (persist with raw label)
+
+Units:
+- bp: mmHg
+- hr/hr_rest: bpm
+- hrv: ms
+- weight/lean: kg (convert lb→kg)
+- energy: kcal (convert kJ→kcal if present)
+- steps: count
+
+--------------------------------
+E) ACCEPTANCE CRITERIA
+--------------------------------
+- With `AE_DEBUG=1`, webhook logs show all incoming resource types and counts for the test user.
+- Replay script posts fixtures and read APIs return **non-zero rows** for BP, Sleep, Weight, Lean Mass, Resting HR (in addition to HR/HRV/Steps/Energy).
+- Tests pass:
+  - BP combined/split formats handled.
+  - Sleep across midnight included in the correct local day (Australia/Perth).
+  - Units converted correctly; no silent drops.
+  - Idempotency works.
+- Dashboard & insights features see the newly stored metrics without code changes on the user’s side.
+
+--------------------------------
+F) RUN THIS NOW
+--------------------------------
+1) Implement `aeDebug.ts`, `autoexport/schema.ts`, `autoexport/mapper.ts`, wire mapper in webhook.
+2) Create fixtures for all 8 metrics; run:
+   - `AE_DEBUG=1 ts-node scripts/autoexport_replay.ts --user U_DEMO --fixture all --date 2025-10-23 --tz Australia/Perth`
+3) Verify console table shows counts > 0 for missing metrics.
+4) Run tests: `npm test`
+5) Deploy to staging; verify dashboard tiles and API return all metrics.
+6) If any metric still missing, dump the captured RAW payload for that type and adjust mapping accordingly; re-run replay + tests.
+
+Do not tell the user to reconfigure AutoExport; assume their setup is correct and fix our ingestion/mapping/read paths.
