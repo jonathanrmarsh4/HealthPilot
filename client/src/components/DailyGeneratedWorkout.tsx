@@ -120,13 +120,19 @@ export function DailyGeneratedWorkout() {
           </div>
           {workout && (
             <Badge 
-              variant={isPending ? "secondary" : isAccepted ? "default" : isCompleted ? "default" : "outline"}
+              variant={isPending ? "secondary" : isAccepted ? "default" : isCompleted ? "secondary" : "outline"}
+              className={isCompleted ? "bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20" : ""}
               data-testid="badge-workout-status"
             >
               {isPending && "Pending Review"}
               {isAccepted && "Accepted"}
               {isRejected && "Rejected"}
-              {isCompleted && "Completed"}
+              {isCompleted && (
+                <>
+                  <CheckCircle2 className="h-3 w-3 mr-1" />
+                  Completed
+                </>
+              )}
             </Badge>
           )}
         </div>
@@ -438,12 +444,18 @@ export function DailyGeneratedWorkout() {
 
             {isCompleted && (
               <div className="space-y-3 pt-2">
-                <div className="text-center py-4 bg-muted rounded-md">
-                  <CheckCircle2 className="h-12 w-12 text-primary mx-auto mb-2" />
-                  <p className="font-semibold text-lg">Workout Completed!</p>
+                <div className="text-center py-6 bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-lg">
+                  <CheckCircle2 className="h-12 w-12 text-green-600 dark:text-green-400 mx-auto mb-3" />
+                  <p className="font-semibold text-lg text-green-700 dark:text-green-400">Workout Completed!</p>
                   <p className="text-sm text-muted-foreground mt-1">
                     Great job on completing today's training session
                   </p>
+                  <div className="mt-3 pt-3 border-t border-green-500/20">
+                    <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      Your next AI-generated workout will be ready tomorrow at 4:00 AM
+                    </p>
+                  </div>
                 </div>
               </div>
             )}
