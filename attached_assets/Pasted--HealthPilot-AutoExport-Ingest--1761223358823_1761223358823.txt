@@ -1,0 +1,401 @@
+/* =============================================================
+   HealthPilot • AutoExport Ingest Scaffolding
+   Files included in this single paste:
+     1) src/autoexport/schema.ts
+     2) src/autoexport/mapper.ts
+     3) scripts/autoexport_replay.ts
+
+   Notes
+   - No external dependencies. Works with Node + ts-node.
+   - Includes robust mapping for BP, Sleep, Weight, Lean Mass, Resting HR, HR, HRV, Steps, Energy.
+   - Includes unit normalization and idempotency hashing.
+   - Replay script posts fixtures and reads them back via local handlers you wire up.
+   - Replace READ/WRITE placeholders with your persistence and API client calls.
+   ============================================================= */
+
+/**********************
+ * src/autoexport/schema.ts
+ **********************/
+
+// Lightweight schema guards for AutoExport payloads.
+// Accepts common snakeCase and camelCase keys.
+
+export type AEType =
+  | "blood_pressure"
+  | "heart_rate"
+  | "heart_rate_variability"
+  | "hrv"
+  | "resting_heart_rate"
+  | "weight"
+  | "lean_body_mass"
+  | "leanMass"
+  | "sleep"
+  | "sleep_analysis"
+  | "steps"
+  | "step_count"
+  | "active_energy"
+  | "basal_energy"
+  | "total_energy";
+
+export interface AEEvent {
+  type: AEType;
+  startDate?: string;   // ISO
+  endDate?: string;     // ISO
+  timestamp?: string;   // ISO for instant metrics
+  value?: number | Record<string, any>;
+  unit?: string;        // e.g., "kg", "lb", "mmHg", "bpm", "ms", "kcal"
+  source?: string;      // optional source id/name
+}
+
+export interface AEWebhookBody {
+  userId: string;
+  events: AEEvent[];
+  sentAt?: string;
+  version?: string;
+}
+
+export function isIsoDate(s?: string): boolean {
+  if (!s) return false;
+  const d = new Date(s);
+  return !isNaN(d.valueOf());
+}
+
+export function normalizeType(t: string): AEType | undefined {
+  const x = t.toLowerCase();
+  const map: Record<string, AEType> = {
+    blood_pressure: "blood_pressure",
+    heart_rate: "heart_rate",
+    heartRate: "heart_rate",
+    hrv: "hrv",
+    heart_rate_variability: "heart_rate_variability",
+    heartRateVariability: "heart_rate_variability",
+    resting_heart_rate: "resting_heart_rate",
+    restingHeartRate: "resting_heart_rate",
+    weight: "weight",
+    lean_body_mass: "lean_body_mass",
+    leanmass: "leanMass",
+    leanMass: "leanMass",
+    sleep: "sleep",
+    sleep_analysis: "sleep_analysis",
+    sleepAnalysis: "sleep_analysis",
+    steps: "steps",
+    step_count: "step_count",
+    stepCount: "step_count",
+    active_energy: "active_energy",
+    activeEnergy: "active_energy",
+    basal_energy: "basal_energy",
+    basalEnergy: "basal_energy",
+    total_energy: "total_energy",
+    totalEnergy: "total_energy",
+  };
+  return map[x as keyof typeof map] ?? (map[t] as AEType | undefined);
+}
+
+export function validateWebhook(body: any): { ok: boolean; errors?: string[]; data?: AEWebhookBody } {
+  const errors: string[] = [];
+  if (!body || typeof body !== "object") return { ok: false, errors: ["body not object"] };
+  if (!body.userId || typeof body.userId !== "string") errors.push("userId missing");
+  if (!Array.isArray(body.events)) errors.push("events missing or not array");
+  const events: AEEvent[] = [];
+  if (Array.isArray(body.events)) {
+    for (const [idx, raw] of body.events.entries()) {
+      const e: any = { ...raw };
+      const t = normalizeType(e.type || e.measureType || e.kind);
+      if (!t) { errors.push(`events[${idx}].type invalid`); continue; }
+      const evt: AEEvent = { type: t } as any;
+      if (e.startDate && isIsoDate(e.startDate)) evt.startDate = e.startDate;
+      if (e.endDate && isIsoDate(e.endDate)) evt.endDate = e.endDate;
+      if (e.timestamp && isIsoDate(e.timestamp)) evt.timestamp = e.timestamp;
+      if (typeof e.value === "number" || typeof e.value === "object") evt.value = e.value;
+      if (typeof e.unit === "string") evt.unit = e.unit;
+      if (typeof e.source === "string") evt.source = e.source;
+      events.push(evt);
+    }
+  }
+  if (errors.length) return { ok: false, errors };
+  return { ok: true, data: { userId: body.userId, events, sentAt: body.sentAt, version: body.version } };
+}
+
+export function distinctTypes(evts: AEEvent[]): string[] {
+  return Array.from(new Set(evts.map(e => e.type)));
+}
+
+/**********************
+ * src/autoexport/mapper.ts
+ **********************/
+
+import { AEEvent, AEWebhookBody, distinctTypes, validateWebhook } from "./schema";
+import crypto from "crypto";
+
+// Debug logger (toggle via env AE_DEBUG=1)
+export const AE_DEBUG = process.env.AE_DEBUG === "1";
+export function alog(...args: any[]) { if (AE_DEBUG) console.log("[AE_DEBUG]", ...args); }
+
+// ---------- Unit conversion helpers ----------
+const LB_TO_KG = 0.45359237;
+const KJ_TO_KCAL = 0.239005736;
+
+function toKg(val: number, unit?: string): number {
+  if (!unit) return val;
+  const u = unit.toLowerCase();
+  if (u === "kg" || u === "kilogram" || u === "kilograms") return val;
+  if (u === "lb" || u === "lbs" || u === "pound" || u === "pounds") return val * LB_TO_KG;
+  return val; // unknown → assume kg
+}
+
+function toKcal(val: number, unit?: string): number {
+  if (!unit) return val;
+  const u = unit.toLowerCase();
+  if (u === "kcal" || u === "cal") return val;
+  if (u === "kj" || u === "kilojoule" || u === "kilojoules") return val * KJ_TO_KCAL;
+  return val;
+}
+
+function msFrom(value: number, unit?: string): number {
+  if (!unit) return value; // assume ms
+  const u = unit.toLowerCase();
+  if (u === "ms" || u === "millisecond" || u === "milliseconds") return value;
+  if (u === "s" || u === "sec" || u === "seconds") return value * 1000;
+  return value;
+}
+
+// ---------- Sleep stage normalization ----------
+export type SleepStage = "awake" | "in_bed" | "asleep_rem" | "asleep_core" | "asleep_deep" | "unknown_stage";
+
+export function normalizeStage(v?: string): SleepStage {
+  if (!v) return "unknown_stage";
+  const s = v.toLowerCase().replace(/\s+/g, "_");
+  if (s.includes("awake")) return "awake";
+  if (s.includes("in_bed") || s.includes("inbed")) return "in_bed";
+  if (s.includes("rem")) return "asleep_rem";
+  if (s.includes("core") || s.includes("light")) return "asleep_core";
+  if (s.includes("deep")) return "asleep_deep";
+  if (s === "asleep") return "asleep_core"; // generic asleep → core
+  return "unknown_stage";
+}
+
+// ---------- Idempotency key ----------
+function hashId(parts: (string | number | undefined)[]): string {
+  return crypto.createHash("sha256").update(parts.map(p => String(p ?? "")).join("|"), "utf8").digest("hex");
+}
+
+// ---------- Persistence interface (replace with your DB) ----------
+// These are placeholders. Wire them to your actual repositories/ORM.
+
+export interface WriteResult { inserted: number; ignored: number; errors?: number }
+
+async function upsertHeartRate(userId: string, bpm: number, tsIso: string, source?: string): Promise<void> { /* TODO */ }
+async function upsertHRV(userId: string, ms: number, method: "RMSSD" | "SDNN" | "UNKNOWN", tsIso: string, source?: string): Promise<void> { /* TODO */ }
+async function upsertRestingHR(userId: string, bpm: number, tsIso: string, source?: string): Promise<void> { /* TODO */ }
+async function upsertSteps(userId: string, count: number, startIso: string, endIso: string, source?: string): Promise<void> { /* TODO */ }
+async function upsertEnergy(userId: string, kcal: number, kind: "active" | "basal" | "total", startIso: string, endIso: string, source?: string): Promise<void> { /* TODO */ }
+async function upsertWeight(userId: string, kg: number, tsIso: string, source?: string): Promise<void> { /* TODO */ }
+async function upsertLeanMass(userId: string, kg: number, tsIso: string, source?: string): Promise<void> { /* TODO */ }
+async function upsertBloodPressure(userId: string, systolic: number, diastolic: number, tsIso: string, source?: string): Promise<void> { /* TODO */ }
+async function upsertSleepSegment(userId: string, startIso: string, endIso: string, stage: SleepStage, source?: string): Promise<void> { /* TODO */ }
+
+// Optionally, implement idempotency record check to avoid duplicates.
+async function alreadyIngested(idHash: string): Promise<boolean> { return false; }
+async function markIngested(idHash: string): Promise<void> { /* TODO */ }
+
+// ---------- Mapping ----------
+
+export async function ingestAutoExport(body: any): Promise<WriteResult> {
+  const val = validateWebhook(body);
+  if (!val.ok || !val.data) {
+    alog("validateWebhook FAIL", val.errors);
+    return { inserted: 0, ignored: 0, errors: 1 };
+  }
+  const { userId, events } = val.data;
+  alog("incoming types:", distinctTypes(events));
+
+  let inserted = 0, ignored = 0, errors = 0;
+
+  for (const e of events) {
+    try {
+      const res = await mapAndUpsert(userId, e);
+      inserted += res.inserted; ignored += res.ignored;
+    } catch (err) {
+      errors += 1; alog("mapAndUpsert error", e.type, err);
+    }
+  }
+
+  return { inserted, ignored, errors };
+}
+
+async function mapAndUpsert(userId: string, e: AEEvent): Promise<WriteResult> {
+  switch (e.type) {
+    case "heart_rate": {
+      const v = typeof e.value === "number" ? e.value : (e as any).bpm ?? (e as any)?.value?.bpm;
+      const ts = e.timestamp || e.startDate;
+      if (v == null || !ts) return { inserted: 0, ignored: 1 };
+      const id = hashId([userId, e.type, ts, v]);
+      if (await alreadyIngested(id)) return { inserted: 0, ignored: 1 };
+      await upsertHeartRate(userId, v, ts, e.source); await markIngested(id);
+      return { inserted: 1, ignored: 0 };
+    }
+    case "hrv":
+    case "heart_rate_variability": {
+      const raw = typeof e.value === "number" ? { ms: e.value } : (e.value as any) ?? {};
+      const ms = msFrom(raw.ms ?? raw.rmssd ?? raw.sdnn ?? raw.value ?? 0, raw.unit || e.unit || "ms");
+      const method = raw.rmssd != null ? "RMSSD" : raw.sdnn != null ? "SDNN" : "UNKNOWN";
+      const ts = e.timestamp || e.startDate;
+      if (!ms || !ts) return { inserted: 0, ignored: 1 };
+      const id = hashId([userId, "hrv", ts, ms, method]);
+      if (await alreadyIngested(id)) return { inserted: 0, ignored: 1 };
+      await upsertHRV(userId, ms, method, ts, e.source); await markIngested(id);
+      return { inserted: 1, ignored: 0 };
+    }
+    case "resting_heart_rate": {
+      const v = typeof e.value === "number" ? e.value : (e as any)?.value?.bpm ?? (e as any).bpm;
+      const ts = e.timestamp || e.startDate;
+      if (v == null || !ts) return { inserted: 0, ignored: 1 };
+      const id = hashId([userId, e.type, ts, v]);
+      if (await alreadyIngested(id)) return { inserted: 0, ignored: 1 };
+      await upsertRestingHR(userId, v, ts, e.source); await markIngested(id);
+      return { inserted: 1, ignored: 0 };
+    }
+    case "steps":
+    case "step_count": {
+      const count = typeof e.value === "number" ? e.value : (e as any)?.value?.count ?? (e as any).count;
+      const start = e.startDate, end = e.endDate || e.timestamp || e.startDate;
+      if (count == null || !start || !end) return { inserted: 0, ignored: 1 };
+      const id = hashId([userId, "steps", start, end, count]);
+      if (await alreadyIngested(id)) return { inserted: 0, ignored: 1 };
+      await upsertSteps(userId, count, start, end, e.source); await markIngested(id);
+      return { inserted: 1, ignored: 0 };
+    }
+    case "active_energy":
+    case "basal_energy":
+    case "total_energy": {
+      const kcal = toKcal(typeof e.value === "number" ? e.value : (e as any)?.value?.kcal ?? (e as any).kcal ?? 0, e.unit);
+      const start = e.startDate, end = e.endDate || e.timestamp || e.startDate;
+      if (!kcal || !start || !end) return { inserted: 0, ignored: 1 };
+      const kind = e.type === "active_energy" ? "active" : e.type === "basal_energy" ? "basal" : "total";
+      const id = hashId([userId, kind, start, end, kcal]);
+      if (await alreadyIngested(id)) return { inserted: 0, ignored: 1 };
+      await upsertEnergy(userId, kcal, kind, start, end, e.source); await markIngested(id);
+      return { inserted: 1, ignored: 0 };
+    }
+    case "weight": {
+      const kg = toKg(typeof e.value === "number" ? e.value : (e as any)?.value?.kg ?? (e as any).kg ?? (e as any).value ?? 0, e.unit);
+      const ts = e.timestamp || e.startDate;
+      if (!kg || !ts) return { inserted: 0, ignored: 1 };
+      const id = hashId([userId, e.type, ts, kg]);
+      if (await alreadyIngested(id)) return { inserted: 0, ignored: 1 };
+      await upsertWeight(userId, kg, ts, e.source); await markIngested(id);
+      return { inserted: 1, ignored: 0 };
+    }
+    case "lean_body_mass":
+    case "leanMass": {
+      const kg = toKg(typeof e.value === "number" ? e.value : (e as any)?.value?.kg ?? (e as any).kg ?? 0, e.unit);
+      const ts = e.timestamp || e.startDate;
+      if (!kg || !ts) return { inserted: 0, ignored: 1 };
+      const id = hashId([userId, "lean_mass", ts, kg]);
+      if (await alreadyIngested(id)) return { inserted: 0, ignored: 1 };
+      await upsertLeanMass(userId, kg, ts, e.source); await markIngested(id);
+      return { inserted: 1, ignored: 0 };
+    }
+    case "blood_pressure": {
+      // Value may be number (invalid), object, or appear as two separate events; handle object here
+      const v = (typeof e.value === "object" ? e.value : {}) as any;
+      const sys = v.systolic ?? v.sys ?? v.sbp;
+      const dia = v.diastolic ?? v.dia ?? v.dbp;
+      // Allow split sample pattern if systolic/diastolic provided via unit keys
+      const ts = e.timestamp || e.startDate || e.endDate;
+      if (sys == null || dia == null || !ts) return { inserted: 0, ignored: 1 };
+      const id = hashId([userId, "bp", ts, sys, dia]);
+      if (await alreadyIngested(id)) return { inserted: 0, ignored: 1 };
+      await upsertBloodPressure(userId, Number(sys), Number(dia), ts, e.source); await markIngested(id);
+      return { inserted: 1, ignored: 0 };
+    }
+    case "sleep":
+    case "sleep_analysis": {
+      // Expect startDate, endDate, and stage label in value or value.stage
+      const start = e.startDate; const end = e.endDate;
+      const rawStage = typeof e.value === "string" ? e.value : (e as any)?.value?.stage ?? (e as any).stage;
+      if (!start || !end) return { inserted: 0, ignored: 1 };
+      const stage = normalizeStage(rawStage);
+      const id = hashId([userId, "sleep", start, end, stage]);
+      if (await alreadyIngested(id)) return { inserted: 0, ignored: 1 };
+      await upsertSleepSegment(userId, start, end, stage, e.source); await markIngested(id);
+      return { inserted: 1, ignored: 0 };
+    }
+    default:
+      alog("unhandled type", e.type);
+      return { inserted: 0, ignored: 1 };
+  }
+}
+
+/*************************
+ * scripts/autoexport_replay.ts
+ *************************/
+
+// Usage:
+//   ts-node scripts/autoexport_replay.ts --user U_DEMO --date 2025-10-23 --tz Australia/Perth
+// This script builds sample AutoExport payloads for the given date and posts them
+// to your local webhook handler (replace the POST call with your environment invocation),
+// then calls your read APIs to verify counts.
+
+import { ingestAutoExport } from "../src/autoexport/mapper";
+import { AEWebhookBody } from "../src/autoexport/schema";
+
+function arg(name: string, def?: string) {
+  const i = process.argv.indexOf(`--${name}`);
+  return i >= 0 ? process.argv[i + 1] : def;
+}
+
+const userId = arg("user", "U_DEMO");
+const date = arg("date", new Date().toISOString().slice(0, 10)); // YYYY-MM-DD
+const tz = arg("tz", "Australia/Perth");
+
+function localIso(dateStr: string, time: string, tzOffset = "+08:00"): string {
+  return `${dateStr}T${time}${tzOffset}`;
+}
+
+const startLocal = localIso(date, "22:30:00");
+const endLocal = localIso(date, "23:59:59.000");
+const nextMorning = localIso(new Date(Date.parse(date) + 86400000).toISOString().slice(0,10), "06:15:00");
+
+const payload: AEWebhookBody = {
+  userId,
+  events: [
+    // Heart Rate sample
+    { type: "heart_rate", timestamp: localIso(date, "09:00:00"), value: 62, unit: "bpm", source: "AutoExport" },
+    // HRV sample (RMSSD 48ms)
+    { type: "heart_rate_variability", timestamp: localIso(date, "07:00:00"), value: { rmssd: 48, unit: "ms" }, source: "AutoExport" },
+    // Resting HR
+    { type: "resting_heart_rate", timestamp: localIso(date, "07:05:00"), value: { bpm: 58 }, source: "AutoExport" },
+    // Steps interval
+    { type: "steps", startDate: localIso(date, "12:00:00"), endDate: localIso(date, "12:30:00"), value: { count: 2400 }, source: "AutoExport" },
+    // Energy
+    { type: "active_energy", startDate: localIso(date, "12:00:00"), endDate: localIso(date, "12:30:00"), value: { kcal: 180 }, source: "AutoExport" },
+    // Weight
+    { type: "weight", timestamp: localIso(date, "06:50:00"), value: { kg: 71.3 }, unit: "kg", source: "AutoExport" },
+    // Lean body mass (lb to kg path)
+    { type: "lean_body_mass", timestamp: localIso(date, "06:51:00"), value: { value: 136.7 }, unit: "lb", source: "AutoExport" },
+    // Blood Pressure (combined)
+    { type: "blood_pressure", timestamp: localIso(date, "06:55:00"), value: { systolic: 122, diastolic: 78 }, unit: "mmHg", source: "AutoExport" },
+    // Sleep segments crossing midnight (Perth +08:00)
+    { type: "sleep_analysis", startDate: startLocal, endDate: endLocal, value: { stage: "asleep_core" }, source: "AutoExport" },
+    { type: "sleep_analysis", startDate: endLocal, endDate: nextMorning, value: { stage: "asleep_rem" }, source: "AutoExport" },
+  ]
+};
+
+(async () => {
+  console.log("Posting AutoExport payload for", userId, date, "TZ:", tz);
+  const res = await ingestAutoExport(payload);
+  console.log("Ingest result:", res);
+
+  // TODO: Replace with real read API calls and print per-metric counts.
+  // Example placeholders:
+  console.log("Now call your read endpoints to verify rows exist for:");
+  console.log("- /api/metrics/bp?date=", date);
+  console.log("- /api/metrics/sleep?date=", date);
+  console.log("- /api/metrics/weight?date=", date);
+  console.log("- /api/metrics/lean_mass?date=", date);
+  console.log("- /api/metrics/resting_hr?date=", date);
+  console.log("- /api/metrics/heart_rate?date=", date);
+  console.log("- /api/metrics/hrv?date=", date);
+  console.log("- /api/metrics/steps?date=", date);
+})();

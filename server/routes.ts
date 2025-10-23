@@ -8901,22 +8901,33 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
           insertedCount += bpPromises.length;
           alog(`✅ Inserted ${bpPromises.length} BP readings`);
         } else if (metric.data && Array.isArray(metric.data)) {
+          alog(`📊 Processing ${biomarkerType}: ${metric.data.length} data points`);
           // Batch process other biomarkers in parallel
           const biomarkerPromises = [];
           for (const dataPoint of metric.data) {
-            let value = dataPoint.qty;
+            // Extract value with multiple fallback strategies
+            let value = dataPoint.qty || dataPoint.value || dataPoint.count;
             
+            // Special handling for different metric types
             if (metric.name === "Sleep Analysis" && dataPoint.asleep) {
               value = dataPoint.asleep;
             }
             
-            if (metric.name === "heart_rate" && dataPoint.Avg !== undefined) {
+            // Heart rate might have different field names
+            if ((metric.name === "heart_rate" || metric.name === "Heart Rate") && dataPoint.Avg !== undefined) {
               value = dataPoint.Avg;
+            }
+            
+            // Handle nested value objects (e.g., { value: { bpm: 75 } })
+            if (typeof dataPoint.value === 'object' && dataPoint.value !== null) {
+              value = dataPoint.value.qty || dataPoint.value.value || dataPoint.value.bpm || dataPoint.value.count || dataPoint.value.kg;
             }
 
             if (value !== undefined && value !== null) {
               // Convert to standardized storage units
-              const converted = convertToStorageUnit(value, metric.units, biomarkerType);
+              const converted = convertToStorageUnit(value, metric.units || dataPoint.unit, biomarkerType);
+              
+              alog(`  💾 ${biomarkerType}: ${converted.value} ${converted.unit} at ${dataPoint.date}`);
               
               biomarkerPromises.push(
                 storage.upsertBiomarker({
@@ -8928,10 +8939,16 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
                   recordedAt: new Date(dataPoint.date),
                 })
               );
+            } else {
+              alog(`  ⚠️ Skipping data point - no value found:`, {
+                keys: Object.keys(dataPoint),
+                sample: dataPoint
+              });
             }
           }
           await Promise.all(biomarkerPromises);
           insertedCount += biomarkerPromises.length;
+          alog(`✅ Inserted ${biomarkerPromises.length} ${biomarkerType} readings`);
         }
       }
 
