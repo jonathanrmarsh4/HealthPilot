@@ -47,7 +47,7 @@ export function localDayToUtcRange(localDate: string, timezone: string = 'UTC'):
  * Convert any date/timestamp to UTC ISO string
  * 
  * @param dateInput - Date object, ISO string, or epoch milliseconds
- * @param timezone - Source timezone (if converting from local time)
+ * @param timezone - Source timezone (if converting from local time string)
  * @returns UTC ISO string
  */
 export function toUtcIso(dateInput: Date | string | number, timezone?: string): string {
@@ -66,15 +66,18 @@ export function toUtcIso(dateInput: Date | string | number, timezone?: string): 
     
     date = new Date(timestamp);
   } else if (typeof dateInput === 'string') {
-    date = parseISO(dateInput);
+    // If timezone provided and string doesn't have timezone info, interpret as local time
+    if (timezone && timezone !== 'UTC' && !dateInput.includes('Z') && !dateInput.match(/[+-]\d{2}:\d{2}$/)) {
+      // String is in local time format (e.g., "2025-10-23T14:30:00")
+      // Use toDate to interpret it in the specified timezone
+      date = toDate(dateInput, { timeZone: timezone });
+    } else {
+      // String already has timezone or is UTC
+      date = parseISO(dateInput);
+    }
   } else {
+    // Already a Date object (assumed to be in UTC)
     date = dateInput;
-  }
-
-  // Convert to UTC if timezone specified
-  if (timezone && timezone !== 'UTC') {
-    // This ensures we're working with the date as interpreted in the given timezone
-    return date.toISOString();
   }
 
   return date.toISOString();
