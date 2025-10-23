@@ -1918,6 +1918,7 @@ export const generatedWorkouts = pgTable("generated_workouts", {
   date: date("date").notNull(), // The date this workout is generated for
   workoutData: jsonb("workout_data").notNull(), // Full workout plan matching DailyWorkoutSchema
   status: varchar("status", { length: 16 }).notNull().default("pending"), // pending, accepted, modified, rejected, completed
+  acceptedSnapshot: jsonb("accepted_snapshot"), // Immutable snapshot of accepted exercises (prevents tracker duplication)
   userModifications: jsonb("user_modifications"), // Track any user changes to the generated plan
   feedbackNotes: text("feedback_notes"), // User feedback about the workout
   regenerationCount: integer("regeneration_count").notNull().default(0), // How many times user regenerated this day

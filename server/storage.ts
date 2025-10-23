@@ -2053,8 +2053,66 @@ export class DbStorage implements IStorage {
       throw new Error("Generated workout not found");
     }
 
+    // If already accepted, check if session already exists and return it (idempotent)
+    if (workout.status === 'accepted' && workout.acceptedSnapshot) {
+      // Try to find existing session
+      const existingSessions = await db
+        .select()
+        .from(workoutSessions)
+        .where(
+          and(
+            eq(workoutSessions.userId, userId),
+            eq(workoutSessions.sourceType, "ai_generated")
+          )
+        )
+        .orderBy(desc(workoutSessions.startTime))
+        .limit(10);
+      
+      // Find session that matches this workout date
+      const workoutDate = new Date(workout.date);
+      for (const session of existingSessions) {
+        const sessionDate = new Date(session.startTime);
+        if (
+          sessionDate.getFullYear() === workoutDate.getFullYear() &&
+          sessionDate.getMonth() === workoutDate.getMonth() &&
+          sessionDate.getDate() === workoutDate.getDate()
+        ) {
+          console.log(`💪 Found existing session for accepted workout: ${session.id}`);
+          return session.id;
+        }
+      }
+    }
+
     const workoutData = workout.workoutData;
-    console.log(`💪 Workout data:`, { focus: workoutData.focus, mainCount: workoutData.main?.length || 0 });
+    console.log(`💪 Workout data:`, { focus: workoutData.focus, mainCount: workoutData.main?.length || 0, accessoriesCount: workoutData.accessories?.length || 0 });
+    
+    // Build accepted snapshot - combine main and accessories with their exercise_ids
+    const acceptedSnapshot = {
+      exercises: [
+        ...(workoutData.main || []).map((ex: any) => ({
+          exercise_id: ex.exercise_id,
+          block: 'main',
+          exercise: ex.exercise,
+          sets: ex.sets,
+          reps: ex.reps,
+          intensity: ex.intensity,
+          rest_seconds: ex.rest_seconds,
+          goal: ex.goal
+        })),
+        ...(workoutData.accessories || []).map((ex: any) => ({
+          exercise_id: ex.exercise_id,
+          block: 'accessories',
+          exercise: ex.exercise,
+          sets: ex.sets,
+          reps: ex.reps,
+          intensity: ex.intensity,
+          rest_seconds: ex.rest_seconds,
+          goal: ex.goal
+        }))
+      ]
+    };
+
+    console.log(`💪 Created accepted snapshot with ${acceptedSnapshot.exercises.length} exercises`);
     
     // Create a new workout session
     const session = await this.createWorkoutSession({
@@ -2086,36 +2144,31 @@ export class DbStorage implements IStorage {
       return match;
     };
 
-    // Add main exercises
-    for (const exercise of workoutData.main || []) {
+    // Add exercises from accepted snapshot ONLY (prevents duplication)
+    for (const exercise of acceptedSnapshot.exercises) {
       const matched = await matchExerciseByName(exercise.exercise);
       if (matched) {
         // Create sets for this exercise
         for (let i = 0; i < exercise.sets; i++) {
           await this.addExerciseSet(session.id, matched.id, userId);
         }
+      } else {
+        console.warn(`💪 Could not match exercise to library: ${exercise.exercise}`);
       }
     }
 
-    // Add accessory exercises
-    for (const exercise of workoutData.accessories || []) {
-      const matched = await matchExerciseByName(exercise.exercise);
-      if (matched) {
-        // Create sets for this exercise
-        for (let i = 0; i < exercise.sets; i++) {
-          await this.addExerciseSet(session.id, matched.id, userId);
-        }
-      }
-    }
-
-    // Update the generated workout status
-    console.log(`💪 Updating workout status to accepted - ID: ${id}`);
+    // Update the generated workout status with accepted snapshot
+    console.log(`💪 Updating workout status to accepted with snapshot - ID: ${id}`);
     const updateResult = await db
       .update(generatedWorkouts)
-      .set({ status: 'accepted', acceptedAt: new Date() })
+      .set({ 
+        status: 'accepted', 
+        acceptedAt: new Date(),
+        acceptedSnapshot: acceptedSnapshot as any
+      })
       .where(and(eq(generatedWorkouts.id, id), eq(generatedWorkouts.userId, userId)))
       .returning();
-    console.log(`💪 Update result:`, updateResult.length > 0 ? `Success - status: ${updateResult[0].status}` : 'No rows updated!');
+    console.log(`💪 Update result:`, updateResult.length > 0 ? `Success - status: ${updateResult[0].status}, exercises: ${acceptedSnapshot.exercises.length}` : 'No rows updated!');
     
     // Return the session ID so the user can be redirected to the workout tracker
     return session.id;
