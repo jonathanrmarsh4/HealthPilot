@@ -1,7 +1,7 @@
 import cron from 'node-cron';
 import { storage } from '../storage';
-import { calculateMetricBaseline } from './baselineComputation';
-import { detectMetricDeviation, getSupportedMetrics } from './thresholdDetection';
+import { calculateMetricBaseline, calculateLabBaseline } from './baselineComputation';
+import { detectMetricDeviation, getSupportedMetrics, detectLabDeviation, getSupportedLabMarkers } from './thresholdDetection';
 import { generateInsightFromDeviation, selectTopInsights, GeneratedInsight } from './insightGeneration';
 import { 
   buildEpisodeViews, 
@@ -164,12 +164,60 @@ export async function generateDailyInsightsForUser(userId: string): Promise<Insi
     }
   }
 
+  //============================================================================
+  // BIOMARKER ANALYSIS
+  //============================================================================
+  
+  // Analyze all supported biomarkers (50+ types)
+  const supportedBiomarkers = getSupportedLabMarkers();
+  console.log(`[DailyInsights] Analyzing ${supportedBiomarkers.length} biomarker types for user ${userId}...`);
+  
+  for (const biomarkerType of supportedBiomarkers) {
+    try {
+      // Get biomarkers of this type from the last 7 days
+      const sevenDaysAgo = new Date(yesterday);
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      
+      const biomarkers = await storage.getBiomarkersByTimeRange(
+        userId,
+        biomarkerType,
+        sevenDaysAgo,
+        yesterday
+      );
+      
+      if (biomarkers.length === 0) {
+        continue; // No data for this biomarker
+      }
+      
+      // Use the most recent biomarker value
+      const latestBiomarker = biomarkers[0];
+      result.metricsAnalyzed++;
+      
+      // Calculate baseline for this biomarker
+      const baseline = await calculateLabBaseline(userId, biomarkerType, yesterday);
+      
+      // Detect deviation
+      const deviation = detectLabDeviation(latestBiomarker.value, baseline, biomarkerType);
+      
+      if (deviation.detected) {
+        allDeviations.push({
+          metric: biomarkerType,
+          deviation,
+        });
+        console.log(`[DailyInsights] Biomarker deviation detected: ${biomarkerType} = ${latestBiomarker.value} (${deviation.direction} ${Math.abs(deviation.percentageDeviation).toFixed(1)}%)`);
+      }
+    } catch (error: any) {
+      console.error(`[DailyInsights] Error analyzing biomarker ${biomarkerType}:`, error);
+      result.errors.push(`${biomarkerType}: ${error.message}`);
+    }
+  }
+
   if (allDeviations.length === 0) {
     console.log(`[DailyInsights] No significant deviations detected for user ${userId}`);
     return result;
   }
 
-  console.log(`[DailyInsights] Found ${allDeviations.length} deviations for user ${userId}`);
+  console.log(`[DailyInsights] Found ${allDeviations.length} deviations for user ${userId} (HealthKit metrics + biomarkers)`);
 
   // Generate AI insights for each deviation
   const generatedInsights: GeneratedInsight[] = [];

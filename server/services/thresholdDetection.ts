@@ -1,4 +1,5 @@
 import { BaselineWindow, MetricBaseline, LabBaseline, getMostReliableBaseline } from './baselineComputation';
+import { BIOMARKER_THRESHOLDS, getBiomarkerThreshold, getSupportedBiomarkers } from '../config/biomarkerThresholds';
 
 /**
  * Threshold Detection Service
@@ -198,50 +199,21 @@ const METRIC_THRESHOLDS: Record<string, MetricThreshold> = {
 };
 
 /**
- * Lab marker threshold configuration
+ * Convert biomarker threshold to metric threshold format
  */
-const LAB_THRESHOLDS: Record<string, MetricThreshold> = {
-  'testosterone_total_ng_dl': {
-    metricName: 'testosterone_total_ng_dl',
-    minPercentageDeviation: 15,
-    criticalPercentageDeviation: 30,
-    direction: 'both',
-    unit: 'ng/dL',
-    description: 'Total testosterone',
-  },
-  'vitamin_d_ng_ml': {
-    metricName: 'vitamin_d_ng_ml',
-    minPercentageDeviation: 20,
-    criticalPercentageDeviation: 40,
-    direction: 'both',
-    unit: 'ng/mL',
-    description: 'Vitamin D (25-OH)',
-  },
-  'cortisol_ug_dl': {
-    metricName: 'cortisol_ug_dl',
-    minPercentageDeviation: 20,
-    criticalPercentageDeviation: 40,
-    direction: 'both',
-    unit: 'μg/dL',
-    description: 'Cortisol',
-  },
-  'crp_mg_l': {
-    metricName: 'crp_mg_l',
-    minPercentageDeviation: 50, // Inflammation markers can fluctuate more
-    criticalPercentageDeviation: 100,
-    direction: 'increase', // Only increases matter
-    unit: 'mg/L',
-    description: 'C-Reactive Protein',
-  },
-  'hemoglobin_g_dl': {
-    metricName: 'hemoglobin_g_dl',
-    minPercentageDeviation: 10,
-    criticalPercentageDeviation: 20,
-    direction: 'both',
-    unit: 'g/dL',
-    description: 'Hemoglobin',
-  },
-};
+function biomarkerToMetricThreshold(biomarkerType: string): MetricThreshold | undefined {
+  const biomarkerThreshold = getBiomarkerThreshold(biomarkerType);
+  if (!biomarkerThreshold) return undefined;
+  
+  return {
+    metricName: biomarkerThreshold.type,
+    minPercentageDeviation: biomarkerThreshold.minPercentageDeviation,
+    criticalPercentageDeviation: biomarkerThreshold.criticalPercentageDeviation,
+    direction: biomarkerThreshold.direction,
+    unit: biomarkerThreshold.unit,
+    description: biomarkerThreshold.description,
+  };
+}
 
 /**
  * Detect deviation from baseline for a metric
@@ -319,16 +291,16 @@ export function detectMetricDeviation(
 }
 
 /**
- * Detect deviation from baseline for a lab marker
+ * Detect deviation from baseline for a lab marker (biomarker)
  */
 export function detectLabDeviation(
   currentValue: number,
   baseline: LabBaseline,
   marker: string
 ): DeviationResult {
-  const threshold = LAB_THRESHOLDS[marker];
+  const threshold = biomarkerToMetricThreshold(marker);
   if (!threshold) {
-    // Unknown lab - use conservative defaults
+    // Unknown biomarker - use conservative defaults
     return createUnknownLabResult(currentValue, baseline, marker);
   }
 
@@ -455,8 +427,8 @@ export function getSupportedMetrics(): string[] {
 }
 
 /**
- * Get list of all supported lab markers
+ * Get list of all supported lab markers (biomarkers)
  */
 export function getSupportedLabMarkers(): string[] {
-  return Object.keys(LAB_THRESHOLDS);
+  return getSupportedBiomarkers();
 }
