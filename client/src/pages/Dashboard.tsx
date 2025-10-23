@@ -14,6 +14,7 @@ import { DataInsightsWidget } from "@/components/DataInsightsWidget";
 import { BiologicalAgeWidget } from "@/components/BiologicalAgeWidget";
 import { ReadinessScoreWidget } from "@/components/ReadinessScoreWidget";
 import { DailyRemindersWidget } from "@/components/DailyRemindersWidget";
+import { SymptomTile } from "@/components/SymptomTile";
 import { UpgradeBanner } from "@/components/UpgradeBanner";
 import { Heart, Activity, Scale, Droplet, TrendingUp, Zap, Apple, AlertCircle, Dumbbell, Settings2, Eye, EyeOff, ChevronUp, ChevronDown, Dna, TrendingDown, Upload, Shield } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -65,6 +66,7 @@ const ALL_OPTIONAL_WIDGETS = [
   "goals-summary",
   "ai-insights",
   "data-insights",
+  "symptoms",
   "daily-reminders",
   "quick-stats",
   "next-workout",
@@ -81,7 +83,8 @@ const DEFAULT_WIDGETS: string[] = [
   "sleep-score",
   "goals-summary",
   "ai-insights",
-  "data-insights"
+  "data-insights",
+  "symptoms"
 ];
 
 const WIDGET_CONFIG: Record<string, { title: string; description: string }> = {
@@ -91,6 +94,7 @@ const WIDGET_CONFIG: Record<string, { title: string; description: string }> = {
   "goals-summary": { title: "Goals Summary", description: "Health and fitness goals progress" },
   "ai-insights": { title: "AI Insights", description: "Daily intelligence and pattern discoveries" },
   "data-insights": { title: "Data Insights", description: "Statistical patterns in your health data" },
+  "symptoms": { title: "Symptoms", description: "Track and monitor health symptoms with AI correlation" },
   "daily-reminders": { title: "Daily Checklist", description: "Track daily health habits and reminders" },
   "quick-stats": { title: "Quick Stats", description: "Daily steps, heart rate, active days, calories" },
   "next-workout": { title: "Next Workout", description: "Upcoming training session" },
@@ -485,6 +489,9 @@ export default function Dashboard() {
 
       case "data-insights":
         return <DataInsightsWidget key={widget} />;
+
+      case "symptoms":
+        return <SymptomTile key={widget} />;
 
       case "next-workout":
         return <NextWorkoutWidget key={widget} />;
