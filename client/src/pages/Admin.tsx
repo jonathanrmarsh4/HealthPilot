@@ -11,7 +11,7 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Shield, Users, TrendingUp, FileText, Activity, Search, Trash2, ChefHat, Tag, ArrowRight, Layout, DollarSign, Image, Dumbbell, Play, FlaskConical } from "lucide-react";
+import { Shield, Users, TrendingUp, FileText, Activity, Search, Trash2, ChefHat, Tag, ArrowRight, Layout, DollarSign, Image, Dumbbell, Play, FlaskConical, Wrench, TestTube } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { User } from "@shared/schema";
@@ -39,6 +39,11 @@ export default function Admin() {
   const [emailConfirmation, setEmailConfirmation] = useState("");
   const [plannerOutput, setPlannerOutput] = useState<string | null>(null);
   const [plannerDialogOpen, setPlannerDialogOpen] = useState(false);
+  const [exerciseResolverTestName, setExerciseResolverTestName] = useState("");
+  const [exerciseResolverTeachAIName, setExerciseResolverTeachAIName] = useState("");
+  const [exerciseResolverTeachCanonicalId, setExerciseResolverTeachCanonicalId] = useState("");
+  const [exerciseResolverOutput, setExerciseResolverOutput] = useState<any | null>(null);
+  const [exerciseResolverDialogOpen, setExerciseResolverDialogOpen] = useState(false);
   const limit = 20;
   const { toast } = useToast();
 
@@ -158,6 +163,50 @@ export default function Admin() {
         title: data.success ? "Demo Complete" : "Demo Failed",
         description: data.success ? "Demo ran successfully" : "Demo encountered errors",
         variant: data.success ? "default" : "destructive",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const testExerciseResolverMutation = useMutation({
+    mutationFn: async (exerciseName: string) => {
+      const res = await apiRequest("POST", "/api/admin/exercise-resolver/test", { exerciseName });
+      return await res.json();
+    },
+    onSuccess: (data: any) => {
+      setExerciseResolverOutput(data);
+      setExerciseResolverDialogOpen(true);
+      toast({
+        title: "Test Complete",
+        description: `Tested exercise name resolution`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const teachAliasMutation = useMutation({
+    mutationFn: async ({ aiName, canonicalId }: { aiName: string; canonicalId: string }) => {
+      const res = await apiRequest("POST", "/api/admin/exercise-resolver/teach-alias", { aiName, canonicalId });
+      return await res.json();
+    },
+    onSuccess: (data: any) => {
+      setExerciseResolverTeachAIName("");
+      setExerciseResolverTeachCanonicalId("");
+      toast({
+        title: "Alias Taught Successfully",
+        description: data.message,
       });
     },
     onError: (error: Error) => {
@@ -457,6 +506,107 @@ export default function Admin() {
         </CardContent>
       </Card>
 
+      <Card data-testid="card-exercise-resolver-tools">
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <Wrench className="w-6 h-6 text-primary" />
+            <div>
+              <CardTitle data-testid="text-exercise-resolver-tools-title">Exercise Resolver Tools</CardTitle>
+              <CardDescription data-testid="text-exercise-resolver-tools-description">
+                Test AI exercise name resolution and teach aliases
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <p className="text-sm font-medium">Test Exercise Name Resolution</p>
+            <p className="text-sm text-muted-foreground">
+              Test how the resolver matches AI-generated exercise names to canonical database exercises.
+            </p>
+            <div className="flex gap-2">
+              <Input
+                placeholder="Enter exercise name (e.g., 'barbell squat', 'db bench', 'rdl')"
+                value={exerciseResolverTestName}
+                onChange={(e) => setExerciseResolverTestName(e.target.value)}
+                data-testid="input-exercise-resolver-test-name"
+                className="flex-1"
+              />
+              <Button
+                onClick={() => {
+                  if (exerciseResolverTestName.trim()) {
+                    testExerciseResolverMutation.mutate(exerciseResolverTestName.trim());
+                  }
+                }}
+                disabled={testExerciseResolverMutation.isPending || !exerciseResolverTestName.trim()}
+                data-testid="button-test-exercise-resolver"
+                variant="default"
+              >
+                {testExerciseResolverMutation.isPending ? (
+                  <>
+                    <TestTube className="w-4 h-4 mr-2 animate-spin" />
+                    Testing...
+                  </>
+                ) : (
+                  <>
+                    <TestTube className="w-4 h-4 mr-2" />
+                    Test
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+
+          <div className="space-y-2 pt-2 border-t">
+            <p className="text-sm font-medium">Teach New Alias</p>
+            <p className="text-sm text-muted-foreground">
+              Teach the resolver to map an AI name to a canonical exercise ID.
+            </p>
+            <div className="flex gap-2">
+              <Input
+                placeholder="AI name (e.g., 'bb squat')"
+                value={exerciseResolverTeachAIName}
+                onChange={(e) => setExerciseResolverTeachAIName(e.target.value)}
+                data-testid="input-exercise-resolver-teach-ai-name"
+                className="flex-1"
+              />
+              <Input
+                placeholder="Canonical exercise ID"
+                value={exerciseResolverTeachCanonicalId}
+                onChange={(e) => setExerciseResolverTeachCanonicalId(e.target.value)}
+                data-testid="input-exercise-resolver-teach-canonical-id"
+                className="flex-1"
+              />
+              <Button
+                onClick={() => {
+                  if (exerciseResolverTeachAIName.trim() && exerciseResolverTeachCanonicalId.trim()) {
+                    teachAliasMutation.mutate({
+                      aiName: exerciseResolverTeachAIName.trim(),
+                      canonicalId: exerciseResolverTeachCanonicalId.trim()
+                    });
+                  }
+                }}
+                disabled={teachAliasMutation.isPending || !exerciseResolverTeachAIName.trim() || !exerciseResolverTeachCanonicalId.trim()}
+                data-testid="button-teach-exercise-alias"
+                variant="outline"
+              >
+                {teachAliasMutation.isPending ? (
+                  <>
+                    <Wrench className="w-4 h-4 mr-2 animate-spin" />
+                    Teaching...
+                  </>
+                ) : (
+                  <>
+                    <Wrench className="w-4 h-4 mr-2" />
+                    Teach
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <Accordion type="single" collapsible className="w-full">
         <AccordionItem value="user-management">
           <Card data-testid="card-user-management">
@@ -679,6 +829,60 @@ export default function Admin() {
             <pre className="text-xs font-mono whitespace-pre-wrap" data-testid="text-planner-output">
               {plannerOutput}
             </pre>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={exerciseResolverDialogOpen} onOpenChange={setExerciseResolverDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh]" data-testid="dialog-exercise-resolver-output">
+          <DialogHeader>
+            <DialogTitle data-testid="text-exercise-resolver-dialog-title">Exercise Resolver Test Results</DialogTitle>
+            <DialogDescription data-testid="text-exercise-resolver-dialog-description">
+              Results from testing exercise name resolution
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="h-[60vh] w-full rounded-md border p-4">
+            {exerciseResolverOutput && (
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm font-medium mb-2">Input:</p>
+                  <p className="text-sm text-muted-foreground font-mono">{exerciseResolverOutput.input}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium mb-2">Resolution Result:</p>
+                  <pre className="text-xs font-mono whitespace-pre-wrap bg-muted p-3 rounded" data-testid="text-exercise-resolver-result">
+                    {JSON.stringify(exerciseResolverOutput.outcome, null, 2)}
+                  </pre>
+                </div>
+                {exerciseResolverOutput.outcome?.kind === "resolved" && (
+                  <div className="p-3 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded">
+                    <p className="text-sm font-medium text-green-900 dark:text-green-100">✅ Resolved Successfully</p>
+                    <p className="text-xs text-green-700 dark:text-green-300 mt-1">
+                      Matched to: {exerciseResolverOutput.outcome.matched_name} (ID: {exerciseResolverOutput.outcome.canonical_id})
+                    </p>
+                    <p className="text-xs text-green-700 dark:text-green-300">
+                      Confidence Score: {(exerciseResolverOutput.outcome.score * 100).toFixed(1)}%
+                    </p>
+                  </div>
+                )}
+                {exerciseResolverOutput.outcome?.kind === "needs_confirmation" && (
+                  <div className="p-3 bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 rounded">
+                    <p className="text-sm font-medium text-yellow-900 dark:text-yellow-100">⚠️ Needs Confirmation</p>
+                    <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
+                      Top {exerciseResolverOutput.outcome.suggestions.length} suggestions found. Consider teaching an alias.
+                    </p>
+                  </div>
+                )}
+                {exerciseResolverOutput.outcome?.kind === "unknown" && (
+                  <div className="p-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded">
+                    <p className="text-sm font-medium text-red-900 dark:text-red-100">❌ Unknown Exercise</p>
+                    <p className="text-xs text-red-700 dark:text-red-300 mt-1">
+                      No matches found. Consider teaching an alias or adding the exercise to the database.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
           </ScrollArea>
         </DialogContent>
       </Dialog>
