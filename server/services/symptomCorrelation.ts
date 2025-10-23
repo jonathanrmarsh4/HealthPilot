@@ -215,7 +215,7 @@ export const CORRELATION_RULES: CorrelationRule[] = [
     explanation: 'New or changed medication temporally associated with onset/worsening.',
     baseConfidence: 0.65,
     confidenceBoosts: [
-      { condition: (s, f) => f.medChangeRecent && f.meds.changedWithinHours! <= 72, boost: 0.1 },
+      { condition: (s, f) => s.lastSeverity >= 6, boost: 0.1 },
     ],
   },
   {
