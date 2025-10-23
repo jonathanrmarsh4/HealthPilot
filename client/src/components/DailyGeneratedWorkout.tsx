@@ -436,8 +436,17 @@ export function DailyGeneratedWorkout() {
                   disabled={acceptMutation.isPending}
                   data-testid="button-start-workout"
                 >
-                  <Dumbbell className="mr-2 h-4 w-4" />
-                  Start Workout
+                  {acceptMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Starting Workout...
+                    </>
+                  ) : (
+                    <>
+                      <Dumbbell className="mr-2 h-4 w-4" />
+                      Start Workout
+                    </>
+                  )}
                 </Button>
               </div>
             )}
