@@ -499,6 +499,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Exercise Resolver Admin Tools
+  app.post("/api/admin/exercise-resolver/test", isAdmin, async (req, res) => {
+    try {
+      const { exerciseName } = req.body;
+      
+      if (!exerciseName || typeof exerciseName !== 'string') {
+        return res.status(400).json({ error: "exerciseName is required and must be a string" });
+      }
+
+      const { resolveAIExercise } = await import("./services/exercise-resolver-adapter");
+      const outcome = await resolveAIExercise(exerciseName, storage, {
+        minAuto: 0.86,
+        deltaGuard: 0.08,
+        topK: 5
+      });
+
+      res.json({
+        success: true,
+        input: exerciseName,
+        outcome
+      });
+    } catch (error: any) {
+      console.error("Error testing exercise resolver:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/admin/exercise-resolver/teach-alias", isAdmin, async (req, res) => {
+    try {
+      const { aiName, canonicalId } = req.body;
+      
+      if (!aiName || typeof aiName !== 'string') {
+        return res.status(400).json({ error: "aiName is required and must be a string" });
+      }
+      if (!canonicalId || typeof canonicalId !== 'string') {
+        return res.status(400).json({ error: "canonicalId is required and must be a string" });
+      }
+
+      // Verify the canonical ID exists in the database
+      const exercise = await storage.getExerciseById(canonicalId);
+      if (!exercise) {
+        return res.status(404).json({ error: `Exercise with ID ${canonicalId} not found` });
+      }
+
+      const { teachAlias } = await import("./services/exercise-resolver-adapter");
+      await teachAlias(aiName, canonicalId, storage);
+
+      res.json({
+        success: true,
+        message: `Taught resolver: "${aiName}" → "${exercise.name}" (${canonicalId})`
+      });
+    } catch (error: any) {
+      console.error("Error teaching exercise resolver:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Privacy & Data Control Routes
   app.post("/api/privacy/export", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
