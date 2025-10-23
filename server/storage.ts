@@ -2098,7 +2098,7 @@ export class DbStorage implements IStorage {
     const workoutData = workout.workoutData;
     console.log(`💪 Workout data:`, { focus: workoutData.focus, mainCount: workoutData.main?.length || 0, accessoriesCount: workoutData.accessories?.length || 0 });
     
-    // Helper to match exercise name to library
+    // Helper to match exercise name to library with improved fuzzy matching
     const matchExerciseByName = async (name: string) => {
       const nameLower = name.toLowerCase();
       const allExercises = await db.select().from(exercises);
@@ -2112,6 +2112,45 @@ export class DbStorage implements IStorage {
         const exNameLower = ex.name.toLowerCase();
         return exNameLower.includes(nameLower) || nameLower.includes(exNameLower);
       });
+      if (match) return match;
+      
+      // Try normalized keyword matching (handles "Face Pull with Cables" → "Cable Face Pulls")
+      const normalizeForMatch = (text: string) => {
+        return text
+          .toLowerCase()
+          .replace(/\b(with|using|on|via|by|the|a|an)\b/g, '') // Remove connector words
+          .replace(/[^\w\s]/g, '') // Remove punctuation
+          .replace(/\s+/g, ' ') // Normalize spaces
+          .trim()
+          .split(' ')
+          .sort()
+          .join(' ');
+      };
+      
+      const normalizedInput = normalizeForMatch(name);
+      match = allExercises.find(ex => {
+        const normalizedEx = normalizeForMatch(ex.name);
+        return normalizedEx === normalizedInput;
+      });
+      if (match) return match;
+      
+      // Try keyword similarity scoring (all keywords from input must be in exercise name)
+      const inputKeywords = normalizeForMatch(name).split(' ').filter(w => w.length > 2);
+      if (inputKeywords.length > 0) {
+        const scoredMatches = allExercises
+          .map(ex => {
+            const exKeywords = normalizeForMatch(ex.name).split(' ').filter(w => w.length > 2);
+            const matchingKeywords = inputKeywords.filter(kw => exKeywords.includes(kw));
+            const score = matchingKeywords.length / inputKeywords.length;
+            return { exercise: ex, score };
+          })
+          .filter(m => m.score >= 0.7) // At least 70% keyword match
+          .sort((a, b) => b.score - a.score);
+        
+        if (scoredMatches.length > 0) {
+          return scoredMatches[0].exercise;
+        }
+      }
       
       return match;
     };
@@ -2472,15 +2511,25 @@ export class DbStorage implements IStorage {
   }
 
   async addExerciseSet(sessionId: string, exerciseId: string, userId: string): Promise<ExerciseSet> {
-    // Get the exercise details to determine tracking type and defaults
-    const exercise = await db
-      .select()
-      .from(exercises)
-      .where(eq(exercises.id, exerciseId))
-      .limit(1);
+    // Check if this is an unmatched exercise (placeholder ID)
+    const isUnmatched = exerciseId.startsWith('unmatched-');
+    let trackingType = 'weight_reps';
+    let equipment = 'other';
     
-    if (!exercise[0]) {
-      throw new Error("Exercise not found");
+    if (!isUnmatched) {
+      // Get the exercise details to determine tracking type and defaults
+      const exercise = await db
+        .select()
+        .from(exercises)
+        .where(eq(exercises.id, exerciseId))
+        .limit(1);
+      
+      if (!exercise[0]) {
+        throw new Error("Exercise not found");
+      }
+      
+      trackingType = exercise[0].trackingType || 'weight_reps';
+      equipment = exercise[0].equipment || 'other';
     }
 
     // Get existing sets for this exercise in this session to calculate next setIndex
@@ -2499,10 +2548,10 @@ export class DbStorage implements IStorage {
     const nextSetIndex = existingSets.length > 0 ? existingSets[0].setIndex + 1 : 1;
     
     // Fetch last used values for this exercise to enable weight memory (progressive overload)
-    const lastValues = await this.getLastExerciseValues(userId, exerciseId);
+    // For unmatched exercises, this will return null
+    const lastValues = isUnmatched ? null : await this.getLastExerciseValues(userId, exerciseId);
     
     // Build set data based on tracking type
-    const trackingType = exercise[0].trackingType || 'weight_reps';
     const setData: any = {
       workoutSessionId: sessionId,
       exerciseId: exerciseId,
@@ -2513,7 +2562,7 @@ export class DbStorage implements IStorage {
     
     // Set type-specific fields - use last values if available, otherwise use defaults
     if (trackingType === 'weight_reps') {
-      const isBodyweight = exercise[0].equipment === 'bodyweight';
+      const isBodyweight = equipment === 'bodyweight';
       // Use last weight if available, otherwise default
       setData.weight = lastValues?.weight !== null && lastValues?.weight !== undefined 
         ? lastValues.weight 

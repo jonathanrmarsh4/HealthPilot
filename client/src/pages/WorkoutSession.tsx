@@ -762,7 +762,10 @@ export default function WorkoutSession() {
   // Add set mutation
   const addSetMutation = useMutation({
     mutationFn: async ({ exerciseId }: { exerciseId: string }) => {
-      return await apiRequest("POST", `/api/workout-sessions/${sessionId}/exercises/${exerciseId}/add-set`, {});
+      const url = instanceId 
+        ? `/api/workout-sessions/${sessionId}/exercises/${exerciseId}/add-set?instanceId=${instanceId}`
+        : `/api/workout-sessions/${sessionId}/exercises/${exerciseId}/add-set`;
+      return await apiRequest("POST", url, {});
     },
     onSuccess: () => {
       // Invalidate both sets and exercises queries to ensure UI updates

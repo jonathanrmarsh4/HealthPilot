@@ -5093,9 +5093,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Workout session not found" });
       }
       
-      // Verify the exercise exists in this session
+      // Verify the exercise exists in this session OR in the workout instance snapshot
       const sessionExercises = await storage.getExercisesForSession(sessionId, userId);
-      const exerciseInSession = sessionExercises.find(ex => ex.id === exerciseId);
+      let exerciseInSession = sessionExercises.find(ex => ex.id === exerciseId);
+      
+      // If not found in sets, check the workout instance snapshot (for unmatched exercises)
+      if (!exerciseInSession) {
+        const instanceId = req.query.instanceId as string | undefined;
+        if (instanceId) {
+          const instance = await storage.getWorkoutInstance(instanceId, userId);
+          if (instance && instance.snapshotData) {
+            const snapshot = instance.snapshotData as any;
+            if (snapshot.exercises) {
+              const exerciseInSnapshot = snapshot.exercises.find((ex: any) => ex.id === exerciseId);
+              if (exerciseInSnapshot) {
+                // Exercise exists in snapshot, allow adding set even though no sets exist yet
+                exerciseInSession = exerciseInSnapshot;
+              }
+            }
+          }
+        }
+      }
+      
       if (!exerciseInSession) {
         return res.status(400).json({ error: "Exercise not found in this workout session" });
       }
