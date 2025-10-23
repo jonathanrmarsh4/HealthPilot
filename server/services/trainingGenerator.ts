@@ -23,6 +23,7 @@ export const DailyWorkoutSchema = z.object({
   warmup: z.array(z.string()),
   main: z.array(
     z.object({
+      exercise_id: z.string().optional(), // Stable identifier for exercise (UUID)
       exercise: z.string(),
       goal: z.enum(["strength", "hypertrophy", "power"]),
       sets: z.number().min(1).max(6),
@@ -34,6 +35,7 @@ export const DailyWorkoutSchema = z.object({
   ),
   accessories: z.array(
     z.object({
+      exercise_id: z.string().optional(), // Stable identifier for exercise (UUID)
       exercise: z.string(),
       goal: z.string(),
       sets: z.number(),
@@ -56,7 +58,19 @@ export const DailyWorkoutSchema = z.object({
     volume_sets_estimate: z.record(z.number()),
     weekly_volume_guardrail_ok: z.boolean(),
     reasoning: z.string()
-  })
+  }),
+  time_budget: z.object({
+    warmup_min: z.number().int().nonnegative(),
+    per_exercise_min: z.array(z.number().int().positive()),
+    conditioning_min: z.number().int().nonnegative(),
+    cooldown_min: z.number().int().nonnegative(),
+    total_min: z.number().int().positive()
+  }).optional(),
+  min_exercise_policy: z.object({
+    session_minutes: z.number().int().positive(),
+    minimum_exercise_count: z.number().int().positive(),
+    achieved_exercise_count: z.number().int().nonnegative()
+  }).optional()
 });
 
 export type DailyWorkout = z.infer<typeof DailyWorkoutSchema>;
@@ -244,6 +258,14 @@ You are HealthPilot Coach, an expert strength & conditioning planner.
 Always follow ACSM, NSCA and WHO guardrails.
 Never output text or commentary—JSON only.
 
+HARD RULES (CRITICAL - NEVER VIOLATE):
+1) Compute minimum_exercise_count = ceil((session_minutes / 60) * 5). Never output fewer than minimum_exercise_count items across main + accessories.
+2) Low readiness (amber/red) reduces load/sets/rest and may shorten conditioning, BUT it MUST NOT reduce the exercise count below minimum_exercise_count. Prefer more technique/light accessories when fatigued.
+3) Honor user 'session_minutes' as the primary time budget; do not exceed it. If needed, trim conditioning first, then reduce sets per exercise. Keep exercise count ≥ minimum_exercise_count.
+4) If main block < 3 items, add accessories/skill/rehab work to meet minimum_exercise_count while staying within time.
+5) Always include a 'time_budget' field that estimates minutes for warmup, each exercise, conditioning, and cooldown. Total must be ≤ session_minutes.
+6) Each exercise in main and accessories MUST have a unique exercise_id (use UUID v4 format like "550e8400-e29b-41d4-a716-446655440000").
+
 Guardrails:
 - Strength: 1–6 reps @75–90%1RM RPE7–9, rest 120-240s
 - Hypertrophy: 6–12 reps @65–80%1RM RPE6–8, rest 60-120s
@@ -251,7 +273,6 @@ Guardrails:
 - Weekly volume: 8-20 sets per muscle group
 - Session time caps: beginner 45min, intermediate 60min, advanced 75min
 - HR Zones: HRmax = 208 - 0.7*age, Z2 = 60-70% HRmax, Z3 = 70-80% HRmax
-- REQUIRED: Include 3-4 main compound exercises and 2-4 accessory exercises per session
 
 Safety Rules:
 - If contraindications or red flags detected: set safety.flag=true
@@ -265,6 +286,7 @@ Output Requirements:
 - Provide progression notes based on recent training history
 - Estimate total volume per muscle group
 - Ensure weekly volume stays within 8-20 sets per muscle group
+- Fill time budget efficiently: prefer adding low-load accessories (technique/rehab/mobility/isolation) over reducing exercise count
 
 Exercise Variety Guidelines:
 - PRIORITIZE variety: Select different exercises from those listed in recently_used_exercises

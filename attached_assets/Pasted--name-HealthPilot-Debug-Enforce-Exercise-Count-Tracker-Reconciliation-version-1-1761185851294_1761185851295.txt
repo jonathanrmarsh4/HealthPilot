@@ -1,0 +1,130 @@
+{
+  "name": "HealthPilot — Debug & Enforce Exercise Count + Tracker Reconciliation",
+  "version": "1.0.0",
+  "goal": "Fix sessions generating only 2–3 exercises, enforce a minimum of 5 exercises per hour (scaled with session length), ensure session duration honors user preferences, and stop duplicate/unapproved exercises appearing in the workout tracker after acceptance.",
+  "instructions_to_ai": "You are a senior S&C + platform engineer. Apply the patches below. Return ONLY the changed code blocks and the updated prompt fragments exactly as instructed in OUTPUT_FORMAT. Do not add prose.",
+  "patches": {
+    "model_prompt_updates": {
+      "insert_into_system_message": [
+        "HARD RULES:",
+        "1) Compute minimum_exercise_count = ceil((session_minutes / 60) * 5). Never output fewer than minimum_exercise_count items across main + accessories.",
+        "2) Low readiness (amber/red) reduces load/sets/rest and may shorten conditioning, BUT it MUST NOT reduce the exercise count below minimum_exercise_count. Prefer more technique/light accessories when fatigued.",
+        "3) Honor user 'session_minutes' as the primary time budget; do not exceed it. If needed, trim conditioning first, then reduce sets per exercise. Keep exercise count ≥ minimum_exercise_count.",
+        "4) If main block < 3 items, add accessories/skill/rehab work to meet minimum_exercise_count while staying within time.",
+        "5) Always include a 'time_budget' field that estimates minutes for warmup, each exercise, conditioning, and cooldown. Total must be ≤ session_minutes.",
+        "6) Never add unseen exercises after user acceptance; only the accepted list should be emitted to the tracker."
+      ],
+      "add_to_OUTPUT_SCHEMA": {
+        "time_budget": {
+          "type": "object",
+          "required": ["warmup_min", "per_exercise_min", "conditioning_min", "cooldown_min", "total_min"],
+          "properties": {
+            "warmup_min": { "type": "integer" },
+            "per_exercise_min": { "type": "array", "items": { "type": "integer" } },
+            "conditioning_min": { "type": "integer" },
+            "cooldown_min": { "type": "integer" },
+            "total_min": { "type": "integer" }
+          }
+        },
+        "min_exercise_policy": {
+          "type": "object",
+          "required": ["session_minutes", "minimum_exercise_count", "achieved_exercise_count"],
+          "properties": {
+            "session_minutes": { "type": "integer" },
+            "minimum_exercise_count": { "type": "integer" },
+            "achieved_exercise_count": { "type": "integer" }
+          }
+        }
+      },
+      "enforce_count_in_generator": [
+        "Before emitting the plan, compute: minimum_exercise_count = ceil((INPUT.availability.session_minutes / 60) * 5).",
+        "Ensure length(main) + length(accessories) ≥ minimum_exercise_count.",
+        "If not, append low-load accessories (technique/rehab/mobility/isolation) that match equipment and constraints, with short rest and tight tempo, until the count is satisfied AND total time ≤ session_minutes."
+      ]
+    },
+    "server_validation_updates": {
+      "typescript_patch": {
+        "file": "pages/api/training/generate-daily-session.ts",
+        "find": "const result = DailyWorkoutSchema.parse(parsed);",
+        "replace_with": "const result = DailyWorkoutSchema.parse(parsed);\n\n// ⬇️ Enforce 5-per-hour minimum without reducing count on low readiness\nconst sessionMinutes = Number((data?.availability?.session_minutes ?? 60));\nconst minExercises = Math.ceil((sessionMinutes / 60) * 5);\nconst exerciseCount = (result.main?.length || 0) + (result.accessories?.length || 0);\nif (exerciseCount < minExercises) {\n  throw new Error(`Plan under-filled: ${exerciseCount} < required ${minExercises} exercises for ${sessionMinutes} min session.`);\n}\n\n// Time budget check (optional if model emits time_budget)\nif (result.time_budget?.total_min && result.time_budget.total_min > sessionMinutes) {\n  throw new Error(`Time overflow: ${result.time_budget.total_min} > ${sessionMinutes} min budget.`);\n}"
+      },
+      "zod_schema_extension": {
+        "file": "schemas/dailyWorkout.ts",
+        "append_to_schema": "time_budget: z.object({ warmup_min: z.number().int().nonnegative(), per_exercise_min: z.array(z.number().int().positive()), conditioning_min: z.number().int().nonnegative(), cooldown_min: z.number().int().nonnegative(), total_min: z.number().int().positive() }).optional(),\nmin_exercise_policy: z.object({ session_minutes: z.number().int().positive(), minimum_exercise_count: z.number().int().positive(), achieved_exercise_count: z.number().int().nonnegative() }).optional()"
+      }
+    },
+    "workout_tracker_reconciliation": {
+      "bug_description": "After acceptance, tracker shows 4 exercises (2 accepted + 2 unexpected). Likely due to merging draft plan with accepted plan or stale cache.",
+      "fix_spec": [
+        "1) Introduce stable identifiers: session_id (UUID v4) and exercise_id for every item in main/accessories.",
+        "2) Acceptance Contract: client sends { session_id, accepted_exercise_ids[] }. Server must return ONLY those exercises in the tracker payload. No auto-append.",
+        "3) On server, resolve the authoritative list as: accepted = plan.exercises.filter(e => accepted_exercise_ids.includes(e.exercise_id)); never union with previous draft.",
+        "4) Dedupe guard: enforce uniqueness on (session_id, exercise_id) at DB level; reject duplicates.",
+        "5) Cache busting: when user accepts, invalidate any 'draft' cache keys for that session_id."
+      ],
+      "typescript_helpers": [
+        {
+          "file": "server/workout-accept.ts",
+          "content": "import { db } from './db';\nexport async function acceptWorkout({ userId, sessionId, acceptedIds }) {\n  const plan = await db.workout.findUnique({ where: { userId_sessionId: { userId, sessionId } } });\n  if (!plan) throw new Error('Plan not found');\n  const allExercises = [...(plan.workout.main || []), ...(plan.workout.accessories || [])];\n  const accepted = allExercises.filter((e: any) => acceptedIds.includes(e.exercise_id));\n  // Authoritative write\n  await db.workout.update({ where: { userId_sessionId: { userId, sessionId } }, data: { workout: { ...plan.workout, main: accepted.filter((e: any) => e.block === 'main'), accessories: accepted.filter((e: any) => e.block === 'accessories') }, status: 'accepted' } });\n  // Invalidate draft cache\n  await db.cache.delete(`draft:${userId}:${sessionId}`).catch(() => {});\n  return { session_id: sessionId, exercises: accepted };\n}"
+        }
+      ],
+      "client_contract_update": {
+        "accept_payload": {
+          "session_id": "string (uuid)",
+          "accepted_exercise_ids": ["string"]
+        },
+        "tracker_payload": {
+          "session_id": "string (uuid)",
+          "exercises": [
+            {
+              "exercise_id": "string",
+              "name": "string",
+              "block": "main|accessories",
+              "sets": "number",
+              "reps": "number",
+              "rest_seconds": "number",
+              "tempo": "string?"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "unit_tests": {
+    "cases": [
+      {
+        "name": "Enforces 5-per-hour minimum at 60 min",
+        "input": { "availability": { "session_minutes": 60 }, "model_output_counts": { "main": 2, "accessories": 1 } },
+        "expect": "server throws under-filled error; model must regenerate with ≥5 exercises"
+      },
+      {
+        "name": "Scaled minimum at 45 min",
+        "input": { "availability": { "session_minutes": 45 }, "model_output_counts": { "main": 2, "accessories": 2 } },
+        "expect": "ceil(45/60*5)=4; pass if total≥4"
+      },
+      {
+        "name": "Readiness red maintains count but reduces intensity",
+        "input": { "recovery_state": "red" },
+        "expect": "exercise count unchanged; sets/intensity/rest reduced; conditioning trimmed first"
+      },
+      {
+        "name": "Tracker returns only accepted exercises",
+        "input": { "session_id": "uuid", "accepted_exercise_ids": ["e1","e3"] },
+        "expect": "tracker payload lists exactly e1,e3; no other exercises"
+      }
+    ]
+  },
+  "dev_notes": [
+    "Compute min_exercises on both model and server for belt-and-braces.",
+    "Prefer adding short, low-risk accessories (e.g., face pulls, calf raises, band work, light single-joint) to satisfy count without blowing time budget.",
+    "When in doubt, keep main lifts 2–4 items; fill count with accessories while keeping total time ≤ session_minutes."
+  ],
+  "OUTPUT_FORMAT": {
+    "return": [
+      { "type": "code_patch", "file": "pages/api/training/generate-daily-session.ts" },
+      { "type": "schema_patch", "file": "schemas/dailyWorkout.ts" },
+      { "type": "prompt_patch", "section": "system_message|OUTPUT_SCHEMA" },
+      { "type": "helper_file", "file": "server/workout-accept.ts" }
+    ]
+  }
+}
