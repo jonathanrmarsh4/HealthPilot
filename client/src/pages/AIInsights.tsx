@@ -208,6 +208,7 @@ export default function AIInsights() {
         <Button 
           onClick={() => generateMutation.mutate()} 
           disabled={generateMutation.isPending}
+          className="w-full sm:w-auto"
           data-testid="button-generate-insights"
         >
           {generateMutation.isPending ? (
@@ -289,9 +290,9 @@ export default function AIInsights() {
 
       {exerciseRecommendations && exerciseRecommendations.filter((e: any) => e.status === "pending" || e.status === "scheduled").length > 0 && (
         <div>
-          <h2 className="text-2xl font-semibold mb-6 flex items-center gap-2">
-            <Activity className="h-6 w-6 text-primary" />
-            AI Exercise Recommendations
+          <h2 className="text-xl sm:text-2xl font-semibold mb-6 flex items-center gap-2 break-words">
+            <Activity className="h-5 w-5 sm:h-6 sm:w-6 text-primary shrink-0" />
+            <span>AI Exercise Recommendations</span>
           </h2>
           {exerciseLoading ? (
             <div className="space-y-4">
@@ -324,7 +325,7 @@ export default function AIInsights() {
       )}
 
       <div>
-        <h2 className="text-2xl font-semibold mb-6">Personalized Recommendations</h2>
+        <h2 className="text-xl sm:text-2xl font-semibold mb-6 break-words">Personalized Recommendations</h2>
         {recommendationsLoading ? (
           <div className="space-y-6">
             {[...Array(3)].map((_, i) => (

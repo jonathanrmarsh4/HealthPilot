@@ -141,32 +141,33 @@ export function ExerciseRecommendationCard({
     <>
       <Card className="hover-elevate" data-testid={`card-exercise-${recommendation.id}`}>
         <CardHeader>
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex items-start gap-3 flex-1">
+          <div className="flex flex-col gap-3">
+            <div className="flex items-start gap-3">
               <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-md ${typeColor}/10`}>
                 <Activity className={`h-5 w-5 ${typeColor.replace('bg-', 'text-')}`} />
               </div>
-              <div className="flex-1 space-y-1">
+              <div className="flex-1 min-w-0 space-y-1">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <CardTitle className="text-base">{recommendation.exerciseName}</CardTitle>
-                  <Badge variant="outline" className="text-xs capitalize">
+                  <CardTitle className="text-base break-words">{recommendation.exerciseName}</CardTitle>
+                  <Badge variant="outline" className="text-xs capitalize whitespace-nowrap">
                     {recommendation.exerciseType}
                   </Badge>
-                  <Badge variant="secondary" className="text-xs">
+                  <Badge variant="secondary" className="text-xs whitespace-nowrap">
                     {frequencyLabels[recommendation.frequency] || recommendation.frequency}
                   </Badge>
                 </div>
-                <p className="text-sm text-muted-foreground">{recommendation.description}</p>
+                <p className="text-sm text-muted-foreground break-words">{recommendation.description}</p>
               </div>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="shrink-0"
+                onClick={() => setExpanded(!expanded)}
+                data-testid="button-expand-exercise"
+              >
+                {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </Button>
             </div>
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={() => setExpanded(!expanded)}
-              data-testid="button-expand-exercise"
-            >
-              {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-            </Button>
           </div>
         </CardHeader>
 

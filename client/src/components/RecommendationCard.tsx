@@ -66,19 +66,19 @@ export function RecommendationCard({
   return (
     <Card className="hover-elevate" data-testid={`card-recommendation-${title.toLowerCase().replace(/\s/g, "-")}`}>
       <CardHeader>
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-start gap-3 flex-1">
+        <div className="flex flex-col gap-4">
+          <div className="flex items-start gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10">
               <Icon className="h-5 w-5 text-primary" />
             </div>
-            <div className="flex-1 space-y-1">
+            <div className="flex-1 min-w-0 space-y-1">
               <div className="flex items-center gap-2 flex-wrap">
-                <CardTitle className="text-base">{title}</CardTitle>
-                <Badge variant="outline" className="text-xs">
+                <CardTitle className="text-base break-words">{title}</CardTitle>
+                <Badge variant="outline" className="text-xs whitespace-nowrap">
                   {category}
                 </Badge>
               </div>
-              <p className="text-sm text-muted-foreground">{description}</p>
+              <p className="text-sm text-muted-foreground break-words">{description}</p>
               {citations.length > 0 && (
                 <div className="flex items-center gap-1 flex-wrap mt-2">
                   <TooltipProvider>
@@ -127,10 +127,10 @@ export function RecommendationCard({
               )}
             </div>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <Badge className={config.badge}>{config.label}</Badge>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Badge className={`${config.badge} whitespace-nowrap`}>{config.label}</Badge>
             {onFeedback && (
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1 ml-auto">
                 <Button
                   size="icon"
                   variant="ghost"
@@ -158,13 +158,14 @@ export function RecommendationCard({
         <CardContent className="space-y-4">
           {details && (
             <div className="rounded-md bg-muted/50 p-4">
-              <p className="text-sm text-foreground">{details}</p>
+              <p className="text-sm text-foreground break-words">{details}</p>
             </div>
           )}
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button 
               size="sm" 
               onClick={handleAction}
+              className="flex-1 min-w-[120px]"
               data-testid={`button-${actionLabel.toLowerCase().replace(/\s/g, "-")}`}
             >
               {actionLabel}
@@ -175,6 +176,7 @@ export function RecommendationCard({
                 size="sm"
                 variant="outline"
                 onClick={() => setExpanded(!expanded)}
+                className="flex-1 min-w-[120px]"
                 data-testid="button-toggle-details"
               >
                 {expanded ? "Show Less" : "Show More"}
