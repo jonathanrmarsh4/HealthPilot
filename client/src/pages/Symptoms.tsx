@@ -88,25 +88,22 @@ export default function Symptoms() {
       const now = new Date().toISOString();
       const episodeId = crypto.randomUUID();
       
-      return apiRequest("/api/symptoms/events", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: data.name,
-          episodeId,
-          status: "new",
-          severity: data.severity,
-          trend: data.trend || null,
-          context: data.context,
-          notes: data.notes || null,
-          signals: null,
-          startedAt: now,
-          recordedAt: now,
-          endedAt: null,
-          source: "user",
-          version: 1,
-        }),
+      const response = await apiRequest("POST", "/api/symptoms/events", {
+        name: data.name,
+        episodeId,
+        status: "new",
+        severity: data.severity,
+        trend: data.trend || null,
+        context: data.context,
+        notes: data.notes || null,
+        signals: null,
+        startedAt: now,
+        recordedAt: now,
+        endedAt: null,
+        source: "user",
+        version: 1,
       });
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/symptoms/active"] });
@@ -135,25 +132,22 @@ export default function Symptoms() {
       
       if (!episode) throw new Error("Episode not found");
       
-      return apiRequest("/api/symptoms/events", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: episode.name,
-          episodeId,
-          status: "ongoing",
-          severity: episode.severity,
-          trend,
-          context: episode.context,
-          notes: null,
-          signals: null,
-          startedAt: episode.startedAt,
-          recordedAt: now,
-          endedAt: null,
-          source: "user",
-          version: 1,
-        }),
+      const response = await apiRequest("POST", "/api/symptoms/events", {
+        name: episode.name,
+        episodeId,
+        status: "ongoing",
+        severity: episode.severity,
+        trend,
+        context: episode.context,
+        notes: null,
+        signals: null,
+        startedAt: episode.startedAt,
+        recordedAt: now,
+        endedAt: null,
+        source: "user",
+        version: 1,
       });
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/symptoms/active"] });
@@ -167,11 +161,10 @@ export default function Symptoms() {
 
   const resolveEpisodeMutation = useMutation({
     mutationFn: async (episodeId: string) => {
-      return apiRequest(`/api/symptoms/episodes/${episodeId}/resolve`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ endedAt: new Date().toISOString() }),
+      const response = await apiRequest("PATCH", `/api/symptoms/episodes/${episodeId}/resolve`, {
+        endedAt: new Date().toISOString(),
       });
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/symptoms/active"] });

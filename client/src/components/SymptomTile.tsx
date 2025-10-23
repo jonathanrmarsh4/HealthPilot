@@ -36,25 +36,22 @@ export function SymptomTile() {
       
       if (!episode) throw new Error("Episode not found");
       
-      return apiRequest("/api/symptoms/events", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: episode.name,
-          episodeId,
-          status: "ongoing",
-          severity: episode.severity,
-          trend,
-          context: episode.context,
-          notes: null,
-          signals: null,
-          startedAt: episode.startedAt,
-          recordedAt: now,
-          endedAt: null,
-          source: "user",
-          version: 1,
-        }),
+      const response = await apiRequest("POST", "/api/symptoms/events", {
+        name: episode.name,
+        episodeId,
+        status: "ongoing",
+        severity: episode.severity,
+        trend,
+        context: episode.context,
+        notes: null,
+        signals: null,
+        startedAt: episode.startedAt,
+        recordedAt: now,
+        endedAt: null,
+        source: "user",
+        version: 1,
       });
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/symptoms/active"] });
@@ -67,11 +64,10 @@ export function SymptomTile() {
 
   const resolveEpisodeMutation = useMutation({
     mutationFn: async (episodeId: string) => {
-      return apiRequest(`/api/symptoms/episodes/${episodeId}/resolve`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ endedAt: new Date().toISOString() }),
+      const response = await apiRequest("PATCH", `/api/symptoms/episodes/${episodeId}/resolve`, {
+        endedAt: new Date().toISOString(),
       });
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/symptoms/active"] });
