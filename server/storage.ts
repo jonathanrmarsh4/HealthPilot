@@ -2043,13 +2043,18 @@ export class DbStorage implements IStorage {
   }
 
   async acceptGeneratedWorkout(id: string, userId: string): Promise<void> {
+    console.log(`💪 acceptGeneratedWorkout called - ID: ${id}, UserId: ${userId}`);
+    
     // Get the generated workout by ID
     const workout = await this.getGeneratedWorkoutById(id, userId);
+    console.log(`💪 getGeneratedWorkoutById result:`, workout ? `Found workout with status: ${workout.status}` : 'Not found');
+    
     if (!workout) {
       throw new Error("Generated workout not found");
     }
 
     const workoutData = workout.workoutData;
+    console.log(`💪 Workout data:`, { focus: workoutData.focus, mainCount: workoutData.main?.length || 0 });
     
     // Create a new workout session
     const session = await this.createWorkoutSession({
@@ -2104,10 +2109,13 @@ export class DbStorage implements IStorage {
     }
 
     // Update the generated workout status
-    await db
+    console.log(`💪 Updating workout status to accepted - ID: ${id}`);
+    const updateResult = await db
       .update(generatedWorkouts)
       .set({ status: 'accepted', acceptedAt: new Date() })
-      .where(and(eq(generatedWorkouts.id, id), eq(generatedWorkouts.userId, userId)));
+      .where(and(eq(generatedWorkouts.id, id), eq(generatedWorkouts.userId, userId)))
+      .returning();
+    console.log(`💪 Update result:`, updateResult.length > 0 ? `Success - status: ${updateResult[0].status}` : 'No rows updated!');
   }
 
   async rejectGeneratedWorkout(id: string, userId: string): Promise<void> {

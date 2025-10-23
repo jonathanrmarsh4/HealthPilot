@@ -5279,11 +5279,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const userId = (req.user as any).claims.sub;
     const { id } = req.params;
     
+    console.log(`✅ Accept workout request - ID: ${id}, UserId: ${userId}`);
+    
     try {
       await storage.acceptGeneratedWorkout(id, userId);
+      console.log(`✅ Workout accepted successfully - ID: ${id}`);
       res.json({ success: true });
     } catch (error: any) {
-      console.error("Error accepting workout:", error);
+      console.error("❌ Error accepting workout:", error);
       res.status(500).json({ error: error.message });
     }
   });
