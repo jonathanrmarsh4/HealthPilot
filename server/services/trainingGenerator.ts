@@ -260,6 +260,14 @@ export async function buildUserContext(storage: IStorage, userId: string, target
 // Core function to generate one daily plan
 // ──────────────────────────────────────────────
 export async function generateDailySession(data: any, regenerationCount: number = 0): Promise<DailyWorkout> {
+  // Log generation input
+  console.log(`🏋️ Generating workout with data:`, {
+    sessionMinutes: data?.availability?.session_minutes,
+    daysPerWeek: data?.availability?.days_per_week,
+    goal: data?.user_profile?.goal,
+    experienceLevel: data?.user_profile?.experience_level
+  });
+  
   const systemPrompt = `
 You are HealthPilot Coach, an expert strength & conditioning planner.
 Always follow ACSM, NSCA and WHO guardrails.
@@ -418,7 +426,18 @@ REQUIRED OUTPUT SCHEMA (return this exact structure at the root level):
   const sessionMinutes = Number(data?.availability?.session_minutes ?? 60);
   const minExercises = Math.ceil((sessionMinutes / 60) * 5);
   const exerciseCount = (result.main?.length || 0) + (result.accessories?.length || 0);
+  
+  console.log(`🏋️ Exercise count validation:`, {
+    sessionMinutes,
+    minRequired: minExercises,
+    mainExercises: result.main?.length || 0,
+    accessoryExercises: result.accessories?.length || 0,
+    totalGenerated: exerciseCount,
+    passed: exerciseCount >= minExercises
+  });
+  
   if (exerciseCount < minExercises) {
+    console.error(`❌ Exercise count validation FAILED: ${exerciseCount} < ${minExercises}`);
     throw new Error(
       `Plan under-filled: ${exerciseCount} < required ${minExercises} exercises for ${sessionMinutes}-min session. ` +
       `Regenerate with more exercises (add light accessories/technique work if needed).`

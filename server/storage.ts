@@ -2112,10 +2112,12 @@ export class DbStorage implements IStorage {
       ]
     };
 
-    console.log(`💪 Created accepted snapshot with ${acceptedSnapshot.exercises.length} exercises`);
+    console.log(`💪 Created accepted snapshot with ${acceptedSnapshot.exercises.length} exercises:`, JSON.stringify(acceptedSnapshot.exercises.map(e => ({ id: e.exercise_id, name: e.exercise, sets: e.sets })), null, 2));
     
     // ⬇️ CRITICAL: Write snapshot to database FIRST to ensure atomicity
-    console.log(`💪 Updating workout status to accepted with snapshot - ID: ${id}`);
+    console.log(`💪 Updating workout status to accepted with snapshot - ID: ${id}, UserId: ${userId}`);
+    console.log(`💪 Snapshot being saved:`, { exerciseCount: acceptedSnapshot.exercises.length, snapshotSize: JSON.stringify(acceptedSnapshot).length });
+    
     const updateResult = await db
       .update(generatedWorkouts)
       .set({ 
@@ -2125,7 +2127,10 @@ export class DbStorage implements IStorage {
       })
       .where(and(eq(generatedWorkouts.id, id), eq(generatedWorkouts.userId, userId)))
       .returning();
-    console.log(`💪 Update result:`, updateResult.length > 0 ? `Success - status: ${updateResult[0].status}, exercises: ${acceptedSnapshot.exercises.length}` : 'No rows updated!');
+      
+    console.log(`💪 Update result:`, updateResult.length > 0 
+      ? `✅ Success - status: ${updateResult[0].status}, snapshot saved: ${updateResult[0].acceptedSnapshot !== null}, exercises in snapshot: ${acceptedSnapshot.exercises.length}` 
+      : '❌ No rows updated!');
     
     // Create a new workout session
     const session = await this.createWorkoutSession({
