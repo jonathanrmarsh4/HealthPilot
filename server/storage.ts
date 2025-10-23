@@ -68,6 +68,8 @@ import {
   type InsertInsightFeedback,
   type AiAction,
   type InsertAiAction,
+  type SymptomEvent,
+  type InsertSymptomEvent,
   type MealLibrary,
   type InsertMealLibrary,
   type MealFeedback,
@@ -147,6 +149,7 @@ import {
   generatedWorkouts,
   goals,
   aiActions,
+  symptomEvents,
   exerciseFeedback,
   recoveryProtocols,
   userProtocolPreferences,
@@ -391,6 +394,14 @@ export interface IStorage {
   createAiAction(action: InsertAiAction): Promise<AiAction>;
   getAiActions(userId: string, limit?: number): Promise<AiAction[]>;
   getAiActionsByType(userId: string, actionType: string): Promise<AiAction[]>;
+  
+  // Symptom Tracking
+  createSymptomEvent(event: InsertSymptomEvent): Promise<SymptomEvent>;
+  getSymptomEvents(userId: string, limit?: number): Promise<SymptomEvent[]>;
+  getActiveSymptomEpisodes(userId: string): Promise<SymptomEvent[]>;
+  getSymptomEpisodeEvents(userId: string, episodeId: string): Promise<SymptomEvent[]>;
+  updateSymptomEvent(id: string, userId: string, data: Partial<SymptomEvent>): Promise<SymptomEvent | undefined>;
+  resolveSymptomEpisode(episodeId: string, userId: string, endedAt: Date): Promise<void>;
   
   createExerciseFeedback(feedback: InsertExerciseFeedback): Promise<ExerciseFeedback>;
   getExerciseFeedback(userId: string, limit?: number): Promise<ExerciseFeedback[]>;
@@ -3119,6 +3130,84 @@ export class DbStorage implements IStorage {
       .from(aiActions)
       .where(and(eq(aiActions.userId, userId), eq(aiActions.actionType, actionType)))
       .orderBy(desc(aiActions.createdAt));
+  }
+
+  // Symptom Tracking methods
+  async createSymptomEvent(event: InsertSymptomEvent): Promise<SymptomEvent> {
+    const result = await db.insert(symptomEvents).values(event).returning();
+    return result[0];
+  }
+
+  async getSymptomEvents(userId: string, limit: number = 100): Promise<SymptomEvent[]> {
+    return await db
+      .select()
+      .from(symptomEvents)
+      .where(eq(symptomEvents.userId, userId))
+      .orderBy(desc(symptomEvents.recordedAt))
+      .limit(limit);
+  }
+
+  async getActiveSymptomEpisodes(userId: string): Promise<SymptomEvent[]> {
+    // Get the most recent event for each active episode (where status != 'resolved')
+    const allEvents = await db
+      .select()
+      .from(symptomEvents)
+      .where(
+        and(
+          eq(symptomEvents.userId, userId),
+          sql`${symptomEvents.status} != 'resolved'`
+        )
+      )
+      .orderBy(desc(symptomEvents.recordedAt));
+
+    // Group by episodeId and take only the most recent event for each episode
+    const episodeMap = new Map<string, SymptomEvent>();
+    for (const event of allEvents) {
+      if (!episodeMap.has(event.episodeId)) {
+        episodeMap.set(event.episodeId, event);
+      }
+    }
+    return Array.from(episodeMap.values());
+  }
+
+  async getSymptomEpisodeEvents(userId: string, episodeId: string): Promise<SymptomEvent[]> {
+    return await db
+      .select()
+      .from(symptomEvents)
+      .where(
+        and(
+          eq(symptomEvents.userId, userId),
+          eq(symptomEvents.episodeId, episodeId)
+        )
+      )
+      .orderBy(desc(symptomEvents.recordedAt));
+  }
+
+  async updateSymptomEvent(id: string, userId: string, data: Partial<SymptomEvent>): Promise<SymptomEvent | undefined> {
+    const result = await db
+      .update(symptomEvents)
+      .set(data)
+      .where(and(eq(symptomEvents.id, id), eq(symptomEvents.userId, userId)))
+      .returning();
+    return result[0];
+  }
+
+  async resolveSymptomEpisode(episodeId: string, userId: string, endedAt: Date): Promise<void> {
+    // Update all events in this episode to status='resolved' and set endedAt
+    await db
+      .update(symptomEvents)
+      .set({
+        status: 'resolved',
+        endedAt,
+        severity: null,
+        trend: null,
+      })
+      .where(
+        and(
+          eq(symptomEvents.userId, userId),
+          eq(symptomEvents.episodeId, episodeId)
+        )
+      );
   }
 
   async createExerciseFeedback(feedback: InsertExerciseFeedback): Promise<ExerciseFeedback> {
