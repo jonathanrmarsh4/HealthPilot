@@ -318,7 +318,7 @@ export interface IStorage {
   getGeneratedWorkout(userId: string, date: string): Promise<GeneratedWorkout | undefined>;
   getGeneratedWorkouts(userId: string, startDate?: string, endDate?: string): Promise<GeneratedWorkout[]>;
   updateGeneratedWorkout(id: string, userId: string, data: Partial<GeneratedWorkout>): Promise<GeneratedWorkout | undefined>;
-  acceptGeneratedWorkout(id: string, userId: string): Promise<void>;
+  acceptGeneratedWorkout(id: string, userId: string): Promise<{ sessionId: string; instanceId: string }>;
   rejectGeneratedWorkout(id: string, userId: string): Promise<void>;
   
   createWorkoutInstance(instance: InsertWorkoutInstance): Promise<WorkoutInstance>;
@@ -2042,7 +2042,7 @@ export class DbStorage implements IStorage {
     return result[0];
   }
 
-  async acceptGeneratedWorkout(id: string, userId: string): Promise<string> {
+  async acceptGeneratedWorkout(id: string, userId: string): Promise<{ sessionId: string; instanceId: string }> {
     console.log(`💪 acceptGeneratedWorkout called - ID: ${id}, UserId: ${userId}`);
     
     // Get the generated workout by ID
@@ -2162,6 +2162,19 @@ export class DbStorage implements IStorage {
       return match;
     };
 
+    // Create workout instance with snapshot FIRST (contains ALL exercises)
+    // This ensures the tracker loads exercises from the snapshot, not the database
+    const instance = await this.createWorkoutInstance({
+      userId,
+      workoutSessionId: session.id,
+      workoutType: workoutData.focus || "AI Generated Training",
+      sourceType: "ai_generated",
+      sourceId: id, // Reference the generated workout ID
+      snapshotData: acceptedSnapshot as any, // Store ALL exercises in snapshot
+    });
+    
+    console.log(`💪 Created workout instance: ${instance.id} with ${acceptedSnapshot.exercises.length} exercises in snapshot`);
+    
     // Add exercises from accepted snapshot ONLY (prevents duplication)
     for (const exercise of acceptedSnapshot.exercises) {
       const matched = await matchExerciseByName(exercise.exercise);
@@ -2175,8 +2188,8 @@ export class DbStorage implements IStorage {
       }
     }
     
-    // Return the session ID so the user can be redirected to the workout tracker
-    return session.id;
+    // Return both sessionId and instanceId so tracker can load from snapshot
+    return { sessionId: session.id, instanceId: instance.id };
   }
 
   async rejectGeneratedWorkout(id: string, userId: string): Promise<void> {

@@ -64,14 +64,14 @@ export function DailyGeneratedWorkout() {
       const response = await apiRequest("POST", `/api/training/generated-workout/${id}/accept`, {});
       return response.json();
     },
-    onSuccess: (data: { success: boolean; sessionId: string }) => {
+    onSuccess: (data: { success: boolean; sessionId: string; instanceId: string }) => {
       queryClient.invalidateQueries({ queryKey: ["/api/training/generated-workout", today] });
       toast({
         title: "Workout Accepted",
         description: "Opening workout tracker...",
       });
-      // Navigate to the workout session page to start tracking
-      setLocation(`/workout/${data.sessionId}`);
+      // Navigate to the workout session page with instanceId to load from snapshot
+      setLocation(`/workout/${data.sessionId}?instanceId=${data.instanceId}`);
     },
     onError: (error: Error) => {
       toast({
