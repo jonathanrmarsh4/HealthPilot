@@ -6180,9 +6180,12 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
     try {
       const { id } = req.params;
       
-      // Get the recommendation
-      const recommendations = await storage.getRecommendations(userId);
-      const recommendation = recommendations.find(r => r.id === id);
+      // Get the recommendation from both regular and scheduled lists
+      const regularRecommendations = await storage.getRecommendations(userId);
+      const scheduledRecommendations = await storage.getScheduledRecommendations(userId);
+      const allRecommendations = [...regularRecommendations, ...scheduledRecommendations];
+      
+      const recommendation = allRecommendations.find(r => r.id === id);
       
       if (!recommendation) {
         return res.status(404).json({ error: "Recommendation not found" });
