@@ -2365,6 +2365,19 @@ export class DbStorage implements IStorage {
     for (const exercise of acceptedSnapshot.exercises) {
       // Only create sets if this is a real library exercise (not a placeholder)
       if (!exercise.id.startsWith('unmatched-')) {
+        // Verify the exercise exists in the database before creating sets
+        const verifyExercise = await db
+          .select()
+          .from(exercises)
+          .where(eq(exercises.id, exercise.id))
+          .limit(1);
+        
+        if (!verifyExercise[0]) {
+          console.error(`💪 ❌ Exercise ID ${exercise.id} (${exercise.name}) from snapshot not found in database! Skipping set creation.`);
+          continue; // Skip this exercise instead of throwing error
+        }
+        
+        console.log(`💪 Creating ${exercise.sets} sets for exercise: ${exercise.name} (ID: ${exercise.id})`);
         // Create sets for this exercise using its ID from the snapshot
         for (let i = 0; i < exercise.sets; i++) {
           await this.addExerciseSet(session.id, exercise.id, userId);
