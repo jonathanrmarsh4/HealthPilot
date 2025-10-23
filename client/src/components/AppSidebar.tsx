@@ -27,6 +27,7 @@ import {
   Lock,
   ShieldCheck,
   Globe,
+  AlertCircle,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import {
@@ -69,6 +70,7 @@ const menuSections: MenuSection[] = [
       { title: "Goals", url: "/goals", icon: Target },
       { title: "Biomarkers", url: "/biomarkers", icon: Activity },
       { title: "Sleep", url: "/sleep", icon: Moon },
+      { title: "Symptoms", url: "/symptoms", icon: AlertCircle },
       { title: "Longevity", url: "/biological-age", icon: Dna },
     ],
   },

@@ -124,6 +124,7 @@ function AppLayout() {
     "/meals/nutrition-profile": "Nutrition Profile",
     "/training": "Training",
     "/supplements": "Supplement Stack",
+    "/symptoms": "Symptoms Tracking",
     "/insights": "Insights Hub",
     "/daily-insights": "Insights Hub",
     "/goals": "Health Goals",
