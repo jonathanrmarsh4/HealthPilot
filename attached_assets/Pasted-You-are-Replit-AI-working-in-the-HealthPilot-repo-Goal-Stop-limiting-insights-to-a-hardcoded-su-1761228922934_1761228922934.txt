@@ -1,0 +1,218 @@
+You are Replit AI working in the HealthPilot repo.
+
+🎯 Goal
+Stop limiting insights to a hardcoded subset. Make the Insights engine:
+1) Discover ALL available metrics (curated tables + hk_events_raw) per user/day.
+2) Evaluate generic analyses for every metric (trend, outlier, threshold, correlation).
+3) Apply domain rule packs for known metric families (cardio, sleep, body comp, activity, BP, glucose, SpO2, etc).
+4) Include ALL biomarkers (50+) using reference ranges and trend logic.
+5) Emit explainable, scored insights and select the top N per day.
+6) Ship a backfill + recompute path, debug logs, and tests.
+
+We want this to work **even when new metrics appear**—no code changes needed.
+
+--------------------------------
+A) CONFIG & FLAGS
+--------------------------------
+Add these env flags (read at runtime):
+- INSIGHTS_INCLUDE_ALL=1        # forces dynamic discovery across all metric types
+- INSIGHTS_DYNAMIC_DISCOVERY=1  # auto-register unseen metrics from hk_events_raw
+- INSIGHTS_MAX_PER_DAY=12       # cap rendered insights
+- INSIGHTS_TOPK_PER_FAMILY=3    # cap per metric family
+- INSIGHTS_DEBUG=1              # verbose logs
+
+--------------------------------
+B) DATA DISCOVERY LAYER
+--------------------------------
+Create: src/insights/registry.ts
+
+export type MetricId = string;   // e.g., "heart_rate", "sleep_asleep_core", "bp_systolic", "weight", "lean_mass"
+export type FamilyId = "cardio" | "sleep" | "bp" | "activity" | "body_comp" | "resp" | "glucose" | "biomarker" | "other";
+
+export interface MetricSpec {
+  id: MetricId;
+  family: FamilyId;
+  unit?: string;
+  kind: "instant" | "interval" | "value";
+  source: "curated" | "raw";
+  mapper?: string;       // optional hint to query function
+  preferredAgg?: "mean" | "min" | "max" | "sum";
+}
+
+export interface Registry {
+  metrics: Record<MetricId, MetricSpec>;
+  families: Record<FamilyId, { title: string; weight: number }>;
+}
+
+Tasks:
+1) Seed the registry with known curated metrics (HR, HRV, RHR, Steps, Energy(kcal), Sleep stages, Weight, Lean mass, BP systolic/diastolic, SpO2 if present, etc).
+2) Implement `discoverMetrics(userId, date)` that:
+   - Queries curated tables for any available series on that date and ensures they exist in `Registry.metrics`.
+   - If INSIGHTS_DYNAMIC_DISCOVERY=1, also inspects hk_events_raw for distinct `type` values on that date and auto-adds `other/*` entries (family="other").
+   - Never throw if unknown; always return a list of MetricSpec.
+
+--------------------------------
+C) READ API FOR METRIC VALUES
+--------------------------------
+Create: src/insights/readers.ts
+
+export interface DayWindow { startUtcIso: string; endUtcIso: string; tz: string; localDate: string; }
+export interface SeriesPoint { t: string; v: number; meta?: any; }
+
+export async function readSeries(userId: string, metric: MetricSpec, win: DayWindow): Promise<SeriesPoint[]>;
+- For curated metrics, query the correct table.
+- For dynamic/unknown metrics, fallback to hk_events_raw (extract numeric from value_json when possible).
+- Always normalize to numbers and UTC timestamps; drop non-numeric gracefully but keep a count.
+
+Add helper:
+export function perthLocalDay(dateStr: string): DayWindow { /* compute UTC range for Australia/Perth, inclusive end */ }
+
+--------------------------------
+D) GENERIC ANALYSIS PRIMITIVES (apply to ALL metrics)
+--------------------------------
+Create: src/insights/primitives.ts
+
+Implement the following, parameterized by rolling windows:
+1) rollingMean(series, win=7d) and rollingDelta(series, baseline=mean_prev_7d)
+2) zScoreLatest(series, baselineWin=14d) → { z, baselineMean, baselineStd }
+3) trendSlope(series, days=7|14) using simple linear regression
+4) thresholdCross(series, low?, high?) for metrics with known healthy ranges
+5) dayChange(series) for same-day relative change (%)
+
+Return small objects with `explain` strings.
+
+--------------------------------
+E) DOMAIN RULE PACKS (families)
+--------------------------------
+Create: src/insights/rules/*.ts
+Each exports `generate(metricId, series, ctx)` returning zero or more Insight objects.
+
+Examples:
+- cardio.ts (HR, HRV, RHR):
+  - Low HRV vs 14d baseline (z < -1.0) → “Recovery likely impaired”
+  - Elevated RHR vs baseline (z > 1.0) → “Possible fatigue/stress”
+- bp.ts:
+  - Latest systolic/diastolic thresholds (>=140/90) or rising slope → “Elevated blood pressure trend”
+- sleep.ts:
+  - Total sleep < 6.5h, REM < 15%, Deep < 10%, wake after sleep onset ↑ vs baseline
+- activity.ts:
+  - Steps below personal baseline by >30% or top decile day
+- body_comp.ts:
+  - Weight 7d downtrend with stable intake → “Fat loss trend”
+  - Lean mass weekly change > 0.5kg → “Possible measurement error/retention”
+- biomarker.ts:
+  - Reference ranges per biomarker with age/sex aware ranges; trend flags (up, down, stable)
+- other.ts:
+  - Generic primitives only (trend/outliers), labeled “Exploratory”
+
+Each insight should include:
+{
+  id: string,             // stable hash: user|date|metric|rule
+  title: string,
+  body: string,
+  score: number,          // 0-1 importance (combine rule severity + family weight)
+  tags: string[],         // ["bp","trend","alert"]
+  family: FamilyId,
+  metric: MetricId,
+  explain: string,        // why it fired (z, slope, thresholds)
+  local_date: string
+}
+
+--------------------------------
+F) ENGINE ORCHESTRATION
+--------------------------------
+Create: src/insights/engine.ts
+
+export async function computeDailyInsights(userId: string, localDate: string, tz="Australia/Perth"): Promise<Insight[]> {
+  const win = perthLocalDay(localDate);
+  const registry = await loadRegistry(); // seeded + dynamic
+  const specs = await discoverMetrics(userId, localDate);
+  const all: Insight[] = [];
+
+  for (const spec of specs) {
+    // 1) read series
+    const s = await readSeries(userId, spec, win);
+    if (!s.length) continue;
+
+    // 2) run generic primitives
+    const base = runPrimitives(s);
+
+    // 3) run family rule pack
+    const pack = loadRulePack(spec.family); // cardio, bp, sleep, activity, body_comp, biomarker, other
+    const famInsights = await pack.generate(spec.id, s, { base, userId, win, spec });
+
+    // 4) compile + push
+    all.push(...famInsights);
+  }
+
+  // 5) scoring & selection
+  const weighted = scoreInsights(all); // add family weight, recency, severity
+  const capped = selectTop(weighted, process.env.INSIGHTS_MAX_PER_DAY || 12, process.env.INSIGHTS_TOPK_PER_FAMILY || 3);
+
+  // 6) persist
+  await saveInsights(userId, localDate, capped);
+
+  return capped;
+}
+
+Also add:
+- `recompute` admin endpoint: POST /admin/insights/recompute?user=U&date=YYYY-MM-DD
+- nightly scheduler: run computeDailyInsights for users w/ activity in the last 48h (respect tz).
+
+--------------------------------
+G) BIOMARKERS (ALL 50+)
+--------------------------------
+Create: src/insights/biomarkers.ts
+- Registry of biomarker reference ranges (min/max, optimal bands) keyed by id (e.g., "ldl-cholesterol", "hdl-cholesterol", etc.).
+- Accept latest value + 90d trend.
+- Emissions:
+  - Out-of-range alerts (mild/moderate/severe → score tiers)
+  - Improving/worsening trends (slope sign + magnitude)
+- Ensure every biomarker ingested is evaluated; unknown → family="biomarker", rule=“generic_range_unknown” (only trend/no absolute thresholds).
+
+--------------------------------
+H) EXPLAINABILITY & LOGGING
+--------------------------------
+Create: src/insights/debug.ts
+
+export const INSIGHTS_DEBUG = process.env.INSIGHTS_DEBUG === "1";
+export function ilog(...args:any[]) { if (INSIGHTS_DEBUG) console.log("[INSIGHTS_DEBUG]", ...args); }
+
+During compute:
+- Log discovered metric IDs, per family.
+- For each fired insight: rule id, metric id, z/slope/thresholds, score.
+- Summaries: total metrics considered, total insights produced, top-K chosen.
+
+--------------------------------
+I) TESTS & BACKFILL
+--------------------------------
+Tests:
+- tests/insights.discovery.test.ts: dynamic discovery pulls all available curated + raw types on a seeded day.
+- tests/insights.rules.test.ts: rule packs fire on synthetic series (elevated BP, low HRV, poor sleep, etc.).
+- tests/insights.biomarkers.test.ts: every biomarker row on a day yields either a range or trend insight; none dropped.
+- tests/insights.select.test.ts: selection caps per family & total.
+
+Backfill script:
+- scripts/insights_backfill.ts --user U --from 2025-10-01 --to 2025-10-23
+  Calls computeDailyInsights day-by-day; prints counts.
+
+--------------------------------
+J) ACCEPTANCE CRITERIA
+--------------------------------
+- With INSIGHTS_INCLUDE_ALL=1, the engine enumerates **all** available metrics (curated + raw) and evaluates them.
+- Newly arriving metric types start generating at least **generic** insights (trend/outlier), no code changes.
+- ALL biomarkers receive either range-based or trend-based insights (no silent drops).
+- Admin recompute endpoint returns a non-empty `items` list for active users; logs show discovered metrics > 18.
+- UI tile shows up to INSIGHTS_MAX_PER_DAY insights with diverse families (not just the old subset).
+
+--------------------------------
+K) QUICK RUN BOOK
+--------------------------------
+1) Set env: INSIGHTS_INCLUDE_ALL=1 INSIGHTS_DYNAMIC_DISCOVERY=1 INSIGHTS_MAX_PER_DAY=12 INSIGHTS_TOPK_PER_FAMILY=3 INSIGHTS_DEBUG=1
+2) Run admin recompute:
+   POST /admin/insights/recompute?user=U_DEMO&date=2025-10-23
+3) Inspect logs for:
+   - discovered metrics ≈ 60+HK + 50+ biomarkers
+   - fired insights count, per family
+4) Hit GET /insights?date=2025-10-23 → items[].length > 0, diverse families.
+5) Backfill last 14 days and confirm steady output.
