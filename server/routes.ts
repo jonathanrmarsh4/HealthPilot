@@ -9224,14 +9224,14 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
           console.log(`🌙 Processing night ${nightKey} with ${nightEpisodes.length} episode(s)`);
           
           // Select primary episode
-          const primary = selectPrimaryEpisode(nightEpisodes);
+          const primary = selectPrimaryEpisode(nightEpisodes, userTimezone || 'UTC');
           
           if (primary) {
             const validation = validateSleepEpisode(primary);
             
             if (validation.valid) {
               // Calculate sleep score for primary episode
-              const scoreResult = calculateSleepScore(primary, previousMidpoints);
+              const scoreResult = calculateSleepScore(primary, previousMidpoints, userTimezone || 'UTC');
               
               console.log(`💾 Creating primary sleep session: ${primary.episodeStart.toISOString()} to ${primary.episodeEnd.toISOString()}`);
               console.log(`   Score: ${scoreResult.score} (${scoreResult.quality})`);

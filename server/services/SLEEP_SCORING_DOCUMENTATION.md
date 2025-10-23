@@ -281,6 +281,7 @@ const naps = episodes.filter(ep => ep.episodeType === 'nap');
 4. **Better Edge Cases** - Handles split nights, late sleepers, shift workers
 5. **More Accurate** - 6 independent components vs. 4 simple adjustments
 6. **Scientifically Validated** - Based on ACSM/NSCA/WHO sleep guidelines
+7. **Timezone Aware** - All sleep timing calculations use user's local timezone for accurate night grouping and regularity tracking
 
 ## Testing
 

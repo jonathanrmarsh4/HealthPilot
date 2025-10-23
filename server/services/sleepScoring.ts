@@ -12,6 +12,9 @@
  * @version 2.0
  */
 
+import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
+import { format } from 'date-fns';
+
 export interface RawSleepSegment {
   startDate: string;      // ISO timestamp
   endDate: string;        // ISO timestamp
@@ -213,16 +216,24 @@ function createEpisodeFromSegments(
   const actualSleepMinutes = inBedMinutes - awakeMinutes;
   const sleepEfficiency = inBedMinutes > 0 ? actualSleepMinutes / inBedMinutes : 0;
   
-  // Calculate midpoint
+  // Calculate midpoint and store as Date object (will be compared properly later)
   const midpointMs = (episodeStart.getTime() + episodeEnd.getTime()) / 2;
   const sleepMidpointLocal = new Date(midpointMs);
   
-  // Determine night key (local date)
-  const startHour = episodeStart.getHours();
-  const nightDate = startHour >= CONSTANTS.PRIMARY_WINDOW_START_HOUR 
-    ? episodeStart 
-    : new Date(episodeStart.getTime() - 12 * 60 * 60 * 1000);
-  const nightKeyLocalDate = nightDate.toISOString().split('T')[0];
+  // Determine night key (local date) using user's timezone
+  // Extract hour in user's timezone
+  const startHourLocal = Number(formatInTimeZone(episodeStart, userTimezone, 'H'));
+  
+  // If start is after 3pm local, use that date; otherwise use previous date
+  let nightKeyLocalDate: string;
+  if (startHourLocal >= CONSTANTS.PRIMARY_WINDOW_START_HOUR) {
+    // Episode starts after 3pm local, use that date
+    nightKeyLocalDate = formatInTimeZone(episodeStart, userTimezone, 'yyyy-MM-dd');
+  } else {
+    // Episode starts before 3pm local, attribute to previous day
+    const previousDay = new Date(episodeStart.getTime() - 12 * 60 * 60 * 1000);
+    nightKeyLocalDate = formatInTimeZone(previousDay, userTimezone, 'yyyy-MM-dd');
+  }
   
   // Determine episode type (will be refined later)
   const durationMinutes = inBedMinutes;
@@ -268,29 +279,27 @@ function createEpisodeFromSegments(
 /**
  * Select primary episode from a list of episodes for a given night
  */
-export function selectPrimaryEpisode(episodes: SleepEpisode[]): SleepEpisode | null {
+export function selectPrimaryEpisode(episodes: SleepEpisode[], userTimezone: string = 'UTC'): SleepEpisode | null {
   // Filter eligible primary episodes
   const eligible = episodes.filter(ep => {
     // Must be within valid duration range
     if (ep.inBedMinutes < CONSTANTS.PRIMARY_MIN_MINUTES) return false;
     if (ep.inBedMinutes > CONSTANTS.PRIMARY_MAX_MINUTES) return false;
     
-    // Must overlap primary window (15:00 to next day 12:00)
-    const startHour = ep.episodeStart.getHours();
-    const endHour = ep.episodeEnd.getHours();
+    // Extract midpoint hour in user's timezone
+    const midpointHour = Number(formatInTimeZone(ep.sleepMidpointLocal, userTimezone, 'H'));
     
-    // Check if episode overlaps the primary window
-    const startsInPrimaryWindow = startHour >= CONSTANTS.PRIMARY_WINDOW_START_HOUR;
-    const endsBeforeNoon = endHour <= CONSTANTS.PRIMARY_WINDOW_END_HOUR;
-    const crossesMidnight = ep.episodeEnd.getDate() !== ep.episodeStart.getDate();
+    // Check if midpoint falls in typical overnight sleep window (8pm to 11am local)
+    // This is more robust than checking start/end times for split nights
+    const inOvernightWindow = midpointHour >= 20 || midpointHour <= 11;
     
-    return startsInPrimaryWindow || (crossesMidnight && endsBeforeNoon);
+    return inOvernightWindow;
   });
   
   if (eligible.length === 0) {
-    // Fallback: select longest episode between 12:00 and 15:00
+    // Fallback: select longest episode between 12:00 and 15:00 local time
     const fallback = episodes.filter(ep => {
-      const startHour = ep.episodeStart.getHours();
+      const startHour = Number(formatInTimeZone(ep.episodeStart, userTimezone, 'H'));
       return startHour >= 12 && startHour < CONSTANTS.PRIMARY_WINDOW_START_HOUR 
         && ep.inBedMinutes >= CONSTANTS.PRIMARY_MIN_MINUTES;
     });
@@ -316,7 +325,8 @@ export function selectPrimaryEpisode(episodes: SleepEpisode[]): SleepEpisode | n
  */
 export function calculateSleepScore(
   episode: SleepEpisode,
-  previousMidpoints?: Date[]  // For regularity component
+  previousMidpoints?: Date[],  // For regularity component
+  userTimezone?: string  // User's timezone for regularity calculation
 ): SleepScoreResult {
   const {
     actualSleepMinutes,
@@ -408,16 +418,34 @@ export function calculateSleepScore(
   breakdown.fragmentationComponent = Math.max(-10, breakdown.fragmentationComponent);
   
   // 6. Regularity Component (0-5 points)
-  if (previousMidpoints && previousMidpoints.length > 0) {
-    const avgMidpoint = previousMidpoints.reduce((sum, mp) => sum + mp.getTime(), 0) / previousMidpoints.length;
-    const currentMidpoint = episode.sleepMidpointLocal.getTime();
-    const varianceMinutes = Math.abs(currentMidpoint - avgMidpoint) / (1000 * 60);
+  if (previousMidpoints && previousMidpoints.length > 0 && userTimezone) {
+    // Convert all midpoints to minutes-from-midnight in user's timezone
+    // This allows us to compare wall-clock times regardless of day offset
+    const toMinutesFromMidnight = (date: Date): number => {
+      const hour = Number(formatInTimeZone(date, userTimezone, 'H'));
+      const minute = Number(formatInTimeZone(date, userTimezone, 'm'));
+      return hour * 60 + minute;
+    };
     
-    if (varianceMinutes <= 30) {
+    const currentMinutes = toMinutesFromMidnight(episode.sleepMidpointLocal);
+    const previousMinutes = previousMidpoints.map(mp => toMinutesFromMidnight(mp));
+    
+    // Calculate average of previous midpoints (in minutes from midnight)
+    const avgPreviousMinutes = previousMinutes.reduce((sum, m) => sum + m, 0) / previousMinutes.length;
+    
+    // Calculate variance (handle wrap-around at midnight)
+    let variance = Math.abs(currentMinutes - avgPreviousMinutes);
+    
+    // Handle wrap-around: if variance > 12 hours, use the shorter path
+    if (variance > 12 * 60) {
+      variance = 24 * 60 - variance;
+    }
+    
+    if (variance <= 30) {
       breakdown.regularityComponent = 5;
-    } else if (varianceMinutes <= 60) {
+    } else if (variance <= 60) {
       breakdown.regularityComponent = 3;
-    } else if (varianceMinutes <= 120) {
+    } else if (variance <= 120) {
       breakdown.regularityComponent = 1;
     } else {
       breakdown.regularityComponent = 0;
