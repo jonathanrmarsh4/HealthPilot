@@ -1,0 +1,141 @@
+{
+  "name": "HealthPilot — Enforce 5-per-hour & Tracker Mirroring (No Extras After Start)",
+  "version": "1.0.1",
+  "goal": "Fix two behaviors: (A) enforce a minimum of 5 exercises per hour (scaled by session length) without reducing count for low readiness, and (B) ensure the workout tracker mirrors ONLY the user-accepted exercises — no extra items are added at start.",
+  "instructions_to_ai": "You are a senior platform/fitness engineer. Apply the updates below. Return ONLY the changed code blocks and updated prompt fragments exactly as instructed in OUTPUT_FORMAT. Do not include prose.",
+  "patches": {
+    "model_prompt_updates": {
+      "insert_into_system_message": [
+        "HARD RULES:",
+        "1) Compute minimum_exercise_count = ceil((session_minutes / 60) * 5). main.length + accessories.length MUST be ≥ minimum_exercise_count, even on low readiness. Adjust load/sets/rest/conditioning to fit time, not the count.",
+        "2) Honor 'session_minutes' as the primary budget. If needed, first trim/omit conditioning, then reduce sets, but NEVER drop below minimum_exercise_count.",
+        "3) Emit stable identifiers: 'session_id' (uuid v4) for the plan and 'exercise_id' (uuid v4) for each item in main/accessories. Include a 'block' field for each exercise: 'main' or 'accessories'.",
+        "4) Emit a 'time_budget' object to show per-exercise minutes and total. total_min must be ≤ session_minutes.",
+        "5) Emit 'min_exercise_policy' with session_minutes, minimum_exercise_count, achieved_exercise_count."
+      ],
+      "add_to_OUTPUT_SCHEMA": {
+        "session_id": { "type": "string", "description": "uuid v4" },
+        "time_budget": {
+          "type": "object",
+          "required": ["warmup_min", "per_exercise_min", "conditioning_min", "cooldown_min", "total_min"],
+          "properties": {
+            "warmup_min": { "type": "integer" },
+            "per_exercise_min": { "type": "array", "items": { "type": "integer" } },
+            "conditioning_min": { "type": "integer" },
+            "cooldown_min": { "type": "integer" },
+            "total_min": { "type": "integer" }
+          }
+        },
+        "min_exercise_policy": {
+          "type": "object",
+          "required": ["session_minutes", "minimum_exercise_count", "achieved_exercise_count"],
+          "properties": {
+            "session_minutes": { "type": "integer" },
+            "minimum_exercise_count": { "type": "integer" },
+            "achieved_exercise_count": { "type": "integer" }
+          }
+        }
+      },
+      "enforce_count_in_generator": [
+        "Before returning, compute minimum_exercise_count = ceil((INPUT.availability.session_minutes / 60) * 5).",
+        "If (main.length + accessories.length) < minimum_exercise_count → append low-load, technique-safe accessories that match equipment/limitations, with short rest, until count is met and total_min ≤ session_minutes.",
+        "Populate exercise_id (uuid v4) and block for every item."
+      ]
+    },
+    "server_validation_updates": {
+      "typescript_patch_main_endpoint": {
+        "file": "pages/api/training/generate-daily-session.ts",
+        "find": "const result = DailyWorkoutSchema.parse(parsed);",
+        "replace_with": "const result = DailyWorkoutSchema.parse(parsed);\n\n// ⬇️ Enforce 5-per-hour minimum (belt-and-braces)\nconst sessionMinutes = Number((data?.availability?.session_minutes ?? 60));\nconst minExercises = Math.ceil((sessionMinutes / 60) * 5);\nconst exerciseCount = (result.main?.length || 0) + (result.accessories?.length || 0);\nif (exerciseCount < minExercises) {\n  throw new Error(`Plan under-filled: ${exerciseCount} < required ${minExercises} exercises for ${sessionMinutes} min session.`);\n}\n\n// ⬇️ Ensure IDs and blocks exist\nconst allItems = [...(result.main || []), ...(result.accessories || [])];\nfor (const ex of allItems) {\n  if (!ex.exercise_id || !ex.block) throw new Error('Missing exercise_id or block for one or more items.');\n}\n\n// ⬇️ Optional time budget check (if model provides it)\nif (result.time_budget?.total_min && result.time_budget.total_min > sessionMinutes) {\n  throw new Error(`Time overflow: ${result.time_budget.total_min} > ${sessionMinutes} min.`);\n}"
+      },
+      "zod_schema_extension": {
+        "file": "schemas/dailyWorkout.ts",
+        "append_to_schema": "session_id: z.string(),\nmain: z.array(z.object({ exercise_id: z.string(), block: z.literal('main'), exercise: z.string(), goal: z.enum(['strength','hypertrophy','power']), sets: z.number().min(1).max(6), reps: z.number().min(1).max(15), intensity: z.string(), rest_seconds: z.number().min(45).max(360), tempo: z.string().optional(), cues: z.string().optional(), alternative_if_limited: z.string().optional() })),\naccessories: z.array(z.object({ exercise_id: z.string(), block: z.literal('accessories'), exercise: z.string(), goal: z.enum(['strength','hypertrophy','power','endurance_local']), sets: z.number().min(1).max(5), reps: z.number().min(6).max(20), intensity: z.string(), rest_seconds: z.number().min(45).max(180), tempo: z.string().optional(), cues: z.string().optional(), alternative_if_limited: z.string().optional() })),\ntime_budget: z.object({ warmup_min: z.number().int().nonnegative(), per_exercise_min: z.array(z.number().int().positive()), conditioning_min: z.number().int().nonnegative(), cooldown_min: z.number().int().nonnegative(), total_min: z.number().int().positive() }).optional(),\nmin_exercise_policy: z.object({ session_minutes: z.number().int().positive(), minimum_exercise_count: z.number().int().positive(), achieved_exercise_count: z.number().int().nonnegative() }).optional()"
+      }
+    },
+    "acceptance_and_tracker_flow": {
+      "bug_description": "When the user starts the workout, the tracker shows 2 extra random exercises (total 4) even though only 2 were accepted. Root cause: the start flow merges a draft/template or auto-suggests fillers at launch.",
+      "fix_spec": [
+        "Introduce immutable acceptance: once a plan is accepted, store an 'accepted_snapshot' containing exactly the accepted exercises (ordered) and lock the set.",
+        "The tracker must read ONLY from 'accepted_snapshot'. Do NOT merge with drafts, templates, or server suggestions on start.",
+        "If the accepted count is below the minimum_exercise_count, return 422 at acceptance and require the user to add exercises BEFORE acceptance (no auto-append on start).",
+        "Add a checksum/hard equality assertion at start: tracker_exercise_ids.length MUST equal accepted_snapshot.exercise_ids.length and the sets are identical; otherwise fail fast (409) and refetch snapshot."
+      ],
+      "db_model_patch_prisma": {
+        "file": "prisma/schema.prisma",
+        "append": "model Workout { id String @id @default(uuid()) userId String date String sessionId String @unique workout Json @db.Json status String @default(\"draft\") acceptedSnapshot Json? @db.Json user User @relation(fields: [userId], references: [id]) createdAt DateTime @default(now()) updatedAt DateTime @updatedAt @@unique([userId, date]) }"
+      },
+      "accept_endpoint": {
+        "file": "pages/api/workouts/accept.ts",
+        "content": "import { db } from '@/server/db';\nimport { z } from 'zod';\n\nconst AcceptSchema = z.object({ user_id: z.string(), session_id: z.string(), accepted_exercise_ids: z.array(z.string()).min(1) });\n\nexport default async function handler(req: any, res: any) {\n  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });\n  try {\n    const { user_id, session_id, accepted_exercise_ids } = AcceptSchema.parse(req.body);\n    const plan = await db.workout.findFirst({ where: { userId: user_id, sessionId: session_id } });\n    if (!plan) return res.status(404).json({ error: 'Plan not found' });\n    const data = plan.workout;\n    const sessionMinutes = Number(data?.min_exercise_policy?.session_minutes ?? 60);\n    const minExercises = Math.ceil((sessionMinutes / 60) * 5);\n\n    const all = [ ...(data.main||[]), ...(data.accessories||[]) ];\n    const accepted = all.filter((e: any) => accepted_exercise_ids.includes(e.exercise_id));\n\n    if (accepted.length < minExercises) {\n      return res.status(422).json({ error: 'UNDER_MIN_EXERCISES', required: minExercises, selected: accepted.length, message: `Please select at least ${minExercises} exercises for a ${sessionMinutes} min session.` });\n    }\n\n    const acceptedSnapshot = { session_id: data.session_id, exercises: accepted };\n    await db.workout.update({ where: { id: plan.id }, data: { status: 'accepted', acceptedSnapshot } });\n\n    return res.status(200).json({ status: 'ok', session_id: data.session_id, count: accepted.length });\n  } catch (e: any) {\n    return res.status(400).json({ error: e.message });\n  }\n}\n"
+      },
+      "start_endpoint": {
+        "file": "pages/api/workouts/start.ts",
+        "content": "import { db } from '@/server/db';\nimport { z } from 'zod';\n\nconst StartSchema = z.object({ user_id: z.string(), session_id: z.string() });\n\nexport default async function handler(req: any, res: any) {\n  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });\n  try {\n    const { user_id, session_id } = StartSchema.parse(req.body);\n    const plan = await db.workout.findFirst({ where: { userId: user_id, sessionId: session_id } });\n    if (!plan || plan.status !== 'accepted' || !plan.acceptedSnapshot) {\n      return res.status(409).json({ error: 'NOT_ACCEPTED', message: 'Workout must be accepted before starting.' });\n    }\n\n    const snap = plan.acceptedSnapshot as any;\n    const ids = snap.exercises.map((e: any) => e.exercise_id);\n\n    // Hard equality guard: no extras allowed\n    if (new Set(ids).size !== ids.length) {\n      return res.status(409).json({ error: 'DUPLICATE_IDS_IN_SNAPSHOT' });\n    }\n\n    return res.status(200).json({\n      session_id: snap.session_id,\n      exercises: snap.exercises\n    });\n  } catch (e: any) {\n    return res.status(400).json({ error: e.message });\n  }\n}\n"
+      }
+    }
+  },
+  "unit_tests": {
+    "cases": [
+      {
+        "name": "60-min session produces ≥5 exercises",
+        "input": { "availability": { "session_minutes": 60 }, "model_output_counts": { "main": 2, "accessories": 2 } },
+        "expect": "server rejects (under-filled) until total ≥5"
+      },
+      {
+        "name": "45-min session produces ≥4 exercises",
+        "input": { "availability": { "session_minutes": 45 }, "model_output_counts": { "main": 1, "accessories": 2 } },
+        "expect": "ceil(45/60*5)=4; server rejects until total ≥4"
+      },
+      {
+        "name": "Acceptance below minimum returns 422",
+        "input": { "accepted_exercise_ids": ["e1","e2"], "session_minutes": 60 },
+        "expect": "HTTP 422 UNDER_MIN_EXERCISES"
+      },
+      {
+        "name": "Start returns exactly accepted snapshot",
+        "input": { "accepted_snapshot_ids": ["e1","e3","e4","e6","e7"] },
+        "expect": "tracker payload lists exactly those 5 items — no extras"
+      }
+    ]
+  },
+  "client_contracts": {
+    "accept_request": {
+      "endpoint": "POST /api/workouts/accept",
+      "body": { "user_id": "string", "session_id": "uuid", "accepted_exercise_ids": ["string"] }
+    },
+    "start_request": {
+      "endpoint": "POST /api/workouts/start",
+      "body": { "user_id": "string", "session_id": "uuid" }
+    },
+    "start_response": {
+      "session_id": "uuid",
+      "exercises": [
+        {
+          "exercise_id": "string",
+          "name": "string",
+          "block": "main|accessories",
+          "sets": "number",
+          "reps": "number",
+          "rest_seconds": "number",
+          "tempo": "string?"
+        }
+      ]
+    }
+  },
+  "dev_notes": [
+    "Do NOT auto-append exercises on start; enforce minimum at generation and acceptance instead.",
+    "Add UI guardrail: disable Accept button until selected_count ≥ minimum_exercise_count.",
+    "If readiness is low, scale intensity/sets/rest and conditioning — do not drop exercise count."
+  ],
+  "OUTPUT_FORMAT": {
+    "return": [
+      { "type": "prompt_patch", "section": "system_message|OUTPUT_SCHEMA" },
+      { "type": "schema_patch", "file": "schemas/dailyWorkout.ts" },
+      { "type": "code_patch", "file": "pages/api/training/generate-daily-session.ts" },
+      { "type": "code_file", "file": "pages/api/workouts/accept.ts" },
+      { "type": "code_file", "file": "pages/api/workouts/start.ts" },
+      { "type": "db_patch", "file": "prisma/schema.prisma" }
+    ]
+  }
+}
