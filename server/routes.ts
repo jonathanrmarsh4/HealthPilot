@@ -6416,6 +6416,32 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
     }
   });
 
+  // NEW: Testing endpoint for symptom-aware insights generation
+  app.post("/api/insights/generate-v2", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+
+    try {
+      console.log(`[API] Manual trigger: generating daily insights for user ${userId}...`);
+      
+      // Import the new symptom-aware insights scheduler
+      const { generateDailyInsightsForUser } = await import('./services/dailyInsightsScheduler');
+      
+      // Run the scheduler's insights generation
+      const result = await generateDailyInsightsForUser(userId);
+      
+      console.log(`[API] Insights generation complete:`, result);
+      
+      // Return the result
+      res.json({
+        success: true,
+        result,
+      });
+    } catch (error: any) {
+      console.error("[API] Error generating insights:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.get("/api/insights/daily", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
 
@@ -11203,16 +11229,24 @@ DATA AVAILABILITY:
   // Get today's daily health insights for authenticated user
   app.get("/api/insights/today", isAuthenticated, async (req, res) => {
     try {
+      const { ilog, logInsightsFetch } = await import('./lib/insightsDebug');
       const userId = (req.user as any).claims.sub;
       const today = new Date();
+      const dateStr = today.toISOString().split('T')[0];
+      
+      ilog(`Fetching today's insights for user ${userId}, date: ${dateStr}`);
       
       const insights = await storage.getDailyHealthInsights(userId, today);
+      
+      ilog(`Found ${insights.length} total insights, statuses:`, insights.map(i => i.status));
       
       // Filter to only active insights (not dismissed)
       const activeInsights = insights.filter(i => i.status === 'pending' || i.status === 'acknowledged');
       
+      ilog(`Returning ${activeInsights.length} active insights (max 3)`);
+      
       res.json({
-        date: today.toISOString().split('T')[0],
+        date: dateStr,
         insights: activeInsights.slice(0, 3), // Max 3 insights
         total: activeInsights.length,
       });
@@ -11225,6 +11259,7 @@ DATA AVAILABILITY:
   // Get daily health insights for a date range
   app.get("/api/insights/history", isAuthenticated, async (req, res) => {
     try {
+      const { ilog } = await import('./lib/insightsDebug');
       const userId = (req.user as any).claims.sub;
       const { start_date, end_date } = req.query;
       
@@ -11235,7 +11270,19 @@ DATA AVAILABILITY:
       const startDate = new Date(start_date as string);
       const endDate = new Date(end_date as string);
       
+      ilog(`Fetching insights history for user ${userId}, range: ${start_date} to ${end_date}`);
+      
       const insights = await storage.getDailyHealthInsightsDateRange(userId, startDate, endDate);
+      
+      ilog(`Found ${insights.length} insights in date range`);
+      if (insights.length > 0) {
+        ilog(`First insight preview:`, { 
+          date: insights[0].date, 
+          title: insights[0].title,
+          category: insights[0].category,
+          severity: insights[0].severity 
+        });
+      }
       
       res.json({
         startDate: start_date,

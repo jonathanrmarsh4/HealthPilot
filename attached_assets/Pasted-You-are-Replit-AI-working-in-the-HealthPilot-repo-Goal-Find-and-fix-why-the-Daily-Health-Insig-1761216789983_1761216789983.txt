@@ -1,0 +1,155 @@
+You are Replit AI working in the HealthPilot repo.
+
+🎯 Goal
+Find and fix why the “Daily Health Insights” dashboard tile has shown no insights since launch. Produce instrumentation, a reproducible script, DB queries to validate, minimal code fixes, tests, and a checklist to confirm it works in staging and prod.
+
+Context
+- Insights are generated daily from Apple HealthKit + biomarkers + readiness signals.
+- User timezone: Australia/Perth (UTC+08:00).
+- Pipeline (expected):
+  1) Ingest raw data (sleep, activity, HR, biomarkers, notes).
+  2) Daily aggregator computes per-user insights → stores to DB (insights table or cache).
+  3) API `GET /insights?date=YYYY-MM-DD` returns insights for local calendar day.
+  4) Frontend tile fetches and renders.
+
+--------------------------------
+A) LIKELY ROOT CAUSES (TEST ALL)
+--------------------------------
+1) Scheduler/cron not running OR mis-timed (UTC vs Perth) → no rows computed.
+2) Timezone window bug: “local day” not converted to UTC properly; off-by-one in date range.
+3) Wrong read model: API filtering by `source`, `min_quality`, `status` excludes valid rows.
+4) Auth/tenant mismatch: writes under a different userId/env; reads from another.
+5) Cache layer stale or never warmed (insights computed to a cache key the UI doesn’t read).
+6) Feature flag/ENV off in production (e.g., INSIGHTS_ENABLED=false, WRONG_TABLE).
+7) Schema drift: frontend expects `[{id, title, body, tags, score}]` but API returns `{items:[...]}` or different field names.
+8) Null-safety and empty arrays: UI early-returns on falsy checks, rendering nothing.
+9) Aggregation failures: exception swallowed; error logs missing.
+10) Backfill missing: newly onboarded users have no computed history; UI asks for today but aggregator only runs at midnight.
+
+--------------------------------
+B) DELIVERABLES
+--------------------------------
+1) **Debug logging** (server, worker, frontend) behind `INSIGHTS_DEBUG` flag.
+2) **Repro script** `scripts/insights_repro.ts` to seed data and compute insights for a specific user/day, printing results.
+3) **DB sanity SQL** in `docs/insights_debug.md` to count & inspect rows by user/date.
+4) **Minimal fixes** for timezone, scheduler, API response shape, and UI rendering guardrails.
+5) **Unit/integration tests** that verify the full path from ingest → compute → read → render.
+6) **A manual checklist** to validate in staging/prod.
+
+--------------------------------
+C) INSTRUMENTATION
+--------------------------------
+Create `src/lib/insightsDebug.ts`:
+
+export const INSIGHTS_DEBUG = process.env.INSIGHTS_DEBUG === "1";
+export function ilog(...args: any[]) { if (INSIGHTS_DEBUG) console.log("[INSIGHTS_DEBUG]", ...args); }
+export function toUtcRangeForLocalDay(localDateStr: string, tz = "Australia/Perth") {
+  // compute UTC range for local calendar day
+  const startLocal = new Date(`${localDateStr}T00:00:00+08:00`);
+  const endLocal = new Date(`${localDateStr}T23:59:59.999+08:00`);
+  return { startUtcIso: startLocal.toISOString(), endUtcIso: endLocal.toISOString() };
+}
+
+Use `ilog` in:
+- Aggregator job (start/end, userId, inputs count, produced insights count, first/last timestamps).
+- API read controller (userId, requested date, computed UTC range, returned items count).
+- Frontend tile data fetch (request params, response length, first item preview).
+
+--------------------------------
+D) REPRO SCRIPT
+--------------------------------
+Create `scripts/insights_repro.ts`:
+- Args: `--user <id> --date YYYY-MM-DD --tz Australia/Perth`
+- Steps:
+  1) Seed or verify raw inputs for the user for the given day: sleep segments (cross midnight), HR avg, steps, workout(s), readiness flags (HRV, RHR), plus 1–2 biomarkers.
+  2) Trigger aggregator function directly (import and call) or via an API `POST /admin/insights/recompute?user=<id>&date=<...>`.
+  3) Call `GET /insights?date=YYYY-MM-DD` and log a compact table:
+     type | title | score | tags | createdAt
+  4) Print the UTC range used and raw counts (inputs and outputs).
+
+--------------------------------
+E) DB QUERIES (add to docs/insights_debug.md)
+--------------------------------
+-- Replace :user and :date
+-- Expect non-zero rows after recompute.
+
+-- 1) Raw inputs present?
+SELECT COUNT(*) FROM sleep_segments WHERE user_id=:user AND ts_utc BETWEEN :startUtc AND :endUtc;
+SELECT COUNT(*) FROM workouts WHERE user_id=:user AND ts_utc BETWEEN :startUtc AND :endUtc;
+SELECT COUNT(*) FROM readiness WHERE user_id=:user AND local_date=:date;
+SELECT COUNT(*) FROM biomarkers WHERE user_id=:user AND taken_at_utc BETWEEN :startUtc AND :endUtc;
+
+-- 2) Insights exist?
+SELECT COUNT(*) FROM insights WHERE user_id=:user AND local_date=:date;
+
+-- 3) Inspect sample
+SELECT id, kind, title, body, score, tags, local_date, created_at_utc
+FROM insights WHERE user_id=:user AND local_date=:date ORDER BY score DESC LIMIT 10;
+
+-- 4) Check for env table mix-ups (optional)
+SELECT * FROM information_schema.tables WHERE table_name LIKE '%insight%';
+
+--------------------------------
+F) MINIMUM CODE FIXES (APPLY WHAT'S RELEVANT)
+--------------------------------
+1) **Timezone-safe ranges**:
+   - In aggregator and API read, convert local day → UTC range with inclusive end (`<= endUtc`).
+   - Use `toUtcRangeForLocalDay(date, "Australia/Perth")`.
+
+2) **Scheduler**:
+   - Verify cron uses UTC; schedule to run for Perth users AFTER their day ends (e.g., 16:10 UTC = 00:10 Perth).
+   - Add manual recompute endpoint for debugging: `POST /admin/insights/recompute`.
+
+3) **Aggregation guardrails**:
+   - If inputs are missing, still emit *generic insights* (e.g., “No sleep recorded—consider earlier bedtime”), so UI always has at least one item.
+   - Log missing inputs via `ilog`.
+
+4) **API contract**:
+   - Ensure `GET /insights` returns `{"items":[{id,title,body,tags,score,kind,local_date}]}`.
+   - If current shape differs, add a compat layer (map fields or include both until UI updated).
+
+5) **Frontend tile**:
+   - Handle empty arrays gracefully (show a friendly placeholder with a “refresh insights” button that calls recompute).
+   - Add `console.debug` under dev flag to print length and first item.
+   - Ensure the fetch uses the correct date param (local calendar day, not UTC today).
+   - If using SWR/React Query, invalidate cache after recompute.
+
+6) **Feature flags/ENV**:
+   - Ensure INSIGHTS_ENABLED=1 in env.
+   - Verify DB URL/table names for env match prod schema.
+   - Add `INSIGHTS_DEBUG=1` in staging while testing.
+
+7) **Backfill**:
+   - Add `scripts/insights_backfill.ts --user <id> --from 2025-10-01 --to 2025-10-23` to compute historical insights for validation.
+
+--------------------------------
+G) TESTS
+--------------------------------
+Create `tests/insights.e2e.test.ts` (Node assert or your test runner):
+1) Seed minimal data (sleep + steps + HRV) for a Perth local day crossing midnight.
+2) Run aggregator for that date.
+3) `GET /insights?date=<day>` returns ≥1 item and the titles include at least one sleep or activity-related insight.
+4) Changing date to a day with no data still returns a “generic insight” item (fallback).
+5) Auth/tenant: using a different userId returns zero or separate rows (no leakage).
+6) API contract: response has `items` array with required fields.
+
+--------------------------------
+H) ACCEPTANCE CRITERIA
+--------------------------------
+- `scripts/insights_repro.ts` produces non-zero insights and prints a table for the chosen user/day.
+- DB queries show matching counts for inputs and produced insights.
+- `npm test` passes the insights E2E tests.
+- In staging with `INSIGHTS_DEBUG=1`, dashboard tile shows insights after recompute and at the next scheduled run.
+- `docs/insights_debug.md` added with root cause + remediation steps.
+
+--------------------------------
+I) QUICK RUN BOOK
+--------------------------------
+1) Set env: `INSIGHTS_DEBUG=1 INSIGHTS_ENABLED=1`.
+2) Run repro:
+   ts-node scripts/insights_repro.ts --user u_demo1 --date 2025-10-23 --tz Australia/Perth
+3) Verify SQL counts from docs.
+4) Hit UI → Daily Health Insights tile now shows items.
+5) Turn off debug once validated and ensure cron is correctly scheduled.
+
+Implement all of the above now, print logs and a final summary of what was broken and the diff applied.

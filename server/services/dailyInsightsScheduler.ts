@@ -12,6 +12,7 @@ import {
   SymptomInsightData
 } from './symptomCorrelation';
 import { generateSymptomInsight, GeneratedSymptomInsight } from './symptomInsightGeneration';
+import { ilog, logInsightsGenerationSummary } from '../lib/insightsDebug';
 
 /**
  * Daily Insights Scheduler
@@ -100,6 +101,7 @@ export async function generateDailyInsightsForUser(userId: string): Promise<Insi
   const today = new Date();
   const todayStr = today.toISOString().split('T')[0];
   
+  ilog(`Starting insights generation for user ${userId} on ${todayStr}`);
   console.log(`[DailyInsights] Generating insights for user ${userId} on ${todayStr}`);
 
   const result: InsightGenerationResult = {
@@ -327,6 +329,10 @@ export async function generateDailyInsightsForUser(userId: string): Promise<Insi
   }
 
   console.log(`[DailyInsights] ✅ Generated ${result.insightsGenerated} insights for user ${userId}`);
+  
+  // Log comprehensive summary
+  logInsightsGenerationSummary(userId, todayStr, result);
+  
   return result;
 }
 
