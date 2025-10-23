@@ -6,27 +6,37 @@ import { normalizeHealthKitEvent, routeEventToMappers } from '../mappers';
 describe('Universal HealthKit Ingest', () => {
   describe('Idempotency System', () => {
     it('should generate consistent idempotency keys for same event', () => {
-      const userId = 'user123';
-      const type = 'blood_pressure';
-      const recordedAt = new Date('2024-01-15T10:00:00Z');
-      const payload = { systolic: 120, diastolic: 80 };
+      const input = {
+        userId: 'user123',
+        type: 'blood_pressure',
+        tsInstant: new Date('2024-01-15T10:00:00Z'),
+        value: { systolic: 120, diastolic: 80 },
+      };
 
-      const key1 = generateIdempotencyKey(userId, type, recordedAt, payload);
-      const key2 = generateIdempotencyKey(userId, type, recordedAt, payload);
+      const key1 = generateIdempotencyKey(input);
+      const key2 = generateIdempotencyKey(input);
 
       expect(key1).toBe(key2);
       expect(key1).toMatch(/^[a-f0-9]{64}$/); // SHA-256 hash
     });
 
     it('should generate different keys for different events', () => {
-      const userId = 'user123';
-      const type = 'blood_pressure';
-      const recordedAt = new Date('2024-01-15T10:00:00Z');
-      const payload1 = { systolic: 120, diastolic: 80 };
-      const payload2 = { systolic: 125, diastolic: 85 };
+      const input1 = {
+        userId: 'user123',
+        type: 'blood_pressure',
+        tsInstant: new Date('2024-01-15T10:00:00Z'),
+        value: { systolic: 120, diastolic: 80 },
+      };
 
-      const key1 = generateIdempotencyKey(userId, type, recordedAt, payload1);
-      const key2 = generateIdempotencyKey(userId, type, recordedAt, payload2);
+      const input2 = {
+        userId: 'user123',
+        type: 'blood_pressure',
+        tsInstant: new Date('2024-01-15T10:00:00Z'),
+        value: { systolic: 125, diastolic: 85 },
+      };
+
+      const key1 = generateIdempotencyKey(input1);
+      const key2 = generateIdempotencyKey(input2);
 
       expect(key1).not.toBe(key2);
     });
@@ -339,12 +349,12 @@ describe('Universal HealthKit Ingest', () => {
       expect(normalized.payload.diastolic).toBe(80);
 
       // 3. Generate idempotency key
-      const idempotencyKey = generateIdempotencyKey(
-        'user123',
-        normalized.type,
-        normalized.recordedAt,
-        normalized.payload
-      );
+      const idempotencyKey = generateIdempotencyKey({
+        userId: 'user123',
+        type: normalized.type,
+        tsInstant: normalized.recordedAt,
+        value: normalized.payload,
+      });
 
       expect(idempotencyKey).toBeDefined();
       expect(idempotencyKey.length).toBe(64); // SHA-256

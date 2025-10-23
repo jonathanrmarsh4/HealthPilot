@@ -111,12 +111,12 @@ export async function handleHealthAutoExportWebhook(
         });
 
         // Generate idempotency key
-        const idempotencyKey = generateIdempotencyKey(
+        const idempotencyKey = generateIdempotencyKey({
           userId,
-          normalizedEvent.type,
-          normalizedEvent.recordedAt,
-          normalizedEvent.payload
-        );
+          type: normalizedEvent.type,
+          tsInstant: normalizedEvent.recordedAt,
+          value: normalizedEvent.payload,
+        });
 
         // Write to raw events table (warehouse)
         const rawEvent = await storage.insertHkEventRaw({

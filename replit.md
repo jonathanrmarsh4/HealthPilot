@@ -31,6 +31,7 @@ I prefer simple language and clear explanations. I want iterative development wh
 - **AI Intelligence Layer:** Provides daily personalized insights, context-aware chat, multi-metric recommendations, and alternative therapy suggestions with safeguards and goal-driven assistance.
 - **Freemium Model:** Subscription tiers (free/premium/enterprise) with varied access to features.
 - **Data Tracking & Management:** Biomarker tracking, smart deduplication for sleep, comprehensive workout tracking from Apple Health.
+- **Universal HealthKit Ingest System v1.0:** Append-only raw data warehouse (`hk_events_raw` table) captures ALL incoming HealthKit events without loss. Idempotent ingestion via SHA-256 hashing prevents duplicates. Type registry supports 50+ metric types with feature flags (allowlist/blocklist). Intelligent routing to curated tables (biomarkers, sleep_sessions, workout_sessions) with automatic unit normalization (kg→lbs, °C→°F, mmol/L→mg/dL). Admin endpoints (`/api/admin/hk-stats`, `/api/admin/hk-events-raw`) for monitoring ingestion health.
 - **Personalized Recommendations & Automation:** AI-generated meal plans, macro recommendations, exercise recommendations with auto-scheduling. Features like Simplified Meal Recommendation System (v1.0) and Simplified Nutrition Profile are implemented.
 - **Readiness Score System:** Multi-factor weighted scoring.
 - **Scheduling & Reminders:** AI insights scheduling, supplement tracking, daily reminders.

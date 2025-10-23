@@ -42,7 +42,7 @@ export function generateIdempotencyKey(input: IdempotencyInput): string {
  * Create a stable hash of any value
  * Handles objects, arrays, primitives
  */
-function hashValue(value: any): string {
+export function hashValue(value: any): string {
   if (value === null || value === undefined) {
     return 'null';
   }
