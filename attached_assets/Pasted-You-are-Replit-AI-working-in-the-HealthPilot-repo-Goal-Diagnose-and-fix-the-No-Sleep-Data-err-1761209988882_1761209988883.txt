@@ -1,0 +1,148 @@
+You are Replit AI working in the HealthPilot repo.
+
+🎯 Goal
+Diagnose and fix the “No Sleep Data” error occurring in production even after sleep data is pushed. Deliver a reproducible demo, instrumentation, and a verified fix. Assume iOS app (Capacitor) pulls Apple HealthKit sleep segments and posts them to our backend, which stores and serves them to the web/app. Our sleep sample structure is:
+
+{
+  "startDate": "ISO 8601 timestamp",
+  "endDate": "ISO 8601 timestamp",
+  "value": "sleep stage string",
+  "unit": "(unused for sleep)"
+}
+
+We use a Sleep Score calculator that queries by date range.
+
+--------------------------------
+A) HYPOTHESES TO TEST
+--------------------------------
+1) **Timezone/range mismatch**: start/end in UTC vs local (Australia/Perth, UTC+08:00) causing day-window queries to miss data (e.g., off-by-1 day).
+2) **Inclusive/exclusive bounds**: using `>= start` and `< end` vs `<= end` incorrectly drops samples ending at midnight.
+3) **Epoch unit mismatch**: ms vs s (10x or 1000x magnitude) in DB or client payload.
+4) **Stage mapping mismatch**: incoming `value` (e.g., "asleep_rem", "asleepCore", "inBed", "awake") not mapped to our accepted set, so samples are filtered out.
+5) **User/tenant mismatch**: data saved under a different userId/environment than the requesting session (auth context broken in prod).
+6) **Write succeeds, read filtered**: DB write ok but the read API adds extra filters (e.g., `source="apple_healthkit"`, `device_id`, `min_duration`) that exclude rows.
+7) **Background job lag/caching**: the UI requests a computed cache that hasn’t updated post-write; stale cache results in “No Sleep Data.”
+8) **Feature flag or ENV mismatch**: PROD env vars (DB table/schema, timezone, feature flags) differ from local.
+
+--------------------------------
+B) DELIVERABLES
+--------------------------------
+1) Add **debug logging** (server + client) behind a `SLEEP_DEBUG` flag:
+   - On ingest (server): log `userId`, `payload.count`, 1st/last timestamps, min/max, distinct `value`s.
+   - On read (server): log query window (ISO), SQL generated, row count, 1st/last returned timestamps, distinct `value`s.
+   - On client: log date window sent to API and the device local timezone offset.
+2) Create a **repro script** `scripts/sleep_repro.ts` that:
+   - Creates a test user or uses a known test userId.
+   - Posts 4–8 sleep segments spanning local midnight in Australia/Perth (UTC+08:00), with stages like `awake`, `asleep_rem`, `asleep_deep`, `asleep_core`, `inBed` if supported.
+   - Calls the read endpoint for (a) local date window and (b) pure UTC window, prints counts and the segments returned.
+3) Add **unit/integration tests**:
+   - `sleep_ingest_read.test.ts` covering:
+     a) Round-trip ingest→read yields ≥1 segment for the same local calendar day.
+     b) Crossing midnight in local time still shows data for the correct day.
+     c) Inclusive end: a segment ending exactly at `23:59:59.999` local is included.
+     d) Stage-value normalization (map alias values to our canonical set) so they’re not dropped.
+     e) ms vs s epoch sanity check (e.g., reject timestamps before 2005 or after 2100).
+4) If found, implement a **fix** with minimal surface area (see Section D) and keep a feature flag fallback (`SLEEP_FORCE_LOCAL_DAY_BUCKETS=true`).
+5) Update **docs** in `docs/sleep_data_debug.md` with what was broken and how to verify.
+
+--------------------------------
+C) INSTRUMENTATION / LOGGING
+--------------------------------
+Implement an opt-in debug helper `sleepDebug.ts`:
+
+export const SLEEP_DEBUG = process.env.SLEEP_DEBUG === "1";
+export function dlog(...args: any[]) {
+  if (SLEEP_DEBUG) console.log("[SLEEP_DEBUG]", ...args);
+}
+
+Use `dlog` in:
+- Ingest controller: log userId, payload length, min/max ISO, list of unique `value`s.
+- Read controller: log userId, incoming query window (start/end, timezone), computed SQL where clause, returned rows count, min/max ISO, unique `value`s.
+
+--------------------------------
+D) EXPECTED FIXES (APPLY WHAT’S RELEVANT)
+--------------------------------
+1) **Timezone normalization**:
+   - Normalize all stored timestamps to UTC.
+   - Convert incoming client-local date window to UTC before querying.
+   - For “show me sleep for 2025-10-23 (Australia/Perth)”, compute UTC range:
+     start_local: 2025-10-23T00:00:00+08:00 → start_utc
+     end_local:   2025-10-23T23:59:59.999+08:00 → end_utc
+   - Use `WHERE ts >= start_utc AND ts <= end_utc` for calendar-day queries.
+
+2) **Inclusive bounds**:
+   - Use `<= end_utc` for end-of-day. If API previously used `< end_utc`, switch to `<=` and ensure end has `.999` ms.
+
+3) **Stage mapping**:
+   - Add a normalization function mapping platform/OS variants to our canonical set:
+     - Accept aliases: ["asleep", "asleep_core", "asleepRem", "asleep_rem", "asleep_deep", "inBed", "awake"]
+     - Map canonical: awake → "awake", rem → "asleep_rem", core/light → "asleep_core", deep → "asleep_deep", inBed → "in_bed" (decide if you include or ignore in score).
+   - Log and **do not drop** unknown values; quarantine to `unknown_stage` but still return raw segment for visibility in debug mode.
+
+4) **Epoch sanity**:
+   - If numeric timestamps present, auto-detect ms vs s; treat values > 10^12 as ms; otherwise assume s * 1000.
+   - Reject absurd timestamps and log.
+
+5) **User/tenant guard**:
+   - Ensure `userId` from auth context is used consistently on ingest and read; add an assertion in tests that differs between users.
+
+6) **Cache invalidation**:
+   - If the read path pulls from a computed cache (sleep score), invalidate cache on ingest/write or short-circuit in debug mode.
+
+--------------------------------
+E) CODE TASKS
+--------------------------------
+1) **Server read controller** (e.g., `api/sleep/read.ts`):
+   - Add optional `tz` query param defaulting to "Australia/Perth".
+   - Convert `date` or `start/end` to UTC boundaries using `tz`.
+   - Use inclusive end.
+   - Add `dlog` statements.
+
+2) **Server ingest controller** (e.g., `api/sleep/ingest.ts`):
+   - Normalize stage values via `normalizeStage(value: string)`.
+   - Normalize timestamps to UTC ISO strings.
+   - Add epoch sanity check.
+   - Add `dlog` statements (count, min/max, distinct stages).
+
+3) **Utilities**:
+   - `normalizeStage.ts`: implement the mapping table + pass-through for unknowns (with a `normalized=false` flag if needed).
+   - `time.ts`: `toUtcIso(dateOrIso, tz)`, `localDayUtcRange(localDateStr, tz)`.
+
+4) **Tests** (`sleep_ingest_read.test.ts`):
+   - Use fixed Date seeds.
+   - Insert segments around midnight Perth time (e.g., 22:30–06:15 local).
+   - Assert returned count > 0 for the calendar day.
+   - Assert segments aren’t lost due to bounds.
+   - Assert stage normalization works.
+
+5) **Repro script** (`scripts/sleep_repro.ts`):
+   - CLI flags: `--tz Australia/Perth --date 2025-10-23 --user u_demo1`.
+   - Posts synthetic segments then reads them back for that local day; prints a compact table:
+     start_local | end_local | start_utc | end_utc | stage
+
+6) **ENV / Config**:
+   - Add `SLEEP_DEBUG=1` to `.env.development.local`.
+   - In prod, allow toggling via runtime flag.
+
+--------------------------------
+F) ACCEPTANCE CRITERIA
+--------------------------------
+- Running `ts-node scripts/sleep_repro.ts ...` prints non-zero rows for the specified local day and shows both UTC/local boundaries.
+- `npm test` passes: all sleep ingest/read tests green.
+- In logs with `SLEEP_DEBUG=1`, ingest shows correct distinct stages and min/max; read shows the intended UTC window and non-zero rows.
+- UI no longer shows “No Sleep Data” for users with recent ingested segments.
+- Documented root cause + fix in `docs/sleep_data_debug.md`.
+
+--------------------------------
+G) QUICK START (what to run)
+--------------------------------
+1) Implement the changes above.
+2) Set `SLEEP_DEBUG=1` and run server locally.
+3) Execute:
+   - `ts-node scripts/sleep_repro.ts --tz Australia/Perth --date 2025-10-23 --user u_demo1`
+   - Verify non-zero rows and correct window in console.
+4) Run tests:
+   - `npm test` (or `ts-node sleep_ingest_read.test.ts` if using plain asserts).
+5) Deploy to staging with `SLEEP_DEBUG=1`, repeat step 3 with a real account, confirm UI shows data.
+
+If any step fails, print the debug logs and fix the highest-likelihood causes (timezone conversion and inclusive end bounds) first, then re-run.
