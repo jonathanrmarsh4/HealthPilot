@@ -43,6 +43,8 @@
   - If running in Node and you want disk persistence, see the FS store at bottom.
 */
 
+import fs from 'fs';
+
 // ----------------------------- Types -----------------------------
 export type ResolveOutcome =
   | { kind: "resolved"; canonical_id: string; score: number; matched_name: string; trace: string[] }
@@ -358,8 +360,6 @@ export function resolveExerciseName(
 //   attachAliasStore(fsAliasStore("./exercise_alias_cache.json"));
 
 export function fsAliasStore(path: string) {
-  // Lazy require to avoid bundler complaints in browsers
-  const fs = require("fs");
   return {
     load(): Record<string, string> {
       try {
