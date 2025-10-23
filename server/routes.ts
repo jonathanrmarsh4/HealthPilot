@@ -11380,7 +11380,7 @@ DATA AVAILABILITY:
       ilog(`Found ${insights.length} total insights, statuses:`, insights.map(i => i.status));
       
       // Filter to only active insights (not dismissed)
-      const activeInsights = insights.filter(i => i.status === 'pending' || i.status === 'acknowledged');
+      const activeInsights = insights.filter(i => i.status === 'pending' || i.status === 'acknowledged' || i.status === 'active');
       
       ilog(`Returning ${activeInsights.length} active insights (max 3)`);
       
