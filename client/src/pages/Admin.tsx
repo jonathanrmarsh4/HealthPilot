@@ -564,32 +564,32 @@ export default function Admin() {
           </Button>
 
           {insightsResult && (
-            <div className="mt-4 p-4 rounded-md border bg-card space-y-2">
+            <div className="mt-4 p-4 rounded-md border bg-card space-y-2" data-testid="panel-insights-results">
               <p className="text-sm font-medium">Generation Results:</p>
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div>
                   <p className="text-muted-foreground">Metrics Analyzed</p>
-                  <p className="font-semibold">{insightsResult.metricsAnalyzed}</p>
+                  <p className="font-semibold" data-testid="text-metrics-analyzed">{insightsResult.metricsAnalyzed}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Insights Generated</p>
-                  <p className="font-semibold text-primary">{insightsResult.insightsGenerated}</p>
+                  <p className="font-semibold text-primary" data-testid="text-insights-generated">{insightsResult.insightsGenerated}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Symptom Insights</p>
-                  <p className="font-semibold">{insightsResult.symptomInsightsGenerated || 0}</p>
+                  <p className="font-semibold" data-testid="text-symptom-insights">{insightsResult.symptomInsightsGenerated || 0}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Date</p>
-                  <p className="font-semibold">{insightsResult.date}</p>
+                  <p className="font-semibold" data-testid="text-insights-date">{insightsResult.date}</p>
                 </div>
               </div>
               {insightsResult.errors && insightsResult.errors.length > 0 && (
-                <div className="mt-3 p-3 rounded bg-destructive/10 border border-destructive/20">
+                <div className="mt-3 p-3 rounded bg-destructive/10 border border-destructive/20" data-testid="panel-insights-errors">
                   <p className="text-sm font-medium text-destructive">Errors:</p>
                   <ul className="text-xs text-destructive mt-1 space-y-1">
                     {insightsResult.errors.map((err: string, i: number) => (
-                      <li key={i}>• {err}</li>
+                      <li key={i} data-testid={`text-error-${i}`}>• {err}</li>
                     ))}
                   </ul>
                 </div>
