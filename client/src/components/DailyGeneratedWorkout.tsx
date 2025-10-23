@@ -430,24 +430,34 @@ export function DailyGeneratedWorkout() {
                 <p className="text-sm text-muted-foreground text-center">
                   ✓ Workout accepted • Ready to start your session
                 </p>
-                <Button
-                  className="w-full"
-                  onClick={() => acceptMutation.mutate(workout.id)}
-                  disabled={acceptMutation.isPending}
-                  data-testid="button-start-workout"
-                >
-                  {acceptMutation.isPending ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Starting Workout...
-                    </>
-                  ) : (
-                    <>
-                      <Dumbbell className="mr-2 h-4 w-4" />
-                      Start Workout
-                    </>
-                  )}
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    className="flex-1"
+                    onClick={() => acceptMutation.mutate(workout.id)}
+                    disabled={acceptMutation.isPending}
+                    data-testid="button-start-workout"
+                  >
+                    {acceptMutation.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Starting Workout...
+                      </>
+                    ) : (
+                      <>
+                        <Dumbbell className="mr-2 h-4 w-4" />
+                        Start Workout
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => generateMutation.mutate(true)}
+                    disabled={isGenerating}
+                    data-testid="button-regenerate-workout"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             )}
 
@@ -466,6 +476,33 @@ export function DailyGeneratedWorkout() {
                     </p>
                   </div>
                 </div>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => generateMutation.mutate(true)}
+                  disabled={isGenerating}
+                  data-testid="button-regenerate-workout"
+                >
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Generate Alternative Workout
+                </Button>
+              </div>
+            )}
+
+            {isRejected && (
+              <div className="space-y-2 pt-2">
+                <p className="text-sm text-muted-foreground text-center">
+                  Workout rejected • Generate a new one
+                </p>
+                <Button
+                  className="w-full"
+                  onClick={() => generateMutation.mutate(true)}
+                  disabled={isGenerating}
+                  data-testid="button-regenerate-workout"
+                >
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Generate New Workout
+                </Button>
               </div>
             )}
           </>
