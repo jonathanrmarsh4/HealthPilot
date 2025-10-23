@@ -9,8 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Shield, Users, TrendingUp, FileText, Activity, Search, Trash2, ChefHat, Tag, ArrowRight, Layout, DollarSign, Image } from "lucide-react";
+import { Shield, Users, TrendingUp, FileText, Activity, Search, Trash2, ChefHat, Tag, ArrowRight, Layout, DollarSign, Image, Dumbbell, Play, FlaskConical } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { User } from "@shared/schema";
@@ -36,6 +37,8 @@ export default function Admin() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [emailConfirmation, setEmailConfirmation] = useState("");
+  const [plannerOutput, setPlannerOutput] = useState<string | null>(null);
+  const [plannerDialogOpen, setPlannerDialogOpen] = useState(false);
   const limit = 20;
   const { toast } = useToast();
 
@@ -109,6 +112,52 @@ export default function Admin() {
       toast({
         title: "User Deleted",
         description: "User and all associated data have been permanently removed",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const runTestsMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/admin/workout-planner/run-tests");
+      return await res.json();
+    },
+    onSuccess: (data: any) => {
+      setPlannerOutput(data.output || data.errors);
+      setPlannerDialogOpen(true);
+      toast({
+        title: data.success ? "Tests Complete" : "Tests Failed",
+        description: data.success ? "All tests passed successfully" : "Some tests failed",
+        variant: data.success ? "default" : "destructive",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const runDemoMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/admin/workout-planner/run-demo");
+      return await res.json();
+    },
+    onSuccess: (data: any) => {
+      setPlannerOutput(data.output || data.errors);
+      setPlannerDialogOpen(true);
+      toast({
+        title: data.success ? "Demo Complete" : "Demo Failed",
+        description: data.success ? "Demo ran successfully" : "Demo encountered errors",
+        variant: data.success ? "default" : "destructive",
       });
     },
     onError: (error: Error) => {
@@ -351,6 +400,63 @@ export default function Admin() {
         </CardContent>
       </Card>
 
+      <Card data-testid="card-workout-planner-tools">
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <Dumbbell className="w-6 h-6 text-primary" />
+            <div>
+              <CardTitle data-testid="text-workout-planner-tools-title">Workout Planner Tools</CardTitle>
+              <CardDescription data-testid="text-workout-planner-tools-description">
+                Run tests and demo for the deterministic workout planner
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Test the rule-based workout planning system that demonstrates readiness scaling, health profile integration, goal-based selection, and training rules.
+          </p>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => runTestsMutation.mutate()}
+              disabled={runTestsMutation.isPending}
+              data-testid="button-run-planner-tests"
+              variant="default"
+            >
+              {runTestsMutation.isPending ? (
+                <>
+                  <FlaskConical className="w-4 h-4 mr-2 animate-spin" />
+                  Running Tests...
+                </>
+              ) : (
+                <>
+                  <FlaskConical className="w-4 h-4 mr-2" />
+                  Run Tests
+                </>
+              )}
+            </Button>
+            <Button
+              onClick={() => runDemoMutation.mutate()}
+              disabled={runDemoMutation.isPending}
+              data-testid="button-run-planner-demo"
+              variant="outline"
+            >
+              {runDemoMutation.isPending ? (
+                <>
+                  <Play className="w-4 h-4 mr-2 animate-spin" />
+                  Running Demo...
+                </>
+              ) : (
+                <>
+                  <Play className="w-4 h-4 mr-2" />
+                  Run Demo
+                </>
+              )}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       <Accordion type="single" collapsible className="w-full">
         <AccordionItem value="user-management">
           <Card data-testid="card-user-management">
@@ -560,6 +666,22 @@ export default function Admin() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={plannerDialogOpen} onOpenChange={setPlannerDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh]" data-testid="dialog-planner-output">
+          <DialogHeader>
+            <DialogTitle data-testid="text-planner-dialog-title">Workout Planner Output</DialogTitle>
+            <DialogDescription data-testid="text-planner-dialog-description">
+              Results from running the workout planner tools
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="h-[60vh] w-full rounded-md border p-4">
+            <pre className="text-xs font-mono whitespace-pre-wrap" data-testid="text-planner-output">
+              {plannerOutput}
+            </pre>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

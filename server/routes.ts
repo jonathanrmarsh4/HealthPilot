@@ -448,6 +448,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin Workout Planner Tools
+  app.post("/api/admin/workout-planner/run-tests", isAdmin, async (req, res) => {
+    try {
+      const { exec } = await import("child_process");
+      const { promisify } = await import("util");
+      const execAsync = promisify(exec);
+
+      const { stdout, stderr } = await execAsync("tsx planner_proof.test.ts", {
+        timeout: 30000
+      });
+
+      res.json({
+        success: true,
+        output: stdout,
+        errors: stderr || null
+      });
+    } catch (error: any) {
+      console.error("Error running workout planner tests:", error);
+      res.json({
+        success: false,
+        output: error.stdout || "",
+        errors: error.stderr || error.message
+      });
+    }
+  });
+
+  app.post("/api/admin/workout-planner/run-demo", isAdmin, async (req, res) => {
+    try {
+      const { exec } = await import("child_process");
+      const { promisify } = await import("util");
+      const execAsync = promisify(exec);
+
+      const { stdout, stderr } = await execAsync("tsx demo_workout_planner.ts", {
+        timeout: 30000
+      });
+
+      res.json({
+        success: true,
+        output: stdout,
+        errors: stderr || null
+      });
+    } catch (error: any) {
+      console.error("Error running workout planner demo:", error);
+      res.json({
+        success: false,
+        output: error.stdout || "",
+        errors: error.stderr || error.message
+      });
+    }
+  });
+
   // Privacy & Data Control Routes
   app.post("/api/privacy/export", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
