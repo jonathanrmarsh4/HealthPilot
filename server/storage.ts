@@ -96,6 +96,8 @@ import {
   type InsertReferral,
   type MedicalReport,
   type InsertMedicalReport,
+  type InsertHkEventRaw,
+  type SelectHkEventRaw,
   type LandingPageContent,
   type InsertLandingPageContent,
   type LandingPageFeature,
@@ -127,6 +129,7 @@ import {
   users,
   healthRecords,
   biomarkers,
+  hkEventsRaw,
   medicalReports,
   nutritionProfiles,
   mealPlans,
@@ -238,6 +241,11 @@ export interface IStorage {
   getBiomarkers(userId: string, type?: string): Promise<Biomarker[]>;
   getBiomarkersByTimeRange(userId: string, type: string, startDate: Date, endDate: Date): Promise<Biomarker[]>;
   getLatestBiomarkerByType(userId: string, type: string): Promise<Biomarker | undefined>;
+  
+  // Raw HealthKit events (universal ingest)
+  insertHkEventRaw(event: InsertHkEventRaw): Promise<SelectHkEventRaw | null>;
+  getHkEventsRaw(userId: string, type?: string, limit?: number): Promise<SelectHkEventRaw[]>;
+  getHkEventStats(userId: string): Promise<Record<string, { count: number; latest: Date | null }>>;
   
   createNutritionProfile(profile: InsertNutritionProfile): Promise<NutritionProfile>;
   getNutritionProfile(userId: string): Promise<NutritionProfile | undefined>;
@@ -1084,6 +1092,58 @@ export class DbStorage implements IStorage {
       .limit(1);
     
     return result[0];
+  }
+
+  // Raw HealthKit events implementation
+  async insertHkEventRaw(event: InsertHkEventRaw): Promise<SelectHkEventRaw | null> {
+    try {
+      const result = await db.insert(hkEventsRaw).values(event).returning();
+      return result[0];
+    } catch (error: any) {
+      // If duplicate (idempotency key collision), return null instead of throwing
+      if (error.code === '23505') { // Unique violation
+        return null;
+      }
+      throw error;
+    }
+  }
+
+  async getHkEventsRaw(userId: string, type?: string, limit: number = 100): Promise<SelectHkEventRaw[]> {
+    if (type) {
+      return await db
+        .select()
+        .from(hkEventsRaw)
+        .where(and(eq(hkEventsRaw.userId, userId), eq(hkEventsRaw.type, type)))
+        .orderBy(desc(hkEventsRaw.receivedAtUtc))
+        .limit(limit);
+    }
+    return await db
+      .select()
+      .from(hkEventsRaw)
+      .where(eq(hkEventsRaw.userId, userId))
+      .orderBy(desc(hkEventsRaw.receivedAtUtc))
+      .limit(limit);
+  }
+
+  async getHkEventStats(userId: string): Promise<Record<string, { count: number; latest: Date | null }>> {
+    const result = await db
+      .select({
+        type: hkEventsRaw.type,
+        count: sql<number>`count(*)::int`,
+        latest: sql<Date | null>`max(${hkEventsRaw.receivedAtUtc})`,
+      })
+      .from(hkEventsRaw)
+      .where(eq(hkEventsRaw.userId, userId))
+      .groupBy(hkEventsRaw.type);
+    
+    const stats: Record<string, { count: number; latest: Date | null }> = {};
+    for (const row of result) {
+      stats[row.type] = {
+        count: row.count,
+        latest: row.latest,
+      };
+    }
+    return stats;
   }
 
   async createNutritionProfile(profile: InsertNutritionProfile): Promise<NutritionProfile> {
