@@ -6,6 +6,7 @@
  */
 
 import type { IStorage } from '../storage';
+import { HK_TYPE_REGISTRY } from './registry';
 
 export interface MapperContext {
   storage: IStorage;
@@ -20,6 +21,137 @@ export interface HKEvent {
   tsInstant?: Date | null;
   unit?: string | null;
   valueJson: any;
+}
+
+export interface NormalizedHealthKitEvent {
+  type: string;
+  recordedAt: Date;
+  value: number | null;
+  unit: string | null;
+  payload: any;
+}
+
+/**
+ * Normalize incoming HealthKit event to standard format
+ * Handles unit conversions and extracts key fields
+ */
+export function normalizeHealthKitEvent(params: {
+  type: string;
+  metricName: string;
+  dataPoint: any;
+  metric: any;
+}): NormalizedHealthKitEvent {
+  const { type, dataPoint, metric } = params;
+  
+  // Extract timestamp
+  const recordedAt = dataPoint.date ? new Date(dataPoint.date) : 
+                     dataPoint.inBedStart ? new Date(dataPoint.inBedStart) :
+                     dataPoint.start ? new Date(dataPoint.start) :
+                     dataPoint.startDate ? new Date(dataPoint.startDate) :
+                     new Date();
+  
+  // Extract value (support multiple field names)
+  let value = dataPoint.qty || dataPoint.value || dataPoint.count || dataPoint.Avg || null;
+  let unit = dataPoint.unit || metric.units || null;
+  
+  // Apply unit conversions based on type
+  if (type === 'weight' && value !== null) {
+    const normalizedUnit = (unit || '').toLowerCase().trim();
+    if (normalizedUnit === 'kg' || normalizedUnit === 'kilogram') {
+      value = value * 2.20462; // kg to lbs
+      unit = 'lbs';
+    } else {
+      unit = 'lbs';
+    }
+  }
+  
+  if (type === 'lean_body_mass' && value !== null) {
+    const normalizedUnit = (unit || '').toLowerCase().trim();
+    if (normalizedUnit === 'kg' || normalizedUnit === 'kilogram') {
+      value = value * 2.20462; // kg to lbs
+      unit = 'lbs';
+    } else {
+      unit = 'lbs';
+    }
+  }
+  
+  if (type === 'blood_glucose' && value !== null) {
+    const normalizedUnit = (unit || '').toLowerCase().trim();
+    if (normalizedUnit === 'mmol/l' || normalizedUnit === 'mmol') {
+      value = value * 18.018; // mmol/L to mg/dL
+      unit = 'mg/dL';
+    } else {
+      unit = 'mg/dL';
+    }
+  }
+  
+  if (type === 'body_temperature' && value !== null) {
+    const normalizedUnit = (unit || '').toLowerCase().trim();
+    if (normalizedUnit === '°c' || normalizedUnit === 'c' || normalizedUnit === 'celsius') {
+      value = (value * 9/5) + 32; // °C to °F
+      unit = '°F';
+    } else {
+      unit = '°F';
+    }
+  }
+  
+  return {
+    type,
+    recordedAt,
+    value,
+    unit,
+    payload: dataPoint, // Store full raw data point
+  };
+}
+
+/**
+ * Route normalized event to appropriate mapper function
+ * Returns count of records created in curated tables
+ */
+export async function routeEventToMappers(
+  event: NormalizedHealthKitEvent,
+  ctx: MapperContext
+): Promise<number> {
+  const typeConfig = HK_TYPE_REGISTRY[event.type];
+  
+  if (!typeConfig || !typeConfig.supported) {
+    return 0; // Type not supported for routing
+  }
+  
+  const mapperName = typeConfig.mapper;
+  
+  // Convert normalized event to HKEvent format for mappers
+  const hkEvent: HKEvent = {
+    type: event.type,
+    tsInstant: event.recordedAt,
+    unit: event.unit,
+    valueJson: event.payload,
+  };
+  
+  // Route to appropriate mapper
+  switch (mapperName) {
+    case 'bp':
+      return await mapBloodPressure(hkEvent, ctx);
+    case 'hr':
+      return await mapHeartRate(hkEvent, ctx);
+    case 'hrv':
+      return await mapHRV(hkEvent, ctx);
+    case 'weight':
+      return await mapWeight(hkEvent, ctx);
+    case 'lean_mass':
+      return await mapLeanBodyMass(hkEvent, ctx);
+    case 'blood_glucose':
+      return await mapBloodGlucose(hkEvent, ctx);
+    case 'body_temperature':
+      return await mapBodyTemperature(hkEvent, ctx);
+    case 'oxygen_saturation':
+      return await mapOxygenSaturation(hkEvent, ctx);
+    case 'sleep':
+      return await mapSleep(hkEvent, ctx);
+    default:
+      // Generic biomarker mapper
+      return await mapGenericBiomarker(hkEvent, ctx);
+  }
 }
 
 /**
@@ -403,6 +535,32 @@ export async function mapSleep(event: HKEvent, ctx: MapperContext): Promise<numb
   const { alog } = ctx;
   alog(`  🛌 Sleep event detected - handled by specialized sleep processor`);
   return 0; // Actual sleep processing happens in webhook handler
+}
+
+/**
+ * Generic Biomarker Mapper (fallback)
+ * Handles any biomarker type not mapped above
+ */
+export async function mapGenericBiomarker(event: HKEvent, ctx: MapperContext): Promise<number> {
+  const { storage, userId, alog } = ctx;
+  
+  const value = event.valueJson.value || event.valueJson.qty || event.valueJson.count;
+  
+  if (value !== undefined && value !== null) {
+    await storage.upsertBiomarker({
+      userId,
+      type: event.type.replace(/_/g, '-'), // Convert underscores to hyphens
+      value: Number(value),
+      unit: event.unit || '',
+      source: "health-auto-export",
+      recordedAt: event.tsInstant || new Date(),
+    });
+    alog(`  📊 Generic biomarker: ${event.type} = ${value} ${event.unit || ''}`);
+    return 1;
+  }
+  
+  alog(`  ⚠️ Generic biomarker ${event.type} missing value`);
+  return 0;
 }
 
 /**
