@@ -385,10 +385,19 @@ export function DailyGeneratedWorkout() {
             )}
 
             {isAccepted && (
-              <div className="text-center py-2">
-                <p className="text-sm text-muted-foreground">
+              <div className="space-y-2 pt-2">
+                <p className="text-sm text-muted-foreground text-center">
                   ✓ Workout accepted • Ready to start your session
                 </p>
+                <Button
+                  className="w-full"
+                  onClick={() => acceptMutation.mutate(workout.id)}
+                  disabled={acceptMutation.isPending}
+                  data-testid="button-start-workout"
+                >
+                  <Dumbbell className="mr-2 h-4 w-4" />
+                  Start Workout
+                </Button>
               </div>
             )}
           </>
