@@ -122,8 +122,9 @@ export async function handleHealthAutoExportWebhook(
         const rawEvent = await storage.insertHkEventRaw({
           userId,
           type: normalizedEvent.type,
-          recordedAtUtc: normalizedEvent.recordedAt,
-          payload: normalizedEvent.payload,
+          tsInstantUtc: normalizedEvent.recordedAt,
+          valueJson: normalizedEvent.payload,
+          unit: normalizedEvent.unit,
           idempotencyKey,
         });
 
