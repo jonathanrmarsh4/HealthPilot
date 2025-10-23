@@ -5282,9 +5282,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log(`✅ Accept workout request - ID: ${id}, UserId: ${userId}`);
     
     try {
-      await storage.acceptGeneratedWorkout(id, userId);
-      console.log(`✅ Workout accepted successfully - ID: ${id}`);
-      res.json({ success: true });
+      const sessionId = await storage.acceptGeneratedWorkout(id, userId);
+      console.log(`✅ Workout accepted successfully - ID: ${id}, SessionID: ${sessionId}`);
+      res.json({ success: true, sessionId });
     } catch (error: any) {
       console.error("❌ Error accepting workout:", error);
       res.status(500).json({ error: error.message });
