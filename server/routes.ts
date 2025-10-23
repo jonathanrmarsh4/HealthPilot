@@ -9170,172 +9170,134 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
         }
       }
 
-      // Process sleep data
+      // Process sleep data using v2.0 algorithm
       if (sleep && sleep.length > 0) {
-        console.log(`🛌 Processing ${sleep.length} sleep samples`);
+        console.log(`🛌 Processing ${sleep.length} sleep samples with v2.0 algorithm`);
         
-        // Group sleep segments by night, using smart bedtime detection
-        const sleepNights = new Map<string, {
-          bedtime: Date;
-          waketime: Date;
-          awakeMinutes: number;
-          lightMinutes: number;
-          deepMinutes: number;
-          remMinutes: number;
-          sleepScore?: number;
-        }>();
-
-        for (const sample of sleep) {
-          const startTime = new Date(sample.startDate);
-          const endTime = new Date(sample.endDate);
-          
-          // Smart night key: if sleep starts after 3pm, use that date; otherwise it's a morning nap
-          // This handles sleep that crosses midnight (e.g., 10pm Oct 13 to 6am Oct 14 = Oct 13 night)
-          const startHour = startTime.getHours();
-          const nightDate = startHour >= 15 ? startTime : new Date(startTime.getTime() - 12 * 60 * 60 * 1000);
-          const nightKey = nightDate.toISOString().split('T')[0];
-          
-          const duration = Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60));
-          
-          // Extract sleep stage information if available
-          const sleepType = sample.value?.toLowerCase() || '';
-          let awakeMinutes = 0;
-          let lightMinutes = 0;
-          let deepMinutes = 0;
-          let remMinutes = 0;
-          
-          // Map sleep types to stage minutes
-          if (sleepType.includes('awake') || sleepType === 'awake') {
-            awakeMinutes = duration;
-          } else if (sleepType.includes('rem') || sleepType === 'asleep_rem') {
-            remMinutes = duration;
-          } else if (sleepType.includes('deep') || sleepType === 'asleep_deep') {
-            deepMinutes = duration;
-          } else if (sleepType.includes('core') || sleepType.includes('light') || sleepType === 'asleep_core') {
-            lightMinutes = duration;
-          } else {
-            // Default to light sleep if type is unknown
-            lightMinutes = duration;
+        // Import v2.0 sleep scoring functions
+        const {
+          parseRawSegments,
+          clusterIntoEpisodes,
+          selectPrimaryEpisode,
+          calculateSleepScore,
+          calculateNapScore,
+          validateSleepEpisode,
+        } = await import('./services/sleepScoring');
+        
+        // Convert HealthKit samples to raw segments format
+        const rawSegments = sleep.map(sample => ({
+          startDate: sample.startDate,
+          endDate: sample.endDate,
+          value: sample.value || 'asleep_core',
+          source: 'ios-healthkit',
+        }));
+        
+        // Parse and cluster segments into episodes
+        const segments = parseRawSegments(rawSegments);
+        console.log(`📊 Parsed ${segments.length} sleep segments`);
+        
+        const episodes = clusterIntoEpisodes(segments, userTimezone || 'UTC');
+        console.log(`🔗 Clustered into ${episodes.length} episode(s)`);
+        
+        // Get previous 7 days of sleep midpoints for regularity calculation
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        
+        const recentSleep = await storage.getSleepSessions(userId, sevenDaysAgo, new Date());
+        const previousMidpoints = recentSleep
+          .filter(s => s.sleepMidpointLocal)
+          .map(s => new Date(s.sleepMidpointLocal!))
+          .slice(-7); // Last 7 days
+        
+        // Group episodes by night key for processing
+        const episodesByNight = new Map<string, typeof episodes>();
+        for (const episode of episodes) {
+          const nightKey = episode.nightKeyLocalDate;
+          if (!episodesByNight.has(nightKey)) {
+            episodesByNight.set(nightKey, []);
           }
-          
-          if (!sleepNights.has(nightKey)) {
-            sleepNights.set(nightKey, {
-              bedtime: startTime,
-              waketime: endTime,
-              awakeMinutes,
-              lightMinutes,
-              deepMinutes,
-              remMinutes,
-            });
-          } else {
-            const night = sleepNights.get(nightKey)!;
-            
-            // Only extend bedtime backwards if this segment starts significantly earlier (>30 mins)
-            // and is a real sleep segment (not just a brief awakening)
-            if (startTime < night.bedtime && duration > 30 && !sleepType.includes('awake')) {
-              night.bedtime = startTime;
-            }
-            
-            // Always extend waketime forward
-            if (endTime > night.waketime) {
-              night.waketime = endTime;
-            }
-            
-            // Accumulate stage minutes
-            night.awakeMinutes += awakeMinutes;
-            night.lightMinutes += lightMinutes;
-            night.deepMinutes += deepMinutes;
-            night.remMinutes += remMinutes;
-          }
+          episodesByNight.get(nightKey)!.push(episode);
         }
-
-        // Create sleep sessions with validation
-        for (const [nightKey, night] of Array.from(sleepNights.entries())) {
-          const totalMinutes = Math.round((night.waketime.getTime() - night.bedtime.getTime()) / (1000 * 60));
+        
+        // Process each night
+        for (const [nightKey, nightEpisodes] of episodesByNight.entries()) {
+          console.log(`🌙 Processing night ${nightKey} with ${nightEpisodes.length} episode(s)`);
           
-          // Validation: Ensure bedtime is within reasonable range (within 16 hours before wake time)
-          // This filters out cases where a sleep stage transition was incorrectly used as bedtime
-          if (totalMinutes > 16 * 60) {
-            console.log(`⚠️ Rejecting sleep session with unrealistic duration: ${totalMinutes} mins (${night.bedtime.toISOString()} to ${night.waketime.toISOString()})`);
-            continue;
-          }
+          // Select primary episode
+          const primary = selectPrimaryEpisode(nightEpisodes);
           
-          // Validation: Must have at least 1 hour of sleep
-          if (totalMinutes < 60) {
-            console.log(`⚠️ Rejecting sleep session too short: ${totalMinutes} mins`);
-            continue;
-          }
-          
-          // Calculate sleep score based on duration and stage quality
-          // Actual sleep time excludes awake minutes
-          const actualSleepMinutes = totalMinutes - night.awakeMinutes;
-          const sleepHours = actualSleepMinutes / 60;
-          let sleepScore = 70; // Base score
-          
-          // Adjust for actual sleep duration (optimal 7-9 hours)
-          if (sleepHours >= 7 && sleepHours <= 9) {
-            sleepScore += 15;
-          } else if (sleepHours >= 6 && sleepHours < 7) {
-            sleepScore += 8;
-          } else if (sleepHours < 6) {
-            sleepScore -= 15;
-          } else if (sleepHours > 9) {
-            sleepScore -= 5;
-          }
-          
-          // Adjust for deep sleep (should be ~15-20% of actual sleep time)
-          if (night.deepMinutes > 0 && actualSleepMinutes > 0) {
-            const deepPercentage = night.deepMinutes / actualSleepMinutes;
-            if (deepPercentage >= 0.15 && deepPercentage <= 0.25) {
-              sleepScore += 10;
-            } else if (deepPercentage < 0.10) {
-              sleepScore -= 5;
+          if (primary) {
+            const validation = validateSleepEpisode(primary);
+            
+            if (validation.valid) {
+              // Calculate sleep score for primary episode
+              const scoreResult = calculateSleepScore(primary, previousMidpoints);
+              
+              console.log(`💾 Creating primary sleep session: ${primary.episodeStart.toISOString()} to ${primary.episodeEnd.toISOString()}`);
+              console.log(`   Score: ${scoreResult.score} (${scoreResult.quality})`);
+              console.log(`   Duration: ${scoreResult.sleepHours.toFixed(1)}h, Efficiency: ${(scoreResult.percentages.efficiency * 100).toFixed(1)}%`);
+              console.log(`   Deep: ${(scoreResult.percentages.deep * 100).toFixed(1)}%, REM: ${(scoreResult.percentages.rem * 100).toFixed(1)}%`);
+              console.log(`   Awakenings: ${scoreResult.fragmentation.awakeningsCount}, Longest: ${scoreResult.fragmentation.longestAwakeBoutMinutes} min`);
+              
+              await storage.upsertSleepSession({
+                userId,
+                bedtime: primary.episodeStart,
+                waketime: primary.episodeEnd,
+                totalMinutes: primary.inBedMinutes,
+                awakeMinutes: primary.awakeMinutes,
+                lightMinutes: primary.lightMinutes,
+                deepMinutes: primary.deepMinutes,
+                remMinutes: primary.remMinutes,
+                sleepScore: scoreResult.score,
+                quality: scoreResult.quality,
+                episodeType: 'primary',
+                episodeId: primary.episodeId,
+                nightKeyLocalDate: primary.nightKeyLocalDate,
+                awakeningsCount: primary.awakeningsCount,
+                longestAwakeBoutMinutes: primary.longestAwakeBoutMinutes,
+                sleepMidpointLocal: primary.sleepMidpointLocal,
+                sleepEfficiency: primary.sleepEfficiency,
+                flags: primary.flags,
+                source: "ios-healthkit",
+              });
+              insertedCount++;
+            } else {
+              console.log(`⚠️ Skipping invalid primary episode for ${nightKey}: ${validation.reason}`);
             }
+          } else {
+            console.log(`⚠️ No valid primary episode found for ${nightKey}`);
           }
           
-          // Adjust for REM sleep (should be ~20-25% of actual sleep time)
-          if (night.remMinutes > 0 && actualSleepMinutes > 0) {
-            const remPercentage = night.remMinutes / actualSleepMinutes;
-            if (remPercentage >= 0.18 && remPercentage <= 0.28) {
-              sleepScore += 10;
-            } else if (remPercentage < 0.15) {
-              sleepScore -= 5;
-            }
+          // Process naps separately
+          const naps = nightEpisodes.filter(ep => ep.episodeType === 'nap');
+          for (const nap of naps) {
+            const napScore = calculateNapScore(nap);
+            
+            console.log(`😴 Creating nap session: ${nap.episodeStart.toISOString()} (${nap.inBedMinutes} min, restorative: ${napScore.restorative})`);
+            
+            await storage.upsertSleepSession({
+              userId,
+              bedtime: nap.episodeStart,
+              waketime: nap.episodeEnd,
+              totalMinutes: nap.inBedMinutes,
+              awakeMinutes: nap.awakeMinutes,
+              lightMinutes: nap.lightMinutes,
+              deepMinutes: nap.deepMinutes,
+              remMinutes: nap.remMinutes,
+              sleepScore: null, // Naps don't get sleep scores
+              quality: null,
+              episodeType: 'nap',
+              episodeId: nap.episodeId,
+              nightKeyLocalDate: nap.nightKeyLocalDate,
+              awakeningsCount: nap.awakeningsCount,
+              longestAwakeBoutMinutes: nap.longestAwakeBoutMinutes,
+              sleepMidpointLocal: nap.sleepMidpointLocal,
+              sleepEfficiency: nap.sleepEfficiency,
+              flags: nap.flags,
+              source: "ios-healthkit",
+            });
+            insertedCount++;
           }
-          
-          // Penalize excessive awake time (>10% of time in bed is poor sleep quality)
-          if (night.awakeMinutes > 0) {
-            const awakePercentage = night.awakeMinutes / totalMinutes;
-            if (awakePercentage > 0.15) {
-              // Very poor sleep efficiency (>15% awake)
-              sleepScore -= 20;
-            } else if (awakePercentage > 0.10) {
-              // Moderate awake time (10-15% awake)
-              sleepScore -= 10;
-            }
-          }
-          
-          // Ensure score is between 0 and 100
-          sleepScore = Math.max(0, Math.min(100, Math.round(sleepScore)));
-          
-          const quality = sleepScore >= 80 ? "excellent" : sleepScore >= 60 ? "good" : sleepScore >= 40 ? "fair" : "poor";
-
-          console.log(`💾 Creating sleep session for ${nightKey}: ${night.bedtime.toISOString()} to ${night.waketime.toISOString()} (${totalMinutes} mins, score: ${sleepScore})`);
-          
-          await storage.upsertSleepSession({
-            userId,
-            bedtime: night.bedtime,
-            waketime: night.waketime,
-            totalMinutes,
-            awakeMinutes: night.awakeMinutes,
-            lightMinutes: night.lightMinutes,
-            deepMinutes: night.deepMinutes,
-            remMinutes: night.remMinutes,
-            sleepScore,
-            quality,
-            source: "ios-healthkit",
-          });
-          insertedCount++;
         }
       }
 
