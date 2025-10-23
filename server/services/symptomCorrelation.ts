@@ -377,7 +377,7 @@ export async function fetchHealthSignals(
     }
 
     // Activity data - find most recent workout
-    const workouts = await storage.getWorkouts(userId);
+    const workouts = await storage.getWorkoutSessions(userId, oneDayAgo, now);
     if (workouts.length > 0) {
       const latestWorkout = workouts[0];
       const workoutDate = new Date(latestWorkout.date);
