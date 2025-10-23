@@ -2078,7 +2078,19 @@ export class DbStorage implements IStorage {
           sessionDate.getDate() === workoutDate.getDate()
         ) {
           console.log(`💪 Found existing session for accepted workout: ${session.id}`);
-          return session.id;
+          // Find the workout instance for this session
+          const instances = await db
+            .select()
+            .from(workoutInstances)
+            .where(eq(workoutInstances.workoutSessionId, session.id))
+            .limit(1);
+          
+          if (instances.length > 0) {
+            console.log(`💪 Found existing instance: ${instances[0].id}`);
+            return { sessionId: session.id, instanceId: instances[0].id };
+          } else {
+            console.warn(`💪 No instance found for session ${session.id}, will create new session`);
+          }
         }
       }
     }
