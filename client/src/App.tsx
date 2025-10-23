@@ -29,6 +29,7 @@ import WorkoutSession from "@/pages/WorkoutSession";
 import InsightsHub from "@/pages/InsightsHub";
 import Goals from "@/pages/Goals";
 import Supplements from "@/pages/Supplements";
+import Symptoms from "@/pages/Symptoms";
 import BiologicalAge from "@/pages/BiologicalAge";
 import AppleHealthSetup from "@/pages/AppleHealthSetup";
 import Chat from "@/pages/Chat";
@@ -69,6 +70,7 @@ function Router() {
       <Route path="/training/fitness-profile" component={FitnessProfile} />
       <Route path="/workout/:id" component={WorkoutSession} />
       <Route path="/supplements" component={Supplements} />
+      <Route path="/symptoms" component={Symptoms} />
       <Route path="/insights" component={InsightsHub} />
       <Route path="/daily-insights" component={() => {
         const [, setLocation] = useLocation();
