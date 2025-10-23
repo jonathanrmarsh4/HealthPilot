@@ -1,0 +1,491 @@
+import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Slider } from "@/components/ui/slider";
+import { Textarea } from "@/components/ui/textarea";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Plus, TrendingUp, TrendingDown, Minus, CheckCircle2, Activity, Clock, AlertCircle } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { Skeleton } from "@/components/ui/skeleton";
+import { formatDistanceToNow } from "date-fns";
+
+type SymptomEvent = {
+  id: string;
+  userId: string;
+  name: string;
+  coding?: any;
+  episodeId: string;
+  status: "new" | "ongoing" | "resolved";
+  severity: number | null;
+  trend: "better" | "worse" | "same" | null;
+  context: string[];
+  notes: string | null;
+  signals: any;
+  startedAt: string;
+  recordedAt: string;
+  endedAt: string | null;
+  source: string;
+  version: number;
+  createdAt: string;
+};
+
+const CONTEXT_SUGGESTIONS = [
+  "after_workout",
+  "poor_sleep",
+  "stress_high",
+  "before_meal",
+  "after_meal",
+  "morning",
+  "evening",
+  "weather_change",
+  "dehydrated",
+  "long_sitting",
+];
+
+const symptomFormSchema = z.object({
+  name: z.string().min(1, "Symptom name is required"),
+  severity: z.number().min(0).max(10),
+  trend: z.enum(["better", "worse", "same"]).optional(),
+  context: z.array(z.string()).default([]),
+  notes: z.string().optional(),
+});
+
+type SymptomFormData = z.infer<typeof symptomFormSchema>;
+
+export default function Symptoms() {
+  const { toast } = useToast();
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [selectedContexts, setSelectedContexts] = useState<string[]>([]);
+
+  const { data: activeEpisodes, isLoading: activeLoading } = useQuery<SymptomEvent[]>({
+    queryKey: ["/api/symptoms/active"],
+  });
+
+  const { data: allEvents, isLoading: historyLoading } = useQuery<SymptomEvent[]>({
+    queryKey: ["/api/symptoms/events"],
+  });
+
+  const form = useForm<SymptomFormData>({
+    resolver: zodResolver(symptomFormSchema),
+    defaultValues: {
+      name: "",
+      severity: 5,
+      context: [],
+      notes: "",
+    },
+  });
+
+  const createSymptomMutation = useMutation({
+    mutationFn: async (data: SymptomFormData) => {
+      const now = new Date().toISOString();
+      const episodeId = crypto.randomUUID();
+      
+      return apiRequest("/api/symptoms/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: data.name,
+          episodeId,
+          status: "new",
+          severity: data.severity,
+          trend: data.trend || null,
+          context: data.context,
+          notes: data.notes || null,
+          signals: null,
+          startedAt: now,
+          recordedAt: now,
+          endedAt: null,
+          source: "user",
+          version: 1,
+        }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/symptoms/active"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/symptoms/events"] });
+      toast({
+        title: "Symptom tracked",
+        description: "Your symptom has been recorded successfully.",
+      });
+      setIsAddDialogOpen(false);
+      form.reset();
+      setSelectedContexts([]);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to track symptom",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateTrendMutation = useMutation({
+    mutationFn: async ({ episodeId, trend }: { episodeId: string; trend: "better" | "worse" | "same" }) => {
+      const now = new Date().toISOString();
+      const episode = activeEpisodes?.find(e => e.episodeId === episodeId);
+      
+      if (!episode) throw new Error("Episode not found");
+      
+      return apiRequest("/api/symptoms/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: episode.name,
+          episodeId,
+          status: "ongoing",
+          severity: episode.severity,
+          trend,
+          context: episode.context,
+          notes: null,
+          signals: null,
+          startedAt: episode.startedAt,
+          recordedAt: now,
+          endedAt: null,
+          source: "user",
+          version: 1,
+        }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/symptoms/active"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/symptoms/events"] });
+      toast({
+        title: "Symptom updated",
+        description: "Trend has been recorded.",
+      });
+    },
+  });
+
+  const resolveEpisodeMutation = useMutation({
+    mutationFn: async (episodeId: string) => {
+      return apiRequest(`/api/symptoms/episodes/${episodeId}/resolve`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ endedAt: new Date().toISOString() }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/symptoms/active"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/symptoms/events"] });
+      toast({
+        title: "Symptom resolved",
+        description: "The symptom has been marked as resolved.",
+      });
+    },
+  });
+
+  const onSubmit = (data: SymptomFormData) => {
+    createSymptomMutation.mutate(data);
+  };
+
+  const toggleContext = (context: string) => {
+    const newContexts = selectedContexts.includes(context)
+      ? selectedContexts.filter(c => c !== context)
+      : [...selectedContexts, context];
+    
+    setSelectedContexts(newContexts);
+    form.setValue("context", newContexts);
+  };
+
+  const getSeverityColor = (severity: number | null) => {
+    if (severity === null) return "bg-muted";
+    if (severity <= 3) return "bg-green-500";
+    if (severity <= 6) return "bg-yellow-500";
+    return "bg-red-500";
+  };
+
+  const getTrendIcon = (trend: string | null) => {
+    switch (trend) {
+      case "better": return <TrendingDown className="h-4 w-4 text-green-500" />;
+      case "worse": return <TrendingUp className="h-4 w-4 text-red-500" />;
+      case "same": return <Minus className="h-4 w-4 text-yellow-500" />;
+      default: return null;
+    }
+  };
+
+  const resolvedEvents = allEvents?.filter(e => e.status === "resolved") || [];
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight">Symptoms</h1>
+          <p className="text-muted-foreground mt-1 md:mt-2">
+            Track and monitor your health symptoms
+          </p>
+        </div>
+        
+        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <DialogTrigger asChild>
+            <Button data-testid="button-add-symptom">
+              <Plus className="h-4 w-4 mr-2" />
+              Add Symptom
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Track a Symptom</DialogTitle>
+              <DialogDescription>
+                Record a new symptom or health concern you're experiencing.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Symptom Name</FormLabel>
+                      <FormControl>
+                        <Input 
+                          {...field} 
+                          placeholder="e.g., headache, nausea, fatigue"
+                          data-testid="input-symptom-name"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="severity"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Severity: {field.value}/10</FormLabel>
+                      <FormControl>
+                        <Slider
+                          min={0}
+                          max={10}
+                          step={1}
+                          value={[field.value]}
+                          onValueChange={(vals) => field.onChange(vals[0])}
+                          data-testid="slider-severity"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="context"
+                  render={() => (
+                    <FormItem>
+                      <FormLabel>Context (Optional)</FormLabel>
+                      <div className="flex flex-wrap gap-2">
+                        {CONTEXT_SUGGESTIONS.map((context) => (
+                          <Badge
+                            key={context}
+                            variant={selectedContexts.includes(context) ? "default" : "outline"}
+                            className="cursor-pointer hover-elevate active-elevate-2"
+                            onClick={() => toggleContext(context)}
+                            data-testid={`badge-context-${context}`}
+                          >
+                            {context.replace(/_/g, " ")}
+                          </Badge>
+                        ))}
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="notes"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Notes (Optional)</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          {...field}
+                          placeholder="Any additional details..."
+                          rows={3}
+                          data-testid="textarea-notes"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="flex justify-end gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsAddDialogOpen(false)}
+                    data-testid="button-cancel"
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    type="submit" 
+                    disabled={createSymptomMutation.isPending}
+                    data-testid="button-submit-symptom"
+                  >
+                    {createSymptomMutation.isPending ? "Saving..." : "Track Symptom"}
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {/* Active Episodes */}
+      <div className="space-y-4">
+        <h2 className="text-xl font-semibold flex items-center gap-2">
+          <Activity className="h-5 w-5" />
+          Active Symptoms
+        </h2>
+
+        {activeLoading ? (
+          <div className="grid gap-4 md:grid-cols-2">
+            {[1, 2].map((i) => (
+              <Card key={i}>
+                <CardContent className="p-6">
+                  <Skeleton className="h-24 w-full" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : activeEpisodes && activeEpisodes.length > 0 ? (
+          <div className="grid gap-4 md:grid-cols-2">
+            {activeEpisodes.map((episode) => (
+              <Card key={episode.id} data-testid={`card-active-episode-${episode.episodeId}`}>
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <CardTitle className="text-lg capitalize">{episode.name}</CardTitle>
+                      <CardDescription className="flex items-center gap-2 mt-1">
+                        <Clock className="h-3 w-3" />
+                        {formatDistanceToNow(new Date(episode.startedAt), { addSuffix: true })}
+                      </CardDescription>
+                    </div>
+                    {episode.severity !== null && (
+                      <Badge variant="outline" className="flex items-center gap-1">
+                        <div className={`h-2 w-2 rounded-full ${getSeverityColor(episode.severity)}`} />
+                        {episode.severity}/10
+                      </Badge>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {episode.trend && (
+                    <div className="flex items-center gap-2">
+                      {getTrendIcon(episode.trend)}
+                      <span className="text-sm text-muted-foreground capitalize">{episode.trend}</span>
+                    </div>
+                  )}
+                  
+                  {episode.context && episode.context.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {episode.context.map((ctx, idx) => (
+                        <Badge key={idx} variant="secondary" className="text-xs">
+                          {ctx.replace(/_/g, " ")}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="flex gap-2 pt-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => updateTrendMutation.mutate({ episodeId: episode.episodeId, trend: "better" })}
+                      disabled={updateTrendMutation.isPending}
+                      data-testid={`button-better-${episode.episodeId}`}
+                    >
+                      <TrendingDown className="h-3 w-3 mr-1" />
+                      Better
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => updateTrendMutation.mutate({ episodeId: episode.episodeId, trend: "same" })}
+                      disabled={updateTrendMutation.isPending}
+                      data-testid={`button-same-${episode.episodeId}`}
+                    >
+                      <Minus className="h-3 w-3 mr-1" />
+                      Same
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => updateTrendMutation.mutate({ episodeId: episode.episodeId, trend: "worse" })}
+                      disabled={updateTrendMutation.isPending}
+                      data-testid={`button-worse-${episode.episodeId}`}
+                    >
+                      <TrendingUp className="h-3 w-3 mr-1" />
+                      Worse
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="default"
+                      onClick={() => resolveEpisodeMutation.mutate(episode.episodeId)}
+                      disabled={resolveEpisodeMutation.isPending}
+                      data-testid={`button-resolve-${episode.episodeId}`}
+                    >
+                      <CheckCircle2 className="h-3 w-3 mr-1" />
+                      Resolve
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <Card>
+            <CardContent className="p-12 text-center">
+              <AlertCircle className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
+              <p className="text-muted-foreground">No active symptoms</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Click "Add Symptom" to start tracking
+              </p>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      {/* History */}
+      {resolvedEvents.length > 0 && (
+        <div className="space-y-4">
+          <h2 className="text-xl font-semibold flex items-center gap-2">
+            <CheckCircle2 className="h-5 w-5" />
+            Resolved ({resolvedEvents.length})
+          </h2>
+          
+          <div className="space-y-2">
+            {resolvedEvents.slice(0, 5).map((event) => (
+              <Card key={event.id} className="bg-muted/50">
+                <CardContent className="p-4 flex items-center justify-between">
+                  <div>
+                    <p className="font-medium capitalize">{event.name}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {new Date(event.startedAt).toLocaleDateString()} - {event.endedAt && new Date(event.endedAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <CheckCircle2 className="h-5 w-5 text-green-500" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
