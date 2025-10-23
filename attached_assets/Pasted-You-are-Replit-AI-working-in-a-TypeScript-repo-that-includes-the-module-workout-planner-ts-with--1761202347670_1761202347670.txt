@@ -1,0 +1,154 @@
+You are Replit AI working in a TypeScript repo that includes the module `workout-planner.ts` with:
+- defaultConfig (templates, slot maps, rules)
+- buildDayPlan(req)
+- swapAlternates(slot, currentId, req)
+- nextLoadDecision(input)
+
+🎯 Goal
+Create a runnable demo + tests that *prove* the planner accounts for:
+1) Readiness (HRV/RHR/sleep trends → recovery flags)
+2) Health profile (equipment, limitations, contraindications)
+3) Goals (hypertrophy vs strength → rep ranges, exercise choices)
+4) Training rules (templates, volume caps, time budgeting, progression, BP safety)
+
+Deliver:
+- One demo script: `demo_workout_planner.ts`
+- One minimal test file: `planner_proof.test.ts` (node test or simple assert script)
+- Clear console evidence with a deterministic “Decision Trace” showing WHY each choice was made.
+
+Constraints:
+- No external APIs. Use only the exported functions + defaultConfig.
+- Make outputs deterministic (use fixed inputs).
+- Keep it simple; no frameworks required. If a test runner isn’t present, use Node’s built-in `assert`.
+
+--------------------------------
+A) IMPLEMENT THE DEMO SCRIPT
+--------------------------------
+Create `demo_workout_planner.ts` that:
+
+1) Defines TWO contrasting users:
+
+USER_A (Hypertrophy, lower recovery)
+- experience: "intermediate"
+- days_per_week: 3
+- session_minutes_cap: 50
+- available_equipment: ["db","bench","cable","machine","bands"]
+- preferences: { likes: ["db","bodyweight"], dislikes: ["barbell_hip_thrust"] }
+- limitations: { shoulder: "no_overhead_press" }
+- goals: ["hypertrophy"]
+- signals: { biomarker_flags: ["elevated_bp"], recovery_flags: ["hrv_down_3d","sleep_poor"] }
+
+USER_B (Strength, good recovery)
+- experience: "intermediate"
+- days_per_week: 3
+- session_minutes_cap: 60
+- available_equipment: ["barbell","rack","db","bench","cable","machine"]
+- preferences: { likes: ["barbell"] }
+- limitations: {}
+- goals: ["strength"]
+- signals: { biomarker_flags: [], recovery_flags: [] }
+
+2) Builds Day A for both users using `template_fullbody_x3`:
+- Call buildDayPlan({ user_profile, template_id: "template_fullbody_x3", day_key: "dayA", signals, time_cap_min: profile.session_minutes_cap })
+
+3) Prints a **Decision Trace** for each planned exercise:
+For each block:
+- slot name
+- chosen exercise id + name
+- sets/reps/rest
+- which rules affected it:
+  - equipment fit / modality likes
+  - dislikes/limitations/contraindications
+  - recovery flags that scaled volume
+  - biomarker BP safety adjustments (rep floor, rest)
+  - time-budget trims (if any)
+Use a helper that recomputes `scoreExercise` for the chosen exercise to list the scoring criteria (positive/negative).
+
+4) Demonstrates **Swap** behavior:
+- For USER_A, call `swapAlternates("squat_pattern", <current_ex_id>, req)` and print top 3 alternates with their reasons.
+
+5) Demonstrates **Progression/Deload**:
+- Call `nextLoadDecision` with:
+  - Case 1 (USER_B): last_two_sessions both at top of range (expect "increase_small")
+  - Case 2 (USER_A): recovery flags present (expect "deload")
+
+6) Prints a final **Evidence Summary**:
+- Confirms USER_A volume was reduced and rest increased due to low recovery + elevated_bp
+- Confirms USER_B got more “axial barbell” friendly choices and no volume scaling
+
+7) Exit code 0.
+
+--------------------------------
+B) ADD A MINIMAL TEST FILE
+--------------------------------
+Create `planner_proof.test.ts` (or `planner_proof.ts` if no runner) with inline asserts:
+
+Tests:
+1) Readiness scaling: For USER_A, sum planned sets in dayA should be strictly lower than the same user with no recovery flags.
+2) BP rule: For USER_A, at least one main lift has rest_s >= 120 and rep floor >= 6.
+3) Limitations honored: With shoulder = "no_overhead_press", there must be no "db_overhead_press" selected in dayA.
+4) Goals steer selection: With strength goal (USER_B), ensure at least one main slot resolves to a higher-load pattern candidate (e.g., barbell_back_squat or similar present in candidate list and is chosen if available equipment matches and no conflicts).
+5) Time budget: If session_minutes_cap is set to 35 for USER_A, at least one lower-priority accessory (priority >= 3) should be trimmed.
+
+Use Node’s built-in `assert`:
+  import assert from "node:assert/strict";
+
+--------------------------------
+C) WIRE UP SCRIPTS
+--------------------------------
+If not present, add a basic tsconfig (moduleResolution node16) and simple npm scripts in package.json:
+  "scripts": {
+    "demo": "ts-node demo_workout_planner.ts",
+    "test": "ts-node planner_proof.test.ts"
+  }
+
+If ts-node isn’t installed, add it and typescript:
+  npm i -D ts-node typescript
+
+--------------------------------
+D) EXPECTED CONSOLE SHAPE
+--------------------------------
+When running `npm run demo`, print:
+
+=== USER_A (Hypertrophy • Low Recovery • Elevated BP) • Day A ===
+- Slot: squat_pattern → db_goblet_squat (sets 3, reps 6-10, rest 120)
+  Reasons: equipment fit, preferred modality(db), low-recovery volume scale, BP rest bump
+- Slot: horizontal_press → flat_db_press (...)
+  Reasons: shoulder limitation avoids overhead patterns, dislike respected: barbell_hip_thrust
+...
+Notes: ["Volume scaled due to low recovery","BP-safe cues: ..."]
+Estimated time: XX min
+
+Swap options (squat_pattern):
+1) hack_squat (score: …) — reasons: equipment fit, machine preferred for BP
+2) leg_press (...)
+3) db_front_squat (...)
+
+Progression decisions:
+- USER_B: increase_small
+- USER_A: deload
+
+=== USER_B (Strength • Good Recovery) • Day A ===
+- Slot: squat_pattern → barbell_back_squat (sets 4, reps 5-8, rest 180)
+  Reasons: equipment fit, barbell preference, no recovery penalty
+...
+
+Evidence Summary:
+- USER_A: volume reduced vs baseline, rest ≥120s on compounds, overhead press omitted → PASS
+- USER_B: barbell compounds selected, no volume scaling → PASS
+
+--------------------------------
+E) RUN IT NOW
+--------------------------------
+1) Create the two files with the above content.
+2) Ensure imports: `import { defaultConfig, buildDayPlan, scoreExercise, swapAlternates, nextLoadDecision } from "./workout-planner";`
+3) Install dev deps if needed: `npm i -D ts-node typescript`
+4) Run: `npm run demo`
+5) Run: `npm run test`
+
+Success Criteria (must be visible in console):
+- Clear “Decision Trace” per slot proving how readiness, health profile, goals, and rules changed sets/reps/rest and exercise selection.
+- Swap shows *same-slot* alternatives with scored reasons.
+- Tests PASS with assertions described above.
+
+If any step fails, fix and re-run until all PASS and the Decision Trace reads logically.
