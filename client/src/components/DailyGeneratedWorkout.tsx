@@ -410,7 +410,11 @@ export function DailyGeneratedWorkout() {
                   disabled={isGenerating}
                   data-testid="button-regenerate-workout"
                 >
-                  <RefreshCw className="mr-2 h-4 w-4" />
+                  {isGenerating ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                  )}
                   Regenerate
                 </Button>
                 <Button
@@ -455,7 +459,11 @@ export function DailyGeneratedWorkout() {
                     disabled={isGenerating}
                     data-testid="button-regenerate-workout"
                   >
-                    <RefreshCw className="h-4 w-4" />
+                    {isGenerating ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-4 w-4" />
+                    )}
                   </Button>
                 </div>
               </div>
@@ -483,8 +491,17 @@ export function DailyGeneratedWorkout() {
                   disabled={isGenerating}
                   data-testid="button-regenerate-workout"
                 >
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                  Generate Alternative Workout
+                  {isGenerating ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                      Generate Alternative Workout
+                    </>
+                  )}
                 </Button>
               </div>
             )}
@@ -500,8 +517,17 @@ export function DailyGeneratedWorkout() {
                   disabled={isGenerating}
                   data-testid="button-regenerate-workout"
                 >
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                  Generate New Workout
+                  {isGenerating ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                      Generate New Workout
+                    </>
+                  )}
                 </Button>
               </div>
             )}

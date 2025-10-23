@@ -551,10 +551,12 @@ REQUIRED OUTPUT SCHEMA (return this exact structure at the root level):
     );
   }
 
-  // Verify time budget if provided
-  if (result.time_budget && result.time_budget.total_min > sessionMinutes) {
+  // Verify time budget if provided (allow 2-minute buffer for flexibility)
+  const timeBudgetBuffer = 2;
+  const maxAllowedTime = sessionMinutes + timeBudgetBuffer;
+  if (result.time_budget && result.time_budget.total_min > maxAllowedTime) {
     throw new Error(
-      `Time budget exceeded: ${result.time_budget.total_min} min > ${sessionMinutes} min session limit. ` +
+      `Time budget exceeded: ${result.time_budget.total_min} min > ${maxAllowedTime} min allowed (${sessionMinutes}min + ${timeBudgetBuffer}min buffer). ` +
       `Reduce sets, shorten conditioning, or trim accessories.`
     );
   }

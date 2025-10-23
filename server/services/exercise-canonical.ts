@@ -2,16 +2,41 @@
  * Exercise Name Canonicalization
  * 
  * Normalizes exercise names to prevent semantic duplicates
- * (e.g., "DB Bench Press" and "Dumbbell Bench Press" are treated as the same)
+ * 
+ * Examples of duplicates caught:
+ * - "DB Bench Press" → "Dumbbell Bench Press" (abbreviation expansion)
+ * - "Incline Dumbbell Press" → "Dumbbell Press" (modifier removal)
+ * - "Back Squat (Barbell)" → "Barbell Back Squat" (word-order normalization)
+ * - "Wide-Grip Pull-Up" → "Pull-Up" (punctuation + modifier removal)
+ * 
+ * Normalization rules:
+ * 1. Lowercase
+ * 2. Expand abbreviations (DB→dumbbell, BB→barbell)
+ * 3. Remove punctuation (parentheses, commas, hyphens, etc.)
+ * 4. Remove descriptive modifiers (incline, wide, seated, etc.)
+ * 5. Sort tokens alphabetically (catches word-order differences)
  */
 
 export function canonicalize(name: string): string {
-  return name
+  let normalized = name
     .toLowerCase()
+    // Expand abbreviations
     .replace(/\b(db|dumbbell)\b/g, 'dumbbell')
     .replace(/\b(bb|barbell)\b/g, 'barbell')
+    // Remove punctuation (parentheses, commas, hyphens, slashes, periods, apostrophes)
+    .replace(/[(),\-\/.:']/g, ' ')
+    // Remove common descriptive modifiers that distinguish exercise variants
+    .replace(/\b(incline|decline|flat|wide|close|narrow|neutral|overhand|underhand|supinated|pronated|mixed|grip|stance|seated|standing|lying|reverse|alternating|single|double|leg|arm|hand)\b/gi, '')
+    // Normalize whitespace
     .replace(/\s+/g, ' ')
     .trim();
+  
+  // Sort tokens alphabetically to catch word-order differences
+  // e.g., "Back Squat Barbell" → "back barbell squat"
+  // This catches cases where the same lift has different word ordering
+  const tokens = normalized.split(' ').filter(t => t.length > 0).sort();
+  
+  return tokens.join(' ');
 }
 
 /**
