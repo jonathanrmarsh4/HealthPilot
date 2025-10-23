@@ -1480,19 +1480,45 @@ export class DbStorage implements IStorage {
   }
 
   async getSleepSessions(userId: string, startDate?: Date, endDate?: Date): Promise<SleepSession[]> {
+    // Import debug logger
+    const { logQuerySummary, dlog } = await import('./utils/sleepDebug');
+    
+    // Build query with proper SQL WHERE clause for date filtering
     let query = db
       .select()
       .from(sleepSessions)
       .where(eq(sleepSessions.userId, userId));
 
     if (startDate && endDate) {
-      const result = await query.orderBy(desc(sleepSessions.bedtime));
-      return result.filter(
-        s => s.bedtime >= startDate && s.bedtime <= endDate
+      // Use SQL WHERE clause for efficient filtering (not in-memory)
+      // Query by bedtime to find sleep sessions in the date range
+      query = query.where(
+        and(
+          eq(sleepSessions.userId, userId),
+          sql`${sleepSessions.bedtime} >= ${startDate.toISOString()}`,
+          sql`${sleepSessions.bedtime} <= ${endDate.toISOString()}`
+        )
       );
+      
+      dlog(`getSleepSessions query window: ${startDate.toISOString()} to ${endDate.toISOString()}`);
     }
 
-    return await query.orderBy(desc(sleepSessions.bedtime));
+    const result = await query.orderBy(desc(sleepSessions.bedtime));
+    
+    // Log query results for debugging
+    logQuerySummary({
+      userId,
+      queryWindow: {
+        startDate,
+        endDate
+      },
+      results: result,
+      sqlGenerated: startDate && endDate 
+        ? `bedtime >= '${startDate.toISOString()}' AND bedtime <= '${endDate.toISOString()}'`
+        : 'no date filter'
+    });
+    
+    return result;
   }
 
   async getLatestSleepSession(userId: string): Promise<SleepSession | undefined> {

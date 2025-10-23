@@ -7706,12 +7706,50 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
     const userId = (req.user as any).claims.sub;
 
     try {
-      const days = parseInt(req.query.days as string) || 30;
-      const endDate = new Date();
-      const startDate = new Date();
-      startDate.setDate(startDate.getDate() - days);
+      // Support timezone-aware local date queries
+      const localDate = req.query.localDate as string | undefined;
+      const timezone = (req.query.timezone as string) || userTimezone || 'UTC';
+      
+      let startDate: Date;
+      let endDate: Date;
+      
+      if (localDate) {
+        // Query by local calendar date with timezone support
+        const { localDayToBedtimeWindow, logTimezoneConversion } = await import('./utils/sleepTimezone');
+        
+        // Convert local date to UTC bedtime window
+        const { startBedtime, endBedtime } = localDayToBedtimeWindow(localDate, timezone);
+        startDate = startBedtime;
+        endDate = endBedtime;
+        
+        // Log conversion for debugging
+        logTimezoneConversion({
+          localDate,
+          timezone,
+          startUtc: startDate,
+          endUtc: endDate
+        });
+      } else {
+        // Fallback to days-based query (legacy behavior)
+        const days = parseInt(req.query.days as string) || 30;
+        endDate = new Date();
+        startDate = new Date();
+        startDate.setDate(startDate.getDate() - days);
+      }
 
       const sessions = await storage.getSleepSessions(userId, startDate, endDate);
+      
+      // If querying by local date, filter to ensure sessions actually fall on that day
+      if (localDate && timezone) {
+        const { isOnLocalDay } = await import('./utils/sleepTimezone');
+        // Filter sessions that have bedtime or waketime on the target local date
+        const filtered = sessions.filter(s => 
+          isOnLocalDay(s.bedtime, localDate, timezone) || 
+          isOnLocalDay(s.waketime, localDate, timezone)
+        );
+        return res.json(filtered);
+      }
+      
       res.json(sessions);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -9174,6 +9212,18 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
       if (sleep && sleep.length > 0) {
         console.log(`🛌 Processing ${sleep.length} sleep samples with v2.0 algorithm`);
         
+        // Import debug and utility functions
+        const { logIngestSummary } = await import('./utils/sleepDebug');
+        const { normalizeSleepStage } = await import('./utils/sleepStageNormalizer');
+        
+        // Log ingest summary for debugging
+        logIngestSummary({
+          userId,
+          sampleCount: sleep.length,
+          samples: sleep,
+          userTimezone
+        });
+        
         // Import v2.0 sleep scoring functions
         const {
           parseRawSegments,
@@ -9184,13 +9234,16 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
           validateSleepEpisode,
         } = await import('./services/sleepScoring');
         
-        // Convert HealthKit samples to raw segments format
-        const rawSegments = sleep.map(sample => ({
-          startDate: sample.startDate,
-          endDate: sample.endDate,
-          value: sample.value || 'asleep_core',
-          source: 'ios-healthkit',
-        }));
+        // Convert HealthKit samples to raw segments format with stage normalization
+        const rawSegments = sleep.map(sample => {
+          const normalized = normalizeSleepStage(sample.value || 'asleep_core');
+          return {
+            startDate: sample.startDate,
+            endDate: sample.endDate,
+            value: normalized.canonical,
+            source: 'ios-healthkit',
+          };
+        });
         
         // Parse and cluster segments into episodes
         const segments = parseRawSegments(rawSegments);
