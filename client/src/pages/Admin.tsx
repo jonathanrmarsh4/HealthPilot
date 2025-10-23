@@ -11,7 +11,7 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Shield, Users, TrendingUp, FileText, Activity, Search, Trash2, ChefHat, Tag, ArrowRight, Layout, DollarSign, Image, Dumbbell, Play, FlaskConical, Wrench, TestTube } from "lucide-react";
+import { Shield, Users, TrendingUp, FileText, Activity, Search, Trash2, ChefHat, Tag, ArrowRight, Layout, DollarSign, Image, Dumbbell, Play, FlaskConical, Wrench, TestTube, Sparkles } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { User } from "@shared/schema";
@@ -44,6 +44,7 @@ export default function Admin() {
   const [exerciseResolverTeachCanonicalId, setExerciseResolverTeachCanonicalId] = useState("");
   const [exerciseResolverOutput, setExerciseResolverOutput] = useState<any | null>(null);
   const [exerciseResolverDialogOpen, setExerciseResolverDialogOpen] = useState(false);
+  const [insightsResult, setInsightsResult] = useState<any | null>(null);
   const limit = 20;
   const { toast } = useToast();
 
@@ -207,6 +208,27 @@ export default function Admin() {
       toast({
         title: "Alias Taught Successfully",
         description: data.message,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const generateInsightsMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/insights/generate-v2");
+      return await res.json();
+    },
+    onSuccess: (data: any) => {
+      setInsightsResult(data.result);
+      toast({
+        title: "✅ Insights Generated",
+        description: `Created ${data.result?.insightsGenerated || 0} insights from ${data.result?.metricsAnalyzed || 0} metrics`,
       });
     },
     onError: (error: Error) => {
@@ -503,6 +525,77 @@ export default function Admin() {
               )}
             </Button>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card data-testid="card-insights-generator">
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <Sparkles className="w-6 h-6 text-primary" />
+            <div>
+              <CardTitle data-testid="text-insights-generator-title">Daily Health Insights Generator</CardTitle>
+              <CardDescription data-testid="text-insights-generator-description">
+                Manually trigger insights generation for the current user
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Generate daily insights by analyzing metrics, symptoms, and health patterns. The system compares current values to baseline and creates AI-powered recommendations.
+          </p>
+          <Button
+            onClick={() => generateInsightsMutation.mutate()}
+            disabled={generateInsightsMutation.isPending}
+            data-testid="button-generate-insights"
+            variant="default"
+          >
+            {generateInsightsMutation.isPending ? (
+              <>
+                <Sparkles className="w-4 h-4 mr-2 animate-spin" />
+                Generating Insights...
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-4 h-4 mr-2" />
+                Generate Insights Now
+              </>
+            )}
+          </Button>
+
+          {insightsResult && (
+            <div className="mt-4 p-4 rounded-md border bg-card space-y-2">
+              <p className="text-sm font-medium">Generation Results:</p>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <p className="text-muted-foreground">Metrics Analyzed</p>
+                  <p className="font-semibold">{insightsResult.metricsAnalyzed}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Insights Generated</p>
+                  <p className="font-semibold text-primary">{insightsResult.insightsGenerated}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Symptom Insights</p>
+                  <p className="font-semibold">{insightsResult.symptomInsightsGenerated || 0}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Date</p>
+                  <p className="font-semibold">{insightsResult.date}</p>
+                </div>
+              </div>
+              {insightsResult.errors && insightsResult.errors.length > 0 && (
+                <div className="mt-3 p-3 rounded bg-destructive/10 border border-destructive/20">
+                  <p className="text-sm font-medium text-destructive">Errors:</p>
+                  <ul className="text-xs text-destructive mt-1 space-y-1">
+                    {insightsResult.errors.map((err: string, i: number) => (
+                      <li key={i}>• {err}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 
