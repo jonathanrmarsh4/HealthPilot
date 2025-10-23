@@ -1,0 +1,146 @@
+You are Replit AI working in the HealthPilot repo.
+
+🎯 Objective
+Implement a “universal HealthKit ingest” for the AutoExport webhook:
+1) ACCEPT **all** incoming event types without dropping them (including Blood Pressure).
+2) Route supported types into curated metric tables (BP, HR, HRV, RHR, Steps, Energy, Weight, Lean Mass, Sleep).
+3) Persist EVERYTHING (including unknown/unused types) into a RAW warehouse table for future use.
+4) Add a type registry so adding/removing supported types is configuration-only (no code change).
+5) Provide idempotency, unit normalization, and timezone-safe timestamps.
+6) Ship tests + a replay script proving BP and other types are ingested.
+
+We will not ask the user to change AutoExport. Assume it is configured correctly.
+
+——————————————
+A) DATA FLOW (NEW)
+——————————————
+Inbound AutoExport webhook → 
+  • Validate + normalize → 
+  • Write to **hk_events_raw** (append-only, idempotent) → 
+  • If type is supported in REGISTRY → map to curated table(s) → 
+  • Emit debug counters + update caches
+
+If a type is NOT yet supported, it STILL lands in **hk_events_raw** and is queryable later.
+
+——————————————
+B) IMPLEMENTATION TASKS
+——————————————
+1) Create RAW warehouse table + model (or migration)
+   Table: hk_events_raw
+   Columns (suggested):
+     - id (pk, uuid)
+     - user_id (string)
+     - type (string)                -- verbatim normalized type (e.g., blood_pressure)
+     - ts_start_utc (timestamptz)   -- null for instant metrics
+     - ts_end_utc (timestamptz)     -- null for instant metrics
+     - ts_instant_utc (timestamptz) -- for instant metrics like HR/RHR/HRV/Weight
+     - unit (string)                -- optional
+     - value_json (jsonb)           -- original value object/number
+     - source (string)              -- AutoExport, device name, etc.
+     - idempotency_key (string unique)
+     - received_at_utc (timestamptz default now)
+   Unique constraint on (user_id, idempotency_key).
+
+2) Add a TYPE REGISTRY (config/json or TS object)
+   File: src/autoexport/registry.ts
+   Shape:
+   export const HK_TYPE_REGISTRY = {
+     blood_pressure: { supported: true, mapper: "bp" },
+     heart_rate: { supported: true, mapper: "hr" },
+     heart_rate_variability: { supported: true, mapper: "hrv" },
+     resting_heart_rate: { supported: true, mapper: "rhr" },
+     steps: { supported: true, mapper: "steps" },
+     active_energy: { supported: true, mapper: "energy_active" },
+     basal_energy: { supported: true, mapper: "energy_basal" },
+     total_energy: { supported: true, mapper: "energy_total" },
+     weight: { supported: true, mapper: "weight" },
+     lean_body_mass: { supported: true, mapper: "lean_mass" },
+     sleep: { supported: true, mapper: "sleep" },
+     sleep_analysis: { supported: true, mapper: "sleep" },
+     // Everything else defaults to supported:false but STILL goes to hk_events_raw
+   } as const;
+
+   • Add a feature flag PER type (env or config) to temporarily disable routing while still recording to RAW.
+
+3) Webhook handler (api/autoexport/webhook.ts)
+   - BEFORE anything: capture raw payload (guarded by AE_DEBUG=1) and log summary counts per type.
+   - Validate using existing `validateWebhook()` (keep flexible snake/camel).
+   - For each event:
+       a) Normalize timestamps to UTC (instant vs interval).
+       b) Create idempotency_key = sha256(userId|type|start|end|timestamp|stableValueHash).
+       c) Upsert into hk_events_raw with idempotency.
+       d) If HK_TYPE_REGISTRY[type].supported === true → call mapper (existing in mapper.ts) to route to curated metric table(s).
+   - If mapper throws or validation fails, DO NOT drop the raw row. Log and continue.
+
+4) Mappers (extend your existing src/autoexport/mapper.ts)
+   - Ensure **blood_pressure** mapper accepts:
+       • Combined object: { systolic, diastolic } (mmHg)
+       • Split variants (sys/sbp, dia/dbp), handles unit “mmHg”
+       • Instant timestamp
+     Writes to metrics_blood_pressure(systolic_mmHg, diastolic_mmHg, measured_at_utc, source).
+   - Ensure **sleep_analysis** mapper writes each segment to metrics_sleep with normalized stage.
+   - Weight/Lean mass: convert lb→kg.
+   - HRV: detect rmssd vs sdnn; store ms; tag method.
+   - Add idempotency on curated tables as needed.
+
+5) Read side
+   - No change required for now, but ensure dashboards/insights query curated tables.
+   - Add a lightweight “raw inspector” endpoint (dev-only) to view last N hk_events_raw rows by user for debugging.
+
+6) Governance, retention & safety
+   - Add AE_INGEST_ALLOWLIST and AE_INGEST_BLOCKLIST env vars:
+       • If ALLOWLIST set → only types in it are routed, but ALL types still recorded in RAW.
+       • BLOCKLIST types are recorded in RAW but NOT routed.
+   - Add retention policy env vars for hk_events_raw (e.g., RAW_RETENTION_DAYS=365). Do NOT delete curated tables.
+   - PII: only store what’s needed (no device serials). Ensure user_id scoping is correct.
+
+7) Instrumentation
+   - Add counters/logs with AE_DEBUG=1:
+       • raw_saved, raw_deduped, routed_ok, routed_failed by type
+       • First/last UTC timestamps per type in this batch
+   - Add a healthcheck endpoint `/admin/ingest/last-autoexport` that returns per-user last seen per type.
+
+——————————————
+C) TESTS & REPLAY
+——————————————
+1) Extend tests:
+   File: tests/autoexport.universal.test.ts
+   Cases:
+   - POSTS a mixed payload containing: blood_pressure, heart_rate, hrv, resting_heart_rate, steps, energy, weight, lean_body_mass, sleep_analysis, plus 2 unknown types.
+   - ASSERT:
+     • hk_events_raw count increased for ALL types.
+     • curated tables have rows for supported types, including **blood_pressure** and **sleep_analysis**.
+     • idempotency prevents duplicate inserts on replay.
+     • unknown types exist in RAW and do not crash routing.
+   - Verify unit conversions: lb→kg, kJ→kcal, s→ms, etc.
+
+2) Replay script
+   - Reuse/extend `scripts/autoexport_replay.ts` to include:
+       • blood_pressure (systolic/diastolic)
+       • resting_heart_rate
+       • weight & lean mass in lb
+       • sleep segments crossing midnight
+       • two made-up types: { type: "menstruation", ... }, { type: "oxygen_saturation", ... } to prove RAW capture
+   - Print summary per type: saved_to_raw, routed_to_curated.
+
+——————————————
+D) ACCEPTANCE CRITERIA
+——————————————
+- **BP is ingested and queryable** from curated metrics_blood_pressure, with correct values and timestamps.
+- **All incoming types** appear in hk_events_raw with no drops. Unknown types do not error the pipeline.
+- Idempotency works across RAW and curated writes.
+- Replay script output shows non-zero BP, Sleep, Weight, Lean Mass, Resting HR rows in curated tables AND all types in RAW.
+- Feature flags allowlist/blocklist can be toggled without code changes; RAW still captures everything.
+- A dev can answer “what did we receive for user X yesterday?” via either the raw inspector or the healthcheck.
+
+——————————————
+E) QUICK TODO LIST (apply now)
+——————————————
+- [ ] Create hk_events_raw table + migration.
+- [ ] Add HK_TYPE_REGISTRY with supported:true for the listed types.
+- [ ] Update webhook to ALWAYS write RAW then optionally route via mapper.
+- [ ] Ensure bp/sleep mappers are present and unit-safe.
+- [ ] Implement idempotency_key generation and uniqueness.
+- [ ] Add tests + extend replay script.
+- [ ] Ship AE_DEBUG logs and admin healthcheck.
+- [ ] Deploy to staging; run replay; verify BP + others present.

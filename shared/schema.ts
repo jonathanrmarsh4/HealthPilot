@@ -119,6 +119,26 @@ export const biomarkers = pgTable("biomarkers", {
   recordId: varchar("record_id"),
 });
 
+// Universal HealthKit events warehouse - ALL incoming health data is stored here
+// This ensures no data is ever lost, even for unsupported/unknown metric types
+export const hkEventsRaw = pgTable("hk_events_raw", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  type: text("type").notNull(), // Normalized type name (e.g., blood_pressure, heart_rate)
+  tsStartUtc: timestamp("ts_start_utc"), // For interval metrics (sleep, workouts)
+  tsEndUtc: timestamp("ts_end_utc"), // For interval metrics
+  tsInstantUtc: timestamp("ts_instant_utc"), // For instant metrics (BP, HR, weight)
+  unit: text("unit"), // Original unit from source
+  valueJson: jsonb("value_json").notNull(), // Complete original value object/number
+  source: text("source").notNull().default("health-auto-export"), // Source system identifier
+  idempotencyKey: text("idempotency_key").notNull(), // Hash for deduplication
+  receivedAtUtc: timestamp("received_at_utc").notNull().defaultNow(), // When webhook received this
+}, (table) => [
+  uniqueIndex("hk_events_raw_idempotency_idx").on(table.userId, table.idempotencyKey),
+  index("hk_events_raw_user_type_idx").on(table.userId, table.type),
+  index("hk_events_raw_received_idx").on(table.receivedAtUtc),
+]);
+
 export const nutritionProfiles = pgTable("nutrition_profiles", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().unique(),
@@ -647,6 +667,15 @@ export const insertBiomarkerSchema = createInsertSchema(biomarkers).omit({
 }).extend({
   recordedAt: z.coerce.date().optional().default(() => new Date()),
 });
+
+// Raw HealthKit events schemas
+export const insertHkEventRawSchema = createInsertSchema(hkEventsRaw).omit({
+  id: true,
+  receivedAtUtc: true,
+});
+
+export type InsertHkEventRaw = z.infer<typeof insertHkEventRawSchema>;
+export type SelectHkEventRaw = typeof hkEventsRaw.$inferSelect;
 
 export const insertNutritionProfileSchema = createInsertSchema(nutritionProfiles).omit({
   id: true,
