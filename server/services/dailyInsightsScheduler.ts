@@ -212,12 +212,12 @@ export async function generateDailyInsightsForUser(userId: string): Promise<Insi
     }
   }
 
+  // Log biomarker deviation results but continue to symptom analysis
   if (allDeviations.length === 0) {
-    console.log(`[DailyInsights] No significant deviations detected for user ${userId}`);
-    return result;
+    console.log(`[DailyInsights] No significant biomarker deviations detected for user ${userId}`);
+  } else {
+    console.log(`[DailyInsights] Found ${allDeviations.length} deviations for user ${userId} (HealthKit metrics + biomarkers)`);
   }
-
-  console.log(`[DailyInsights] Found ${allDeviations.length} deviations for user ${userId} (HealthKit metrics + biomarkers)`);
 
   // Generate AI insights for each deviation
   const generatedInsights: GeneratedInsight[] = [];
