@@ -1164,7 +1164,6 @@ export default function Training() {
       id: "daily-generated-workout",
       title: "Today's Recommended Workout",
       description: "AI-powered workout plan based on your profile",
-      alwaysVisible: true,
       renderTile: () => <DailyGeneratedWorkout />
     },
     {
