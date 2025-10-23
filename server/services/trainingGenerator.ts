@@ -13,6 +13,7 @@ import { format, subDays } from "date-fns";
 // Validation schema (mirrors OUTPUT_SCHEMA)
 // ──────────────────────────────────────────────
 export const DailyWorkoutSchema = z.object({
+  session_id: z.string().optional(), // UUID v4 for the workout plan (AI generates this)
   date: z.string(),
   focus: z.string(),
   safety: z.object({
@@ -23,25 +24,31 @@ export const DailyWorkoutSchema = z.object({
   warmup: z.array(z.string()),
   main: z.array(
     z.object({
-      exercise_id: z.string().optional(), // Stable identifier for exercise (UUID)
+      exercise_id: z.string(), // Stable identifier for exercise (UUID v4)
+      block: z.literal("main").optional(), // Exercise block type
       exercise: z.string(),
       goal: z.enum(["strength", "hypertrophy", "power"]),
       sets: z.number().min(1).max(6),
       reps: z.number().min(1).max(15),
       intensity: z.string(),
       rest_seconds: z.number().min(45).max(360),
+      tempo: z.string().optional(),
+      cues: z.string().optional(),
       alternative_if_limited: z.string().optional()
     })
   ),
   accessories: z.array(
     z.object({
-      exercise_id: z.string().optional(), // Stable identifier for exercise (UUID)
+      exercise_id: z.string(), // Stable identifier for exercise (UUID v4)
+      block: z.literal("accessories").optional(), // Exercise block type
       exercise: z.string(),
       goal: z.string(),
       sets: z.number(),
       reps: z.number(),
       intensity: z.string(),
       rest_seconds: z.number(),
+      tempo: z.string().optional(),
+      cues: z.string().optional(),
       alternative_if_limited: z.string().optional()
     })
   ),
@@ -297,6 +304,7 @@ Exercise Variety Guidelines:
 
 REQUIRED OUTPUT SCHEMA (return this exact structure at the root level):
 {
+  "session_id": "uuid-v4-format",
   "date": "YYYY-MM-DD",
   "focus": "description of today's training focus",
   "safety": {
@@ -307,6 +315,8 @@ REQUIRED OUTPUT SCHEMA (return this exact structure at the root level):
   "warmup": ["exercise 1", "exercise 2"],
   "main": [
     {
+      "exercise_id": "uuid-v4-format",
+      "block": "main",
       "exercise": "Exercise Name",
       "goal": "strength" | "hypertrophy" | "power",
       "sets": 3,
@@ -318,6 +328,8 @@ REQUIRED OUTPUT SCHEMA (return this exact structure at the root level):
   ],
   "accessories": [
     {
+      "exercise_id": "uuid-v4-format",
+      "block": "accessories",
       "exercise": "Exercise Name",
       "goal": "hypertrophy",
       "sets": 3,
@@ -342,6 +354,18 @@ REQUIRED OUTPUT SCHEMA (return this exact structure at the root level):
     },
     "weekly_volume_guardrail_ok": true,
     "reasoning": "explanation"
+  },
+  "time_budget": {
+    "warmup_min": 5,
+    "per_exercise_min": [8, 8, 6, 6, 5],
+    "conditioning_min": 10,
+    "cooldown_min": 5,
+    "total_min": 58
+  },
+  "min_exercise_policy": {
+    "session_minutes": 60,
+    "minimum_exercise_count": 5,
+    "achieved_exercise_count": 5
   }
 }
 `;
@@ -369,6 +393,25 @@ REQUIRED OUTPUT SCHEMA (return this exact structure at the root level):
 
   // Validate output structure & guardrails
   const result = DailyWorkoutSchema.parse(parsed);
+
+  // ⬇️ Enforce 5-per-hour minimum (belt-and-braces server validation)
+  const sessionMinutes = Number(data?.availability?.session_minutes ?? 60);
+  const minExercises = Math.ceil((sessionMinutes / 60) * 5);
+  const exerciseCount = (result.main?.length || 0) + (result.accessories?.length || 0);
+  if (exerciseCount < minExercises) {
+    throw new Error(
+      `Plan under-filled: ${exerciseCount} < required ${minExercises} exercises for ${sessionMinutes}-min session. ` +
+      `Regenerate with more exercises (add light accessories/technique work if needed).`
+    );
+  }
+
+  // Verify time budget if provided
+  if (result.time_budget && result.time_budget.total_min > sessionMinutes) {
+    throw new Error(
+      `Time budget exceeded: ${result.time_budget.total_min} min > ${sessionMinutes} min session limit. ` +
+      `Reduce sets, shorten conditioning, or trim accessories.`
+    );
+  }
 
   // Basic safety layer checks
   const totalSets = Object.values(result.compliance_summary.volume_sets_estimate).reduce(
