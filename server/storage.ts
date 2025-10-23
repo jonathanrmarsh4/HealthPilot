@@ -2086,33 +2086,83 @@ export class DbStorage implements IStorage {
     const workoutData = workout.workoutData;
     console.log(`💪 Workout data:`, { focus: workoutData.focus, mainCount: workoutData.main?.length || 0, accessoriesCount: workoutData.accessories?.length || 0 });
     
-    // Build accepted snapshot - combine main and accessories with their exercise_ids
-    const acceptedSnapshot = {
-      exercises: [
-        ...(workoutData.main || []).map((ex: any) => ({
-          exercise_id: ex.exercise_id,
-          block: 'main',
-          exercise: ex.exercise,
-          sets: ex.sets,
-          reps: ex.reps,
-          intensity: ex.intensity,
-          rest_seconds: ex.rest_seconds,
-          goal: ex.goal
-        })),
-        ...(workoutData.accessories || []).map((ex: any) => ({
-          exercise_id: ex.exercise_id,
-          block: 'accessories',
-          exercise: ex.exercise,
-          sets: ex.sets,
-          reps: ex.reps,
-          intensity: ex.intensity,
-          rest_seconds: ex.rest_seconds,
-          goal: ex.goal
-        }))
-      ]
+    // Helper to match exercise name to library
+    const matchExerciseByName = async (name: string) => {
+      const nameLower = name.toLowerCase();
+      const allExercises = await db.select().from(exercises);
+      
+      // Try exact match
+      let match = allExercises.find(ex => ex.name.toLowerCase() === nameLower);
+      if (match) return match;
+      
+      // Try partial match
+      match = allExercises.find(ex => {
+        const exNameLower = ex.name.toLowerCase();
+        return exNameLower.includes(nameLower) || nameLower.includes(exNameLower);
+      });
+      
+      return match;
     };
+    
+    // Build accepted snapshot with FULL exercise objects from library
+    const snapshotExercises = [];
+    
+    for (const ex of [...(workoutData.main || []), ...(workoutData.accessories || [])]) {
+      const matched = await matchExerciseByName(ex.exercise);
+      
+      if (matched) {
+        // Store full exercise object with workout-specific metadata
+        snapshotExercises.push({
+          // Full exercise data from library
+          id: matched.id,
+          name: matched.name,
+          muscles: matched.muscles,
+          target: matched.target,
+          bodyPart: matched.bodyPart,
+          equipment: matched.equipment,
+          incrementStep: matched.incrementStep,
+          tempoDefault: matched.tempoDefault,
+          restDefault: matched.restDefault,
+          instructions: matched.instructions,
+          videoUrl: matched.videoUrl,
+          difficulty: matched.difficulty,
+          category: matched.category,
+          trackingType: matched.trackingType,
+          exercisedbId: matched.exercisedbId,
+          // Workout-specific metadata from AI
+          sets: ex.sets,
+          reps: ex.reps,
+          intensity: ex.intensity,
+          rest_seconds: ex.rest_seconds,
+          goal: ex.goal,
+          block: (workoutData.main || []).includes(ex) ? 'main' : 'accessories'
+        });
+      } else {
+        // Create placeholder exercise object for unmatched exercises
+        console.warn(`💪 Could not match exercise to library: ${ex.exercise} - creating placeholder`);
+        snapshotExercises.push({
+          id: ex.exercise_id || `unmatched-${ex.exercise.toLowerCase().replace(/\s+/g, '-')}`,
+          name: ex.exercise,
+          muscles: [],
+          equipment: 'unknown',
+          incrementStep: 2.5,
+          restDefault: 90,
+          category: 'compound',
+          trackingType: 'weight_reps',
+          // Workout-specific metadata
+          sets: ex.sets,
+          reps: ex.reps,
+          intensity: ex.intensity,
+          rest_seconds: ex.rest_seconds,
+          goal: ex.goal,
+          block: (workoutData.main || []).includes(ex) ? 'main' : 'accessories'
+        });
+      }
+    }
+    
+    const acceptedSnapshot = { exercises: snapshotExercises };
 
-    console.log(`💪 Created accepted snapshot with ${acceptedSnapshot.exercises.length} exercises:`, JSON.stringify(acceptedSnapshot.exercises.map(e => ({ id: e.exercise_id, name: e.exercise, sets: e.sets })), null, 2));
+    console.log(`💪 Created accepted snapshot with ${acceptedSnapshot.exercises.length} exercises (matched to library):`, JSON.stringify(acceptedSnapshot.exercises.map(e => ({ id: e.id, name: e.name, sets: e.sets })), null, 2));
     
     // ⬇️ CRITICAL: Write snapshot to database FIRST to ensure atomicity
     console.log(`💪 Updating workout status to accepted with snapshot - ID: ${id}, UserId: ${userId}`);
@@ -2144,25 +2194,7 @@ export class DbStorage implements IStorage {
       notes: `AI-Generated Workout: ${workoutData.focus}`,
     });
 
-    // Helper to match exercise name to library
-    const matchExerciseByName = async (name: string) => {
-      const nameLower = name.toLowerCase();
-      const allExercises = await db.select().from(exercises);
-      
-      // Try exact match
-      let match = allExercises.find(ex => ex.name.toLowerCase() === nameLower);
-      if (match) return match;
-      
-      // Try partial match
-      match = allExercises.find(ex => {
-        const exNameLower = ex.name.toLowerCase();
-        return exNameLower.includes(nameLower) || nameLower.includes(exNameLower);
-      });
-      
-      return match;
-    };
-
-    // Create workout instance with snapshot FIRST (contains ALL exercises)
+    // Create workout instance with snapshot FIRST (contains ALL full exercise objects)
     // This ensures the tracker loads exercises from the snapshot, not the database
     const instance = await this.createWorkoutInstance({
       userId,
@@ -2170,21 +2202,21 @@ export class DbStorage implements IStorage {
       workoutType: workoutData.focus || "AI Generated Training",
       sourceType: "ai_generated",
       sourceId: id, // Reference the generated workout ID
-      snapshotData: acceptedSnapshot as any, // Store ALL exercises in snapshot
+      snapshotData: acceptedSnapshot as any, // Store ALL exercises with full data in snapshot
     });
     
     console.log(`💪 Created workout instance: ${instance.id} with ${acceptedSnapshot.exercises.length} exercises in snapshot`);
     
-    // Add exercises from accepted snapshot ONLY (prevents duplication)
+    // Create sets for each exercise in the snapshot (only for matched library exercises)
     for (const exercise of acceptedSnapshot.exercises) {
-      const matched = await matchExerciseByName(exercise.exercise);
-      if (matched) {
-        // Create sets for this exercise
+      // Only create sets if this is a real library exercise (not a placeholder)
+      if (!exercise.id.startsWith('unmatched-')) {
+        // Create sets for this exercise using its ID from the snapshot
         for (let i = 0; i < exercise.sets; i++) {
-          await this.addExerciseSet(session.id, matched.id, userId);
+          await this.addExerciseSet(session.id, exercise.id, userId);
         }
       } else {
-        console.warn(`💪 Could not match exercise to library: ${exercise.exercise}`);
+        console.warn(`💪 Skipping set creation for unmatched exercise: ${exercise.name} (placeholder in snapshot only)`);
       }
     }
     

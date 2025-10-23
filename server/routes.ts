@@ -5127,6 +5127,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Record muscle group engagements based on completed exercises
       await recordWorkoutMuscleGroupEngagements(storage, userId, id);
       
+      // If this was from a generated workout, mark it as completed
+      // Check if there's a workout instance with this session
+      const instanceId = req.query.instanceId as string | undefined;
+      if (instanceId) {
+        const instance = await storage.getWorkoutInstance(instanceId, userId);
+        // Verify: instance exists, belongs to this session, is from AI generation, and not already completed
+        if (instance && 
+            instance.workoutSessionId === id && 
+            instance.sourceType === "ai_generated" && 
+            instance.sourceId) {
+          
+          // Get the generated workout to check if already completed
+          const genWorkout = await storage.getGeneratedWorkoutById(instance.sourceId, userId);
+          if (genWorkout && genWorkout.status !== 'completed') {
+            // Mark the generated workout as completed
+            await storage.updateGeneratedWorkout(instance.sourceId, userId, {
+              status: 'completed',
+              completedAt: new Date()
+            });
+            console.log(`✅ Marked generated workout ${instance.sourceId} as completed`);
+          } else if (genWorkout?.status === 'completed') {
+            console.log(`ℹ️ Generated workout ${instance.sourceId} already marked as completed`);
+          }
+        }
+      }
+      
       console.log(`✅ Workout session ${id} finished and muscle groups recorded`);
       
       res.json({ success: true, message: "Workout finished and muscle groups recorded" });

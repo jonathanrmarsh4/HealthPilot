@@ -785,7 +785,10 @@ export default function WorkoutSession() {
   // Finish workout mutation - records muscle group engagements
   const finishWorkoutMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest("POST", `/api/workout-sessions/${sessionId}/finish`, {});
+      const url = instanceId 
+        ? `/api/workout-sessions/${sessionId}/finish?instanceId=${instanceId}`
+        : `/api/workout-sessions/${sessionId}/finish`;
+      return await apiRequest("POST", url, {});
     },
     onSuccess: async () => {
       // Invalidate and refetch all relevant data to ensure fresh state on Training page
@@ -795,6 +798,10 @@ export default function WorkoutSession() {
       // Refetch daily recommendation to show "Workout Complete" state immediately
       await queryClient.invalidateQueries({ queryKey: ["/api/training/daily-recommendation"] });
       await queryClient.refetchQueries({ queryKey: ["/api/training/daily-recommendation"] });
+      
+      // Invalidate generated workout query to show updated status
+      const today = format(new Date(), "yyyy-MM-dd");
+      await queryClient.invalidateQueries({ queryKey: ["/api/training/generated-workout", today] });
       
       // Invalidate other related queries
       await queryClient.invalidateQueries({ queryKey: ["/api/workouts/completed"] });

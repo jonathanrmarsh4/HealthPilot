@@ -108,6 +108,7 @@ export function DailyGeneratedWorkout() {
   const isPending = workout?.status === 'pending';
   const isAccepted = workout?.status === 'accepted';
   const isRejected = workout?.status === 'rejected';
+  const isCompleted = workout?.status === 'completed';
 
   return (
     <Card data-testid="card-daily-generated-workout">
@@ -119,12 +120,13 @@ export function DailyGeneratedWorkout() {
           </div>
           {workout && (
             <Badge 
-              variant={isPending ? "secondary" : isAccepted ? "default" : "outline"}
+              variant={isPending ? "secondary" : isAccepted ? "default" : isCompleted ? "default" : "outline"}
               data-testid="badge-workout-status"
             >
               {isPending && "Pending Review"}
               {isAccepted && "Accepted"}
               {isRejected && "Rejected"}
+              {isCompleted && "Completed"}
             </Badge>
           )}
         </div>
@@ -431,6 +433,18 @@ export function DailyGeneratedWorkout() {
                   <Dumbbell className="mr-2 h-4 w-4" />
                   Start Workout
                 </Button>
+              </div>
+            )}
+
+            {isCompleted && (
+              <div className="space-y-3 pt-2">
+                <div className="text-center py-4 bg-muted rounded-md">
+                  <CheckCircle2 className="h-12 w-12 text-primary mx-auto mb-2" />
+                  <p className="font-semibold text-lg">Workout Completed!</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Great job on completing today's training session
+                  </p>
+                </div>
               </div>
             )}
           </>
