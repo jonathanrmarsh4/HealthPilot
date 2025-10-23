@@ -20,9 +20,11 @@ import {
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import { useLocation } from "wouter";
 
 export function DailyGeneratedWorkout() {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [isExpanded, setIsExpanded] = useState(false);
   const today = format(new Date(), "yyyy-MM-dd");
   
@@ -61,12 +63,14 @@ export function DailyGeneratedWorkout() {
     mutationFn: async (id: string) => {
       return apiRequest("POST", `/api/training/generated-workout/${id}/accept`, {});
     },
-    onSuccess: () => {
+    onSuccess: (data: { success: boolean; sessionId: string }) => {
       queryClient.invalidateQueries({ queryKey: ["/api/training/generated-workout", today] });
       toast({
         title: "Workout Accepted",
-        description: "Session added to your training plan",
+        description: "Opening workout tracker...",
       });
+      // Navigate to the workout session page to start tracking
+      setLocation(`/workout-session/${data.sessionId}`);
     },
     onError: (error: Error) => {
       toast({
