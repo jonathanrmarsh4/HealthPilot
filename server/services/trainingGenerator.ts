@@ -8,6 +8,7 @@ import OpenAI from "openai";
 import { z } from "zod";
 import type { IStorage } from "../storage";
 import { format, subDays } from "date-fns";
+import { resolveAIExercise, teachAlias } from "./exercise-resolver-adapter";
 
 // ──────────────────────────────────────────────
 // Validation schema (mirrors OUTPUT_SCHEMA)
@@ -494,34 +495,39 @@ REQUIRED OUTPUT SCHEMA (return this exact structure at the root level):
 }
 
 // ──────────────────────────────────────────────
-// Exercise name fuzzy matching
+// Exercise name fuzzy matching (Enhanced with exercise-resolver)
 // ──────────────────────────────────────────────
 export async function matchExerciseToLibrary(
   storage: IStorage,
   exerciseName: string
 ): Promise<string | null> {
-  // Get all exercises from library
-  const exercises = await storage.getAllExercises();
-  
-  // Simple fuzzy matching - convert to lowercase and check for substring match
-  const nameLower = exerciseName.toLowerCase();
-  
-  // Try exact match first
-  const exactMatch = exercises.find(ex => ex.name.toLowerCase() === nameLower);
-  if (exactMatch) {
-    return exactMatch.id;
-  }
-  
-  // Try partial match (e.g., "barbell bench press" matches "bench press")
-  const partialMatch = exercises.find(ex => {
-    const exNameLower = ex.name.toLowerCase();
-    return exNameLower.includes(nameLower) || nameLower.includes(exNameLower);
+  // Use the sophisticated exercise resolver
+  const outcome = await resolveAIExercise(exerciseName, storage, {
+    minAuto: 0.86,      // High confidence threshold for auto-resolution
+    deltaGuard: 0.08,   // Require clear winner to avoid false positives
+    topK: 3             // Return top 3 suggestions if ambiguous
   });
   
-  if (partialMatch) {
-    return partialMatch.id;
+  if (outcome.kind === "resolved") {
+    console.log(`✅ Resolved "${exerciseName}" → "${outcome.matched_name}" (score: ${outcome.score.toFixed(3)})`);
+    return outcome.canonical_id;
   }
   
-  // No match found
+  if (outcome.kind === "needs_confirmation") {
+    // Log suggestions for manual review/teaching
+    console.warn(`⚠️ Ambiguous match for "${exerciseName}". Top suggestions:`);
+    outcome.suggestions.forEach((s, i) => {
+      console.warn(`  ${i + 1}. ${s.id} (score: ${s.score.toFixed(3)}) - ${s.reason.join(", ")}`);
+    });
+    // Return best guess (top suggestion)
+    if (outcome.suggestions.length > 0) {
+      const topSuggestion = outcome.suggestions[0];
+      console.warn(`  → Using top suggestion: ${topSuggestion.id}`);
+      return topSuggestion.id;
+    }
+  }
+  
+  console.error(`❌ No match found for "${exerciseName}"`);
+  console.error(`   Trace: ${outcome.trace.join(" → ")}`);
   return null;
 }
