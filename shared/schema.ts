@@ -553,6 +553,29 @@ export const aiActions = pgTable("ai_actions", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const symptomEvents = pgTable("symptom_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  name: text("name").notNull(), // e.g., "headache", "nausea", "fatigue"
+  coding: jsonb("coding"), // optional FHIR/medical coding: [{system, code, display}]
+  episodeId: varchar("episode_id").notNull(), // groups related events for same symptom
+  status: text("status").notNull(), // 'new', 'ongoing', 'resolved'
+  severity: integer("severity"), // 0-10 scale, null when status='resolved'
+  trend: text("trend"), // 'better', 'worse', 'same', null when resolved
+  context: text("context").array().default(sql`ARRAY[]::text[]`), // ['after_workout', 'poor_sleep', 'stress_high', etc.]
+  notes: text("notes"), // optional user notes
+  signals: jsonb("signals"), // snapshot of health data at record time (sleep score, hrv, etc.)
+  startedAt: timestamp("started_at").notNull(), // when symptom episode started (first event)
+  recordedAt: timestamp("recorded_at").notNull(), // when this specific event was recorded
+  endedAt: timestamp("ended_at"), // when resolved, null otherwise
+  source: text("source").notNull().default("user"), // 'user' or 'ai_autolog'
+  version: integer("version").notNull().default(1), // schema version for future evolution
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => [
+  index("symptom_events_user_episode_idx").on(table.userId, table.episodeId),
+  index("symptom_events_user_recorded_idx").on(table.userId, table.recordedAt),
+]);
+
 // ExerciseDB - persistent storage for all 1,300+ exercises from the API
 export const exercisedbExercises = pgTable("exercisedb_exercises", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -726,6 +749,11 @@ export const insertGoalSchema = createInsertSchema(goals).omit({
 });
 
 export const insertAiActionSchema = createInsertSchema(aiActions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertSymptomEventSchema = createInsertSchema(symptomEvents).omit({
   id: true,
   createdAt: true,
 });
@@ -1137,6 +1165,9 @@ export type Goal = typeof goals.$inferSelect;
 
 export type InsertAiAction = z.infer<typeof insertAiActionSchema>;
 export type AiAction = typeof aiActions.$inferSelect;
+
+export type InsertSymptomEvent = z.infer<typeof insertSymptomEventSchema>;
+export type SymptomEvent = typeof symptomEvents.$inferSelect;
 
 export type InsertExerciseFeedback = z.infer<typeof insertExerciseFeedbackSchema>;
 export type ExerciseFeedback = typeof exerciseFeedback.$inferSelect;
