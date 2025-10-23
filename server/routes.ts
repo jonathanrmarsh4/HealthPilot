@@ -5891,6 +5891,102 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
     }
   });
 
+  // Symptom Tracking API
+  app.get("/api/symptoms/active", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    try {
+      const activeEpisodes = await storage.getActiveSymptomEpisodes(userId);
+      res.json(activeEpisodes);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/symptoms/events", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    try {
+      const eventData = req.body;
+      
+      // Convert date strings to Date objects
+      if (eventData.startedAt) {
+        eventData.startedAt = new Date(eventData.startedAt);
+      }
+      if (eventData.recordedAt) {
+        eventData.recordedAt = new Date(eventData.recordedAt);
+      }
+      if (eventData.endedAt) {
+        eventData.endedAt = new Date(eventData.endedAt);
+      }
+      
+      const event = await storage.createSymptomEvent({
+        userId,
+        ...eventData,
+      });
+      
+      res.json(event);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/symptoms/events", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    try {
+      const { limit = '100' } = req.query;
+      const events = await storage.getSymptomEvents(userId, parseInt(limit as string));
+      res.json(events);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/symptoms/episodes/:episodeId", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { episodeId } = req.params;
+    try {
+      const events = await storage.getSymptomEpisodeEvents(userId, episodeId);
+      res.json(events);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.patch("/api/symptoms/events/:id", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { id } = req.params;
+    try {
+      const updateData = req.body;
+      
+      // Convert date strings to Date objects if present
+      if (updateData.recordedAt) {
+        updateData.recordedAt = new Date(updateData.recordedAt);
+      }
+      if (updateData.endedAt) {
+        updateData.endedAt = new Date(updateData.endedAt);
+      }
+      
+      const event = await storage.updateSymptomEvent(id, userId, updateData);
+      if (!event) {
+        return res.status(404).json({ error: "Symptom event not found" });
+      }
+      res.json(event);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.patch("/api/symptoms/episodes/:episodeId/resolve", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { episodeId } = req.params;
+    try {
+      const endedAt = req.body.endedAt ? new Date(req.body.endedAt) : new Date();
+      await storage.resolveSymptomEpisode(episodeId, userId, endedAt);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Exercise Feedback API
   app.post("/api/exercise-feedback", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
