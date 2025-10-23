@@ -391,8 +391,28 @@ REQUIRED OUTPUT SCHEMA (return this exact structure at the root level):
   const content = response.choices[0].message?.content ?? "{}";
   const parsed = JSON.parse(content);
 
+  // ⬇️ Sanitize AI output before Zod validation (coerce types & map invalid values)
+  const sanitized = {
+    ...parsed,
+    main: (parsed.main || []).map((ex: any) => ({
+      ...ex,
+      sets: typeof ex.sets === 'string' ? parseInt(ex.sets, 10) : ex.sets,
+      reps: typeof ex.reps === 'string' ? parseInt(ex.reps, 10) : ex.reps,
+      rest_seconds: typeof ex.rest_seconds === 'string' ? parseInt(ex.rest_seconds, 10) : ex.rest_seconds,
+      // Map invalid goal values to valid ones
+      goal: (['strength', 'hypertrophy', 'power'].includes(ex.goal)) ? ex.goal : 
+            (ex.goal === 'endurance' ? 'hypertrophy' : 'strength')
+    })),
+    accessories: (parsed.accessories || []).map((ex: any) => ({
+      ...ex,
+      sets: typeof ex.sets === 'string' ? parseInt(ex.sets, 10) : ex.sets,
+      reps: typeof ex.reps === 'string' ? parseInt(ex.reps, 10) : ex.reps,
+      rest_seconds: typeof ex.rest_seconds === 'string' ? parseInt(ex.rest_seconds, 10) : ex.rest_seconds
+    }))
+  };
+
   // Validate output structure & guardrails
-  const result = DailyWorkoutSchema.parse(parsed);
+  const result = DailyWorkoutSchema.parse(sanitized);
 
   // ⬇️ Enforce 5-per-hour minimum (belt-and-braces server validation)
   const sessionMinutes = Number(data?.availability?.session_minutes ?? 60);
