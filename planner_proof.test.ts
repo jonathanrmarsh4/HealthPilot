@@ -211,7 +211,7 @@ console.log("Test 5: Time budget enforcement - accessories trimmed");
 const userWithTightBudget: UserProfile = {
   experience: "intermediate",
   days_per_week: 3,
-  session_minutes_cap: 35, // Very tight!
+  session_minutes_cap: 20, // Very tight! Force trimming
   available_equipment: ["db", "bench", "cable", "machine"],
   preferences: { likes: ["db"], dislikes: [] },
   limitations: {},
@@ -227,25 +227,31 @@ const tightBudgetPlan = buildDayPlan({
   template_id: "template_fullbody_x3",
   day_key: "dayA",
   signals: userWithTightBudget.signals,
-  time_cap_min: 35
+  time_cap_min: 20
 });
 
 console.log(`   Exercises in plan: ${tightBudgetPlan.exercises.length}`);
-console.log(`   Estimated time: ${tightBudgetPlan.estimated_time_min}min (cap: 35min)`);
+console.log(`   Estimated time: ${tightBudgetPlan.estimated_time_min}min (cap: 20min)`);
 console.log(`   Exercises: ${tightBudgetPlan.exercises.map(ex => ex.exercise_name).join(", ")}`);
 
-// Should have trimmed at least one accessory
+// Should have trimmed at least one accessory (template has 5 exercises for dayA)
 assert(
   tightBudgetPlan.exercises.length < 5,
   "Expected at least one exercise to be trimmed with tight time budget"
 );
 
 assert(
-  tightBudgetPlan.estimated_time_min <= 35,
-  `Expected time (${tightBudgetPlan.estimated_time_min}min) to be within budget (35min)`
+  tightBudgetPlan.estimated_time_min <= 20,
+  `Expected time (${tightBudgetPlan.estimated_time_min}min) to be within budget (20min)`
 );
 
-console.log("   ✅ PASS: Time budget enforced, accessories trimmed\n");
+// Verify that main lifts (priority 1) are preserved
+const hasMainLifts = tightBudgetPlan.exercises.some(ex => 
+  ex.slot === "squat_pattern" || ex.slot === "horizontal_press"
+);
+assert(hasMainLifts, "Expected main lifts to be preserved even with tight budget");
+
+console.log("   ✅ PASS: Time budget enforced, accessories trimmed while preserving main lifts\n");
 
 // ──────────────────────────────────────────────
 // Test 6: Exercise Scoring Logic

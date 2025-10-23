@@ -14,8 +14,8 @@ export interface UserProfile {
   session_minutes_cap: number;
   available_equipment: string[];
   preferences: {
-    likes: string[];
-    dislikes: string[];
+    likes?: string[];
+    dislikes?: string[];
   };
   limitations: Record<string, string>; // e.g., { shoulder: "no_overhead_press" }
   goals: string[]; // e.g., ["hypertrophy"], ["strength"]
@@ -440,13 +440,13 @@ export function scoreExercise(
   }
 
   // Modality preferences (+15)
-  if (userProfile.preferences.likes.includes(exercise.modality)) {
+  if (userProfile.preferences.likes?.includes(exercise.modality)) {
     score += 15;
     reasons.push(`preferred modality: ${exercise.modality}`);
   }
 
   // Dislikes (-30)
-  if (userProfile.preferences.dislikes.includes(exercise.id)) {
+  if (userProfile.preferences.dislikes?.includes(exercise.id)) {
     score -= 30;
     reasons.push("disliked exercise");
   }
