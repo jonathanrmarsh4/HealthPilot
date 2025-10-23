@@ -407,6 +407,15 @@ export const sleepSessions = pgTable("sleep_sessions", {
   sleepScore: integer("sleep_score"),
   quality: text("quality"),
   source: text("source").notNull().default("apple-health"),
+  // v2.0 fields for episode-based scoring
+  episodeType: text("episode_type").default("primary"), // 'primary' | 'nap'
+  episodeId: varchar("episode_id"), // UUID for episode tracking
+  nightKeyLocalDate: text("night_key_local_date"), // YYYY-MM-DD in local timezone
+  awakeningsCount: integer("awakenings_count").default(0), // Number of awakenings >= 2 min
+  longestAwakeBoutMinutes: integer("longest_awake_bout_minutes").default(0), // Max single awake duration
+  sleepMidpointLocal: timestamp("sleep_midpoint_local"), // Midpoint timestamp in local time
+  sleepEfficiency: real("sleep_efficiency"), // actualSleepMinutes / totalMinutes
+  flags: text("flags").array().default(sql`ARRAY[]::text[]`), // ['data_inconsistent', 'outlier_duration', etc.]
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

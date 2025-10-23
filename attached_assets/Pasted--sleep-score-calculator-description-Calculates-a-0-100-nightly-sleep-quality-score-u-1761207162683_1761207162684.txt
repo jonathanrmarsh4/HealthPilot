@@ -1,0 +1,275 @@
+{
+  "sleep_score_calculator": {
+    "description": "Calculates a 0-100 nightly sleep quality score using robust sessionization (primary sleep vs naps), proper stage aggregation, and fragmentation penalties from Apple HealthKit data.",
+    "version": "2.0",
+
+    "healthkit_inputs": {
+      "data_source": "Apple HealthKit via Capacitor iOS plugin",
+      "sample_type": "sleep",
+      "timezone_handling": "All grouping uses user's local timezone; store UTC with tz offset.",
+      "query_parameters": {
+        "startDate": "ISO 8601 timestamp (query window start)",
+        "endDate": "ISO 8601 timestamp (query window end)",
+        "limit": 0
+      },
+      "raw_sample_structure": {
+        "startDate": "ISO timestamp (segment start)",
+        "endDate": "ISO timestamp (segment end)",
+        "value": "Sleep stage type (string)",
+        "metadata": {
+          "source": "bundle identifier if available"
+        }
+      },
+      "sleep_stage_types": [
+        { "value": "awake", "description": "Awake during attempted sleep", "maps_to": "awakeMinutes" },
+        { "value": "asleep_rem", "description": "REM sleep", "maps_to": "remMinutes" },
+        { "value": "asleep_deep", "description": "Deep sleep (SWS)", "maps_to": "deepMinutes" },
+        { "value": "asleep_core", "aliases": ["asleep_light", "light"], "description": "Light/Core sleep", "maps_to": "lightMinutes" }
+      ]
+    },
+
+    "data_processing": {
+      "grouping_strategy": {
+        "description": "Cluster raw segments into episodes (primary nightly sleep vs naps).",
+        "night_window": {
+          "anchor": "local day boundary",
+          "primary_window_start_local": "15:00",
+          "primary_window_end_local": "next day 12:00",
+          "rationale": "Captures typical main sleep that crosses midnight."
+        },
+        "episode_clustering": {
+          "merge_gap_minutes": 90,
+          "micro_awake_merge_minutes": 20,
+          "long_awake_split_minutes": 90,
+          "logic": [
+            "Sort segments by start time.",
+            "Start a new episode if the gap between consecutive segments > long_awake_split_minutes.",
+            "Within an episode, treat awake gaps <= micro_awake_merge_minutes as micro-awakenings (kept inside episode).",
+            "Awake gaps > micro_awake_merge_minutes but <= long_awake_split_minutes count as awakenings that reduce efficiency but DO NOT split episode."
+          ]
+        },
+        "primary_episode_selection": {
+          "rules": [
+            "Eligible episodes must overlap the primary window (15:00 → next 12:00).",
+            "Pick the longest eligible episode by total duration (end - start).",
+            "If tie: choose episode with greatest proportion between 22:00 and 08:00.",
+            "Require minimum primary duration >= 180 minutes; otherwise no primary score for that night."
+          ],
+          "fallbacks": [
+            "If no episode overlaps the primary window, select the longest episode occurring between 12:00 → next 15:00 that is >= 180 minutes."
+          ]
+        },
+        "nap_detection": {
+          "nap_min_minutes": 10,
+          "nap_max_minutes": 180,
+          "nap_window": "Any time outside chosen primary episode or within day segments not merged into primary.",
+          "classification": "Episodes within [nap_min_minutes, nap_max_minutes] are labeled 'nap' and excluded from nightly score (scored separately)."
+        },
+        "night_key_logic": "Night key = local date of episode start if start time >= 15:00, else previous local date."
+      },
+
+      "segment_aggregation": {
+        "for_each_episode": {
+          "episodeStart": "First non-awake segment start within episode",
+          "episodeEnd": "Last segment end within episode",
+          "inBedMinutes": "episodeEnd - episodeStart in minutes",
+          "awakeMinutes": "Sum of awake segments within the episode (cap micro-awake merges under micro_awake_merge_minutes as 'microAwakeMinutes')",
+          "lightMinutes": "Sum of light/core sleep",
+          "deepMinutes": "Sum of deep sleep",
+          "remMinutes": "Sum of REM sleep",
+          "actualSleepMinutes": "inBedMinutes - awakeMinutes",
+          "awakeningsCount": "Count of awake bouts >= 2 minutes (excluding micro-awakenings under 2 minutes)",
+          "longestAwakeBoutMinutes": "Max single awake bout length in minutes",
+          "sleepMidpointLocal": "Midpoint timestamp in local time"
+        }
+      },
+
+      "validation_rules": [
+        { "rule": "primary_min_duration", "threshold": "180 minutes", "action": "Reject primary episode if < 180 min" },
+        { "rule": "primary_max_duration", "threshold": "960 minutes (16h)", "action": "Reject if > 960 min as unrealistic" },
+        { "rule": "stages_sum_check", "action": "Ensure light+deep+rem+awake ≈ inBedMinutes within ±3 minutes; else flag 'data_inconsistent' and exclude from score." }
+      ]
+    },
+
+    "score_calculation": {
+      "applies_to": "Primary episode ONLY (naps scored separately and do not penalize nightly score).",
+      "range": "0-100 (capped)",
+      "formula": "duration_component + efficiency_component + deep_component + rem_component + fragmentation_component + regularity_component",
+      "components": {
+        "duration_component": {
+          "input": "actualSleepMinutes",
+          "target_hours": "7.0-9.0",
+          "scoring": [
+            { "condition": "7 <= hours <= 9", "points": 25 },
+            { "condition": "6.5 <= hours < 7 or 9 < hours <= 9.5", "points": 18 },
+            { "condition": "6 <= hours < 6.5 or 9.5 < hours <= 10", "points": 10 },
+            { "condition": "5 <= hours < 6 or 10 < hours <= 11", "points": 2 },
+            { "condition": "hours < 5 or hours > 11", "points": 0 }
+          ]
+        },
+        "efficiency_component": {
+          "input": "sleep_efficiency = actualSleepMinutes / inBedMinutes",
+          "mapping": [
+            { "threshold": ">= 0.95", "points": 20 },
+            { "threshold": "0.90-0.949", "points": 16 },
+            { "threshold": "0.85-0.899", "points": 10 },
+            { "threshold": "0.80-0.849", "points": 4 },
+            { "threshold": "< 0.80", "points": 0 }
+          ]
+        },
+        "deep_component": {
+          "input": "deepPercentage = deepMinutes / actualSleepMinutes",
+          "target_range": "15%-25%",
+          "scoring": [
+            { "condition": "0.15 <= p <= 0.25", "points": 10 },
+            { "condition": "0.10 <= p < 0.15 or 0.25 < p <= 0.30", "points": 6 },
+            { "condition": "p < 0.10", "points": 2 },
+            { "condition": "p > 0.30", "points": 0 }
+          ]
+        },
+        "rem_component": {
+          "input": "remPercentage = remMinutes / actualSleepMinutes",
+          "target_range": "18%-28%",
+          "scoring": [
+            { "condition": "0.18 <= p <= 0.28", "points": 10 },
+            { "condition": "0.15 <= p < 0.18 or 0.28 < p <= 0.32", "points": 6 },
+            { "condition": "p < 0.15", "points": 2 },
+            { "condition": "p > 0.32", "points": 0 }
+          ]
+        },
+        "fragmentation_component": {
+          "inputs": ["awakeningsCount", "longestAwakeBoutMinutes"],
+          "points": "Start at 10, subtract penalties; floor at -10 (component can be negative).",
+          "penalties": [
+            { "condition": "awakeningsCount >= 5", "delta": -6 },
+            { "condition": "awakeningsCount between 3 and 4", "delta": -3 },
+            { "condition": "longestAwakeBoutMinutes >= 30", "delta": -6 },
+            { "condition": "longestAwakeBoutMinutes between 15 and 29", "delta": -3 }
+          ]
+        },
+        "regularity_component": {
+          "input": "sleep_midpoint_variance = |current_midpoint - 7_day_avg_midpoint| in minutes",
+          "points": [
+            { "condition": "variance <= 30", "points": 5 },
+            { "condition": "30 < variance <= 60", "points": 3 },
+            { "condition": "60 < variance <= 120", "points": 1 },
+            { "condition": "variance > 120", "points": 0 }
+          ]
+        }
+      },
+      "final_score_logic": "Sum all components; cap to 0-100.",
+      "quality_labels": [
+        { "label": "excellent", "score_range": "80-100", "description": "Strong duration, efficiency, and stages" },
+        { "label": "good", "score_range": "60-79", "description": "Solid sleep with minor issues" },
+        { "label": "fair", "score_range": "40-59", "description": "Notable room for improvement" },
+        { "label": "poor", "score_range": "0-39", "description": "Fragmented/short/inefficient sleep" }
+      ]
+    },
+
+    "nap_scoring": {
+      "description": "Naps are recorded but do not reduce the nightly score.",
+      "nap_score": {
+        "duration_points": [
+          { "condition": "20 <= minutes <= 30", "points": 10 },
+          { "condition": "31 <= minutes <= 60", "points": 6 },
+          { "condition": "10 <= minutes < 20", "points": 4 },
+          { "condition": "minutes > 60", "points": 2 }
+        ],
+        "restorative_flag": "Set true if nap includes >= 10 minutes REM or deep."
+      },
+      "readiness_credit": "Optional +2 readiness if restorative_flag true (max 2 per day)."
+    },
+
+    "stored_data": {
+      "database_table": "sleep_episodes",
+      "fields": {
+        "userId": "User identifier",
+        "nightKeyLocalDate": "Local date for reporting",
+        "episodeId": "UUID",
+        "episodeType": "primary|nap",
+        "episodeStart": "ISO timestamp (UTC) + tzOffset",
+        "episodeEnd": "ISO timestamp (UTC) + tzOffset",
+        "inBedMinutes": "int",
+        "actualSleepMinutes": "int",
+        "awakeMinutes": "int",
+        "lightMinutes": "int",
+        "deepMinutes": "int",
+        "remMinutes": "int",
+        "sleepEfficiency": "actualSleepMinutes / inBedMinutes",
+        "awakeningsCount": "int",
+        "longestAwakeBoutMinutes": "int",
+        "sleepMidpointLocal": "ISO local timestamp",
+        "sleepScore": "0-100 (primary only; null for naps)",
+        "quality": "excellent|good|fair|poor (primary only)",
+        "flags": ["data_inconsistent", "outlier_duration", "no_primary_detected"],
+        "source": "ios-healthkit"
+      }
+    },
+
+    "calculation_examples": {
+      "example_split_night": {
+        "scenario": "Main sleep with a long awake gap + a daytime nap",
+        "primary_segments_summary": {
+          "episodeStartLocal": "2025-10-22T22:30:00+08:00",
+          "episodeEndLocal": "2025-10-23T06:50:00+08:00",
+          "inBedMinutes": 500,
+          "awakeMinutes": 40,
+          "lightMinutes": 230,
+          "deepMinutes": 85,
+          "remMinutes": 145,
+          "awakeningsCount": 3,
+          "longestAwakeBoutMinutes": 18,
+          "actualSleepMinutes": 460,
+          "sleepEfficiency": 0.92
+        },
+        "nap_episode_summary": {
+          "episodeStartLocal": "2025-10-23T14:10:00+08:00",
+          "episodeEndLocal": "2025-10-23T14:45:00+08:00",
+          "inBedMinutes": 35,
+          "awakeMinutes": 0,
+          "lightMinutes": 20,
+          "deepMinutes": 0,
+          "remMinutes": 15,
+          "episodeType": "nap"
+        },
+        "scoring_steps": {
+          "duration_component": 25,
+          "efficiency_component": 16,
+          "deep_component": 10,
+          "rem_component": 10,
+          "fragmentation_component": 7,
+          "regularity_component": 5,
+          "total": 73,
+          "final_score": 73,
+          "quality": "good"
+        },
+        "nap_readiness_credit": "+2 (optional) not affecting nightly score"
+      }
+    },
+
+    "usage_in_readiness_system": {
+      "description": "Nightly sleep score contributes to readiness without being penalized by naps or stray short segments.",
+      "readiness_weights": {
+        "sleep": 0.40,
+        "hrv": 0.30,
+        "restingHR": 0.15,
+        "workload": 0.15
+      },
+      "personal_baseline_option": {
+        "enabled": true,
+        "method": "Replace duration_component with baseline-relative scoring if baseline available (rolling 21-28 days).",
+        "formula": "percentDeviation = ((actualHours - baselineHours) / baselineHours) * 100; duration_points = clamp( round(25 - |percentDeviation| * 0.6), 0, 25 )"
+      }
+    },
+
+    "developer_notes": {
+      "edge_cases": [
+        "Multiple medium segments overnight: ensure merge_gap_minutes (90) joins them into one primary if within window.",
+        "Very long awake gap >= 90 min: split into separate episodes; only longest overlapping primary window is scored.",
+        "All data marked 'awake' or stages sum mismatch > 3 min: set flag 'data_inconsistent' and skip scoring.",
+        "DST transitions: use local time library that respects timezone/IANA rules when computing nightKey and midpoint."
+      ],
+      "telemetry": [
+        "Emit episode selection reason (longest, window overlap ratio, duration).",
+        "Log component points to debug unexpected scores.",
+        "Store raw stage totals per source for audit."
