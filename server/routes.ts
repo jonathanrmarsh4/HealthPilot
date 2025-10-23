@@ -8298,7 +8298,7 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
     }
   });
 
-  // Diagnostic endpoint - logs ALL incoming webhook attempts before authentication
+  // Universal HealthKit Ingest Webhook - writes ALL events to raw table first, then routes to curated tables
   app.post("/api/health-auto-export/ingest", (req, res, next) => {
     console.log("🔍 WEBHOOK DEBUG - Incoming request to /api/health-auto-export/ingest");
     console.log("📋 Headers:", JSON.stringify(req.headers, null, 2));
@@ -8306,13 +8306,17 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
     next();
   }, webhookAuth, async (req, res) => {
     const userId = (req.user as any).claims.sub;
+    const { handleHealthAutoExportWebhook } = await import('./autoexport/webhookHandler');
+    
+    // Delegate to universal ingest handler
+    return handleHealthAutoExportWebhook(req, res, storage, userId);
+  });
 
+  // OLD WEBHOOK HANDLER PRESERVED BELOW FOR REFERENCE (DELETE AFTER TESTING)
+  /*
+  app.post("/api/health-auto-export/ingest-old", webhookAuth, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
     try {
-      console.log("📥 Received Health Auto Export webhook");
-      console.log("📋 Full payload structure:", JSON.stringify(req.body, null, 2));
-      console.log("🔑 Payload keys:", Object.keys(req.body));
-      
-      // Support multiple payload formats from Health Auto Export
       let metrics: any[] = [];
       
       // Format 1: { data: { metrics: [...] } } - Standard format
@@ -9132,6 +9136,59 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
       if (!res.headersSent) {
         res.status(500).json({ error: error.message });
       }
+    }
+  });
+  */
+  // END OF OLD WEBHOOK HANDLER
+
+  // Admin endpoint: View raw HealthKit events
+  app.get("/api/admin/hk-events-raw", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { type, limit = 100 } = req.query;
+    
+    try {
+      const events = await storage.getHkEventsRaw(
+        userId, 
+        type as string | undefined,
+        parseInt(limit as string, 10)
+      );
+      
+      res.json({ 
+        events,
+        count: events.length,
+        userId,
+        filter: type || 'all'
+      });
+    } catch (error: any) {
+      console.error("Error fetching raw HK events:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Admin endpoint: View HealthKit ingestion statistics
+  app.get("/api/admin/hk-stats", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    
+    try {
+      const stats = await storage.getHkEventStats(userId);
+      
+      // Sort by count descending
+      const sortedStats = Object.entries(stats)
+        .sort(([, a], [, b]) => b.count - a.count)
+        .reduce((obj, [key, value]) => {
+          obj[key] = value;
+          return obj;
+        }, {} as Record<string, { count: number; latest: Date | null }>);
+      
+      res.json({ 
+        stats: sortedStats,
+        totalTypes: Object.keys(stats).length,
+        totalEvents: Object.values(stats).reduce((sum, s) => sum + s.count, 0),
+        userId
+      });
+    } catch (error: any) {
+      console.error("Error fetching HK stats:", error);
+      res.status(500).json({ error: error.message });
     }
   });
 
