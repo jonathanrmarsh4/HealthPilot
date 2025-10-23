@@ -364,8 +364,8 @@ export async function fetchHealthSignals(
     }
 
     // BP data
-    const systolicMetrics = await storage.getBiomarkersByTimeRange(userId, 'blood_pressure_systolic', oneDayAgo, now);
-    const diastolicMetrics = await storage.getBiomarkersByTimeRange(userId, 'blood_pressure_diastolic', oneDayAgo, now);
+    const systolicMetrics = await storage.getBiomarkersByTimeRange(userId, 'blood-pressure-systolic', oneDayAgo, now);
+    const diastolicMetrics = await storage.getBiomarkersByTimeRange(userId, 'blood-pressure-diastolic', oneDayAgo, now);
     
     if (systolicMetrics.length > 0) {
       const avg = systolicMetrics.reduce((sum, b) => sum + b.value, 0) / systolicMetrics.length;
