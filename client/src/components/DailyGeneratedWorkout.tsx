@@ -185,46 +185,79 @@ export function DailyGeneratedWorkout() {
               <p className="text-sm text-muted-foreground">{workoutData.focus}</p>
             </div>
 
-            {/* Main Exercises Summary */}
-            <div data-testid="main-exercises-summary">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="font-semibold text-sm">Main Lifts</h3>
-                <Badge variant="outline" className="text-xs">
-                  {workoutData.main?.length || 0} exercises
-                </Badge>
-              </div>
-              
-              {!isExpanded && workoutData.main && workoutData.main.length > 0 && (
-                <div className="space-y-2">
-                  {workoutData.main.slice(0, 3).map((exercise: any, idx: number) => (
-                    <div 
-                      key={idx} 
-                      className="flex items-center justify-between p-2 bg-muted/30 rounded"
-                      data-testid={`exercise-main-${idx}`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <Dumbbell className="h-3 w-3 text-muted-foreground" />
-                        <span className="text-sm font-medium">{exercise.exercise}</span>
-                      </div>
-                      <span className="text-xs text-muted-foreground">
-                        {exercise.sets} × {exercise.reps}
-                      </span>
+            {/* All Exercises - Show complete list on accept screen */}
+            {!isExpanded && (
+              <div className="space-y-4" data-testid="exercises-summary">
+                {/* Main Exercises */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-semibold text-sm">Main Lifts</h3>
+                    <Badge variant="outline" className="text-xs">
+                      {workoutData.main?.length || 0} exercises
+                    </Badge>
+                  </div>
+                  {workoutData.main && workoutData.main.length > 0 && (
+                    <div className="space-y-2">
+                      {workoutData.main.map((exercise: any, idx: number) => (
+                        <div 
+                          key={idx} 
+                          className="flex items-center justify-between p-2 bg-muted/30 rounded"
+                          data-testid={`exercise-main-${idx}`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <Dumbbell className="h-3 w-3 text-muted-foreground" />
+                            <span className="text-sm font-medium">{exercise.exercise}</span>
+                          </div>
+                          <span className="text-xs text-muted-foreground">
+                            {exercise.sets} × {exercise.reps}
+                          </span>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                  {workoutData.main.length > 3 && (
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="w-full"
-                      onClick={() => setIsExpanded(true)}
-                      data-testid="button-show-more"
-                    >
-                      Show {workoutData.main.length - 3} more exercises
-                    </Button>
                   )}
                 </div>
-              )}
-            </div>
+
+                {/* Accessories */}
+                {workoutData.accessories && workoutData.accessories.length > 0 && (
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="font-semibold text-sm">Accessory Work</h3>
+                      <Badge variant="outline" className="text-xs">
+                        {workoutData.accessories.length} exercises
+                      </Badge>
+                    </div>
+                    <div className="space-y-2">
+                      {workoutData.accessories.map((exercise: any, idx: number) => (
+                        <div 
+                          key={idx} 
+                          className="flex items-center justify-between p-2 bg-muted/20 rounded"
+                          data-testid={`exercise-accessory-${idx}`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <Dumbbell className="h-3 w-3 text-muted-foreground" />
+                            <span className="text-sm font-medium">{exercise.exercise}</span>
+                          </div>
+                          <span className="text-xs text-muted-foreground">
+                            {exercise.sets} × {exercise.reps}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Show detailed view button */}
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="w-full"
+                  onClick={() => setIsExpanded(true)}
+                  data-testid="button-show-details"
+                >
+                  Show Full Details (sets, reps, rest, etc.)
+                </Button>
+              </div>
+            )}
 
             {/* Expanded View */}
             {isExpanded && (

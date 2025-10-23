@@ -274,10 +274,14 @@ Always follow ACSM, NSCA and WHO guardrails.
 Never output text or commentary—JSON only.
 
 HARD RULES (CRITICAL - NEVER VIOLATE):
-1) Compute minimum_exercise_count = ceil((session_minutes / 60) * 5). Never output fewer than minimum_exercise_count items across main + accessories.
-2) Low readiness (amber/red) reduces load/sets/rest and may shorten conditioning, BUT it MUST NOT reduce the exercise count below minimum_exercise_count. Prefer more technique/light accessories when fatigued.
-3) Honor user 'session_minutes' as the primary time budget; do not exceed it. If needed, trim conditioning first, then reduce sets per exercise. Keep exercise count ≥ minimum_exercise_count.
-4) If main block < 3 items, add accessories/skill/rehab work to meet minimum_exercise_count while staying within time.
+1) Compute minimum_exercise_count = ceil((session_minutes / 60) * 5). This is the TOTAL minimum across main + accessories.
+2) MAIN BLOCK DISTRIBUTION: For proper training stimulus, the 'main' array MUST contain AT LEAST:
+   - 3 exercises for sessions ≥45min
+   - 4 exercises for sessions ≥60min  
+   - 5 exercises for sessions ≥75min
+   These are compound movements (squats, presses, pulls, hinges, etc.). Fill remaining exercises with accessories.
+3) Low readiness (amber/red) reduces load/sets/rest and may shorten conditioning, BUT it MUST NOT reduce main exercise count below the minimums in rule #2. When fatigued, reduce sets per exercise or use lighter variations, but keep the movement count.
+4) Honor user 'session_minutes' as the primary time budget; do not exceed it. If needed, trim conditioning first, then reduce sets per exercise. Never sacrifice main exercise count.
 5) Always include a 'time_budget' field that estimates minutes for warmup, each exercise, conditioning, and cooldown. Total must be ≤ session_minutes.
 6) Each exercise in main and accessories MUST have a unique exercise_id (use UUID v4 format like "550e8400-e29b-41d4-a716-446655440000").
 
@@ -422,25 +426,45 @@ REQUIRED OUTPUT SCHEMA (return this exact structure at the root level):
   // Validate output structure & guardrails
   const result = DailyWorkoutSchema.parse(sanitized);
 
-  // ⬇️ Enforce 5-per-hour minimum (belt-and-braces server validation)
+  // ⬇️ Enforce exercise count minimums (belt-and-braces server validation)
   const sessionMinutes = Number(data?.availability?.session_minutes ?? 60);
-  const minExercises = Math.ceil((sessionMinutes / 60) * 5);
-  const exerciseCount = (result.main?.length || 0) + (result.accessories?.length || 0);
+  const minTotalExercises = Math.ceil((sessionMinutes / 60) * 5);
+  const mainCount = result.main?.length || 0;
+  const accessoryCount = result.accessories?.length || 0;
+  const totalCount = mainCount + accessoryCount;
+  
+  // Determine minimum main exercises based on session length
+  let minMainExercises = 3; // Default for 45+ min
+  if (sessionMinutes >= 75) minMainExercises = 5;
+  else if (sessionMinutes >= 60) minMainExercises = 4;
+  else if (sessionMinutes >= 45) minMainExercises = 3;
   
   console.log(`🏋️ Exercise count validation:`, {
     sessionMinutes,
-    minRequired: minExercises,
-    mainExercises: result.main?.length || 0,
-    accessoryExercises: result.accessories?.length || 0,
-    totalGenerated: exerciseCount,
-    passed: exerciseCount >= minExercises
+    minTotalRequired: minTotalExercises,
+    minMainRequired: minMainExercises,
+    mainGenerated: mainCount,
+    accessoriesGenerated: accessoryCount,
+    totalGenerated: totalCount,
+    totalPassed: totalCount >= minTotalExercises,
+    mainPassed: mainCount >= minMainExercises
   });
   
-  if (exerciseCount < minExercises) {
-    console.error(`❌ Exercise count validation FAILED: ${exerciseCount} < ${minExercises}`);
+  // Check total count
+  if (totalCount < minTotalExercises) {
+    console.error(`❌ Total exercise count validation FAILED: ${totalCount} < ${minTotalExercises}`);
     throw new Error(
-      `Plan under-filled: ${exerciseCount} < required ${minExercises} exercises for ${sessionMinutes}-min session. ` +
-      `Regenerate with more exercises (add light accessories/technique work if needed).`
+      `Plan under-filled: ${totalCount} total exercises < required ${minTotalExercises} for ${sessionMinutes}-min session. ` +
+      `Regenerate with more exercises.`
+    );
+  }
+  
+  // Check main exercise count (proper training stimulus requires sufficient compound movements)
+  if (mainCount < minMainExercises) {
+    console.error(`❌ Main exercise count validation FAILED: ${mainCount} < ${minMainExercises}`);
+    throw new Error(
+      `Insufficient main exercises: ${mainCount} < required ${minMainExercises} for ${sessionMinutes}-min session. ` +
+      `Main block needs more compound movements (squats, presses, pulls, hinges). Regenerate with proper exercise distribution.`
     );
   }
 
