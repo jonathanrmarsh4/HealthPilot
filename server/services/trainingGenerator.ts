@@ -246,6 +246,16 @@ export async function buildUserContext(storage: IStorage, userId: string, target
     readiness_notes: latestReadiness?.reasoning || ""
   };
 
+  // Fetch muscle group frequency data for balanced training
+  let muscleGroupFrequency;
+  try {
+    muscleGroupFrequency = await storage.getMuscleGroupFrequency(userId, 14);
+    console.log(`📊 Fetched muscle group frequency for user ${userId}:`, muscleGroupFrequency.length, 'muscle groups');
+  } catch (error) {
+    console.error("Error fetching muscle group frequency:", error);
+    muscleGroupFrequency = [];
+  }
+
   return {
     date: targetDate,
     user_profile: userProfile,
@@ -253,7 +263,8 @@ export async function buildUserContext(storage: IStorage, userId: string, target
     availability,
     environment,
     recent_training: recentTraining,
-    biometrics
+    biometrics,
+    muscle_group_frequency: muscleGroupFrequency
   };
 }
 
@@ -266,7 +277,12 @@ export async function generateDailySession(data: any, regenerationCount: number 
     sessionMinutes: data?.availability?.session_minutes,
     daysPerWeek: data?.availability?.days_per_week,
     goal: data?.user_profile?.goal,
-    experienceLevel: data?.user_profile?.experience_level
+    experienceLevel: data?.user_profile?.experience_level,
+    muscleGroupFrequency: data?.muscle_group_frequency?.map((mg: any) => ({
+      muscle: mg.muscleGroup,
+      sessions: mg.sessionsCount,
+      sets: mg.totalSets
+    }))
   });
   
   const systemPrompt = `
@@ -314,6 +330,14 @@ Exercise Variety Guidelines:
 - For accessories: Rotate between different movement patterns and equipment
 - Aim for <30% overlap with recently_used_exercises when possible
 - If regenerating (look for regeneration context), be MORE creative and select completely different exercises
+
+Muscle Group Balancing (CRITICAL - HIGH PRIORITY):
+- The input data includes 'muscle_group_frequency' which shows training frequency for each muscle group over the last 14 days
+- PRIORITIZE muscle groups with LOW frequency (low sessionsCount, low totalSets) by selecting exercises that target those muscles
+- EXAMPLE: If muscle_group_frequency shows "calves: 0 sessions, 0 sets" and "chest: 1 session, 8 sets", then TODAY's workout MUST include calf exercises (e.g., Standing Calf Raises, Seated Calf Raises) and chest exercises (e.g., Bench Press, Incline Press, Cable Flyes)
+- Balance weekly volume: Avoid overtraining already-high-frequency muscle groups
+- This takes PRECEDENCE over exercise variety - it's better to repeat an exercise if needed to address muscle imbalances
+- The goal is to ensure ALL major muscle groups (chest, back, legs, shoulders, arms, core, calves) receive adequate training stimulus over a 7-14 day period
 
 REQUIRED OUTPUT SCHEMA (return this exact structure at the root level):
 {
