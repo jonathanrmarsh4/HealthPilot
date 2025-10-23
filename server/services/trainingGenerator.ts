@@ -78,7 +78,19 @@ export const DailyWorkoutSchema = z.object({
     session_minutes: z.number().int().positive(),
     minimum_exercise_count: z.number().int().positive(),
     achieved_exercise_count: z.number().int().nonnegative()
-  }) // REQUIRED - must enforce minimum exercise count
+  }), // REQUIRED - must enforce minimum exercise count
+  coverage_report: z.object({
+    per_muscle_sets_today: z.record(z.number().int().nonnegative()),
+    projected_weekly_sets: z.record(z.number().int().nonnegative()),
+    undertrained_priority: z.array(z.string()),
+    overtrained_watchlist: z.array(z.string())
+  }).optional(),
+  variation_policy: z.object({
+    no_session_duplicates: z.boolean(),
+    no_repeat_exact_exercise_days: z.number().int().positive().default(7),
+    pattern_mix_notes: z.string().optional()
+  }).optional(),
+  muscle_balance_input_snapshot: z.record(z.number().int().nonnegative()).optional()
 });
 
 export type DailyWorkout = z.infer<typeof DailyWorkoutSchema>;
@@ -256,6 +268,13 @@ export async function buildUserContext(storage: IStorage, userId: string, target
     muscleGroupFrequency = [];
   }
 
+  // Transform muscle group frequency into muscle_balance_input_snapshot format
+  // This gives the AI a snapshot of trailing-7d/14d hard sets per muscle group
+  const muscleBalanceSnapshot: Record<string, number> = {};
+  for (const mg of muscleGroupFrequency) {
+    muscleBalanceSnapshot[mg.muscleGroup] = mg.totalSets;
+  }
+
   return {
     date: targetDate,
     user_profile: userProfile,
@@ -264,7 +283,8 @@ export async function buildUserContext(storage: IStorage, userId: string, target
     environment,
     recent_training: recentTraining,
     biometrics,
-    muscle_group_frequency: muscleGroupFrequency
+    muscle_group_frequency: muscleGroupFrequency,
+    muscle_balance_input_snapshot: muscleBalanceSnapshot
   };
 }
 
@@ -278,11 +298,7 @@ export async function generateDailySession(data: any, regenerationCount: number 
     daysPerWeek: data?.availability?.days_per_week,
     goal: data?.user_profile?.goal,
     experienceLevel: data?.user_profile?.experience_level,
-    muscleGroupFrequency: data?.muscle_group_frequency?.map((mg: any) => ({
-      muscle: mg.muscleGroup,
-      sessions: mg.sessionsCount,
-      sets: mg.totalSets
-    }))
+    muscleBalanceSnapshot: data?.muscle_balance_input_snapshot
   });
   
   const systemPrompt = `
@@ -324,20 +340,34 @@ Output Requirements:
 - Ensure weekly volume stays within 8-20 sets per muscle group
 - Fill time budget efficiently: prefer adding low-load accessories (technique/rehab/mobility/isolation) over reducing exercise count
 
+MUSCLE BALANCE RULES (CRITICAL - HIGHEST PRIORITY):
+A) Use the muscle_balance_input_snapshot as primary guidance. Prioritize muscle groups with lowest trailing-7d adjusted volume vs target.
+B) Industry targets (per muscle, weekly hard sets): min=8, target=10-15, max=20. Do not plan a day that will push any muscle above 20 by week-end.
+C) Session coverage must favor under-trained groups and avoid over-serving already-high groups.
+D) Anti-duplication: within a single session, no duplicate exercise names; across the trailing 7 days, avoid repeating the exact same exercise name for a muscle group more than once unless availability constraints force it—then substitute a close variant.
+E) Movement pattern diversity: aim to include varied patterns across the week (Squat, Hinge, Horizontal Push, Horizontal Pull, Vertical Pull, Unilateral, Core Anti-rotation/Extension/Flexion, Carry). Today's plan must not repeat more than two identical patterns from the prior day unless under-training requires it.
+F) Exercise selection must map to targeted muscles accurately; include secondary muscles in the coverage report.
+G) Respect injuries/equipment; substitute with the closest pattern maintaining the stimulus.
+H) Time budget has priority. If time-limited, preserve balance by swapping big lifts for time-efficient variants before cutting entire muscle coverage.
+I) Emit a coverage_report and a per-muscle set allocation for today + projected week totals.
+
+MOVEMENT TAXONOMY (for exercise variants and diversity):
+- Squat (bilateral/unilateral): Back Squat, Front Squat, Safety Bar Squat, Goblet Squat, Bulgarian Split Squat, Walking Lunges
+- Hinge: Conventional Deadlift, Sumo Deadlift, Romanian Deadlift, Trap Bar Deadlift, Single-Leg RDL, Good Mornings
+- Horizontal Push: Barbell Bench Press, Incline Bench Press, Dumbbell Bench Press, Push-ups, Dips
+- Horizontal Pull: Barbell Row, Dumbbell Row, Seated Cable Row, Chest-Supported Row, Seal Row, Meadows Row
+- Vertical Push: Overhead Press, Push Press, Arnold Press, Landmine Press
+- Vertical Pull: Pull-ups, Chin-ups, Lat Pulldown, Neutral Grip Pulldown
+- Carry: Farmer's Carry, Overhead Carry, Suitcase Carry
+- Core: Pallof Press (anti-rotation), Dead Bug (anti-extension), Side Plank (anti-lateral), Ab Rollouts
+
 Exercise Variety Guidelines:
 - PRIORITIZE variety: Select different exercises from those listed in recently_used_exercises
 - For main compound movements: Choose variations (e.g., if "Back Squat" was recent, consider "Front Squat", "Bulgarian Split Squat", or "Leg Press")
 - For accessories: Rotate between different movement patterns and equipment
 - Aim for <30% overlap with recently_used_exercises when possible
 - If regenerating (look for regeneration context), be MORE creative and select completely different exercises
-
-Muscle Group Balancing (CRITICAL - HIGH PRIORITY):
-- The input data includes 'muscle_group_frequency' which shows training frequency for each muscle group over the last 14 days
-- PRIORITIZE muscle groups with LOW frequency (low sessionsCount, low totalSets) by selecting exercises that target those muscles
-- EXAMPLE: If muscle_group_frequency shows "calves: 0 sessions, 0 sets" and "chest: 1 session, 8 sets", then TODAY's workout MUST include calf exercises (e.g., Standing Calf Raises, Seated Calf Raises) and chest exercises (e.g., Bench Press, Incline Press, Cable Flyes)
-- Balance weekly volume: Avoid overtraining already-high-frequency muscle groups
-- This takes PRECEDENCE over exercise variety - it's better to repeat an exercise if needed to address muscle imbalances
-- The goal is to ensure ALL major muscle groups (chest, back, legs, shoulders, arms, core, calves) receive adequate training stimulus over a 7-14 day period
+- EXAMPLE VARIATION CHAINS: Back Squat → Front Squat → Safety Bar Squat → Goblet Squat; Seated Cable Row → Chest-Supported DB Row → Seal Row → Meadows Row
 
 REQUIRED OUTPUT SCHEMA (return this exact structure at the root level):
 {
@@ -403,6 +433,34 @@ REQUIRED OUTPUT SCHEMA (return this exact structure at the root level):
     "session_minutes": 60,
     "minimum_exercise_count": 5,
     "achieved_exercise_count": 5
+  },
+  "coverage_report": {
+    "per_muscle_sets_today": {
+      "chest": 8,
+      "calves": 3,
+      "back": 6
+    },
+    "projected_weekly_sets": {
+      "chest": 14,
+      "calves": 3,
+      "back": 10
+    },
+    "undertrained_priority": ["calves", "chest"],
+    "overtrained_watchlist": []
+  },
+  "variation_policy": {
+    "no_session_duplicates": true,
+    "no_repeat_exact_exercise_days": 7,
+    "pattern_mix_notes": "Prioritized horizontal push and calf isolation to address imbalances"
+  },
+  "muscle_balance_input_snapshot": {
+    "chest": 6,
+    "back": 10,
+    "quads": 12,
+    "hamstrings": 8,
+    "calves": 0,
+    "shoulders": 7,
+    "arms": 5
   }
 }
 `;
@@ -499,6 +557,41 @@ REQUIRED OUTPUT SCHEMA (return this exact structure at the root level):
       `Time budget exceeded: ${result.time_budget.total_min} min > ${sessionMinutes} min session limit. ` +
       `Reduce sets, shorten conditioning, or trim accessories.`
     );
+  }
+
+  // ──────────────────────────────────────────────
+  // Muscle Balance & Anti-Duplication Guards
+  // ──────────────────────────────────────────────
+  const { canonicalize, hasDuplicates, findDuplicates } = await import("./exercise-canonical");
+  
+  // Check for duplicate exercises within the session
+  const allExerciseNames = [
+    ...(result.main || []).map(ex => ex.exercise),
+    ...(result.accessories || []).map(ex => ex.exercise)
+  ];
+  
+  if (hasDuplicates(allExerciseNames)) {
+    const duplicates = findDuplicates(allExerciseNames);
+    console.error(`❌ Duplicate exercises detected:`, duplicates);
+    throw new Error(
+      `Duplicate exercises detected in session: ${duplicates.join(", ")}. ` +
+      `Each exercise must be unique. Regenerate with different exercise variants.`
+    );
+  }
+  
+  // Check weekly volume cap (max 20 sets per muscle)
+  if (result.coverage_report?.projected_weekly_sets) {
+    const overtrained = Object.entries(result.coverage_report.projected_weekly_sets)
+      .filter(([muscle, sets]) => sets > 20)
+      .map(([muscle, sets]) => `${muscle}: ${sets} sets`);
+    
+    if (overtrained.length > 0) {
+      console.error(`❌ Weekly volume cap exceeded:`, overtrained);
+      throw new Error(
+        `Weekly volume cap exceeded (max 20 sets/muscle): ${overtrained.join(", ")}. ` +
+        `Reduce today's volume for these muscle groups to stay within safe limits.`
+      );
+    }
   }
 
   // Basic safety layer checks

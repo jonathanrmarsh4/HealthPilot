@@ -1,0 +1,141 @@
+{
+  "name": "HealthPilot — Muscle Group Balance + Anti-Duplication Enforcement",
+  "version": "1.0.0",
+  "goal": "Ensure sessions target under-trained muscle groups based on the Muscle Group Training Balance tile, adhere to ACSM/NSCA weekly volume standards, and prevent exercise repetition within a session and across recent days.",
+  "instructions_to_ai": "You are HealthPilot Coach and Platform Engineer. Apply the updates below. Return ONLY the changed code blocks and updated prompt fragments exactly as specified in OUTPUT_FORMAT. No prose.",
+  "patches": {
+    "model_prompt_updates": {
+      "insert_into_system_message": [
+        "MUSCLE BALANCE RULES:",
+        "A) Use the Muscle Group Training Balance tile as primary guidance. Prioritize muscle groups with lowest trailing-7d adjusted volume vs target.",
+        "B) Industry targets (per muscle, weekly hard sets): min=8, target=10-15, max=20. Do not plan a day that will push any muscle above 20 by week-end.",
+        "C) Session coverage must favor under-trained groups and avoid over-serving already-high groups.",
+        "D) Anti-duplication: within a single session, no duplicate exercise names; across the trailing 7 days, avoid repeating the exact same exercise name for a muscle group more than once unless availability constraints force it—then substitute a close variant.",
+        "E) Movement pattern diversity: aim to include varied patterns across the week (Squat, Hinge, Horizontal Push, Horizontal Pull, Vertical Pull, Unilateral, Core Anti-rotation/Extension/Flexion, Carry). Today’s plan must not repeat more than two identical patterns from the prior day unless under-training requires it.",
+        "F) Exercise selection must map to targeted muscles accurately; include secondary muscles in the coverage report.",
+        "G) Respect injuries/equipment; substitute with the closest pattern maintaining the stimulus.",
+        "H) Time budget has priority. If time-limited, preserve balance by swapping big lifts for time-efficient variants before cutting entire muscle coverage.",
+        "I) Emit a coverage report and a per-muscle set allocation for today + projected week totals."
+      ],
+      "add_to_OUTPUT_SCHEMA": {
+        "session_id": { "type": "string", "description": "uuid v4" },
+        "coverage_report": {
+          "type": "object",
+          "description": "What muscles are targeted today and how this affects the weekly balance.",
+          "required": ["per_muscle_sets_today", "projected_weekly_sets", "undertrained_priority", "overtrained_watchlist"],
+          "properties": {
+            "per_muscle_sets_today": { "type": "object", "additionalProperties": { "type": "integer" } },
+            "projected_weekly_sets": { "type": "object", "additionalProperties": { "type": "integer" } },
+            "undertrained_priority": { "type": "array", "items": { "type": "string" } },
+            "overtrained_watchlist": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "variation_policy": {
+          "type": "object",
+          "description": "Anti-duplication and movement diversity controls.",
+          "required": ["no_session_duplicates", "no_repeat_exact_exercise_days", "pattern_mix_notes"],
+          "properties": {
+            "no_session_duplicates": { "type": "boolean" },
+            "no_repeat_exact_exercise_days": { "type": "integer", "description": "Minimum days before repeating exact exercise name (default 7)" },
+            "pattern_mix_notes": { "type": "string" }
+          }
+        },
+        "muscle_balance_input_snapshot": {
+          "type": "object",
+          "description": "Snapshot of the Muscle Group Training Balance tile used to drive decisions.",
+          "additionalProperties": { "type": "integer" }
+        }
+      },
+      "generator_logic": [
+        "1) Read muscle_balance_input_snapshot (e.g., {Chest:6, Back:4, Quads:2,...} trailing-7d hard sets).",
+        "2) Compute remaining capacity to target=10-15 and hard cap=20 for each muscle.",
+        "3) Build candidate exercises from library filtered by equipment/injury; rank by (undertraining gap, movement diversity, time efficiency).",
+        "4) Fill main then accessories to: (a) address biggest deficits first, (b) respect time budget, (c) meet min_exercise_count (≥5/hour), (d) avoid duplicates (session + trailing 7d).",
+        "5) If an exact exercise was done in last 7d, pick a close variant (e.g., Barbell Back Squat → Safety Bar Squat; Seated Cable Row → Chest-supported Row).",
+        "6) Emit coverage_report and variation_policy reflecting the above."
+      ]
+    },
+    "server_validation_updates": {
+      "typescript_patch_generation_endpoint": {
+        "file": "pages/api/training/generate-daily-session.ts",
+        "insert_after": "const result = DailyWorkoutSchema.parse(parsed);",
+        "content": "// ── Muscle Balance & Anti-Duplication Guards ─────────────────────────────\nconst sessMin = Number(data?.availability?.session_minutes ?? 60);\nconst minExercises = Math.ceil((sessMin / 60) * 5);\nconst totalExercises = (result.main?.length || 0) + (result.accessories?.length || 0);\nif (totalExercises < minExercises) throw new Error(`Under-filled: ${totalExercises} < required ${minExercises}`);\n\n// No duplicates within session\nconst names = [...(result.main||[]), ...(result.accessories||[])].map(e => (e.exercise||'').trim().toLowerCase());\nconst nameSet = new Set(names);\nif (nameSet.size !== names.length) throw new Error('Duplicate exercises within session detected');\n\n// Optional: no exact-name repeats vs trailing 7d history (if provided)\nconst recentNames = (data?.recent_training||[]).flatMap(s => (s.exercises||[]).map((x:any)=> (x.name||'').trim().toLowerCase()));\nconst repeats = names.filter(n => recentNames.includes(n));\nif (repeats.length > 0) {\n  // Allow if equipment constraints make it unavoidable but prefer variance.\n  // You may choose to hard fail instead:\n  // throw new Error(`Exercise repeats vs trailing 7d: ${[...new Set(repeats)].join(', ')}`);\n}\n\n// Weekly volume bounds (uses coverage_report if present)\nconst projected = result.coverage_report?.projected_weekly_sets || {};\nfor (const [muscle, sets] of Object.entries(projected)) {\n  if (Number(sets) > 20) throw new Error(`Weekly volume cap exceeded for ${muscle}: ${sets} > 20`);\n}\n"
+      },
+      "zod_schema_extension": {
+        "file": "schemas/dailyWorkout.ts",
+        "append_to_schema": "coverage_report: z.object({ per_muscle_sets_today: z.record(z.number().int().nonnegative()), projected_weekly_sets: z.record(z.number().int().nonnegative()), undertrained_priority: z.array(z.string()), overtrained_watchlist: z.array(z.string()) }).optional(),\nvariation_policy: z.object({ no_session_duplicates: z.boolean(), no_repeat_exact_exercise_days: z.number().int().positive().default(7), pattern_mix_notes: z.string().optional() }).optional(),\nmuscle_balance_input_snapshot: z.record(z.number().int().nonnegative()).optional()"
+      }
+    },
+    "exercise_library_normalization": {
+      "purpose": "Stop the model from treating near-identical names as different; canonicalize before duplicate checks.",
+      "helper_ts": {
+        "file": "server/exercise-canonical.ts",
+        "content": "export function canonicalize(name:string){return name.toLowerCase().replace(/\\b(db|dumbbell)\\b/g,'dumbbell').replace(/\\bbb|barbell\\b/g,'barbell').replace(/\\s+/g,' ').trim();}"
+      },
+      "usage_patch": {
+        "file": "pages/api/training/generate-daily-session.ts",
+        "insert_after": "const names = [...(result.main||[]), ...(result.accessories||[])].map(e => (e.exercise||'').trim().toLowerCase());",
+        "content": "import { canonicalize } from '@/server/exercise-canonical';\nconst canon = names.map(canonicalize);\nconst canonSet = new Set(canon);\nif (canonSet.size !== canon.length) throw new Error('Canonical duplicate exercises within session detected');"
+      }
+    },
+    "movement_pattern_taxonomy": {
+      "note": "Give the model a concise taxonomy it can follow when picking variants to maintain diversity.",
+      "insert_into_system_message": [
+        "MOVEMENT TAXONOMY (examples):",
+        "- Squat (bilateral/unilateral), Hinge (RDL/Deadlift), Horizontal Push (bench/dips), Horizontal Pull (rows), Vertical Push (overhead variants), Vertical Pull (pull-ups/lat pulldown), Carry (farmer/overhead), Core (anti-rotation Pallof, anti-extension dead bug, anti-lateral carry).",
+        "VARIATION EXAMPLES: Back Squat → Front Squat → Safety Bar Squat → Goblet Squat; Seated Cable Row → Chest-Supported DB Row → Seal Row → Meadows Row."
+      ]
+    }
+  },
+  "unit_tests": {
+    "cases": [
+      {
+        "name": "Under-trained Quads prioritized",
+        "input": { "muscle_balance_input_snapshot": { "Quads": 2, "Hamstrings": 8, "Chest": 10 }, "availability": { "session_minutes": 60 } },
+        "expect": "Plan includes at least one Quad-dominant pattern (e.g., Squat/Leg Press/Split Squat) and projected_weekly_sets for Quads increases without exceeding 20."
+      },
+      {
+        "name": "No duplicate exercises in session",
+        "input": { "main": ["Barbell Back Squat","Barbell Back Squat"], "accessories": [] },
+        "expect": "Server rejects due to duplicates."
+      },
+      {
+        "name": "No exact repeats vs last 7d when alternatives exist",
+        "input": { "recent_training": ["Seated Cable Row"], "candidate_today": ["Seated Cable Row"] },
+        "expect": "Model selects a close variant (Chest-Supported DB Row) unless equipment constraints block it."
+      },
+      {
+        "name": "Weekly cap enforcement",
+        "input": { "coverage_report.projected_weekly_sets": { "Chest": 22 } },
+        "expect": "Server rejects plan due to >20 hard sets."
+      }
+    ]
+  },
+  "client_contracts": {
+    "balance_payload_to_model": {
+      "example": {
+        "muscle_balance_input_snapshot": {
+          "Chest": 6, "Back": 4, "Quads": 3, "Hamstrings": 5, "Glutes": 3,
+          "Delts": 7, "Biceps": 4, "Triceps": 5, "Calves": 2, "Core": 3
+        },
+        "recent_training": [
+          { "date": "2025-10-20", "exercises": [{ "name": "Seated Cable Row" }, { "name": "Incline DB Press" }] }
+        ]
+      }
+    }
+  },
+  "dev_notes": [
+    "Feed the model the Muscle Group Training Balance tile explicitly as 'muscle_balance_input_snapshot'.",
+    "Keep both model-side and server-side duplicate checks; canonicalize names to catch semantic duplicates.",
+    "If time is tight, keep exercise COUNT but adjust sets/intensity/tempo and drop/shorten conditioning first.",
+    "Log 'coverage_report' and compare to tile after generation to verify corrections."
+  ],
+  "OUTPUT_FORMAT": {
+    "return": [
+      { "type": "prompt_patch", "section": "system_message|OUTPUT_SCHEMA" },
+      { "type": "schema_patch", "file": "schemas/dailyWorkout.ts" },
+      { "type": "code_patch", "file": "pages/api/training/generate-daily-session.ts" },
+      { "type": "helper_file", "file": "server/exercise-canonical.ts" }
+    ]
+  }
+}
