@@ -388,15 +388,11 @@ export async function generateDailyInsightsForUser(userId: string): Promise<Insi
  * Get all active users (simplified - in production would paginate)
  */
 async function getAllActiveUsers(): Promise<Array<{ id: string; timezone: string | null }>> {
-  // This is a simplified implementation
-  // In production, you'd want to:
-  // 1. Paginate through users
-  // 2. Filter for active/subscribed users only
-  // 3. Use a more efficient query
-  
-  // For MVP, we'll get users via a direct DB query
-  // This would need to be added to storage interface in production
-  return [];
+  const users = await storage.getAllUsersForScheduler();
+  return users.map(user => ({
+    id: user.id,
+    timezone: user.timezone,
+  }));
 }
 
 /**
