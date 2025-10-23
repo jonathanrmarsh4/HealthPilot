@@ -25,7 +25,7 @@ async function processUsersAtLocalTime(targetHour: number) {
 
   try {
     // Get all users
-    const users = await storage.getAllUsers();
+    const users = await storage.getAllUsersForScheduler();
     
     let processedCount = 0;
     let generatedCount = 0;

@@ -1634,6 +1634,12 @@ export class DbStorage implements IStorage {
     };
   }
 
+  async getAllUsersForScheduler(): Promise<User[]> {
+    // Simple method for scheduler - returns all users without pagination
+    const result = await db.select().from(users);
+    return result;
+  }
+
   async updateUser(id: string, updates: Partial<User>): Promise<User> {
     const result = await db
       .update(users)
