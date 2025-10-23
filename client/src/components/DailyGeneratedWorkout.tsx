@@ -61,7 +61,8 @@ export function DailyGeneratedWorkout() {
   // Accept workout mutation
   const acceptMutation = useMutation({
     mutationFn: async (id: string) => {
-      return apiRequest("POST", `/api/training/generated-workout/${id}/accept`, {});
+      const response = await apiRequest("POST", `/api/training/generated-workout/${id}/accept`, {});
+      return response.json();
     },
     onSuccess: (data: { success: boolean; sessionId: string }) => {
       queryClient.invalidateQueries({ queryKey: ["/api/training/generated-workout", today] });
@@ -70,7 +71,7 @@ export function DailyGeneratedWorkout() {
         description: "Opening workout tracker...",
       });
       // Navigate to the workout session page to start tracking
-      setLocation(`/workout-session/${data.sessionId}`);
+      setLocation(`/workout/${data.sessionId}`);
     },
     onError: (error: Error) => {
       toast({
