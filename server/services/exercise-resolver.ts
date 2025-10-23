@@ -1,0 +1,405 @@
+/*
+  HealthPilot • exercise-resolver.ts (single-file, drop-in)
+  ------------------------------------------------------------------
+  Purpose: Resolve noisy/free-text exercise names (AI/user-generated)
+           to a canonical exercise id from your database, avoiding
+           "Unknown" while staying deterministic and explainable.
+
+  Features
+  - Normalization pipeline (case, punctuation, spacing, plurals)
+  - Abbreviation & synonym expansion (db↔dumbbell, bb↔barbell, rdl, ohp, etc.)
+  - Qualifier detection (assisted, unilateral, machine/smith/landmine, incline/flat)
+  - Fuzzy score ensemble = normalized Levenshtein + token Jaccard + heuristics
+  - Confidence thresholds + top-k suggestions when ambiguous
+  - Static alias seed for common variants
+  - Dynamic alias cache with pluggable storage (localStorage/Node fs/in-memory)
+
+  API
+    type ResolveOutcome =
+      | { kind: "resolved", canonical_id: string, score: number, matched_name: string, trace: string[] }
+      | { kind: "needs_confirmation", suggestions: { id: string, score: number, reason: string[] }[], trace: string[] }
+      | { kind: "unknown", trace: string[] };
+
+    resolveExerciseName(rawName, knownExercises, opts?)
+    rememberAlias(rawName, canonicalId)
+    loadAlias(rawName)
+    attachAliasStore(store) // optional custom persistence
+
+  Usage
+    import { resolveExerciseName, rememberAlias } from "./exercise-resolver";
+
+    const known = {
+      lat_pulldown: { id: "lat_pulldown", name: "Lat Pulldown", tags: ["vertical_pull","cable","machine"] },
+      barbell_back_squat: { id: "barbell_back_squat", name: "Barbell Back Squat", tags: ["squat","barbell"] },
+      // ... fill from your exercise DB
+    };
+
+    const out = resolveExerciseName("Lat pull down", known);
+    if (out.kind === "resolved") use(out.canonical_id);
+    else if (out.kind === "needs_confirmation") showUI(out.suggestions);
+
+  Notes
+  - No external deps required. Works in browser or Node.
+  - If running in Node and you want disk persistence, see the FS store at bottom.
+*/
+
+// ----------------------------- Types -----------------------------
+export type ResolveOutcome =
+  | { kind: "resolved"; canonical_id: string; score: number; matched_name: string; trace: string[] }
+  | { kind: "needs_confirmation"; suggestions: { id: string; score: number; reason: string[] }[]; trace: string[] }
+  | { kind: "unknown"; trace: string[] };
+
+export interface KnownExercise { id: string; name: string; tags?: string[] }
+export type KnownMap = Record<string, KnownExercise>; // key usually the canonical id
+
+export interface ResolverOptions {
+  minAuto?: number;      // default 0.86
+  deltaGuard?: number;   // default 0.08 (top must exceed runner-up by this to autoselect if below minAuto)
+  topK?: number;         // suggestions count when ambiguous, default 3
+}
+
+// --------------------- Static alias & expansions -----------------
+const STATIC_ALIASES: Record<string, string> = {
+  // Common lat pulldown variants
+  "lat pull down": "lat_pulldown",
+  "lat pull-down": "lat_pulldown",
+  "lat pulldown": "lat_pulldown",
+  // Squat variants
+  "bb back squat": "barbell_back_squat",
+  "back squat (barbell)": "barbell_back_squat",
+  // RDL variants
+  "rdl (db)": "hip_hinge_db_rdl",
+  "romanian deadlift (db)": "hip_hinge_db_rdl",
+  // Triceps pressdown
+  "cable tricep push down": "cable_triceps_pressdown",
+  "cable triceps pushdown": "cable_triceps_pressdown",
+  "triceps pressdown": "cable_triceps_pressdown",
+  // Hip thrust
+  "hip thrust (smith)": "hip_thrust_machine",
+  // Landmine OHP
+  "landmine ohp": "landmine_press",
+  // Pull-up assisted
+  "pull up (assisted)": "pullup_assisted",
+  "assisted pull up": "pullup_assisted",
+  // DB presses
+  "db incline press": "incline_db_press",
+  "db chest press": "flat_db_press"
+};
+
+const EXPAND: Record<string, string> = {
+  bb: "barbell",
+  db: "dumbbell",
+  ohp: "overhead press",
+  rdl: "romanian deadlift",
+  pulldown: "lat pulldown",
+  pushdown: "pressdown",
+  kb: "kettlebell",
+  oh: "overhead"
+};
+
+// Qualifier indicator tokens (affect scoring)
+const QUAL_TOKENS = {
+  unilateral: ["unilateral", "singlearm", "single-arm", "single arm", "1-arm", "one-arm"],
+  assisted: ["assisted"],
+  machine: ["machine", "smith", "selectorized"],
+  free: ["barbell", "dumbbell", "kettlebell", "landmine"],
+  landmine: ["landmine"],
+  incline: ["incline"],
+  decline: ["decline"],
+  flat: ["flat"],
+};
+
+// ----------------------- Alias storage layer ---------------------
+// Pluggable storage; default tries localStorage, then in-memory.
+interface AliasStore {
+  load(): Record<string, string>;
+  save(map: Record<string, string>): void;
+}
+
+let _aliasMemory: Record<string, string> = {};
+
+const memoryStore: AliasStore = {
+  load: () => ({ ..._aliasMemory }),
+  save: (m) => { _aliasMemory = { ...m }; }
+};
+
+const localStorageStore: AliasStore | null = (() => {
+  try {
+    if (typeof window !== "undefined" && window.localStorage) {
+      return {
+        load: () => JSON.parse(window.localStorage.getItem("exercise_alias_cache") || "{}"),
+        save: (m) => window.localStorage.setItem("exercise_alias_cache", JSON.stringify(m))
+      };
+    }
+  } catch { /* ignore */ }
+  return null;
+})();
+
+let activeStore: AliasStore = localStorageStore ?? memoryStore;
+
+export function attachAliasStore(store: AliasStore) { activeStore = store; }
+
+function loadAliasMap(): Record<string, string> { return activeStore.load(); }
+function saveAliasMap(m: Record<string, string>) { activeStore.save(m); }
+
+export function rememberAlias(raw: string, canonicalId: string) {
+  const key = normalizeForAlias(raw);
+  const map = loadAliasMap();
+  map[key] = canonicalId;
+  saveAliasMap(map);
+}
+
+export function loadAlias(raw: string): string | undefined {
+  const key = normalizeForAlias(raw);
+  const map = loadAliasMap();
+  return map[key];
+}
+
+// ------------------------- Normalization -------------------------
+function normalizeForAlias(s: string): string {
+  return s.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function normalizeFreeText(input: string): { norm: string; tokens: string[]; qualifiers: string[]; trace: string[] } {
+  const trace: string[] = [];
+  let s = input.toLowerCase();
+  trace.push(`lower→ "${s}"`);
+
+  // Replace punctuation with spaces
+  s = s.replace(/[()\[\]{}.,/\\+_*:;!@#%^&?=\-]+/g, " ");
+  s = s.replace(/\s+/g, " ").trim();
+  trace.push(`punct/space→ "${s}"`);
+
+  // Expand common abbreviations word-by-word
+  const words = s.split(" ").map(w => EXPAND[w] ?? w);
+  s = words.join(" ");
+  trace.push(`expand→ "${s}"`);
+
+  // Singularize trivial plurals (raise->raise, curls->curl, presses->press)
+  s = s.replace(/(curls|curling)\b/g, "curl");
+  s = s.replace(/presses\b/g, "press");
+  s = s.replace(/raises\b/g, "raise");
+  s = s.replace(/rows\b/g, "row");
+  s = s.replace(/pull downs\b/g, "pulldown");
+  s = s.replace(/push downs\b/g, "pressdown");
+  trace.push(`singularize→ "${s}"`);
+
+  // Unify known multiword terms
+  s = s.replace(/lat\s+pull\s*down/g, "lat pulldown");
+  s = s.replace(/hip\s*thrust\s*smith/g, "hip thrust smith");
+  s = s.replace(/overhead\s*press/g, "overhead press");
+  s = s.replace(/romanian\s*deadlift/g, "romanian deadlift");
+  trace.push(`unify→ "${s}"`);
+
+  // Capture qualifiers
+  const qualifiers: string[] = [];
+  const pushQuals = (label: string, arr: string[]) => { if (arr.some(t => s.includes(t))) qualifiers.push(label); };
+  pushQuals("unilateral", QUAL_TOKENS.unilateral);
+  pushQuals("assisted", QUAL_TOKENS.assisted);
+  if (QUAL_TOKENS.machine.some(t => s.includes(t))) qualifiers.push("machine");
+  if (QUAL_TOKENS.free.some(t => s.includes(t))) qualifiers.push("free");
+  pushQuals("landmine", QUAL_TOKENS.landmine);
+  pushQuals("incline", QUAL_TOKENS.incline);
+  pushQuals("decline", QUAL_TOKENS.decline);
+  pushQuals("flat", QUAL_TOKENS.flat);
+
+  const tokens = s.split(" ").filter(Boolean);
+  return { norm: s, tokens, qualifiers, trace };
+}
+
+function normalizeCandidate(ex: KnownExercise): { normName: string; tokens: string[]; qualifiers: string[] } {
+  const n = normalizeFreeText(ex.name);
+  return { normName: n.norm, tokens: n.tokens, qualifiers: n.qualifiers };
+}
+
+// ------------------------- Similarity ----------------------------
+function levenshtein(a: string, b: string): number {
+  if (a === b) return 0;
+  if (!a) return b.length;
+  if (!b) return a.length;
+  const m = Array.from({ length: a.length + 1 }, (_, i) => i);
+  for (let j = 1; j <= b.length; j++) {
+    let prev = j;
+    for (let i = 1; i <= a.length; i++) {
+      const temp = m[i];
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      m[i] = Math.min(
+        m[i] + 1,
+        m[i - 1] + 1,
+        prev + cost
+      );
+      prev = temp;
+    }
+    m[0] = j;
+  }
+  return m[a.length];
+}
+
+function normalizedEditSim(a: string, b: string): number {
+  // 1 - (lev / maxlen)
+  const maxLen = Math.max(a.length, b.length);
+  if (maxLen === 0) return 1;
+  return 1 - (levenshtein(a, b) / maxLen);
+}
+
+function jaccard(tokensA: string[], tokensB: string[]): number {
+  const setA = new Set(tokensA);
+  const setB = new Set(tokensB);
+  const inter = new Set([...setA].filter(x => setB.has(x)));
+  const union = new Set([...setA, ...setB]);
+  return union.size === 0 ? 0 : inter.size / union.size;
+}
+
+// ----------------------- Scoring & reasons -----------------------
+function keyTokenBonus(qTokens: string[], cTokens: string[]): number {
+  const keys = ["squat","pulldown","row","press","deadlift","hinge","lunge","thrust","curl","raise","fly","pullup","extension","chop","pallof"];
+  const setC = new Set(cTokens);
+  const matches = qTokens.filter(t => keys.includes(t) && setC.has(t)).length;
+  return Math.min(0.10, matches * 0.05); // up to +0.10
+}
+
+function startsContainsBonus(q: string, c: string): number {
+  let b = 0;
+  if (c.startsWith(q) || q.startsWith(c)) b += 0.03;
+  if (c.includes(q) || q.includes(c)) b += 0.03;
+  return Math.min(0.06, b);
+}
+
+function qualifierFitBonus(qQuals: string[], cQuals: string[]): number {
+  const setC = new Set(cQuals);
+  let b = 0;
+  for (const q of qQuals) if (setC.has(q)) b += 0.03;
+  // Penalize contradictory hints (e.g., assisted vs not present when pullup candidate has no assisted)
+  if (qQuals.includes("assisted") && !setC.has("assisted")) b -= 0.05;
+  if (qQuals.includes("unilateral") && !setC.has("unilateral")) b -= 0.03;
+  return b;
+}
+
+function buildReasons(q: string, qTok: string[], qQual: string[], cNorm: string, cTok: string[], cQual: string[], nameSim: number, tokSim: number): string[] {
+  const reasons: string[] = [];
+  if (nameSim >= 0.85) reasons.push("strong name similarity");
+  else if (nameSim >= 0.70) reasons.push("moderate name similarity");
+  if (tokSim >= 0.6) reasons.push("token overlap");
+  const scb = startsContainsBonus(q, cNorm);
+  if (scb > 0.04) reasons.push("starts/contains match");
+  const ktb = keyTokenBonus(qTok, cTok);
+  if (ktb > 0.04) reasons.push("key token match");
+  const qfb = qualifierFitBonus(qQual, cQual);
+  if (qfb > 0.02) reasons.push("qualifiers aligned");
+  if (qfb < -0.01) reasons.push("qualifier mismatch (penalty)");
+  return reasons;
+}
+
+function finalScore(nameSim: number, tokenSim: number, qTok: string[], cTok: string[], qQual: string[], cQual: string[], q: string, c: string): number {
+  const heur = startsContainsBonus(q, c) + keyTokenBonus(qTok, cTok) + qualifierFitBonus(qQual, cQual);
+  const score = 0.55 * nameSim + 0.30 * tokenSim + 0.15 * heur;
+  return Math.max(0, Math.min(1, score));
+}
+
+// -------------------------- Main API ----------------------------
+export function resolveExerciseName(
+  rawName: string,
+  known: KnownMap,
+  opts: ResolverOptions = {}
+): ResolveOutcome {
+  const trace: string[] = [];
+  const { minAuto = 0.86, deltaGuard = 0.08, topK = 3 } = opts;
+
+  if (!rawName || !rawName.trim()) return { kind: "unknown", trace: ["empty input"] };
+
+  // 1) Dynamic alias hit
+  const aliasHit = loadAlias(rawName) || STATIC_ALIASES[normalizeForAlias(rawName)];
+  if (aliasHit && known[aliasHit]) {
+    trace.push(`alias hit → ${aliasHit}`);
+    return { kind: "resolved", canonical_id: aliasHit, score: 1, matched_name: known[aliasHit].name, trace };
+  }
+
+  // 2) Normalize query
+  const q = normalizeFreeText(rawName);
+  trace.push(...q.trace);
+
+  // 3) Score against all known exercises
+  const scored: { id: string; name: string; score: number; reason: string[]; cNorm: string }[] = [];
+  for (const [id, ex] of Object.entries(known)) {
+    const c = normalizeCandidate(ex);
+    const nameSim = normalizedEditSim(q.norm, c.normName);
+    const tokSim = jaccard(q.tokens, c.tokens);
+    const score = finalScore(nameSim, tokSim, q.tokens, c.tokens, q.qualifiers, c.qualifiers, q.norm, c.normName);
+    const reason = buildReasons(q.norm, q.tokens, q.qualifiers, c.normName, c.tokens, c.qualifiers, nameSim, tokSim);
+    scored.push({ id, name: ex.name, score, reason, cNorm: c.normName });
+  }
+
+  if (scored.length === 0) return { kind: "unknown", trace: ["no known exercises provided"] };
+
+  scored.sort((a, b) => b.score - a.score);
+  const top = scored[0];
+  const runner = scored[1];
+
+  trace.push(`top: ${top.id} (${top.score.toFixed(3)}) reasons: ${top.reason.join(", ")}`);
+  if (runner) trace.push(`runner: ${runner.id} (${runner.score.toFixed(3)})`);
+
+  // 4) Thresholding
+  if (top.score >= minAuto) {
+    return { kind: "resolved", canonical_id: top.id, score: top.score, matched_name: top.name, trace };
+  }
+  if (top.score >= 0.76 && runner && (top.score - runner.score) >= deltaGuard) {
+    trace.push(`deltaGuard satisfied: ${(top.score - runner.score).toFixed(3)} ≥ ${deltaGuard}`);
+    return { kind: "resolved", canonical_id: top.id, score: top.score, matched_name: top.name, trace };
+  }
+
+  // 5) Suggestions
+  const suggestions = scored.slice(0, topK).map(s => ({ id: s.id, score: s.score, reason: s.reason }));
+  return { kind: "needs_confirmation", suggestions, trace };
+}
+
+// -------------------------- Node FS store ------------------------
+// Optional: If you run in Node.js and want file persistence, attach this:
+//   import { attachAliasStore, fsAliasStore } from "./exercise-resolver";
+//   attachAliasStore(fsAliasStore("./exercise_alias_cache.json"));
+
+export function fsAliasStore(path: string) {
+  // Lazy require to avoid bundler complaints in browsers
+  const fs = require("fs");
+  return {
+    load(): Record<string, string> {
+      try {
+        if (fs.existsSync(path)) return JSON.parse(fs.readFileSync(path, "utf-8"));
+      } catch { /* ignore */ }
+      return {};
+    },
+    save(map: Record<string, string>) {
+      try { fs.writeFileSync(path, JSON.stringify(map, null, 2), "utf-8"); } catch { /* ignore */ }
+    }
+  } as AliasStore;
+}
+
+// -------------------------- Demo (optional) ----------------------
+// Run with: ts-node exercise-resolver.ts
+if (typeof require !== "undefined" && require.main === module) {
+  const known: KnownMap = {
+    lat_pulldown: { id: "lat_pulldown", name: "Lat Pulldown", tags: ["vertical_pull","cable","machine"] },
+    barbell_back_squat: { id: "barbell_back_squat", name: "Barbell Back Squat", tags: ["squat","barbell"] },
+    hip_hinge_db_rdl: { id: "hip_hinge_db_rdl", name: "DB Romanian Deadlift", tags: ["hinge","dumbbell"] },
+    cable_triceps_pressdown: { id: "cable_triceps_pressdown", name: "Cable Triceps Pressdown", tags: ["isolation","cable"] },
+    hip_thrust_machine: { id: "hip_thrust_machine", name: "Hip Thrust (Machine)", tags: ["glute_hinge","machine"] },
+    landmine_press: { id: "landmine_press", name: "Landmine Press", tags: ["vertical_press","landmine"] },
+    seated_cable_row: { id: "seated_cable_row", name: "Seated Cable Row", tags: ["row","cable","machine"] },
+    machine_high_row: { id: "machine_high_row", name: "Machine High Row", tags: ["row","machine"] },
+    flat_db_press: { id: "flat_db_press", name: "Flat DB Press", tags: ["horizontal_press","dumbbell"] }
+  };
+
+  const samples = [
+    "Lat pull down",
+    "BB back sqt",
+    "RDL (DB)",
+    "cable tricep push down",
+    "hip thrust (smith)",
+    "row machine",
+    "db chest press"
+  ];
+
+  for (const s of samples) {
+    const out = resolveExerciseName(s, known);
+    console.log("\n>", s, "\n", JSON.stringify(out, null, 2));
+  }
+}
