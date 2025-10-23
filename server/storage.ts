@@ -2042,7 +2042,7 @@ export class DbStorage implements IStorage {
     return result[0];
   }
 
-  async acceptGeneratedWorkout(id: string, userId: string): Promise<void> {
+  async acceptGeneratedWorkout(id: string, userId: string): Promise<string> {
     console.log(`💪 acceptGeneratedWorkout called - ID: ${id}, UserId: ${userId}`);
     
     // Get the generated workout by ID
@@ -2116,6 +2116,9 @@ export class DbStorage implements IStorage {
       .where(and(eq(generatedWorkouts.id, id), eq(generatedWorkouts.userId, userId)))
       .returning();
     console.log(`💪 Update result:`, updateResult.length > 0 ? `Success - status: ${updateResult[0].status}` : 'No rows updated!');
+    
+    // Return the session ID so the user can be redirected to the workout tracker
+    return session.id;
   }
 
   async rejectGeneratedWorkout(id: string, userId: string): Promise<void> {
