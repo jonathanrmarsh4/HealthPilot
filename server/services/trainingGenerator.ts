@@ -72,12 +72,12 @@ export const DailyWorkoutSchema = z.object({
     conditioning_min: z.number().int().nonnegative(),
     cooldown_min: z.number().int().nonnegative(),
     total_min: z.number().int().positive()
-  }).optional(),
+  }), // REQUIRED - must estimate time budget
   min_exercise_policy: z.object({
     session_minutes: z.number().int().positive(),
     minimum_exercise_count: z.number().int().positive(),
     achieved_exercise_count: z.number().int().nonnegative()
-  }).optional()
+  }) // REQUIRED - must enforce minimum exercise count
 });
 
 export type DailyWorkout = z.infer<typeof DailyWorkoutSchema>;
