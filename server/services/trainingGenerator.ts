@@ -307,23 +307,27 @@ Always follow ACSM, NSCA and WHO guardrails.
 Never output text or commentary—JSON only.
 
 HARD RULES (CRITICAL - NEVER VIOLATE):
-1) Compute minimum_exercise_count = ceil((session_minutes / 60) * 5). This is the TOTAL minimum across main + accessories.
-2) MAIN BLOCK DISTRIBUTION: For proper training stimulus, the 'main' array MUST contain AT LEAST:
+1) Read session_minutes from data.availability.session_minutes. This is the user's preferred workout duration - you MUST aim to FILL this time budget efficiently.
+2) Compute minimum_exercise_count = ceil((session_minutes / 60) * 5). This is the TOTAL minimum across main + accessories.
+3) MAIN BLOCK DISTRIBUTION: For proper training stimulus, the 'main' array MUST contain AT LEAST:
    - 3 exercises for sessions ≥45min
    - 4 exercises for sessions ≥60min  
    - 5 exercises for sessions ≥75min
    These are compound movements (squats, presses, pulls, hinges, etc.). Fill remaining exercises with accessories.
-3) Low readiness (amber/red) reduces load/sets/rest and may shorten conditioning, BUT it MUST NOT reduce main exercise count below the minimums in rule #2. When fatigued, reduce sets per exercise or use lighter variations, but keep the movement count.
-4) Honor user 'session_minutes' as the primary time budget; do not exceed it. If needed, trim conditioning first, then reduce sets per exercise. Never sacrifice main exercise count.
-5) Always include a 'time_budget' field that estimates minutes for warmup, each exercise, conditioning, and cooldown. Total must be ≤ session_minutes.
-6) Each exercise in main and accessories MUST have a unique exercise_id (use UUID v4 format like "550e8400-e29b-41d4-a716-446655440000").
+4) Low readiness (amber/red) reduces load/sets/rest and may shorten conditioning, BUT it MUST NOT reduce main exercise count below the minimums in rule #3. When fatigued, reduce sets per exercise or use lighter variations, but keep the movement count.
+5) TIME BUDGET: The user's session_minutes is their PREFERRED duration. Aim to fill this time efficiently:
+   - For 60min sessions: 4-6 main exercises + 1-3 accessories
+   - For 75min sessions: 5-7 main exercises + 2-4 accessories  
+   - For 90min+ sessions: 6-8 main exercises + 3-5 accessories
+   Add extra sets to exercises (especially accessories) to utilize available time without exceeding the budget.
+6) Always include a 'time_budget' field that estimates minutes for warmup, each exercise, conditioning, and cooldown. Total should be close to session_minutes (within 5 minutes).
+7) Each exercise in main and accessories MUST have a unique exercise_id (use UUID v4 format like "550e8400-e29b-41d4-a716-446655440000").
 
 Guardrails:
 - Strength: 1–6 reps @75–90%1RM RPE7–9, rest 120-240s
 - Hypertrophy: 6–12 reps @65–80%1RM RPE6–8, rest 60-120s
 - Endurance: 12–20 reps @50–70%1RM RPE5–7, rest 45-90s
 - Weekly volume: 8-20 sets per muscle group
-- Session time caps: beginner 45min, intermediate 60min, advanced 75min
 - HR Zones: HRmax = 208 - 0.7*age, Z2 = 60-70% HRmax, Z3 = 70-80% HRmax
 
 Safety Rules:
@@ -551,8 +555,8 @@ REQUIRED OUTPUT SCHEMA (return this exact structure at the root level):
     );
   }
 
-  // Verify time budget if provided (allow 2-minute buffer for flexibility)
-  const timeBudgetBuffer = 2;
+  // Verify time budget if provided (allow 5-minute buffer for flexibility)
+  const timeBudgetBuffer = 5;
   const maxAllowedTime = sessionMinutes + timeBudgetBuffer;
   if (result.time_budget && result.time_budget.total_min > maxAllowedTime) {
     throw new Error(
