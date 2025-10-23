@@ -2114,6 +2114,19 @@ export class DbStorage implements IStorage {
 
     console.log(`💪 Created accepted snapshot with ${acceptedSnapshot.exercises.length} exercises`);
     
+    // ⬇️ CRITICAL: Write snapshot to database FIRST to ensure atomicity
+    console.log(`💪 Updating workout status to accepted with snapshot - ID: ${id}`);
+    const updateResult = await db
+      .update(generatedWorkouts)
+      .set({ 
+        status: 'accepted', 
+        acceptedAt: new Date(),
+        acceptedSnapshot: acceptedSnapshot as any
+      })
+      .where(and(eq(generatedWorkouts.id, id), eq(generatedWorkouts.userId, userId)))
+      .returning();
+    console.log(`💪 Update result:`, updateResult.length > 0 ? `Success - status: ${updateResult[0].status}, exercises: ${acceptedSnapshot.exercises.length}` : 'No rows updated!');
+    
     // Create a new workout session
     const session = await this.createWorkoutSession({
       userId,
@@ -2156,19 +2169,6 @@ export class DbStorage implements IStorage {
         console.warn(`💪 Could not match exercise to library: ${exercise.exercise}`);
       }
     }
-
-    // Update the generated workout status with accepted snapshot
-    console.log(`💪 Updating workout status to accepted with snapshot - ID: ${id}`);
-    const updateResult = await db
-      .update(generatedWorkouts)
-      .set({ 
-        status: 'accepted', 
-        acceptedAt: new Date(),
-        acceptedSnapshot: acceptedSnapshot as any
-      })
-      .where(and(eq(generatedWorkouts.id, id), eq(generatedWorkouts.userId, userId)))
-      .returning();
-    console.log(`💪 Update result:`, updateResult.length > 0 ? `Success - status: ${updateResult[0].status}, exercises: ${acceptedSnapshot.exercises.length}` : 'No rows updated!');
     
     // Return the session ID so the user can be redirected to the workout tracker
     return session.id;
