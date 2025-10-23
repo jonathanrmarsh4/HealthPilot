@@ -3,6 +3,15 @@ import { storage } from '../storage';
 import { calculateMetricBaseline } from './baselineComputation';
 import { detectMetricDeviation, getSupportedMetrics } from './thresholdDetection';
 import { generateInsightFromDeviation, selectTopInsights, GeneratedInsight } from './insightGeneration';
+import { 
+  buildEpisodeViews, 
+  fetchHealthSignals, 
+  calculateFeatures, 
+  evaluateCorrelationRules, 
+  calculatePriority,
+  SymptomInsightData
+} from './symptomCorrelation';
+import { generateSymptomInsight, GeneratedSymptomInsight } from './symptomInsightGeneration';
 
 /**
  * Daily Insights Scheduler
@@ -174,13 +183,103 @@ export async function generateDailyInsightsForUser(userId: string): Promise<Insi
     }
   }
 
-  if (generatedInsights.length === 0) {
-    console.log(`[DailyInsights] No insights generated (AI returned null for all deviations)`);
+  //============================================================================
+  // SYMPTOM CORRELATION ANALYSIS
+  //============================================================================
+  
+  const includeSymptomsInInsights = process.env.INCLUDE_SYMPTOMS_IN_INSIGHTS !== 'false'; // Default: true
+  const symptomInsights: GeneratedSymptomInsight[] = [];
+  
+  if (includeSymptomsInInsights) {
+    try {
+      console.log(`[DailyInsights] Analyzing symptoms for user ${userId}...`);
+      
+      // Get user timezone
+      const user = await storage.getUser(userId);
+      const timezone = user?.timezone || 'Australia/Perth';
+      
+      // Fetch symptom episodes and health signals
+      const oneDayAgo = new Date(today);
+      oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+      
+      const [symptomEpisodes, healthSignals] = await Promise.all([
+        buildEpisodeViews(userId, oneDayAgo, today),
+        fetchHealthSignals(userId, timezone),
+      ]);
+      
+      console.log(`[DailyInsights] Found ${symptomEpisodes.length} active symptom episodes`);
+      
+      // Analyze each symptom episode
+      for (const symptom of symptomEpisodes) {
+        try {
+          // Get previous severity (from sparkline or null if first report)
+          const previousSeverity = symptom.sparkline.length > 1 ? symptom.sparkline[symptom.sparkline.length - 2] : null;
+          
+          // Calculate features
+          const features = calculateFeatures(symptom, previousSeverity, healthSignals);
+          
+          // Evaluate correlation rules
+          const rulesHit = evaluateCorrelationRules(symptom, features);
+          
+          // Calculate priority
+          const priority = calculatePriority(symptom, features, rulesHit);
+          
+          // Build insight data
+          const insightData: SymptomInsightData = {
+            symptom,
+            features,
+            rulesHit,
+            priority,
+            signals: healthSignals,
+          };
+          
+          // Generate insight if priority is high enough
+          const insight = await generateSymptomInsight(insightData);
+          if (insight) {
+            symptomInsights.push(insight);
+            console.log(`[DailyInsights] Generated symptom insight: ${insight.title} (score: ${insight.score})`);
+          }
+        } catch (error: any) {
+          console.error(`[DailyInsights] Error analyzing symptom ${symptom.name}:`, error);
+          result.errors.push(`Symptom ${symptom.name}: ${error.message}`);
+        }
+      }
+      
+      console.log(`[DailyInsights] Generated ${symptomInsights.length} symptom insights for user ${userId}`);
+    } catch (error: any) {
+      console.error(`[DailyInsights] Error in symptom correlation:`, error);
+      result.errors.push(`Symptom correlation: ${error.message}`);
+    }
+  }
+
+  //============================================================================
+  // SELECT TOP INSIGHTS (Combine metrics + symptoms)
+  //============================================================================
+  
+  // Convert symptom insights to GeneratedInsight format for combined selection
+  const allInsights: GeneratedInsight[] = [
+    ...generatedInsights,
+    ...symptomInsights.map(si => ({
+      category: si.category,
+      title: si.title,
+      description: si.description,
+      recommendation: si.recommendations.join('\n'),
+      score: si.score,
+      severity: si.severity,
+      metricName: 'symptoms', // Special metric name for symptom-based insights
+      currentValue: 0, // Not applicable
+      baselineValue: null,
+      deviation: 0,
+    })),
+  ];
+
+  if (allInsights.length === 0) {
+    console.log(`[DailyInsights] No insights generated (AI returned null for all deviations and symptoms)`);
     return result;
   }
 
-  // Select top 3 insights
-  const topInsights = selectTopInsights(generatedInsights, 3);
+  // Select top 3 insights from combined pool
+  const topInsights = selectTopInsights(allInsights, 3);
 
   // Store insights in database
   for (const insight of topInsights) {

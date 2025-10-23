@@ -1,0 +1,269 @@
+{
+  "task": "Integrate the new Symptoms Tracker into HealthPilot's AI Daily Review and Insights engine (single paste).",
+  "context": {
+    "app": "HealthPilot (web + CapacitorJS)",
+    "module": "Symptoms Tracker (already implemented in UI)",
+    "goal": "Make AI consume symptom events/episodes, correlate with objective signals (sleep, HRV, BP, activity, meds), and emit clear, safe, actionable insights."
+  },
+  "assumptions": {
+    "timezone": "Australia/Perth",
+    "symptoms_api": {
+      "episodes": "GET /symptoms/episodes?from=ISO&to=ISO",
+      "today": "GET /symptoms/today",
+      "events": "POST /symptoms/events",
+      "resolve": "PATCH /symptoms/{episodeId}/resolve"
+    },
+    "other_data_sources": {
+      "sleep": "GET /sleep/summary?from=ISO&to=ISO",
+      "hrv": "GET /vitals/hrv?from=ISO&to=ISO",
+      "bp": "GET /vitals/bp?from=ISO&to=ISO",
+      "activity": "GET /activity/summary?from=ISO&to=ISO",
+      "meds": "GET /meds/changes?from=ISO&to=ISO"
+    }
+  },
+  "schema_reference": {
+    "symptom_event": {
+      "id": "uuid",
+      "userId": "uuid",
+      "name": "string",
+      "coding": "array<{system, code, display}>?",
+      "episodeId": "uuid",
+      "status": "new|ongoing|resolved",
+      "severity": "int 0..10?",
+      "trend": "better|worse|same|null",
+      "context": "string[]",
+      "notes": "string?",
+      "signals": "object?",
+      "startedAt": "ISO",
+      "recordedAt": "ISO",
+      "endedAt": "ISO|null",
+      "source": "user|ai_autolog",
+      "version": 1
+    },
+    "symptom_episode_view": {
+      "episodeId": "uuid",
+      "name": "string",
+      "lastSeverity": "int 0..10",
+      "lastTrend": "better|worse|same|null",
+      "sparkline": "number[7]",
+      "active": "boolean",
+      "lastEventAt": "ISO"
+    }
+  },
+  "inputs_needed_last_24h": [
+    "symptoms_episode_view",
+    "sleep_summary",
+    "hrv_timeseries",
+    "bp_timeseries",
+    "activity_summary",
+    "meds_changes"
+  ],
+  "ingestion": {
+    "time_window": {
+      "from": "now - 24h (start of previous day 00:00 local)",
+      "to": "now (end of current day 23:59 local)"
+    },
+    "fetch": [
+      { "name": "symptoms", "call": "GET /symptoms/episodes?from={from}&to={to}" },
+      { "name": "sleep", "call": "GET /sleep/summary?from={from}&to={to}" },
+      { "name": "hrv", "call": "GET /vitals/hrv?from={from}&to={to}" },
+      { "name": "bp", "call": "GET /vitals/bp?from={from}&to={to}" },
+      { "name": "activity", "call": "GET /activity/summary?from={from}&to={to}" },
+      { "name": "meds", "call": "GET /meds/changes?from={from}&to={to}" }
+    ],
+    "null_handling": "If a source is missing, mark it unavailable and continue; do not block the assessment."
+  },
+  "normalization": {
+    "symptom_name_canonicalization": {
+      "lowercase": true,
+      "trim": true,
+      "synonyms": {
+        "head pressure": "headache",
+        "tired": "fatigue",
+        "low energy": "fatigue",
+        "reflux": "indigestion",
+        "do ms": "muscle soreness"
+      }
+    },
+    "context_map": {
+      "after_workout": "exercise_related",
+      "poor_sleep": "sleep_related",
+      "stress_high": "stress_related",
+      "new_med": "medication_related",
+      "travel_shift": "circadian_disruption",
+      "after_meal": "postprandial"
+    },
+    "feature_engineering": [
+      "symptom_severity_delta = lastSeverity(today) - lastSeverity(yesterday or last event)",
+      "symptom_high = lastSeverity >= 6",
+      "symptom_worsening = (lastTrend == 'worse') OR (symptom_severity_delta >= 1)",
+      "sleep_low = sleep.totalHours < 6 OR sleep.rem_z < -1",
+      "hrv_low = hrv.zscore < -1",
+      "bp_high = (bp.systolic_avg >= 135) OR (bp.diastolic_avg >= 85)",
+      "training_recent = activity.workout_within_hours <= 3",
+      "med_change_recent = meds.changed_within_hours <= 72"
+    ]
+  },
+  "correlation_rules": [
+    {
+      "id": "symptom_sleep_link",
+      "when": "symptom_worsening AND sleep_low",
+      "explanation": "Worsening symptoms commonly correlate with insufficient or low-quality sleep.",
+      "confidence": "base 0.6 + 0.2 if REM low + 0.2 if HRV low (cap 0.95)"
+    },
+    {
+      "id": "symptom_hrv_stress_link",
+      "when": "symptom_worsening AND hrv_low",
+      "explanation": "Low HRV suggests poor recovery or elevated stress.",
+      "confidence": "base 0.6 + 0.15 if poor_sleep + 0.1 if bp_high"
+    },
+    {
+      "id": "symptom_workout_link",
+      "when": "(name in ['muscle soreness','back pain','joint pain','knee pain','shoulder pain']) AND training_recent",
+      "explanation": "Mechanical load from a recent workout is a likely contributor.",
+      "confidence": "base 0.7 (+0.1 if after_workout context present)"
+    },
+    {
+      "id": "symptom_postprandial_link",
+      "when": "(name in ['nausea','bloating','reflux','indigestion','diarrhea']) AND context includes 'after_meal'",
+      "explanation": "Temporal proximity to meals suggests a digestive trigger.",
+      "confidence": "base 0.7 (+0.1 if high intensity meal tags available)"
+    },
+    {
+      "id": "symptom_med_change_link",
+      "when": "med_change_recent AND (context includes 'new_med' OR name in ['headache','dizziness','nausea','fatigue','palpitations'])",
+      "explanation": "New or changed medication temporally associated with onset/worsening.",
+      "confidence": "base 0.65 (+0.1 if onset within 72h of change)"
+    },
+    {
+      "id": "symptom_bp_link",
+      "when": "(name in ['headache','dizziness','palpitations']) AND bp_high",
+      "explanation": "Elevated blood pressure can contribute to these symptoms.",
+      "confidence": "base 0.65 (+0.15 if severity >= 7)"
+    }
+  ],
+  "prioritization": {
+    "score": "priority = (severity_norm * 0.6) + (worsening? 0.25 : 0) + (safety_flag? 0.4 : 0) + (multi_correlation? 0.15 : 0)",
+    "severity_norm": "lastSeverity / 10",
+    "safety_flags": [
+      { "rule": "chest pain OR severe shortness of breath OR neurological red flags", "action": "escalate" }
+    ],
+    "top_n": 3
+  },
+  "insight_generation": {
+    "style": "concise, plain language, non-diagnostic",
+    "guardrails": [
+      "Do not provide a medical diagnosis.",
+      "Use 'possible contributor', 'may be associated', 'consider' phrasing.",
+      "Recommend general lifestyle actions; recommend clinician review only with clear thresholds."
+    ],
+    "template": {
+      "title": "{{Symptom}} {{direction}}",
+      "subtitle": "Severity {{severity}}/10 {{trend_emoji}} • Context: {{contexts}}",
+      "body": [
+        "Pattern: {{pattern_sentence}}",
+        "Possible contributors: {{contributors_list}}",
+        "Suggested actions (choose 1–3): {{actions_list}}",
+        "Watch-outs: {{watchouts_if_any}}"
+      ],
+      "metadata": {
+        "confidence": "0..1",
+        "source_signals": ["sleep","hrv","bp","activity","meds","symptoms"]
+      }
+    },
+    "action_library": {
+      "general": [
+        "Hydration and balanced electrolytes today",
+        "Prioritise 7–9h sleep; aim for consistent bedtime",
+        "Light active recovery (walk, mobility) instead of intense training",
+        "Breathing or mindfulness 5–10 min to reduce stress load",
+        "If persistent or severe, consider discussing with your clinician"
+      ],
+      "digestive": [
+        "Smaller, simpler meals today; avoid known triggers",
+        "Do not lie down within 2–3h after eating"
+      ],
+      "soreness": [
+        "Gentle mobility and tissue care (heat/ice as preferred)",
+        "Protein target and hydration to support recovery"
+      ]
+    }
+  },
+  "pseudocode": {
+    "daily_job": [
+      "const {from, to} = window.time.localWindow('last_24h', 'Australia/Perth')",
+      "const [sym, sleep, hrv, bp, act, meds] = await Promise.all(fetchAll(from, to))",
+      "const episodes = sym.items || []",
+      "const insights = []",
+      "for (const ep of episodes) {",
+      "  const s = canonicalize(ep)",
+      "  const feats = features(s, sleep, hrv, bp, act, meds)",
+      "  const rulesHit = evaluateCorrelationRules(s, feats)",
+      "  const priority = scorePriority(s, feats, rulesHit)",
+      "  if (priority > 0) insights.push(renderInsight(s, feats, rulesHit))",
+      "}",
+      "return topN(insights, 3)"
+    ]
+  },
+  "output_contract": {
+    "insights_payload": [
+      {
+        "category": "Symptoms",
+        "title": "Headache getting worse",
+        "description": "Severity 7/10 • Context: poor_sleep, stress_high. Pattern suggests association with low REM and low HRV.",
+        "recommendations": ["Hydration + electrolytes", "Early wind-down, lights out by 10pm", "Breathing 5–10 min"],
+        "confidence": 0.78,
+        "source_signals": ["symptoms","sleep","hrv"]
+      }
+    ]
+  },
+  "llm_orchestration": {
+    "when_to_call_llm": [
+      "Summarize patterns and compose natural language for the insight body using the template",
+      "Generate short, user-friendly titles and recommendations from action_library"
+    ],
+    "do_not_call_llm_for": [
+      "Numeric transforms, thresholds, rule evaluation, or safety checks"
+    ]
+  },
+  "safety": {
+    "red_flags": [
+      {
+        "match": "name in ['chest pain','severe shortness of breath','one-sided weakness','fainting'] OR (severity >= 9 AND worsening)",
+        "result": {
+          "title": "Potential urgent symptom",
+          "description": "Your reported symptom may require urgent attention. If this is new, severe, or accompanied by other concerning signs, consider seeking urgent medical care.",
+          "confidence": 0.95,
+          "escalation": true
+        }
+      }
+    ],
+    "language": "Avoid diagnostic certainty. Use supportive, tentative phrasing."
+  },
+  "observability": {
+    "telemetry": [
+      "symptoms_ingest_success",
+      "symptoms_correlations_count",
+      "insights_emitted_count",
+      "missing_source_sleep|hrv|bp|activity|meds"
+    ],
+    "debug": {
+      "switches": ["log_features", "log_rules", "dry_run"],
+      "dump": ["top_rules_per_symptom", "raw_inputs_hash"]
+    }
+  },
+  "acceptance_tests": [
+    "If a symptom has severity >= 6 and trend='worse' with REM low and HRV z<-1, emit an insight linking sleep recovery and stress with confidence >= 0.75.",
+    "If symptom='muscle soreness' and workout occurred within 3h or context includes 'after_workout', emit a recovery-focused recommendation (active recovery, hydration, protein).",
+    "If context includes 'after_meal' and symptom in ['bloating','reflux','nausea','diarrhea'], emit digestive guidance with meal timing advice.",
+    "If meds show a change within 72h and a new/worsening symptom appears, include 'medication change' as a possible contributor.",
+    "If key data (sleep or HRV) is missing, still produce a symptom-only insight without blocking or crashing, clearly stating limited data.",
+    "Never output diagnostic labels; phrasing must use 'possible'/'may be associated'.",
+    "Top 3 insights max; sorted by priority score."
+  ],
+  "deployment_notes": [
+    "Wire this into the existing nightly/daily AI Insights job.",
+    "Expose 1 toggle in the admin/debug panel: `includeSymptomsInInsights` (default: true).",
+    "Log payload size; keep under 50KB per run where possible."
+  ]
+}
