@@ -1,0 +1,68 @@
+type Pattern =
+  | "knee_dominant" | "hip_hinge" | "horizontal_press" | "horizontal_pull"
+  | "vertical_press" | "vertical_pull" | "lunge_split" | "calf"
+  | "biceps" | "triceps" | "shoulder_iso" | "core_anti_ext" | "core_anti_rot";
+
+type Modality = "barbell"|"dumbbell"|"machine"|"cable"|"bodyweight"|"kettlebell"|"smith"|"landmine";
+type Angle = "flat"|"incline"|"decline"|"neutral";
+type Flags = { unilateral?: boolean; assisted?: boolean; angle?: Angle };
+
+export type LiftBlock = {
+  type: "lift_block";
+  pattern: Pattern;
+  preferred_modality?: Modality;
+  sets: number;
+  reps: number | [number, number];
+  rest_s?: number;
+  intensity?: { scheme?: "rir"|"rpe"|"percent1rm"; target?: number };
+  // optional hints the AI may set:
+  flags?: Flags;
+};
+
+const MOD_PREF: Modality[] = ["machine","barbell","dumbbell","bodyweight","cable","kettlebell","smith","landmine"];
+
+export function pickTemplateId(
+  block: LiftBlock,
+  available: Modality[],
+  rules: Record<Pattern, Partial<Record<Modality, string>>>
+): { template_id?: string; reason: string } {
+  const ordered = [block.preferred_modality, ...MOD_PREF].filter(Boolean) as Modality[];
+  const choice = ordered.find(m => available.includes(m));
+  if (!choice) return { reason: `no available modality for ${block.pattern}` };
+  const id = rules[block.pattern]?.[choice];
+  return id ? { template_id: id, reason: `pattern=${block.pattern} via ${choice}` }
+            : { reason: `no rule for ${block.pattern}×${choice}` };
+}
+
+// Tiny label generator (display-only)
+export function labelFromTuple(pattern: Pattern, modality: Modality, f: Flags = {}): string {
+  // crude but effective; extend as needed
+  const angle = f.angle && f.angle !== "neutral" ? ` ${f.angle}` : "";
+  const unilateral = f.unilateral ? " (Single-Arm)" : "";
+  const assisted = f.assisted ? " (Assisted)" : "";
+
+  const base: Record<Pattern,string> = {
+    horizontal_press: "Bench Press",
+    horizontal_pull: "Row",
+    vertical_press: "Overhead Press",
+    vertical_pull: "Pull-Down",
+    knee_dominant: "Squat",
+    hip_hinge: "Deadlift",
+    lunge_split: "Split Squat",
+    calf: "Calf Raise",
+    biceps: "Curl",
+    triceps: "Triceps Extension",
+    shoulder_iso: "Lateral Raise",
+    core_anti_ext: "Pallof Press",
+    core_anti_rot: "Anti-Rotation Press",
+  };
+
+  const modPrefix: Record<Modality,string> = {
+    barbell: "Barbell", dumbbell: "Dumbbell", machine: "Machine", cable: "Cable",
+    bodyweight: "Bodyweight", kettlebell: "Kettlebell", smith: "Smith Machine", landmine: "Landmine"
+  };
+
+  const name = base[pattern] ?? "Exercise";
+  const prefix = modPrefix[modality] ?? "";
+  return `${prefix} ${angle.trim()} ${name}`.replace(/\s+/g, " ").trim() + unilateral + assisted;
+}
