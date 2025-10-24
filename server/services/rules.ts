@@ -102,13 +102,23 @@ export const RULES: PatternRules = {
   },
 
   // Carry
-  carry: {},
+  carry: {
+    dumbbell: "tpl_db_farmers_carry",
+    kettlebell: "tpl_kb_farmers_carry",
+  },
 
   // Hamstring Isolation
-  hamstrings_iso: {},
+  hamstrings_iso: {
+    machine: "tpl_machine_leg_curl",
+    bodyweight: "tpl_bw_nordic_curl",
+  },
 
   // Glute Isolation
-  glute_iso: {},
+  glute_iso: {
+    barbell: "tpl_bb_hip_thrust",
+    machine: "tpl_machine_glute_kickback",
+    cable: "tpl_cable_glute_kickback",
+  },
 };
 
 /**

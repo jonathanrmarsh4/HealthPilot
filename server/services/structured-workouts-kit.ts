@@ -169,6 +169,7 @@ Generate the workout now (JSON only):`;
       }
 
       const errors: string[] = [];
+      const warnings: string[] = [];
       const mappedBlocks: Array<AnyBlock & { template_id?: string; display_name?: string }> = [];
 
       for (const block of parsed.blocks) {
@@ -185,7 +186,11 @@ Generate the workout now (JSON only):`;
           const pick = pickTemplateId(liftBlock, userEquipment, rules);
           
           if (!pick.template_id) {
-            errors.push(`No template for ${liftBlock.pattern}: ${pick.reason}`);
+            // Defensive: Log warning but allow workout generation to continue
+            // This prevents total failure when AI selects valid patterns without coverage
+            warnings.push(`⚠️ No template for ${liftBlock.pattern}: ${pick.reason} - skipping block`);
+            console.warn(`[StructuredWorkoutsKit] Skipping unmapped pattern: ${liftBlock.pattern} (${pick.reason})`);
+            continue; // Skip this block instead of failing the entire workout
           }
 
           // Generate display label
@@ -210,11 +215,14 @@ Generate the workout now (JSON only):`;
         }
       }
 
+      // Return success if we have at least ONE mapped block, even with warnings
+      // This allows partial workouts to succeed instead of total failure
       return {
-        success: errors.length === 0,
+        success: errors.length === 0 && mappedBlocks.length > 0,
         plan: parsed,
         mappedBlocks,
-        errors: errors.length > 0 ? errors : undefined
+        errors: errors.length > 0 ? errors : undefined,
+        warnings: warnings.length > 0 ? warnings : undefined
       };
     } catch (err) {
       return {
