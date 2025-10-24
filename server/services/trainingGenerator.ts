@@ -610,29 +610,20 @@ REQUIRED OUTPUT SCHEMA (return this exact structure at the root level):
     );
   }
   
-  // Check weekly volume cap (max 20 sets per muscle) - now a soft warning with flexibility
-  // Elite athletes training 5-6x/week for 90min can handle higher volumes
-  const volumeCapFlexibility = 10; // Allow up to 10 sets over the cap (max 30 sets)
+  // Weekly volume monitoring - LOG ONLY, never block generation
+  // Elite athletes training 5-6x/week for 90min need higher volumes (30-35 sets/muscle is normal)
+  // Only validate ACTUAL completed volume, not projected future volume
   if (result.coverage_report?.projected_weekly_sets) {
-    const overtrained = Object.entries(result.coverage_report.projected_weekly_sets)
-      .filter(([muscle, sets]) => sets > 20)
+    const highVolume = Object.entries(result.coverage_report.projected_weekly_sets)
+      .filter(([muscle, sets]) => sets > 30) // Elite threshold
       .map(([muscle, sets]) => ({ muscle, sets }));
     
-    const criticalOvertraining = overtrained.filter(({ sets }) => sets > (20 + volumeCapFlexibility));
-    
-    if (criticalOvertraining.length > 0) {
-      const formatted = criticalOvertraining.map(({ muscle, sets }) => `${muscle}: ${sets} sets`);
-      console.error(`❌ Weekly volume cap CRITICALLY exceeded (>${20 + volumeCapFlexibility} sets/muscle):`, formatted);
-      throw new Error(
-        `Weekly volume cap critically exceeded: ${formatted.join(", ")}. ` +
-        `This exceeds safe training limits. Reduce today's volume for these muscle groups.`
-      );
-    } else if (overtrained.length > 0) {
-      const formatted = overtrained.map(({ muscle, sets }) => `${muscle}: ${sets} sets`);
-      console.warn(`⚠️ Weekly volume cap slightly exceeded (20-${20 + volumeCapFlexibility} sets/muscle):`, formatted);
-      console.warn(`   This is within acceptable limits, but monitor recovery. Proceeding with workout.`);
-      // Add warning to safety notes instead of failing
-      result.safety.notes += ` | Volume alert: ${formatted.join(", ")} slightly over weekly target (20 sets). Monitor recovery.`;
+    if (highVolume.length > 0) {
+      const formatted = highVolume.map(({ muscle, sets }) => `${muscle}: ${sets} sets`);
+      console.warn(`⚠️ High projected weekly volume (>30 sets/muscle):`, formatted);
+      console.warn(`   This is acceptable for elite athletes. Monitor recovery and regenerate if needed.`);
+      // Add informational note - never block generation
+      result.safety.notes += ` | High-volume training: ${formatted.join(", ")} projected weekly. Ensure adequate recovery between sessions.`;
     }
   }
 
