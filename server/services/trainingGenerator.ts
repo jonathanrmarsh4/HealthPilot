@@ -320,20 +320,21 @@ Always follow ACSM, NSCA and WHO guardrails.
 Never output text or commentary—JSON only.
 
 HARD RULES (CRITICAL - NEVER VIOLATE):
-1) Read session_minutes from data.availability.session_minutes. This is the user's preferred workout duration - you MUST aim to FILL this time budget efficiently.
-2) Compute minimum_exercise_count = ceil((session_minutes / 60) * 5). This is the TOTAL minimum across main + accessories.
-3) MAIN BLOCK DISTRIBUTION: For proper training stimulus, the 'main' array MUST contain AT LEAST:
-   - 3 exercises for sessions ≥45min
-   - 4 exercises for sessions ≥60min  
-   - 5 exercises for sessions ≥75min
+1) Read session_minutes from data.availability.session_minutes. This is the user's preferred workout duration - aim to FILL this time budget efficiently.
+2) Compute minimum_exercise_count = ceil((session_minutes / 60) * 5). This is the TOTAL target across main + accessories. FLEXIBILITY: Minor variations (±2 exercises) are acceptable if needed for quality/recovery.
+3) MAIN BLOCK DISTRIBUTION: For proper training stimulus, the 'main' array should aim for:
+   - TARGET: 3+ exercises for sessions ≥45min (minimum acceptable: 2)
+   - TARGET: 4+ exercises for sessions ≥60min (minimum acceptable: 3)  
+   - TARGET: 5+ exercises for sessions ≥75min (minimum acceptable: 4)
    These are compound movements (squats, presses, pulls, hinges, etc.). Fill remaining exercises with accessories.
-4) Low readiness (amber/red) reduces load/sets/rest and may shorten conditioning, BUT it MUST NOT reduce main exercise count below the minimums in rule #3. When fatigued, reduce sets per exercise or use lighter variations, but keep the movement count.
+   FLEXIBILITY: If recovery is poor or constraints exist, you may deliver 1 exercise below target while maintaining quality.
+4) Low readiness (amber/red) reduces load/sets/rest and may shorten conditioning. When fatigued, reduce sets per exercise or use lighter variations. You may reduce exercise count by 1-2 if needed to preserve quality.
 5) TIME BUDGET: The user's session_minutes is their PREFERRED duration. Aim to fill this time efficiently:
-   - For 60min sessions: 4-6 main exercises + 1-3 accessories
-   - For 75min sessions: 5-7 main exercises + 2-4 accessories  
-   - For 90min+ sessions: 6-8 main exercises + 3-5 accessories
+   - For 60min sessions: TARGET 4-6 main + 1-3 accessories (acceptable range: 3-7 main + 0-4 accessories)
+   - For 75min sessions: TARGET 5-7 main + 2-4 accessories (acceptable range: 4-8 main + 1-5 accessories)  
+   - For 90min+ sessions: TARGET 6-8 main + 3-5 accessories (acceptable range: 5-9 main + 2-6 accessories)
    Add extra sets to exercises (especially accessories) to utilize available time without exceeding the budget.
-6) Always include a 'time_budget' field that estimates minutes for warmup, each exercise, conditioning, and cooldown. Total should be close to session_minutes (within 5 minutes).
+6) Always include a 'time_budget' field that estimates minutes for warmup, each exercise, conditioning, and cooldown. Total should be close to session_minutes (within ±5 minutes is acceptable).
 7) Each exercise in main and accessories MUST have a unique exercise_id (use UUID v4 format like "550e8400-e29b-41d4-a716-446655440000").
 
 Guardrails:
@@ -357,12 +358,12 @@ Output Requirements:
 - Ensure weekly volume stays within 8-20 sets per muscle group
 - Fill time budget efficiently: prefer adding low-load accessories (technique/rehab/mobility/isolation) over reducing exercise count
 
-MUSCLE BALANCE RULES (CRITICAL - HIGHEST PRIORITY):
+MUSCLE BALANCE RULES (HIGH PRIORITY - AIM FOR BALANCE, ALLOW FLEXIBILITY):
 A) Use the muscle_balance_input_snapshot as primary guidance. Prioritize muscle groups with lowest trailing-7d adjusted volume vs target.
-B) Industry targets (per muscle, weekly hard sets): min=8, target=10-15, max=20. Do not plan a day that will push any muscle above 20 by week-end.
-C) Session coverage must favor under-trained groups and avoid over-serving already-high groups.
+B) Industry targets (per muscle, weekly hard sets): min=8, target=10-15, max=20. FLEXIBILITY: Slightly exceeding 20 sets (up to 23) is acceptable if recovery allows and balance demands it.
+C) Session coverage should favor under-trained groups and avoid over-serving already-high groups. Minor imbalances are acceptable if quality/recovery demands it.
 D) Anti-duplication: within a single session, no duplicate exercise names; across the trailing 7 days, avoid repeating the exact same exercise name for a muscle group more than once unless availability constraints force it—then substitute a close variant.
-E) Movement pattern diversity: aim to include varied patterns across the week (Squat, Hinge, Horizontal Push, Horizontal Pull, Vertical Pull, Unilateral, Core Anti-rotation/Extension/Flexion, Carry). Today's plan must not repeat more than two identical patterns from the prior day unless under-training requires it.
+E) Movement pattern diversity: aim to include varied patterns across the week (Squat, Hinge, Horizontal Push, Horizontal Pull, Vertical Pull, Unilateral, Core Anti-rotation/Extension/Flexion, Carry). Today's plan should minimize pattern overlap with prior day, but some overlap is acceptable for progression.
 F) Exercise selection must map to targeted muscles accurately; include secondary muscles in the coverage report.
 G) Respect injuries/equipment; substitute with the closest pattern maintaining the stimulus.
 H) Time budget has priority. If time-limited, preserve balance by swapping big lifts for time-efficient variants before cutting entire muscle coverage.
