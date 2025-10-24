@@ -475,10 +475,6 @@ REQUIRED OUTPUT SCHEMA (return this exact structure at the root level):
 }
 `;
 
-  if (!client) {
-    throw new Error("OpenAI client is not initialized. Check OPENAI_API_KEY environment variable.");
-  }
-
   const response = await client.chat.completions.create({
     model: "gpt-4o",
     response_format: { type: "json_object" },
