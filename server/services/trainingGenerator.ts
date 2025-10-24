@@ -272,7 +272,7 @@ export async function buildUserContext(storage: IStorage, userId: string, target
   };
 
   // Fetch muscle group frequency data for balanced training
-  let muscleGroupFrequency;
+  let muscleGroupFrequency: Array<{ muscleGroup: string; lastTrained: Date | null; timesTrainedInPeriod: number; totalSets: number; totalVolume: number }>;
   try {
     muscleGroupFrequency = await storage.getMuscleGroupFrequency(userId, 14);
     console.log(`📊 Fetched muscle group frequency for user ${userId}:`, muscleGroupFrequency.length, 'muscle groups');
@@ -360,7 +360,7 @@ Output Requirements:
 
 MUSCLE BALANCE RULES (HIGH PRIORITY - AIM FOR BALANCE, ALLOW FLEXIBILITY):
 A) Use the muscle_balance_input_snapshot as primary guidance. Prioritize muscle groups with lowest trailing-7d adjusted volume vs target.
-B) Industry targets (per muscle, weekly hard sets): min=8, target=10-15, max=20. FLEXIBILITY: Slightly exceeding 20 sets (up to 25) is acceptable if recovery allows and balance demands it.
+B) Industry targets (per muscle, weekly hard sets): min=8, target=10-15, max=20. FLEXIBILITY: Exceeding 20 sets (up to 30) is acceptable for elite athletes with good recovery and high training frequency.
 C) Session coverage should favor under-trained groups and avoid over-serving already-high groups. Minor imbalances are acceptable if quality/recovery demands it.
 D) Anti-duplication: within a single session, no duplicate exercise names; across the trailing 7 days, avoid repeating the exact same exercise name for a muscle group more than once unless availability constraints force it—then substitute a close variant.
 E) Movement pattern diversity: aim to include varied patterns across the week (Squat, Hinge, Horizontal Push, Horizontal Pull, Vertical Pull, Unilateral, Core Anti-rotation/Extension/Flexion, Carry). Today's plan should minimize pattern overlap with prior day, but some overlap is acceptable for progression.
@@ -610,7 +610,8 @@ REQUIRED OUTPUT SCHEMA (return this exact structure at the root level):
   }
   
   // Check weekly volume cap (max 20 sets per muscle) - now a soft warning with flexibility
-  const volumeCapFlexibility = 5; // Allow up to 5 sets over the cap (max 25 sets)
+  // Elite athletes training 5-6x/week for 90min can handle higher volumes
+  const volumeCapFlexibility = 10; // Allow up to 10 sets over the cap (max 30 sets)
   if (result.coverage_report?.projected_weekly_sets) {
     const overtrained = Object.entries(result.coverage_report.projected_weekly_sets)
       .filter(([muscle, sets]) => sets > 20)
