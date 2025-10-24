@@ -8,7 +8,10 @@ import { SymptomInsightData, CorrelationHit, checkSafetyFlag, SymptomEpisodeView
  * Implements strict safety guardrails and tentative phrasing.
  */
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const openai = new OpenAI({ 
+  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY,
+  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+});
 
 export interface GeneratedSymptomInsight {
   category: 'Symptoms';

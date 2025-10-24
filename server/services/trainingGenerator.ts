@@ -98,12 +98,14 @@ export type DailyWorkout = z.infer<typeof DailyWorkoutSchema>;
 // ──────────────────────────────────────────────
 // Initialize OpenAI client
 // ──────────────────────────────────────────────
-if (!process.env.OPENAI_API_KEY) {
-  throw new Error("OPENAI_API_KEY environment variable is required for workout generation");
+const apiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
+if (!apiKey) {
+  throw new Error("OpenAI API key not found. Check AI_INTEGRATIONS_OPENAI_API_KEY or OPENAI_API_KEY environment variable.");
 }
 
 const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
+  apiKey,
+  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
 });
 
 // ──────────────────────────────────────────────

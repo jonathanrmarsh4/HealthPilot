@@ -10033,8 +10033,10 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
 
       // Import OpenAI dynamically
       const { default: OpenAI } = await import('openai');
+      const apiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
       const openai = new OpenAI({
-        apiKey: process.env.OPENAI_API_KEY,
+        apiKey,
+        baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
       });
 
       // Connect to OpenAI Realtime API
@@ -10043,7 +10045,7 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
       
       const openaiWs = new WebSocket(realtimeUrl, {
         headers: {
-          "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
+          "Authorization": `Bearer ${apiKey}`,
           "OpenAI-Beta": "realtime=v1",
         },
       });

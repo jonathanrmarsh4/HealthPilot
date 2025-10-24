@@ -9,7 +9,10 @@ import { storage } from '../storage';
  * Implements strict quality control with scoring, ranking, and max-3 constraint.
  */
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const openai = new OpenAI({ 
+  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY,
+  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+});
 
 export interface GeneratedInsight {
   category: string; // e.g., "sleep", "recovery", "performance", "health"
