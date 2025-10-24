@@ -5633,6 +5633,168 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
     }
   });
 
+  // ============================================================================
+  // NEW STRUCTURED WORKOUTS API - Test Framework Compatible Endpoints
+  // ============================================================================
+
+  // POST /api/workouts/generate - Generate workout using StructuredWorkoutsKit
+  app.post("/api/workouts/generate", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { date } = req.body;
+    
+    try {
+      const { buildUserContext, generateDailySession } = await import('./services/trainingGenerator');
+      
+      // Build user context
+      const context = await buildUserContext(storage, userId, date);
+      
+      // Generate workout using StructuredWorkoutsKit
+      const result = await generateDailySession(context, 0);
+      
+      // Save to database
+      const workout = await storage.saveGeneratedWorkout({
+        userId,
+        date,
+        workoutData: result.plan,
+        status: "pending"
+      });
+      
+      res.json({
+        ok: true,
+        plan: {
+          id: workout.id,
+          ...result.plan
+        }
+      });
+    } catch (error: any) {
+      console.error("Workout generation error:", error);
+      res.status(500).json({
+        ok: false,
+        error: error.message || "Failed to generate workout"
+      });
+    }
+  });
+
+  // GET /api/workouts/latest - Get latest workout for user
+  app.get("/api/workouts/latest", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { user_id } = req.query;
+    
+    // Support x-user-id header for testing
+    const targetUserId = user_id || userId;
+    
+    try {
+      const workout = await storage.getLatestGeneratedWorkout(targetUserId as string);
+      if (!workout) {
+        return res.status(404).json({ error: "No generated workout found" });
+      }
+      
+      res.json({
+        id: workout.id,
+        userId: workout.userId,
+        date: workout.date,
+        status: workout.status,
+        plan: workout.workoutData
+      });
+    } catch (error: any) {
+      console.error("Error fetching latest workout:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // GET /api/workouts/:id - Get workout by ID
+  app.get("/api/workouts/:id", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { id } = req.params;
+    
+    try {
+      const workout = await storage.getGeneratedWorkoutById(id, userId);
+      if (!workout) {
+        return res.status(404).json({ error: "Workout not found" });
+      }
+      
+      res.json({
+        id: workout.id,
+        userId: workout.userId,
+        date: workout.date,
+        status: workout.status,
+        plan: workout.workoutData
+      });
+    } catch (error: any) {
+      console.error("Error fetching workout:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // GET /api/workouts/:id/view - UI-friendly projection with display names
+  app.get("/api/workouts/:id/view", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { id } = req.params;
+    
+    try {
+      const workout = await storage.getGeneratedWorkoutById(id, userId);
+      if (!workout) {
+        return res.status(404).json({ error: "Workout not found" });
+      }
+      
+      // Return the workout data with display names already included from parseAndMap
+      res.json({
+        id: workout.id,
+        blocks: workout.workoutData.blocks
+      });
+    } catch (error: any) {
+      console.error("Error fetching workout view:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // POST /api/workouts/:id/complete - Complete workout with volume tracking
+  app.post("/api/workouts/:id/complete", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { id } = req.params;
+    const { entries } = req.body;
+    
+    try {
+      // Get workout
+      const workout = await storage.getGeneratedWorkoutById(id, userId);
+      if (!workout) {
+        return res.status(404).json({ error: "Workout not found" });
+      }
+      
+      // Calculate volume metrics
+      let totalSets = 0;
+      let totalReps = 0;
+      let totalVolumeKg = 0;
+      
+      for (const entry of entries) {
+        totalSets += entry.sets.length;
+        for (const set of entry.sets) {
+          totalReps += set.reps || 0;
+          totalVolumeKg += (set.weight || 0) * (set.reps || 0);
+        }
+      }
+      
+      // Update workout status
+      await storage.updateGeneratedWorkoutStatus(id, "completed");
+      
+      res.json({
+        ok: true,
+        summary: {
+          total_sets: totalSets,
+          total_reps: totalReps,
+          total_volume_kg: totalVolumeKg
+        }
+      });
+    } catch (error: any) {
+      console.error("Error completing workout:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ============================================================================
+  // END STRUCTURED WORKOUTS API
+  // ============================================================================
+
   // Completed Workouts (Last 7 Days)
   app.get("/api/workouts/completed", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
@@ -5701,6 +5863,50 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
       const correlations = await storage.getWorkoutBiomarkerCorrelations(userId, startDate, endDate);
       res.json(correlations);
     } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // GET /api/analytics/pattern-distribution - Pattern and muscle group analytics
+  app.get("/api/analytics/pattern-distribution", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { user_id, days = '7' } = req.query;
+    
+    // Support x-user-id for testing
+    const targetUserId = user_id || userId;
+    
+    try {
+      const { PATTERN_TO_MUSCLES } = await import('./services/rules');
+      
+      // Get recent completed workouts
+      const daysBack = parseInt(days as string);
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - daysBack);
+      
+      const workouts = await storage.getCompletedGeneratedWorkouts(targetUserId as string, daysBack);
+      
+      // Initialize pattern counters
+      const patterns: Record<string, number> = {};
+      
+      // Count patterns from workout blocks
+      for (const workout of workouts) {
+        const workoutData = workout.workoutData as any;
+        if (workoutData.blocks) {
+          for (const block of workoutData.blocks) {
+            if (block.type === 'lift_block' && block.pattern) {
+              patterns[block.pattern] = (patterns[block.pattern] || 0) + 1;
+            }
+          }
+        }
+      }
+      
+      res.json({
+        window_days: daysBack,
+        patterns
+      });
+    } catch (error: any) {
+      console.error("Error fetching pattern distribution:", error);
       res.status(500).json({ error: error.message });
     }
   });

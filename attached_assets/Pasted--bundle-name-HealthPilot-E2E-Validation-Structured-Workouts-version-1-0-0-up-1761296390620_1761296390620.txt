@@ -1,0 +1,275 @@
+{
+  "bundle_name": "HealthPilot • E2E Validation — Structured Workouts",
+  "version": "1.0.0",
+  "updated_at": "2025-10-24",
+  "objective": "Prove end-to-end that StructuredWorkoutsKit is the single source of truth: AI generates structured JSON only, server validates/maps to template_ids, UI renders, workouts persist, completion logs record, muscle-group/pattern analytics compute correctly, and AI uses readiness/goals/equipment/limitations/biomarkers to propose sessions.",
+
+  "assumptions": {
+    "structured_kit_file": "server/services/structured-workouts-kit.ts",
+    "rules_file": "server/services/rules.ts",
+    "workout_generate_endpoint": "POST /api/workouts/generate",
+    "workout_get_endpoint": "GET /api/workouts/:id",
+    "workout_complete_endpoint": "POST /api/workouts/:id/complete",
+    "db": "Postgres >= 13",
+    "tables": ["exercise_templates", "workouts"],
+    "env_flags": ["STRUCTURED_WORKOUTS=on", "INSIGHTS_INCLUDE_ALL=1", "INSIGHTS_DYNAMIC_DISCOVERY=1"],
+    "kit_is_used_everywhere": true,
+    "verification_script": "scripts/verify_structured_workouts_migration.js"
+  },
+
+  "preflight_checks": [
+    {
+      "id": "PF1_env_flags",
+      "desc": "Environment flags set",
+      "command": "printenv | egrep 'STRUCTURED_WORKOUTS|INSIGHTS_INCLUDE_ALL|INSIGHTS_DYNAMIC_DISCOVERY'",
+      "expect_regex": "STRUCTURED_WORKOUTS=on"
+    },
+    {
+      "id": "PF2_verifier_pass",
+      "desc": "Legacy fuzzy code fully removed",
+      "command": "node scripts/verify_structured_workouts_migration.js",
+      "expect_regex": "Result: PASS"
+    },
+    {
+      "id": "PF3_db_tables",
+      "desc": "Tables exist and are empty for a fresh run",
+      "sql": "SELECT 'exercise_templates' AS t, count(*) AS n FROM exercise_templates UNION ALL SELECT 'workouts', count(*) FROM workouts;",
+      "expect_json_contains": [
+        { "t": "exercise_templates" },
+        { "t": "workouts" }
+      ]
+    }
+  ],
+
+  "fixtures": {
+    "user_profile": {
+      "user_id": "11111111-1111-1111-1111-111111111111",
+      "availableEquipment": ["machine", "dumbbell", "bodyweight"],
+      "goals": ["hypertrophy", "general_fitness"],
+      "limitations": [],
+      "biomarkers": {
+        "hrv_ms": 68,
+        "rhr_bpm": 58,
+        "bp_systolic": 120,
+        "bp_diastolic": 78
+      },
+      "readiness_score": 83
+    },
+    "seed_templates_sql": "INSERT INTO exercise_templates (id,pattern,modality,angle,display_name) VALUES\n  ('tpl_leg_press','knee_dominant','machine','neutral','Leg Press'),\n  ('tpl_db_flat_press','horizontal_press','dumbbell','flat','Dumbbell Bench Press'),\n  ('tpl_machine_chest_press','horizontal_press','machine','flat','Machine Chest Press'),\n  ('tpl_lat_pulldown','vertical_pull','cable','neutral','Lat Pulldown'),\n  ('tpl_pullup','vertical_pull','bodyweight','neutral','Pull-Up'),\n  ('tpl_assisted_pullup','vertical_pull','machine','neutral','Assisted Pull-Up'),\n  ('tpl_db_rdl','hip_hinge','dumbbell','neutral','Dumbbell Romanian Deadlift')\nON CONFLICT DO NOTHING;"
+  },
+
+  "test_matrix": [
+    {
+      "id": "T1_seed_templates",
+      "desc": "Seed minimal templates for mapping",
+      "action": "sql",
+      "payload": "@fixtures.seed_templates_sql",
+      "expect_sql": "SELECT count(*) >= 7 AS ok FROM exercise_templates;",
+      "expect_regex": "t|ok|true"
+    },
+
+    {
+      "id": "T2_generate_workout",
+      "desc": "Generate a workout via API using StructuredWorkoutsKit prompt; model must return JSON only",
+      "action": "http",
+      "request": {
+        "method": "POST",
+        "url": "/api/workouts/generate",
+        "headers": { "Content-Type": "application/json", "x-user-id": "@fixtures.user_profile.user_id" },
+        "body": { "date": "2025-10-25" }
+      },
+      "expect_jsonpath": [
+        "$.ok == true",
+        "$.plan.blocks[0].type in ['lift_block','endurance_block','recovery_cycle','mobility_block']",
+        "$.plan.blocks[?(@.type=='lift_block')].template_id exists"
+      ],
+      "store": { "workout_id_path": "$.plan.id", "plan_path": "$.plan" }
+    },
+
+    {
+      "id": "T3_persistence",
+      "desc": "Workout persisted in DB with JSON plan",
+      "action": "sql",
+      "payload": "SELECT id, user_id, date, jsonb_typeof(plan) AS plan_type FROM workouts ORDER BY created_at DESC LIMIT 1;",
+      "expect_json_contains": [
+        { "user_id": "@fixtures.user_profile.user_id", "plan_type": "object" }
+      ]
+    },
+
+    {
+      "id": "T4_template_mapping",
+      "desc": "Lift blocks carry template_id chosen via RULES given equipment",
+      "action": "http",
+      "request": {
+        "method": "GET",
+        "url": "/api/workouts/latest?user_id=@fixtures.user_profile.user_id"
+      },
+      "expect_jsonpath": [
+        "$.plan.blocks[?(@.type=='lift_block')].template_id size > 0",
+        "$.plan.blocks[?(@.type=='lift_block')].template_id ^= 'tpl_'"
+      ]
+    },
+
+    {
+      "id": "T5_ui_render_contract",
+      "desc": "UI-friendly projection provides label/media without fuzzy resolution",
+      "action": "http",
+      "request": { "method": "GET", "url": "/api/workouts/:id/view", "url_params": { "id": "$store.workout_id_path" } },
+      "expect_jsonpath": [
+        "$.blocks[?(@.type=='lift_block')].display_name size > 0",
+        "$.blocks[?(@.type=='lift_block')].display_name =~ /Bench|Press|Squat|Deadlift|Row|Pulldown|Pull-Up/"
+      ]
+    },
+
+    {
+      "id": "T6_complete_workout",
+      "desc": "User completes workout; volume computed; record saved",
+      "action": "http",
+      "request": {
+        "method": "POST",
+        "url": "/api/workouts/:id/complete",
+        "url_params": { "id": "$store.workout_id_path" },
+        "headers": { "Content-Type": "application/json" },
+        "body": {
+          "entries": [
+            { "template_id": "tpl_leg_press", "sets": [ { "weight": 120, "reps": 10 }, { "weight": 120, "reps": 10 }, { "weight": 120, "reps": 10 }, { "weight": 120, "reps": 10 } ] },
+            { "template_id": "tpl_db_rdl", "sets": [ { "weight": 40, "reps": 12 }, { "weight": 40, "reps": 12 }, { "weight": 40, "reps": 12 } ] }
+          ]
+        }
+      },
+      "expect_jsonpath": [
+        "$.ok == true",
+        "$.summary.total_sets == 7",
+        "$.summary.total_reps > 60",
+        "$.summary.total_volume_kg > 0"
+      ]
+    },
+
+    {
+      "id": "T7_pattern_distribution",
+      "desc": "Muscle-group/pattern analytics across last 7 days",
+      "action": "http",
+      "request": {
+        "method": "GET",
+        "url": "/api/analytics/pattern-distribution?user_id=@fixtures.user_profile.user_id&days=7"
+      },
+      "expect_jsonpath": [
+        "$.window_days == 7",
+        "$.patterns.knee_dominant >= 1",
+        "$.patterns.horizontal_press >= 0",
+        "$.patterns.vertical_pull >= 0"
+      ]
+    },
+
+    {
+      "id": "T8_ai_inputs_respected",
+      "desc": "AI uses readiness, goals, equipment, limitations, and biomarkers to select blocks",
+      "notes": "This checks the generation context log (prompt + inputs) and the plan output alignment.",
+      "action": "sql",
+      "payload": "SELECT readiness_score, goals, limitations, equipment, prompt_excerpt FROM generation_log WHERE user_id = '@fixtures.user_profile.user_id' ORDER BY created_at DESC LIMIT 1;",
+      "expect_regex": "readiness|goals|equipment",
+      "also_expect": [
+        "If limitations include 'shoulder_pain', plan should have 0 vertical_press blocks",
+        "If readiness_score < 50, expect fewer sets or lower intensity in LiftBlock"
+      ]
+    },
+
+    {
+      "id": "T9_non_lift_blocks",
+      "desc": "Endurance and recovery render and persist without names",
+      "action": "http",
+      "request": {
+        "method": "POST",
+        "url": "/api/workouts/generate",
+        "headers": { "Content-Type": "application/json", "x-user-id": "@fixtures.user_profile.user_id" },
+        "body": {
+          "date": "2025-10-26",
+          "force_blocks": {
+            "endurance_block": { "modality": "run", "primary": "duration_s", "value": 1800, "intensity": "easy" },
+            "recovery_cycle": { "rounds": 3, "steps": [ { "label": "sauna", "duration_s": 900 }, { "label": "ice_bath", "duration_s": 300 } ] }
+          }
+        }
+      },
+      "expect_jsonpath": [
+        "$.ok == true",
+        "$.plan.blocks[?(@.type=='endurance_block')].modality == 'run'",
+        "$.plan.blocks[?(@.type=='recovery_cycle')].rounds == 3"
+      ]
+    },
+
+    {
+      "id": "T10_replay_validation",
+      "desc": "parseAndMap rejects non-JSON or malformed output and returns promptHint",
+      "action": "unit",
+      "file": "server/services/structured-workouts-kit.ts",
+      "call": "StructuredWorkoutsKit().parseAndMap('not-json', ['machine'], { })",
+      "expect_object": { "ok": false, "promptHint_exists": true }
+    }
+  ],
+
+  "advanced_scenarios": [
+    {
+      "id": "A1_limitation_filter",
+      "desc": "Shoulder limitation removes vertical_press across a week plan",
+      "setup": { "user_limitations": ["shoulder_pain"] },
+      "action": "http",
+      "request": { "method": "POST", "url": "/api/workouts/generate", "headers": { "x-user-id": "@fixtures.user_profile.user_id" }, "body": { "date": "2025-10-27" } },
+      "expect_jsonpath": [
+        "count($.plan.blocks[?(@.type=='lift_block' && @.pattern=='vertical_press')]) == 0"
+      ]
+    },
+    {
+      "id": "A2_equipment_override",
+      "desc": "Home context removes barbell/machine; mapping chooses dumbbell/bodyweight",
+      "setup": { "context_equipment": ["dumbbell", "bodyweight"] },
+      "action": "http",
+      "request": { "method": "POST", "url": "/api/workouts/generate", "headers": { "x-user-id": "@fixtures.user_profile.user_id" }, "body": { "date": "2025-10-28", "context": "home_gym" } },
+      "expect_jsonpath": [
+        "$.plan.blocks[?(@.type=='lift_block')].template_id ^= 'tpl_db_' || 'tpl_pullup'"
+      ]
+    },
+    {
+      "id": "A3_low_readiness_deloads",
+      "desc": "Readiness < 50 triggers deload (fewer sets/intensity)",
+      "setup": { "readiness_score": 45 },
+      "action": "http",
+      "request": { "method": "POST", "url": "/api/workouts/generate", "headers": { "x-user-id": "@fixtures.user_profile.user_id" }, "body": { "date": "2025-10-29" } },
+      "expect_custom": "Average sets per LiftBlock <= 3 OR intensity.scheme present with lower target (e.g., RIR >= 3)"
+    }
+  ],
+
+  "postconditions": [
+    {
+      "id": "PC1_db_integrity",
+      "desc": "No stray name fields persisted; plans are JSON with template_ids only (no fuzzy names)",
+      "sql": "SELECT EXISTS (SELECT 1 FROM workouts WHERE plan::text ~ '\"exercise_name\"') AS has_names;",
+      "expect_json_contains": [{ "has_names": false }]
+    },
+    {
+      "id": "PC2_observability",
+      "desc": "Logs contain StructuredWorkoutsKit usage, not fuzzy resolver",
+      "command": "grep -R \"StructuredWorkoutsKit\" -n server/ | wc -l",
+      "expect_regex": "^[1-9][0-9]*$"
+    }
+  ],
+
+  "quick_commands": {
+    "curl_generate": "curl -s -X POST http://localhost:3000/api/workouts/generate -H 'Content-Type: application/json' -H 'x-user-id: 11111111-1111-1111-1111-111111111111' -d '{\"date\":\"2025-10-25\"}' | jq",
+    "sql_latest_workout": "psql $DB -c \"SELECT date, jsonb_pretty(plan) FROM workouts ORDER BY created_at DESC LIMIT 1;\"",
+    "run_verifier": "node scripts/verify_structured_workouts_migration.js"
+  },
+
+  "acceptance_criteria": [
+    "All preflight checks pass.",
+    "T1–T10 pass with expected outputs.",
+    "Advanced scenarios A1–A3 pass (limitations, equipment overrides, readiness deload).",
+    "Postconditions PC1–PC2 pass.",
+    "Manual smoke: UI renders lift + endurance + recovery without any string matching failures."
+  ],
+
+  "notes": [
+    "If any test returns 'ok:false' or validation errors, re-run the AI call using `promptHint` from StructuredWorkoutsKit.parseAndMap.",
+    "RULES can be sparse; missing pattern×modality should log a warning but not crash.",
+    "For T8, ensure a lightweight generation_log (or equivalent) stores prompt context so inputs can be audited."
+  ]
+}

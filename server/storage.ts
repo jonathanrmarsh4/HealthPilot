@@ -326,9 +326,14 @@ export interface IStorage {
   
   // Generated workout methods
   createGeneratedWorkout(workout: InsertGeneratedWorkout): Promise<GeneratedWorkout>;
+  saveGeneratedWorkout(workout: InsertGeneratedWorkout): Promise<GeneratedWorkout>;
   getGeneratedWorkout(userId: string, date: string): Promise<GeneratedWorkout | undefined>;
+  getGeneratedWorkoutById(id: string, userId: string): Promise<GeneratedWorkout | undefined>;
+  getLatestGeneratedWorkout(userId: string): Promise<GeneratedWorkout | undefined>;
   getGeneratedWorkouts(userId: string, startDate?: string, endDate?: string): Promise<GeneratedWorkout[]>;
+  getCompletedGeneratedWorkouts(userId: string, daysBack: number): Promise<GeneratedWorkout[]>;
   updateGeneratedWorkout(id: string, userId: string, data: Partial<GeneratedWorkout>): Promise<GeneratedWorkout | undefined>;
+  updateGeneratedWorkoutStatus(id: string, status: string): Promise<void>;
   acceptGeneratedWorkout(id: string, userId: string): Promise<{ sessionId: string; instanceId: string }>;
   rejectGeneratedWorkout(id: string, userId: string): Promise<void>;
   
@@ -2401,6 +2406,46 @@ export class DbStorage implements IStorage {
       .update(generatedWorkouts)
       .set({ status: 'rejected' })
       .where(and(eq(generatedWorkouts.id, id), eq(generatedWorkouts.userId, userId)));
+  }
+
+  // New methods for test framework compatibility
+  async saveGeneratedWorkout(workout: InsertGeneratedWorkout): Promise<GeneratedWorkout> {
+    return this.createGeneratedWorkout(workout);
+  }
+
+  async getLatestGeneratedWorkout(userId: string): Promise<GeneratedWorkout | undefined> {
+    const result = await db
+      .select()
+      .from(generatedWorkouts)
+      .where(eq(generatedWorkouts.userId, userId))
+      .orderBy(desc(generatedWorkouts.createdAt))
+      .limit(1);
+    return result[0];
+  }
+
+  async updateGeneratedWorkoutStatus(id: string, status: string): Promise<void> {
+    await db
+      .update(generatedWorkouts)
+      .set({ status })
+      .where(eq(generatedWorkouts.id, id));
+  }
+
+  async getCompletedGeneratedWorkouts(userId: string, daysBack: number): Promise<GeneratedWorkout[]> {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - daysBack);
+    const cutoffDateStr = cutoffDate.toISOString().split('T')[0];
+    
+    return await db
+      .select()
+      .from(generatedWorkouts)
+      .where(
+        and(
+          eq(generatedWorkouts.userId, userId),
+          eq(generatedWorkouts.status, 'completed'),
+          gte(generatedWorkouts.date, cutoffDateStr)
+        )
+      )
+      .orderBy(desc(generatedWorkouts.date));
   }
 
   async getRecentWorkoutFeedback(userId: string, limit: number = 10): Promise<Array<{
