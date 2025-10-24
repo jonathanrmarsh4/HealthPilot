@@ -172,6 +172,19 @@ async function saveInsights(
     return;
   }
   
+  // De-duplicate insights by metric (keep highest-scoring one per metric)
+  // This prevents unique constraint violations on daily_health_insights_user_date_metric_active_idx
+  const deduplicatedInsights = new Map<string, Insight>();
+  for (const insight of insights) {
+    const existing = deduplicatedInsights.get(insight.metric);
+    if (!existing || insight.score > existing.score) {
+      deduplicatedInsights.set(insight.metric, insight);
+    }
+  }
+  const uniqueInsights = Array.from(deduplicatedInsights.values());
+  
+  ilog(`De-duplicated ${insights.length} insights to ${uniqueInsights.length} unique metrics`);
+  
   // Delete existing insights for this date (recompute scenario)
   await db
     .delete(dailyHealthInsights)
@@ -183,23 +196,25 @@ async function saveInsights(
     );
   
   // Insert new insights
-  for (const insight of insights) {
+  for (const insight of uniqueInsights) {
     await db.insert(dailyHealthInsights).values({
       id: insight.id,
       userId,
       date: new Date(localDate),
       generatedFor: new Date(localDate),
-      category: mapFamilyToCategory(insight.family),
       title: insight.title,
-      description: insight.body,
-      recommendation: "", // Could be enhanced with specific recommendations
-      score: Math.round(insight.score * 100),
-      status: "active",
-      metricName: insight.metric,
-      metricValue: 0, // Not always applicable
-      baselineValue: null,
-      deviationPercent: 0,
+      message: insight.body,
+      metric: insight.metric,
       severity: mapScoreToSeverity(insight.score),
+      confidence: insight.score,
+      evidence: {
+        family: insight.family,
+        raw_score: insight.score,
+        rule_id: insight.id
+      },
+      status: "active",
+      score: insight.score,
+      issuedBy: "dynamic-engine",
       recommendationId: null,
       acknowledgedAt: null,
       dismissedAt: null,
@@ -207,7 +222,7 @@ async function saveInsights(
     });
   }
   
-  ilog(`Saved ${insights.length} insights to database`);
+  ilog(`Saved ${uniqueInsights.length} insights to database`);
 }
 
 /**
