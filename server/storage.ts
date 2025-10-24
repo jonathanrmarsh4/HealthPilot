@@ -2782,10 +2782,12 @@ export class DbStorage implements IStorage {
   async addExerciseSet(sessionId: string, exerciseId: string, userId: string): Promise<ExerciseSet> {
     // Check if this is an unmatched exercise (placeholder ID)
     const isUnmatched = exerciseId.startsWith('unmatched-');
+    const isTemplate = exerciseId.startsWith('tpl_');
     let trackingType = 'weight_reps';
     let equipment = 'other';
+    let resolvedExerciseId = exerciseId;
     
-    if (!isUnmatched) {
+    if (!isUnmatched && !isTemplate) {
       // Get the exercise details to determine tracking type and defaults
       const exercise = await db
         .select()
@@ -2799,6 +2801,44 @@ export class DbStorage implements IStorage {
       
       trackingType = exercise[0].trackingType || 'weight_reps';
       equipment = exercise[0].equipment || 'other';
+    } else if (isTemplate) {
+      // This is a template_id, need to resolve it to an actual exercise
+      const { getOrCreateExerciseForTemplate } = await import("./services/templateExerciseBridge");
+      
+      // Get the template from exercise_templates table
+      const templateResult = await db
+        .select()
+        .from(exerciseTemplates)
+        .where(eq(exerciseTemplates.id, exerciseId))
+        .limit(1);
+      
+      if (templateResult.length === 0) {
+        throw new Error(`Template not found: ${exerciseId}`);
+      }
+      
+      const template = templateResult[0];
+      // Resolve template → exercise using bridge
+      resolvedExerciseId = await getOrCreateExerciseForTemplate(this, {
+        id: template.id,
+        pattern: template.pattern as any,
+        modality: template.modality as any,
+        displayName: template.displayName,
+        muscles: template.muscles
+      });
+      
+      console.log(`💪 Resolved template ${exerciseId} → exercise ${resolvedExerciseId} for add-set`);
+      
+      // Now get the exercise details
+      const exercise = await db
+        .select()
+        .from(exercises)
+        .where(eq(exercises.id, resolvedExerciseId))
+        .limit(1);
+      
+      if (exercise[0]) {
+        trackingType = exercise[0].trackingType || 'weight_reps';
+        equipment = exercise[0].equipment || 'other';
+      }
     }
 
     // Get existing sets for this exercise in this session to calculate next setIndex
@@ -2808,7 +2848,7 @@ export class DbStorage implements IStorage {
       .where(
         and(
           eq(exerciseSets.workoutSessionId, sessionId),
-          eq(exerciseSets.exerciseId, exerciseId),
+          eq(exerciseSets.exerciseId, resolvedExerciseId),
           eq(exerciseSets.userId, userId)
         )
       )
@@ -2818,12 +2858,12 @@ export class DbStorage implements IStorage {
     
     // Fetch last used values for this exercise to enable weight memory (progressive overload)
     // For unmatched exercises, this will return null
-    const lastValues = isUnmatched ? null : await this.getLastExerciseValues(userId, exerciseId);
+    const lastValues = isUnmatched ? null : await this.getLastExerciseValues(userId, resolvedExerciseId);
     
     // Build set data based on tracking type
     const setData: any = {
       workoutSessionId: sessionId,
-      exerciseId: exerciseId,
+      exerciseId: resolvedExerciseId,
       userId,
       setIndex: nextSetIndex,
       completed: 0,

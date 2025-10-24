@@ -1,0 +1,45 @@
+{
+  "task": "Integrate the simplified MVP workflow (symptoms → relevant data → recency weighting → pattern detection → confidence + triage) into the existing /diagnostic/assessment endpoint.",
+  "context": {
+    "app": "HealthPilot (web + CapacitorJS)",
+    "goal": "When a user enters symptoms, the backend should ingest symptoms + fresh HealthKit vitals + recent biomarkers (≤60 days), detect urgent patterns immediately, and return a clear assessment with triage, confidence, explanation, and ignored stale data."
+  },
+  "files": [
+    {
+      "path": "src/workflow_assessor.ts",
+      "content": "// workflow_assessor.ts\\n// MVP workflow: symptoms → decide relevant data → apply recency → score patterns → triage + confidence\\n\\nexport type Vital = { value: number | boolean; asOf: string };\\nexport type Biomarker = { name: string; value?: number | string; flag?: \\\"high\\\"|\\\"low\\\"|\\\"normal\\\"; asOf: string };\\n\\nexport type Input = {\\n  text: string;\\n  severity?: number;\\n  context?: string[];\\n  profile?: { age?: number; sex?: \\\"male\\\"|\\\"female\\\"|\\\"other\\\" };\\n  vitals?: {\\n    spo2?: Vital;\\n    heartRate?: Vital;\\n    ecgIrregular?: Vital;\\n    tempC?: Vital;\\n    bp?: { sys: number; dia: number; asOf: string };\\n    hrvZ?: Vital;\\n    rhrDelta?: Vital;\\n    sleep?: { remZ?: number; totalH?: number; asOf: string };\\n    glucose?: Vital;\\n  };\\n  biomarkers?: Biomarker[];\\n};\\n\\nexport type Output = {\\n  timestamp: string;\\n  triage: { level: \\\"urgent_now\\\"|\\\"gp_24_72h\\\"|\\\"self_care\\\"; reason: string };\\n  differential: Array<{ label: string; confidence: number; key_evidence: string[]; recommendations: string[] }>;\\n  explanation: { why: string; used: string[]; ignored_stale: string[] };\\n};\\n\\n// (Full workflow_assessor.ts content here — include the entire TypeScript file from previous message)\\n"
+    },
+    {
+      "path": "src/diagnostic_assessment_service.ts",
+      "mode": "modify",
+      "instructions": "Import the new workflow assessor and replace the /diagnostic/assessment handler so it calls assessWorkflow() instead of the old logic.",
+      "patch": {
+        "insert_import_after": "import express, { Request, Response } from \"express\";",
+        "import_lines": [
+          "import { assessWorkflow, Input as WFInput, Output as WFOutput } from \"./workflow_assessor\";"
+        ],
+        "replace_handler": {
+          "path_hint": "app.post(\"/diagnostic/assessment\",",
+          "new_handler_body": "app.post(\"/diagnostic/assessment\", async (req: Request, res: Response) => {\\n  try {\\n    const { episodeId, input, signals, profile } = req.body || {};\\n    const text = Array.isArray(input?.terms) ? input.terms.join(', ') + (input?.notes ? '. ' + input.notes : '') : (input?.text || input?.notes || '');\\n    const wfInput: WFInput = {\\n      text,\\n      severity: input?.severity,\\n      context: input?.context,\\n      profile,\\n      vitals: {\\n        spo2: signals?.spo2 ? { value: signals.spo2, asOf: signals.spo2AsOf || new Date().toISOString() } : undefined,\\n        heartRate: signals?.heartRate ? { value: signals.heartRate, asOf: signals.heartRateAsOf || new Date().toISOString() } : undefined,\\n        ecgIrregular: typeof signals?.ecgIrregular === 'boolean' ? { value: signals.ecgIrregular, asOf: signals.ecgAsOf || new Date().toISOString() } : undefined,\\n        tempC: signals?.tempC ? { value: signals.tempC, asOf: signals.tempAsOf || new Date().toISOString() } : undefined,\\n        bp: signals?.bpSys && signals?.bpDia ? { sys: signals.bpSys, dia: signals.bpDia, asOf: signals.bpAsOf || new Date().toISOString() } : undefined,\\n        hrvZ: typeof signals?.hrvZ === 'number' ? { value: signals.hrvZ, asOf: signals.hrvAsOf || new Date().toISOString() } : undefined,\\n        rhrDelta: typeof signals?.rhrDelta === 'number' ? { value: signals.rhrDelta, asOf: signals.rhrAsOf || new Date().toISOString() } : undefined,\\n        sleep: signals?.sleepAsOf ? { remZ: signals.sleepRemZ, totalH: signals.sleepTotalH, asOf: signals.sleepAsOf } : undefined\\n      },\\n      biomarkers: Array.isArray(req.body?.biomarkers) ? req.body.biomarkers : undefined\\n    };\\n\\n    const wf: WFOutput = assessWorkflow(wfInput);\\n\\n    const assessment = {\\n      timestamp: wf.timestamp,\\n      triage: wf.triage,\\n      differential: wf.differential.map(d => ({ condition: d.label, confidence: d.confidence, key_evidence: d.key_evidence, recommendations: d.recommendations })),\\n      explanation: { why: wf.explanation.why, contributing_signals: wf.explanation.used },\\n      data_usage: { included: wf.explanation.used, excluded_stale: wf.explanation.ignored_stale }\\n    };\\n\\n    return res.json({ assessment });\\n  } catch (err) {\\n    console.error('Assessment error', err);\\n    return res.status(500).json({ error: 'Assessment failed' });\\n  }\\n});"
+        }
+      }
+    }
+  ],
+  "acceptance_tests": [
+    "If user says 'short of breath and chest is tight', ECG irregular = true, HR = 128, SpO2 = 93 → triage.urgent_now with cardiac concern.",
+    "If user says 'fever, pain when urinating, peeing a lot', Temp = 38.7, BP = 148/92, CRP high (fresh) → triage.gp_24_72h and differential includes UTI/prostatitis pattern.",
+    "If user says 'headache, poor sleep', HRV z = -1.4, RHR Δ = +8 → triage.self_care and 'Headache with poor recovery' pattern.",
+    "If no fresh data available, return non-specific pattern with self-care advice unless urgent phrases are present."
+  ],
+  "rollout": {
+    "feature_flag": "feature.workflow_assessor = true",
+    "fallback": "If disabled, route can revert to aiSymptomTriageEngine."
+  },
+  "notes": [
+    "No new dependencies required.",
+    "Recency cutoffs: vitals ≤72h, biomarkers ≤60d, ECG ≤14d.",
+    "Older biomarkers automatically ignored and listed in explanation.ignored_stale.",
+    "Language remains non-diagnostic ('possible cause').",
+    "Future enhancement: optional LLM summary behind feature flag."
+  ]
+}
