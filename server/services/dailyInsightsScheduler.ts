@@ -242,14 +242,14 @@ export async function generateDailyInsightsForUser(userId: string): Promise<Insi
   // Convert symptom insights to GeneratedInsight format for combined selection
   const allInsights: GeneratedInsight[] = [
     ...generatedInsights,
-    ...symptomInsights.map(si => ({
+    ...symptomInsights.map((si, idx) => ({
       category: si.category,
       title: si.title,
       description: si.description,
       recommendation: si.recommendations.join('\n'),
       score: si.score,
       severity: si.severity,
-      metricName: 'symptoms', // Special metric name for symptom-based insights
+      metricName: `symptoms_${idx}`, // Unique metric name for each symptom insight
       currentValue: 0, // Not applicable
       baselineValue: null,
       deviation: 0,

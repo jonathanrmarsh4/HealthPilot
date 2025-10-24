@@ -115,8 +115,8 @@ export async function discoverMetrics(
           eq(hkEventsRaw.userId, userId),
           // Event overlaps with [start, end) window: start < end AND eventEnd >= start
           // Uses >= on lower bound to include zero-duration samples at midnight
-          sql`${hkEventsRaw.startDateUtc} < ${dateEnd}`,
-          sql`${hkEventsRaw.endDateUtc} >= ${dateStart}`
+          sql`${hkEventsRaw.startDateUtc} < ${dateEnd.toISOString()}`,
+          sql`${hkEventsRaw.endDateUtc} >= ${dateStart.toISOString()}`
         )
       )
       .groupBy(hkEventsRaw.type);
