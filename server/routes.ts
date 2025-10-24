@@ -799,6 +799,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ============================================================================
+  // User Timezone Update Route
+  // ============================================================================
+  
+  // Update user's timezone (called automatically from frontend on login and timezone changes)
+  app.put("/api/user/timezone", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { timezone } = req.body;
+    
+    // Validate timezone string
+    if (!timezone || typeof timezone !== 'string') {
+      return res.status(400).json({ error: "Valid timezone string required" });
+    }
+    
+    // Validate that it's a valid IANA timezone
+    try {
+      // Test if timezone is valid by trying to format a date with it
+      const { formatInTimeZone } = await import('date-fns-tz');
+      formatInTimeZone(new Date(), timezone, 'yyyy-MM-dd');
+    } catch (error: any) {
+      return res.status(400).json({ 
+        error: "Invalid timezone",
+        details: "Timezone must be a valid IANA timezone identifier (e.g., 'America/New_York', 'Europe/London')"
+      });
+    }
+    
+    try {
+      // Update user's timezone
+      await storage.updateUser(userId, { timezone });
+      
+      console.log(`✅ Updated timezone for user ${userId} to ${timezone}`);
+      
+      res.json({
+        success: true,
+        timezone,
+        message: "Timezone updated successfully"
+      });
+    } catch (error: any) {
+      console.error("Error updating user timezone:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Usage Tracking Routes
   
   // Get current month's message usage
