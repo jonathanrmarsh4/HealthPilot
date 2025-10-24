@@ -539,33 +539,43 @@ REQUIRED OUTPUT SCHEMA (return this exact structure at the root level):
   else if (sessionMinutes >= 60) minMainExercises = 4;
   else if (sessionMinutes >= 45) minMainExercises = 3;
   
-  console.log(`🏋️ Exercise count validation:`, {
+  // Flexibility buffers - allow minor variations instead of hard failures
+  const totalExerciseBuffer = 2; // Allow ±2 exercises from target
+  const mainExerciseBuffer = 1; // Allow -1 from minimum main exercises
+  
+  console.log(`🏋️ Exercise count validation (with flexibility):`, {
     sessionMinutes,
     minTotalRequired: minTotalExercises,
     minMainRequired: minMainExercises,
     mainGenerated: mainCount,
     accessoriesGenerated: accessoryCount,
     totalGenerated: totalCount,
-    totalPassed: totalCount >= minTotalExercises,
-    mainPassed: mainCount >= minMainExercises
+    totalBuffer: `±${totalExerciseBuffer}`,
+    mainBuffer: `-${mainExerciseBuffer}`,
+    totalPassed: totalCount >= (minTotalExercises - totalExerciseBuffer),
+    mainPassed: mainCount >= (minMainExercises - mainExerciseBuffer)
   });
   
-  // Check total count
-  if (totalCount < minTotalExercises) {
-    console.error(`❌ Total exercise count validation FAILED: ${totalCount} < ${minTotalExercises}`);
+  // Check total count with flexibility buffer (allow ±2 exercises)
+  if (totalCount < (minTotalExercises - totalExerciseBuffer)) {
+    console.error(`❌ Total exercise count validation FAILED: ${totalCount} < ${minTotalExercises - totalExerciseBuffer} (min ${minTotalExercises} - ${totalExerciseBuffer} buffer)`);
     throw new Error(
-      `Plan under-filled: ${totalCount} total exercises < required ${minTotalExercises} for ${sessionMinutes}-min session. ` +
+      `Plan significantly under-filled: ${totalCount} total exercises < ${minTotalExercises - totalExerciseBuffer} for ${sessionMinutes}-min session. ` +
       `Regenerate with more exercises.`
     );
+  } else if (totalCount < minTotalExercises) {
+    console.warn(`⚠️ Total exercise count slightly below target: ${totalCount} < ${minTotalExercises}, but within acceptable buffer (±${totalExerciseBuffer}). Proceeding.`);
   }
   
-  // Check main exercise count (proper training stimulus requires sufficient compound movements)
-  if (mainCount < minMainExercises) {
-    console.error(`❌ Main exercise count validation FAILED: ${mainCount} < ${minMainExercises}`);
+  // Check main exercise count with flexibility buffer (allow -1 from minimum)
+  if (mainCount < (minMainExercises - mainExerciseBuffer)) {
+    console.error(`❌ Main exercise count validation FAILED: ${mainCount} < ${minMainExercises - mainExerciseBuffer} (min ${minMainExercises} - ${mainExerciseBuffer} buffer)`);
     throw new Error(
-      `Insufficient main exercises: ${mainCount} < required ${minMainExercises} for ${sessionMinutes}-min session. ` +
+      `Insufficient main exercises: ${mainCount} < ${minMainExercises - mainExerciseBuffer} for ${sessionMinutes}-min session. ` +
       `Main block needs more compound movements (squats, presses, pulls, hinges). Regenerate with proper exercise distribution.`
     );
+  } else if (mainCount < minMainExercises) {
+    console.warn(`⚠️ Main exercise count slightly below target: ${mainCount} < ${minMainExercises}, but within acceptable buffer (-${mainExerciseBuffer}). Proceeding.`);
   }
 
   // Verify time budget if provided (allow 5-minute buffer for flexibility)
