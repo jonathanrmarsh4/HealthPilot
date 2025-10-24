@@ -98,6 +98,10 @@ export type DailyWorkout = z.infer<typeof DailyWorkoutSchema>;
 // ──────────────────────────────────────────────
 // Initialize OpenAI client
 // ──────────────────────────────────────────────
+if (!process.env.OPENAI_API_KEY) {
+  throw new Error("OPENAI_API_KEY environment variable is required for workout generation");
+}
+
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
@@ -468,6 +472,10 @@ REQUIRED OUTPUT SCHEMA (return this exact structure at the root level):
   }
 }
 `;
+
+  if (!client) {
+    throw new Error("OpenAI client is not initialized. Check OPENAI_API_KEY environment variable.");
+  }
 
   const response = await client.chat.completions.create({
     model: "gpt-4o",
