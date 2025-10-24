@@ -336,6 +336,7 @@ HARD RULES (CRITICAL - NEVER VIOLATE):
    Add extra sets to exercises (especially accessories) to utilize available time without exceeding the budget.
 6) Always include a 'time_budget' field that estimates minutes for warmup, each exercise, conditioning, and cooldown. Total should be close to session_minutes (within ±5 minutes is acceptable).
 7) Each exercise in main and accessories MUST have a unique exercise_id (use UUID v4 format like "550e8400-e29b-41d4-a716-446655440000").
+8) EXERCISE NAMING: Use exercise names WITHOUT equipment qualifiers in parentheses. Instead of "Leg Extension (Machine)" use "Leg Extension". Instead of "Bench Press (Barbell)" use "Bench Press". The exercise database already includes equipment info internally.
 
 Guardrails:
 - Strength: 1–6 reps @75–90%1RM RPE7–9, rest 120-240s

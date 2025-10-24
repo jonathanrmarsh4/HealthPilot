@@ -167,6 +167,11 @@ function normalizeFreeText(input: string): { norm: string; tokens: string[]; qua
   let s = input.toLowerCase();
   trace.push(`lower→ "${s}"`);
 
+  // Strip common equipment qualifiers in parentheses FIRST (before punctuation removal)
+  // This handles: "Leg Extension (Machine)", "Bench Press (Barbell)", "Curl (Dumbbell)"
+  s = s.replace(/\s*\((machine|barbell|dumbbell|dumbbells|barbells|cable|smith|plate loaded|lever|kettlebell|bodyweight|band|trx|suspension|rope)\)\s*/gi, " ");
+  trace.push(`strip equipment qualifiers→ "${s}"`);
+
   // Replace punctuation with spaces
   s = s.replace(/[()\[\]{}.,/\\+_*:;!@#%^&?=\-]+/g, " ");
   s = s.replace(/\s+/g, " ").trim();
@@ -178,7 +183,7 @@ function normalizeFreeText(input: string): { norm: string; tokens: string[]; qua
   trace.push(`expand→ "${s}"`);
 
   // Normalize equipment types to generic "machine" to improve matching
-  // "Lever Leg Extension" and "Leg Extension (machine)" should match
+  // "Lever Leg Extension" and "Leg Extension" should match
   s = s.replace(/\b(lever|cable|plate loaded|selectorized|smith machine)\b/g, "machine");
   trace.push(`equipment normalize→ "${s}"`);
 
