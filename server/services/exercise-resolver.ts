@@ -257,8 +257,8 @@ function normalizedEditSim(a: string, b: string): number {
 function jaccard(tokensA: string[], tokensB: string[]): number {
   const setA = new Set(tokensA);
   const setB = new Set(tokensB);
-  const inter = new Set([...setA].filter(x => setB.has(x)));
-  const union = new Set([...setA, ...setB]);
+  const inter = new Set(Array.from(setA).filter(x => setB.has(x)));
+  const union = new Set([...Array.from(setA), ...Array.from(setB)]);
   return union.size === 0 ? 0 : inter.size / union.size;
 }
 

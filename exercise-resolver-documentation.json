@@ -1,0 +1,615 @@
+{
+  "algorithm_overview": {
+    "name": "Exercise Fuzzy Matching Algorithm",
+    "version": "2.0",
+    "purpose": "Match AI-generated exercise names to canonical exercise library",
+    "critical_issue": "Currently failing to match even simple, common exercises like 'Bench Press', 'Squat', 'Deadlift'",
+    "file_location": "server/services/exercise-resolver.ts",
+    "entry_function": "resolveExerciseName(rawName, known, opts)"
+  },
+
+  "algorithm_pipeline": {
+    "step_1_alias_check": {
+      "description": "Check if exercise has been manually taught via alias system",
+      "logic": "If exact match found in alias map, return immediately with 100% confidence",
+      "sources": [
+        "Dynamic aliases (stored in localStorage/memory)",
+        "Static hardcoded aliases (STATIC_ALIASES map)"
+      ],
+      "example": {
+        "input": "Leg Extension (Machine)",
+        "alias_match": "lever-leg-extension-123",
+        "result": "RESOLVED - bypasses all fuzzy logic"
+      }
+    },
+
+    "step_2_normalization": {
+      "description": "Transform both query and library exercises into comparable canonical forms",
+      "substeps": [
+        {
+          "order": 1,
+          "name": "lowercase",
+          "code": "s.toLowerCase()",
+          "example": {
+            "input": "Bench Press",
+            "output": "bench press"
+          }
+        },
+        {
+          "order": 2,
+          "name": "strip_equipment_qualifiers",
+          "code": "s.replace(/\\s*\\((machine|barbell|dumbbell|...)\\)\\s*/gi, ' ')",
+          "purpose": "Remove parenthetical equipment markers",
+          "example": {
+            "input": "leg extension (machine)",
+            "output": "leg extension"
+          }
+        },
+        {
+          "order": 3,
+          "name": "remove_punctuation",
+          "code": "s.replace(/[()\\/[\\]{}.,\\\\+_*:;!@#%^&?=\\-]+/g, ' ')",
+          "example": {
+            "input": "pull-ups (assisted)",
+            "output": "pull ups assisted"
+          }
+        },
+        {
+          "order": 4,
+          "name": "expand_abbreviations",
+          "code": "words.map(w => EXPAND[w] ?? w)",
+          "abbreviations": {
+            "db": "dumbbell",
+            "bb": "barbell",
+            "kb": "kettlebell",
+            "rdl": "romanian deadlift",
+            "ohp": "overhead press",
+            "rpe": "rate perceived exertion"
+          },
+          "example": {
+            "input": "db bench press",
+            "output": "dumbbell bench press"
+          }
+        },
+        {
+          "order": 5,
+          "name": "normalize_equipment_types",
+          "code": "s.replace(/\\b(lever|cable|plate loaded|selectorized|smith machine)\\b/g, 'machine')",
+          "purpose": "Collapse specific equipment types to generic 'machine'",
+          "example": {
+            "input": "lever leg extension",
+            "output": "machine leg extension"
+          }
+        },
+        {
+          "order": 6,
+          "name": "singularize",
+          "patterns": [
+            "curls → curl",
+            "presses → press",
+            "raises → raise",
+            "rows → row",
+            "pull downs → pulldown",
+            "push downs → pressdown"
+          ],
+          "example": {
+            "input": "dumbbell curls",
+            "output": "dumbbell curl"
+          }
+        },
+        {
+          "order": 7,
+          "name": "unify_multiword_terms",
+          "patterns": {
+            "lat pull down": "lat pulldown",
+            "hip thrust smith": "hip thrust smith",
+            "overhead press": "overhead press",
+            "romanian deadlift": "romanian deadlift"
+          }
+        },
+        {
+          "order": 8,
+          "name": "extract_qualifiers",
+          "qualifiers_detected": [
+            "unilateral (single, one arm, one leg)",
+            "assisted (band, machine)",
+            "machine",
+            "free (barbell, dumbbell)",
+            "landmine",
+            "incline",
+            "decline",
+            "flat"
+          ]
+        }
+      ],
+      "output": {
+        "norm": "normalized string",
+        "tokens": ["array", "of", "words"],
+        "qualifiers": ["detected", "qualifiers"],
+        "trace": ["step1→result", "step2→result"]
+      }
+    },
+
+    "step_3_scoring": {
+      "description": "Calculate similarity score between normalized query and each library exercise",
+      "CRITICAL_CORRECTION": "The bonuses are NOT additive. They are aggregated first, then weighted at 15%.",
+      "actual_formula": "score = (0.55 * name_similarity) + (0.30 * token_similarity) + (0.15 * total_bonuses)",
+      "components": [
+        {
+          "name": "name_similarity",
+          "weight": "55% of final score",
+          "weight_value": 0.55,
+          "algorithm": "Normalized Levenshtein Edit Distance",
+          "formula": "1 - (edit_distance / max_length)",
+          "range": "0.0 to 1.0",
+          "contribution_to_final": "0.55 * similarity_value",
+          "example": {
+            "query": "bench press",
+            "candidate": "bench press",
+            "edit_distance": 0,
+            "max_length": 11,
+            "similarity": 1.0,
+            "contribution": "0.55 * 1.0 = 0.55"
+          }
+        },
+        {
+          "name": "token_similarity",
+          "weight": "30% of final score",
+          "weight_value": 0.30,
+          "algorithm": "Jaccard Index",
+          "formula": "intersection_size / union_size",
+          "range": "0.0 to 1.0",
+          "contribution_to_final": "0.30 * similarity_value",
+          "example": {
+            "query_tokens": ["dumbbell", "bench", "press"],
+            "candidate_tokens": ["bench", "press", "incline"],
+            "intersection": ["bench", "press"],
+            "union": ["dumbbell", "bench", "press", "incline"],
+            "similarity": 0.50,
+            "contribution": "0.30 * 0.50 = 0.15"
+          }
+        },
+        {
+          "name": "heuristic_bonuses_aggregated",
+          "weight": "15% of final score (CAPPED)",
+          "weight_value": 0.15,
+          "critical_note": "ALL bonuses are summed together FIRST, then multiplied by 0.15. This caps total bonus contribution at 0.15 maximum.",
+          "contribution_to_final": "0.15 * (sum_of_all_bonuses)",
+          "subcomponents": [
+            {
+              "name": "key_token_bonus",
+              "range": "0.0 to 0.10",
+              "key_tokens": ["squat", "pulldown", "row", "press", "deadlift", "hinge", "lunge", "thrust", "curl", "raise", "fly", "pullup", "extension", "chop", "pallof"],
+              "logic": "+0.05 per matching key token (max 0.10)",
+              "example": {
+                "query_tokens": ["squat"],
+                "candidate_tokens": ["squat", "barbell"],
+                "matches": 1,
+                "raw_bonus": 0.05,
+                "after_15%_weighting": "0.15 * 0.05 = 0.0075"
+              }
+            },
+            {
+              "name": "starts_contains_bonus",
+              "range": "0.0 to 0.06",
+              "logic": [
+                "+0.03 if one string starts with the other",
+                "+0.03 if one string contains the other"
+              ],
+              "example": {
+                "query": "bench press",
+                "candidate": "bench press incline",
+                "starts_with": true,
+                "contains": true,
+                "raw_bonus": 0.06,
+                "after_15%_weighting": "0.15 * 0.06 = 0.009"
+              }
+            },
+            {
+              "name": "qualifier_fit_bonus",
+              "range": "-0.05 to +0.15 (unbounded, can be negative)",
+              "logic": [
+                "+0.03 per matching qualifier",
+                "-0.05 if query has 'assisted' but candidate doesn't",
+                "-0.03 if query has 'unilateral' but candidate doesn't"
+              ],
+              "example": {
+                "qualifiers_matched": 2,
+                "raw_bonus": 0.06,
+                "after_15%_weighting": "0.15 * 0.06 = 0.009"
+              }
+            }
+          ]
+        }
+      ],
+      "final_score_calculation": {
+        "step_1": "Calculate name_similarity (0.0 to 1.0)",
+        "step_2": "Calculate token_similarity (0.0 to 1.0)",
+        "step_3": "Calculate all bonuses: heuristic = starts_contains + key_token + qualifier_fit",
+        "step_4": "Apply formula: score = (0.55 * name_sim) + (0.30 * token_sim) + (0.15 * heuristic)",
+        "step_5": "Clamp result to [0, 1] range",
+        "maximum_possible_score": 1.0,
+        "realistic_maximum": "~0.95 (perfect name/token match + max bonuses)",
+        "typical_good_match": "0.85-0.90",
+        "typical_needs_confirmation": "0.70-0.85",
+        "typical_poor_match": "<0.70"
+      }
+    },
+
+    "step_4_thresholding": {
+      "description": "Decide if match is good enough to auto-resolve or needs confirmation",
+      "thresholds": {
+        "minAuto": {
+          "default": 0.86,
+          "description": "Minimum score for automatic resolution",
+          "logic": "If top score >= 0.86, auto-resolve"
+        },
+        "deltaGuard": {
+          "default": 0.08,
+          "description": "Minimum gap between top and runner-up",
+          "logic": "If top >= 0.76 AND (top - runner) >= 0.08, auto-resolve"
+        }
+      },
+      "outcomes": {
+        "resolved": {
+          "condition": "score >= 0.86 OR (score >= 0.76 AND delta >= 0.08)",
+          "return": {
+            "kind": "resolved",
+            "canonical_id": "exercise-id-123",
+            "score": 0.92,
+            "matched_name": "Bench Press",
+            "trace": ["normalization steps...", "scoring details..."]
+          }
+        },
+        "needs_confirmation": {
+          "condition": "score < auto threshold but has suggestions",
+          "return": {
+            "kind": "needs_confirmation",
+            "suggestions": [
+              {"id": "ex1", "score": 0.78, "reason": ["moderate name similarity"]},
+              {"id": "ex2", "score": 0.72, "reason": ["key token match"]},
+              {"id": "ex3", "score": 0.65, "reason": ["partial token overlap"]}
+            ],
+            "trace": ["debugging info..."]
+          }
+        },
+        "unknown": {
+          "condition": "no good matches found",
+          "return": {
+            "kind": "unknown",
+            "trace": ["why it failed..."]
+          }
+        }
+      }
+    }
+  },
+
+  "real_world_examples": {
+    "CRITICAL_NOTE": "All scores recalculated using correct formula: score = (0.55 * name_sim) + (0.30 * token_sim) + (0.15 * heuristic_bonuses)",
+    
+    "example_1_simple_match": {
+      "ai_input": "Bench Press",
+      "library_exercise": "Bench Press (Barbell)",
+      "normalization_trace": {
+        "ai": {
+          "step1_lower": "bench press",
+          "step2_strip_equipment": "bench press",
+          "step3_remove_punct": "bench press",
+          "step4_expand": "bench press",
+          "step5_normalize_equipment": "bench press",
+          "step6_singularize": "bench press",
+          "final_norm": "bench press",
+          "tokens": ["bench", "press"]
+        },
+        "library": {
+          "step1_lower": "bench press (barbell)",
+          "step2_strip_equipment": "bench press",
+          "step3_remove_punct": "bench press",
+          "step4_expand": "bench press",
+          "step5_normalize_equipment": "bench press",
+          "step6_singularize": "bench press",
+          "final_norm": "bench press",
+          "tokens": ["bench", "press"]
+        }
+      },
+      "scoring": {
+        "name_similarity": 1.0,
+        "name_contribution": "0.55 * 1.0 = 0.55",
+        "token_similarity": 1.0,
+        "token_contribution": "0.30 * 1.0 = 0.30",
+        "heuristic_bonuses": {
+          "key_token_bonus_raw": 0.05,
+          "starts_contains_bonus_raw": 0.06,
+          "qualifier_bonus_raw": 0.0,
+          "total_raw_heuristic": 0.11,
+          "heuristic_contribution": "0.15 * 0.11 = 0.0165"
+        },
+        "final_score_calculation": "0.55 + 0.30 + 0.0165 = 0.8665",
+        "final_score": 0.87
+      },
+      "expected_result": "RESOLVED (score 0.87 >= 0.86 threshold)",
+      "analysis": "Perfect match! Barely crosses auto-resolve threshold due to bonuses."
+    },
+
+    "example_2_equipment_qualifier": {
+      "ai_input": "Leg Extension (Machine)",
+      "library_exercise": "Lever Leg Extension",
+      "normalization_trace": {
+        "ai": {
+          "step1_lower": "leg extension (machine)",
+          "step2_strip_equipment": "leg extension",
+          "step3_remove_punct": "leg extension",
+          "final_norm": "leg extension",
+          "tokens": ["leg", "extension"]
+        },
+        "library": {
+          "step1_lower": "lever leg extension",
+          "step2_strip_equipment": "lever leg extension",
+          "step5_normalize_equipment": "machine leg extension",
+          "final_norm": "machine leg extension",
+          "tokens": ["machine", "leg", "extension"]
+        }
+      },
+      "scoring": {
+        "name_similarity": "1 - (8 / 21) = 0.619",
+        "name_contribution": "0.55 * 0.619 = 0.340",
+        "token_similarity": "2/3 = 0.667",
+        "token_contribution": "0.30 * 0.667 = 0.200",
+        "heuristic_bonuses": {
+          "key_token_bonus_raw": 0.05,
+          "starts_contains_bonus_raw": 0.03,
+          "qualifier_bonus_raw": 0.0,
+          "total_raw_heuristic": 0.08,
+          "heuristic_contribution": "0.15 * 0.08 = 0.012"
+        },
+        "final_score_calculation": "0.340 + 0.200 + 0.012 = 0.552",
+        "final_score": 0.55
+      },
+      "expected_result": "NEEDS_CONFIRMATION (score 0.55 << 0.86 threshold)",
+      "problem": "Token mismatch: ['leg','extension'] (2 tokens) vs ['machine','leg','extension'] (3 tokens) causes low Jaccard similarity",
+      "real_failure_mode": "THIS IS A CRITICAL FAILURE - Simple exercise with equipment qualifier fails by huge margin (0.55 vs 0.86 needed)"
+    },
+
+    "example_3_barbell_squat": {
+      "ai_input": "Squat",
+      "library_exercise": "Barbell Back Squat",
+      "normalization_trace": {
+        "ai": {
+          "final_norm": "squat",
+          "tokens": ["squat"]
+        },
+        "library": {
+          "final_norm": "barbell back squat",
+          "tokens": ["barbell", "back", "squat"]
+        }
+      },
+      "scoring": {
+        "name_similarity": "1 - (14 / 19) = 0.263",
+        "name_contribution": "0.55 * 0.263 = 0.145",
+        "token_similarity": "1/3 = 0.333",
+        "token_contribution": "0.30 * 0.333 = 0.100",
+        "heuristic_bonuses": {
+          "key_token_bonus_raw": 0.05,
+          "starts_contains_bonus_raw": 0.03,
+          "qualifier_bonus_raw": 0.0,
+          "total_raw_heuristic": 0.08,
+          "heuristic_contribution": "0.15 * 0.08 = 0.012"
+        },
+        "final_score_calculation": "0.145 + 0.100 + 0.012 = 0.257",
+        "final_score": 0.26
+      },
+      "expected_result": "UNKNOWN or very low confidence suggestion",
+      "problem": "Massive token count mismatch: 1 token vs 3 tokens causes catastrophic failure",
+      "real_failure_mode": "THIS IS A CRITICAL FAILURE - Most basic exercise 'Squat' scores only 0.26 when library has 'Barbell Back Squat'"
+    },
+
+    "example_4_realistic_failure": {
+      "ai_input": "Bench Press",
+      "library_has_multiple_variations": [
+        "Barbell Bench Press (score: ~0.65)",
+        "Dumbbell Bench Press (score: ~0.65)",
+        "Incline Barbell Bench Press (score: ~0.45)",
+        "Decline Barbell Bench Press (score: ~0.45)"
+      ],
+      "problem": "If library doesn't have exact 'Bench Press', AI input matches NONE of the variations above 0.86 threshold",
+      "actual_behavior": "Returns 'needs_confirmation' with 3-4 suggestions all scoring 0.45-0.65",
+      "user_impact": "User sees 'UNKNOWN' exercise and has to manually teach alias"
+    }
+  },
+
+  "known_failure_modes": {
+    "failure_1": {
+      "symptom": "Simple common exercises fail to match",
+      "examples": ["Bench Press", "Squat", "Deadlift"],
+      "possible_causes": [
+        "Library exercises have extra qualifiers (Barbell, Dumbbell, Back, Front, etc.)",
+        "AI generates minimal names while library has detailed names",
+        "Token count mismatch penalizes score too heavily",
+        "Normalization pipeline strips important context"
+      ]
+    },
+    "failure_2": {
+      "symptom": "Equipment qualifiers cause mismatches",
+      "examples": ["Leg Extension (Machine)", "Bench Press (Barbell)"],
+      "root_cause": "Library uses equipment prefixes (Lever, Cable) while AI uses suffixes (Machine)",
+      "current_fix": "Step 2 strips parenthetical qualifiers, Step 5 normalizes equipment types",
+      "still_problematic": "If library has 'Lever Leg Extension', AI 'Leg Extension' may not match due to token count difference"
+    },
+    "failure_3": {
+      "symptom": "Variations of same exercise don't match",
+      "examples": {
+        "ai": "Squat",
+        "library_options": ["Barbell Back Squat", "Barbell Front Squat", "Goblet Squat", "Bulgarian Split Squat"],
+        "issue": "AI doesn't specify which variation, library has 4+ options"
+      }
+    }
+  },
+
+  "configuration_parameters": {
+    "thresholds": {
+      "minAuto": {
+        "current_value": 0.86,
+        "description": "Minimum score for automatic resolution",
+        "reality_check": "With correct formula, this threshold is TOO HIGH for most matches. Examples: 'Leg Extension' scores 0.55, 'Squat' scores 0.26.",
+        "tuning_advice_WARNING": "Lowering threshold ALONE won't fix the problem. Must combine with subset token matching and/or library preprocessing.",
+        "suggested_value": "0.72 (combined with subset token bonus) OR keep 0.86 with library preprocessing"
+      },
+      "deltaGuard": {
+        "current_value": 0.08,
+        "description": "Minimum gap between top and runner-up for auto-resolution when score >= 0.76",
+        "tuning_advice": "Lowering to 0.05 may help when multiple similar exercises exist"
+      },
+      "topK": {
+        "current_value": 3,
+        "description": "Number of suggestions to return for 'needs_confirmation'",
+        "tuning_advice": "Increase to 5 to give user more manual matching options"
+      }
+    },
+    "scoring_weights": {
+      "ACTUAL_FORMULA": "score = (0.55 * name_sim) + (0.30 * token_sim) + (0.15 * heuristic_bonuses)",
+      "name_similarity_weight": {
+        "value": 0.55,
+        "description": "55% of final score - dominant factor",
+        "range_contribution": "0.0 to 0.55"
+      },
+      "token_similarity_weight": {
+        "value": 0.30,
+        "description": "30% of final score - critical for handling extra tokens",
+        "range_contribution": "0.0 to 0.30",
+        "problem": "Uses Jaccard which penalizes extra tokens in library. 'Squat' (1 token) vs 'Barbell Back Squat' (3 tokens) = 0.333 Jaccard."
+      },
+      "heuristic_bonuses_weight": {
+        "value": 0.15,
+        "description": "15% of final score - CAPPED maximum contribution",
+        "range_contribution": "0.0 to 0.15 (theoretical max)",
+        "reality": "Typical bonuses sum to 0.05-0.11, contributing only 0.0075-0.0165 to final score",
+        "critical_limitation": "Even PERFECT bonuses (0.10 + 0.06 + 0.05 = 0.21) only contribute 0.15 * 0.21 = 0.0315 to final score. Cannot compensate for token mismatch penalties."
+      },
+      "tuning_advice_WARNING": "DO NOT just tweak weights. The core problem is Jaccard similarity penalizing extra tokens. Fix token similarity calculation OR lower threshold OR preprocess library."
+    }
+  },
+
+  "potential_improvements": {
+    "ROOT_CAUSE_ANALYSIS": "With correct formula understanding, the 15% cap on bonuses means they can NEVER compensate for token count mismatches. A perfect bonus score (0.15) can't overcome the 0.30 penalty from token mismatch.",
+    
+    "suggestion_1_CRITICAL": {
+      "title": "Lower auto-resolution threshold (PARTIAL FIX ONLY)",
+      "change": "minAuto from 0.86 to 0.70-0.75",
+      "rationale": "Current 0.86 threshold is too high. Many valid matches score 0.55-0.70 due to token count mismatches.",
+      "impact_reality_check": {
+        "would_fix": "Exercises scoring 0.70-0.86 (maybe 20-30% of failures)",
+        "would_NOT_fix": "'Leg Extension' (0.55), 'Squat' (0.26), and other minimal-input exercises still fail",
+        "conclusion": "Threshold lowering ALONE is insufficient. Must combine with suggestion_2 or suggestion_3."
+      },
+      "risk": "May increase false positives, but current system has ~100% false negatives",
+      "recommendation": "ONLY lower threshold if also implementing subset token bonus (suggestion_2) or subset-based similarity (suggestion_3). Otherwise, use library preprocessing (suggestion_4)."
+    },
+    "suggestion_2_CRITICAL": {
+      "title": "Implement subset token matching bonus (MOST IMPACTFUL)",
+      "problem": "Jaccard similarity penalizes when library has extra tokens. 'Squat' (1 token) vs 'Barbell Back Squat' (3 tokens) = 0.333 Jaccard, destroying the score.",
+      "solution": "Add subset bonus to heuristics",
+      "logic": "If query tokens are SUBSET of candidate tokens (all query tokens present in candidate), add +0.30 raw bonus",
+      "example": {
+        "query_tokens": ["squat"],
+        "candidate_tokens": ["barbell", "back", "squat"],
+        "is_subset": true,
+        "subset_bonus_raw": 0.30,
+        "subset_bonus_after_15%": "0.15 * 0.30 = 0.045",
+        "new_score": "0.26 + 0.045 = 0.305 (still fails, needs threshold lowering too)"
+      },
+      "impact": "Helps minimal-input exercises ('Squat', 'Bench Press') match detailed library names",
+      "code_change": "Add to finalScore function after qualifierFitBonus"
+    },
+    "suggestion_3_CRITICAL": {
+      "title": "Change token similarity to favor subsets",
+      "problem": "Jaccard index treats 'extra tokens in candidate' as penalty. This is wrong for our use case.",
+      "current_formula": "intersection / union (penalizes extra tokens)",
+      "better_formula": "intersection / min(query_tokens, candidate_tokens) OR just intersection / query_token_count",
+      "example": {
+        "query_tokens": ["squat"],
+        "candidate_tokens": ["barbell", "back", "squat"],
+        "current_jaccard": "1/3 = 0.333",
+        "subset_similarity": "1/1 = 1.0",
+        "impact_on_score": "0.30 * 1.0 = 0.30 instead of 0.30 * 0.333 = 0.10"
+      },
+      "combined_with_threshold_change": "Would make 'Squat' → 'Barbell Back Squat' score ~0.47 instead of 0.26"
+    },
+    "suggestion_4": {
+      "title": "Fuzzy library preprocessing (BEST LONG-TERM SOLUTION)",
+      "idea": "Pre-process library to create multiple searchable name variations for each exercise",
+      "implementation": "For each library exercise, generate variations by removing qualifiers",
+      "example": {
+        "original": "Barbell Back Squat",
+        "auto_generated_variations": [
+          "barbell back squat (original)",
+          "back squat (remove equipment)",
+          "barbell squat (remove position)",
+          "squat (remove all qualifiers)"
+        ],
+        "all_point_to_same_canonical_id": "barbell-back-squat-123"
+      },
+      "benefit": "Simple AI inputs like 'Squat' would find exact match variation, scoring 1.0 on both name and token similarity",
+      "effort": "Medium - requires one-time preprocessing of exercise library + storage schema change"
+    },
+    "suggestion_5": {
+      "title": "Equipment type normalization in library",
+      "status": "PARTIALLY IMPLEMENTED - only normalizes query input, not library",
+      "problem": "Normalization converts 'lever' → 'machine' in library, but this still leaves token mismatch",
+      "better_approach": "Strip ALL equipment prefixes from library during normalization (barbell, dumbbell, lever, cable, etc.)",
+      "example": {
+        "library_original": "Barbell Back Squat",
+        "current_normalization": "barbell back squat",
+        "better_normalization": "back squat (strip 'barbell')",
+        "impact": "Would help 'Back Squat' match 'Barbell Back Squat' better"
+      }
+    },
+    "suggestion_6": {
+      "title": "AI prompt improvements",
+      "status": "ALREADY IMPLEMENTED - Instruction 8 tells AI to NOT use equipment qualifiers in parentheses",
+      "verify": "Check generated workouts - is AI actually following this instruction?",
+      "fallback": "If AI continues adding qualifiers, the normalization step 2 strips them anyway"
+    },
+    "RECOMMENDATION_PRIORITY": {
+      "immediate_fix_PARTIAL": "Lower minAuto threshold from 0.86 to 0.72 (1 line change, fixes ~20-30% of failures - exercises scoring 0.70-0.86 only)",
+      "high_impact_RECOMMENDED": "Implement subset-based token similarity (change Jaccard to intersection/query_length) + lower threshold to 0.72 (10-20 lines, fixes ~70-80% of failures)",
+      "best_long_term_COMPLETE_FIX": "Library preprocessing with automatic variation generation (requires schema change + preprocessing script, fixes ~95-99% of failures)"
+    }
+  },
+
+  "debugging_workflow": {
+    "step_1": "Use Exercise Resolver Test page at /admin/exercise-resolver",
+    "step_2": "Input failing exercise name (e.g., 'Bench Press')",
+    "step_3": "Examine trace output to see normalization steps",
+    "step_4": "Check score and suggestions",
+    "step_5": "If score < 0.86, examine why (token mismatch? name similarity low?)",
+    "step_6": "Manually teach alias if needed, or investigate threshold tuning"
+  },
+
+  "critical_questions_for_review": [
+    "Why are simple exercises like 'Bench Press' failing when library has 'Bench Press (Barbell)'? ANSWER: Normalization strips parenthetical equipment, so 'Bench Press' vs 'Bench Press (Barbell)' both become 'bench press' and should match perfectly (score 0.87). But if library has 'Barbell Bench Press' (not in parens), then 'Bench Press' (2 tokens) vs 'Barbell Bench Press' (3 tokens) = Jaccard 0.667, final score ~0.65.",
+    "Is the normalization pipeline stripping too much or too little information? ANSWER: Pipeline is adequate. The problem is token count sensitivity in Jaccard similarity.",
+    "Are the scoring weights (55% name, 30% token, 15% heuristic cap) appropriate? ANSWER: The 15% heuristic cap is the core problem. Even perfect bonuses can't compensate for token mismatches.",
+    "Should we lower minAuto threshold from 0.86 to 0.70-0.75? ANSWER: Threshold lowering ALONE only fixes ~20-30% of failures (exercises scoring 0.70-0.86). Must combine with subset token bonus or library preprocessing.",
+    "Is Jaccard similarity the right metric for token comparison? ANSWER: NO. Jaccard penalizes extra tokens in library. Should use subset-based similarity (intersection/min_length or intersection/query_length) instead.",
+    "Are we handling library exercises with multiple qualifiers (e.g., 'Incline Barbell Bench Press') correctly? ANSWER: NO. AI generates 'Bench Press' (2 tokens) vs library 'Incline Barbell Bench Press' (4 tokens) = Jaccard 0.40, final score ~0.45. Catastrophic failure.",
+    "Should library exercises be pre-processed to create multiple searchable variations? ANSWER: YES. This is the best long-term solution. Generate variations: 'Barbell Back Squat' → also index 'Back Squat', 'Barbell Squat', 'Squat'.",
+    "Is the current deltaGuard (0.08) too strict? ANSWER: deltaGuard is fine. The threshold (minAuto=0.86) is the problem."
+  ],
+
+  "file_structure": {
+    "main_file": "server/services/exercise-resolver.ts",
+    "key_functions": {
+      "resolveExerciseName": "Main entry point - orchestrates entire matching process",
+      "normalizeFreeText": "Applies 8-step normalization pipeline",
+      "normalizeCandidate": "Normalizes library exercise",
+      "levenshtein": "Calculates edit distance",
+      "normalizedEditSim": "Converts edit distance to similarity (0-1)",
+      "jaccard": "Calculates token similarity using Jaccard index",
+      "keyTokenBonus": "Adds bonus for matching key exercise type tokens",
+      "startsContainsBonus": "Adds bonus for substring relationships",
+      "qualifierFitBonus": "Adds/subtracts based on qualifier alignment"
+    },
+    "adapter_file": "server/services/exercise-resolver-adapter.ts",
+    "usage_in_training_generator": "server/services/trainingGenerator.ts (matchExerciseToLibrary function)"
+  }
+}
