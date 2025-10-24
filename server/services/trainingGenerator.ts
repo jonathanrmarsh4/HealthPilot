@@ -635,13 +635,22 @@ REQUIRED OUTPUT SCHEMA (return this exact structure at the root level):
     }
   }
 
-  // Basic safety layer checks
+  // Basic safety layer checks - dynamic based on session duration
   const totalSets = Object.values(result.compliance_summary.volume_sets_estimate).reduce(
     (a: number, b: number) => a + b,
     0
   );
-  if (totalSets > 35) {
-    throw new Error(`Unsafe volume (${totalSets} sets). Regenerate session.`);
+  
+  // Dynamic volume cap based on session duration:
+  // ~2.5-3 min per set average (including rest) = sustainable volume
+  const sessionMinutes = data.availability.session_minutes || 60;
+  const maxSetsForDuration = Math.floor(sessionMinutes / 2.5); // Conservative estimate
+  
+  if (totalSets > maxSetsForDuration) {
+    throw new Error(
+      `Unsafe volume (${totalSets} sets in ${sessionMinutes} min session). ` +
+      `Max recommended: ${maxSetsForDuration} sets. Regenerate session.`
+    );
   }
 
   // Add server-side safety notes for injuries
