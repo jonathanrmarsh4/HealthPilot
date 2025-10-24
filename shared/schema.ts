@@ -271,6 +271,24 @@ export const exercises = pgTable("exercises", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// Exercise Templates - Pattern-based exercise mapping for deterministic AI workout generation
+// Replaces fuzzy name matching with semantic pattern system
+export const exerciseTemplates = pgTable("exercise_templates", {
+  id: varchar("id").primaryKey(),
+  pattern: text("pattern").notNull(), // 'knee_dominant', 'horizontal_press', 'vertical_pull', etc.
+  modality: text("modality").notNull(), // 'barbell', 'dumbbell', 'machine', 'cable', 'bodyweight', etc.
+  angle: text("angle").default("neutral"), // 'flat', 'incline', 'decline', 'neutral'
+  displayName: text("display_name").notNull(),
+  muscles: text("muscles").array().notNull().default(sql`ARRAY[]::text[]`),
+  instructions: text("instructions"),
+  videoUrl: text("video_url"),
+  difficulty: text("difficulty").default("intermediate"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => [
+  // Ensure unique combination of pattern, modality, and angle
+  uniqueIndex("exercise_templates_pattern_modality_angle_idx").on(table.pattern, table.modality, table.angle),
+]);
+
 // Workout Instances - Immutable snapshots of exercises when "Start Workout" is clicked
 // This ensures the exact exercises shown in recommendations are preserved throughout the workout
 export const workoutInstances = pgTable("workout_instances", {
