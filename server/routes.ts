@@ -5640,13 +5640,88 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
   // POST /api/workouts/generate - Generate workout using StructuredWorkoutsKit
   app.post("/api/workouts/generate", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
-    const { date } = req.body;
+    
+    // Validate request payload
+    // NOTE: date is optional for backward compatibility, but strongly recommended
+    // Without it, we fall back to UTC which may be incorrect for non-UTC users
+    const generateWorkoutSchema = z.object({
+      date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+      experience: z.enum(['beginner', 'intermediate', 'advanced']).optional(),
+      focus: z.string().optional(),
+      availableMinutes: z.number().min(15).max(180).optional(),
+      muscleBalance: z.object({
+        chest: z.number().optional(),
+        shoulders: z.number().optional(),
+        triceps: z.number().optional(),
+        back: z.number().optional(),
+        biceps: z.number().optional(),
+        legs: z.number().optional(),
+        abs: z.number().optional(),
+        other: z.number().optional(),
+      }).optional()
+    });
+    
+    let validatedData;
+    try {
+      validatedData = generateWorkoutSchema.parse(req.body);
+    } catch (error: any) {
+      return res.status(400).json({
+        ok: false,
+        error: "Invalid request payload",
+        details: error.errors
+      });
+    }
+    
+    const { experience, focus, availableMinutes, muscleBalance } = validatedData;
+    
+    // Use client-provided date or default to today in user's timezone
+    // IMPORTANT: Clients should always provide the date parameter to ensure correct timezone handling
+    // Server-side date defaulting has limitations (see below)
+    let date = validatedData.date;
+    if (!date) {
+      // KNOWN LIMITATION: Server-side date defaulting can produce incorrect dates for users
+      // without stored timezones or with invalid timezone data. This fallback exists for
+      // backward compatibility but may cause off-by-one errors for non-UTC users.
+      // 
+      // RECOMMENDED: Update clients to always send date parameter calculated in user's local timezone
+      // ALTERNATIVE: Ensure timezone is captured during user onboarding
+      try {
+        const { formatInTimeZone } = await import('date-fns-tz');
+        const user = await storage.getUser(userId);
+        const userTimezone = user?.timezone;
+        
+        if (!userTimezone || userTimezone === 'UTC') {
+          // User has no timezone set - use UTC with warning
+          // This will produce incorrect dates for users in non-UTC timezones
+          console.warn(`⚠️  User ${userId} has no timezone set. Using UTC for default date. This may cause off-by-one errors. Clients should send 'date' parameter explicitly.`);
+          date = formatInTimeZone(new Date(), 'UTC', 'yyyy-MM-dd');
+        } else {
+          // Try to format with user's timezone, catch invalid timezone strings
+          try {
+            date = formatInTimeZone(new Date(), userTimezone, 'yyyy-MM-dd');
+          } catch (tzError: any) {
+            console.error(`❌ Invalid timezone for user ${userId}: ${userTimezone}. Falling back to UTC. User should update timezone or client should send 'date' parameter.`, tzError);
+            date = formatInTimeZone(new Date(), 'UTC', 'yyyy-MM-dd');
+          }
+        }
+      } catch (error: any) {
+        console.error('❌ Error determining user timezone, falling back to UTC. Client should send date parameter.', error);
+        const { formatInTimeZone } = await import('date-fns-tz');
+        date = formatInTimeZone(new Date(), 'UTC', 'yyyy-MM-dd');
+      }
+    }
     
     try {
       const { buildUserContext, generateDailySession } = await import('./services/trainingGenerator');
       
-      // Build user context
+      // Build user context (with optional overrides from request)
       const context = await buildUserContext(storage, userId, date);
+      
+      // Override context with request parameters if provided
+      if (context.fitnessProfile) {
+        if (experience) context.fitnessProfile.experience = experience;
+        if (availableMinutes) context.fitnessProfile.preferredDuration = availableMinutes;
+      }
       
       // Generate workout using StructuredWorkoutsKit
       const result = await generateDailySession(context, 0);
@@ -5660,11 +5735,11 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
       });
       
       res.json({
-        ok: true,
-        plan: {
-          id: workout.id,
-          ...result.plan
-        }
+        id: workout.id,
+        userId: workout.userId,
+        date: workout.date,
+        status: workout.status,
+        plan: workout.workoutData
       });
     } catch (error: any) {
       console.error("Workout generation error:", error);
