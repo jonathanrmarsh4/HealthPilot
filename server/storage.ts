@@ -2292,7 +2292,26 @@ export class DbStorage implements IStorage {
     const snapshotExercises = [];
     
     for (const ex of exercisesToProcess) {
-      const matched = await matchExerciseByName(ex.exercise);
+      // CRITICAL FIX: Use the exercise_id from template mapping if available
+      // The workout generator already resolved template_id → exercise_id
+      let matched = null;
+      
+      if (ex.exercise_id) {
+        // First try: Use the pre-resolved exercise_id from template mapping
+        console.log(`💪 Using pre-mapped exercise_id: ${ex.exercise_id} for ${ex.exercise}`);
+        const result = await db
+          .select()
+          .from(exercises)
+          .where(eq(exercises.id, ex.exercise_id))
+          .limit(1);
+        matched = result[0];
+      }
+      
+      // Fallback: Try fuzzy matching by name (for legacy workouts)
+      if (!matched) {
+        console.log(`💪 Falling back to fuzzy matching for: ${ex.exercise}`);
+        matched = await matchExerciseByName(ex.exercise);
+      }
       
       if (matched) {
         // Store full exercise object with workout-specific metadata

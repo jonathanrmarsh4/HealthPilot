@@ -348,12 +348,15 @@ export async function saveWorkout(
 ) {
   const { plan, blocks, validation } = result;
 
-  // Step 1: Get template data for all lift blocks
-  const liftBlocks = blocks.filter((b: any) => b.type === "lift_block" && b.template_id);
+  // Step 1: Get template data for all blocks with template_ids (lift_block and others)
+  const blocksWithTemplates = blocks.filter((b: any) => b.template_id);
+  
+  console.log(`💾 Saving workout with ${blocks.length} total blocks (${blocksWithTemplates.length} with template_ids)`);
+  console.log(`   Block types: ${blocks.map((b: any) => b.type).join(', ')}`);
   
   // Step 2: Fetch template details from database
   const templateDataMap = new Map<string, any>();
-  for (const block of liftBlocks) {
+  for (const block of blocksWithTemplates) {
     if (!templateDataMap.has(block.template_id)) {
       try {
         const template = await storage.getExerciseTemplateById(block.template_id);
@@ -381,9 +384,9 @@ export async function saveWorkout(
     templateIdToExerciseId.set(templateId, exerciseId);
   }
 
-  // Step 4: Enrich blocks with exercise_ids
+  // Step 4: Enrich blocks with exercise_ids (for any block type with template_id)
   const enrichedBlocks = blocks.map((block: any) => {
-    if (block.type === "lift_block" && block.template_id) {
+    if (block.template_id) {
       return {
         ...block,
         exercise_id: templateIdToExerciseId.get(block.template_id)

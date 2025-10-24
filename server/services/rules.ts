@@ -19,6 +19,7 @@ export const RULES: PatternRules = {
     barbell: "tpl_bb_flat_bench",
     dumbbell: "tpl_db_flat_press",
     machine: "tpl_machine_chest_press",
+    bodyweight: "tpl_bw_pushup",
   },
 
   // Vertical Pull
@@ -33,6 +34,7 @@ export const RULES: PatternRules = {
     machine: "tpl_leg_press",
     barbell: "tpl_bb_back_squat",
     dumbbell: "tpl_goblet_squat",
+    bodyweight: "tpl_bw_squat",
   },
 
   // Hip Hinge (Deadlifts, RDLs)
