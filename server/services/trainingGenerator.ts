@@ -643,7 +643,6 @@ REQUIRED OUTPUT SCHEMA (return this exact structure at the root level):
   
   // Dynamic volume cap based on session duration:
   // ~2.5-3 min per set average (including rest) = sustainable volume
-  const sessionMinutes = data.availability.session_minutes || 60;
   const maxSetsForDuration = Math.floor(sessionMinutes / 2.5); // Conservative estimate
   
   if (totalSets > maxSetsForDuration) {
