@@ -1,0 +1,152 @@
+{
+  "task": "Add Real-Time Symptom Assessment (Differential + Triage + Explainability) to HealthPilot",
+  "goals": [
+    "User enters current symptoms → AI returns likely causes with confidence, triage recommendation, and explanation linking symptoms, biomarkers, and HealthKit signals.",
+    "Mobile-first UX with ultra-low friction; safe, non-diagnostic language; strict red-flag escalation."
+  ],
+  "non_goals": [
+    "Providing definitive medical diagnoses or replacing clinicians.",
+    "Long-form clinical notes; keep responses concise and structured."
+  ],
+  "data_inputs": {
+    "symptoms": "current entry: {name(s), severity 0..10, onset, course, context chips, notes}",
+    "history": "symptom episodes last 30d",
+    "biomarkers": "latest + trend deltas (e.g., CBC, CMP, lipids, fasting glucose, A1c, TSH, CRP, etc.)",
+    "vitals/wearables": "HR, HRV (z-score), RHR delta, BP trend, SpO2 (if available), temperature (if available), sleep (REM/total), activity (workouts last 72h), steps",
+    "medications": "active list + changes last 72h",
+    "demographics": "age, sex, baseline conditions, allergies (if captured)"
+  },
+  "api_contracts": {
+    "read": [
+      "GET /symptoms/current_context",
+      "GET /symptoms/episodes?from={ISO-30d}&to={ISO}",
+      "GET /biomarkers/latest",
+      "GET /biomarkers/trends?days=90",
+      "GET /vitals/hrv?days=14",
+      "GET /vitals/bp?days=30",
+      "GET /vitals/rhr?days=14",
+      "GET /sleep/summary?days=14",
+      "GET /activity/summary?days=7",
+      "GET /meds/changes?days=90"
+    ],
+    "write": [
+      "POST /diagnostic/assessment (body: inputs + feature vector) → returns structured assessment"
+    ]
+  },
+  "ux": {
+    "entry": "Single screen: symptom chips + free text; severity slider; onset selector; context chips (after_meal, after_workout, poor_sleep, stress_high, travel_shift).",
+    "output_card": [
+      "Title: 'Possible causes (not a diagnosis)'",
+      "List (max 3): {condition_name, confidence 0..1, key_evidence[], counter_evidence[], next_steps[]}",
+      "Triage banner: 'Self-care / See GP in 24–72h / Seek urgent care now' with brief reason",
+      "Explainability toggle: 'Why this?' shows feature weights & data sources"
+    ],
+    "language": "Concise, layperson-friendly, non-alarmist, non-diagnostic."
+  },
+  "modeling": {
+    "pipeline": [
+      "Feature extraction: encode symptoms, severity, onset/course; add context; attach biomarker/vital deltas (z-scores), sleep quality flags, workout proximity, med changes.",
+      "Rule layer (safety-first): evaluate red flags and mandatory escalation.",
+      "Differential generator: retrieve k candidate conditions from knowledge base by symptom signatures (BM25/embedding).",
+      "Scoring: ensemble[ calibrated rules (likelihood ratios), Naive Bayes-lite, logistic regression head ].",
+      "Calibration: Platt scaling or isotonic on internal dev set; expose confidence 0..1.",
+      "Explainability: return top positive/negative feature contributions per candidate (e.g., SHAP-lite via coefficients/weights)."
+    ],
+    "knowledge_base": "Local symptom→condition mappings with age/sex prevalence, common red flags, and supportive/against features. Keep versioned.",
+    "confidence": "Calibrated score per condition; display only if >=0.2; normalize top-3 to sum ≤1 (do not force to 1)."
+  },
+  "triage": {
+    "levels": [
+      { "id": "self_care", "label": "Self-care", "criteria": "no red flags; severity <7; vitals stable; benign differential" },
+      { "id": "gp_24_72h", "label": "See your doctor (24–72h)", "criteria": "moderate severity or persistent/worsening trend or concerning but non-urgent features" },
+      { "id": "urgent_now", "label": "Seek urgent care now", "criteria": "any red flag match or severe (≥9) with worsening or dangerous vitals" }
+    ],
+    "red_flags": [
+      "new or severe chest pain; syncope; one-sided weakness/face droop/speech difficulty; sustained SpO2 < 92%; severe shortness of breath; rigid abdomen; black/bloody stools; severe dehydration; fever > 40°C with altered state; rapidly spreading rash with fever; anaphylaxis signs"
+    ]
+  },
+  "explanations": {
+    "template": {
+      "why": "This suggestion is based on: {{symptom_terms}}, {{context_terms}}, and recent data: {{signal_summaries}}.",
+      "signals": [
+        "Sleep: REM low (z = {{rem_z}}), total {{h}}h",
+        "HRV: {{hrv_z}} z; RHR Δ {{rhr_delta}}",
+        "BP: avg {{sys}}/{{dia}} with {{trend}} trend",
+        "Biomarkers: {{biomarker_changes}}",
+        "Meds: changed in last 72h: {{meds_changed}}"
+      ],
+      "counter": "Noted against: {{counter_evidence}}"
+    }
+  },
+  "guardrails": {
+    "disclaimer": "This is not a diagnosis. If symptoms are severe, new, or worsening, seek medical care.",
+    "style": [
+      "Use 'possible', 'may be associated', 'consider'.",
+      "Never prescribe medications; suggest general self-care only.",
+      "If red flags matched → show urgent banner and suppress non-urgent advice."
+    ]
+  },
+  "action_library": {
+    "general": [
+      "Hydration + electrolytes today",
+      "Prioritise 7–9h sleep; consistent bedtime",
+      "Light active recovery; avoid intense training today",
+      "Mindfulness/breathing 5–10 minutes",
+      "If persistent/worsening, book a GP review"
+    ],
+    "digestive": ["Smaller/simple meals; avoid triggers; remain upright 2–3h post-meal"],
+    "headache": ["Hydration; reduce screen glare; quiet dark room; consider caffeine timing"],
+    "musculoskeletal": ["Mobility, heat/ice as preferred; gradual load return"],
+    "when_to_escalate": ["Severe (≥9/10), sudden onset with neuro signs, chest pain, or breathing difficulty → urgent care"]
+  },
+  "api_response_format": {
+    "assessment": {
+      "timestamp": "ISO",
+      "triage": { "level": "self_care|gp_24_72h|urgent_now", "reason": "string" },
+      "differential": [
+        {
+          "condition": "string",
+          "confidence": 0.0,
+          "key_evidence": ["string"],
+          "counter_evidence": ["string"],
+          "recommendations": ["string"]
+        }
+      ],
+      "explanation": {
+        "why": "string",
+        "contributing_signals": {
+          "symptoms": ["string"],
+          "biomarkers": ["string"],
+          "vitals": ["string"],
+          "sleep": ["string"],
+          "activity": ["string"],
+          "meds": ["string"]
+        }
+      },
+      "safety": { "red_flags_triggered": ["string"] }
+    }
+  },
+  "telemetry": {
+    "events": [
+      "rt_assessment_request",
+      "rt_assessment_success",
+      "rt_assessment_redflag",
+      "rt_assessment_duration_ms"
+    ],
+    "fields": ["top_condition", "confidence_top", "triage_level", "feature_count"]
+  },
+  "acceptance_tests": [
+    "Chest pain + dyspnea → triage=urgent_now; suppress benign advice; show urgent copy.",
+    "Headache + poor sleep + low HRV: include 'tension-type/poor recovery' with confidence >= 0.5 and self-care actions.",
+    "New nausea after_meal + med change in 48–72h: include 'medication side effect' or 'postprandial intolerance' with explanation referencing timing.",
+    "Muscle soreness within 24–48h of heavy workout: recommend active recovery; confidence >= 0.6; triage=self_care.",
+    "If key inputs missing (e.g., HRV), proceed with reduced confidence and note limited data.",
+    "Language never states a diagnosis; always uses tentative phrasing."
+  ],
+  "deployment": {
+    "toggle": "feature.real_time_assessment = true",
+    "rate_limits": "max 3 assessments per 10 minutes per user",
+    "latency_budget_ms": 800,
+    "observability": "log feature vector size and rule hits for debugging"
+  }
+}
