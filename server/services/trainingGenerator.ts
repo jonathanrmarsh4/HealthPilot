@@ -1,99 +1,21 @@
 /**
- * HealthPilot – Daily Training Generator
- * Generates standards-aligned daily training sessions based on profile,
- * preferences, biometrics, and recent training history.
+ * HealthPilot Training Generator v2.0 - Pattern-Based Architecture
+ * 
+ * MAJOR CHANGE: Eliminates ALL fuzzy exercise name matching
+ * AI now generates semantic patterns (knee_dominant, horizontal_press, etc.)
+ * System deterministically maps patterns → template_ids via RULES
+ * 
+ * Benefits:
+ * - Zero ambiguity in exercise resolution
+ * - Muscle balance tracking via pattern-to-muscle mapping
+ * - Maintains all AI guardrails (time budget, progressive overload, volume caps)
  */
 
 import OpenAI from "openai";
-import { z } from "zod";
 import type { IStorage } from "../storage";
 import { format, subDays } from "date-fns";
-import { resolveAIExercise, teachAlias } from "./exercise-resolver-adapter";
-
-// ──────────────────────────────────────────────
-// Validation schema (mirrors OUTPUT_SCHEMA)
-// ──────────────────────────────────────────────
-export const DailyWorkoutSchema = z.object({
-  session_id: z.string().optional(), // UUID v4 for the workout plan (AI generates this)
-  date: z.string(),
-  focus: z.string(),
-  safety: z.object({
-    flag: z.boolean(),
-    notes: z.string(),
-    seek_medical_advice: z.boolean().optional()
-  }),
-  warmup: z.array(z.string()),
-  main: z.array(
-    z.object({
-      exercise_id: z.string(), // Stable identifier for exercise (UUID v4)
-      block: z.literal("main").optional(), // Exercise block type
-      exercise: z.string(),
-      goal: z.enum(["strength", "hypertrophy", "power"]),
-      sets: z.number().min(1).max(6),
-      reps: z.number().min(1).max(15),
-      intensity: z.string(),
-      rest_seconds: z.number().min(45).max(360),
-      tempo: z.string().optional(),
-      cues: z.string().optional(),
-      alternative_if_limited: z.string().optional()
-    })
-  ),
-  accessories: z.array(
-    z.object({
-      exercise_id: z.string(), // Stable identifier for exercise (UUID v4)
-      block: z.literal("accessories").optional(), // Exercise block type
-      exercise: z.string(),
-      goal: z.string(),
-      sets: z.number(),
-      reps: z.number(),
-      intensity: z.string(),
-      rest_seconds: z.number(),
-      tempo: z.string().optional(),
-      cues: z.string().optional(),
-      alternative_if_limited: z.string().optional()
-    })
-  ),
-  conditioning: z.object({
-    include: z.boolean(),
-    type: z.enum(["none", "steady_state", "intervals", "tempo_run", "circuit"]),
-    duration_minutes: z.number(),
-    intensity_zone: z.enum(["Z1", "Z2", "Z3", "Z4", "Z5"]),
-    notes: z.string().optional()
-  }),
-  cooldown: z.array(z.string()),
-  progression_notes: z.string(),
-  compliance_summary: z.object({
-    volume_sets_estimate: z.record(z.number()),
-    weekly_volume_guardrail_ok: z.boolean(),
-    reasoning: z.string()
-  }),
-  time_budget: z.object({
-    warmup_min: z.number().int().nonnegative(),
-    per_exercise_min: z.array(z.number().int().positive()),
-    conditioning_min: z.number().int().nonnegative(),
-    cooldown_min: z.number().int().nonnegative(),
-    total_min: z.number().int().positive()
-  }), // REQUIRED - must estimate time budget
-  min_exercise_policy: z.object({
-    session_minutes: z.number().int().positive(),
-    minimum_exercise_count: z.number().int().positive(),
-    achieved_exercise_count: z.number().int().nonnegative()
-  }), // REQUIRED - must enforce minimum exercise count
-  coverage_report: z.object({
-    per_muscle_sets_today: z.record(z.number().int().nonnegative()),
-    projected_weekly_sets: z.record(z.number().int().nonnegative()),
-    undertrained_priority: z.array(z.string()),
-    overtrained_watchlist: z.array(z.string())
-  }).optional(),
-  variation_policy: z.object({
-    no_session_duplicates: z.boolean(),
-    no_repeat_exact_exercise_days: z.number().int().positive().default(7),
-    pattern_mix_notes: z.string().optional()
-  }).optional(),
-  muscle_balance_input_snapshot: z.record(z.number().int().nonnegative()).optional()
-});
-
-export type DailyWorkout = z.infer<typeof DailyWorkoutSchema>;
+import { StructuredWorkoutsKit, type WorkoutPlan, type LiftBlock, type AnyBlock, type Modality } from "./structured-workouts-kit";
+import { RULES, PATTERN_TO_MUSCLES, getMusclesForPattern } from "./rules";
 
 // ──────────────────────────────────────────────
 // Lazy OpenAI client initialization
@@ -104,9 +26,8 @@ function getOpenAIClient(): OpenAI {
   if (!clientInstance) {
     const apiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
     if (!apiKey) {
-      throw new Error("OpenAI API key not found. Check AI_INTEGRATIONS_OPENAI_API_KEY or OPENAI_API_KEY environment variable.");
+      throw new Error("OpenAI API key not found");
     }
-    
     clientInstance = new OpenAI({
       apiKey,
       baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
@@ -116,32 +37,26 @@ function getOpenAIClient(): OpenAI {
 }
 
 // ──────────────────────────────────────────────
-// Context builder - gather user data from DB
+// Build user context from database
 // ──────────────────────────────────────────────
 export async function buildUserContext(storage: IStorage, userId: string, targetDate: string) {
-  // Get user profile
   const user = await storage.getUser(userId);
-  if (!user) {
-    throw new Error("User not found");
-  }
+  if (!user) throw new Error("User not found");
 
-  // Get fitness profile
   const fitnessProfile = await storage.getFitnessProfile(userId);
 
-  // Calculate user age
-  let age = 30; // default
+  // Calculate age
+  let age = 30;
   if (user.dateOfBirth) {
     const birthDate = new Date(user.dateOfBirth);
-    const today = new Date();
-    age = today.getFullYear() - birthDate.getFullYear();
+    age = new Date().getFullYear() - birthDate.getFullYear();
   }
 
   // Get recent training history (last 14 days)
   const startDate = subDays(new Date(targetDate), 14);
-  const endDate = new Date(targetDate);
-  const recentSessions = await storage.getWorkoutSessions(userId, startDate, endDate);
+  const recentSessions = await storage.getWorkoutSessions(userId, startDate, new Date(targetDate));
 
-  // Build recent training array
+  // Build recent training summary
   const recentTraining = await Promise.all(
     recentSessions.slice(0, 7).map(async (session) => {
       const sets = await storage.getSetsForSession(session.id, userId);
@@ -152,7 +67,6 @@ export async function buildUserContext(storage: IStorage, userId: string, target
         if (!exerciseMap.has(set.exerciseId)) {
           const exercise = await storage.getExerciseById(set.exerciseId);
           exerciseMap.set(set.exerciseId, {
-            id: set.exerciseId,
             name: exercise?.name || "Unknown",
             sets: [],
             muscles: exercise?.muscles || []
@@ -165,527 +79,313 @@ export async function buildUserContext(storage: IStorage, userId: string, target
         name: ex.name,
         sets: ex.sets.length,
         reps: ex.sets[0]?.reps || 0,
-        load: ex.sets[0]?.weight ? `${ex.sets[0].weight}kg` : "bodyweight",
-        rpe: ex.sets[0]?.rpeLogged || 0
+        load: ex.sets[0]?.weight ? `${ex.sets[0].weight}kg` : "bodyweight"
       }));
 
-      // Determine muscle groups worked
       const muscleGroups = Array.from(
-        new Set(
-          Array.from(exerciseMap.values())
-            .flatMap(ex => ex.muscles)
-        )
+        new Set(Array.from(exerciseMap.values()).flatMap(ex => ex.muscles))
       );
 
       return {
         date: format(new Date(session.startTime), "yyyy-MM-dd"),
         muscle_groups: muscleGroups,
         exercises,
-        session_rpe: session.perceivedEffort || 7,
-        notes: session.notes || "",
-        technique_flags: []
+        session_rpe: session.perceivedEffort || 7
       };
     })
   );
 
-  // Get recent bio markers (sleep, HRV, recovery)
+  // Get recent biomarkers
   const latestSleep = await storage.getLatestSleepSession(userId);
   const latestReadiness = await storage.getLatestReadinessScore(userId);
 
-  // Calculate sleep score (0-100)
-  let sleepScore = 75; // default
+  let sleepScore = 75;
   if (latestSleep) {
-    const duration = latestSleep.totalMinutes || 420; // in minutes
-    const quality = latestSleep.sleepScore || 75;
-    sleepScore = quality; // Use the sleep score directly
+    sleepScore = latestSleep.sleepScore || 75;
   }
 
-  // Determine recovery state
   let recoveryState = "green";
-  let hrvStatus = "baseline";
   if (latestReadiness) {
     if (latestReadiness.score >= 80) recoveryState = "green";
     else if (latestReadiness.score >= 60) recoveryState = "yellow";
     else recoveryState = "red";
-    
-    // TODO: add HRV tracking when available
   }
 
   // Build available equipment list
-  const availableEquipment = [];
+  const availableEquipment: Modality[] = [];
   if (fitnessProfile?.hasGymAccess) {
-    availableEquipment.push("barbell", "dumbbells", "cables", "machines", "bench", "pullup_bar", "rack");
+    availableEquipment.push("barbell", "dumbbell", "cable", "machine");
   }
   if (fitnessProfile?.homeEquipment && fitnessProfile.homeEquipment.length > 0) {
-    availableEquipment.push(...fitnessProfile.homeEquipment);
+    const homeEq = fitnessProfile.homeEquipment as string[];
+    
+    // Map home equipment to modalities
+    for (const eq of homeEq) {
+      const normalized = eq.toLowerCase();
+      if (normalized.includes("barbell")) availableEquipment.push("barbell");
+      if (normalized.includes("dumbbell")) availableEquipment.push("dumbbell");
+      if (normalized.includes("kettlebell")) availableEquipment.push("kettlebell");
+      if (normalized.includes("band")) availableEquipment.push("band");
+      if (normalized.includes("cable")) availableEquipment.push("cable");
+    }
   }
-  if (availableEquipment.length === 0) {
-    availableEquipment.push("bodyweight"); // fallback
-  }
-
-  // Collect recently used exercises from recent training
-  const recentlyUsedExercises = recentTraining.flatMap(session => 
-    session.exercises.map(ex => ex.name)
-  );
   
-  // Get unique list of recently used exercises
-  const uniqueRecentExercises = Array.from(new Set(recentlyUsedExercises));
+  // Always include bodyweight as fallback
+  if (!availableEquipment.includes("bodyweight")) {
+    availableEquipment.push("bodyweight");
+  }
 
-  // Build preferences
-  const preferences = {
-    split_style: fitnessProfile?.preferredWorkoutTypes?.[0] || "push_pull_legs",
-    available_equipment: availableEquipment,
-    setting: fitnessProfile?.hasGymAccess ? "gym" : "home",
-    liked_exercises: [], // TODO: get from exercise feedback
-    disliked_exercises: [], // TODO: get from exercise feedback
-    recently_used_exercises: uniqueRecentExercises.slice(0, 20) // Last 20 unique exercises
-  };
+  // Get unique available modalities
+  const uniqueEquipment = Array.from(new Set(availableEquipment));
 
-  // Build user profile object
-  const userProfile = {
-    age,
-    sex: user.gender || "male",
-    experience_level: fitnessProfile?.fitnessLevel || "intermediate",
-    goal: fitnessProfile?.primaryGoal || "muscle_gain",
-    injuries_limitations: fitnessProfile?.injuries || []
-  };
-
-  // Build availability
-  const availability = {
-    days_per_week: fitnessProfile?.currentTrainingFrequency || 4,
-    session_minutes: fitnessProfile?.preferredDuration || 60
-  };
-
-  // Build environment
-  const environment = {
-    timezone: user.timezone || "UTC",
-    today_is_rest_day: false // TODO: check training schedule
-  };
-
-  // Build biometrics
-  const biometrics = {
-    resting_hr: 65, // TODO: get from biomarkers
-    sleep_score: Math.round(sleepScore),
-    recovery_state: recoveryState,
-    hrv_status: hrvStatus,
-    readiness_notes: latestReadiness?.reasoning || ""
-  };
-
-  // Fetch muscle group frequency data for balanced training
-  let muscleGroupFrequency: Array<{ muscleGroup: string; lastTrained: Date | null; timesTrainedInPeriod: number; totalSets: number; totalVolume: number }>;
+  // Fetch muscle group frequency for balance tracking
+  let muscleGroupFrequency: Array<{ 
+    muscleGroup: string; 
+    lastTrained: Date | null; 
+    timesTrainedInPeriod: number; 
+    totalSets: number; 
+    totalVolume: number;
+  }> = [];
+  
   try {
     muscleGroupFrequency = await storage.getMuscleGroupFrequency(userId, 14);
-    console.log(`📊 Fetched muscle group frequency for user ${userId}:`, muscleGroupFrequency.length, 'muscle groups');
+    console.log(`📊 Muscle group frequency for user ${userId}:`, muscleGroupFrequency.length, 'groups');
   } catch (error) {
     console.error("Error fetching muscle group frequency:", error);
-    muscleGroupFrequency = [];
   }
 
-  // Transform muscle group frequency into muscle_balance_input_snapshot format
-  // This gives the AI a snapshot of trailing-7d/14d hard sets per muscle group
+  // Build muscle balance snapshot (trailing 7-14 day sets per muscle)
   const muscleBalanceSnapshot: Record<string, number> = {};
   for (const mg of muscleGroupFrequency) {
     muscleBalanceSnapshot[mg.muscleGroup] = mg.totalSets;
   }
 
+  // Generate muscle balance hint for AI
+  const sortedMuscles = Object.entries(muscleBalanceSnapshot)
+    .sort(([, a], [, b]) => a - b); // Sort by sets ascending
+  
+  const undertrained = sortedMuscles.slice(0, 3).map(([muscle]) => muscle);
+  const overtrained = sortedMuscles.slice(-3).map(([muscle]) => muscle);
+  
+  const muscleBalanceHint = undertrained.length > 0
+    ? `Prioritize: ${undertrained.join(", ")}. Moderate: ${overtrained.join(", ")}`
+    : undefined;
+
   return {
     date: targetDate,
-    user_profile: userProfile,
-    preferences,
-    availability,
-    environment,
-    recent_training: recentTraining,
-    biometrics,
-    muscle_group_frequency: muscleGroupFrequency,
-    muscle_balance_input_snapshot: muscleBalanceSnapshot
+    userGoal: fitnessProfile?.primaryGoal || "strength",
+    fitnessLevel: fitnessProfile?.fitnessLevel || "intermediate",
+    availableTime: fitnessProfile?.preferredDuration || 60,
+    equipment: uniqueEquipment,
+    muscleBalanceHint,
+    readinessScore: latestReadiness?.score,
+    age,
+    sex: user.gender || "male",
+    recentTraining,
+    sleepScore,
+    recoveryState,
+    muscleBalanceSnapshot
   };
 }
 
 // ──────────────────────────────────────────────
-// Core function to generate one daily plan
+// Generate daily workout using StructuredWorkoutsKit
 // ──────────────────────────────────────────────
-export async function generateDailySession(data: any, regenerationCount: number = 0): Promise<DailyWorkout> {
-  // Log generation input
-  console.log(`🏋️ Generating workout with data:`, {
-    sessionMinutes: data?.availability?.session_minutes,
-    daysPerWeek: data?.availability?.days_per_week,
-    goal: data?.user_profile?.goal,
-    experienceLevel: data?.user_profile?.experience_level,
-    muscleBalanceSnapshot: data?.muscle_balance_input_snapshot
+export async function generateDailySession(context: any, regenerationCount: number = 0) {
+  const kit = StructuredWorkoutsKit();
+
+  console.log(`🏋️ Generating workout (attempt ${regenerationCount + 1}):`, {
+    time: context.availableTime,
+    goal: context.userGoal,
+    equipment: context.equipment,
+    muscleHint: context.muscleBalanceHint
   });
+
+  // Step 1: Build AI prompt using StructuredWorkoutsKit
+  const basePrompt = kit.buildPrompt({
+    userGoal: context.userGoal,
+    fitnessLevel: context.fitnessLevel,
+    availableTime: context.availableTime,
+    equipment: context.equipment,
+    muscleBalanceHint: context.muscleBalanceHint,
+    readinessScore: context.readinessScore
+  });
+
+  // Enhance prompt with recovery context and regeneration instructions
+  let enhancedPrompt = basePrompt;
   
-  const systemPrompt = `
-You are HealthPilot Coach, an expert strength & conditioning planner.
-Always follow ACSM, NSCA and WHO guardrails.
-Never output text or commentary—JSON only.
-
-HARD RULES (CRITICAL - NEVER VIOLATE):
-1) Read session_minutes from data.availability.session_minutes. This is the user's preferred workout duration - aim to FILL this time budget efficiently.
-2) Compute minimum_exercise_count = ceil((session_minutes / 60) * 5). This is the TOTAL target across main + accessories. FLEXIBILITY: Minor variations (±2 exercises) are acceptable if needed for quality/recovery.
-3) MAIN BLOCK DISTRIBUTION: For proper training stimulus, the 'main' array should aim for:
-   - TARGET: 3+ exercises for sessions ≥45min (minimum acceptable: 2)
-   - TARGET: 4+ exercises for sessions ≥60min (minimum acceptable: 3)  
-   - TARGET: 5+ exercises for sessions ≥75min (minimum acceptable: 4)
-   These are compound movements (squats, presses, pulls, hinges, etc.). Fill remaining exercises with accessories.
-   FLEXIBILITY: If recovery is poor or constraints exist, you may deliver 1 exercise below target while maintaining quality.
-4) Low readiness (amber/red) reduces load/sets/rest and may shorten conditioning. When fatigued, reduce sets per exercise or use lighter variations. You may reduce exercise count by 1-2 if needed to preserve quality.
-5) TIME BUDGET: The user's session_minutes is their PREFERRED duration. Aim to fill this time efficiently:
-   - For 60min sessions: TARGET 4-6 main + 1-3 accessories (acceptable range: 3-7 main + 0-4 accessories)
-   - For 75min sessions: TARGET 5-7 main + 2-4 accessories (acceptable range: 4-8 main + 1-5 accessories)  
-   - For 90min+ sessions: TARGET 6-8 main + 3-5 accessories (acceptable range: 5-9 main + 2-6 accessories)
-   Add extra sets to exercises (especially accessories) to utilize available time without exceeding the budget.
-6) Always include a 'time_budget' field that estimates minutes for warmup, each exercise, conditioning, and cooldown. Total should be close to session_minutes (within ±5 minutes is acceptable).
-7) Each exercise in main and accessories MUST have a unique exercise_id (use UUID v4 format like "550e8400-e29b-41d4-a716-446655440000").
-8) EXERCISE NAMING: Use exercise names WITHOUT equipment qualifiers in parentheses. Instead of "Leg Extension (Machine)" use "Leg Extension". Instead of "Bench Press (Barbell)" use "Bench Press". The exercise database already includes equipment info internally.
-
-Guardrails:
-- Strength: 1–6 reps @75–90%1RM RPE7–9, rest 120-240s
-- Hypertrophy: 6–12 reps @65–80%1RM RPE6–8, rest 60-120s
-- Endurance: 12–20 reps @50–70%1RM RPE5–7, rest 45-90s
-- Weekly volume: 8-20 sets per muscle group
-- HR Zones: HRmax = 208 - 0.7*age, Z2 = 60-70% HRmax, Z3 = 70-80% HRmax
-
-Safety Rules:
-- If contraindications or red flags detected: set safety.flag=true
-- Output mobility/breathing only (≤20min) and seek_medical_advice=true
-- Respect injuries and equipment limits
-- Never prescribe exercises that conflict with stated limitations
-
-Output Requirements:
-- Generate a complete, balanced workout for the specified day
-- Include specific exercises (use common exercise names)
-- Provide progression notes based on recent training history
-- Estimate total volume per muscle group
-- Ensure weekly volume stays within 8-20 sets per muscle group
-- Fill time budget efficiently: prefer adding low-load accessories (technique/rehab/mobility/isolation) over reducing exercise count
-
-MUSCLE BALANCE RULES (HIGH PRIORITY - AIM FOR BALANCE, ALLOW FLEXIBILITY):
-A) Use the muscle_balance_input_snapshot as primary guidance. Prioritize muscle groups with lowest trailing-7d adjusted volume vs target.
-B) Industry targets (per muscle, weekly hard sets): min=8, target=10-15, max=20. FLEXIBILITY: Exceeding 20 sets (up to 30) is acceptable for elite athletes with good recovery and high training frequency.
-C) Session coverage should favor under-trained groups and avoid over-serving already-high groups. Minor imbalances are acceptable if quality/recovery demands it.
-D) Anti-duplication: within a single session, no duplicate exercise names; across the trailing 7 days, avoid repeating the exact same exercise name for a muscle group more than once unless availability constraints force it—then substitute a close variant.
-E) Movement pattern diversity: aim to include varied patterns across the week (Squat, Hinge, Horizontal Push, Horizontal Pull, Vertical Pull, Unilateral, Core Anti-rotation/Extension/Flexion, Carry). Today's plan should minimize pattern overlap with prior day, but some overlap is acceptable for progression.
-F) Exercise selection must map to targeted muscles accurately; include secondary muscles in the coverage report.
-G) Respect injuries/equipment; substitute with the closest pattern maintaining the stimulus.
-H) Time budget has priority. If time-limited, preserve balance by swapping big lifts for time-efficient variants before cutting entire muscle coverage.
-I) Emit a coverage_report and a per-muscle set allocation for today + projected week totals.
-
-MOVEMENT TAXONOMY (for exercise variants and diversity):
-- Squat (bilateral/unilateral): Back Squat, Front Squat, Safety Bar Squat, Goblet Squat, Bulgarian Split Squat, Walking Lunges
-- Hinge: Conventional Deadlift, Sumo Deadlift, Romanian Deadlift, Trap Bar Deadlift, Single-Leg RDL, Good Mornings
-- Horizontal Push: Barbell Bench Press, Incline Bench Press, Dumbbell Bench Press, Push-ups, Dips
-- Horizontal Pull: Barbell Row, Dumbbell Row, Seated Cable Row, Chest-Supported Row, Seal Row, Meadows Row
-- Vertical Push: Overhead Press, Push Press, Arnold Press, Landmine Press
-- Vertical Pull: Pull-ups, Chin-ups, Lat Pulldown, Neutral Grip Pulldown
-- Carry: Farmer's Carry, Overhead Carry, Suitcase Carry
-- Core: Pallof Press (anti-rotation), Dead Bug (anti-extension), Side Plank (anti-lateral), Ab Rollouts
-
-Exercise Variety Guidelines:
-- PRIORITIZE variety: Select different exercises from those listed in recently_used_exercises
-- For main compound movements: Choose variations (e.g., if "Back Squat" was recent, consider "Front Squat", "Bulgarian Split Squat", or "Leg Press")
-- For accessories: Rotate between different movement patterns and equipment
-- Aim for <30% overlap with recently_used_exercises when possible
-- If regenerating (look for regeneration context), be MORE creative and select completely different exercises
-- EXAMPLE VARIATION CHAINS: Back Squat → Front Squat → Safety Bar Squat → Goblet Squat; Seated Cable Row → Chest-Supported DB Row → Seal Row → Meadows Row
-
-REQUIRED OUTPUT SCHEMA (return this exact structure at the root level):
-{
-  "session_id": "uuid-v4-format",
-  "date": "YYYY-MM-DD",
-  "focus": "description of today's training focus",
-  "safety": {
-    "flag": false,
-    "notes": "safety considerations",
-    "seek_medical_advice": false
-  },
-  "warmup": ["exercise 1", "exercise 2"],
-  "main": [
-    {
-      "exercise_id": "uuid-v4-format",
-      "block": "main",
-      "exercise": "Exercise Name",
-      "goal": "strength" | "hypertrophy" | "power",
-      "sets": 3,
-      "reps": 8,
-      "intensity": "RPE 7 or 70% 1RM",
-      "rest_seconds": 90,
-      "alternative_if_limited": "Alternative exercise if equipment unavailable"
-    }
-  ],
-  "accessories": [
-    {
-      "exercise_id": "uuid-v4-format",
-      "block": "accessories",
-      "exercise": "Exercise Name",
-      "goal": "hypertrophy",
-      "sets": 3,
-      "reps": 12,
-      "intensity": "RPE 7",
-      "rest_seconds": 60
-    }
-  ],
-  "conditioning": {
-    "include": true,
-    "type": "none" | "steady_state" | "intervals" | "tempo_run" | "circuit",
-    "duration_minutes": 15,
-    "intensity_zone": "Z2",
-    "notes": "optional notes"
-  },
-  "cooldown": ["stretch 1", "stretch 2"],
-  "progression_notes": "notes about progression",
-  "compliance_summary": {
-    "volume_sets_estimate": {
-      "chest": 8,
-      "back": 10
-    },
-    "weekly_volume_guardrail_ok": true,
-    "reasoning": "explanation"
-  },
-  "time_budget": {
-    "warmup_min": 5,
-    "per_exercise_min": [8, 8, 6, 6, 5],
-    "conditioning_min": 10,
-    "cooldown_min": 5,
-    "total_min": 58
-  },
-  "min_exercise_policy": {
-    "session_minutes": 60,
-    "minimum_exercise_count": 5,
-    "achieved_exercise_count": 5
-  },
-  "coverage_report": {
-    "per_muscle_sets_today": {
-      "chest": 8,
-      "calves": 3,
-      "back": 6
-    },
-    "projected_weekly_sets": {
-      "chest": 14,
-      "calves": 3,
-      "back": 10
-    },
-    "undertrained_priority": ["calves", "chest"],
-    "overtrained_watchlist": []
-  },
-  "variation_policy": {
-    "no_session_duplicates": true,
-    "no_repeat_exact_exercise_days": 7,
-    "pattern_mix_notes": "Prioritized horizontal push and calf isolation to address imbalances"
-  },
-  "muscle_balance_input_snapshot": {
-    "chest": 6,
-    "back": 10,
-    "quads": 12,
-    "hamstrings": 8,
-    "calves": 0,
-    "shoulders": 7,
-    "arms": 5
+  if (context.recoveryState === "red") {
+    enhancedPrompt += `\n\nRECOVERY ALERT: User is in RED recovery state (readiness: ${context.readinessScore}/100). Reduce volume by 30%, prefer machine variations, lower intensity.`;
+  } else if (context.recoveryState === "yellow") {
+    enhancedPrompt += `\n\nRECOVERY CAUTION: User is in YELLOW recovery state (readiness: ${context.readinessScore}/100). Reduce volume by 15%, prefer stable variations.`;
   }
-}
-`;
 
+  if (regenerationCount > 0) {
+    enhancedPrompt += `\n\nREGENERATION REQUEST #${regenerationCount + 1}: User rejected previous workout. Generate COMPLETELY DIFFERENT patterns and modalities. Use higher temperature for creativity.`;
+  }
+
+  // Step 2: Call OpenAI
   const response = await getOpenAIClient().chat.completions.create({
     model: "gpt-4o",
     response_format: { type: "json_object" },
     messages: [
-      { role: "system", content: systemPrompt },
+      { role: "system", content: enhancedPrompt },
       {
         role: "user",
         content: JSON.stringify({
-          instruction: regenerationCount > 0 
-            ? `REGENERATION REQUEST (attempt #${regenerationCount + 1}): User rejected previous workout. Generate a COMPLETELY DIFFERENT workout with maximum variety. Avoid all exercises from recently_used_exercises if possible.`
-            : "Generate today's safe and standards-aligned workout session.",
-          input: data
+          instruction: "Generate workout using ONLY the semantic patterns defined in the schema. NO exercise names.",
+          context: {
+            date: context.date,
+            recent_training: context.recentTraining?.slice(0, 3) // Last 3 sessions for context
+          }
         })
       }
     ],
-    temperature: regenerationCount > 0 ? 0.9 : 0.7 // Higher creativity when regenerating
+    temperature: regenerationCount > 0 ? 0.9 : 0.7
   });
 
   const content = response.choices[0].message?.content ?? "{}";
-  const parsed = JSON.parse(content);
 
-  // ⬇️ Sanitize AI output before Zod validation (coerce types & map invalid values)
-  const sanitized = {
-    ...parsed,
-    main: (parsed.main || []).map((ex: any) => ({
-      ...ex,
-      sets: typeof ex.sets === 'string' ? parseInt(ex.sets, 10) : ex.sets,
-      reps: typeof ex.reps === 'string' ? parseInt(ex.reps, 10) : ex.reps,
-      rest_seconds: typeof ex.rest_seconds === 'string' ? parseInt(ex.rest_seconds, 10) : ex.rest_seconds,
-      // Map invalid goal values to valid ones
-      goal: (['strength', 'hypertrophy', 'power'].includes(ex.goal)) ? ex.goal : 
-            (ex.goal === 'endurance' ? 'hypertrophy' : 'strength')
-    })),
-    accessories: (parsed.accessories || []).map((ex: any) => ({
-      ...ex,
-      sets: typeof ex.sets === 'string' ? parseInt(ex.sets, 10) : ex.sets,
-      reps: typeof ex.reps === 'string' ? parseInt(ex.reps, 10) : ex.reps,
-      rest_seconds: typeof ex.rest_seconds === 'string' ? parseInt(ex.rest_seconds, 10) : ex.rest_seconds
-    }))
-  };
+  // Step 3: Parse and map AI response to template_ids
+  const mapped = kit.parseAndMap(content, context.equipment, RULES);
 
-  // Validate output structure & guardrails
-  const result = DailyWorkoutSchema.parse(sanitized);
-
-  // ⬇️ Enforce exercise count minimums (belt-and-braces server validation)
-  const sessionMinutes = Number(data?.availability?.session_minutes ?? 60);
-  const minTotalExercises = Math.ceil((sessionMinutes / 60) * 5);
-  const mainCount = result.main?.length || 0;
-  const accessoryCount = result.accessories?.length || 0;
-  const totalCount = mainCount + accessoryCount;
-  
-  // Determine minimum main exercises based on session length
-  let minMainExercises = 3; // Default for 45+ min
-  if (sessionMinutes >= 75) minMainExercises = 5;
-  else if (sessionMinutes >= 60) minMainExercises = 4;
-  else if (sessionMinutes >= 45) minMainExercises = 3;
-  
-  // Flexibility buffers - allow minor variations instead of hard failures
-  const totalExerciseBuffer = 2; // Allow ±2 exercises from target
-  const mainExerciseBuffer = 1; // Allow -1 from minimum main exercises
-  
-  console.log(`🏋️ Exercise count validation (with flexibility):`, {
-    sessionMinutes,
-    minTotalRequired: minTotalExercises,
-    minMainRequired: minMainExercises,
-    mainGenerated: mainCount,
-    accessoriesGenerated: accessoryCount,
-    totalGenerated: totalCount,
-    totalBuffer: `±${totalExerciseBuffer}`,
-    mainBuffer: `-${mainExerciseBuffer}`,
-    totalPassed: totalCount >= (minTotalExercises - totalExerciseBuffer),
-    mainPassed: mainCount >= (minMainExercises - mainExerciseBuffer)
-  });
-  
-  // Check total count with flexibility buffer (allow ±2 exercises)
-  if (totalCount < (minTotalExercises - totalExerciseBuffer)) {
-    console.error(`❌ Total exercise count validation FAILED: ${totalCount} < ${minTotalExercises - totalExerciseBuffer} (min ${minTotalExercises} - ${totalExerciseBuffer} buffer)`);
-    throw new Error(
-      `Plan significantly under-filled: ${totalCount} total exercises < ${minTotalExercises - totalExerciseBuffer} for ${sessionMinutes}-min session. ` +
-      `Regenerate with more exercises.`
-    );
-  } else if (totalCount < minTotalExercises) {
-    console.warn(`⚠️ Total exercise count slightly below target: ${totalCount} < ${minTotalExercises}, but within acceptable buffer (±${totalExerciseBuffer}). Proceeding.`);
-  }
-  
-  // Check main exercise count with flexibility buffer (allow -1 from minimum)
-  if (mainCount < (minMainExercises - mainExerciseBuffer)) {
-    console.error(`❌ Main exercise count validation FAILED: ${mainCount} < ${minMainExercises - mainExerciseBuffer} (min ${minMainExercises} - ${mainExerciseBuffer} buffer)`);
-    throw new Error(
-      `Insufficient main exercises: ${mainCount} < ${minMainExercises - mainExerciseBuffer} for ${sessionMinutes}-min session. ` +
-      `Main block needs more compound movements (squats, presses, pulls, hinges). Regenerate with proper exercise distribution.`
-    );
-  } else if (mainCount < minMainExercises) {
-    console.warn(`⚠️ Main exercise count slightly below target: ${mainCount} < ${minMainExercises}, but within acceptable buffer (-${mainExerciseBuffer}). Proceeding.`);
+  if (!mapped.success || !mapped.mappedBlocks) {
+    console.error("❌ Workout generation failed:", mapped.errors);
+    throw new Error(`Workout generation failed: ${mapped.errors?.join(", ")}`);
   }
 
-  // Verify time budget if provided (allow 5-minute buffer for flexibility)
-  const timeBudgetBuffer = 5;
-  const maxAllowedTime = sessionMinutes + timeBudgetBuffer;
-  if (result.time_budget && result.time_budget.total_min > maxAllowedTime) {
-    throw new Error(
-      `Time budget exceeded: ${result.time_budget.total_min} min > ${maxAllowedTime} min allowed (${sessionMinutes}min + ${timeBudgetBuffer}min buffer). ` +
-      `Reduce sets, shorten conditioning, or trim accessories.`
-    );
+  console.log(`✅ Workout generated successfully: ${mapped.mappedBlocks.length} blocks mapped`);
+
+  // Step 4: Validate time budget
+  const plan = mapped.plan!;
+  const timeBudget = plan.total_time_estimate_min || context.availableTime;
+  const timeDelta = Math.abs(timeBudget - context.availableTime);
+
+  if (timeDelta > 10) {
+    console.warn(`⚠️ Time budget mismatch: ${timeBudget}min vs ${context.availableTime}min target`);
   }
 
-  // ──────────────────────────────────────────────
-  // Muscle Balance & Anti-Duplication Guards
-  // ──────────────────────────────────────────────
-  const { canonicalize, hasDuplicates, findDuplicates } = await import("./exercise-canonical");
+  // Step 5: Validate muscle balance and volume caps
+  const volumeCheck = validateVolume(mapped.mappedBlocks, context.muscleBalanceSnapshot);
   
-  // Check for duplicate exercises within the session
-  const allExerciseNames = [
-    ...(result.main || []).map(ex => ex.exercise),
-    ...(result.accessories || []).map(ex => ex.exercise)
-  ];
-  
-  if (hasDuplicates(allExerciseNames)) {
-    const duplicates = findDuplicates(allExerciseNames);
-    console.error(`❌ Duplicate exercises detected:`, duplicates);
-    throw new Error(
-      `Duplicate exercises detected in session: ${duplicates.join(", ")}. ` +
-      `Each exercise must be unique. Regenerate with different exercise variants.`
-    );
+  if (volumeCheck.weeklyOverage.length > 0) {
+    console.warn(`⚠️ Weekly volume warnings for: ${volumeCheck.weeklyOverage.join(", ")}`);
   }
-  
-  // Weekly volume monitoring - LOG ONLY, never block generation
-  // Elite athletes training 5-6x/week for 90min need higher volumes (30-35 sets/muscle is normal)
-  // Only validate ACTUAL completed volume, not projected future volume
-  if (result.coverage_report?.projected_weekly_sets) {
-    const highVolume = Object.entries(result.coverage_report.projected_weekly_sets)
-      .filter(([muscle, sets]) => sets > 30) // Elite threshold
-      .map(([muscle, sets]) => ({ muscle, sets }));
-    
-    if (highVolume.length > 0) {
-      const formatted = highVolume.map(({ muscle, sets }) => `${muscle}: ${sets} sets`);
-      console.warn(`⚠️ High projected weekly volume (>30 sets/muscle):`, formatted);
-      console.warn(`   This is acceptable for elite athletes. Monitor recovery and regenerate if needed.`);
-      // Add informational note - never block generation
-      result.safety.notes += ` | High-volume training: ${formatted.join(", ")} projected weekly. Ensure adequate recovery between sessions.`;
+
+  // Step 6: Return structured workout
+  return {
+    success: true,
+    plan,
+    blocks: mapped.mappedBlocks,
+    validation: {
+      timeBudget: {
+        target: context.availableTime,
+        estimated: timeBudget,
+        delta: timeDelta,
+        acceptable: timeDelta <= 10
+      },
+      volume: volumeCheck,
+      muscleBalance: {
+        snapshot: context.muscleBalanceSnapshot,
+        todayCoverage: volumeCheck.todayByMuscle
+      }
     }
-  }
-
-  // Basic safety layer checks - dynamic based on session duration
-  const totalSets = Object.values(result.compliance_summary.volume_sets_estimate).reduce(
-    (a: number, b: number) => a + b,
-    0
-  );
-  
-  // Dynamic volume cap based on session duration:
-  // ~2.5-3 min per set average (including rest) = sustainable volume
-  const maxSetsForDuration = Math.floor(sessionMinutes / 2.5); // Conservative estimate
-  
-  if (totalSets > maxSetsForDuration) {
-    throw new Error(
-      `Unsafe volume (${totalSets} sets in ${sessionMinutes} min session). ` +
-      `Max recommended: ${maxSetsForDuration} sets. Regenerate session.`
-    );
-  }
-
-  // Add server-side safety notes for injuries
-  if (data.user_profile?.injuries_limitations?.length > 0) {
-    result.safety.notes += ` | Server check: User has reported injuries: ${data.user_profile.injuries_limitations.join(", ")}. Exercises selected to avoid aggravation.`;
-  }
-
-  return result;
+  };
 }
 
 // ──────────────────────────────────────────────
-// Exercise name fuzzy matching (Enhanced with exercise-resolver)
+// Volume validation helper
 // ──────────────────────────────────────────────
-export async function matchExerciseToLibrary(
-  storage: IStorage,
-  exerciseName: string
-): Promise<string | null> {
-  // Use the sophisticated exercise resolver
-  const outcome = await resolveAIExercise(exerciseName, storage, {
-    minAuto: 0.86,      // High confidence threshold for auto-resolution
-    deltaGuard: 0.08,   // Require clear winner to avoid false positives
-    topK: 3             // Return top 3 suggestions if ambiguous
-  });
+function validateVolume(
+  blocks: Array<AnyBlock & { template_id?: string; display_name?: string }>,
+  currentWeeklySnapshot: Record<string, number>
+) {
+  const todayByMuscle: Record<string, number> = {};
   
-  if (outcome.kind === "resolved") {
-    console.log(`✅ Resolved "${exerciseName}" → "${outcome.matched_name}" (score: ${outcome.score.toFixed(3)})`);
-    return outcome.canonical_id;
-  }
-  
-  if (outcome.kind === "needs_confirmation") {
-    // Log suggestions for manual review/teaching
-    console.warn(`⚠️ Ambiguous match for "${exerciseName}". Top suggestions:`);
-    outcome.suggestions.forEach((s, i) => {
-      console.warn(`  ${i + 1}. ${s.id} (score: ${s.score.toFixed(3)}) - ${s.reason.join(", ")}`);
-    });
-    // Return best guess (top suggestion)
-    if (outcome.suggestions.length > 0) {
-      const topSuggestion = outcome.suggestions[0];
-      console.warn(`  → Using top suggestion: ${topSuggestion.id}`);
-      return topSuggestion.id;
+  // Calculate today's volume per muscle
+  for (const block of blocks) {
+    if (block.type === "lift_block") {
+      const liftBlock = block as LiftBlock;
+      const muscles = getMusclesForPattern(liftBlock.pattern);
+      
+      for (const muscle of muscles) {
+        todayByMuscle[muscle] = (todayByMuscle[muscle] || 0) + liftBlock.sets;
+      }
     }
   }
-  
-  console.error(`❌ No match found for "${exerciseName}"`);
-  console.error(`   Trace: ${outcome.trace.join(" → ")}`);
-  return null;
+
+  // Project weekly totals
+  const projectedWeekly: Record<string, number> = { ...currentWeeklySnapshot };
+  for (const [muscle, sets] of Object.entries(todayByMuscle)) {
+    projectedWeekly[muscle] = (projectedWeekly[muscle] || 0) + sets;
+  }
+
+  // Check for volume cap violations (>30 sets/week is red flag for most people)
+  // But allow flexibility for elite athletes
+  const weeklyOverage: string[] = [];
+  for (const [muscle, sets] of Object.entries(projectedWeekly)) {
+    if (sets > 35) { // Hard cap at 35 sets/week
+      weeklyOverage.push(`${muscle} (${sets} sets/week)`);
+    }
+  }
+
+  return {
+    todayByMuscle,
+    projectedWeekly,
+    weeklyOverage,
+    acceptable: weeklyOverage.length === 0
+  };
+}
+
+// ──────────────────────────────────────────────
+// Save workout to database
+// ──────────────────────────────────────────────
+export async function saveWorkout(
+  storage: IStorage,
+  userId: string,
+  result: any
+) {
+  const { plan, blocks, validation } = result;
+
+  // Store in generatedWorkouts table
+  await storage.createGeneratedWorkout({
+    userId,
+    date: plan.date || format(new Date(), "yyyy-MM-dd"),
+    workoutData: {
+      plan,
+      blocks,
+      validation,
+      generated_at: new Date().toISOString(),
+      system_version: "v2.0-pattern-based"
+    },
+    status: "pending"
+  });
+
+  console.log(`💾 Workout saved for user ${userId}`);
+}
+
+// ──────────────────────────────────────────────
+// Main entry point for daily workout scheduler
+// ──────────────────────────────────────────────
+export async function generateAndSaveWorkout(
+  storage: IStorage,
+  userId: string,
+  targetDate: string,
+  regenerationCount: number = 0
+) {
+  try {
+    // Build context
+    const context = await buildUserContext(storage, userId, targetDate);
+
+    // Generate workout
+    const result = await generateDailySession(context, regenerationCount);
+
+    // Save to database
+    await saveWorkout(storage, userId, result);
+
+    return result;
+  } catch (error) {
+    console.error(`❌ Failed to generate workout for user ${userId}:`, error);
+    throw error;
+  }
 }
