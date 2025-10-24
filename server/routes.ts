@@ -11,7 +11,8 @@ import { calculatePhenoAge, getBiomarkerDisplayName, getBiomarkerUnit, getBiomar
 import { calculateReadinessScore } from "./services/readiness";
 import { runInterpretationPipeline } from "./services/medical-interpreter/pipeline";
 import { extractBiomarkersFromLabs } from "./services/medical-interpreter/biomarkerExtractor";
-import { parseISO, isValid, subDays } from "date-fns";
+import { buildUserContext, generateDailySession } from "./services/trainingGenerator";
+import { parseISO, isValid, subDays, format as formatDate } from "date-fns";
 import { eq, and, gte, or, inArray, isNull, isNotNull, sql } from "drizzle-orm";
 import { isAuthenticated, isAdmin, webhookAuth } from "./replitAuth";
 import { checkMessageLimit, incrementMessageCount, requirePremium, PremiumFeature, isPremiumUser, filterHistoricalData, canAddBiomarkerType } from "./premiumMiddleware";
@@ -5339,11 +5340,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      const { buildUserContext, generateDailySession } = await import("./services/trainingGenerator");
-      const { format } = await import("date-fns");
-      
       // Get target date from request body (defaults to today)
-      const targetDate = req.body.date || format(new Date(), "yyyy-MM-dd");
+      const targetDate = req.body.date || formatDate(new Date(), "yyyy-MM-dd");
       
       // Check if workout already exists for this date
       const existing = await storage.getGeneratedWorkout(userId, targetDate);
