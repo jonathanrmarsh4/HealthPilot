@@ -39,6 +39,17 @@ app.use((req, res, next) => {
 
 (async () => {
   await setupAuth(app);
+  
+  // Validate template system integrity at startup
+  // Fails fast if RULES references non-existent templates or patterns lack coverage
+  try {
+    const { validateTemplateSystemStrict } = await import('./services/validateTemplateSystem');
+    await validateTemplateSystemStrict();
+  } catch (error: any) {
+    log(`❌ FATAL: ${error.message}`);
+    process.exit(1); // Prevent app from running with broken template config
+  }
+  
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

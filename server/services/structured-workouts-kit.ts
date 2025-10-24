@@ -215,6 +215,11 @@ Generate the workout now (JSON only):`;
         }
       }
 
+      // Check if all lift blocks were skipped
+      if (mappedBlocks.length === 0 && warnings.length > 0) {
+        errors.push("All lift blocks were skipped due to missing template coverage. Workout cannot be generated.");
+      }
+
       // Return success if we have at least ONE mapped block, even with warnings
       // This allows partial workouts to succeed instead of total failure
       return {
