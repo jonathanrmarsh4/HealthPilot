@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, TrendingUp, TrendingDown, Minus, CheckCircle2, Activity, Clock, AlertCircle } from "lucide-react";
+import { Plus, TrendingUp, TrendingDown, Minus, CheckCircle2, Activity, Clock, AlertCircle, RefreshCw, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDistanceToNow } from "date-fns";
@@ -64,6 +64,7 @@ export default function Symptoms() {
   const { toast } = useToast();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [selectedContexts, setSelectedContexts] = useState<string[]>([]);
+  const [assessmentResult, setAssessmentResult] = useState<any | null>(null);
 
   const { data: activeEpisodes, isLoading: activeLoading } = useQuery<SymptomEvent[]>({
     queryKey: ["/api/symptoms/active"],
@@ -71,6 +72,28 @@ export default function Symptoms() {
 
   const { data: allEvents, isLoading: historyLoading } = useQuery<SymptomEvent[]>({
     queryKey: ["/api/symptoms/events"],
+  });
+
+  const generateAssessmentMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/insights/generate-v2");
+      return res.json();
+    },
+    onSuccess: (data) => {
+      setAssessmentResult(data);
+      queryClient.invalidateQueries({ queryKey: ["/api/insights/today"] });
+      toast({
+        title: "AI Assessment Complete",
+        description: `Generated ${data.insightsGenerated || 0} insights based on your symptoms and health data.`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to generate assessment",
+        variant: "destructive",
+      });
+    },
   });
 
   const form = useForm<SymptomFormData>({
@@ -453,6 +476,51 @@ export default function Symptoms() {
           </Card>
         )}
       </div>
+
+      {/* AI Symptom Assessment */}
+      {activeEpisodes && activeEpisodes.length > 0 && (
+        <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-primary" />
+                <CardTitle className="text-lg">AI Health Assessment</CardTitle>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => generateAssessmentMutation.mutate()}
+                disabled={generateAssessmentMutation.isPending}
+                data-testid="button-generate-assessment"
+                className="gap-2"
+              >
+                <RefreshCw className={`h-4 w-4 ${generateAssessmentMutation.isPending ? 'animate-spin' : ''}`} />
+                {generateAssessmentMutation.isPending ? "Analyzing..." : "Get Assessment"}
+              </Button>
+            </div>
+            <CardDescription>
+              Get AI-powered insights correlating your symptoms with recent vitals, sleep, and biomarkers
+            </CardDescription>
+          </CardHeader>
+          {assessmentResult && (
+            <CardContent className="space-y-3">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Insights Generated:</span>
+                <span className="font-semibold">{assessmentResult.insightsGenerated || 0}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Metrics Analyzed:</span>
+                <span className="font-semibold">{assessmentResult.metricsAnalyzed || 0}</span>
+              </div>
+              {assessmentResult.insightsGenerated > 0 && (
+                <p className="text-sm text-primary/80 mt-2">
+                  ✨ New insights have been added to your Insights Hub
+                </p>
+              )}
+            </CardContent>
+          )}
+        </Card>
+      )}
 
       {/* History */}
       {resolvedEvents.length > 0 && (
