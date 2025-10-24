@@ -1,7 +1,7 @@
 // Imaging Report Extractor
 // Extracts key metrics from imaging reports (CT calcium score, bone density, etc.)
 
-import { openai } from '../client';
+import { getOpenAI } from '../client';
 import type { OCROutput } from '../types';
 import { PROMPTS } from '../config';
 
@@ -27,7 +27,7 @@ export async function extractImagingObservations(ocrOutput: OCROutput): Promise<
   confidence: number;
 }> {
   try {
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
       model: 'gpt-4o',
       messages: [
         {

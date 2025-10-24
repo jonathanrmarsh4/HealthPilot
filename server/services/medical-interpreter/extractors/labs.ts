@@ -1,7 +1,7 @@
 // Lab Report Extractor
 // Uses GPT-4 to extract structured lab observations from OCR text
 
-import { openai } from '../client';
+import { getOpenAI } from '../client';
 import type { ObservationLabsData, OCROutput } from '../types';
 import { PROMPTS } from '../config';
 
@@ -17,7 +17,7 @@ export async function extractLabObservations(ocrOutput: OCROutput): Promise<{
   try {
     const extractionPrompt = PROMPTS.extraction_by_type.Observation_Labs;
     
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
       model: 'gpt-4o',
       messages: [
         {

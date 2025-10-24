@@ -96,17 +96,24 @@ export const DailyWorkoutSchema = z.object({
 export type DailyWorkout = z.infer<typeof DailyWorkoutSchema>;
 
 // ──────────────────────────────────────────────
-// Initialize OpenAI client
+// Lazy OpenAI client initialization
 // ──────────────────────────────────────────────
-const apiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
-if (!apiKey) {
-  throw new Error("OpenAI API key not found. Check AI_INTEGRATIONS_OPENAI_API_KEY or OPENAI_API_KEY environment variable.");
-}
+let clientInstance: OpenAI | null = null;
 
-const client = new OpenAI({
-  apiKey,
-  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
-});
+function getOpenAIClient(): OpenAI {
+  if (!clientInstance) {
+    const apiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      throw new Error("OpenAI API key not found. Check AI_INTEGRATIONS_OPENAI_API_KEY or OPENAI_API_KEY environment variable.");
+    }
+    
+    clientInstance = new OpenAI({
+      apiKey,
+      baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+    });
+  }
+  return clientInstance;
+}
 
 // ──────────────────────────────────────────────
 // Context builder - gather user data from DB
@@ -475,7 +482,7 @@ REQUIRED OUTPUT SCHEMA (return this exact structure at the root level):
 }
 `;
 
-  const response = await client.chat.completions.create({
+  const response = await getOpenAIClient().chat.completions.create({
     model: "gpt-4o",
     response_format: { type: "json_object" },
     messages: [

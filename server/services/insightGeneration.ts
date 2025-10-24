@@ -9,10 +9,17 @@ import { storage } from '../storage';
  * Implements strict quality control with scoring, ranking, and max-3 constraint.
  */
 
-const openai = new OpenAI({ 
-  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY,
-  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
-});
+let openaiInstance: OpenAI | null = null;
+
+function getOpenAI(): OpenAI {
+  if (!openaiInstance) {
+    openaiInstance = new OpenAI({ 
+      apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY,
+      baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+    });
+  }
+  return openaiInstance;
+}
 
 export interface GeneratedInsight {
   category: string; // e.g., "sleep", "recovery", "performance", "health"
@@ -53,7 +60,7 @@ export async function generateInsightFromDeviation(
   const prompt = buildInsightPrompt(deviation, userContext, observedAt);
 
   try {
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
       model: 'gpt-4o',
       messages: [
         {

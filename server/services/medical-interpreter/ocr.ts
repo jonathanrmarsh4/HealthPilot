@@ -1,7 +1,7 @@
 // OCR Service using OpenAI Vision API for images and pdf-parse for PDFs
 // Extracts text from PDF/image medical reports with quality assessment
 
-import { openai } from './client';
+import { getOpenAI } from './client';
 import type { OCROutput } from './types';
 import fs from 'fs/promises';
 
@@ -51,7 +51,7 @@ export async function extractTextFromFile(filePath: string): Promise<OCROutput> 
             const page = pngPages[i];
             const base64Image = page.content.toString('base64');
             
-            const response = await openai.chat.completions.create({
+            const response = await getOpenAI().chat.completions.create({
               model: 'gpt-4o',
               messages: [
                 {
@@ -108,7 +108,7 @@ export async function extractTextFromFile(filePath: string): Promise<OCROutput> 
       }
 
       // Use OpenAI Vision to extract text
-      const response = await openai.chat.completions.create({
+      const response = await getOpenAI().chat.completions.create({
         model: 'gpt-4o',
         messages: [
           {
