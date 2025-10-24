@@ -608,18 +608,28 @@ REQUIRED OUTPUT SCHEMA (return this exact structure at the root level):
     );
   }
   
-  // Check weekly volume cap (max 20 sets per muscle)
+  // Check weekly volume cap (max 20 sets per muscle) - now a soft warning with flexibility
+  const volumeCapFlexibility = 3; // Allow up to 3 sets over the cap (max 23 sets)
   if (result.coverage_report?.projected_weekly_sets) {
     const overtrained = Object.entries(result.coverage_report.projected_weekly_sets)
       .filter(([muscle, sets]) => sets > 20)
-      .map(([muscle, sets]) => `${muscle}: ${sets} sets`);
+      .map(([muscle, sets]) => ({ muscle, sets }));
     
-    if (overtrained.length > 0) {
-      console.error(`❌ Weekly volume cap exceeded:`, overtrained);
+    const criticalOvertraining = overtrained.filter(({ sets }) => sets > (20 + volumeCapFlexibility));
+    
+    if (criticalOvertraining.length > 0) {
+      const formatted = criticalOvertraining.map(({ muscle, sets }) => `${muscle}: ${sets} sets`);
+      console.error(`❌ Weekly volume cap CRITICALLY exceeded (>${20 + volumeCapFlexibility} sets/muscle):`, formatted);
       throw new Error(
-        `Weekly volume cap exceeded (max 20 sets/muscle): ${overtrained.join(", ")}. ` +
-        `Reduce today's volume for these muscle groups to stay within safe limits.`
+        `Weekly volume cap critically exceeded: ${formatted.join(", ")}. ` +
+        `This exceeds safe training limits. Reduce today's volume for these muscle groups.`
       );
+    } else if (overtrained.length > 0) {
+      const formatted = overtrained.map(({ muscle, sets }) => `${muscle}: ${sets} sets`);
+      console.warn(`⚠️ Weekly volume cap slightly exceeded (20-${20 + volumeCapFlexibility} sets/muscle):`, formatted);
+      console.warn(`   This is within acceptable limits, but monitor recovery. Proceeding with workout.`);
+      // Add warning to safety notes instead of failing
+      result.safety.notes += ` | Volume alert: ${formatted.join(", ")} slightly over weekly target (20 sets). Monitor recovery.`;
     }
   }
 
