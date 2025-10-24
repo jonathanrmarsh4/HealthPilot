@@ -1,0 +1,78 @@
+2025-10-24 10:02:48.85
+4a39309e
+User
+file:///home/runner/workspace/dist/index.js:6125
+2025-10-24 10:02:48.85
+4a39309e
+User
+if (typeof __require !== "undefined" && __require.main === module) {
+2025-10-24 10:02:48.85
+4a39309e
+User
+^
+2025-10-24 10:02:48.85
+4a39309e
+User
+2025-10-24 10:02:48.85
+4a39309e
+User
+ReferenceError: module is not defined in ES module scope
+2025-10-24 10:02:48.85
+4a39309e
+User
+This file is being treated as an ES module because it has a '.js' file extension and '/home/runner/workspace/package.json' contains "type": "module". To treat it as a CommonJS script, rename it to use the '.cjs' file extension.
+2025-10-24 10:02:48.85
+4a39309e
+User
+at server/services/exercise-resolver.ts (file:///home/runner/workspace/dist/index.js:6125:64)
+2025-10-24 10:02:48.85
+4a39309e
+User
+at __init (file:///home/runner/workspace/dist/index.js:10:56)
+2025-10-24 10:02:48.85
+4a39309e
+User
+at server/services/exercise-resolver-adapter.ts (file:///home/runner/workspace/dist/index.js:6247:5)
+2025-10-24 10:02:48.85
+4a39309e
+User
+at __init (file:///home/runner/workspace/dist/index.js:10:56)
+2025-10-24 10:02:48.85
+4a39309e
+User
+at server/services/trainingGenerator.ts (file:///home/runner/workspace/dist/index.js:6732:5)
+2025-10-24 10:02:48.85
+4a39309e
+User
+at __init (file:///home/runner/workspace/dist/index.js:10:56)
+2025-10-24 10:02:48.85
+4a39309e
+User
+at file:///home/runner/workspace/dist/index.js:16989:1
+2025-10-24 10:02:48.85
+4a39309e
+User
+at ModuleJob.run (node:internal/modules/esm/module_job:263:25)
+2025-10-24 10:02:48.85
+4a39309e
+User
+at async ModuleLoader.import (node:internal/modules/esm/loader:540:24)
+2025-10-24 10:02:48.85
+4a39309e
+User
+at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+2025-10-24 10:02:48.85
+4a39309e
+User
+2025-10-24 10:02:48.85
+4a39309e
+User
+Node.js v20.19.3
+2025-10-24 10:02:48.88
+4a39309e
+System
+command finished with error [npm run start]: exit status 1
+2025-10-24 10:02:54.30
+4a39309e
+System
+a port configuration was specified but the required port was never opened
