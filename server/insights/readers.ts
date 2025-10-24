@@ -8,7 +8,7 @@ import { biomarkers, sleepSessions, hkEventsRaw } from "../../shared/schema";
 import { eq, and, gte, lte, sql, desc } from "drizzle-orm";
 import { MetricSpec } from "./registry";
 import { ilog } from "./debug";
-import { formatInTimeZone, zonedTimeToUtc } from "date-fns-tz";
+import { formatInTimeZone, fromZonedTime } from "date-fns-tz";
 import { addDays } from "date-fns";
 
 export interface DayWindow {
@@ -31,14 +31,14 @@ export interface SeriesPoint {
 export function perthLocalDay(dateStr: string, tz = "Australia/Perth"): DayWindow {
   // Parse dateStr in the user's timezone and convert to UTC
   // Example: "2025-01-15" in "America/New_York" means Jan 15 00:00:00 EST → Jan 15 05:00:00 UTC
-  const localStart = zonedTimeToUtc(`${dateStr}T00:00:00`, tz);
+  const localStart = fromZonedTime(`${dateStr}T00:00:00`, tz);
   
   // Use next day's midnight as exclusive upper bound
   // This ensures events at 23:59:59.999 are included (start < nextMidnight)
   const nextDay = new Date(dateStr);
   nextDay.setDate(nextDay.getDate() + 1);
   const nextDayStr = nextDay.toISOString().split('T')[0];
-  const localEndExclusive = zonedTimeToUtc(`${nextDayStr}T00:00:00`, tz);
+  const localEndExclusive = fromZonedTime(`${nextDayStr}T00:00:00`, tz);
   
   return {
     startUtcIso: localStart.toISOString(),
