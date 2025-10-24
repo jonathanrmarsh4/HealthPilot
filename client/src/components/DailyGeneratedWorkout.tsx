@@ -110,6 +110,19 @@ export function DailyGeneratedWorkout() {
   const isRejected = workout?.status === 'rejected';
   const isCompleted = workout?.status === 'completed';
 
+  // Transform blocks array to exercise format for display
+  const exercises = workoutData?.blocks?.map((block: any) => ({
+    exercise: block.display_name || block.pattern,
+    sets: block.sets,
+    reps: block.reps,
+    rest_seconds: block.rest_s,
+    intensity: block.intensity?.scheme === 'rir' 
+      ? `RIR ${block.intensity.target}` 
+      : `${block.intensity?.target || ''}`,
+    goal: block.preferred_modality || 'strength',
+    pattern: block.pattern
+  })) || [];
+
   return (
     <Card data-testid="card-daily-generated-workout">
       <CardHeader>
@@ -190,7 +203,7 @@ export function DailyGeneratedWorkout() {
             {/* Workout Focus */}
             <div data-testid="workout-focus">
               <h3 className="font-semibold text-sm mb-2">Today's Focus</h3>
-              <p className="text-sm text-muted-foreground">{workoutData.focus}</p>
+              <p className="text-sm text-muted-foreground">{workoutData.plan?.focus || workoutData.focus || 'Strength Training'}</p>
             </div>
 
             {/* All Exercises - Show complete list on accept screen */}
@@ -201,12 +214,12 @@ export function DailyGeneratedWorkout() {
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="font-semibold text-sm">Main Lifts</h3>
                     <Badge variant="outline" className="text-xs">
-                      {workoutData.main?.length || 0} exercises
+                      {exercises.length} exercises
                     </Badge>
                   </div>
-                  {workoutData.main && workoutData.main.length > 0 && (
+                  {exercises.length > 0 && (
                     <div className="space-y-2">
-                      {workoutData.main.map((exercise: any, idx: number) => (
+                      {exercises.map((exercise: any, idx: number) => (
                         <div 
                           key={idx} 
                           className="flex items-center justify-between p-2 bg-muted/30 rounded"
@@ -225,35 +238,6 @@ export function DailyGeneratedWorkout() {
                   )}
                 </div>
 
-                {/* Accessories */}
-                {workoutData.accessories && workoutData.accessories.length > 0 && (
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <h3 className="font-semibold text-sm">Accessory Work</h3>
-                      <Badge variant="outline" className="text-xs">
-                        {workoutData.accessories.length} exercises
-                      </Badge>
-                    </div>
-                    <div className="space-y-2">
-                      {workoutData.accessories.map((exercise: any, idx: number) => (
-                        <div 
-                          key={idx} 
-                          className="flex items-center justify-between p-2 bg-muted/20 rounded"
-                          data-testid={`exercise-accessory-${idx}`}
-                        >
-                          <div className="flex items-center gap-2">
-                            <Dumbbell className="h-3 w-3 text-muted-foreground" />
-                            <span className="text-sm font-medium">{exercise.exercise}</span>
-                          </div>
-                          <span className="text-xs text-muted-foreground">
-                            {exercise.sets} × {exercise.reps}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
                 {/* Show detailed view button */}
                 <Button 
                   variant="ghost" 
@@ -270,25 +254,11 @@ export function DailyGeneratedWorkout() {
             {/* Expanded View */}
             {isExpanded && (
               <div className="space-y-4" data-testid="expanded-workout-view">
-                {/* Warmup */}
-                {workoutData.warmup && workoutData.warmup.length > 0 && (
-                  <div>
-                    <h3 className="font-semibold text-sm mb-2">Warm-up</h3>
-                    <ul className="space-y-1 text-sm text-muted-foreground">
-                      {workoutData.warmup.map((item: string, idx: number) => (
-                        <li key={idx}>• {item}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                <Separator />
-
                 {/* Main Exercises */}
                 <div>
-                  <h3 className="font-semibold text-sm mb-3">Main Lifts</h3>
+                  <h3 className="font-semibold text-sm mb-3">Exercises</h3>
                   <div className="space-y-3">
-                    {workoutData.main?.map((exercise: any, idx: number) => (
+                    {exercises.map((exercise: any, idx: number) => (
                       <div 
                         key={idx} 
                         className="p-3 bg-muted/30 rounded space-y-1"
@@ -312,73 +282,17 @@ export function DailyGeneratedWorkout() {
                   </div>
                 </div>
 
-                {/* Accessories */}
-                {workoutData.accessories && workoutData.accessories.length > 0 && (
-                  <>
-                    <Separator />
-                    <div>
-                      <h3 className="font-semibold text-sm mb-3">Accessory Work</h3>
-                      <div className="space-y-2">
-                        {workoutData.accessories.map((exercise: any, idx: number) => (
-                          <div key={idx} className="p-2 bg-muted/20 rounded text-sm">
-                            <div className="font-medium">{exercise.exercise}</div>
-                            <div className="text-xs text-muted-foreground">
-                              {exercise.sets} × {exercise.reps} @ {exercise.intensity}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </>
-                )}
-
-                {/* Conditioning */}
-                {workoutData.conditioning?.include && (
-                  <>
-                    <Separator />
-                    <div>
-                      <h3 className="font-semibold text-sm mb-2 flex items-center gap-2">
-                        <Activity className="h-4 w-4" />
-                        Conditioning
-                      </h3>
-                      <div className="p-2 bg-muted/20 rounded text-sm">
-                        <div className="font-medium capitalize">{workoutData.conditioning.type}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {workoutData.conditioning.duration_minutes} min • Zone {workoutData.conditioning.intensity_zone}
-                        </div>
-                      </div>
-                    </div>
-                  </>
-                )}
-
-                {/* Cooldown */}
-                {workoutData.cooldown && workoutData.cooldown.length > 0 && (
-                  <>
-                    <Separator />
-                    <div>
-                      <h3 className="font-semibold text-sm mb-2">Cool-down</h3>
-                      <ul className="space-y-1 text-sm text-muted-foreground">
-                        {workoutData.cooldown.map((item: string, idx: number) => (
-                          <li key={idx}>• {item}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  </>
-                )}
-
-                {/* Progression Notes */}
-                {workoutData.progression_notes && (
-                  <>
-                    <Separator />
-                    <div>
-                      <h3 className="font-semibold text-sm mb-2 flex items-center gap-2">
-                        <Zap className="h-4 w-4" />
-                        Progression Notes
-                      </h3>
-                      <p className="text-sm text-muted-foreground">{workoutData.progression_notes}</p>
-                    </div>
-                  </>
-                )}
+                {/* Summary Stats */}
+                <div className="flex gap-4 text-sm">
+                  <div>
+                    <div className="text-muted-foreground">Duration</div>
+                    <div className="font-semibold">{workoutData.plan?.total_time_estimate_min || workoutData.total_time_estimate_min || 60} min</div>
+                  </div>
+                  <div>
+                    <div className="text-muted-foreground">Total Sets</div>
+                    <div className="font-semibold">{exercises.reduce((acc: number, ex: any) => acc + (ex.sets || 0), 0)}</div>
+                  </div>
+                </div>
 
                 <Button 
                   variant="ghost" 
