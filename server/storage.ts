@@ -146,6 +146,7 @@ import {
   workoutInstances,
   exerciseLogs,
   exercises,
+  exerciseTemplates,
   exerciseSets,
   sessionPRs,
   muscleGroupEngagements,
@@ -2211,7 +2212,7 @@ export class DbStorage implements IStorage {
     const workoutData = workout.workoutData;
     
     // Handle both old format (main/accessories) and new format (blocks)
-    const exercisesToProcess = workoutData.blocks 
+    let exercisesToProcess = workoutData.blocks 
       ? workoutData.blocks.map((block: any) => ({
           exercise: block.display_name || block.pattern,
           sets: block.sets,
@@ -2221,9 +2222,43 @@ export class DbStorage implements IStorage {
             ? `RIR ${block.intensity.target}` 
             : `${block.intensity?.target || ''}`,
           goal: block.preferred_modality || 'strength',
-          exercise_id: block.template_id
+          template_id: block.template_id, // Store template_id, will resolve to exercise_id below
+          pattern: block.pattern,
+          modality: block.preferred_modality
         }))
       : [...(workoutData.main || []), ...(workoutData.accessories || [])];
+    
+    // Resolve template_ids to exercise_ids using templateExerciseBridge
+    if (workoutData.blocks) {
+      const { getOrCreateExerciseForTemplate } = await import("./services/templateExerciseBridge");
+      
+      for (const ex of exercisesToProcess) {
+        if (ex.template_id) {
+          // Get the template from exercise_templates table
+          const templateResult = await db
+            .select()
+            .from(exerciseTemplates)
+            .where(eq(exerciseTemplates.id, ex.template_id))
+            .limit(1);
+          
+          if (templateResult.length > 0) {
+            const template = templateResult[0];
+            // Resolve template → exercise using bridge
+            const exerciseId = await getOrCreateExerciseForTemplate(this, {
+              id: template.id,
+              pattern: template.pattern as any,
+              modality: template.modality as any,
+              displayName: template.displayName,
+              muscles: template.muscles
+            });
+            ex.exercise_id = exerciseId;
+            console.log(`💪 Resolved template ${ex.template_id} → exercise ${exerciseId} (${template.displayName})`);
+          } else {
+            console.warn(`💪 Template not found: ${ex.template_id}`);
+          }
+        }
+      }
+    }
     
     console.log(`💪 Workout data:`, { 
       focus: workoutData.plan?.focus || workoutData.focus, 
