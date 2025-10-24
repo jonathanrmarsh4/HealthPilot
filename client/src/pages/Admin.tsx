@@ -45,8 +45,13 @@ export default function Admin() {
   const [exerciseResolverOutput, setExerciseResolverOutput] = useState<any | null>(null);
   const [exerciseResolverDialogOpen, setExerciseResolverDialogOpen] = useState(false);
   const [insightsResult, setInsightsResult] = useState<any | null>(null);
+  const [symptomUserId, setSymptomUserId] = useState("");
+  const [symptomText, setSymptomText] = useState("");
+  const [symptomSeverity, setSymptomSeverity] = useState("");
+  const [symptomContext, setSymptomContext] = useState("");
+  const [symptomAssessmentResult, setSymptomAssessmentResult] = useState<any | null>(null);
   const limit = 20;
-  const { toast } = useToast();
+  const { toast} = useToast();
 
   const { data: stats, isLoading: statsLoading } = useQuery<AdminStats>({
     queryKey: ["/api/admin/stats"],
@@ -229,6 +234,36 @@ export default function Admin() {
       toast({
         title: "✅ Insights Generated",
         description: `Created ${data.result?.insightsGenerated || 0} insights from ${data.result?.metricsAnalyzed || 0} metrics`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const runSymptomAssessmentMutation = useMutation({
+    mutationFn: async ({ userId, symptomText, severity, context }: { 
+      userId: string; 
+      symptomText: string; 
+      severity?: number; 
+      context?: string[] 
+    }) => {
+      const res = await apiRequest("POST", `/api/admin/symptom-assessment/${userId}`, {
+        symptomText,
+        severity,
+        context: context || [],
+      });
+      return await res.json();
+    },
+    onSuccess: (data: any) => {
+      setSymptomAssessmentResult(data);
+      toast({
+        title: "✅ Assessment Complete",
+        description: `Triage: ${data.assessment?.triage?.level || "unknown"} - ${data.assessment?.differential?.length || 0} possible causes identified`,
       });
     },
     onError: (error: Error) => {
@@ -596,6 +631,161 @@ export default function Admin() {
               )}
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      <Card data-testid="card-symptom-assessment-tool">
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <Activity className="w-6 h-6 text-primary" />
+            <div>
+              <CardTitle data-testid="text-symptom-assessment-title">Symptom Assessment Workflow</CardTitle>
+              <CardDescription data-testid="text-symptom-assessment-description">
+                Test medical-grade symptom triage with freshness-aware data filtering
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Run the workflow assessor engine that correlates symptoms with recent vitals (≤72h) and biomarkers (≤60d) using evidence-based pattern scoring and safety-first triage (urgent_now / gp_24_72h / self_care).
+          </p>
+          <div className="space-y-3">
+            <div>
+              <label className="text-sm font-medium">User ID</label>
+              <Input
+                placeholder="Enter user ID to assess"
+                value={symptomUserId}
+                onChange={(e) => setSymptomUserId(e.target.value)}
+                data-testid="input-symptom-user-id"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Symptoms (free text)</label>
+              <Input
+                placeholder="e.g., 'short of breath and chest tight' or 'headache, poor sleep'"
+                value={symptomText}
+                onChange={(e) => setSymptomText(e.target.value)}
+                data-testid="input-symptom-text"
+                className="mt-1"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-sm font-medium">Severity (0-10, optional)</label>
+                <Input
+                  type="number"
+                  min="0"
+                  max="10"
+                  placeholder="0-10"
+                  value={symptomSeverity}
+                  onChange={(e) => setSymptomSeverity(e.target.value)}
+                  data-testid="input-symptom-severity"
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Context Tags (optional)</label>
+                <Input
+                  placeholder="e.g., after_workout,poor_sleep"
+                  value={symptomContext}
+                  onChange={(e) => setSymptomContext(e.target.value)}
+                  data-testid="input-symptom-context"
+                  className="mt-1"
+                />
+              </div>
+            </div>
+            <Button
+              onClick={() => {
+                if (symptomUserId.trim() && symptomText.trim()) {
+                  runSymptomAssessmentMutation.mutate({
+                    userId: symptomUserId.trim(),
+                    symptomText: symptomText.trim(),
+                    severity: symptomSeverity ? parseInt(symptomSeverity) : undefined,
+                    context: symptomContext ? symptomContext.split(',').map(c => c.trim()).filter(Boolean) : [],
+                  });
+                }
+              }}
+              disabled={runSymptomAssessmentMutation.isPending || !symptomUserId.trim() || !symptomText.trim()}
+              data-testid="button-run-symptom-assessment"
+              variant="default"
+              className="w-full"
+            >
+              {runSymptomAssessmentMutation.isPending ? (
+                <>
+                  <Activity className="w-4 h-4 mr-2 animate-spin" />
+                  Analyzing...
+                </>
+              ) : (
+                <>
+                  <Activity className="w-4 h-4 mr-2" />
+                  Run Symptom Assessment
+                </>
+              )}
+            </Button>
+
+            {symptomAssessmentResult && (
+              <div className="mt-4 p-4 rounded-md border bg-card space-y-3" data-testid="panel-symptom-results">
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-bold">Assessment Results</p>
+                  <Badge 
+                    variant={
+                      symptomAssessmentResult.assessment?.triage?.level === "urgent_now" ? "destructive" :
+                      symptomAssessmentResult.assessment?.triage?.level === "gp_24_72h" ? "default" : "secondary"
+                    }
+                    data-testid="badge-triage-level"
+                  >
+                    {symptomAssessmentResult.assessment?.triage?.level?.replace('_', ' ').toUpperCase()}
+                  </Badge>
+                </div>
+                
+                <div className="text-sm space-y-2">
+                  <div>
+                    <p className="text-muted-foreground">Triage Reason:</p>
+                    <p className="font-medium" data-testid="text-triage-reason">
+                      {symptomAssessmentResult.assessment?.triage?.reason}
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <p className="text-muted-foreground">Vitals/Biomarkers Collected:</p>
+                    <p className="font-medium" data-testid="text-data-collected">
+                      {symptomAssessmentResult.input?.vitalsCollected ? 'Yes' : 'No'} (vitals), {symptomAssessmentResult.input?.biomarkersCount || 0} biomarkers
+                    </p>
+                  </div>
+
+                  {symptomAssessmentResult.assessment?.differential && symptomAssessmentResult.assessment.differential.length > 0 && (
+                    <div>
+                      <p className="text-muted-foreground mb-2">Possible Causes:</p>
+                      {symptomAssessmentResult.assessment.differential.map((diff: any, idx: number) => (
+                        <div key={idx} className="ml-3 mb-2 p-2 rounded bg-muted/50" data-testid={`panel-differential-${idx}`}>
+                          <p className="font-medium">{diff.label} ({(diff.confidence * 100).toFixed(0)}% confidence)</p>
+                          <p className="text-xs text-muted-foreground mt-1">Evidence: {diff.key_evidence?.join(', ')}</p>
+                          {diff.recommendations && diff.recommendations.length > 0 && (
+                            <ul className="text-xs mt-1 space-y-0.5">
+                              {diff.recommendations.map((rec: string, i: number) => (
+                                <li key={i}>• {rec}</li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {symptomAssessmentResult.assessment?.explanation?.ignored_stale?.length > 0 && (
+                    <div className="text-xs">
+                      <p className="text-muted-foreground">Stale Data Ignored:</p>
+                      <p className="font-mono" data-testid="text-ignored-stale">
+                        {symptomAssessmentResult.assessment.explanation.ignored_stale.join(', ')}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
 

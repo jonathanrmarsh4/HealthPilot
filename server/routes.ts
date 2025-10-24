@@ -12,6 +12,7 @@ import { calculateReadinessScore } from "./services/readiness";
 import { runInterpretationPipeline } from "./services/medical-interpreter/pipeline";
 import { extractBiomarkersFromLabs } from "./services/medical-interpreter/biomarkerExtractor";
 import { buildUserContext, generateDailySession } from "./services/trainingGenerator";
+import { assessWorkflow, type Input as WorkflowInput, type Biomarker as WorkflowBiomarker } from "./services/workflowAssessor";
 import { parseISO, isValid, subDays, format as formatDate } from "date-fns";
 import { eq, and, gte, or, inArray, isNull, isNotNull, sql } from "drizzle-orm";
 import { isAuthenticated, isAdmin, webhookAuth } from "./replitAuth";
@@ -101,6 +102,165 @@ function estimateIntensity(avgHeartRate?: number | null, perceivedEffort?: numbe
   
   // Default to moderate if no data
   return "Moderate";
+}
+
+// Helper functions for symptom assessment workflow
+async function gatherRecentVitalsForUser(userId: string): Promise<WorkflowInput["vitals"] | undefined> {
+  try {
+    // Get most recent biomarkers for vitals (within 72 hours for most, 14 days for ECG)
+    const vitalsCutoff = new Date();
+    vitalsCutoff.setHours(vitalsCutoff.getHours() - 72);
+    
+    const ecgCutoff = new Date();
+    ecgCutoff.setDate(ecgCutoff.getDate() - 14);
+    
+    const recentBiomarkers = await db
+      .select()
+      .from(biomarkers)
+      .where(and(
+        eq(biomarkers.userId, userId),
+        or(
+          gte(biomarkers.date, vitalsCutoff),
+          and(gte(biomarkers.date, ecgCutoff), sql`LOWER(${biomarkers.type}) LIKE '%ecg%'`)
+        )
+      ))
+      .orderBy(sql`${biomarkers.date} DESC`)
+      .limit(100);
+
+    console.log(`[Symptom Assessment] Found ${recentBiomarkers.length} biomarkers for user ${userId}`);
+    
+    if (recentBiomarkers.length === 0) {
+      console.log(`[Symptom Assessment] No biomarkers found within freshness windows`);
+      return undefined;
+    }
+
+    const vitals: WorkflowInput["vitals"] = {};
+
+    // Map biomarker types to vitals
+    for (const b of recentBiomarkers) {
+      const asOf = b.date.toISOString();
+      const value = b.value;
+      const ageHours = (Date.now() - b.date.getTime()) / (1000 * 60 * 60);
+
+      console.log(`[Symptom Assessment] Processing biomarker: ${b.type} = ${value} (${ageHours.toFixed(1)}h old)`);
+
+      const typeNorm = b.type.toLowerCase().replace(/[_\s]/g, '');
+
+      // SpO2 / Oxygen Saturation
+      if ((typeNorm.includes('spo2') || typeNorm.includes('oxygen')) && !vitals.spo2 && typeof value === "number" && ageHours <= 72) {
+        vitals.spo2 = { value, asOf };
+        console.log(`  ✓ Mapped to spo2: ${value}`);
+      }
+      // Heart Rate
+      else if ((typeNorm.includes('heartrate') || typeNorm.includes('restinghr')) && !vitals.heartRate && typeof value === "number" && ageHours <= 72) {
+        vitals.heartRate = { value, asOf };
+        console.log(`  ✓ Mapped to heartRate: ${value}`);
+      }
+      // Body Temperature
+      else if ((typeNorm.includes('temperature') || typeNorm.includes('temp')) && !vitals.tempC && typeof value === "number" && ageHours <= 72) {
+        vitals.tempC = { value, asOf };
+        console.log(`  ✓ Mapped to tempC: ${value}`);
+      }
+      // ECG Irregular (within 14 days)
+      else if (typeNorm.includes('ecg') && typeNorm.includes('irregular') && !vitals.ecgIrregular && ageHours <= 14 * 24) {
+        // Handle both boolean and numeric (1/0) values
+        const isIrregular = typeof value === "boolean" ? value : (value === 1 || value === "1" || value === "true");
+        vitals.ecgIrregular = { value: isIrregular, asOf };
+        console.log(`  ✓ Mapped to ecgIrregular: ${isIrregular}`);
+      }
+      // Blood Pressure - Systolic
+      else if (typeNorm.includes('systolic') && !vitals.bp && typeof value === "number" && ageHours <= 72) {
+        // Look for matching diastolic
+        const diastolic = recentBiomarkers.find(
+          db => db.type.toLowerCase().replace(/[_\s]/g, '').includes('diastolic') &&
+                Math.abs(db.date.getTime() - b.date.getTime()) < 60000
+        );
+        if (diastolic && typeof diastolic.value === "number") {
+          vitals.bp = { sys: value, dia: diastolic.value, asOf };
+          console.log(`  ✓ Mapped to bp: ${value}/${diastolic.value}`);
+        }
+      }
+      // HRV
+      else if ((typeNorm.includes('hrv') || typeNorm.includes('variability')) && !vitals.hrvZ && typeof value === "number" && ageHours <= 72) {
+        // TODO: HRV z-score calculation requires baseline computation
+        // Scoring logic expects z-scores (e.g., -1.5 = 1.5 SD below baseline)
+        // Raw HRV values (e.g., 50ms) would break the < -1 threshold checks
+        // Skip HRV mapping for MVP until proper baseline calculation is implemented
+        console.log(`  ⚠️ HRV detected (${value}ms) but skipped - needs baseline for z-score calculation`);
+        // vitals.hrvZ = { value: computedZScore, asOf }; // Future implementation
+      }
+    }
+
+    // Get most recent sleep session (within 72 hours)
+    const recentSleep = await db
+      .select()
+      .from(sleepSessions)
+      .where(and(
+        eq(sleepSessions.userId, userId),
+        gte(sleepSessions.startTime, vitalsCutoff)
+      ))
+      .orderBy(sql`${sleepSessions.startTime} DESC`)
+      .limit(1);
+
+    if (recentSleep.length > 0 && recentSleep[0].totalSleepHours) {
+      vitals.sleep = {
+        totalH: recentSleep[0].totalSleepHours,
+        remZ: undefined,
+        asOf: recentSleep[0].startTime.toISOString(),
+      };
+      console.log(`[Symptom Assessment] Mapped sleep: ${recentSleep[0].totalSleepHours}h`);
+    }
+
+    const vitalsCount = Object.keys(vitals).length;
+    console.log(`[Symptom Assessment] Collected ${vitalsCount} vital signs:`, Object.keys(vitals));
+
+    return vitalsCount > 0 ? vitals : undefined;
+  } catch (error) {
+    console.error("[Symptom Assessment] Error gathering vitals:", error);
+    return undefined;
+  }
+}
+
+async function gatherRecentBiomarkersForUser(userId: string): Promise<WorkflowBiomarker[] | undefined> {
+  try {
+    // Get biomarkers from last 60 days
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 60);
+    
+    const recentBiomarkers = await db
+      .select()
+      .from(biomarkers)
+      .where(and(
+        eq(biomarkers.userId, userId),
+        gte(biomarkers.date, cutoff)
+      ))
+      .orderBy(sql`${biomarkers.date} DESC`)
+      .limit(200);
+
+    console.log(`[Symptom Assessment] Found ${recentBiomarkers.length} biomarkers for user ${userId} (≤60 days)`);
+
+    if (recentBiomarkers.length === 0) {
+      return undefined;
+    }
+
+    // Map to workflow biomarker format
+    const mapped = recentBiomarkers.map(b => {
+      const ageDays = (Date.now() - b.date.getTime()) / (1000 * 60 * 60 * 24);
+      console.log(`[Symptom Assessment] Biomarker: ${b.type} = ${b.value} (flag: ${b.flag || 'normal'}, ${ageDays.toFixed(1)}d old)`);
+      return {
+        name: b.type,
+        value: b.value,
+        flag: (b.flag || "normal") as "high" | "low" | "normal",
+        asOf: b.date.toISOString(),
+      };
+    });
+
+    console.log(`[Symptom Assessment] Mapped ${mapped.length} biomarkers for workflow assessment`);
+    return mapped;
+  } catch (error) {
+    console.error("[Symptom Assessment] Error gathering biomarkers:", error);
+    return undefined;
+  }
 }
 
 // Helper function to calculate scheduled dates based on frequency (timezone-safe)
@@ -308,6 +468,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(stats);
     } catch (error: any) {
       console.error("Error getting admin stats:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Admin endpoint to manually trigger symptom assessment
+  app.post("/api/admin/symptom-assessment/:userId", isAdmin, async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const { symptomText, severity, context } = req.body;
+
+      if (!symptomText || typeof symptomText !== "string") {
+        return res.status(400).json({ error: "symptomText is required" });
+      }
+
+      // Gather recent vitals and biomarkers for this user
+      const vitalsData = await gatherRecentVitalsForUser(userId);
+      const biomarkersData = await gatherRecentBiomarkersForUser(userId);
+
+      // Get user profile for age/sex
+      const user = await storage.getUser(userId);
+      const fitnessProfile = await storage.getFitnessProfile(userId);
+
+      // Build workflow input
+      const workflowInput: WorkflowInput = {
+        text: symptomText,
+        severity: severity || undefined,
+        context: context || [],
+        profile: {
+          age: fitnessProfile?.dateOfBirth 
+            ? Math.floor((Date.now() - new Date(fitnessProfile.dateOfBirth).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
+            : undefined,
+          sex: fitnessProfile?.sex as "male" | "female" | "other" | undefined,
+        },
+        vitals: vitalsData,
+        biomarkers: biomarkersData,
+      };
+
+      // Run the assessment
+      const assessment = assessWorkflow(workflowInput);
+
+      // Log the assessment result
+      console.log(`Admin triggered symptom assessment for user ${userId}:`, {
+        triage: assessment.triage.level,
+        differentialCount: assessment.differential.length,
+        usedSignals: assessment.explanation.used.length,
+        ignoredStale: assessment.explanation.ignored_stale.length,
+      });
+
+      res.json({
+        success: true,
+        assessment,
+        input: {
+          symptomText,
+          severity,
+          context,
+          vitalsCollected: !!vitalsData,
+          biomarkersCount: biomarkersData?.length || 0,
+        },
+      });
+    } catch (error: any) {
+      console.error("Error running symptom assessment:", error);
       res.status(500).json({ error: error.message });
     }
   });

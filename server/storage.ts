@@ -2223,17 +2223,19 @@ export class DbStorage implements IStorage {
             : `${block.intensity?.target || ''}`,
           goal: block.preferred_modality || 'strength',
           template_id: block.template_id, // Store template_id, will resolve to exercise_id below
+          exercise_id: block.exercise_id, // CRITICAL: Use saved exercise_id if it exists (from saveWorkout)
           pattern: block.pattern,
           modality: block.preferred_modality
         }))
       : [...(workoutData.main || []), ...(workoutData.accessories || [])];
     
     // Resolve template_ids to exercise_ids using templateExerciseBridge
+    // ONLY if exercise_id wasn't already saved with the workout (avoids re-resolution)
     if (workoutData.blocks) {
       const { getOrCreateExerciseForTemplate } = await import("./services/templateExerciseBridge");
       
       for (const ex of exercisesToProcess) {
-        if (ex.template_id) {
+        if (ex.template_id && !ex.exercise_id) { // ← CRITICAL: Only resolve if not already set
           // Get the template from exercise_templates table
           const templateResult = await db
             .select()
@@ -2256,6 +2258,8 @@ export class DbStorage implements IStorage {
           } else {
             console.warn(`💪 Template not found: ${ex.template_id}`);
           }
+        } else if (ex.exercise_id) {
+          console.log(`💪 Using pre-saved exercise_id: ${ex.exercise_id} for ${ex.exercise}`);
         }
       }
     }
