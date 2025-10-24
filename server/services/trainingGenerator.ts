@@ -16,6 +16,7 @@ import type { IStorage } from "../storage";
 import { format, subDays } from "date-fns";
 import { StructuredWorkoutsKit, type WorkoutPlan, type LiftBlock, type AnyBlock, type Modality } from "./structured-workouts-kit";
 import { RULES, PATTERN_TO_MUSCLES, getMusclesForPattern } from "./rules";
+import { getOrCreateExerciseForTemplate, type TemplateData } from "./templateExerciseBridge";
 
 // ──────────────────────────────────────────────
 // Lazy OpenAI client initialization
@@ -347,21 +348,66 @@ export async function saveWorkout(
 ) {
   const { plan, blocks, validation } = result;
 
-  // Store in generatedWorkouts table
+  // Step 1: Get template data for all lift blocks
+  const liftBlocks = blocks.filter((b: any) => b.type === "lift_block" && b.template_id);
+  
+  // Step 2: Fetch template details from database
+  const templateDataMap = new Map<string, any>();
+  for (const block of liftBlocks) {
+    if (!templateDataMap.has(block.template_id)) {
+      try {
+        const template = await storage.getExerciseTemplateById(block.template_id);
+        if (template) {
+          templateDataMap.set(block.template_id, template);
+        }
+      } catch (error) {
+        console.warn(`⚠️ Template ${block.template_id} not found in database`);
+      }
+    }
+  }
+
+  // Step 3: Map templates to exercises (create if needed)
+  const templateIdToExerciseId = new Map<string, string>();
+  for (const [templateId, template] of templateDataMap.entries()) {
+    const templateData: TemplateData = {
+      id: template.id,
+      pattern: template.pattern,
+      modality: template.modality,
+      displayName: template.displayName,
+      muscles: template.muscles || []
+    };
+    
+    const exerciseId = await getOrCreateExerciseForTemplate(storage, templateData);
+    templateIdToExerciseId.set(templateId, exerciseId);
+  }
+
+  // Step 4: Enrich blocks with exercise_ids
+  const enrichedBlocks = blocks.map((block: any) => {
+    if (block.type === "lift_block" && block.template_id) {
+      return {
+        ...block,
+        exercise_id: templateIdToExerciseId.get(block.template_id)
+      };
+    }
+    return block;
+  });
+
+  // Step 5: Store in generatedWorkouts table
   await storage.createGeneratedWorkout({
     userId,
     date: plan.date || format(new Date(), "yyyy-MM-dd"),
     workoutData: {
       plan,
-      blocks,
+      blocks: enrichedBlocks,
       validation,
+      template_to_exercise_mapping: Object.fromEntries(templateIdToExerciseId),
       generated_at: new Date().toISOString(),
       system_version: "v2.0-pattern-based"
     },
     status: "pending"
   });
 
-  console.log(`💾 Workout saved for user ${userId}`);
+  console.log(`💾 Workout saved for user ${userId} with ${enrichedBlocks.length} blocks`);
 }
 
 // ──────────────────────────────────────────────

@@ -363,6 +363,11 @@ export interface IStorage {
   getExerciseById(exerciseId: string): Promise<Exercise | undefined>;
   getAllExercises(): Promise<Exercise[]>;
   updateExerciseExternalId(exerciseId: string, externalId: string): Promise<Exercise | undefined>;
+  getExerciseByName(name: string): Promise<Exercise | undefined>;
+  createExercise(exercise: InsertExercise): Promise<Exercise>;
+  
+  // Exercise Templates (pattern-based system)
+  getExerciseTemplateById(templateId: string): Promise<any | undefined>;
 
   // Muscle Group Frequency Tracking methods
   recordMuscleGroupEngagement(userId: string, workoutSessionId: string, muscleGroup: string, engagementLevel: 'primary' | 'secondary', totalSets: number, totalVolume?: number): Promise<void>;
@@ -2528,6 +2533,35 @@ export class DbStorage implements IStorage {
       .set({ exercisedbId: externalId })
       .where(eq(exercises.id, exerciseId))
       .returning();
+    
+    return result[0];
+  }
+
+  async getExerciseByName(name: string): Promise<Exercise | undefined> {
+    const result = await db
+      .select()
+      .from(exercises)
+      .where(eq(exercises.name, name))
+      .limit(1);
+    
+    return result[0];
+  }
+
+  async createExercise(exercise: InsertExercise): Promise<Exercise> {
+    const result = await db
+      .insert(exercises)
+      .values(exercise)
+      .returning();
+    
+    return result[0];
+  }
+
+  async getExerciseTemplateById(templateId: string): Promise<any | undefined> {
+    const result = await db
+      .select()
+      .from(exerciseTemplates)
+      .where(eq(exerciseTemplates.id, templateId))
+      .limit(1);
     
     return result[0];
   }
