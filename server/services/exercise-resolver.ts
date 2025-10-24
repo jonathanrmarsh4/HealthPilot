@@ -177,6 +177,11 @@ function normalizeFreeText(input: string): { norm: string; tokens: string[]; qua
   s = words.join(" ");
   trace.push(`expand→ "${s}"`);
 
+  // Normalize equipment types to generic "machine" to improve matching
+  // "Lever Leg Extension" and "Leg Extension (machine)" should match
+  s = s.replace(/\b(lever|cable|plate loaded|selectorized|smith machine)\b/g, "machine");
+  trace.push(`equipment normalize→ "${s}"`);
+
   // Singularize trivial plurals (raise->raise, curls->curl, presses->press)
   s = s.replace(/(curls|curling)\b/g, "curl");
   s = s.replace(/presses\b/g, "press");
