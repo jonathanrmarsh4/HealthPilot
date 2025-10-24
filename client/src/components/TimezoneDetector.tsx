@@ -25,13 +25,7 @@ export function TimezoneDetector() {
 
   const updateTimezoneMutation = useMutation({
     mutationFn: async (timezone: string) => {
-      await apiRequest('/api/user/timezone', {
-        method: 'PUT',
-        body: JSON.stringify({ timezone }),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      await apiRequest("PATCH", "/api/user/settings", { timezone });
       return timezone;
     },
     onSuccess: (timezone) => {
@@ -41,11 +35,16 @@ export function TimezoneDetector() {
       queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
       console.log('✅ Timezone synced successfully:', timezone);
     },
-    onError: (error) => {
+    onError: (error: any) => {
       // Reset flags on error to allow retry
       syncAttempted.current = false;
       lastSyncedTimezone.current = null;
-      console.error('❌ Failed to sync timezone, will retry:', error);
+      console.error('❌ Failed to sync timezone, will retry:', {
+        message: error?.message || 'Unknown error',
+        status: error?.status,
+        response: error?.response,
+        error
+      });
     },
   });
 
@@ -83,8 +82,13 @@ export function TimezoneDetector() {
     }
 
     // Don't sync if it matches the profile timezone (already synced)
-    if (profile?.timezone === currentTimezone && syncAttempted.current) {
+    if (profile?.timezone === currentTimezone) {
       lastSyncedTimezone.current = currentTimezone;
+      return;
+    }
+    
+    // Also don't sync if we've already synced this timezone successfully
+    if (lastSyncedTimezone.current === currentTimezone) {
       return;
     }
 
