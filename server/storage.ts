@@ -2209,7 +2209,27 @@ export class DbStorage implements IStorage {
     }
 
     const workoutData = workout.workoutData;
-    console.log(`💪 Workout data:`, { focus: workoutData.focus, mainCount: workoutData.main?.length || 0, accessoriesCount: workoutData.accessories?.length || 0 });
+    
+    // Handle both old format (main/accessories) and new format (blocks)
+    const exercisesToProcess = workoutData.blocks 
+      ? workoutData.blocks.map((block: any) => ({
+          exercise: block.display_name || block.pattern,
+          sets: block.sets,
+          reps: block.reps,
+          rest_seconds: block.rest_s,
+          intensity: block.intensity?.scheme === 'rir' 
+            ? `RIR ${block.intensity.target}` 
+            : `${block.intensity?.target || ''}`,
+          goal: block.preferred_modality || 'strength',
+          exercise_id: block.template_id
+        }))
+      : [...(workoutData.main || []), ...(workoutData.accessories || [])];
+    
+    console.log(`💪 Workout data:`, { 
+      focus: workoutData.plan?.focus || workoutData.focus, 
+      exerciseCount: exercisesToProcess.length,
+      hasBlocks: !!workoutData.blocks
+    });
     
     // Helper to match exercise name to library with improved fuzzy matching
     const matchExerciseByName = async (name: string) => {
@@ -2271,7 +2291,7 @@ export class DbStorage implements IStorage {
     // Build accepted snapshot with FULL exercise objects from library
     const snapshotExercises = [];
     
-    for (const ex of [...(workoutData.main || []), ...(workoutData.accessories || [])]) {
+    for (const ex of exercisesToProcess) {
       const matched = await matchExerciseByName(ex.exercise);
       
       if (matched) {
@@ -2299,7 +2319,7 @@ export class DbStorage implements IStorage {
           intensity: ex.intensity,
           rest_seconds: ex.rest_seconds,
           goal: ex.goal,
-          block: (workoutData.main || []).includes(ex) ? 'main' : 'accessories'
+          block: 'main' // All exercises are main for now in blocks format
         });
       } else {
         // Create placeholder exercise object for unmatched exercises
@@ -2319,7 +2339,7 @@ export class DbStorage implements IStorage {
           intensity: ex.intensity,
           rest_seconds: ex.rest_seconds,
           goal: ex.goal,
-          block: (workoutData.main || []).includes(ex) ? 'main' : 'accessories'
+          block: 'main' // All exercises are main for now in blocks format
         });
       }
     }
