@@ -375,31 +375,4 @@ export function fsAliasStore(path: string) {
 
 // -------------------------- Demo (optional) ----------------------
 // Run with: ts-node exercise-resolver.ts
-if (typeof require !== "undefined" && require.main === module) {
-  const known: KnownMap = {
-    lat_pulldown: { id: "lat_pulldown", name: "Lat Pulldown", tags: ["vertical_pull","cable","machine"] },
-    barbell_back_squat: { id: "barbell_back_squat", name: "Barbell Back Squat", tags: ["squat","barbell"] },
-    hip_hinge_db_rdl: { id: "hip_hinge_db_rdl", name: "DB Romanian Deadlift", tags: ["hinge","dumbbell"] },
-    cable_triceps_pressdown: { id: "cable_triceps_pressdown", name: "Cable Triceps Pressdown", tags: ["isolation","cable"] },
-    hip_thrust_machine: { id: "hip_thrust_machine", name: "Hip Thrust (Machine)", tags: ["glute_hinge","machine"] },
-    landmine_press: { id: "landmine_press", name: "Landmine Press", tags: ["vertical_press","landmine"] },
-    seated_cable_row: { id: "seated_cable_row", name: "Seated Cable Row", tags: ["row","cable","machine"] },
-    machine_high_row: { id: "machine_high_row", name: "Machine High Row", tags: ["row","machine"] },
-    flat_db_press: { id: "flat_db_press", name: "Flat DB Press", tags: ["horizontal_press","dumbbell"] }
-  };
-
-  const samples = [
-    "Lat pull down",
-    "BB back sqt",
-    "RDL (DB)",
-    "cable tricep push down",
-    "hip thrust (smith)",
-    "row machine",
-    "db chest press"
-  ];
-
-  for (const s of samples) {
-    const out = resolveExerciseName(s, known);
-    console.log("\n>", s, "\n", JSON.stringify(out, null, 2));
-  }
-}
+// Demo code removed to prevent ES module compatibility issues in production
