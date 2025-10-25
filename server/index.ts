@@ -40,6 +40,17 @@ app.use((req, res, next) => {
 (async () => {
   await setupAuth(app);
   
+  // Seed exercise templates before validation
+  // This ensures all template_ids referenced in RULES exist in the database
+  try {
+    log('🌱 Seeding exercise templates...');
+    const { seedExerciseTemplates } = await import('./scripts/seedExerciseTemplates');
+    await seedExerciseTemplates();
+  } catch (error: any) {
+    log(`❌ FATAL: Template seeding failed: ${error.message}`);
+    process.exit(1);
+  }
+  
   // Validate template system integrity at startup
   // Fails fast if RULES references non-existent templates or patterns lack coverage
   try {
