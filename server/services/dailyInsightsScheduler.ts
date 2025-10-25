@@ -205,7 +205,9 @@ export async function generateDailyInsightsForUser(userId: string, forceRegenera
       
       console.log(`[DailyInsights] Found ${symptomEpisodes.length} active symptom episodes`);
       
-      // Analyze each symptom episode
+      // HOLISTIC APPROACH: Collect ALL symptom data first
+      const allSymptomData: SymptomInsightData[] = [];
+      
       for (const symptom of symptomEpisodes) {
         try {
           // Get previous severity (from sparkline or null if first report)
@@ -220,28 +222,31 @@ export async function generateDailyInsightsForUser(userId: string, forceRegenera
           // Calculate priority
           const priority = calculatePriority(symptom, features, rulesHit);
           
-          // Build insight data
-          const insightData: SymptomInsightData = {
+          // Collect insight data for holistic analysis
+          allSymptomData.push({
             symptom,
             features,
             rulesHit,
             priority,
             signals: healthSignals,
-          };
-          
-          // Generate insight if priority is high enough
-          const insight = await generateSymptomInsight(insightData);
-          if (insight) {
-            symptomInsights.push(insight);
-            console.log(`[DailyInsights] Generated symptom insight: ${insight.title} (score: ${insight.score})`);
-          }
+          });
         } catch (error: any) {
           console.error(`[DailyInsights] Error analyzing symptom ${symptom.name}:`, error);
           result.errors.push(`Symptom ${symptom.name}: ${error.message}`);
         }
       }
       
-      console.log(`[DailyInsights] Generated ${symptomInsights.length} symptom insights for user ${userId}`);
+      // Generate HOLISTIC assessment combining ALL symptoms
+      if (allSymptomData.length > 0) {
+        console.log(`[DailyInsights] Generating HOLISTIC assessment for ${allSymptomData.length} symptoms...`);
+        const { generateHolisticSymptomAssessment } = await import('./symptomInsightGeneration');
+        const holisticInsights = await generateHolisticSymptomAssessment(allSymptomData, healthSignals);
+        
+        symptomInsights.push(...holisticInsights);
+        console.log(`[DailyInsights] Generated ${holisticInsights.length} holistic symptom insights for user ${userId}`);
+      }
+      
+      console.log(`[DailyInsights] Total symptom insights: ${symptomInsights.length}`);
     } catch (error: any) {
       console.error(`[DailyInsights] Error in symptom correlation:`, error);
       result.errors.push(`Symptom correlation: ${error.message}`);
