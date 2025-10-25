@@ -6972,14 +6972,18 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
       // Import the new symptom-aware insights scheduler
       const { generateDailyInsightsForUser } = await import('./services/dailyInsightsScheduler');
       
-      // Run the scheduler's insights generation
-      const result = await generateDailyInsightsForUser(userId);
+      // Run the scheduler's insights generation with force regenerate
+      // This ensures fresh insights even if some already exist for today
+      const result = await generateDailyInsightsForUser(userId, true); // force regenerate = true
       
       console.log(`[API] Insights generation complete:`, result);
       
-      // Return the result
+      // Return the result with proper structure for frontend
       res.json({
         success: true,
+        insightsGenerated: result.insightsGenerated,
+        metricsAnalyzed: result.metricsAnalyzed,
+        errors: result.errors,
         result,
       });
     } catch (error: any) {

@@ -96,13 +96,14 @@ async function processUsersAtLocalTime(targetLocalHour: number): Promise<void> {
 
 /**
  * Generate daily insights for a single user
+ * @param forceRegenerate - If true, deletes existing insights and regenerates them
  */
-export async function generateDailyInsightsForUser(userId: string): Promise<InsightGenerationResult> {
+export async function generateDailyInsightsForUser(userId: string, forceRegenerate: boolean = false): Promise<InsightGenerationResult> {
   const today = new Date();
   const todayStr = today.toISOString().split('T')[0];
   
-  ilog(`Starting insights generation for user ${userId} on ${todayStr}`);
-  console.log(`[DailyInsights] Generating insights for user ${userId} on ${todayStr}`);
+  ilog(`Starting insights generation for user ${userId} on ${todayStr} (force=${forceRegenerate})`);
+  console.log(`[DailyInsights] Generating insights for user ${userId} on ${todayStr} (force=${forceRegenerate})`);
 
   const result: InsightGenerationResult = {
     userId,
@@ -114,9 +115,21 @@ export async function generateDailyInsightsForUser(userId: string): Promise<Insi
 
   // Check if insights already exist for today
   const existingInsights = await storage.getDailyHealthInsights(userId, today);
-  if (existingInsights.length > 0) {
+  if (existingInsights.length > 0 && !forceRegenerate) {
     console.log(`[DailyInsights] User ${userId} already has ${existingInsights.length} insights for today. Skipping.`);
     return result;
+  }
+  
+  // If force regenerate, delete existing insights first
+  if (forceRegenerate && existingInsights.length > 0) {
+    console.log(`[DailyInsights] Force regenerate - deleting ${existingInsights.length} existing insights`);
+    for (const insight of existingInsights) {
+      try {
+        await storage.updateDailyHealthInsightStatus(insight.id, userId, 'dismissed');
+      } catch (error) {
+        console.error(`[DailyInsights] Error dismissing insight ${insight.id}:`, error);
+      }
+    }
   }
 
   // Get yesterday's date (we analyze yesterday's completed data)
