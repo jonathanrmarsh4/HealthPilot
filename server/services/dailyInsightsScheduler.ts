@@ -305,6 +305,22 @@ export async function generateDailyInsightsForUser(userId: string, forceRegenera
         recommendationId = recommendation.id;
       }
 
+      // Build evidence object - includes diagnostic assessment for symptom insights
+      const evidence: any = {
+        currentValue: insight.currentValue,
+        baselineValue: insight.baselineValue,
+        deviation: insight.deviation,
+        recommendation: insight.recommendation,
+      };
+      
+      // For symptom insights, include comprehensive diagnostic assessment
+      if (isSymptomInsight && (insight as any).possibleCauses) {
+        evidence.triageReason = (insight as any).triageReason;
+        evidence.vitalsCollected = (insight as any).vitalsCollected;
+        evidence.biomarkersCollected = (insight as any).biomarkersCollected;
+        evidence.possibleCauses = (insight as any).possibleCauses;
+      }
+      
       // Store the daily health insight (linked to recommendation if created)
       await storage.createDailyHealthInsight({
         userId,
@@ -315,12 +331,7 @@ export async function generateDailyInsightsForUser(userId: string, forceRegenera
         metric: insight.metricName,
         severity: insight.severity,
         confidence: 0.85, // High confidence from AI generation
-        evidence: {
-          currentValue: insight.currentValue,
-          baselineValue: insight.baselineValue,
-          deviation: insight.deviation,
-          recommendation: insight.recommendation,
-        },
+        evidence,
         score: insight.score,
         recommendationId, // Link to recommendation if created
       });

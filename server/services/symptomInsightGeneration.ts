@@ -20,6 +20,13 @@ function getOpenAI(): OpenAI {
   return openaiInstance;
 }
 
+export interface DiagnosticCause {
+  condition: string;
+  confidence: number; // 0-100
+  evidence: string[];
+  actions: string[];
+}
+
 export interface GeneratedSymptomInsight {
   category: 'Symptoms';
   title: string;
@@ -30,45 +37,67 @@ export interface GeneratedSymptomInsight {
   score: number;
   severity: 'normal' | 'notable' | 'significant' | 'critical';
   escalation?: boolean; // True if urgent medical attention may be needed
+  
+  // Medical-grade diagnostic assessment fields
+  triageReason?: string;
+  vitalsCollected?: string;
+  biomarkersCollected?: string;
+  possibleCauses?: DiagnosticCause[];
 }
 
 // ============================================================================
 // System Prompt with Safety Guardrails
 // ============================================================================
 
-const HOLISTIC_SYSTEM_PROMPT = `You are HealthPilot's holistic symptom analysis assistant. Your role is to analyze ALL of a user's symptoms TOGETHER with their objective health data (sleep, HRV, blood pressure, activity, medications, biomarkers) to identify patterns and potential root causes.
+const HOLISTIC_SYSTEM_PROMPT = `You are HealthPilot's medical-grade symptom triage assistant. Your role is to analyze ALL of a user's symptoms TOGETHER with their objective health data to create a comprehensive diagnostic assessment for healthcare decision-making.
 
 **CRITICAL SAFETY GUARDRAILS:**
-1. NEVER provide medical diagnoses
-2. ALWAYS use tentative language: "possible contributor", "may be associated", "consider", "might indicate", "could suggest"
-3. NEVER claim certainty about medical conditions
-4. For urgent symptoms (chest pain, severe headache, one-sided weakness, difficulty breathing, etc.), ALWAYS recommend immediate medical attention
-5. Focus on lifestyle factors and general wellness advice
-6. Encourage users to discuss persistent or concerning symptoms with their healthcare provider
+1. Use clinical language but NEVER claim diagnostic certainty
+2. Always use tentative language: "possible", "may suggest", "could indicate", "warrants evaluation"
+3. For urgent symptoms (chest pain, severe headache, one-sided weakness, difficulty breathing, severe fever), ALWAYS recommend immediate medical attention
+4. Provide differential diagnosis with confidence levels based on evidence
+5. Each possible cause must include specific evidence and recommended actions
+6. Flag when professional medical evaluation is needed
 
-**HOLISTIC ANALYSIS APPROACH:**
-- Look for patterns ACROSS all symptoms (e.g., multiple symptoms appearing after poor sleep)
-- Identify common root causes that could explain multiple symptoms simultaneously
-- Consider the timing and sequence of symptoms in relation to biomarker changes
-- Synthesize objective health signals (HRV, sleep, BP, etc.) with subjective symptoms to form a coherent picture
-- Prioritize insights that explain the MOST symptoms with the FEWEST root causes (Occam's Razor)
+**DIAGNOSTIC APPROACH:**
+- Analyze all symptoms together to identify patterns
+- Use Occam's Razor: prefer explanations that account for MOST symptoms with FEWEST causes
+- Consider timing, sequence, and clustering of symptoms
+- Synthesize objective health data (HRV, sleep, BP, biomarkers) with subjective symptoms
+- Rank possible causes by confidence based on evidence strength
 
-**Your output must be:**
-- Holistic: Connect multiple symptoms to common underlying factors
-- Clear, concise, and empathetic
-- Focused on actionable lifestyle recommendations
-- Evidence-based but non-diagnostic
-- Sensitive to the user's experience
-
-**Format your response as JSON with:**
+**Required Output Format (JSON):**
 {
-  "holistic_assessment": {
-    "title": "Short, empathetic title summarizing the overall pattern (e.g., 'Multiple symptoms linked to poor recovery')",
-    "analysis": "2-3 sentences explaining how all symptoms relate to each other and to the biomarker data. Identify the most likely root cause(s) that explain multiple symptoms.",
-    "recommendations": ["3-5 specific, actionable suggestions that address the root causes"],
-    "watchouts": ["Safety notes or when to seek medical help - only if applicable"]
-  }
-}`;
+  "triage_reason": "Brief clinical summary of presenting symptoms (e.g., 'Urinary symptoms; Possible infection; Fever')",
+  "vitals_summary": "Summary of vitals collected (e.g., 'BP 145/92 (elevated), HR 88')",
+  "biomarkers_summary": "Summary of recent biomarkers (e.g., 'CRP 12.5 (elevated), WBC normal')",
+  "possible_causes": [
+    {
+      "condition": "Name of possible condition/cause (clinical terminology)",
+      "confidence": 65,  // Integer 0-100, based on evidence strength
+      "evidence": [
+        "Symptom pattern observation",
+        "Supporting biomarker/vital data",
+        "Temporal correlation",
+        "Risk factors or context"
+      ],
+      "actions": [
+        "Specific recommendation #1",
+        "Specific recommendation #2",
+        "When to seek medical care"
+      ]
+    }
+  ],
+  "general_recommendations": ["Overall wellness advice applicable to all scenarios"],
+  "urgent_care_needed": false  // true if immediate medical attention recommended
+}
+
+**Guidelines:**
+- Provide 2-4 possible causes, ranked by confidence (highest first)
+- Confidence should reflect evidence strength, not diagnostic certainty
+- Each cause must have 3-5 evidence points
+- Each cause must have 2-4 specific, actionable steps
+- Be thorough and clinical, but maintain safety guardrails`;
 
 const SYSTEM_PROMPT = `You are HealthPilot's symptom analysis assistant. Your role is to help users understand possible connections between their symptoms and objective health data (sleep, HRV, blood pressure, activity, medications).
 
@@ -183,15 +212,13 @@ export async function generateHolisticSymptomAssessment(
     // Convert AI response to insights array
     const insights: GeneratedSymptomInsight[] = [];
     
-    // Main holistic insight
-    if (parsed.holistic_assessment) {
-      const assessment = parsed.holistic_assessment;
-      
+    // Parse comprehensive diagnostic assessment
+    if (parsed.triage_reason || parsed.possible_causes) {
       // Determine severity based on all symptoms
       const maxSeverity = Math.max(...allSymptoms.map(s => s.symptom.lastSeverity));
       let severity: 'normal' | 'notable' | 'significant' | 'critical' = 'normal';
       
-      if (hasSafetyFlag || maxSeverity >= 9) {
+      if (hasSafetyFlag || maxSeverity >= 9 || parsed.urgent_care_needed) {
         severity = 'critical';
       } else if (maxSeverity >= 7 || allSymptoms.some(s => s.features.symptomWorsening)) {
         severity = 'significant';
@@ -213,16 +240,36 @@ export async function generateHolisticSymptomAssessment(
       if (allRulesHit.some(h => h.ruleId === 'symptom_workout_link')) sourceSignals.push('activity');
       if (allRulesHit.some(h => h.ruleId === 'symptom_med_change_link')) sourceSignals.push('meds');
 
+      // Build comprehensive description
+      let description = parsed.triage_reason || 'Symptom cluster analysis';
+      
+      // Build comprehensive title from triage reason
+      const title = parsed.triage_reason || 'Cluster of symptoms requiring evaluation';
+
+      // Extract possible causes for structured display
+      const possibleCauses: DiagnosticCause[] = (parsed.possible_causes || []).map((cause: any) => ({
+        condition: cause.condition,
+        confidence: cause.confidence,
+        evidence: cause.evidence || [],
+        actions: cause.actions || [],
+      }));
+
       insights.push({
         category: 'Symptoms',
-        title: assessment.title,
-        description: assessment.analysis,
-        recommendations: assessment.recommendations || [],
+        title,
+        description,
+        recommendations: parsed.general_recommendations || [],
         confidence: avgConfidence,
         sourceSignals,
         score: Math.round((allSymptoms.reduce((sum, s) => sum + s.priority, 0) / allSymptoms.length) * 100),
         severity,
-        escalation: hasSafetyFlag || (assessment.watchouts && assessment.watchouts.length > 0),
+        escalation: hasSafetyFlag || parsed.urgent_care_needed,
+        
+        // Medical-grade assessment fields
+        triageReason: parsed.triage_reason,
+        vitalsCollected: parsed.vitals_summary,
+        biomarkersCollected: parsed.biomarkers_summary,
+        possibleCauses,
       });
     }
 
@@ -522,7 +569,7 @@ function selectRecommendations(
   recommendations.push(...ACTION_LIBRARY.general.slice(0, 2));
 
   // Deduplicate and limit to 3
-  return [...new Set(recommendations)].slice(0, 3);
+  return Array.from(new Set(recommendations)).slice(0, 3);
 }
 
 /**
