@@ -12,10 +12,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, TrendingUp, TrendingDown, Minus, CheckCircle2, Activity, Clock, AlertCircle, RefreshCw, Sparkles, Heart, Moon, Apple, Brain } from "lucide-react";
+import { Plus, TrendingUp, TrendingDown, Minus, CheckCircle2, Activity, Clock, AlertCircle, RefreshCw, Sparkles, Heart, Moon, Apple, Brain, ChevronDown, ChevronUp, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDistanceToNow } from "date-fns";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 type SymptomEvent = {
   id: string;
@@ -40,6 +41,25 @@ type SymptomEvent = {
 type InsightCategory = "sleep" | "recovery" | "performance" | "health";
 type InsightSeverity = "normal" | "notable" | "significant" | "critical";
 
+interface DiagnosticCause {
+  condition: string;
+  confidence: number;
+  evidence: string[];
+  actions: string[];
+}
+
+interface InsightEvidence {
+  currentValue?: number;
+  baselineValue?: number;
+  deviation?: number;
+  recommendation?: string;
+  // Comprehensive diagnostic assessment fields (for symptom insights)
+  triageReason?: string;
+  vitalsCollected?: string;
+  biomarkersCollected?: string;
+  possibleCauses?: DiagnosticCause[];
+}
+
 interface DailyHealthInsight {
   id: string;
   userId: string;
@@ -51,6 +71,7 @@ interface DailyHealthInsight {
   score: number;
   status: string;
   metricName: string;
+  metric: string;
   metricValue: number;
   baselineValue: number | null;
   deviationPercent: number;
@@ -59,6 +80,7 @@ interface DailyHealthInsight {
   acknowledgedAt: Date | null;
   dismissedAt: Date | null;
   createdAt: Date;
+  evidence?: InsightEvidence;
 }
 
 interface InsightsResponse {
@@ -110,6 +132,118 @@ const symptomFormSchema = z.object({
 });
 
 type SymptomFormData = z.infer<typeof symptomFormSchema>;
+
+// Component to display comprehensive diagnostic assessment (for symptom insights)
+function DiagnosticAssessment({ insight }: { insight: DailyHealthInsight }) {
+  const evidence = insight.evidence;
+  if (!evidence?.possibleCauses || evidence.possibleCauses.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="space-y-4 mt-4" data-testid={`diagnostic-assessment-${insight.id}`}>
+      {/* Triage Summary */}
+      {evidence.triageReason && (
+        <div className="border-l-4 border-l-amber-500 dark:border-l-amber-400 bg-amber-50 dark:bg-amber-950/30 rounded-r-md p-3">
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+            <div>
+              <p className="text-xs font-semibold text-amber-900 dark:text-amber-200 mb-1">Triage Reason</p>
+              <p className="text-sm text-amber-800 dark:text-amber-300">{evidence.triageReason}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Vitals & Biomarkers Collected */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {evidence.vitalsCollected && (
+          <div className="bg-muted/50 rounded-md p-3">
+            <p className="text-xs font-medium text-muted-foreground mb-1">Vitals Collected</p>
+            <p className="text-sm">{evidence.vitalsCollected}</p>
+          </div>
+        )}
+        {evidence.biomarkersCollected && (
+          <div className="bg-muted/50 rounded-md p-3">
+            <p className="text-xs font-medium text-muted-foreground mb-1">Biomarkers Collected</p>
+            <p className="text-sm">{evidence.biomarkersCollected}</p>
+          </div>
+        )}
+      </div>
+
+      {/* Possible Causes - Differential Diagnosis */}
+      <div className="space-y-3">
+        <h4 className="text-sm font-semibold">Possible Causes (Differential Diagnosis)</h4>
+        {evidence.possibleCauses.map((cause, index) => (
+          <DiagnosticCauseCard key={index} cause={cause} rank={index + 1} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Component for each possible cause
+function DiagnosticCauseCard({ cause, rank }: { cause: DiagnosticCause; rank: number }) {
+  const [isExpanded, setIsExpanded] = useState(rank === 1); // First cause expanded by default
+
+  return (
+    <div className="border rounded-lg overflow-hidden" data-testid={`diagnostic-cause-${rank}`}>
+      <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
+        <CollapsibleTrigger className="w-full" asChild>
+          <button
+            className="w-full flex items-center justify-between gap-3 p-3 bg-card hover-elevate text-left"
+            data-testid={`button-toggle-cause-${rank}`}
+          >
+            <div className="flex-1 flex items-center gap-3">
+              <Badge variant="outline" className="shrink-0 font-mono tabular-nums">
+                {cause.confidence}%
+              </Badge>
+              <span className="font-medium text-sm">{cause.condition}</span>
+            </div>
+            {isExpanded ? (
+              <ChevronUp className="h-4 w-4 shrink-0 text-muted-foreground" />
+            ) : (
+              <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+            )}
+          </button>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <div className="p-3 pt-0 space-y-3">
+            {/* Evidence */}
+            {cause.evidence.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground mb-2">Evidence</p>
+                <ul className="space-y-1.5">
+                  {cause.evidence.map((item, idx) => (
+                    <li key={idx} className="text-sm flex gap-2">
+                      <span className="text-primary mt-0.5">•</span>
+                      <span className="flex-1">{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Actions */}
+            {cause.actions.length > 0 && (
+              <div className="bg-primary/5 border border-primary/10 rounded-md p-3">
+                <p className="text-xs font-semibold text-primary mb-2">💡 Recommended Actions</p>
+                <ul className="space-y-1.5">
+                  {cause.actions.map((action, idx) => (
+                    <li key={idx} className="text-sm flex gap-2">
+                      <span className="text-primary mt-0.5">→</span>
+                      <span className="flex-1">{action}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
+    </div>
+  );
+}
 
 export default function Symptoms() {
   const { toast } = useToast();
@@ -596,13 +730,19 @@ export default function Symptoms() {
                             {insight.description}
                           </p>
 
-                          {insight.recommendation && (
-                            <div className="bg-primary/5 border border-primary/10 rounded-md p-3">
-                              <p className="text-xs font-medium text-primary mb-1">💡 Recommendation</p>
-                              <p className="text-sm">
-                                {insight.recommendation}
-                              </p>
-                            </div>
+                          {/* Comprehensive Diagnostic Assessment (for symptom insights) */}
+                          {insight.evidence?.possibleCauses && insight.evidence.possibleCauses.length > 0 ? (
+                            <DiagnosticAssessment insight={insight} />
+                          ) : (
+                            /* Standard recommendation (for non-symptom insights) */
+                            insight.recommendation && (
+                              <div className="bg-primary/5 border border-primary/10 rounded-md p-3">
+                                <p className="text-xs font-medium text-primary mb-1">💡 Recommendation</p>
+                                <p className="text-sm">
+                                  {insight.recommendation}
+                                </p>
+                              </div>
+                            )
                           )}
                         </div>
                       </div>
