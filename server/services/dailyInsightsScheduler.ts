@@ -286,9 +286,13 @@ export async function generateDailyInsightsForUser(userId: string, forceRegenera
   for (const insight of topInsights) {
     try {
       let recommendationId: string | null = null;
+      
+      // Check if this is a symptom insight (starts with "symptoms_")
+      const isSymptomInsight = insight.metricName.startsWith('symptoms_');
 
       // For notable+ severity deviations, create an actionable recommendation
-      if (['notable', 'significant', 'critical'].includes(insight.severity)) {
+      // BUT: Symptom insights should ONLY appear in Daily tab (for diagnosis/triage), NOT in AI Coach
+      if (['notable', 'significant', 'critical'].includes(insight.severity) && !isSymptomInsight) {
         const recommendation = await storage.createRecommendation({
           userId,
           title: insight.title,
