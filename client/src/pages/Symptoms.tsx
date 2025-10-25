@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, TrendingUp, TrendingDown, Minus, CheckCircle2, Activity, Clock, AlertCircle, RefreshCw, Sparkles } from "lucide-react";
+import { Plus, TrendingUp, TrendingDown, Minus, CheckCircle2, Activity, Clock, AlertCircle, RefreshCw, Sparkles, Heart, Moon, Apple, Brain } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDistanceToNow } from "date-fns";
@@ -35,6 +35,57 @@ type SymptomEvent = {
   source: string;
   version: number;
   createdAt: string;
+};
+
+type InsightCategory = "sleep" | "recovery" | "performance" | "health";
+type InsightSeverity = "normal" | "notable" | "significant" | "critical";
+
+interface DailyHealthInsight {
+  id: string;
+  userId: string;
+  date: string;
+  category: InsightCategory;
+  title: string;
+  description: string;
+  recommendation: string;
+  score: number;
+  status: string;
+  metricName: string;
+  metricValue: number;
+  baselineValue: number | null;
+  deviationPercent: number;
+  severity: InsightSeverity;
+  recommendationId: string | null;
+  acknowledgedAt: Date | null;
+  dismissedAt: Date | null;
+  createdAt: Date;
+}
+
+interface InsightsResponse {
+  date: string;
+  insights: DailyHealthInsight[];
+  total: number;
+}
+
+const categoryIcons = {
+  sleep: Moon,
+  recovery: Heart,
+  performance: TrendingUp,
+  health: Apple,
+};
+
+const categoryColors = {
+  sleep: "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300",
+  recovery: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
+  performance: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
+  health: "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300",
+};
+
+const severityColors = {
+  normal: "bg-muted text-muted-foreground",
+  notable: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
+  significant: "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300",
+  critical: "bg-destructive text-white",
 };
 
 const CONTEXT_SUGGESTIONS = [
@@ -72,6 +123,10 @@ export default function Symptoms() {
 
   const { data: allEvents, isLoading: historyLoading } = useQuery<SymptomEvent[]>({
     queryKey: ["/api/symptoms/events"],
+  });
+
+  const { data: insightsResponse, isLoading: insightsLoading } = useQuery<InsightsResponse>({
+    queryKey: ["/api/insights/today"],
   });
 
   const generateAssessmentMutation = useMutation({
@@ -502,23 +557,74 @@ export default function Symptoms() {
               Get AI-powered insights correlating your symptoms with recent vitals, sleep, and biomarkers
             </CardDescription>
           </CardHeader>
-          {assessmentResult && (
-            <CardContent className="space-y-3">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Insights Generated:</span>
-                <span className="font-semibold">{assessmentResult.insightsGenerated || 0}</span>
+          <CardContent className="space-y-3">
+            {insightsLoading ? (
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-3/4" />
               </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Metrics Analyzed:</span>
-                <span className="font-semibold">{assessmentResult.metricsAnalyzed || 0}</span>
-              </div>
-              {assessmentResult.insightsGenerated > 0 && (
-                <p className="text-sm text-primary/80 mt-2">
-                  ✨ New insights have been added to your Insights Hub
+            ) : insightsResponse && insightsResponse.insights.length > 0 ? (
+              <div className="space-y-3">
+                {insightsResponse.insights.map((insight) => {
+                  const Icon = categoryIcons[insight.category] || Brain;
+                  return (
+                    <div
+                      key={insight.id}
+                      className="relative border rounded-lg p-4 space-y-3 hover-elevate"
+                      data-testid={`insight-${insight.id}`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10">
+                          <Icon className="h-5 w-5 text-primary" />
+                        </div>
+                        <div className="flex-1 space-y-2">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h3 className="font-semibold text-sm">
+                              {insight.title}
+                            </h3>
+                            <Badge className={categoryColors[insight.category]}>
+                              {insight.category}
+                            </Badge>
+                            {insight.severity !== 'normal' && (
+                              <Badge className={severityColors[insight.severity]}>
+                                {insight.severity}
+                              </Badge>
+                            )}
+                          </div>
+                          
+                          <p className="text-sm text-muted-foreground leading-relaxed">
+                            {insight.description}
+                          </p>
+
+                          {insight.recommendation && (
+                            <div className="bg-primary/5 border border-primary/10 rounded-md p-3">
+                              <p className="text-xs font-medium text-primary mb-1">💡 Recommendation</p>
+                              <p className="text-sm">
+                                {insight.recommendation}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+                <p className="text-xs text-muted-foreground text-center mt-3">
+                  These insights are also available in your Daily Insights widget
                 </p>
-              )}
-            </CardContent>
-          )}
+              </div>
+            ) : (
+              <div className="text-center py-6 space-y-2">
+                <Brain className="h-12 w-12 mx-auto text-muted-foreground opacity-50" />
+                <p className="text-sm text-muted-foreground">
+                  No insights generated yet
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Click "Get Assessment" to analyze your symptoms
+                </p>
+              </div>
+            )}
+          </CardContent>
         </Card>
       )}
 
