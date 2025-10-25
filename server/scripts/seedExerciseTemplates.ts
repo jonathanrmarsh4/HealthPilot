@@ -127,16 +127,17 @@ export async function seedExerciseTemplates(): Promise<void> {
 }
 
 /**
- * Run if called directly
+ * Run if called directly (disabled in favor of automatic startup seeding)
+ * The seeding now happens automatically in server/index.ts before validation
  */
-if (import.meta.url === `file://${process.argv[1]}`) {
-  seedExerciseTemplates()
-    .then(() => {
-      console.log("✅ Seeding complete");
-      process.exit(0);
-    })
-    .catch((error) => {
-      console.error("❌ Seeding failed:", error);
-      process.exit(1);
-    });
-}
+// if (import.meta.url === `file://${process.argv[1]}`) {
+//   seedExerciseTemplates()
+//     .then(() => {
+//       console.log("✅ Seeding complete");
+//       process.exit(0);
+//     })
+//     .catch((error) => {
+//       console.error("❌ Seeding failed:", error);
+//       process.exit(1);
+//     });
+// }
