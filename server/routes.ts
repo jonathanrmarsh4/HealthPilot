@@ -10044,11 +10044,19 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
       if (weight && weight.length > 0) {
         console.log(`⚖️  Processing ${weight.length} weight samples`);
         for (const sample of weight) {
+          // Normalize weight to lbs for consistent storage (matching Health Auto Export behavior)
+          let weightValue = sample.value;
+          const sampleUnit = (sample.unit || "kg").toLowerCase();
+          
+          if (sampleUnit === "kg" || sampleUnit === "kilogram") {
+            weightValue = weightValue * 2.20462; // Convert kg to lbs
+          }
+          
           await storage.upsertBiomarker({
             userId,
             type: "weight",
-            value: sample.value,
-            unit: sample.unit || "kg",
+            value: weightValue,
+            unit: "lbs", // Always store in lbs
             source: "ios-healthkit",
             recordedAt: new Date(sample.startDate),
           });
@@ -10076,11 +10084,19 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
       if (leanMass && leanMass.length > 0) {
         console.log(`💪 Processing ${leanMass.length} lean mass samples`);
         for (const sample of leanMass) {
+          // Normalize lean mass to lbs for consistent storage (matching Health Auto Export behavior)
+          let leanMassValue = sample.value;
+          const sampleUnit = (sample.unit || "kg").toLowerCase();
+          
+          if (sampleUnit === "kg" || sampleUnit === "kilogram") {
+            leanMassValue = leanMassValue * 2.20462; // Convert kg to lbs
+          }
+          
           await storage.upsertBiomarker({
             userId,
             type: "lean-body-mass",
-            value: sample.value,
-            unit: sample.unit || "kg",
+            value: leanMassValue,
+            unit: "lbs", // Always store in lbs
             source: "ios-healthkit",
             recordedAt: new Date(sample.startDate),
           });
