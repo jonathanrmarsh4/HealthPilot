@@ -271,7 +271,14 @@ export async function generateDailyInsightsForUser(userId: string, forceRegenera
       currentValue: 0, // Not applicable
       baselineValue: null,
       deviation: 0,
-    })),
+      // Preserve diagnostic assessment fields for symptom insights
+      ...(si.possibleCauses && {
+        triageReason: si.triageReason,
+        vitalsCollected: si.vitalsCollected,
+        biomarkersCollected: si.biomarkersCollected,
+        possibleCauses: si.possibleCauses,
+      }),
+    } as any)),
   ];
 
   if (allInsights.length === 0) {

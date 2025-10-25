@@ -208,9 +208,6 @@ export async function generateHolisticSymptomAssessment(
     }
 
     const parsed = JSON.parse(content);
-    
-    // DEBUG: Log AI response to see what we're getting
-    console.log('[SymptomInsightGeneration] AI response:', JSON.stringify(parsed, null, 2));
 
     // Convert AI response to insights array
     const insights: GeneratedSymptomInsight[] = [];
