@@ -2735,7 +2735,6 @@ export class DbStorage implements IStorage {
     }));
 
     // Use transaction to ensure atomic swap
-    // Delete first to avoid unique constraint conflicts on (workoutSessionId, setIndex)
     await db.transaction(async (tx) => {
       // Delete old sets first to free up setIndex slots
       await tx
@@ -2750,6 +2749,33 @@ export class DbStorage implements IStorage {
       
       // Insert new sets with freed setIndex values
       await tx.insert(exerciseSets).values(newSets);
+      
+      // Update workout instance snapshot if this session has an instance
+      const instances = await tx
+        .select()
+        .from(workoutInstances)
+        .where(eq(workoutInstances.workoutSessionId, sessionId))
+        .limit(1);
+      
+      if (instances.length > 0) {
+        const instance = instances[0];
+        const snapshotData = instance.snapshotData as any;
+        
+        // Update the exercises array in the snapshot
+        if (snapshotData && snapshotData.exercises) {
+          snapshotData.exercises = snapshotData.exercises.map((ex: any) => 
+            ex.id === oldExerciseId ? newExercise : ex
+          );
+          
+          // Update the instance with the modified snapshot
+          await tx
+            .update(workoutInstances)
+            .set({ snapshotData })
+            .where(eq(workoutInstances.id, instance.id));
+          
+          console.log(`✅ Updated workout instance snapshot: swapped ${oldExerciseId} → ${newExerciseId}`);
+        }
+      }
     });
 
     return { success: true, setsUpdated: newSets.length };

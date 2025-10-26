@@ -924,8 +924,14 @@ export default function WorkoutSession() {
         newExerciseId: alternativeExercise.id,
       });
 
+      // Invalidate all relevant queries to ensure UI updates
       queryClient.invalidateQueries({ queryKey: ["/api/workout-sessions", sessionId, "exercises"] });
       queryClient.invalidateQueries({ queryKey: ["/api/workout-sessions", sessionId, "sets"] });
+      
+      // CRITICAL: Also invalidate the workout instance query if using instance-based exercises
+      if (instanceId) {
+        queryClient.invalidateQueries({ queryKey: ["/api/workout-instances", instanceId] });
+      }
 
       toast({
         title: "Exercise Swapped!",
