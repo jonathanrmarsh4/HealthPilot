@@ -108,7 +108,7 @@ export class SmartFuelNLG {
     const defaultTips = [
       'Small, consistent improvements drive lasting results.',
       'Focus on progress, not perfection.',
-      'One meal at a time — you've got this.',
+      'One meal at a time — you\'ve got this.',
     ];
     
     const tips = allTips || defaultTips;

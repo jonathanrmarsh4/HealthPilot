@@ -7,10 +7,13 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
 import * as yaml from 'yaml';
 import type { Biomarker, NutritionProfile } from '@shared/schema';
 
-// Load configuration files
+// Load configuration files (ES module compatible)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 const RULEPACK_PATH = path.join(__dirname, 'rulepack.yaml');
 const ONTOLOGY_PATH = path.join(__dirname, 'ontology.json');
 

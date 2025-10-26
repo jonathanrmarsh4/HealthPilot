@@ -3632,28 +3632,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/smartfuel/guidance:generate", isAuthenticated, async (req, res) => {
     try {
       const userId = (req.user as any).claims.sub;
+      console.log('[SmartFuel] Starting guidance generation for user:', userId);
       
       // Import SmartFuel reasoner and NLG
+      console.log('[SmartFuel] Importing reasoner and NLG modules...');
       const { SmartFuelReasoner } = await import('./smartfuel/reasoner');
       const { formatGuidanceForDisplay } = await import('./smartfuel/nlg');
+      console.log('[SmartFuel] Modules imported successfully');
       
       // Gather health signals
       // 1. Recent biomarkers (last 90 days)
+      console.log('[SmartFuel] Fetching biomarkers...');
       const ninetyDaysAgo = new Date();
       ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
       const allBiomarkers = await storage.getBiomarkers(userId);
       const recentBiomarkers = allBiomarkers.filter(b => 
         new Date(b.recordedAt) >= ninetyDaysAgo
       );
+      console.log(`[SmartFuel] Found ${recentBiomarkers.length} recent biomarkers`);
       
       // 2. Nutrition profile
       const nutritionProfile = await storage.getNutritionProfile(userId);
       
       // 3. Active goals
-      const goals = await storage.getActiveGoals(userId);
-      const goalNames = goals.map(g => g.type);
+      const goals = await storage.getGoals(userId);
+      const goalNames = goals.filter(g => g.status === 'active').map(g => g.type);
+      console.log(`[SmartFuel] Found ${goalNames.length} active goals`);
       
       // Generate guidance
+      console.log('[SmartFuel] Generating guidance...');
       const reasoner = new SmartFuelReasoner();
       const rawGuidance = reasoner.generateGuidance({
         biomarkers: recentBiomarkers,
@@ -3664,14 +3671,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           allergies: nutritionProfile?.allergies || [],
         }
       });
+      console.log(`[SmartFuel] Guidance generated with ${rawGuidance.themesDetected.length} themes`);
       
       // Format for display
+      console.log('[SmartFuel] Formatting guidance for display...');
       const formattedGuidance = formatGuidanceForDisplay(rawGuidance);
       
       // Supersede previous active guidance
+      console.log('[SmartFuel] Superseding previous guidance...');
       await storage.supersedePreviousGuidance(userId, '');
       
       // Save to database
+      console.log('[SmartFuel] Saving guidance to database...');
       const savedGuidance = await storage.createSmartFuelGuidance({
         userId,
         themesDetected: rawGuidance.themesDetected,
@@ -3690,10 +3701,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         evidenceSource: rawGuidance.evidenceSource,
         status: 'active'
       });
+      console.log('[SmartFuel] Guidance saved with ID:', savedGuidance.id);
       
       // Update superseded guidance with new ID
       await storage.supersedePreviousGuidance(userId, savedGuidance.id);
       
+      console.log('[SmartFuel] Guidance generation complete, sending response');
       res.json({
         id: savedGuidance.id,
         generatedAt: savedGuidance.generatedAt,
