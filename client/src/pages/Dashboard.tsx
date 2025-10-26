@@ -15,6 +15,7 @@ import { BiologicalAgeWidget } from "@/components/BiologicalAgeWidget";
 import { ReadinessScoreWidget } from "@/components/ReadinessScoreWidget";
 import { DailyRemindersWidget } from "@/components/DailyRemindersWidget";
 import { SymptomTile } from "@/components/SymptomTile";
+import { SmartFuelTile } from "@/components/SmartFuelTile";
 import { UpgradeBanner } from "@/components/UpgradeBanner";
 import { Heart, Activity, Scale, Droplet, TrendingUp, Zap, Apple, AlertCircle, Dumbbell, Settings2, Eye, EyeOff, ChevronUp, ChevronDown, Dna, TrendingDown, Upload, Shield } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -68,6 +69,7 @@ const ALL_OPTIONAL_WIDGETS = [
   "ai-insights",
   "data-insights",
   "symptoms",
+  "smartfuel",
   "daily-reminders",
   "quick-stats",
   "next-workout",
@@ -86,7 +88,8 @@ const DEFAULT_WIDGETS: string[] = [
   "goals-summary",
   "ai-insights",
   "data-insights",
-  "symptoms"
+  "symptoms",
+  "smartfuel"
 ];
 
 const WIDGET_CONFIG: Record<string, { title: string; description: string }> = {
@@ -97,6 +100,7 @@ const WIDGET_CONFIG: Record<string, { title: string; description: string }> = {
   "ai-insights": { title: "AI Insights", description: "Daily intelligence and pattern discoveries" },
   "data-insights": { title: "Data Insights", description: "Statistical patterns in your health data" },
   "symptoms": { title: "Symptoms", description: "Track and monitor health symptoms with AI correlation" },
+  "smartfuel": { title: "SmartFuel™", description: "Precision nutrition guidance based on biomarkers and goals" },
   "daily-reminders": { title: "Daily Checklist", description: "Track daily health habits and reminders" },
   "quick-stats": { title: "Quick Stats", description: "Daily steps, heart rate, active days, calories" },
   "next-workout": { title: "Next Workout", description: "Upcoming training session" },
@@ -494,6 +498,9 @@ export default function Dashboard() {
 
       case "symptoms":
         return <SymptomTile key={widget} />;
+
+      case "smartfuel":
+        return <SmartFuelTile key={widget} />;
 
       case "next-workout":
         return <NextWorkoutWidget key={widget} />;

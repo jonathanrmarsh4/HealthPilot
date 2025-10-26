@@ -22,6 +22,7 @@ import Biomarkers from "@/pages/Biomarkers";
 import Sleep from "@/pages/Sleep";
 import MealPlans from "@/pages/MealPlans";
 import NutritionProfile from "@/pages/NutritionProfile";
+import SmartFuel from "@/pages/SmartFuel";
 import Training from "@/pages/Training";
 import ReadinessSettings from "@/pages/ReadinessSettings";
 import FitnessProfile from "@/pages/FitnessProfile";
@@ -66,6 +67,7 @@ function Router() {
       <Route path="/sleep" component={Sleep} />
       <Route path="/meals" component={MealPlans} />
       <Route path="/meals/nutrition-profile" component={NutritionProfile} />
+      <Route path="/smartfuel" component={SmartFuel} />
       <Route path="/training" component={Training} />
       <Route path="/training/readiness-settings" component={ReadinessSettings} />
       <Route path="/training/fitness-profile" component={FitnessProfile} />
@@ -124,6 +126,7 @@ function AppLayout() {
     "/sleep": "Sleep Dashboard",
     "/meals": "Meal Plans",
     "/meals/nutrition-profile": "Nutrition Profile",
+    "/smartfuel": "SmartFuel™",
     "/training": "Training",
     "/supplements": "Supplement Stack",
     "/symptoms": "Symptoms Tracking",
