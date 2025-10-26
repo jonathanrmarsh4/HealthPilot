@@ -23,7 +23,7 @@ export class SmartFuelNLG {
    */
   formatAvoidItem(item: GuidanceItem): string {
     const examples = this.formatExamples(item.examples, 2);
-    return `Limit ${item.categoryLabel.toLowerCase()} like ${examples} — ${item.reason.toLowerCase()}.`;
+    return `Limit ${item.categoryLabel.toLowerCase()} like ${examples} - ${item.reason.toLowerCase()}.`;
   }
   
   /**
@@ -31,7 +31,7 @@ export class SmartFuelNLG {
    */
   formatIncludeItem(item: GuidanceItem): string {
     const examples = this.formatExamples(item.examples, 2);
-    return `Add more ${item.categoryLabel.toLowerCase()} like ${examples} — ${item.reason.toLowerCase()}.`;
+    return `Add more ${item.categoryLabel.toLowerCase()} like ${examples} - ${item.reason.toLowerCase()}.`;
   }
   
   /**
@@ -108,7 +108,7 @@ export class SmartFuelNLG {
     const defaultTips = [
       'Small, consistent improvements drive lasting results.',
       'Focus on progress, not perfection.',
-      'One meal at a time — you\'ve got this.',
+      'One meal at a time - you\'ve got this.',
     ];
     
     const tips = allTips || defaultTips;

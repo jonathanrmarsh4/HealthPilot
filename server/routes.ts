@@ -3683,24 +3683,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Save to database
       console.log('[SmartFuel] Saving guidance to database...');
-      const savedGuidance = await storage.createSmartFuelGuidance({
-        userId,
-        themesDetected: rawGuidance.themesDetected,
-        overview: rawGuidance.overview,
-        avoidItems: formattedGuidance.avoidItems,
-        includeItems: formattedGuidance.includeItems,
-        targets: rawGuidance.targets,
-        tip: rawGuidance.tip,
-        guidanceData: {
-          avoid: rawGuidance.avoid,
-          include: rawGuidance.include,
-          rulesApplied: rawGuidance.rulesApplied,
-          evidenceSource: rawGuidance.evidenceSource
-        },
-        rulesVersion: '1.0.0',
-        evidenceSource: rawGuidance.evidenceSource,
-        status: 'active'
-      });
+      
+      // Sanitize guidanceData to ensure clean JSON serialization
+      const guidanceDataObject = {
+        avoid: rawGuidance.avoid,
+        include: rawGuidance.include,
+        rulesApplied: rawGuidance.rulesApplied,
+        evidenceSource: rawGuidance.evidenceSource
+      };
+      
+      // Explicitly convert to clean JSON and back to remove any serialization issues
+      let guidanceData;
+      try {
+        const jsonString = JSON.stringify(guidanceDataObject);
+        console.log('[SmartFuel] JSON string length:', jsonString.length);
+        console.log('[SmartFuel] JSON string sample:', jsonString.substring(0, 300));
+        guidanceData = JSON.parse(jsonString);
+      } catch (jsonError: any) {
+        console.error('[SmartFuel] JSON serialization error:', jsonError.message);
+        throw new Error(`Failed to serialize guidance data: ${jsonError.message}`);
+      }
+      
+      console.log('[SmartFuel] About to insert with avoidItems count:', formattedGuidance.avoidItems.length);
+      console.log('[SmartFuel] About to insert with includeItems count:', formattedGuidance.includeItems.length);
+      
+      let savedGuidance;
+      try {
+        savedGuidance = await storage.createSmartFuelGuidance({
+          userId,
+          themesDetected: rawGuidance.themesDetected,
+          overview: rawGuidance.overview,
+          avoidItems: formattedGuidance.avoidItems,
+          includeItems: formattedGuidance.includeItems,
+          targets: rawGuidance.targets,
+          tip: rawGuidance.tip,
+          guidanceData: guidanceData,
+          rulesVersion: '1.0.0',
+          evidenceSource: rawGuidance.evidenceSource,
+          status: 'active'
+        });
+      } catch (dbError: any) {
+        console.error('[SmartFuel] Database insert error:',{
+          code: dbError.code,
+          message: dbError.message,
+          detail: dbError.detail,
+          where: dbError.where,
+          position: dbError.position
+        });
+        throw new Error(`Database insert failed: ${dbError.message}`);
+      }
       console.log('[SmartFuel] Guidance saved with ID:', savedGuidance.id);
       
       // Update superseded guidance with new ID
