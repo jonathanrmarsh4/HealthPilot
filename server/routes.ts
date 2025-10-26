@@ -670,6 +670,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Manual trigger for cost rollup (for testing/debugging in production)
+  app.post("/api/admin/cost/trigger-rollup", isAdmin, async (req, res) => {
+    try {
+      const { rollupCostsForDate } = await import('./services/telemetry');
+      
+      // Get date to process (defaults to yesterday)
+      const dateParam = req.body.date;
+      let targetDate: Date;
+      
+      if (dateParam) {
+        targetDate = new Date(dateParam);
+        if (isNaN(targetDate.getTime())) {
+          return res.status(400).json({ error: "Invalid date format. Use YYYY-MM-DD" });
+        }
+      } else {
+        // Default to yesterday
+        targetDate = new Date();
+        targetDate.setDate(targetDate.getDate() - 1);
+      }
+      
+      const dateStr = targetDate.toISOString().split('T')[0];
+      console.log(`🔧 [Admin] Manually triggering cost rollup for ${dateStr}...`);
+      
+      await rollupCostsForDate(targetDate);
+      
+      console.log(`✅ [Admin] Cost rollup completed for ${dateStr}`);
+      
+      res.json({ 
+        success: true, 
+        date: dateStr,
+        message: `Successfully rolled up costs for ${dateStr}`
+      });
+    } catch (error: any) {
+      console.error("❌ [Admin] Cost rollup failed:", error);
+      res.status(500).json({ 
+        error: error.message,
+        stack: error.stack 
+      });
+    }
+  });
+
   // Admin Workout Planner Tools
   app.post("/api/admin/workout-planner/run-tests", isAdmin, async (req, res) => {
     try {
