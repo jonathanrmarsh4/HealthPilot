@@ -2018,6 +2018,39 @@ export const generatedWorkouts = pgTable("generated_workouts", {
   uniqueIndex("generated_workouts_user_date_unique_idx").on(table.userId, table.date),
 ]);
 
+// SmartFuel™ Precision Nutrition Guidance - stores biomarker-driven dietary advice
+export const smartFuelGuidance = pgTable("smartfuel_guidance", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  generatedAt: timestamp("generated_at", { withTimezone: true }).notNull().defaultNow(),
+  
+  // Core guidance components
+  themesDetected: text("themes_detected").array().notNull(), // Risk themes: hypertension, elevated_ldl, insulin_resistance, etc.
+  overview: text("overview").notNull(), // Plain-language summary
+  
+  // Guidance arrays (each item is a string with category + reasoning)
+  avoidItems: text("avoid_items").array().notNull().default(sql`ARRAY[]::text[]`), // Foods to limit/avoid
+  includeItems: text("include_items").array().notNull().default(sql`ARRAY[]::text[]`), // Foods to prioritize
+  targets: text("targets").array().notNull().default(sql`ARRAY[]::text[]`), // Daily numeric targets (sodium, fiber, etc.)
+  
+  tip: text("tip"), // Single actionable tip
+  
+  // Full structured data for advanced use cases
+  guidanceData: jsonb("guidance_data").notNull(), // Complete guidance object with evidence tiers, rules applied, etc.
+  
+  // Metadata
+  rulesVersion: varchar("rules_version").notNull().default("1.0.0"), // Rulepack version used
+  evidenceSource: jsonb("evidence_source"), // Biomarkers, vitals, goals used for generation
+  
+  status: varchar("status").notNull().default("active"), // active, superseded, archived
+  supersededBy: varchar("superseded_by"), // ID of newer guidance that replaces this one
+  
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index("smartfuel_guidance_user_generated_idx").on(table.userId, table.generatedAt.desc()),
+  index("smartfuel_guidance_user_status_idx").on(table.userId, table.status),
+]);
+
 // Zod insert schemas for Daily Insights tables
 export const insertDailyMetricSchema = createInsertSchema(dailyMetrics).omit({
   id: true,
@@ -2051,3 +2084,13 @@ export type InsertDailyHealthInsight = z.infer<typeof insertDailyHealthInsightSc
 
 export type GeneratedWorkout = typeof generatedWorkouts.$inferSelect;
 export type InsertGeneratedWorkout = z.infer<typeof insertGeneratedWorkoutSchema>;
+
+// SmartFuel™ Guidance types
+export const insertSmartFuelGuidanceSchema = createInsertSchema(smartFuelGuidance).omit({
+  id: true,
+  createdAt: true,
+  generatedAt: true,
+});
+
+export type SmartFuelGuidance = typeof smartFuelGuidance.$inferSelect;
+export type InsertSmartFuelGuidance = z.infer<typeof insertSmartFuelGuidanceSchema>;

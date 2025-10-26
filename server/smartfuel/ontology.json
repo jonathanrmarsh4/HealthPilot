@@ -1,0 +1,231 @@
+{
+  "ontology_version": "1.0.0",
+  "description": "SmartFuel™ Food Category Ontology - Maps food categories to specific examples and nutritional tags",
+  
+  "categories": [
+    {
+      "id": "leafy_greens_nitrate_rich",
+      "label": "Nitrate-rich leafy greens",
+      "examples": ["spinach", "kale", "arugula", "beetroot greens", "swiss chard"],
+      "tags": ["vascular_health", "bp_friendly", "vegan"]
+    },
+    {
+      "id": "high_potassium_fruits_veg",
+      "label": "High-potassium fruits and vegetables",
+      "examples": ["banana", "avocado", "sweet potato", "white beans", "spinach", "tomato"],
+      "tags": ["potassium", "bp_friendly", "vegan"]
+    },
+    {
+      "id": "soluble_fiber_legumes_oats",
+      "label": "Soluble fiber from legumes and oats",
+      "examples": ["oats", "lentils", "chickpeas", "black beans", "barley", "flaxseed"],
+      "tags": ["fiber", "cholesterol_friendly", "vegan"]
+    },
+    {
+      "id": "omega3_fish_nuts",
+      "label": "Omega-3 sources (fish, nuts, seeds)",
+      "examples": ["salmon", "mackerel", "sardines", "walnuts", "chia seeds", "flaxseed"],
+      "tags": ["omega3", "anti_inflammatory", "pescatarian"]
+    },
+    {
+      "id": "whole_grains_fiber",
+      "label": "Whole grains with fiber",
+      "examples": ["brown rice", "quinoa", "whole wheat", "oats", "barley", "farro"],
+      "tags": ["fiber", "complex_carbs", "vegan"]
+    },
+    {
+      "id": "non_starchy_vegetables",
+      "label": "Non-starchy vegetables",
+      "examples": ["broccoli", "cauliflower", "bell peppers", "zucchini", "cucumber", "leafy greens"],
+      "tags": ["low_glycemic", "high_fiber", "vegan"]
+    },
+    {
+      "id": "legumes_beans",
+      "label": "Legumes and beans",
+      "examples": ["lentils", "black beans", "chickpeas", "kidney beans", "pinto beans"],
+      "tags": ["protein", "fiber", "low_glycemic", "vegan"]
+    },
+    {
+      "id": "nuts_seeds",
+      "label": "Nuts and seeds",
+      "examples": ["almonds", "walnuts", "chia seeds", "flaxseed", "pumpkin seeds"],
+      "tags": ["healthy_fats", "protein", "vegan"]
+    },
+    {
+      "id": "low_glycemic_fruits",
+      "label": "Low glycemic index fruits",
+      "examples": ["berries", "apples", "pears", "grapefruit", "cherries"],
+      "tags": ["low_glycemic", "antioxidants", "vegan"]
+    },
+    {
+      "id": "cruciferous_vegetables",
+      "label": "Cruciferous vegetables",
+      "examples": ["broccoli", "cauliflower", "brussels sprouts", "cabbage", "kale"],
+      "tags": ["detox_support", "fiber", "vegan"]
+    },
+    {
+      "id": "colorful_vegetables_fruits",
+      "label": "Colorful vegetables and fruits",
+      "examples": ["bell peppers", "berries", "carrots", "tomatoes", "purple cabbage"],
+      "tags": ["antioxidants", "anti_inflammatory", "vegan"]
+    },
+    {
+      "id": "lean_proteins",
+      "label": "Lean protein sources",
+      "examples": ["chicken breast", "turkey", "white fish", "greek yogurt", "egg whites"],
+      "tags": ["protein", "low_fat"]
+    },
+    {
+      "id": "complex_carbs_recovery",
+      "label": "Complex carbs for recovery",
+      "examples": ["sweet potato", "brown rice", "quinoa", "oats", "whole grain pasta"],
+      "tags": ["complex_carbs", "recovery", "vegan"]
+    },
+    {
+      "id": "plant_sterols_stanols",
+      "label": "Plant sterols and stanols",
+      "examples": ["fortified plant milk", "fortified orange juice", "nuts", "seeds", "vegetable oils"],
+      "tags": ["cholesterol_blocking", "vegan"]
+    },
+    {
+      "id": "cinnamon_vinegar",
+      "label": "Cinnamon and vinegar",
+      "examples": ["ceylon cinnamon", "apple cider vinegar", "balsamic vinegar"],
+      "tags": ["glucose_control", "vegan"]
+    },
+    {
+      "id": "turmeric_spices",
+      "label": "Anti-inflammatory spices",
+      "examples": ["turmeric", "ginger", "garlic", "cinnamon", "black pepper"],
+      "tags": ["anti_inflammatory", "vegan"]
+    },
+    {
+      "id": "coffee_green_tea",
+      "label": "Coffee and green tea",
+      "examples": ["black coffee", "green tea", "matcha"],
+      "tags": ["antioxidants", "liver_friendly", "vegan"]
+    },
+    {
+      "id": "low_potassium_vegetables",
+      "label": "Low-potassium vegetables",
+      "examples": ["cucumber", "lettuce", "green beans", "cabbage", "cauliflower"],
+      "tags": ["kidney_friendly", "vegan"]
+    },
+    {
+      "id": "egg_whites",
+      "label": "Egg whites",
+      "examples": ["egg whites", "liquid egg whites"],
+      "tags": ["protein", "low_phosphorus", "vegetarian"]
+    },
+    {
+      "id": "low_protein_plant_options",
+      "label": "Lower-protein plant foods",
+      "examples": ["rice", "pasta", "bread", "most vegetables", "most fruits"],
+      "tags": ["kidney_friendly", "vegan"]
+    },
+    {
+      "id": "high_sodium_processed",
+      "label": "High-sodium processed foods",
+      "examples": ["canned soups", "deli meats", "frozen dinners", "fast food", "salty snacks"],
+      "tags": ["high_sodium", "avoid"]
+    },
+    {
+      "id": "saturated_fat_sources",
+      "label": "High saturated fat foods",
+      "examples": ["butter", "cream", "fatty red meat", "full-fat cheese", "coconut oil"],
+      "tags": ["saturated_fat", "avoid"]
+    },
+    {
+      "id": "trans_fat_foods",
+      "label": "Trans fat containing foods",
+      "examples": ["partially hydrogenated oils", "some margarines", "fried fast food", "commercial baked goods"],
+      "tags": ["trans_fat", "avoid"]
+    },
+    {
+      "id": "refined_sugars_sweets",
+      "label": "Refined sugars and sweets",
+      "examples": ["candy", "soda", "pastries", "cookies", "sweetened cereals"],
+      "tags": ["added_sugar", "avoid"]
+    },
+    {
+      "id": "refined_grains_white_bread",
+      "label": "Refined grains",
+      "examples": ["white bread", "white rice", "regular pasta", "white flour products"],
+      "tags": ["high_glycemic", "avoid"]
+    },
+    {
+      "id": "alcohol",
+      "label": "Alcoholic beverages",
+      "examples": ["beer", "wine", "spirits", "cocktails"],
+      "tags": ["alcohol", "avoid"]
+    },
+    {
+      "id": "high_cholesterol_foods",
+      "label": "High dietary cholesterol foods",
+      "examples": ["egg yolks", "organ meats", "shrimp", "full-fat dairy"],
+      "tags": ["dietary_cholesterol", "limit"]
+    },
+    {
+      "id": "high_glycemic_fruits",
+      "label": "High glycemic fruits",
+      "examples": ["watermelon", "pineapple", "dates", "ripe banana"],
+      "tags": ["high_glycemic", "limit"]
+    },
+    {
+      "id": "high_protein_meats",
+      "label": "High-protein meats",
+      "examples": ["beef", "pork", "chicken thighs", "lamb"],
+      "tags": ["high_protein", "limit_for_kidney"]
+    },
+    {
+      "id": "dairy_high_phosphorus",
+      "label": "High-phosphorus dairy",
+      "examples": ["milk", "cheese", "yogurt", "ice cream"],
+      "tags": ["high_phosphorus", "limit_for_kidney"]
+    },
+    {
+      "id": "processed_meats",
+      "label": "Processed meats",
+      "examples": ["bacon", "sausage", "deli meats", "hot dogs", "salami"],
+      "tags": ["high_sodium", "preservatives", "avoid"]
+    }
+  ],
+  
+  "tags_glossary": {
+    "vascular_health": "Supports blood vessel function",
+    "bp_friendly": "Helps manage blood pressure",
+    "potassium": "Rich in potassium",
+    "fiber": "High fiber content",
+    "cholesterol_friendly": "Helps lower cholesterol",
+    "omega3": "Contains omega-3 fatty acids",
+    "anti_inflammatory": "Has anti-inflammatory properties",
+    "low_glycemic": "Low glycemic index",
+    "complex_carbs": "Complex carbohydrates",
+    "protein": "Good protein source",
+    "healthy_fats": "Contains healthy fats",
+    "antioxidants": "Rich in antioxidants",
+    "detox_support": "Supports detoxification",
+    "recovery": "Aids in recovery",
+    "cholesterol_blocking": "Blocks cholesterol absorption",
+    "glucose_control": "May help control blood sugar",
+    "liver_friendly": "Supports liver health",
+    "kidney_friendly": "Safe for kidney health",
+    "low_phosphorus": "Low in phosphorus",
+    "high_sodium": "High in sodium",
+    "saturated_fat": "High in saturated fat",
+    "trans_fat": "Contains trans fats",
+    "added_sugar": "Contains added sugars",
+    "high_glycemic": "High glycemic index",
+    "alcohol": "Alcoholic beverage",
+    "dietary_cholesterol": "High in dietary cholesterol",
+    "high_protein": "Very high protein content",
+    "high_phosphorus": "High in phosphorus",
+    "preservatives": "Contains preservatives",
+    "avoid": "Generally should be avoided or limited",
+    "limit": "Should be consumed in moderation",
+    "limit_for_kidney": "Limit if kidney issues present",
+    "vegan": "Suitable for vegans",
+    "vegetarian": "Suitable for vegetarians",
+    "pescatarian": "Suitable for pescatarians"
+  }
+}

@@ -1,0 +1,345 @@
+# SmartFuel™ Rulepack v1.0.0
+# Evidence-based nutrition guidance rules mapping health signals to dietary recommendations
+
+version: 1.0.0
+title: SmartFuel Rulepack
+last_updated: 2025-10-26
+
+# Risk themes with triggers and dietary targets
+themes:
+  hypertension:
+    triggers:
+      - bp_systolic > 130
+      - bp_diastolic > 85
+    targets:
+      sodium_mg_max: 1800
+      potassium_mg_min: 3500
+      dash_diet: true
+    avoid:
+      - category: high_sodium_processed
+        reason: Excess sodium raises blood pressure
+        evidence_tier: A
+      - category: alcohol
+        reason: Alcohol increases BP
+        evidence_tier: A
+      - category: saturated_fat_sources
+        reason: Saturated fat raises BP risk
+        evidence_tier: B
+    include:
+      - category: leafy_greens_nitrate_rich
+        reason: Nitrates improve vascular function
+        evidence_tier: A
+      - category: high_potassium_fruits_veg
+        reason: Potassium counters sodium effects
+        evidence_tier: A
+      - category: whole_grains_fiber
+        reason: Fiber supports healthy BP
+        evidence_tier: B
+    tips:
+      - Use herbs instead of salt for flavor
+      - Try DASH diet meal patterns
+
+  elevated_ldl:
+    triggers:
+      - ldl_cholesterol > 130
+      - total_cholesterol > 200
+    targets:
+      sat_fat_g_max: 16
+      fiber_g_min: 30
+      plant_sterols_mg_min: 2000
+    avoid:
+      - category: saturated_fat_sources
+        reason: Raises LDL cholesterol
+        evidence_tier: A
+      - category: trans_fat_foods
+        reason: Dramatically increases LDL
+        evidence_tier: A
+      - category: high_cholesterol_foods
+        reason: Dietary cholesterol raises LDL
+        evidence_tier: B
+    include:
+      - category: soluble_fiber_legumes_oats
+        reason: Binds cholesterol in gut
+        evidence_tier: A
+      - category: omega3_fish_nuts
+        reason: Improves lipid profile
+        evidence_tier: A
+      - category: plant_sterols_stanols
+        reason: Blocks cholesterol absorption
+        evidence_tier: A
+    tips:
+      - Start your day with oatmeal
+      - Add flaxseed or chia to meals
+
+  elevated_triglycerides:
+    triggers:
+      - triglycerides > 150
+    targets:
+      refined_carbs_limit: true
+      sugar_g_max: 25
+      omega3_g_min: 2
+    avoid:
+      - category: refined_sugars_sweets
+        reason: Sugars spike triglycerides
+        evidence_tier: A
+      - category: refined_grains_white_bread
+        reason: Refined carbs raise triglycerides
+        evidence_tier: A
+      - category: alcohol
+        reason: Alcohol raises triglycerides
+        evidence_tier: A
+    include:
+      - category: omega3_fish_nuts
+        reason: Omega-3s lower triglycerides
+        evidence_tier: A
+      - category: whole_grains_fiber
+        reason: Fiber stabilizes blood sugar
+        evidence_tier: B
+      - category: low_glycemic_fruits
+        reason: Prevents blood sugar spikes
+        evidence_tier: B
+    tips:
+      - Choose whole grains over white bread
+      - Limit added sugars to 25g/day
+
+  insulin_resistance:
+    triggers:
+      - fasting_glucose > 100
+      - hba1c > 5.7
+    targets:
+      carbs_pct_max: 40
+      fiber_g_min: 30
+      glycemic_load_low: true
+    avoid:
+      - category: refined_sugars_sweets
+        reason: Spikes blood sugar
+        evidence_tier: A
+      - category: refined_grains_white_bread
+        reason: High glycemic index
+        evidence_tier: A
+      - category: high_glycemic_fruits
+        reason: Rapid glucose elevation
+        evidence_tier: B
+    include:
+      - category: non_starchy_vegetables
+        reason: Low glycemic, high fiber
+        evidence_tier: A
+      - category: legumes_beans
+        reason: Slow-release carbs
+        evidence_tier: A
+      - category: nuts_seeds
+        reason: Improves insulin sensitivity
+        evidence_tier: B
+      - category: cinnamon_vinegar
+        reason: May improve glucose control
+        evidence_tier: C
+    tips:
+      - Pair carbs with protein or fat
+      - Choose low-glycemic foods
+
+  kidney_health:
+    triggers:
+      - creatinine > 1.2
+      - egfr < 60
+    targets:
+      protein_g_max: 60
+      potassium_mg_max: 2000
+      phosphorus_mg_max: 1000
+      sodium_mg_max: 2000
+    avoid:
+      - category: high_protein_meats
+        reason: Excess protein strains kidneys
+        evidence_tier: A
+      - category: high_potassium_fruits_veg
+        reason: Potassium accumulates with CKD
+        evidence_tier: A
+      - category: dairy_high_phosphorus
+        reason: Phosphorus harmful in CKD
+        evidence_tier: A
+      - category: processed_meats
+        reason: High sodium and phosphates
+        evidence_tier: B
+    include:
+      - category: low_protein_plant_options
+        reason: Gentler on kidneys
+        evidence_tier: B
+      - category: low_potassium_vegetables
+        reason: Safer for CKD
+        evidence_tier: A
+      - category: egg_whites
+        reason: Lower phosphorus protein
+        evidence_tier: B
+    tips:
+      - Work with renal dietitian
+      - Monitor potassium carefully
+
+  liver_health:
+    triggers:
+      - alt > 40
+      - ast > 40
+    targets:
+      alcohol_avoid: true
+      sugar_g_max: 25
+      omega3_g_min: 2
+    avoid:
+      - category: alcohol
+        reason: Directly toxic to liver
+        evidence_tier: A
+      - category: refined_sugars_sweets
+        reason: Promotes fatty liver
+        evidence_tier: A
+      - category: saturated_fat_sources
+        reason: Worsens liver fat
+        evidence_tier: B
+    include:
+      - category: cruciferous_vegetables
+        reason: Supports detoxification
+        evidence_tier: B
+      - category: omega3_fish_nuts
+        reason: Reduces liver inflammation
+        evidence_tier: B
+      - category: coffee_green_tea
+        reason: Protective for liver
+        evidence_tier: B
+    tips:
+      - Limit fructose and added sugars
+      - Coffee may support liver health
+
+  inflammation:
+    triggers:
+      - hsCRP > 3
+    targets:
+      omega3_g_min: 2
+      antioxidants_high: true
+    avoid:
+      - category: refined_sugars_sweets
+        reason: Promotes inflammation
+        evidence_tier: B
+      - category: trans_fat_foods
+        reason: Pro-inflammatory
+        evidence_tier: A
+      - category: processed_meats
+        reason: High in AGEs
+        evidence_tier: B
+    include:
+      - category: omega3_fish_nuts
+        reason: Anti-inflammatory omega-3s
+        evidence_tier: A
+      - category: colorful_vegetables_fruits
+        reason: Rich in antioxidants
+        evidence_tier: B
+      - category: turmeric_spices
+        reason: Natural anti-inflammatory
+        evidence_tier: C
+    tips:
+      - Add turmeric to meals
+      - Eat the rainbow of vegetables
+
+# Goal-based modifiers
+goals:
+  fat_loss:
+    modifiers:
+      calorie_deficit: true
+      protein_pct_min: 30
+      fiber_g_min: 30
+    include:
+      - category: lean_proteins
+        reason: Preserves muscle in deficit
+        evidence_tier: A
+      - category: non_starchy_vegetables
+        reason: High volume, low calories
+        evidence_tier: A
+    tips:
+      - Focus on protein at each meal
+      - Prioritize whole foods
+
+  muscle_gain:
+    modifiers:
+      calorie_surplus: true
+      protein_g_min: 1.6_per_kg
+    include:
+      - category: lean_proteins
+        reason: Essential for muscle growth
+        evidence_tier: A
+      - category: complex_carbs_recovery
+        reason: Fuels training
+        evidence_tier: A
+    tips:
+      - Eat protein within 2 hours of training
+      - Don't fear carbs post-workout
+
+  metabolic_health:
+    modifiers:
+      glycemic_load_low: true
+      fiber_g_min: 35
+    include:
+      - category: whole_grains_fiber
+        reason: Stabilizes blood sugar
+        evidence_tier: A
+      - category: legumes_beans
+        reason: Improves insulin sensitivity
+        evidence_tier: A
+    tips:
+      - Choose whole over refined
+      - Include fiber at every meal
+
+  cholesterol_control:
+    modifiers:
+      sat_fat_g_max: 16
+      plant_sterols_mg_min: 2000
+    include:
+      - category: soluble_fiber_legumes_oats
+        reason: Lowers LDL
+        evidence_tier: A
+      - category: plant_sterols_stanols
+        reason: Blocks absorption
+        evidence_tier: A
+    tips:
+      - Oats and beans are your friends
+      - Consider plant sterol-enriched foods
+
+  bp_control:
+    modifiers:
+      sodium_mg_max: 1800
+      dash_diet: true
+    include:
+      - category: leafy_greens_nitrate_rich
+        reason: Improves vascular function
+        evidence_tier: A
+      - category: high_potassium_fruits_veg
+        reason: Counters sodium
+        evidence_tier: A
+    tips:
+      - Follow DASH eating pattern
+      - Reduce sodium gradually
+
+# Diet type preferences
+diet_preferences:
+  vegan:
+    exclude_categories:
+      - all_animal_products
+      - dairy_high_phosphorus
+      - omega3_fish_nuts  # Will be filtered to plant omega-3 only
+    substitute_suggestions:
+      protein: "legumes_beans, tofu_tempeh, nuts_seeds"
+      omega3: "flaxseed, chia, walnuts"
+      calcium: "fortified_plant_milks, leafy_greens"
+  
+  vegetarian:
+    exclude_categories:
+      - lean_proteins  # Will exclude meat but allow eggs/dairy
+      - omega3_fish_nuts  # Will be filtered to plant/egg omega-3
+    substitute_suggestions:
+      protein: "eggs, greek_yogurt, legumes_beans"
+  
+  pescatarian:
+    exclude_categories:
+      - high_protein_meats  # Exclude land meats
+    substitute_suggestions:
+      protein: "fatty_fish, shellfish, eggs"
+
+# Evidence tiers reference
+evidence_tiers:
+  A: "Clinical guidelines / Randomized Controlled Trials"
+  B: "Large cohort studies / Meta-analyses"
+  C: "Expert consensus / Preliminary evidence"

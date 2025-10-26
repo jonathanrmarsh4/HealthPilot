@@ -126,6 +126,8 @@ import {
   type InsertDailyHealthInsight,
   type GeneratedWorkout,
   type InsertGeneratedWorkout,
+  type SmartFuelGuidance,
+  type InsertSmartFuelGuidance,
   users,
   healthRecords,
   biomarkers,
@@ -177,6 +179,7 @@ import {
   preferenceVectors,
   trainingLoadSessions,
   landingPageContent,
+  smartFuelGuidance,
   landingPageFeatures,
   landingPageTestimonials,
   landingPagePricingPlans,
@@ -630,6 +633,12 @@ export interface IStorage {
   getDailyHealthInsights(userId: string, date: Date): Promise<DailyHealthInsight[]>;
   getDailyHealthInsightsDateRange(userId: string, startDate: Date, endDate: Date): Promise<DailyHealthInsight[]>;
   updateDailyHealthInsightStatus(id: string, userId: string, status: string): Promise<void>;
+  
+  // SmartFuel™ Precision Nutrition Guidance
+  createSmartFuelGuidance(guidance: InsertSmartFuelGuidance): Promise<SmartFuelGuidance>;
+  getCurrentSmartFuelGuidance(userId: string): Promise<SmartFuelGuidance | undefined>;
+  getSmartFuelGuidanceHistory(userId: string, limit?: number): Promise<SmartFuelGuidance[]>;
+  supersedePreviousGuidance(userId: string, newGuidanceId: string): Promise<void>;
 }
 
 export class DbStorage implements IStorage {
@@ -5352,6 +5361,53 @@ export class DbStorage implements IStorage {
         and(
           eq(dailyHealthInsights.id, id),
           eq(dailyHealthInsights.userId, userId)
+        )
+      );
+  }
+
+  // SmartFuel™ Precision Nutrition Guidance methods
+  async createSmartFuelGuidance(guidance: InsertSmartFuelGuidance): Promise<SmartFuelGuidance> {
+    const result = await db.insert(smartFuelGuidance).values(guidance).returning();
+    return result[0];
+  }
+
+  async getCurrentSmartFuelGuidance(userId: string): Promise<SmartFuelGuidance | undefined> {
+    const result = await db
+      .select()
+      .from(smartFuelGuidance)
+      .where(
+        and(
+          eq(smartFuelGuidance.userId, userId),
+          eq(smartFuelGuidance.status, 'active')
+        )
+      )
+      .orderBy(desc(smartFuelGuidance.generatedAt))
+      .limit(1);
+    
+    return result[0];
+  }
+
+  async getSmartFuelGuidanceHistory(userId: string, limit: number = 10): Promise<SmartFuelGuidance[]> {
+    return await db
+      .select()
+      .from(smartFuelGuidance)
+      .where(eq(smartFuelGuidance.userId, userId))
+      .orderBy(desc(smartFuelGuidance.generatedAt))
+      .limit(limit);
+  }
+
+  async supersedePreviousGuidance(userId: string, newGuidanceId: string): Promise<void> {
+    // Mark all previous active guidance as superseded
+    await db
+      .update(smartFuelGuidance)
+      .set({
+        status: 'superseded',
+        supersededBy: newGuidanceId
+      })
+      .where(
+        and(
+          eq(smartFuelGuidance.userId, userId),
+          eq(smartFuelGuidance.status, 'active')
         )
       );
   }

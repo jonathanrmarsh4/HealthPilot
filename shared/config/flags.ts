@@ -69,6 +69,18 @@ export const FLAG_DEFINITIONS: Record<string, FlagConfig> = {
     level: 'site',
     description: 'Enable AI-powered daily training session generator with standards-based workouts'
   },
+  FEATURE_SHOW_SMARTFUEL: {
+    name: 'FEATURE_SHOW_SMARTFUEL',
+    default: true,
+    level: 'site',
+    description: 'Enable SmartFuel™ precision nutrition guidance system (biomarker-driven dietary advice)'
+  },
+  FEATURE_SHOW_RECIPE_FEATURES: {
+    name: 'FEATURE_SHOW_RECIPE_FEATURES',
+    default: false,
+    level: 'site',
+    description: 'Show legacy meal plan and recipe features (parked for future reactivation)'
+  },
 } as const;
 
 // Type-safe flag names
@@ -203,6 +215,8 @@ export const canUseMealPreferenceWeighting = () => flags.isEnabled('MEAL_PREFERE
 export const canUseBiomarkerFilter = () => flags.isEnabled('BIOMARKER_FILTER_ENABLED');
 export const canUseAIWorkoutSelection = () => flags.isEnabled('AI_WORKOUT_SELECTION_ENABLED');
 export const canUseDailyAITrainingGenerator = () => flags.isEnabled('DAILY_AI_TRAINING_GENERATOR_ENABLED');
+export const showSmartFuel = () => flags.isEnabled('FEATURE_SHOW_SMARTFUEL');
+export const showRecipeFeatures = () => flags.isEnabled('FEATURE_SHOW_RECIPE_FEATURES');
 
 /**
  * Development helper: log all flag states

@@ -3627,6 +3627,149 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ==================== SmartFuel™ Precision Nutrition Guidance ====================
+  // POST /api/smartfuel/guidance:generate - Generate new personalized nutrition guidance
+  app.post("/api/smartfuel/guidance:generate", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any).claims.sub;
+      
+      // Import SmartFuel reasoner and NLG
+      const { SmartFuelReasoner } = await import('./smartfuel/reasoner');
+      const { formatGuidanceForDisplay } = await import('./smartfuel/nlg');
+      
+      // Gather health signals
+      // 1. Recent biomarkers (last 90 days)
+      const ninetyDaysAgo = new Date();
+      ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+      const allBiomarkers = await storage.getBiomarkers(userId);
+      const recentBiomarkers = allBiomarkers.filter(b => 
+        new Date(b.recordedAt) >= ninetyDaysAgo
+      );
+      
+      // 2. Nutrition profile
+      const nutritionProfile = await storage.getNutritionProfile(userId);
+      
+      // 3. Active goals
+      const goals = await storage.getActiveGoals(userId);
+      const goalNames = goals.map(g => g.type);
+      
+      // Generate guidance
+      const reasoner = new SmartFuelReasoner();
+      const rawGuidance = reasoner.generateGuidance({
+        biomarkers: recentBiomarkers,
+        nutritionProfile: nutritionProfile || undefined,
+        goals: goalNames,
+        userPreferences: {
+          dietType: nutritionProfile?.dietaryPreferences?.[0],
+          allergies: nutritionProfile?.allergies || [],
+        }
+      });
+      
+      // Format for display
+      const formattedGuidance = formatGuidanceForDisplay(rawGuidance);
+      
+      // Supersede previous active guidance
+      await storage.supersedePreviousGuidance(userId, '');
+      
+      // Save to database
+      const savedGuidance = await storage.createSmartFuelGuidance({
+        userId,
+        themesDetected: rawGuidance.themesDetected,
+        overview: rawGuidance.overview,
+        avoidItems: formattedGuidance.avoidItems,
+        includeItems: formattedGuidance.includeItems,
+        targets: rawGuidance.targets,
+        tip: rawGuidance.tip,
+        guidanceData: {
+          avoid: rawGuidance.avoid,
+          include: rawGuidance.include,
+          rulesApplied: rawGuidance.rulesApplied,
+          evidenceSource: rawGuidance.evidenceSource
+        },
+        rulesVersion: '1.0.0',
+        evidenceSource: rawGuidance.evidenceSource,
+        status: 'active'
+      });
+      
+      // Update superseded guidance with new ID
+      await storage.supersedePreviousGuidance(userId, savedGuidance.id);
+      
+      res.json({
+        id: savedGuidance.id,
+        generatedAt: savedGuidance.generatedAt,
+        themes: savedGuidance.themesDetected,
+        overview: savedGuidance.overview,
+        avoid: savedGuidance.avoidItems,
+        include: savedGuidance.includeItems,
+        targets: savedGuidance.targets,
+        tip: savedGuidance.tip
+      });
+    } catch (error: any) {
+      console.error('[SmartFuel] Error generating guidance:', error);
+      res.status(500).json({ 
+        error: 'Failed to generate nutrition guidance',
+        message: error.message 
+      });
+    }
+  });
+  
+  // GET /api/smartfuel/guidance/current - Get current active guidance
+  app.get("/api/smartfuel/guidance/current", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any).claims.sub;
+      
+      const guidance = await storage.getCurrentSmartFuelGuidance(userId);
+      
+      if (!guidance) {
+        return res.status(404).json({ 
+          error: 'No guidance found',
+          message: 'Generate your first SmartFuel guidance to get started'
+        });
+      }
+      
+      res.json({
+        id: guidance.id,
+        generatedAt: guidance.generatedAt,
+        themes: guidance.themesDetected,
+        overview: guidance.overview,
+        avoid: guidance.avoidItems,
+        include: guidance.includeItems,
+        targets: guidance.targets,
+        tip: guidance.tip
+      });
+    } catch (error: any) {
+      console.error('[SmartFuel] Error retrieving current guidance:', error);
+      res.status(500).json({ 
+        error: 'Failed to retrieve guidance',
+        message: error.message 
+      });
+    }
+  });
+  
+  // GET /api/smartfuel/guidance/history - Get guidance history
+  app.get("/api/smartfuel/guidance/history", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any).claims.sub;
+      const limit = parseInt(req.query.limit as string) || 10;
+      
+      const history = await storage.getSmartFuelGuidanceHistory(userId, limit);
+      
+      res.json(history.map(g => ({
+        id: g.id,
+        generatedAt: g.generatedAt,
+        themes: g.themesDetected,
+        overview: g.overview,
+        status: g.status
+      })));
+    } catch (error: any) {
+      console.error('[SmartFuel] Error retrieving guidance history:', error);
+      res.status(500).json({ 
+        error: 'Failed to retrieve history',
+        message: error.message 
+      });
+    }
+  });
+
   // Nutrition Profile Routes
   app.get("/api/nutrition-profile", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
