@@ -15,9 +15,27 @@
 
 import { isNativePlatform, getPlatform } from '../MobileBootstrap';
 
-// Import capacitor-health plugin
-// @ts-ignore - Plugin may not have full TypeScript definitions
-import { CapacitorHealth } from 'capacitor-health';
+// Lazy load Health plugin only when needed (prevents bundling in web builds)
+let Health: any = null;
+let healthPluginAttempted = false;
+
+function getHealthPlugin(): any {
+  if (!healthPluginAttempted) {
+    healthPluginAttempted = true;
+    if (typeof window !== 'undefined' && isNativePlatform()) {
+      try {
+        // Dynamic import only on native platforms
+        const healthModule = (window as any).capacitorHealth;
+        if (healthModule) {
+          Health = healthModule.Health;
+        }
+      } catch (e) {
+        console.warn('[HealthKit] capacitor-health plugin not available');
+      }
+    }
+  }
+  return Health;
+}
 
 export type HealthDataType =
   | 'heartRate'
@@ -68,7 +86,8 @@ class NativeHealthKitAdapter implements HealthKitAdapter {
   }
 
   async requestAuthorization(permissions: HealthKitPermissions): Promise<boolean> {
-    if (!this.isAvailable()) {
+    const plugin = getHealthPlugin();
+    if (!this.isAvailable() || !plugin) {
       console.warn('[HealthKit] Not available on this platform');
       return false;
     }
@@ -76,7 +95,7 @@ class NativeHealthKitAdapter implements HealthKitAdapter {
     try {
       console.log('[HealthKit] Requesting authorization for:', permissions.read);
       
-      const result = await CapacitorHealth.requestAuthorization({
+      const result = await plugin.requestAuthorization({
         read: permissions.read,
         write: permissions.write || [],
       });
@@ -90,12 +109,13 @@ class NativeHealthKitAdapter implements HealthKitAdapter {
   }
 
   async checkPermission(dataType: HealthDataType): Promise<'authorized' | 'denied' | 'notDetermined'> {
-    if (!this.isAvailable()) {
+    const plugin = getHealthPlugin();
+    if (!this.isAvailable() || !plugin) {
       return 'denied';
     }
 
     try {
-      const result = await CapacitorHealth.checkPermissions({
+      const result = await plugin.checkPermissions({
         read: [dataType],
       });
 
@@ -106,7 +126,8 @@ class NativeHealthKitAdapter implements HealthKitAdapter {
   }
 
   async readSamples(query: HealthDataQuery): Promise<HealthDataSample[]> {
-    if (!this.isAvailable()) {
+    const plugin = getHealthPlugin();
+    if (!this.isAvailable() || !plugin) {
       console.warn('[HealthKit] Not available on this platform');
       return [];
     }
@@ -114,7 +135,7 @@ class NativeHealthKitAdapter implements HealthKitAdapter {
     try {
       console.log('[HealthKit] Reading samples:', query);
 
-      const result = await CapacitorHealth.queryHKitSampleType({
+      const result = await plugin.queryHKitSampleType({
         sampleName: query.dataType,
         startDate: query.startDate.toISOString(),
         endDate: query.endDate.toISOString(),
