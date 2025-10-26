@@ -53,6 +53,7 @@ I prefer simple language and clear explanations. I want iterative development wh
 - **Automatic Timezone Synchronization:** Intelligent timezone detection system ensuring accurate scheduling and time-based features across all timezones, using browser-based detection and server-side validation.
 - **Exercise Template Auto-Seeding System:** Automatic database seeding system ensuring all exercise templates referenced in rules exist in the database at application startup.
 - **Template-to-Exercise Enrichment System v1.0:** Critical fix ensuring workout generation properly resolves template_ids to exercise_ids during save, preventing exercise mismatch bugs. All workout generation code paths (API routes, scheduler) now use `enrichWorkoutBlocks` to map templates → exercises BEFORE database storage, eliminating fuzzy matching discrepancies between workout preview and session execution.
+- **Cost Rollup Scheduler & Telemetry System:** Automated daily cost aggregation system running at 02:30 UTC to aggregate telemetry_llm_events into cost_user_daily and cost_global_daily tables for the admin Cost Control Dashboard. Instrumented OpenAI client tracks all LLM usage regardless of API key source (Replit integration or custom key), enabling comprehensive monitoring of AI costs, token usage, and user spending patterns.
 
 ## External Dependencies
 - **Database:** PostgreSQL

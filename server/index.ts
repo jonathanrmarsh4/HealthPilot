@@ -154,5 +154,16 @@ app.use((req, res, next) => {
         log(`❌ Daily Training Generator Scheduler error: ${error.message}`);
       }
     }, 8000); // Wait 8 seconds after startup
+    
+    // Start Cost Rollup Scheduler (runs daily at 02:30 UTC)
+    setTimeout(async () => {
+      try {
+        log('💰 Starting Cost Rollup Scheduler...');
+        const { startCostRollupScheduler } = await import('./services/costRollupScheduler');
+        startCostRollupScheduler();
+      } catch (error: any) {
+        log(`❌ Cost Rollup Scheduler error: ${error.message}`);
+      }
+    }, 9000); // Wait 9 seconds after startup
   });
 })();
