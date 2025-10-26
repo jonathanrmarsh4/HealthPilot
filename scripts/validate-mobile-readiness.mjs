@@ -98,6 +98,7 @@ check('Required Capacitor Plugins Installed', () => {
     '@capacitor/filesystem',
     '@capacitor/browser',
     '@capacitor/share',
+    '@aparajita/capacitor-secure-storage',
   ];
   
   const missing = requiredPlugins.filter(plugin => !deps[plugin]);
