@@ -46,6 +46,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useAuth } from "@/hooks/useAuth";
+import { showSmartFuel, showRecipeFeatures } from "@shared/config/flags";
 import logoPath from "@assets/HealthPilot_Logo_1759904141260.png";
 
 interface MenuItem {
@@ -62,50 +63,74 @@ interface MenuSection {
   adminOnly?: boolean;
 }
 
-const menuSections: MenuSection[] = [
-  {
-    title: "About You",
-    icon: UserCircle,
-    items: [
-      { title: "Goals", url: "/goals", icon: Target },
-      { title: "Biomarkers", url: "/biomarkers", icon: Activity },
-      { title: "Sleep", url: "/sleep", icon: Moon },
-      { title: "Symptoms", url: "/symptoms", icon: AlertCircle },
-      { title: "Longevity", url: "/biological-age", icon: Dna },
-    ],
-  },
-  {
-    title: "Your Plan",
-    icon: Dumbbell,
-    items: [
-      { title: "Training", url: "/training", icon: Dumbbell },
-      { title: "Nutrition", url: "/meals", icon: Utensils },
-      { title: "Supplementation", url: "/supplements", icon: Pill },
-    ],
-  },
-  {
-    title: "AI Coach",
-    icon: Sparkles,
-    items: [
-      { title: "Chat", url: "/chat", icon: MessageSquare },
-      { title: "Voice Chat", url: "/voice-chat", icon: Mic },
-      { title: "Recommendations", url: "/insights", icon: Sparkles },
-      { title: "Trends", url: "/data-insights", icon: BarChart3 },
-    ],
-  },
-  {
-    title: "Settings & Data",
-    icon: Settings,
-    items: [
-      { title: "Health Records", url: "/records", icon: FileText },
-      { title: "Fitness Profile", url: "/training/fitness-profile", icon: User },
-      { title: "Nutrition Profile", url: "/meals/nutrition-profile", icon: Utensils },
-      { title: "Integrations", url: "/apple-health", icon: Smartphone },
-      { title: "Privacy Policy", url: "/privacy", icon: Lock },
-      { title: "Privacy Dashboard", url: "/privacy-dashboard", icon: ShieldCheck },
-    ],
-  },
-];
+const buildMenuSections = (): MenuSection[] => {
+  const yourPlanItems: MenuItem[] = [
+    { title: "Training", url: "/training", icon: Dumbbell },
+  ];
+
+  // Add SmartFuel or legacy Nutrition based on feature flags
+  if (showSmartFuel()) {
+    yourPlanItems.push({ title: "SmartFuel™", url: "/smartfuel", icon: Sparkles });
+  }
+  
+  if (showRecipeFeatures()) {
+    yourPlanItems.push({ title: "Nutrition", url: "/meals", icon: Utensils });
+  }
+  
+  yourPlanItems.push({ title: "Supplementation", url: "/supplements", icon: Pill });
+
+  const settingsItems: MenuItem[] = [
+    { title: "Health Records", url: "/records", icon: FileText },
+    { title: "Fitness Profile", url: "/training/fitness-profile", icon: User },
+  ];
+
+  // Only show Nutrition Profile if legacy features are enabled
+  if (showRecipeFeatures()) {
+    settingsItems.push({ title: "Nutrition Profile", url: "/meals/nutrition-profile", icon: Utensils });
+  }
+
+  settingsItems.push(
+    { title: "Integrations", url: "/apple-health", icon: Smartphone },
+    { title: "Privacy Policy", url: "/privacy", icon: Lock },
+    { title: "Privacy Dashboard", url: "/privacy-dashboard", icon: ShieldCheck }
+  );
+
+  return [
+    {
+      title: "About You",
+      icon: UserCircle,
+      items: [
+        { title: "Goals", url: "/goals", icon: Target },
+        { title: "Biomarkers", url: "/biomarkers", icon: Activity },
+        { title: "Sleep", url: "/sleep", icon: Moon },
+        { title: "Symptoms", url: "/symptoms", icon: AlertCircle },
+        { title: "Longevity", url: "/biological-age", icon: Dna },
+      ],
+    },
+    {
+      title: "Your Plan",
+      icon: Dumbbell,
+      items: yourPlanItems,
+    },
+    {
+      title: "AI Coach",
+      icon: Sparkles,
+      items: [
+        { title: "Chat", url: "/chat", icon: MessageSquare },
+        { title: "Voice Chat", url: "/voice-chat", icon: Mic },
+        { title: "Recommendations", url: "/insights", icon: Sparkles },
+        { title: "Trends", url: "/data-insights", icon: BarChart3 },
+      ],
+    },
+    {
+      title: "Settings & Data",
+      icon: Settings,
+      items: settingsItems,
+    },
+  ];
+};
+
+const menuSections = buildMenuSections();
 
 export function AppSidebar() {
   const [location] = useLocation();
