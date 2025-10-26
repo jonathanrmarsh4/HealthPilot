@@ -1,0 +1,220 @@
+{
+  "role": "Lead Mobile Platform Engineer",
+  "context": {
+    "app_name": "HealthPilot",
+    "stack": {
+      "frontend": "Web app (TypeScript/React or similar) currently running in browser",
+      "mobile_wrapper": "CapacitorJS",
+      "target_platform": "iOS first (Android later)",
+      "runtime": "Capacitor 5+",
+      "package_manager": "npm or pnpm (auto-detect)",
+      "build_host": "Mac/Xcode required for iOS"
+    },
+    "product_requirements": [
+      "Wrap existing HealthPilot web app with Capacitor for iOS.",
+      "Integrate required native capabilities (HealthKit bridge, secure storage, push optional).",
+      "Implement mobile app boot, splash, icons, deep links, error handling, logging, and analytics.",
+      "Ship an Xcode project that builds and runs on device and simulator.",
+      "Document everything and prove it works end-to-end."
+    ],
+    "non_goals": [
+      "Android release (deferred).",
+      "Implementing new application features outside of mobile enablement.",
+      "Long-running background services beyond HealthKit observer refresh (only if required by current features)."
+    ]
+  },
+  "constraints_and_standards": {
+    "typescript": "strict",
+    "ios_min_version": "15.0",
+    "swift_version": "5",
+    "privacy": "Use least-privilege entitlements & runtime permission prompts with clear UX copy.",
+    "security": [
+      "Never store tokens in localStorage; use Capacitor Preferences + Keychain/Keystore.",
+      "Do not log PII or medical data at any level below INFO; redact sensitive fields."
+    ],
+    "performance": [
+      "First meaningful paint < 2.5s cold start on iPhone 12 or newer.",
+      "Bundle splitting enabled; tree-shake unused plugins."
+    ]
+  },
+  "deliverables": [
+    "1) Updated repository with Capacitor configured, iOS project generated and buildable.",
+    "2) ios/HealthPilot.xcodeproj & workspace with proper bundle id and signing settings.",
+    "3) App icons and splash screens added and referenced.",
+    "4) Implemented native capability shims and TypeScript facades.",
+    "5) End-to-end Validation Script (CLI) and Test Plan markdown.",
+    "6) OPERATIONS.md (how to build/run/test/sign), MOBILE_READINESS_CHECKLIST.md (ticked), and CHANGELOG.",
+    "7) A single console summary at the end showing pass/fail for every validation step."
+  ],
+  "cap_plugins_required": {
+    "core": [
+      "@capacitor/app",
+      "@capacitor/keyboard",
+      "@capacitor/status-bar",
+      "@capacitor/haptics",
+      "@capacitor/splash-screen",
+      "@capacitor/preferences",
+      "@capacitor/filesystem",
+      "@capacitor/browser",
+      "@capacitor/share"
+    ],
+    "optional": [
+      "@capacitor/push-notifications"
+    ]
+  },
+  "native_capabilities": {
+    "healthkit": {
+      "goal": "Read user-authorized metrics already used by HealthPilot (e.g., HRV, heart rate, SpO2, body/wrist temp, sleep, ECG metadata availability).",
+      "implementation": [
+        "Prefer a maintained Capacitor HealthKit bridge. If none is suitable, implement a minimal custom Capacitor plugin in Swift.",
+        "Expose typed TS APIs for: requestAuthorization(scopes), readSamples(query), observeUpdates(types), stopObservations().",
+        "Support granular scopes (read/write only what’s needed).",
+        "Add background observer refresh ONLY if the current feature set requires it."
+      ],
+      "ios_config": {
+        "capabilities": ["HealthKit"],
+        "entitlements": [
+          "com.apple.developer.healthkit",
+          "com.apple.developer.healthkit.access" 
+        ],
+        "info_plist_keys": {
+          "NSHealthShareUsageDescription": "HealthPilot uses Health data you authorize to generate insights and recommendations.",
+          "NSHealthUpdateUsageDescription": "HealthPilot may write specific data you authorize to help you track progress."
+        },
+        "notes": "Exact entitlements depend on chosen HealthKit data types; configure HKQuantityTypeIdentifier/HKCategoryTypeIdentifier accordingly."
+      }
+    },
+    "secure_storage": {
+      "goal": "Store session tokens and sensitive config safely.",
+      "implementation": [
+        "Use Capacitor Preferences for non-sensitive config and iOS Keychain for auth tokens (via a small native helper or an existing secure-storage plugin).",
+        "Provide a TS AuthStore that abstracts getToken/setToken/clear and persists to Keychain."
+      ]
+    },
+    "deep_links": {
+      "goal": "Open app via https:// links and custom scheme for auth callbacks.",
+      "implementation": [
+        "Configure Associated Domains (applinks) and a custom URL scheme (e.g., healthpilot://).",
+        "Wire to Router handler in the web layer to route to the correct screen."
+      ]
+    },
+    "push_notifications_optional": {
+      "guard": "Implement wiring but keep disabled by default.",
+      "implementation": [
+        "Register, request permission, obtain device token, and expose TS events.",
+        "Place all push logic behind a feature flag."
+      ]
+    }
+  },
+  "project_setup_tasks": [
+    "TASK 1: Detect repo structure; if needed, move web app into /app and create /mobile for Capacitor scaffolding (or integrate in-place).",
+    "TASK 2: Add Capacitor to the project; generate capacitor.config.ts with correct appId, appName, webDir, server settings for local dev.",
+    "TASK 3: Install required plugins (see cap_plugins_required). Tree-shake unused ones.",
+    "TASK 4: Implement MobileBootstrap.ts that runs on native only: status bar style, splash handling, keyboard adjustments, in-app back handling.",
+    "TASK 5: Ensure routing works under Capacitor (hash or history mode with proper base path).",
+    "TASK 6: Add ENV handling for native builds: .env.native (API base, Sentry DSN, feature flags). Do not commit secrets."
+  ],
+  "ios_specific_tasks": [
+    "TASK 7: npx cap add ios; ensure ios/App uses Swift 5 and minimum iOS 15.",
+    "TASK 8: Configure bundle id, team signing, automatic provisioning in Xcode.",
+    "TASK 9: Add app icons and splash screens in all sizes, including 3x assets (provide script to generate from a single source PNG/SVG).",
+    "TASK 10: Set Info.plist privacy strings: NSCameraUsageDescription, NSPhotoLibraryAddUsageDescription (if screenshots export), plus HealthKit strings as above.",
+    "TASK 11: Configure URL Types (custom scheme) and Associated Domains (applinks:your-domain).",
+    "TASK 12: Ensure offline support where needed (cache strategy) using Filesystem for critical payloads (non-PII)."
+  ],
+  "web_to_native_adapters": [
+    "Create /mobile/adapters with thin TS functions that switch to Capacitor APIs when isNative() === true, else use web fallbacks.",
+    "Adapters required: SecureStorageAdapter, FileAdapter, ShareAdapter, BrowserAdapter (for OAuth flows), HapticsAdapter, HealthKitAdapter."
+  ],
+  "error_handling_and_logging": {
+    "global_handler": "Add a global error boundary and window.onerror capture.",
+    "logging": [
+      "Console logs suppressed below WARN in production.",
+      "Optional Sentry/Crashlytics wiring; redact PII/health data."
+    ],
+    "user_feedback": "Non-technical errors show human, concise toasts with retry."
+  },
+  "analytics_and_cost_control": {
+    "events": [
+      "app_start_native",
+      "permissions_prompt_shown",
+      "permission_granted_healthkit",
+      "healthkit_query_executed",
+      "secure_login_success",
+      "secure_login_failure",
+      "deeplink_opened",
+      "push_token_obtained"
+    ],
+    "cost_control": "Wrap any metered API calls in a throttle and emit metrics (count, bytes) to a local dashboard (dev-only) to verify mobile cost impact."
+  },
+  "healthkit_functionality_proof": {
+    "scenarios": [
+      "S1: First launch -> permission request -> user grants -> read latest HR, HRV, SpO2, sleep summary; display on a simple Native Diagnostics screen.",
+      "S2: User revokes some permissions -> app degrades gracefully and reflects permission state.",
+      "S3: (If implemented) Observer update arrives -> lightweight refresh handler runs and updates Diagnostics."
+    ],
+    "ui": "Add a temporary 'Native Diagnostics' screen accessible from a dev menu/button."
+  },
+  "security_hardening": [
+    "Disable web debugging in release.",
+    "Ensure scheme uses HTTPS only for APIs; reject self-signed in production.",
+    "Keychain storage for tokens; auto-logout if Keychain read fails or token invalid."
+  ],
+  "validation_suite": {
+    "cli_script": "scripts/validate-mobile-readiness.mjs",
+    "checks": [
+      "Capacitor installed and config valid.",
+      "All required plugins present and importable.",
+      "iOS platform added; Xcode project compiles in Release and Debug for simulator.",
+      "Info.plist contains required privacy keys.",
+      "Entitlements include HealthKit when HealthKitAdapter is enabled.",
+      "App icons & splash exist and referenced.",
+      "Deep links route correctly (simulated openURL).",
+      "Secure storage round-trip works (set/get/clear).",
+      "HealthKitAdapter: mock mode passes; on device, real read path handles no-permission case and granted case.",
+      "No PII/health data in logs at INFO or below in production.",
+      "Bundle size and cold start within target thresholds."
+    ],
+    "outputs": [
+      "Machine-readable JSON to stdout with pass/fail per check.",
+      "Human summary table to console."
+    ]
+  },
+  "acceptance_criteria": [
+    "A: `npx cap sync ios` runs clean; `npx cap open ios` builds and runs the app in Xcode simulator.",
+    "B: On device, HealthPilot launches, shows splash, navigates to main screen without errors.",
+    "C: Native Diagnostics screen confirms: platform=native, SecureStorage OK, DeepLink test OK, (optional) Push token ready, HealthKit permission flow OK (or gracefully denied).",
+    "D: OPERATIONS.md allows a new engineer to build/sign/run within 15 minutes.",
+    "E: MOBILE_READINESS_CHECKLIST.md all boxes ticked with links to code/commits."
+  ],
+  "artifacts_to_create_or_update": [
+    "capacitor.config.ts",
+    "ios platform folder with project/workspace",
+    "src/mobile/MobileBootstrap.ts",
+    "src/mobile/adapters/*",
+    "src/mobile/features/diagnostics/NativeDiagnostics.tsx",
+    "OPERATIONS.md",
+    "MOBILE_READINESS_CHECKLIST.md",
+    "TEST_PLAN_IOS.md",
+    "CHANGELOG.md",
+    "scripts/validate-mobile-readiness.mjs",
+    "scripts/generate-icons-and-splash.mjs"
+  ],
+  "migration_and_housekeeping": [
+    "Remove unused plugins/deps.",
+    "Ensure ESLint/Prettier cover mobile code and run in CI.",
+    "Add a GitHub Action or simple CI job that runs the validation script on PR (minus Xcode build)."
+  ],
+  "runbook": {
+    "commands": [
+      "npm i --save @capacitor/core @capacitor/app @capacitor/keyboard @capacitor/status-bar @capacitor/haptics @capacitor/splash-screen @capacitor/preferences @capacitor/filesystem @capacitor/browser @capacitor/share",
+      "npm i --save-dev @capacitor/cli",
+      "npx cap init HealthPilot com.nuvitae.healthpilot --web-dir=dist  (adjust webDir as needed)",
+      "npx cap add ios",
+      "npx cap sync ios",
+      "npx cap open ios"
+    ],
+    "note": "If a custom HealthKit plugin is required, scaffold it under ios/App and expose TS definitions in src/mobile/adapters/HealthKitAdapter.ts."
+  },
+  "final_step": "Run the validation suite and post the JSON + human summary to the console. If any check fails, fix automatically where feasible; otherwise open a clearly titled issue with a proposed fix and link to code locations."
+}
