@@ -1,0 +1,188 @@
+{
+  "project": "HealthPilot SmartFuel™ - Precision Nutrition Guidance",
+  "version": "1.1",
+  "summary": "SmartFuel™ replaces the legacy meal recommendation system with a precision nutrition guidance engine. It interprets biomarkers, vitals, and goals to provide 'what to avoid' and 'what to include' dietary advice with plain-language explanations. The old meal recommendation code is parked (not deleted) for future reactivation.",
+
+  "brand_identity": {
+    "feature_name": "SmartFuel™",
+    "tagline": "Fuel your body intelligently — personalized nutrition guidance based on your data.",
+    "tone": "supportive, evidence-based, and practical",
+    "positioning": "AI-driven dietary advisor built into HealthPilot; complements Biomarkers, Insights, and Training tiles."
+  },
+
+  "1_knowledge_engine_scope": {
+    "purpose": "Map health signals → nutrient targets → food categories → human-readable guidance.",
+    "inputs": {
+      "biomarkers": ["lipid_panel", "glucose", "hba1c", "liver_function", "kidney_function", "vitamin_levels", "hsCRP"],
+      "vitals": ["blood_pressure", "hrv", "sleep_score", "body_fat_pct", "activity_level"],
+      "preferences": ["diet_type", "allergies", "disliked_foods"],
+      "goals": ["fat_loss", "muscle_gain", "metabolic_health", "bp_control", "cholesterol_control", "longevity"]
+    },
+    "modules": {
+      "signal_normalizer": "Standardize biomarkers and derive secondary metrics (non-HDL, triglyceride ratio, etc).",
+      "risk_profiler": "Identify dietary risk themes like sodium_sensitivity, insulin_resistance, etc.",
+      "target_setter": "Generate numeric daily bounds (sodium < 1800 mg, fiber > 30 g).",
+      "policy_rules": "Evidence-based links between signals and food categories.",
+      "personalization_layer": "Applies user goals, diet type, and allergies to resolve conflicts.",
+      "explanation_builder": "Natural language explanations using SmartFuel NLG templates."
+    },
+    "evidence_tiers": {
+      "A": "Clinical guidelines / RCTs",
+      "B": "Large cohort or meta-analyses",
+      "C": "Expert consensus"
+    }
+  },
+
+  "2_functional_spec": {
+    "system_arch": {
+      "services": ["smartfuel-core", "smartfuel-reasoner", "profile-service", "signals-service", "feature-flags"]
+    },
+    "api": [
+      {
+        "method": "POST",
+        "path": "/v1/smartfuel/guidance:generate",
+        "description": "Generate personalized dietary guidance for the authenticated user."
+      },
+      {
+        "method": "GET",
+        "path": "/v1/smartfuel/guidance/current",
+        "description": "Retrieve the latest SmartFuel guidance profile."
+      }
+    ],
+    "ui_tile": {
+      "name": "SmartFuel™",
+      "sections": ["Overview", "Prioritize", "Avoid/Limit", "Targets", "Tip"],
+      "color_palette": ["#00BFA6", "#002B36"],
+      "icon": "fuel-gauge or nutrition icon",
+      "microcopy_style": "Friendly, confident, plain-English"
+    },
+    "guardrails": [
+      "Educational guidance only; not medical advice.",
+      "No recipe recommendations or calorie targets."
+    ]
+  },
+
+  "3_rulepack_yaml": "==BEGIN_YAML==\n# rulepack_smartfuel_v1.yaml\nversion: 1.0.0\ntitle: SmartFuel Rulepack\nlast_updated: 2025-10-26\nthemes:\n  hypertension:\n    triggers:\n      - bp_systolic > 130\n    targets:\n      sodium_mg_max: 1800\n      potassium_mg_min: 3500\n    avoid:\n      - category: high_sodium_processed\n        reason: Excess sodium raises blood pressure.\n        evidence_tier: A\n      - category: alcohol\n        reason: Alcohol increases BP.\n        evidence_tier: B\n    include:\n      - category: leafy_greens_nitrate_rich\n        reason: Promote nitric oxide and vascular health.\n        evidence_tier: A\n      - category: high_potassium_fruits_veg\n        reason: Balance sodium levels.\n        evidence_tier: A\n\n  elevated_ldl:\n    triggers:\n      - ldl_mmol > 3.5\n    targets:\n      sat_fat_g_max: 16\n      fiber_g_min: 30\n    avoid:\n      - category: high_saturated_fat\n        reason: Raises LDL cholesterol.\n        evidence_tier: A\n    include:\n      - category: soluble_fiber_legumes_oats\n        reason: Fiber lowers LDL.\n        evidence_tier: A\n      - category: omega3_sources\n        reason: Improves lipid balance.\n        evidence_tier: B\n\n  insulin_resistance:\n    triggers:\n      - fasting_glucose_mmol > 5.5\n    targets:\n      net_carbs_g_per_meal_max: 30\n    avoid:\n      - category: refined_grains\n        reason: Increase glycemic load.\n        evidence_tier: A\n    include:\n      - category: low_glycemic_high_fiber\n        reason: Steady glucose and energy.\n        evidence_tier: A\n==END_YAML==",
+
+  "4_food_ontology_json": "==BEGIN_JSON==\n{\n  \"ontology_version\": \"1.0.0\",\n  \"categories\": [\n    {\"id\": \"leafy_greens_nitrate_rich\", \"examples\": [\"spinach\",\"kale\",\"rocket\"], \"tags\": [\"vascular\"]},\n    {\"id\": \"high_potassium_fruits_veg\", \"examples\": [\"banana\",\"avocado\",\"sweet potato\"], \"tags\": [\"potassium\"]},\n    {\"id\": \"soluble_fiber_legumes_oats\", \"examples\": [\"oats\",\"lentils\",\"chickpeas\"], \"tags\": [\"fiber\"]},\n    {\"id\": \"omega3_sources\", \"examples\": [\"salmon\",\"flaxseed\",\"walnuts\"], \"tags\": [\"omega3\"]},\n    {\"id\": \"low_glycemic_high_fiber\", \"examples\": [\"quinoa\",\"berries\",\"broccoli\"], \"tags\": [\"glycemic\"]},\n    {\"id\": \"refined_grains\", \"examples\": [\"white bread\",\"pastries\"], \"tags\": [\"glycemic_load\"]},\n    {\"id\": \"high_sodium_processed\", \"examples\": [\"instant noodles\",\"canned soup\"], \"tags\": [\"sodium\"]},\n    {\"id\": \"high_saturated_fat\", \"examples\": [\"butter\",\"cream\",\"fried foods\"], \"tags\": [\"ldl\"]}\n  ]\n}\n==END_JSON==",
+
+  "5_nlg_template_pack": {
+    "tone": {
+      "voice": "friendly, factual, supportive",
+      "style": "short sentences, plain English, positive framing"
+    },
+    "templates": {
+      "overview_summary": [
+        "SmartFuel has identified key focus areas: {themes_list}.",
+        "Your latest data highlights {primary_goal_focus}. SmartFuel has updated your nutrition plan to match."
+      ],
+      "avoid_item": [
+        "Limit {category_label} like {example_1} and {example_2} — {reason_short}.",
+        "Cut back on {category_label} to help improve your {related_marker}."
+      ],
+      "include_item": [
+        "Add more {category_label} like {example_1} and {example_2} — {reason_short}.",
+        "SmartFuel recommends including {category_label} for better {related_marker} balance."
+      ],
+      "targets": [
+        "Keep sodium under {sodium_mg_max} mg/day.",
+        "Aim for at least {fiber_g_min} g of fiber daily.",
+        "Stay below {sat_fat_g_max} g of saturated fat per day."
+      ],
+      "tip": [
+        "Swap refined carbs for fiber-rich grains like oats or barley.",
+        "Use herbs instead of salt for flavor.",
+        "Small, consistent improvements drive lasting results."
+      ]
+    }
+  },
+
+  "6_parking_old_meal_code": {
+    "strategy": "Soft-deprecate but retain legacy meal features.",
+    "steps": [
+      "Create feature flag: FEATURE_SHOW_RECIPE_FEATURES=false",
+      "Hide routes and UI for meals and recipes.",
+      "Move code to /legacy/recipes with documentation.",
+      "Disable all cron jobs calling external recipe APIs.",
+      "Retain DB tables in read-only state for future use.",
+      "Keep legacy tests behind LEGACY_RECIPES_TESTS flag."
+    ]
+  },
+
+  "7_testing_validation_plan": {
+    "objectives": [
+      "SmartFuel provides accurate, evidence-based advice.",
+      "Advice adapts dynamically to biomarker and goal changes.",
+      "Legacy meal features are fully hidden from end users."
+    ],
+    "test_levels": {
+      "unit": [
+        "signal_normalizer",
+        "risk_profiler",
+        "policy_rules",
+        "personalization_layer",
+        "nlg_template_renderer"
+      ],
+      "integration": [
+        "HTN + high LDL + vegan",
+        "Insulin resistance + liver elevation",
+        "Kidney + high BP",
+        "Muscle gain + pescatarian"
+      ],
+      "e2e": [
+        "Generate guidance from full profile",
+        "Guidance updates when biomarkers change",
+        "Legacy meal endpoints return 410 Gone"
+      ]
+    },
+    "acceptance_criteria": [
+      "AC1: 100% of generated outputs pass schema validation.",
+      "AC2: No legacy meal endpoints visible or active.",
+      "AC3: Guidance generation latency < 1.2s (p95).",
+      "AC4: Tone and content pass readability and compliance checks.",
+      "AC5: Personalization (e.g. vegan users) produces conflict-free results."
+    ],
+    "observability": {
+      "logs": ["themes_detected", "rules_applied", "guidance_id"],
+      "metrics": ["generation_rate", "error_rate", "legacy_hits"]
+    },
+    "handover": [
+      "Rulepack YAML",
+      "Ontology JSON",
+      "NLG Templates",
+      "Feature flag config",
+      "Testing & QA report"
+    ]
+  },
+
+  "8_delivery_plan": {
+    "milestones": [
+      {"M1": "Knowledge Engine + Rulepack integrated", "ETA_days": 5},
+      {"M2": "NLG + UI Tile build", "ETA_days": 4},
+      {"M3": "Testing + Deployment + Handover", "ETA_days": 3}
+    ],
+    "feature_flags": {
+      "FEATURE_SHOW_SMARTFUEL": true,
+      "FEATURE_SHOW_RECIPE_FEATURES": false
+    },
+    "launch_name": "SmartFuel™ – Precision Nutrition Intelligence for HealthPilot"
+  },
+
+  "example_user_output": {
+    "theme": "elevated_ldl",
+    "overview": "SmartFuel is helping you improve cholesterol balance.",
+    "avoid": [
+      "Limit foods high in saturated fat such as butter and fried foods.",
+      "Avoid processed snacks containing trans fats."
+    ],
+    "include": [
+      "Add more oats, lentils, and flaxseed — they support healthy cholesterol.",
+      "Include omega-3 sources like salmon and walnuts."
+    ],
+    "targets": [
+      "Keep saturated fat under 16 g/day.",
+      "Increase fiber intake to 30 g/day."
+    ],
+    "tip": "Start your day with oatmeal topped with chia seeds — heart-friendly and simple."
+  }
+}
