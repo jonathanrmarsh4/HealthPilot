@@ -52,6 +52,7 @@ I prefer simple language and clear explanations. I want iterative development wh
 - **Dynamic Insights Engine v1.0:** Modular insights generation architecture that discovers and analyzes all available metrics without hardcoding, built around a metric registry, discovery system, data readers, analysis primitives, and domain rule packs.
 - **Automatic Timezone Synchronization:** Intelligent timezone detection system ensuring accurate scheduling and time-based features across all timezones, using browser-based detection and server-side validation.
 - **Exercise Template Auto-Seeding System:** Automatic database seeding system ensuring all exercise templates referenced in rules exist in the database at application startup.
+- **Template-to-Exercise Enrichment System v1.0:** Critical fix ensuring workout generation properly resolves template_ids to exercise_ids during save, preventing exercise mismatch bugs. All workout generation code paths (API routes, scheduler) now use `enrichWorkoutBlocks` to map templates → exercises BEFORE database storage, eliminating fuzzy matching discrepancies between workout preview and session execution.
 
 ## External Dependencies
 - **Database:** PostgreSQL

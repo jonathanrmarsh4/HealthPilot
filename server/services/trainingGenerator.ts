@@ -339,20 +339,19 @@ function validateVolume(
 }
 
 // ──────────────────────────────────────────────
-// Save workout to database
+// Enrich workout blocks with exercise IDs
 // ──────────────────────────────────────────────
-export async function saveWorkout(
+export async function enrichWorkoutBlocks(
   storage: IStorage,
-  userId: string,
-  result: any
-) {
-  const { plan, blocks, validation } = result;
-
-  // Step 1: Get template data for all blocks with template_ids (lift_block and others)
+  blocks: any[]
+): Promise<{ 
+  enrichedBlocks: any[];
+  templateToExerciseMapping: Record<string, string>;
+}> {
+  // Step 1: Get template data for all blocks with template_ids
   const blocksWithTemplates = blocks.filter((b: any) => b.template_id);
   
-  console.log(`💾 Saving workout with ${blocks.length} total blocks (${blocksWithTemplates.length} with template_ids)`);
-  console.log(`   Block types: ${blocks.map((b: any) => b.type).join(', ')}`);
+  console.log(`💾 Enriching ${blocks.length} total blocks (${blocksWithTemplates.length} with template_ids)`);
   
   // Step 2: Fetch template details from database
   const templateDataMap = new Map<string, any>();
@@ -382,20 +381,48 @@ export async function saveWorkout(
     
     const exerciseId = await getOrCreateExerciseForTemplate(storage, templateData);
     templateIdToExerciseId.set(templateId, exerciseId);
+    console.log(`💾 Mapped template ${templateId} → exercise ${exerciseId} (${template.displayName})`);
   }
 
-  // Step 4: Enrich blocks with exercise_ids (for any block type with template_id)
+  console.log(`💾 Template-to-Exercise mapping complete: ${templateIdToExerciseId.size} mappings`);
+
+  // Step 4: Enrich blocks with exercise_ids
   const enrichedBlocks = blocks.map((block: any) => {
     if (block.template_id) {
+      const exercise_id = templateIdToExerciseId.get(block.template_id);
+      console.log(`💾 Enriching block: ${block.display_name} (template: ${block.template_id} → exercise: ${exercise_id})`);
       return {
         ...block,
-        exercise_id: templateIdToExerciseId.get(block.template_id)
+        exercise_id
       };
     }
     return block;
   });
 
-  // Step 5: Store in generatedWorkouts table
+  console.log(`💾 Enriched ${enrichedBlocks.filter((b: any) => b.exercise_id).length} blocks with exercise_ids`);
+
+  return {
+    enrichedBlocks,
+    templateToExerciseMapping: Object.fromEntries(templateIdToExerciseId)
+  };
+}
+
+// ──────────────────────────────────────────────
+// Save workout to database
+// ──────────────────────────────────────────────
+export async function saveWorkout(
+  storage: IStorage,
+  userId: string,
+  result: any
+) {
+  const { plan, blocks, validation } = result;
+
+  // Enrich blocks with exercise_ids
+  const { enrichedBlocks, templateToExerciseMapping } = await enrichWorkoutBlocks(storage, blocks);
+
+  console.log(`💾 Sample enriched block:`, JSON.stringify(enrichedBlocks[0], null, 2));
+
+  // Store in generatedWorkouts table
   await storage.createGeneratedWorkout({
     userId,
     date: plan.date || format(new Date(), "yyyy-MM-dd"),
@@ -403,14 +430,14 @@ export async function saveWorkout(
       plan,
       blocks: enrichedBlocks,
       validation,
-      template_to_exercise_mapping: Object.fromEntries(templateIdToExerciseId),
+      template_to_exercise_mapping: templateToExerciseMapping,
       generated_at: new Date().toISOString(),
       system_version: "v2.0-pattern-based"
     },
     status: "pending"
   });
 
-  console.log(`💾 Workout saved for user ${userId} with ${enrichedBlocks.length} blocks`);
+  console.log(`💾 Workout saved for user ${userId} with ${enrichedBlocks.length} blocks, ${Object.keys(templateToExerciseMapping).length} template mappings`);
 }
 
 // ──────────────────────────────────────────────

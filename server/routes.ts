@@ -5618,11 +5618,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const context = await buildUserContext(storage, userId, targetDate);
           
           // Generate workout with regeneration count for variety
-          const workoutData = await generateDailySession(context, regenerationCount);
+          const workoutResult = await generateDailySession(context, regenerationCount);
           
-          // Update existing record
+          // Enrich blocks with exercise_ids
+          const { enrichWorkoutBlocks } = await import('./services/trainingGenerator');
+          const { enrichedBlocks, templateToExerciseMapping } = await enrichWorkoutBlocks(storage, workoutResult.blocks);
+          
+          // Update existing record with enriched data
           const updated = await storage.updateGeneratedWorkout(existing.id, userId, {
-            workoutData: workoutData as any,
+            workoutData: {
+              ...workoutResult,
+              blocks: enrichedBlocks,
+              template_to_exercise_mapping: templateToExerciseMapping,
+              generated_at: new Date().toISOString(),
+              system_version: "v2.0-pattern-based"
+            } as any,
             regenerationCount,
             status: 'pending'
           });
@@ -5646,16 +5656,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const context = await buildUserContext(storage, userId, targetDate);
       
       // Generate workout
-      const workoutData = await generateDailySession(context);
+      const workoutResult = await generateDailySession(context);
       
-      // Store to database
-      const savedWorkout = await storage.createGeneratedWorkout({
-        userId,
-        date: targetDate,
-        workoutData: workoutData as any,
-        status: 'pending',
-        regenerationCount: 0
-      });
+      // Use saveWorkout to properly enrich blocks with exercise_ids
+      const { saveWorkout } = await import('./services/trainingGenerator');
+      await saveWorkout(storage, userId, workoutResult);
+      
+      // Fetch the saved workout to return to client
+      const savedWorkout = await storage.getGeneratedWorkout(userId, targetDate);
       
       console.log(`✅ Generated daily workout for ${userId} on ${targetDate}`);
       res.json({
