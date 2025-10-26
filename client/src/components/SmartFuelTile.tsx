@@ -43,6 +43,7 @@ export function SmartFuelTile() {
   });
 
   const handleGenerate = () => {
+    console.log('[SmartFuel] Generate button clicked');
     setIsGenerating(true);
     generateGuidanceMutation.mutate();
   };
