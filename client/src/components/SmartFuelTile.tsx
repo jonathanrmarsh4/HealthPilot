@@ -29,7 +29,7 @@ export function SmartFuelTile() {
 
   const generateGuidanceMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest("/api/smartfuel/guidance:generate", {
+      return await apiRequest("/api/smartfuel/guidance/generate", {
         method: "POST",
       });
     },
