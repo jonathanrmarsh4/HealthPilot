@@ -1,0 +1,147 @@
+{
+  "role": "Senior iOS Build Engineer",
+  "task": "Produce an EXACT, step-by-step setup guide to run the HealthPilot web app inside a Capacitor iOS container and build it with Xcode (simulator and physical device), then archive and distribute via TestFlight.",
+  "context": {
+    "APP_NAME": "HealthPilot",
+    "BUNDLE_ID": "com.nuvitae.healthpilot",
+    "IOS_MIN_VERSION": "15.0",
+    "CAPACITOR_VERSION": "5+",
+    "FRONTEND_BUILD_DIR": "dist",
+    "PACKAGE_MANAGER": "npm",
+    "NEEDS_HEALTHKIT": true,
+    "NEEDS_DEEPLINKS": true,
+    "NEEDS_PUSH_NOTIFICATIONS": false,
+    "DOMAIN_FOR_APPLINKS": "nuvitae.com"
+  },
+  "hard_requirements_for_your_answer": [
+    "Write as an executable, numbered runbook with zero hand-waving.",
+    "Include EVERY shell command verbatim (no placeholders unless specified below).",
+    "Include EVERY Xcode GUI action as bullet points with exact menu paths and checkboxes to tick.",
+    "Explain what to expect after each command/screen (e.g., files created, messages shown).",
+    "Include a TROUBLESHOOTING section mapping common errors to fixes.",
+    "Finish with a VALIDATION CHECKLIST and a QUICK REFERENCE of recurring commands.",
+    "Assume a clean macOS host with latest Xcode and Command Line Tools."
+  ],
+  "placeholders_to_use_carefully": {
+    "DEVELOPER_TEAM_ID": "<Your Apple Team ID>",
+    "APPLE_ACCOUNT_EMAIL": "<your-apple-id@example.com>"
+  },
+  "coverage": {
+    "A_Prereqs": [
+      "Install Xcode (App Store) and Xcode Command Line Tools.",
+      "Install NodeJS and npm.",
+      "Install CocoaPods.",
+      "Verify Apple Developer Program membership."
+    ],
+    "B_Project_Wrap_With_Capacitor": [
+      "From the HealthPilot repo: install Capacitor CLI and core plugins.",
+      "Initialize Capacitor with correct app name, bundle id, and webDir.",
+      "Add iOS platform and sync."
+    ],
+    "C_Minimal_Native_Bootstrap": [
+      "Install baseline plugins: app, keyboard, status-bar, haptics, splash-screen, preferences, filesystem, browser, share.",
+      "Create or confirm a small MobileBootstrap.ts that hides splash, sets status bar, handles back behavior."
+    ],
+    "D_iOS_Config_In_Xcode": [
+      "Open the iOS project in Xcode.",
+      "Set iOS Deployment Target to 15.0.",
+      "Set Signing & Capabilities: Team, Bundle Identifier, Automatic signing.",
+      "Set app icons and splash assets."
+    ],
+    "E_HealthKit_Entitlements_And_Permissions": [
+      "Add HealthKit capability and entitlements.",
+      "Add Info.plist privacy strings (NSHealthShareUsageDescription, NSHealthUpdateUsageDescription).",
+      "If no plugin: create a minimal Capacitor HealthKit bridge scaffold in Swift and a TS adapter (outline exact files).",
+      "Explain adding required HK types in the entitlement and requestAuthorization code stub."
+    ],
+    "F_DeepLinks": [
+      "Add URL Types for custom scheme 'healthpilot'.",
+      "Configure Associated Domains for universal links 'applinks:nuvitae.com'.",
+      "Show how to handle openURL events and route in the web layer."
+    ],
+    "G_Icons_And_Splash": [
+      "Provide a single command to generate all iOS icons/splash from one source PNG/SVG via an npm script.",
+      "Show exactly where to place images and how to reference them."
+    ],
+    "H_Run_On_Simulator": [
+      "Exact steps to build & run in simulator from CLI and Xcode.",
+      "What to expect on first boot (splash -> main screen), and where the web assets are served from."
+    ],
+    "I_Run_On_Physical_Device": [
+      "Register device, trust developer certificate, run on device.",
+      "Handle common signing errors and provisioning profiles."
+    ],
+    "J_Release_Build_And_TestFlight": [
+      "Set build configuration to Release, increment version/build numbers.",
+      "Archive (Product > Archive), validate, upload to App Store Connect.",
+      "Create TestFlight internal group and invite testers.",
+      "App Store Connect: App Privacy (Health data types), encryption questionnaire."
+    ],
+    "K_Debugging_And_Logs": [
+      "Use Xcode console logs and Safari Web Inspector for the Capacitor WKWebView.",
+      "Disable verbose logs in release.",
+      "Where to find crash logs."
+    ],
+    "L_Troubleshooting": [
+      "CocoaPods issues (repo update, pod install).",
+      "Code signing failures (team, bundle id mismatch).",
+      "HealthKit authorization denied/unavailable (simulator limitations).",
+      "Universal links not opening (AASA file, CDN caching).",
+      "White screen at launch (webDir not built/synced, wrong base href)."
+    ],
+    "M_Validation_Checklist": [
+      "Capacitor sync clean.",
+      "Simulator boot success.",
+      "Physical device boot success.",
+      "HealthKit permission prompt shows and handles allow/deny gracefully.",
+      "Deep link opens the intended screen.",
+      "Icons/splash render correctly.",
+      "Release archive uploads to TestFlight."
+    ],
+    "N_Quick_Command_Reference": [
+      "Install deps, build web, cap sync, open Xcode, run simulator, run device, archive."
+    ]
+  },
+  "output_format": {
+    "sections": [
+      "Overview",
+      "Prerequisites",
+      "Step-by-step Setup (numbered)",
+      "HealthKit Setup (code and Xcode steps)",
+      "Deep Links Setup",
+      "Icons & Splash Generation",
+      "Run in Simulator",
+      "Run on Device",
+      "Archive & TestFlight",
+      "Debugging & Logs",
+      "Troubleshooting",
+      "Validation Checklist",
+      "Quick Command Reference"
+    ],
+    "style": {
+      "use_code_blocks": true,
+      "shell_language": "bash",
+      "swift_language": "swift",
+      "typescript_language": "ts",
+      "no_ellipses_or_handwaving": true,
+      "assume_zsh": true
+    }
+  },
+  "must_include_verbatim_commands": [
+    "xcode-select --install",
+    "sudo gem install cocoapods",
+    "node -v && npm -v",
+    "npm i -D @capacitor/cli && npm i @capacitor/core @capacitor/app @capacitor/keyboard @capacitor/status-bar @capacitor/haptics @capacitor/splash-screen @capacitor/preferences @capacitor/filesystem @capacitor/browser @capacitor/share",
+    "npx cap init HealthPilot com.nuvitae.healthpilot --web-dir=dist",
+    "npm run build",
+    "npx cap add ios",
+    "npx cap sync ios",
+    "npx cap open ios"
+  ],
+  "guardrails": [
+    "If a step can differ based on environment, provide the most common path first and add a short alternative path note.",
+    "If HealthKit plugin not available, show the minimal Swift plugin scaffold + TypeScript adapter with exact filenames and code blocks.",
+    "Clearly mark any step that cannot be performed on Simulator (e.g., real HealthKit reads)."
+  ],
+  "final_note": "Your output must be complete enough that a competent engineer can copy/paste commands and follow GUI instructions to reach a running app in the Simulator and on a physical iPhone, then create an archive and submit to TestFlight—all without external research."
+}
