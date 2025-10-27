@@ -23,6 +23,7 @@ interface NLGoalDialogProps {
 
 interface ParsedGoal {
   canonicalGoalType: string;
+  displayName: string;
   goalEntities: Record<string, any>;
   confidence: number;
   suggestedDeadline: string | null;
@@ -88,6 +89,7 @@ export function NLGoalDialog({ onSuccess }: NLGoalDialogProps) {
       const res = await apiRequest("POST", "/api/goals/create-with-plan", {
         inputText,
         canonicalGoalType: parsedData.parsedGoal.canonicalGoalType,
+        displayName: parsedData.parsedGoal.displayName,
         goalEntities: parsedData.parsedGoal.goalEntities,
         targetDate: parsedData.parsedGoal.suggestedDeadline,
       });

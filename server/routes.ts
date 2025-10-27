@@ -6706,6 +6706,7 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
       res.json({
         parsedGoal: {
           canonicalGoalType: parsedGoal.canonical_goal_type,
+          displayName: parsedGoal.display_name,
           goalEntities: parsedGoal.entities || {},
           confidence: parsedGoal.confidence || 0.8,
           suggestedDeadline: parsedGoal.target_date || null,
