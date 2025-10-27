@@ -1,0 +1,33 @@
+[SmartFuel] Generate button clicked
+injected.js:27 [SmartFuel] Calling API /api/smartfuel/guidance/generate
+injected.js:204  POST https://0d420476-b7bb-4cc4-9f5a-da35f5e473e4-00-1n1tyyvrb5uvz.pike.replit.dev/api/smartfuel/guidance/generate 500 (Internal Server Error)
+apply @ injected.js:204
+apiRequest @ queryClient.ts:16
+mutationFn @ SmartFuelTile.tsx:33
+fn @ @tanstack_react-query.js?v=c5e04bcd:1189
+run @ @tanstack_react-query.js?v=c5e04bcd:494
+start @ @tanstack_react-query.js?v=c5e04bcd:536
+execute @ @tanstack_react-query.js?v=c5e04bcd:1225
+await in execute
+mutate @ @tanstack_react-query.js?v=c5e04bcd:2630
+(anonymous) @ @tanstack_react-query.js?v=c5e04bcd:3295
+handleGenerate @ SmartFuelTile.tsx:51
+callCallback2 @ chunk-RPCDYKBN.js?v=c5e04bcd:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=c5e04bcd:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=c5e04bcd:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-RPCDYKBN.js?v=c5e04bcd:3736
+executeDispatch @ chunk-RPCDYKBN.js?v=c5e04bcd:7014
+processDispatchQueueItemsInOrder @ chunk-RPCDYKBN.js?v=c5e04bcd:7034
+processDispatchQueue @ chunk-RPCDYKBN.js?v=c5e04bcd:7043
+dispatchEventsForPlugins @ chunk-RPCDYKBN.js?v=c5e04bcd:7051
+(anonymous) @ chunk-RPCDYKBN.js?v=c5e04bcd:7174
+batchedUpdates$1 @ chunk-RPCDYKBN.js?v=c5e04bcd:18913
+batchedUpdates @ chunk-RPCDYKBN.js?v=c5e04bcd:3579
+dispatchEventForPluginEventSystem @ chunk-RPCDYKBN.js?v=c5e04bcd:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-RPCDYKBN.js?v=c5e04bcd:5478
+dispatchEvent @ chunk-RPCDYKBN.js?v=c5e04bcd:5472
+dispatchDiscreteEvent @ chunk-RPCDYKBN.js?v=c5e04bcd:5449Understand this errorTurn on Console insights in Settings to receive AI assistance for understanding and addressing console warnings and errors. Learn more
+injected.js:27 [SmartFuel] Mutation onError Error: 500: {"error":"Failed to generate nutrition guidance","message":"Database insert failed: invalid input syntax for type json"}
+    at throwIfResNotOk (queryClient.ts:6:11)
+    at async apiRequest (queryClient.ts:24:3)
+    at async Object.mutationFn (SmartFuelTile.tsx:33:22)

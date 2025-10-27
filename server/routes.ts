@@ -3708,6 +3708,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('[SmartFuel] About to insert with avoidItems count:', formattedGuidance.avoidItems.length);
       console.log('[SmartFuel] About to insert with includeItems count:', formattedGuidance.includeItems.length);
       
+      // Debug: Log data types
+      console.log('[SmartFuel] avoidItems type:', typeof formattedGuidance.avoidItems, 'isArray:', Array.isArray(formattedGuidance.avoidItems));
+      console.log('[SmartFuel] avoidItems[0]:', typeof formattedGuidance.avoidItems[0], JSON.stringify(formattedGuidance.avoidItems[0]));
+      console.log('[SmartFuel] includeItems type:', typeof formattedGuidance.includeItems, 'isArray:', Array.isArray(formattedGuidance.includeItems));
+      console.log('[SmartFuel] includeItems[0]:', typeof formattedGuidance.includeItems[0], JSON.stringify(formattedGuidance.includeItems[0]));
+      console.log('[SmartFuel] guidanceData type:', typeof guidanceData);
+      
       let savedGuidance;
       try {
         savedGuidance = await storage.createSmartFuelGuidance({
