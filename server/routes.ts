@@ -11496,18 +11496,29 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
         chatHistory
       };
 
-      // Import OpenAI dynamically
+      // Voice Chat requires real OpenAI API key (Replit's AI Integrations doesn't support Realtime API)
       const { default: OpenAI } = await import('openai');
-      const apiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
-      const openai = new OpenAI({
-        apiKey,
-        baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
-      });
+      const apiKey = process.env.OPENAI_API_KEY;
+      
+      if (!apiKey) {
+        console.error("❌ Voice Chat requires OPENAI_API_KEY to be set");
+        clientWs.send(JSON.stringify({
+          type: "error",
+          error: {
+            type: "invalid_request_error",
+            code: "missing_api_key",
+            message: "Voice Chat requires a valid OpenAI API key. Please add OPENAI_API_KEY to your secrets."
+          }
+        }));
+        clientWs.close(4000, "Missing API key");
+        return;
+      }
 
       // Connect to OpenAI Realtime API
       const realtimeUrl = "wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17";
       const { default: WebSocket } = await import('ws');
       
+      console.log("🔑 Using direct OpenAI API key for Realtime API");
       const openaiWs = new WebSocket(realtimeUrl, {
         headers: {
           "Authorization": `Bearer ${apiKey}`,
