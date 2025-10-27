@@ -11,7 +11,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Sparkles, Send, Check, AlertCircle } from "lucide-react";
+import { Loader2, Sparkles, Send, Check, AlertCircle, TrendingUp, TrendingDown, Minus, Target } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -243,25 +243,81 @@ export function NLGoalDialog({ onSuccess }: NLGoalDialogProps) {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
-                      {parsedData.suggestedMetrics.slice(0, 5).map((metric, idx) => (
-                        <div
-                          key={idx}
-                          className="flex items-center justify-between p-2 rounded-md bg-muted/50"
-                          data-testid={`metric-preview-${idx}`}
-                        >
-                          <div className="flex-1">
-                            <p className="text-sm font-medium">{metric.label}</p>
-                            <p className="text-xs text-muted-foreground">
-                              Source: {metric.source} • Priority: {metric.priority}
-                            </p>
+                      {parsedData.suggestedMetrics.slice(0, 5).map((metric, idx) => {
+                        const currentVal = metric.currentValue || metric.baselineValue;
+                        const targetVal = metric.targetValue;
+                        
+                        // Determine direction icon
+                        const DirectionIcon = metric.direction === 'increase' ? TrendingUp 
+                          : metric.direction === 'decrease' ? TrendingDown 
+                          : metric.direction === 'achieve' ? Target 
+                          : Minus;
+                        
+                        // Determine confidence color
+                        const confidenceColor = metric.confidence !== null && metric.confidence >= 0.8 
+                          ? "bg-green-500/10 text-green-700 dark:text-green-400"
+                          : metric.confidence !== null && metric.confidence >= 0.5 
+                          ? "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400"
+                          : "bg-orange-500/10 text-orange-700 dark:text-orange-400";
+                        
+                        return (
+                          <div
+                            key={idx}
+                            className="flex items-start gap-3 p-3 rounded-md bg-muted/50"
+                            data-testid={`metric-preview-${idx}`}
+                          >
+                            <DirectionIcon className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <p className="text-sm font-medium">{metric.label}</p>
+                                {metric.priority === 1 && (
+                                  <Badge variant="secondary" className="text-xs">Primary</Badge>
+                                )}
+                              </div>
+                              
+                              {/* Current → Target progression */}
+                              {currentVal && targetVal && (
+                                <div className="flex items-center gap-2 mt-1">
+                                  <span className="text-sm text-muted-foreground">
+                                    {parseFloat(currentVal).toFixed(1)} {metric.unit}
+                                  </span>
+                                  <span className="text-xs text-muted-foreground">→</span>
+                                  <span className="text-sm font-medium text-primary">
+                                    {parseFloat(targetVal).toFixed(1)} {metric.unit}
+                                  </span>
+                                </div>
+                              )}
+                              
+                              {/* Only target (no current value) */}
+                              {!currentVal && targetVal && (
+                                <p className="text-sm text-muted-foreground mt-1">
+                                  Target: <span className="font-medium text-primary">{parseFloat(targetVal).toFixed(1)} {metric.unit}</span>
+                                </p>
+                              )}
+                              
+                              {/* Source and confidence */}
+                              <div className="flex items-center gap-2 mt-2 flex-wrap">
+                                <span className="text-xs text-muted-foreground">
+                                  {metric.source === 'healthkit' && 'Apple Health'}
+                                  {metric.source === 'oura' && 'Oura Ring'}
+                                  {metric.source === 'whoop' && 'Whoop'}
+                                  {metric.source === 'manual' && 'Manual Entry'}
+                                  {metric.source === 'calculated' && 'Calculated'}
+                                  {!['healthkit', 'oura', 'whoop', 'manual', 'calculated'].includes(metric.source) && metric.source}
+                                </span>
+                                {metric.confidence !== null && metric.confidence < 1 && (
+                                  <Badge 
+                                    variant="outline" 
+                                    className={`text-xs ${confidenceColor} border-0`}
+                                  >
+                                    {Math.round(metric.confidence * 100)}% confidence
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
                           </div>
-                          {metric.targetValue && (
-                            <Badge variant="outline">
-                              Target: {parseFloat(metric.targetValue).toFixed(1)} {metric.unit}
-                            </Badge>
-                          )}
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </CardContent>
                 </Card>

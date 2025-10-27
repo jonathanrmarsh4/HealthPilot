@@ -6894,6 +6894,95 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
     }
   });
 
+  // Standards Discovery API (Admin)
+  app.post("/api/goals/discover-standard", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    try {
+      const { metricKey, context } = req.body;
+      
+      if (!metricKey) {
+        return res.status(400).json({ error: "metricKey is required" });
+      }
+
+      // TODO: Add admin role check when RBAC is implemented
+      // For now, log who triggered the discovery
+      console.log(`📊 Manual standards discovery triggered by user ${userId} for metric: ${metricKey}`);
+
+      const { standardsDiscovery } = await import('./goals/standards-discovery');
+      
+      // Trigger discovery (this will call OpenAI and search for standards)
+      const result = await standardsDiscovery.discoverAndStore(metricKey, context || '');
+
+      if (result.success && result.standard) {
+        res.json({
+          success: true,
+          message: `Successfully discovered standard for ${metricKey}`,
+          standard: {
+            metricKey: result.standard.metricKey,
+            standardType: result.standard.standardType,
+            category: result.standard.category,
+            source: result.standard.sourceName,
+            sourceUrl: result.standard.sourceUrl,
+            evidenceLevel: result.standard.evidenceLevel,
+            confidence: result.standard.confidenceScore,
+            created: true,
+          },
+        });
+      } else {
+        res.status(404).json({
+          success: false,
+          message: result.error || `Could not discover standard for ${metricKey}`,
+        });
+      }
+    } catch (error: any) {
+      console.error('Error in manual standards discovery:', error);
+      res.status(500).json({ 
+        success: false,
+        error: error.message 
+      });
+    }
+  });
+
+  // Get all standards (Admin)
+  app.get("/api/goals/standards", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    try {
+      // TODO: Add admin role check when RBAC is implemented
+      
+      const { metricKey, category, evidenceLevel } = req.query;
+      
+      const { standardsManager } = await import('./goals/standards-manager');
+      await standardsManager.initialize();
+
+      // Get all standards from database
+      const standards = await storage.getAllMetricStandards({
+        metricKey: metricKey as string | undefined,
+        category: category as string | undefined,
+        evidenceLevel: evidenceLevel as string | undefined,
+      });
+
+      res.json({
+        count: standards.length,
+        standards: standards.map(s => ({
+          id: s.id,
+          metricKey: s.metricKey,
+          standardType: s.standardType,
+          category: s.category,
+          source: s.sourceName,
+          sourceUrl: s.sourceUrl,
+          evidenceLevel: s.evidenceLevel,
+          confidence: s.confidenceScore,
+          usageCount: s.usageCount || 0,
+          lastUsedAt: s.lastUsedAt,
+          createdAt: s.createdAt,
+        })),
+      });
+    } catch (error: any) {
+      console.error('Error fetching standards:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Symptom Tracking API
   app.get("/api/symptoms/active", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;

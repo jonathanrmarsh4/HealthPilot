@@ -453,6 +453,13 @@ export interface IStorage {
   getGoalPlans(goalId: string, planType?: string): Promise<GoalPlan[]>;
   updateGoalPlan(id: string, data: Partial<GoalPlan>): Promise<GoalPlan | undefined>;
   
+  // Metric Standards
+  getAllMetricStandards(filters?: {
+    metricKey?: string;
+    category?: string;
+    evidenceLevel?: string;
+  }): Promise<MetricStandard[]>;
+  
   createAiAction(action: InsertAiAction): Promise<AiAction>;
   getAiActions(userId: string, limit?: number): Promise<AiAction[]>;
   getAiActionsByType(userId: string, actionType: string): Promise<AiAction[]>;
@@ -3623,6 +3630,33 @@ export class DbStorage implements IStorage {
       .where(eq(goalPlans.id, id))
       .returning();
     return result[0];
+  }
+
+  // Metric Standards
+  async getAllMetricStandards(filters?: {
+    metricKey?: string;
+    category?: string;
+    evidenceLevel?: string;
+  }): Promise<MetricStandard[]> {
+    let query = db.select().from(metricStandards);
+
+    const conditions: any[] = [];
+    
+    if (filters?.metricKey) {
+      conditions.push(eq(metricStandards.metricKey, filters.metricKey));
+    }
+    if (filters?.category) {
+      conditions.push(eq(metricStandards.category, filters.category));
+    }
+    if (filters?.evidenceLevel) {
+      conditions.push(eq(metricStandards.evidenceLevel, filters.evidenceLevel));
+    }
+
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions)) as any;
+    }
+
+    return await query.orderBy(desc(metricStandards.usageCount));
   }
 
   async createAiAction(action: InsertAiAction): Promise<AiAction> {
