@@ -49,8 +49,6 @@ export default function SmartFuel() {
   });
 
   const handleGenerate = () => {
-    console.log('🔄 handleGenerate called');
-    console.log('Current isGenerating:', isGenerating);
     setIsGenerating(true);
     generateGuidanceMutation.mutate();
   };
@@ -165,8 +163,6 @@ export default function SmartFuel() {
   const mediumPriorityInclude = guidance.include.filter(i => i.priority === 'medium');
   const lowPriorityInclude = guidance.include.filter(i => i.priority === 'low');
 
-  console.log('SmartFuel render - isGenerating:', isGenerating, 'mutation pending:', generateGuidanceMutation.isPending);
-
   return (
     <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
@@ -181,10 +177,7 @@ export default function SmartFuel() {
           </p>
         </div>
         <Button 
-          onClick={(e) => {
-            console.log('🖱️ Button clicked!', e);
-            handleGenerate();
-          }}
+          onClick={handleGenerate}
           disabled={isGenerating}
           variant="outline"
           data-testid="button-refresh-guidance"
