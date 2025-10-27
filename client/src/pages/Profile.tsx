@@ -328,6 +328,44 @@ export default function Profile() {
                     )}
                   />
 
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <FormField
+                      control={form.control}
+                      name="dateOfBirth"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Date of Birth</FormLabel>
+                          <FormControl>
+                            <Input {...field} type="date" data-testid="input-dob" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="gender"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Gender</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger data-testid="select-gender">
+                                <SelectValue placeholder="Select gender" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="male">Male</SelectItem>
+                              <SelectItem value="female">Female</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
                   <Button 
                     type="submit" 
                     disabled={updateProfileMutation.isPending}
@@ -397,47 +435,6 @@ export default function Profile() {
                         </FormDescription>
                       </FormItem>
                     )}
-                  </div>
-
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <FormField
-                      control={form.control}
-                      name="dateOfBirth"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Date of Birth</FormLabel>
-                          <FormControl>
-                            <Input {...field} type="date" data-testid="input-dob" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="gender"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Gender</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                              <SelectTrigger data-testid="select-gender">
-                                <SelectValue placeholder="Select gender" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="male">Male</SelectItem>
-                              <SelectItem value="female">Female</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormDescription>
-                            Used for accurate health metrics and standards-based targets
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
                   </div>
 
                   <div className="grid gap-4 md:grid-cols-2">
