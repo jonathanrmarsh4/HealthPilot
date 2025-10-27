@@ -3628,8 +3628,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ==================== SmartFuel™ Precision Nutrition Guidance ====================
-  // POST /api/smartfuel/guidance:generate - Generate new personalized nutrition guidance
-  app.post("/api/smartfuel/guidance:generate", isAuthenticated, async (req, res) => {
+  // POST /api/smartfuel/guidance/generate - Generate new personalized nutrition guidance
+  app.post("/api/smartfuel/guidance/generate", isAuthenticated, async (req, res) => {
     try {
       const userId = (req.user as any).claims.sub;
       console.log('[SmartFuel] Starting guidance generation for user:', userId);
