@@ -8335,9 +8335,8 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
           const trainingPlans = JSON.parse(trainingPlanJson);
           console.log("✅ Parsed training plans:", trainingPlans.length, "workouts");
           
-          // Extract goal context from user's last message and AI response
-          const lastUserMessage = messages[messages.length - 1];
-          const goalContext = lastUserMessage?.content || "Training Plan";
+          // Extract goal context from user's message
+          const goalContext = message || "Training Plan";
           
           // Infer goal details from training plan
           const firstPlan = trainingPlans[0];
