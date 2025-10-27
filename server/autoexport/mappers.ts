@@ -121,11 +121,18 @@ export async function routeEventToMappers(
   const mapperName = typeConfig.mapper;
   
   // Convert normalized event to HKEvent format for mappers
+  // Include normalized value in payload so mappers can use it instead of re-extracting
+  const enrichedPayload = {
+    ...event.payload,
+    _normalizedValue: event.value, // Add normalized value for mappers to use
+    _normalizedUnit: event.unit,   // Add normalized unit for reference
+  };
+  
   const hkEvent: HKEvent = {
     type: event.type,
     tsInstant: event.recordedAt,
     unit: event.unit,
-    valueJson: event.payload,
+    valueJson: enrichedPayload,
   };
   
   // Route to appropriate mapper
@@ -348,11 +355,17 @@ export async function mapActiveEnergy(event: HKEvent, ctx: MapperContext): Promi
 export async function mapWeight(event: HKEvent, ctx: MapperContext): Promise<number> {
   const { storage, userId, alog } = ctx;
   
-  let value = event.valueJson.kg || event.valueJson.lbs || event.valueJson.value || event.valueJson.qty;
+  // Prefer normalized value if available (prevents double conversion)
+  let value = event.valueJson._normalizedValue ?? 
+              event.valueJson.kg ?? 
+              event.valueJson.lbs ?? 
+              event.valueJson.value ?? 
+              event.valueJson.qty;
   let unit = event.unit?.toLowerCase() || '';
   
-  // Convert to lbs if in kg
-  if (unit === 'kg' || unit === 'kilogram' || event.valueJson.kg) {
+  // Only convert to lbs if unit is STILL in kg (not already normalized)
+  // If _normalizedValue exists, conversion already happened in normalizeHealthKitEvent
+  if (!event.valueJson._normalizedValue && (unit === 'kg' || unit === 'kilogram')) {
     value = value * 2.20462;
     unit = 'lbs';
   }
@@ -382,11 +395,17 @@ export async function mapWeight(event: HKEvent, ctx: MapperContext): Promise<num
 export async function mapLeanBodyMass(event: HKEvent, ctx: MapperContext): Promise<number> {
   const { storage, userId, alog } = ctx;
   
-  let value = event.valueJson.kg || event.valueJson.lbs || event.valueJson.value || event.valueJson.qty;
+  // Prefer normalized value if available (prevents double conversion)
+  let value = event.valueJson._normalizedValue ?? 
+              event.valueJson.kg ?? 
+              event.valueJson.lbs ?? 
+              event.valueJson.value ?? 
+              event.valueJson.qty;
   let unit = event.unit?.toLowerCase() || '';
   
-  // Convert to lbs if in kg
-  if (unit === 'kg' || unit === 'kilogram' || event.valueJson.kg) {
+  // Only convert to lbs if unit is STILL in kg (not already normalized)
+  // If _normalizedValue exists, conversion already happened in normalizeHealthKitEvent
+  if (!event.valueJson._normalizedValue && (unit === 'kg' || unit === 'kilogram')) {
     value = value * 2.20462;
     unit = 'lbs';
   }
