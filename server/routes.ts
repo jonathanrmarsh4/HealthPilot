@@ -7234,6 +7234,35 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
     }
   });
 
+  // Get all active goal plans for the current user
+  app.get("/api/goals/plans", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    try {
+      // Get all active goals for the user
+      const goals = await storage.getGoals(userId);
+      const activeGoals = goals.filter(g => g.status === 'active');
+      
+      // Fetch plans for all active goals
+      const allPlans = await Promise.all(
+        activeGoals.map(async (goal) => {
+          const plans = await storage.getGoalPlans(goal.id);
+          return plans.map(plan => ({
+            ...plan,
+            goalName: goal.inputText || 'Fitness Goal',
+            goalCategory: goal.canonicalGoalType,
+          }));
+        })
+      );
+      
+      // Flatten and return
+      const flatPlans = allPlans.flat();
+      res.json(flatPlans);
+    } catch (error: any) {
+      console.error('Error fetching goal plans:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Symptom Tracking API
   app.get("/api/symptoms/active", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
