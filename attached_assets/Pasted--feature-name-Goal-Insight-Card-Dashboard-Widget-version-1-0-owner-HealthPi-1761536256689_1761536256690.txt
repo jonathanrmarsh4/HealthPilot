@@ -1,0 +1,248 @@
+{
+  "feature_name": "Goal Insight Card — Dashboard Widget",
+  "version": "1.0",
+  "owner": "HealthPilot",
+  "objective": "Provide a compact, interactive card that surfaces each active goal's status, key metrics, next action, and milestone timeline at a glance. Supports adaptive updates from HealthKit/connected sources and shows safety/feasibility flags.",
+  "placement": {
+    "areas": ["Dashboard > Insights grid", "Goals > Goal detail (as header summary)"],
+    "grid_sizes": { "mobile": "1x1", "tablet": "2x1", "desktop": "2x1 or 2x2 (expanded)" }
+  },
+  "data_contracts": {
+    "input": {
+      "goal": {
+        "id": "uuid",
+        "canonical_goal_type": "string",
+        "display_name": "string",
+        "target_date": "ISO-8601",
+        "status": "draft|active|paused|completed|abandoned",
+        "entities": "object",
+        "created_at": "ISO-8601"
+      },
+      "metrics": [
+        {
+          "metric_key": "string",
+          "label": "string",
+          "unit": "string",
+          "baseline_value": "number|string|null",
+          "current_value": "number|string|null",
+          "target_value": "number|string",
+          "direction": "increase|decrease|maintain|achieve",
+          "source": "healthkit|oura|whoop|manual|calculated",
+          "confidence": "0-1"
+        }
+      ],
+      "milestones": [
+        {
+          "id": "uuid",
+          "title": "string",
+          "due_date": "ISO-8601",
+          "status": "pending|achieved|missed",
+          "progress_pct": "0-100",
+          "completion_rule": "json"
+        }
+      ],
+      "risk_flags": [
+        { "code": "hrv_drop", "severity": "info|warn|critical", "message": "string" }
+      ],
+      "next_action": {
+        "label": "string",
+        "action_type": "workout|nutrition|supplement|habit|checkin",
+        "cta_payload": "object"
+      },
+      "timezone": "IANA (default Australia/Perth)"
+    },
+    "derived": {
+      "goal_progress_pct": "0-100 (weighted by milestone completion and metric deltas)",
+      "time_remaining_days": "int",
+      "trend": "up|flat|down (based on last 14d metric deltas weighted by importance)",
+      "readiness_hint": "string (optional, e.g., 'Taper week' or 'Recovery advised')"
+    },
+    "output_events": [
+      "ui_goal_card_open_detail",
+      "ui_goal_card_toggle_expand",
+      "ui_goal_card_mark_milestone_done",
+      "ui_goal_card_view_plan",
+      "ui_goal_card_enable_source_prompt",
+      "ui_goal_card_acknowledge_warning"
+    ]
+  },
+  "ui_spec": {
+    "card_structure": {
+      "header": [
+        "Goal icon (by canonical_goal_type)",
+        "Goal title (e.g., 'NYC Marathon — Sub 4h')",
+        "Status pill (Active/Paused/Completed) + D-Day counter (e.g., 'T-42d')"
+      ],
+      "hero_row": [
+        {
+          "type": "progress_ring",
+          "value": "{{goal_progress_pct}}",
+          "subtext": "Progress"
+        },
+        {
+          "type": "kpi_stack",
+          "items": [
+            { "label": "VO2max", "value": "{{current(vo2max)}}", "target": "{{target(vo2max)}}", "unit": "ml/kg/min", "trend": "{{trend(vo2max)}}" },
+            { "label": "Weekly km", "value": "{{current(weekly_distance_km)}}", "target": "{{target(weekly_distance_km)}}", "unit": "km", "trend": "{{trend(weekly_distance_km)}}" }
+          ]
+        }
+      ],
+      "milestone_row": {
+        "type": "timeline_mini",
+        "items": [
+          { "title": "{{milestone.title}}", "due": "{{milestone.due_date}}", "status": "{{milestone.status}}" }
+        ],
+        "empty_state": "No milestones yet — Generate plan"
+      },
+      "alerts_row": {
+        "type": "alert_banner",
+        "show_when": "risk_flags.length > 0",
+        "variant_by_severity": {
+          "info": "neutral",
+          "warn": "warning",
+          "critical": "danger"
+        },
+        "content": "{{risk_flags[0].message}}",
+        "cta": { "label": "Details", "action": "open_risk_drawer" }
+      },
+      "cta_row": [
+        { "label": "View Plan", "action": "open_plan" },
+        { "label": "Log Session", "action": "open_workout_logger", "show_when": "canonical_goal_type in ['endurance_event','strength']" },
+        { "label": "Enable Data Source", "action": "open_permissions", "show_when": "missing_required_sources" }
+      ]
+    },
+    "visual_style": {
+      "density": "cozy",
+      "corners": "2xl",
+      "shadows": "md",
+      "color_theming": "type-based accent (endurance=blue, strength=purple, body_comp=green, habit=amber, biomarker=teal)",
+      "loading_skeletons": true,
+      "a11y": {
+        "contrast_ratio_min": "4.5:1",
+        "aria_labels": {
+          "progress_ring": "Overall goal progress",
+          "timeline_mini": "Goal milestones",
+          "kpi": "Key performance metric"
+        },
+        "keyboard_nav": "All CTAs focusable; Enter/Space activate"
+      }
+    },
+    "responsive_rules": {
+      "mobile": {
+        "collapse_milestones": true,
+        "show_kpi_items": 1
+      },
+      "desktop": {
+        "expand_on_hover": false,
+        "show_kpi_items": 2
+      }
+    }
+  },
+  "logic": {
+    "progress_formula": {
+      "description": "Weighted average of milestone completion and metric delta toward target.",
+      "weights": {
+        "milestones": 0.6,
+        "metrics": 0.4
+      },
+      "metric_delta_calc": "For 'increase': (current - baseline) / (target - baseline). For 'decrease': (baseline - current) / (baseline - target). Clamp 0..1. Missing baseline → use last 14d average."
+    },
+    "trend_calc": "Slope over last 14 days using simple linear regression per metric; categorize up|flat|down with ±5% band.",
+    "readiness_hint_rules": [
+      "If HRV < 80% baseline for 3 consecutive days OR resting HR > +8% baseline → 'Recovery advised'",
+      "If within 14 days of target_date and load decreased last 7 days → 'Taper week'",
+      "If milestones ahead by ≥2 weeks → 'Consider advancing next block'"
+    ],
+    "source_enablement": {
+      "missing_required_sources": "metrics where source!=manual AND current_value is null",
+      "prompt": "Show consent modal listing integrations to enable (HealthKit/Oura/Whoop/etc.)."
+    },
+    "safety": {
+      "disclaimer": "Informational only; not medical advice.",
+      "red_flag_behavior": "Always render alert_banner with 'critical' variant and block 'Log Session' until acknowledged."
+    }
+  },
+  "interactions": [
+    {
+      "action": "open_plan",
+      "effect": "Navigate to Goal Detail > Plan tab; emit telemetry 'ui_goal_card_view_plan'."
+    },
+    {
+      "action": "open_workout_logger",
+      "effect": "Open workout tracker prefilled with today's recommended session."
+    },
+    {
+      "action": "open_permissions",
+      "effect": "Open data-source permissions sheet; on success, refresh card data."
+    },
+    {
+      "action": "open_risk_drawer",
+      "effect": "Slide-over with full risk list, trends, and suggested mitigations."
+    },
+    {
+      "action": "toggle_expand",
+      "effect": "Expand card to show full KPI grid + milestone list."
+    }
+  ],
+  "performance": {
+    "data_fetch": "1 batched query per card; cache metric snapshots for 5 minutes.",
+    "lazy_update": "Subscribe to metric change events; optimistic UI for milestone toggles."
+  },
+  "telemetry": {
+    "fields": {
+      "goal_id": "uuid",
+      "canonical_goal_type": "string",
+      "card_state": "collapsed|expanded",
+      "cta": "string",
+      "has_risk": "boolean"
+    }
+  },
+  "accessibility_tests": [
+    "Keyboard-only navigation across CTAs",
+    "Screen reader reads progress and next action in logical order",
+    "Color is not sole means of conveying status (icons + text + shapes)"
+  },
+  "qa_acceptance_tests": [
+    "Renders with full data (metrics + milestones + no risks)",
+    "Renders with missing sources → shows 'Enable Data Source' CTA",
+    "Shows 'Recovery advised' when HRV rule triggers",
+    "Updates progress_ring when milestone marked achieved",
+    "T- counter matches target_date in Australia/Perth timezone",
+    "Trend arrows reflect last 14d regression",
+    "Critical alert blocks 'Log Session' until acknowledged"
+  ],
+  "sample_payload": {
+    "goal": {
+      "id": "f2e3a0e8-6f7c-4d0a-9b0b-123456789abc",
+      "canonical_goal_type": "endurance_event",
+      "display_name": "NYC Marathon — Sub 4h",
+      "target_date": "2025-11-02",
+      "status": "active",
+      "entities": { "distance_km": 42.2, "target_time_hms": "03:59:59", "event_name": "New York City Marathon" },
+      "created_at": "2025-07-01"
+    },
+    "metrics": [
+      { "metric_key": "vo2max", "label": "VO2max", "unit": "ml/kg/min", "baseline_value": 44, "current_value": 47, "target_value": 50, "direction": "increase", "source": "healthkit", "confidence": 0.9 },
+      { "metric_key": "weekly_distance_km", "label": "Weekly km", "unit": "km", "baseline_value": 30, "current_value": 52, "target_value": 60, "direction": "increase", "source": "healthkit", "confidence": 0.95 },
+      { "metric_key": "resting_hr", "label": "Resting HR", "unit": "bpm", "baseline_value": 62, "current_value": 58, "target_value": 55, "direction": "decrease", "source": "healthkit", "confidence": 0.9 }
+    ],
+    "milestones": [
+      { "id": "m1", "title": "Long run 28 km", "due_date": "2025-09-07", "status": "achieved", "progress_pct": 100, "completion_rule": {} },
+      { "id": "m2", "title": "Race rehearsal 32 km", "due_date": "2025-10-05", "status": "pending", "progress_pct": 60, "completion_rule": {} },
+      { "id": "m3", "title": "Taper begins", "due_date": "2025-10-19", "status": "pending", "progress_pct": 0, "completion_rule": {} }
+    ],
+    "risk_flags": [
+      { "code": "hrv_drop", "severity": "warn", "message": "HRV below baseline 2 days in a row — consider easier session" }
+    ],
+    "next_action": { "label": "Tempo 6×5min @ threshold", "action_type": "workout", "cta_payload": { "plan_block_id": "wk12_d3" } },
+    "timezone": "Australia/Perth"
+  },
+  "dev_notes": {
+    "framework": "React (Tailwind/shadcn fine) — keep component pure; props in, events out",
+    "i18n": "Metric labels/units localizable; date formatting via user tz",
+    "error_states": [
+      "No data sources enabled → show explainer + CTA",
+      "Metric fetch failed → show retry and last-known values if available"
+    ]
+  }
+}

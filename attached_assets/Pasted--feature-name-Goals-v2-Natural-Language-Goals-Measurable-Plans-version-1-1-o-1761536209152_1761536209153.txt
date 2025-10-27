@@ -1,0 +1,281 @@
+{
+  "feature_name": "Goals v2 — Natural Language Goals → Measurable Plans",
+  "version": "1.1",
+  "owner": "HealthPilot",
+  "objective": "Allow users to set free-text, high-level goals (e.g., 'Run the New York Marathon'), automatically map them to canonical goal types and measurable success metrics (e.g., VO2max ≥ 50, weekly long-run distance), and generate adaptive training, nutrition, and supplement plans that leverage already-tracked data (HealthKit + connected sources).",
+  "non_goals": [
+    "Diagnose medical conditions",
+    "Override clinician advice",
+    "Offer prescription-only recommendations"
+  ],
+  "user_stories": [
+    {
+      "id": "G2-NL-001",
+      "as_a": "user",
+      "i_want": "to type or say a goal in my own words",
+      "so_that": "the app turns it into a measurable plan with milestones and tracks my progress automatically"
+    },
+    {
+      "id": "G2-MET-002",
+      "as_a": "user",
+      "i_want": "the AI to use metrics I already track (e.g., VO2 max, distance, HRV)",
+      "so_that": "I don't have to configure everything manually"
+    },
+    {
+      "id": "G2-PLAN-003",
+      "as_a": "user",
+      "i_want": "training + nutrition + supplement suggestions aligned to my goal and timeline",
+      "so_that": "I have one coherent plan that adapts when my data changes"
+    },
+    {
+      "id": "G2-SAFE-004",
+      "as_a": "user",
+      "i_want": "safety checks on aggressive targets or red flag vitals",
+      "so_that": "I reduce injury/health risk"
+    }
+  ],
+  "scope": {
+    "in": [
+      "Free-text goal ingestion via chat or goal form",
+      "LLM-based goal parsing to canonical types",
+      "Metric selection using available/trackable signals",
+      "Plan generation (training, nutrition, supplements) with weekly milestones",
+      "Adaptive updates when metrics change",
+      "Progress visualization and notifications",
+      "Safety guardrails and medical disclaimers"
+    ],
+    "out_for_now": [
+      "Event registration and logistics",
+      "Paid coaching marketplace",
+      "In-app purchases for meal plans"
+    ]
+  },
+  "architecture": {
+    "flow": [
+      "User enters natural language goal via Chat or Goal form",
+      "LLM → parse goal → canonical_goal_type + extracted_entities",
+      "Metric Mapper → choose measurable metrics (prefer existing tracked signals)",
+      "Feasibility Check → sanity-check targets and timelines; propose adjusted plan if needed",
+      "Plan Generator → training + nutrition + supplements with milestones",
+      "Write to DB → goal, metrics, milestones, plan blocks",
+      "Insights Engine → daily/weekly progress & adjustments",
+      "Notifications → milestone nudges, risk alerts, plan updates"
+    ],
+    "services": [
+      "goals-service",
+      "metrics-service",
+      "planner-service",
+      "insights-service",
+      "notifications-service",
+      "safety-service"
+    ]
+  },
+  "data_model_changes": {
+    "tables": {
+      "goals": {
+        "add_or_create": true,
+        "schema": {
+          "id": "uuid",
+          "user_id": "uuid",
+          "input_text": "text",
+          "canonical_goal_type": "enum['endurance_event','body_comp','strength','health_marker','habit','hybrid']",
+          "goal_entities_json": "jsonb",
+          "target_date": "timestamp",
+          "status": "enum['draft','active','paused','completed','abandoned']",
+          "created_at": "timestamp",
+          "updated_at": "timestamp"
+        },
+        "indexes": ["user_id", "canonical_goal_type", "status"]
+      },
+      "goal_metrics": {
+        "add_or_create": true,
+        "schema": {
+          "id": "uuid",
+          "goal_id": "uuid",
+          "metric_key": "text",
+          "target_value": "float|text",
+          "unit": "text",
+          "source": "enum['healthkit','oura','whoop','manual','calculated']",
+          "direction": "enum['increase','decrease','maintain','achieve']",
+          "baseline_value": "float|text",
+          "current_value": "float|text",
+          "confidence": "float"
+        },
+        "indexes": ["goal_id", "metric_key"]
+      },
+      "goal_milestones": {
+        "add_or_create": true,
+        "schema": {
+          "id": "uuid",
+          "goal_id": "uuid",
+          "title": "text",
+          "due_date": "timestamp",
+          "completion_rule": "jsonb",
+          "status": "enum['pending','achieved','missed']",
+          "progress_pct": "float"
+        }
+      },
+      "goal_plans": {
+        "add_or_create": true,
+        "schema": {
+          "id": "uuid",
+          "goal_id": "uuid",
+          "plan_type": "enum['training','nutrition','supplements']",
+          "period": "enum['weekly','block','event']",
+          "content_json": "jsonb",
+          "version": "int",
+          "source_prompt_hash": "text"
+        }
+      }
+    },
+    "backfill_migration": "Migrate existing weight-based goals to canonical type 'body_comp'; retain all previous data."
+  },
+  "ai_orchestration": {
+    "system_prompt": "You are HealthPilot's planning AI. Convert free-text goals into safe, measurable, realistic plans using existing tracked metrics where possible. Never provide medical advice. Include disclaimers on supplements and training intensity.",
+    "nlp_extraction_instructions": [
+      "Identify canonical_goal_type from free text",
+      "Extract entities: event_name, target_date, distance_km, body_comp_targets, habits, etc.",
+      "Normalize dates and units to ISO/SI"
+    ],
+    "metric_mapping_strategy": {
+      "priority_order": [
+        "metrics already tracked",
+        "metrics derivable from tracked data",
+        "metrics easily enabled",
+        "manual-only metrics"
+      ]
+    }
+  },
+  "testing": {
+    "unit": [
+      "Free-text parser returns canonical goal types",
+      "Metric mapper prefers tracked metrics",
+      "Feasibility rejects unsafe timelines",
+      "Plan generator respects ramp rules"
+    ],
+    "integration": [
+      "Goal → metrics → plan → milestones → notifications",
+      "HealthKit updates adjust plan in real-time"
+    ],
+    "e2e_acceptance": [
+      "Goal 'Run NYC Marathon' → VO2max + weekly distance → plan + milestones"
+    ]
+  },
+  "telemetry": {
+    "events": [
+      "goal_created",
+      "plan_generated",
+      "milestone_achieved",
+      "plan_adjusted",
+      "safety_warning_shown"
+    ]
+  },
+  "security_privacy": {
+    "data_minimization": "Store only metrics necessary for the plan",
+    "user_control": "Allow pause/stop/delete goals and plans",
+    "disclaimer": "For informational purposes only; not medical advice"
+  },
+  "dev_completion_checklist": [
+    "DB migrations applied and reversible",
+    "NLP endpoint returns schema-compliant payloads",
+    "Metric mapper respects source priority",
+    "Plans conform to ramp/cap rules",
+    "UI surfaces disclaimers and consent",
+    "Notifications respect user timezone"
+  ],
+  "seed_dataset": {
+    "canonical_goal_types": [
+      {
+        "type": "endurance_event",
+        "display_name": "Endurance Event (e.g. Marathon, Triathlon)",
+        "default_metrics": [
+          { "metric_key": "vo2max", "unit": "ml/kg/min", "direction": "increase" },
+          { "metric_key": "weekly_distance_km", "unit": "km", "direction": "increase" },
+          { "metric_key": "long_run_distance_km", "unit": "km", "direction": "increase" },
+          { "metric_key": "resting_hr", "unit": "bpm", "direction": "decrease" },
+          { "metric_key": "hrv", "unit": "ms", "direction": "increase" }
+        ],
+        "default_milestones": [
+          "Long run reaches 75% race distance",
+          "VO2max improves by 10%",
+          "Consistent training >8 weeks"
+        ],
+        "recommended_sources": ["healthkit", "oura", "whoop"]
+      },
+      {
+        "type": "body_comp",
+        "display_name": "Body Composition / Weight Goal",
+        "default_metrics": [
+          { "metric_key": "body_weight", "unit": "kg", "direction": "increase_or_decrease" },
+          { "metric_key": "body_fat_pct", "unit": "%", "direction": "decrease" },
+          { "metric_key": "lean_mass", "unit": "kg", "direction": "increase" },
+          { "metric_key": "waist_circumference", "unit": "cm", "direction": "decrease" }
+        ],
+        "default_milestones": [
+          "Achieve 50% of weight goal",
+          "Maintain for 4 consecutive weeks",
+          "Complete body scan reassessment"
+        ],
+        "recommended_sources": ["manual", "smart_scale"]
+      },
+      {
+        "type": "strength",
+        "display_name": "Strength & Performance Goal",
+        "default_metrics": [
+          { "metric_key": "one_rm_squat", "unit": "kg", "direction": "increase" },
+          { "metric_key": "one_rm_deadlift", "unit": "kg", "direction": "increase" },
+          { "metric_key": "one_rm_bench", "unit": "kg", "direction": "increase" },
+          { "metric_key": "session_rpe", "unit": "1-10", "direction": "maintain" }
+        ],
+        "default_milestones": [
+          "Complete 8-week strength block",
+          "Add +10% to 1RM in key lifts",
+          "Balance left/right asymmetry"
+        ],
+        "recommended_sources": ["manual", "fitness_tracker"]
+      },
+      {
+        "type": "habit",
+        "display_name": "Lifestyle or Habit Goal",
+        "default_metrics": [
+          { "metric_key": "habit_completion_rate", "unit": "%", "direction": "increase" },
+          { "metric_key": "streak_days", "unit": "days", "direction": "increase" }
+        ],
+        "default_milestones": [
+          "Achieve 30-day streak",
+          "Reach 90% habit adherence over 60 days"
+        ],
+        "recommended_sources": ["manual", "in_app_tracking"]
+      },
+      {
+        "type": "health_marker",
+        "display_name": "Biomarker Improvement Goal",
+        "default_metrics": [
+          { "metric_key": "ldl_cholesterol", "unit": "mmol/L", "direction": "decrease" },
+          { "metric_key": "hdl_cholesterol", "unit": "mmol/L", "direction": "increase" },
+          { "metric_key": "fasting_glucose", "unit": "mmol/L", "direction": "decrease" },
+          { "metric_key": "blood_pressure_sys", "unit": "mmHg", "direction": "decrease" }
+        ],
+        "default_milestones": [
+          "First lab improvement verified",
+          "Target value achieved in lab",
+          "Stable results for 3 months"
+        ],
+        "recommended_sources": ["lab_upload", "connected_bp_monitor"]
+      },
+      {
+        "type": "hybrid",
+        "display_name": "Hybrid or Multi-domain Goal",
+        "default_metrics": [
+          { "metric_key": "custom_metric_1", "unit": "varies", "direction": "custom" },
+          { "metric_key": "custom_metric_2", "unit": "varies", "direction": "custom" }
+        ],
+        "default_milestones": [
+          "Phase 1: Baseline improvements achieved",
+          "Phase 2: Cross-domain balance confirmed"
+        ],
+        "recommended_sources": ["healthkit", "manual"]
+      }
+    ]
+  }
+}
