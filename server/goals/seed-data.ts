@@ -110,9 +110,11 @@ export const CANONICAL_GOAL_TYPES: CanonicalGoalType[] = [
   {
     type: 'health_marker',
     display_name: 'Biomarker Improvement Goal',
-    description: 'Improving specific health biomarkers like cholesterol, blood pressure, glucose, or other lab values',
+    description: 'Improving specific health biomarkers like cholesterol, blood pressure, glucose, resting heart rate, HRV, or other lab values',
     icon: 'Activity',
     default_metrics: [
+      { metric_key: 'resting_hr', label: 'Resting Heart Rate', unit: 'bpm', direction: 'decrease', priority: 1 },
+      { metric_key: 'hrv', label: 'Heart Rate Variability', unit: 'ms', direction: 'increase', priority: 2 },
       { metric_key: 'ldl_cholesterol', label: 'LDL Cholesterol', unit: 'mmol/L', direction: 'decrease', priority: 1 },
       { metric_key: 'hdl_cholesterol', label: 'HDL Cholesterol', unit: 'mmol/L', direction: 'increase', priority: 2 },
       { metric_key: 'fasting_glucose', label: 'Fasting Glucose', unit: 'mmol/L', direction: 'decrease', priority: 1 },
@@ -120,14 +122,14 @@ export const CANONICAL_GOAL_TYPES: CanonicalGoalType[] = [
       { metric_key: 'blood_pressure_dia', label: 'Diastolic BP', unit: 'mmHg', direction: 'decrease', priority: 2 },
     ],
     default_milestones: [
-      'Initial lab values recorded (baseline)',
-      'First follow-up lab shows improvement',
-      'Target value achieved in lab test',
+      'Initial baseline values recorded',
+      'First follow-up shows improvement',
+      'Target value achieved',
       'Stable results for 1 month',
       'Stable results for 3 months',
       'Physician confirmation of improvement',
     ],
-    recommended_sources: ['lab_upload', 'manual', 'connected_bp_monitor', 'continuous_glucose_monitor'],
+    recommended_sources: ['healthkit', 'lab_upload', 'manual', 'connected_bp_monitor', 'continuous_glucose_monitor', 'oura', 'whoop'],
   },
   {
     type: 'hybrid',

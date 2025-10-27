@@ -66,6 +66,15 @@ RULES:
 - Be conservative with target dates - prefer realistic timelines
 - If no date specified, infer based on goal type and difficulty
 
+IMPORTANT CLASSIFICATION GUIDELINES:
+- Use "endurance_event" ONLY when training for a specific race/event (marathon, triathlon, etc.)
+- Use "health_marker" for standalone cardiovascular metrics (resting heart rate, HRV, blood pressure) WITHOUT an event context
+- If someone wants to "reduce resting heart rate to 70", that's a health_marker goal, NOT endurance_event
+- If someone wants to "run a marathon under 4 hours", that's endurance_event
+- Use "strength" for lifting/resistance training goals
+- Use "body_comp" for weight loss/gain or body composition goals
+- Use "habit" for consistency/streak-based goals
+
 OUTPUT FORMAT (JSON):
 {
   "canonical_goal_type": "endurance_event|body_comp|strength|habit|health_marker|hybrid",
@@ -186,7 +195,9 @@ function fallbackGoalParsing(inputText: string): ParsedGoal {
   
   // Health marker keywords
   if (lower.includes('cholesterol') || lower.includes('blood pressure') || 
-      lower.includes('glucose') || lower.includes('biomarker')) {
+      lower.includes('glucose') || lower.includes('biomarker') ||
+      lower.includes('heart rate') || lower.includes('resting hr') ||
+      lower.includes('hrv') || lower.includes('heart rate variability')) {
     return {
       canonical_goal_type: 'health_marker',
       display_name: inputText,
