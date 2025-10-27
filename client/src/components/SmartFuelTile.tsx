@@ -30,9 +30,7 @@ export function SmartFuelTile() {
   const generateGuidanceMutation = useMutation({
     mutationFn: async () => {
       console.log('[SmartFuel] Calling API /api/smartfuel/guidance/generate');
-      const result = await apiRequest("/api/smartfuel/guidance/generate", {
-        method: "POST",
-      });
+      const result = await apiRequest("POST", "/api/smartfuel/guidance/generate");
       console.log('[SmartFuel] API call succeeded', result);
       return result;
     },
