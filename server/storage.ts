@@ -3539,14 +3539,14 @@ export class DbStorage implements IStorage {
       .where(
         and(
           eq(hkEventsRaw.userId, userId),
-          gte(hkEventsRaw.startDate, thirtyDaysAgo)
+          gte(hkEventsRaw.receivedAtUtc, thirtyDaysAgo)
         )
       )
       .limit(1000);
 
     // Combine both sources and remove duplicates
     const healthkitFromBiomarkers = healthkitBiomarkers.map(b => b.type);
-    const healthkitFromRaw = healthkitRawEvents.map(e => e.metricType);
+    const healthkitFromRaw = healthkitRawEvents.map(e => e.type);
     const healthkitMetrics = [...new Set([...healthkitFromBiomarkers, ...healthkitFromRaw])];
 
     // Manual metrics
