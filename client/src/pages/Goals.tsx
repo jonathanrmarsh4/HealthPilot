@@ -37,6 +37,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "wouter";
 import { GoalForm } from "@/components/goals/GoalForm";
 import { GoalInsightCard } from "@/components/goals/GoalInsightCard";
+import { NLGoalDialog } from "@/components/goals/NLGoalDialog";
 import { getMetric } from "@/lib/metrics/registry";
 import { useChat } from "@/contexts/ChatContext";
 import { useAuth } from "@/hooks/useAuth";
@@ -399,11 +400,12 @@ export default function Goals() {
               <Sparkles className="h-4 w-4" />
               Goal Setting with AI
             </Button>
+            <NLGoalDialog onSuccess={() => queryClient.invalidateQueries({ queryKey: ["/api/goals"] })} />
             <Dialog open={isDialogOpen} onOpenChange={handleDialogClose}>
               <DialogTrigger asChild>
-                <Button className="gap-2" data-testid="button-create-goal">
+                <Button variant="outline" className="gap-2" data-testid="button-create-goal">
                   <Plus className="h-4 w-4" />
-                  New Goal
+                  Manual Goal
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
