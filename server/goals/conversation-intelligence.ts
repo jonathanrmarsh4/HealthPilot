@@ -165,7 +165,7 @@ function getFallbackQuestion(
 
   if (questionCount === 1 && !context.currentAbility) {
     return {
-      question: 'What's your current fitness level for this activity? For example, how far can you run/lift/etc. right now?',
+      question: 'What is your current fitness level for this activity? For example, how far can you run/lift/etc. right now?',
       type: 'ability',
       rationale: 'Need to know starting point to set appropriate targets',
     };
