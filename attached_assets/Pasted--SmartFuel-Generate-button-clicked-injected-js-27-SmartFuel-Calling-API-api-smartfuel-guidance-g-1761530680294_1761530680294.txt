@@ -1,0 +1,39 @@
+[SmartFuel] Generate button clicked
+injected.js:27 [SmartFuel] Calling API /api/smartfuel/guidance/generate
+injected.js:27 [SmartFuel] API call succeeded Response {type: 'basic', url: 'https://0d420476-b7bb-4cc4-9f5a-da35f5e473e4-00-1n…z.pike.replit.dev/api/smartfuel/guidance/generate', redirected: false, status: 200, ok: true, …}
+injected.js:27 [SmartFuel] Mutation onSuccess Response {type: 'basic', url: 'https://0d420476-b7bb-4cc4-9f5a-da35f5e473e4-00-1n…z.pike.replit.dev/api/smartfuel/guidance/generate', redirected: false, status: 200, ok: true, …}
+injected.js:204  GET https://0d420476-b7bb-4cc4-9f5a-da35f5e473e4-00-1n1tyyvrb5uvz.pike.replit.dev/api/smartfuel/guidance/current 404 (Not Found)
+apply @ injected.js:204
+(anonymous) @ queryClient.ts:34
+fetchFn @ @tanstack_react-query.js?v=c5e04bcd:840
+run @ @tanstack_react-query.js?v=c5e04bcd:494
+start @ @tanstack_react-query.js?v=c5e04bcd:536
+fetch @ @tanstack_react-query.js?v=c5e04bcd:926
+(anonymous) @ @tanstack_react-query.js?v=c5e04bcd:1726
+(anonymous) @ @tanstack_react-query.js?v=c5e04bcd:1725
+batch @ @tanstack_react-query.js?v=c5e04bcd:583
+refetchQueries @ @tanstack_react-query.js?v=c5e04bcd:1724
+(anonymous) @ @tanstack_react-query.js?v=c5e04bcd:1716
+batch @ @tanstack_react-query.js?v=c5e04bcd:583
+invalidateQueries @ @tanstack_react-query.js?v=c5e04bcd:1705
+onSuccess @ SmartFuelTile.tsx:39
+execute @ @tanstack_react-query.js?v=c5e04bcd:1233
+await in execute
+mutate @ @tanstack_react-query.js?v=c5e04bcd:2630
+(anonymous) @ @tanstack_react-query.js?v=c5e04bcd:3295
+handleGenerate @ SmartFuelTile.tsx:51
+callCallback2 @ chunk-RPCDYKBN.js?v=c5e04bcd:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=c5e04bcd:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=c5e04bcd:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-RPCDYKBN.js?v=c5e04bcd:3736
+executeDispatch @ chunk-RPCDYKBN.js?v=c5e04bcd:7014
+processDispatchQueueItemsInOrder @ chunk-RPCDYKBN.js?v=c5e04bcd:7034
+processDispatchQueue @ chunk-RPCDYKBN.js?v=c5e04bcd:7043
+dispatchEventsForPlugins @ chunk-RPCDYKBN.js?v=c5e04bcd:7051
+(anonymous) @ chunk-RPCDYKBN.js?v=c5e04bcd:7174
+batchedUpdates$1 @ chunk-RPCDYKBN.js?v=c5e04bcd:18913
+batchedUpdates @ chunk-RPCDYKBN.js?v=c5e04bcd:3579
+dispatchEventForPluginEventSystem @ chunk-RPCDYKBN.js?v=c5e04bcd:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-RPCDYKBN.js?v=c5e04bcd:5478
+dispatchEvent @ chunk-RPCDYKBN.js?v=c5e04bcd:5472
+dispatchDiscreteEvent @ chunk-RPCDYKBN.js?v=c5e04bcd:5449Understand this error
