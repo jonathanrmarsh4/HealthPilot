@@ -194,7 +194,7 @@ import {
   labs,
   dailyHealthInsights,
 } from "@shared/schema";
-import { eq, desc, and, gte, lte, lt, sql, or, like, count, isNull, inArray, notInArray } from "drizzle-orm";
+import { eq, desc, and, gte, lte, lt, sql, or, like, count, isNull, inArray, notInArray, not } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -5397,7 +5397,7 @@ export class DbStorage implements IStorage {
   }
 
   async supersedePreviousGuidance(userId: string, newGuidanceId: string): Promise<void> {
-    // Mark all previous active guidance as superseded
+    // Mark all previous active guidance as superseded (excluding the new guidance)
     await db
       .update(smartFuelGuidance)
       .set({
@@ -5407,7 +5407,8 @@ export class DbStorage implements IStorage {
       .where(
         and(
           eq(smartFuelGuidance.userId, userId),
-          eq(smartFuelGuidance.status, 'active')
+          eq(smartFuelGuidance.status, 'active'),
+          not(eq(smartFuelGuidance.id, newGuidanceId))  // Don't supersede the new guidance!
         )
       );
   }
