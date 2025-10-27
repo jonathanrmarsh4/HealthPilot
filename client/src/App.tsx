@@ -11,6 +11,7 @@ import { LocaleProvider } from "@/contexts/LocaleContext";
 import { LocaleSelector } from "@/components/LocaleSelector";
 import { TimezoneProvider } from "@/contexts/TimezoneContext";
 import { OnboardingProvider, useOnboarding } from "@/contexts/OnboardingContext";
+import { ChatProvider, useChat } from "@/contexts/ChatContext";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { FloatingChat, FloatingChatTrigger, VoiceChatModal } from "@/components/FloatingChat";
 import { useAuth } from "@/hooks/useAuth";
@@ -107,8 +108,7 @@ function Router() {
 }
 
 function AppLayout() {
-  const [isChatOpen, setIsChatOpen] = useState(false);
-  const [isVoiceChatOpen, setIsVoiceChatOpen] = useState(false);
+  const { isChatOpen, isVoiceChatOpen, setIsChatOpen, setIsVoiceChatOpen, chatContext } = useChat();
   const [hasAutoOpened, setHasAutoOpened] = useState(false);
   const [location] = useLocation();
   const { shouldShowOnboarding, isLoading: onboardingLoading } = useOnboarding();
@@ -219,11 +219,13 @@ function AppLayout() {
         isOpen={isChatOpen} 
         onClose={() => setIsChatOpen(false)}
         currentPage={currentPage}
+        context={chatContext}
       />
       
       <VoiceChatModal
         isOpen={isVoiceChatOpen}
         onClose={() => setIsVoiceChatOpen(false)}
+        context={chatContext}
       />
     </SidebarProvider>
   );
@@ -261,16 +263,18 @@ function AuthenticatedApp() {
     <LocaleProvider>
       <TimezoneProvider>
         <OnboardingProvider>
-          <TimezoneDetector />
-          <AppLayout />
-          <EulaDialog
-            open={showEulaDialog || false}
-            onAccept={() => {
-              console.log("EULA onAccept called");
-              acceptEulaMutation.mutate();
-            }}
-            isAccepting={acceptEulaMutation.isPending}
-          />
+          <ChatProvider>
+            <TimezoneDetector />
+            <AppLayout />
+            <EulaDialog
+              open={showEulaDialog || false}
+              onAccept={() => {
+                console.log("EULA onAccept called");
+                acceptEulaMutation.mutate();
+              }}
+              isAccepting={acceptEulaMutation.isPending}
+            />
+          </ChatProvider>
         </OnboardingProvider>
         <Toaster />
       </TimezoneProvider>

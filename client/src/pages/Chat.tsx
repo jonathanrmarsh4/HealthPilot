@@ -14,7 +14,7 @@ import { ProactiveSuggestionCard } from "@/components/ProactiveSuggestionCard";
 
 export default function Chat() {
   const { toast } = useToast();
-  const [location, setLocation] = useLocation();
+  const [, setLocation] = useLocation();
   const [message, setMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [clearedAtTimestamp, setClearedAtTimestamp] = useState<string | null>(() => {
@@ -24,7 +24,6 @@ export default function Chat() {
     }
     return null;
   });
-  const [hasHandledContext, setHasHandledContext] = useState(false);
 
   const { data: messages, isLoading } = useQuery<ChatMessage[]>({
     queryKey: ["/api/chat/history"],
@@ -117,22 +116,6 @@ export default function Chat() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
-
-  // Handle context from URL parameter (e.g., coming from Goals page)
-  useEffect(() => {
-    if (hasHandledContext) return;
-    
-    const searchParams = new URLSearchParams(window.location.search);
-    const context = searchParams.get('context');
-    
-    if (context === 'goals' && !sendMessageMutation.isPending) {
-      setHasHandledContext(true);
-      // Auto-send a contextual message
-      sendMessageMutation.mutate("Help me set some personalized health goals based on my current health data and biomarkers. What goals would you recommend?");
-      // Clean up URL parameter
-      setLocation('/chat');
-    }
-  }, [hasHandledContext, sendMessageMutation, setLocation]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

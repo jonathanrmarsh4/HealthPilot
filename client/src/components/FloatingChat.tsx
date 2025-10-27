@@ -17,9 +17,10 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 interface VoiceChatModalProps {
   isOpen: boolean;
   onClose: () => void;
+  context?: string | null;
 }
 
-export function VoiceChatModal({ isOpen, onClose }: VoiceChatModalProps) {
+export function VoiceChatModal({ isOpen, onClose, context }: VoiceChatModalProps) {
   const { toast } = useToast();
   const [isConnected, setIsConnected] = useState(false);
   const [isListening, setIsListening] = useState(false);
@@ -451,9 +452,10 @@ interface FloatingChatProps {
   isOpen: boolean;
   onClose: () => void;
   currentPage?: string;
+  context?: string | null;
 }
 
-export function FloatingChat({ isOpen, onClose, currentPage }: FloatingChatProps) {
+export function FloatingChat({ isOpen, onClose, currentPage, context }: FloatingChatProps) {
   const { toast } = useToast();
   const [message, setMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -663,6 +665,18 @@ export function FloatingChat({ isOpen, onClose, currentPage }: FloatingChatProps
       scrollToBottom();
     }
   }, [messages, isOpen, isMinimized]);
+
+  // Auto-send contextual message when opening with context
+  useEffect(() => {
+    if (isOpen && context === 'goals' && !sendMessageMutation.isPending) {
+      const contextMessage = "Help me set some personalized health goals based on my current health data and biomarkers. What goals would you recommend?";
+      sendMessageMutation.mutate(contextMessage);
+      // Expand the chat to show the message
+      setIsMinimized(false);
+    }
+    // Only run once when context changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, context]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

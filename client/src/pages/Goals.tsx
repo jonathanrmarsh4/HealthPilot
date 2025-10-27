@@ -37,6 +37,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "wouter";
 import { GoalForm } from "@/components/goals/GoalForm";
 import { getMetric } from "@/lib/metrics/registry";
+import { useChat } from "@/contexts/ChatContext";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Goal {
   id: string;
@@ -59,6 +61,8 @@ export default function Goals() {
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
+  const { openChat, openVoiceChat } = useChat();
+  const { user } = useAuth();
 
   const { data: goals, isLoading } = useQuery<Goal[]>({
     queryKey: ["/api/goals"],
@@ -279,14 +283,19 @@ export default function Goals() {
           <div className="flex gap-2">
             <Button
               variant="outline"
-              asChild
+              onClick={() => {
+                const isPremium = user?.subscriptionTier === 'premium' || user?.subscriptionTier === 'enterprise';
+                if (isPremium) {
+                  openVoiceChat('goals');
+                } else {
+                  openChat('goals');
+                }
+              }}
               className="gap-2"
               data-testid="button-ai-suggestions"
             >
-              <Link href="/chat?context=goals">
-                <Sparkles className="h-4 w-4" />
-                AI Suggestions
-              </Link>
+              <Sparkles className="h-4 w-4" />
+              Goal Setting with AI
             </Button>
             <Dialog open={isDialogOpen} onOpenChange={handleDialogClose}>
               <DialogTrigger asChild>
@@ -430,11 +439,19 @@ export default function Goals() {
                   <Plus className="h-4 w-4 mr-2" />
                   Create Goal
                 </Button>
-                <Button variant="outline" asChild>
-                  <Link href="/chat?context=goals">
-                    <MessageCircle className="h-4 w-4 mr-2" />
-                    Ask AI for Help
-                  </Link>
+                <Button 
+                  variant="outline"
+                  onClick={() => {
+                    const isPremium = user?.subscriptionTier === 'premium' || user?.subscriptionTier === 'enterprise';
+                    if (isPremium) {
+                      openVoiceChat('goals');
+                    } else {
+                      openChat('goals');
+                    }
+                  }}
+                >
+                  <MessageCircle className="h-4 w-4 mr-2" />
+                  Ask AI for Help
                 </Button>
               </div>
             </CardContent>
