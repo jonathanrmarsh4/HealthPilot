@@ -644,6 +644,43 @@ export const goalPlans = pgTable("goal_plans", {
   index("goal_plans_plan_type_idx").on(table.planType),
 ]);
 
+// Metric Standards - Evidence-based reference standards for goal metrics
+// This table stores both hardcoded standards (ACSM, ExRx, VDOT) and AI-discovered standards
+// Shared across all users to continuously improve the knowledge base
+export const metricStandards = pgTable("metric_standards", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  metricKey: text("metric_key").notNull(), // vo2max, squat_1rm, body_weight, resting_hr, etc.
+  standardType: text("standard_type").notNull(), // percentile, bodyweight_ratio, absolute_value, pace_per_km, etc.
+  category: text("category").notNull(), // cardio, strength, body_comp, running, clinical
+  ageMin: integer("age_min"), // Minimum age this standard applies to (null = no min)
+  ageMax: integer("age_max"), // Maximum age this standard applies to (null = no max)
+  gender: text("gender").notNull().default("all"), // male, female, all
+  valueMin: real("value_min"), // For ranges (e.g., 50th percentile = 40-45 ml/kg/min)
+  valueMax: real("value_max"), // For ranges
+  valueSingle: real("value_single"), // For single values (e.g., bodyweight ratio: 1.5x)
+  unit: text("unit"), // ml/kg/min, kg, bpm, min/km, etc.
+  percentile: integer("percentile"), // For percentile-based standards (e.g., 50, 75, 90)
+  level: text("level"), // For tiered standards: untrained, novice, intermediate, advanced, elite
+  sourceName: text("source_name").notNull(), // ACSM, ExRx, VDOT, WHO, PubMed, etc.
+  sourceUrl: text("source_url"), // Link to source documentation
+  sourceDescription: text("source_description"), // Brief description of the standard
+  confidenceScore: real("confidence_score").notNull().default(1.0), // 0-1, higher for official sources
+  evidenceLevel: text("evidence_level").notNull().default("professional_org"), // peer_reviewed, professional_org, ai_discovered, community
+  isActive: integer("is_active").notNull().default(1), // 1 if should be used, 0 if deprecated
+  verifiedByAdmin: integer("verified_by_admin").notNull().default(0), // 1 if manually reviewed/approved
+  lastVerifiedAt: timestamp("last_verified_at"), // When standard was last verified
+  usageCount: integer("usage_count").notNull().default(0), // How many times this standard has been used
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => [
+  index("metric_standards_metric_key_idx").on(table.metricKey),
+  index("metric_standards_category_idx").on(table.category),
+  index("metric_standards_gender_idx").on(table.gender),
+  index("metric_standards_evidence_idx").on(table.evidenceLevel),
+  // Composite index for efficient lookups by metric + age + gender
+  index("metric_standards_lookup_idx").on(table.metricKey, table.gender, table.ageMin, table.ageMax),
+]);
+
 export const aiActions = pgTable("ai_actions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull(),
@@ -881,6 +918,13 @@ export const insertGoalPlanSchema = createInsertSchema(goalPlans).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+});
+
+export const insertMetricStandardSchema = createInsertSchema(metricStandards).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  usageCount: true,
 });
 
 export const insertAiActionSchema = createInsertSchema(aiActions).omit({
@@ -1306,6 +1350,9 @@ export type GoalMilestone = typeof goalMilestones.$inferSelect;
 
 export type InsertGoalPlan = z.infer<typeof insertGoalPlanSchema>;
 export type GoalPlan = typeof goalPlans.$inferSelect;
+
+export type InsertMetricStandard = z.infer<typeof insertMetricStandardSchema>;
+export type MetricStandard = typeof metricStandards.$inferSelect;
 
 export type InsertAiAction = z.infer<typeof insertAiActionSchema>;
 export type AiAction = typeof aiActions.$inferSelect;
