@@ -41,7 +41,7 @@ interface GoalPlan {
 export function AITrainingPlanTile() {
   const [currentWeek, setCurrentWeek] = useState(1);
 
-  const { data: plans, isLoading } = useQuery<GoalPlan[]>({
+  const { data: plans, isLoading, isError, error } = useQuery<GoalPlan[]>({
     queryKey: ["/api/goals/plans"],
   });
 
@@ -62,16 +62,16 @@ export function AITrainingPlanTile() {
   const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 }); // Monday
   const getDayDate = (dayName: string): Date => {
     const dayMap: { [key: string]: number } = {
-      Monday: 1,
-      Tuesday: 2,
-      Wednesday: 3,
-      Thursday: 4,
-      Friday: 5,
-      Saturday: 6,
-      Sunday: 0,
+      Monday: 0,      // Monday is day 0 (weekStart)
+      Tuesday: 1,     // Tuesday is day 1
+      Wednesday: 2,   // Wednesday is day 2
+      Thursday: 3,    // Thursday is day 3
+      Friday: 4,      // Friday is day 4
+      Saturday: 5,    // Saturday is day 5
+      Sunday: 6,      // Sunday is day 6
     };
-    const dayOfWeek = dayMap[dayName] || 1;
-    return addDays(weekStart, dayOfWeek - 1);
+    const daysFromMonday = dayMap[dayName] !== undefined ? dayMap[dayName] : 0;
+    return addDays(weekStart, daysFromMonday);
   };
 
   if (isLoading) {
@@ -89,6 +89,30 @@ export function AITrainingPlanTile() {
             <Skeleton className="h-20 w-full" />
             <Skeleton className="h-20 w-full" />
             <Skeleton className="h-20 w-full" />
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (isError) {
+    return (
+      <Card data-testid="card-ai-training-plan">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-primary" />
+            <CardTitle>Your AI Training Plan</CardTitle>
+          </div>
+          <CardDescription>Error loading training plans</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8">
+            <p className="text-sm text-destructive mb-2">
+              Failed to load your training plans
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {error instanceof Error ? error.message : 'Please try refreshing the page'}
+            </p>
           </div>
         </CardContent>
       </Card>
