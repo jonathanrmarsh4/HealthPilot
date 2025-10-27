@@ -6748,6 +6748,22 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
       // Fetch user's actual data sources (HealthKit, Oura, Whoop, Manual)
       const availableSources = await storage.getUserAvailableDataSources(userId);
 
+      // Fetch user profile for standards-based target calculation
+      const user = await storage.getUser(userId);
+      const fitnessProfile = await storage.getFitnessProfile(userId);
+
+      // Build user profile for standards manager
+      const userProfile = {
+        age: fitnessProfile?.dateOfBirth 
+          ? Math.floor((Date.now() - new Date(fitnessProfile.dateOfBirth).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
+          : undefined,
+        gender: fitnessProfile?.sex as 'male' | 'female' | undefined,
+        weight: user?.weight,
+        height: user?.height,
+        fitness_level: fitnessProfile?.fitnessLevel,
+        medical_conditions: user?.medicalConditions || [],
+      };
+
       // Generate metrics based on goal type and user's available sources
       const { mapMetricsForGoal } = await import('./goals/metric-mapper');
       const metricSuggestions = await mapMetricsForGoal(
@@ -6767,6 +6783,7 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
         target_date: targetDate ? new Date(targetDate) : undefined,
         goal_entities: goalEntities || {},
         metrics: metricSuggestions.map(s => s.metric) as any[], // Temporary metrics without goalId
+        user_profile: userProfile,
       });
 
       // Atomically create goal with all metrics, milestones, and plans

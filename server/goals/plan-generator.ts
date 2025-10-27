@@ -18,6 +18,7 @@ export interface GeneratePlanInput {
   metrics: GoalMetric[];
   user_profile?: {
     age?: number;
+    gender?: 'male' | 'female';
     weight?: number;
     height?: number;
     fitness_level?: string;
@@ -109,9 +110,15 @@ async function enrichMetricsWithTargets(
   await standardsManager.initialize();
 
   // Build user profile from input
+  // Note: Gender is required for accurate standards lookup - if not provided, we cannot calculate targets
+  if (!input.user_profile?.gender) {
+    console.warn('⚠️ Gender not provided in user profile - cannot calculate accurate standards-based targets');
+    return; // Skip enrichment if gender is missing - better to have no target than wrong target
+  }
+
   const userProfile = {
-    age: input.user_profile?.age || 30, // Default if not provided
-    gender: (input.user_profile?.gender as 'male' | 'female') || 'male',
+    age: input.user_profile?.age || 30, // Default age to 30 if not provided
+    gender: input.user_profile.gender,
     bodyweight: input.user_profile?.weight,
     height: input.user_profile?.height,
   };
@@ -160,8 +167,9 @@ async function enrichMetricsWithTargets(
           console.error(`Error discovering standard for ${metric.metricKey}:`, err);
         });
 
-        // Set default target (10% improvement from current if available)
+        // Set default target based on current value or mark as pending discovery
         if (currentValue) {
+          // Have current value - estimate 10% improvement
           const direction = metric.direction || 'increase';
           const defaultTarget = direction === 'increase' 
             ? currentValue * 1.1 
@@ -171,6 +179,13 @@ async function enrichMetricsWithTargets(
           (metric as any).confidence = 0.5; // Low confidence for estimated targets
           (metric as any).targetSource = 'estimated';
           (metric as any).targetDescription = 'Estimated based on 10% improvement';
+        } else {
+          // No current value - mark metric for discovery but still provide target
+          (metric as any).targetValue = null; // Will skip progression generation
+          (metric as any).confidence = 0.0;
+          (metric as any).targetSource = 'pending_discovery';
+          (metric as any).targetDescription = 'Target pending data collection and standards discovery';
+          console.log(`ℹ️ Metric ${metric.metricKey} needs baseline value before target can be calculated`);
         }
       }
     } catch (error) {
