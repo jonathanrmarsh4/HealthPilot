@@ -6678,6 +6678,166 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
     }
   });
 
+  // Goals v2 API - Natural Language Goals with Plans
+  app.post("/api/goals/parse", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    try {
+      const { inputText } = req.body;
+      if (!inputText || typeof inputText !== 'string') {
+        return res.status(400).json({ error: "inputText is required" });
+      }
+
+      const { parseGoal } = await import('./goals/nlp-parser');
+      const parsed = await parseGoal(inputText, { user_id: userId });
+      
+      res.json(parsed);
+    } catch (error: any) {
+      console.error('Error parsing goal:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/goals/create-with-plan", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    try {
+      const { inputText, canonicalGoalType, displayName, goalEntities, targetDate } = req.body;
+      
+      if (!canonicalGoalType || !displayName) {
+        return res.status(400).json({ error: "canonicalGoalType and displayName are required" });
+      }
+
+      // Fetch user's actual data sources (HealthKit, Oura, Whoop, Manual)
+      const availableSources = await storage.getUserAvailableDataSources(userId);
+
+      // Generate metrics based on goal type and user's available sources
+      const { mapMetricsForGoal } = await import('./goals/metric-mapper');
+      const metricSuggestions = await mapMetricsForGoal(
+        canonicalGoalType,
+        goalEntities || {},
+        userId,
+        availableSources
+      );
+
+      // Generate comprehensive plan (milestones, training, nutrition, supplements)
+      const { generateComprehensivePlan } = await import('./goals/plan-generator');
+      const plan = await generateComprehensivePlan({
+        goal_id: '', // Will be set by transaction
+        user_id: userId,
+        canonical_goal_type: canonicalGoalType,
+        display_name: displayName,
+        target_date: targetDate ? new Date(targetDate) : undefined,
+        goal_entities: goalEntities || {},
+        metrics: metricSuggestions.map(s => s.metric) as any[], // Temporary metrics without goalId
+      });
+
+      // Atomically create goal with all metrics, milestones, and plans
+      const result = await storage.createGoalWithPlan({
+        goal: {
+          userId,
+          inputText: inputText || displayName,
+          canonicalGoalType,
+          goalEntitiesJson: goalEntities || {},
+          targetDate: targetDate ? new Date(targetDate) : null,
+          status: 'active',
+          createdByAI: inputText ? 1 : 0,
+        },
+        metrics: metricSuggestions.map(s => s.metric),
+        milestones: plan.milestones,
+        plans: [plan.training_plan, plan.nutrition_plan, plan.supplement_plan].filter(Boolean) as any[],
+      });
+
+      res.json({
+        ...result,
+        safety_warnings: plan.safety_warnings,
+        feasibility_assessment: plan.feasibility_assessment,
+      });
+    } catch (error: any) {
+      console.error('Error creating goal with plan:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/goals/:id/metrics", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { id } = req.params;
+    try {
+      // Verify goal belongs to user
+      const goal = await storage.getGoal(id, userId);
+      if (!goal) {
+        return res.status(404).json({ error: "Goal not found" });
+      }
+
+      const metrics = await storage.getGoalMetrics(id);
+      res.json(metrics);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/goals/:id/milestones", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { id } = req.params;
+    try {
+      // Verify goal belongs to user
+      const goal = await storage.getGoal(id, userId);
+      if (!goal) {
+        return res.status(404).json({ error: "Goal not found" });
+      }
+
+      const milestones = await storage.getGoalMilestones(id);
+      res.json(milestones);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/goals/:id/plans", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { id } = req.params;
+    const { planType } = req.query;
+    try {
+      // Verify goal belongs to user
+      const goal = await storage.getGoal(id, userId);
+      if (!goal) {
+        return res.status(404).json({ error: "Goal not found" });
+      }
+
+      const plans = await storage.getGoalPlans(id, planType as string | undefined);
+      res.json(plans);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.patch("/api/goals/:goalId/milestones/:milestoneId", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { goalId, milestoneId } = req.params;
+    try {
+      // Verify goal belongs to user
+      const goal = await storage.getGoal(goalId, userId);
+      if (!goal) {
+        return res.status(404).json({ error: "Goal not found" });
+      }
+
+      const updateData = req.body;
+      
+      // If marking as achieved, set achievedAt
+      if (updateData.status === 'achieved' && !updateData.achievedAt) {
+        updateData.achievedAt = new Date();
+        updateData.progressPct = 100;
+      }
+
+      const milestone = await storage.updateGoalMilestone(milestoneId, updateData);
+      if (!milestone) {
+        return res.status(404).json({ error: "Milestone not found" });
+      }
+
+      res.json(milestone);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Symptom Tracking API
   app.get("/api/symptoms/active", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;

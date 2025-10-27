@@ -559,22 +559,90 @@ export const insights = pgTable("insights", {
 export const goals = pgTable("goals", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull(),
-  metricType: text("metric_type").notNull(), // weight, body_fat, resting_hr, sleep_score, etc.
-  targetValue: real("target_value").notNull(),
+  // Legacy fields (v1 - simple metric goals)
+  metricType: text("metric_type"), // weight, body_fat, resting_hr, sleep_score, etc. (nullable for v2 goals)
+  targetValue: real("target_value"),
   currentValue: real("current_value"),
   startValue: real("start_value"), // baseline when goal was created
   // JSONB fields for complex values (pairs, multi-field metrics)
   targetValueData: jsonb("target_value_data"), // e.g., {systolic: 120, diastolic: 80} for blood pressure
   currentValueData: jsonb("current_value_data"),
   startValueData: jsonb("start_value_data"),
-  unit: text("unit").notNull(), // kg, %, bpm, etc.
-  deadline: timestamp("deadline").notNull(),
-  status: text("status").notNull().default("active"), // active, achieved, missed, abandoned
+  unit: text("unit"), // kg, %, bpm, etc.
+  // v2 fields (natural language goals → measurable plans)
+  inputText: text("input_text"), // Original free-text goal (e.g., "Run NYC Marathon under 4 hours")
+  canonicalGoalType: text("canonical_goal_type"), // endurance_event, body_comp, strength, health_marker, habit, hybrid
+  goalEntitiesJson: jsonb("goal_entities_json"), // Extracted entities: {event_name, distance_km, target_time, etc.}
+  targetDate: timestamp("target_date"), // Preferred over deadline for v2 goals
+  // Shared fields
+  deadline: timestamp("deadline"), // Legacy field, kept for backward compatibility
+  status: text("status").notNull().default("active"), // draft, active, paused, completed, abandoned, achieved, missed
   notes: text("notes"),
   createdByAI: integer("created_by_ai").notNull().default(0), // 1 if created by AI, 0 if manual
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
   achievedAt: timestamp("achieved_at"),
-});
+}, (table) => [
+  index("goals_user_id_idx").on(table.userId),
+  index("goals_canonical_type_idx").on(table.canonicalGoalType),
+  index("goals_status_idx").on(table.status),
+]);
+
+// Goal Metrics - Measurable KPIs for each goal (v2)
+export const goalMetrics = pgTable("goal_metrics", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  goalId: varchar("goal_id").notNull(),
+  metricKey: text("metric_key").notNull(), // vo2max, weekly_distance_km, body_weight, ldl_cholesterol, etc.
+  label: text("label").notNull(), // Display name: "VO2 Max", "Weekly Distance"
+  targetValue: text("target_value"), // Can be numeric or text (e.g., "50" or "Advanced")
+  unit: text("unit"), // ml/kg/min, km, kg, mmol/L, etc.
+  source: text("source").notNull().default("manual"), // healthkit, oura, whoop, manual, calculated
+  direction: text("direction").notNull().default("increase"), // increase, decrease, maintain, achieve
+  baselineValue: text("baseline_value"), // Starting value when goal was created
+  currentValue: text("current_value"), // Most recent value from data sources
+  confidence: real("confidence"), // 0-1, how confident we are in tracking this metric
+  priority: integer("priority").notNull().default(1), // 1=primary, 2=secondary, 3=tertiary
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => [
+  index("goal_metrics_goal_id_idx").on(table.goalId),
+  index("goal_metrics_metric_key_idx").on(table.metricKey),
+]);
+
+// Goal Milestones - Intermediate checkpoints (v2)
+export const goalMilestones = pgTable("goal_milestones", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  goalId: varchar("goal_id").notNull(),
+  title: text("title").notNull(), // "Long run 28 km", "VO2max improves by 10%"
+  description: text("description"), // Optional detailed description
+  dueDate: timestamp("due_date").notNull(),
+  completionRule: jsonb("completion_rule"), // Rule to auto-check: {metric_key, operator, value}
+  status: text("status").notNull().default("pending"), // pending, achieved, missed
+  progressPct: real("progress_pct").notNull().default(0), // 0-100
+  achievedAt: timestamp("achieved_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => [
+  index("goal_milestones_goal_id_idx").on(table.goalId),
+  index("goal_milestones_due_date_idx").on(table.dueDate),
+]);
+
+// Goal Plans - Training/Nutrition/Supplement plans (v2)
+export const goalPlans = pgTable("goal_plans", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  goalId: varchar("goal_id").notNull(),
+  planType: text("plan_type").notNull(), // training, nutrition, supplements
+  period: text("period").notNull(), // weekly, block, event
+  contentJson: jsonb("content_json").notNull(), // Plan details: workouts, meals, supplement schedules
+  version: integer("version").notNull().default(1), // Plan version for tracking changes
+  sourcePromptHash: text("source_prompt_hash"), // Hash of the prompt that generated this plan
+  isActive: integer("is_active").notNull().default(1), // 1 if currently active plan
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => [
+  index("goal_plans_goal_id_idx").on(table.goalId),
+  index("goal_plans_plan_type_idx").on(table.planType),
+]);
 
 export const aiActions = pgTable("ai_actions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -792,7 +860,27 @@ export const insertMuscleGroupEngagementSchema = createInsertSchema(muscleGroupE
 export const insertGoalSchema = createInsertSchema(goals).omit({
   id: true,
   createdAt: true,
+  updatedAt: true,
   achievedAt: true,
+});
+
+export const insertGoalMetricSchema = createInsertSchema(goalMetrics).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertGoalMilestoneSchema = createInsertSchema(goalMilestones).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  achievedAt: true,
+});
+
+export const insertGoalPlanSchema = createInsertSchema(goalPlans).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
 });
 
 export const insertAiActionSchema = createInsertSchema(aiActions).omit({
@@ -1209,6 +1297,15 @@ export type MuscleGroupEngagement = typeof muscleGroupEngagements.$inferSelect;
 
 export type InsertGoal = z.infer<typeof insertGoalSchema>;
 export type Goal = typeof goals.$inferSelect;
+
+export type InsertGoalMetric = z.infer<typeof insertGoalMetricSchema>;
+export type GoalMetric = typeof goalMetrics.$inferSelect;
+
+export type InsertGoalMilestone = z.infer<typeof insertGoalMilestoneSchema>;
+export type GoalMilestone = typeof goalMilestones.$inferSelect;
+
+export type InsertGoalPlan = z.infer<typeof insertGoalPlanSchema>;
+export type GoalPlan = typeof goalPlans.$inferSelect;
 
 export type InsertAiAction = z.infer<typeof insertAiActionSchema>;
 export type AiAction = typeof aiActions.$inferSelect;

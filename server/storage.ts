@@ -44,6 +44,12 @@ import {
   type InsertMuscleGroupEngagement,
   type Goal,
   type InsertGoal,
+  type GoalMetric,
+  type InsertGoalMetric,
+  type GoalMilestone,
+  type InsertGoalMilestone,
+  type GoalPlan,
+  type InsertGoalPlan,
   type ExerciseFeedback,
   type InsertExerciseFeedback,
   type RecoveryProtocol,
@@ -154,6 +160,9 @@ import {
   muscleGroupEngagements,
   generatedWorkouts,
   goals,
+  goalMetrics,
+  goalMilestones,
+  goalPlans,
   aiActions,
   symptomEvents,
   exerciseFeedback,
@@ -412,6 +421,37 @@ export interface IStorage {
   updateGoal(id: string, userId: string, data: Partial<Goal>): Promise<Goal | undefined>;
   updateGoalProgress(goalId: string, userId: string, currentValue: number): Promise<Goal | undefined>;
   deleteGoal(id: string, userId: string): Promise<void>;
+  
+  // Goals v2 - Natural Language Goals with Plans
+  createGoalWithPlan(params: {
+    goal: InsertGoal;
+    metrics: InsertGoalMetric[];
+    milestones: InsertGoalMilestone[];
+    plans: InsertGoalPlan[];
+  }): Promise<{
+    goal: Goal;
+    metrics: GoalMetric[];
+    milestones: GoalMilestone[];
+    plans: GoalPlan[];
+  }>;
+  getUserAvailableDataSources(userId: string): Promise<{
+    healthkit: string[];
+    oura: string[];
+    whoop: string[];
+    manual: string[];
+  }>;
+  
+  createGoalMetric(metric: InsertGoalMetric): Promise<GoalMetric>;
+  getGoalMetrics(goalId: string): Promise<GoalMetric[]>;
+  updateGoalMetric(id: string, data: Partial<GoalMetric>): Promise<GoalMetric | undefined>;
+  
+  createGoalMilestone(milestone: InsertGoalMilestone): Promise<GoalMilestone>;
+  getGoalMilestones(goalId: string): Promise<GoalMilestone[]>;
+  updateGoalMilestone(id: string, data: Partial<GoalMilestone>): Promise<GoalMilestone | undefined>;
+  
+  createGoalPlan(plan: InsertGoalPlan): Promise<GoalPlan>;
+  getGoalPlans(goalId: string, planType?: string): Promise<GoalPlan[]>;
+  updateGoalPlan(id: string, data: Partial<GoalPlan>): Promise<GoalPlan | undefined>;
   
   createAiAction(action: InsertAiAction): Promise<AiAction>;
   getAiActions(userId: string, limit?: number): Promise<AiAction[]>;
@@ -3413,6 +3453,167 @@ export class DbStorage implements IStorage {
 
   async deleteGoal(id: string, userId: string): Promise<void> {
     await db.delete(goals).where(and(eq(goals.id, id), eq(goals.userId, userId)));
+  }
+
+  // Goals v2 - Transactional Creation
+  async createGoalWithPlan(params: {
+    goal: InsertGoal;
+    metrics: InsertGoalMetric[];
+    milestones: InsertGoalMilestone[];
+    plans: InsertGoalPlan[];
+  }): Promise<{
+    goal: Goal;
+    metrics: GoalMetric[];
+    milestones: GoalMilestone[];
+    plans: GoalPlan[];
+  }> {
+    return await db.transaction(async (tx) => {
+      // 1. Create goal
+      const [goal] = await tx.insert(goals).values(params.goal).returning();
+
+      // 2. Create metrics with goal_id
+      const metricsWithGoalId = params.metrics.map(m => ({ ...m, goalId: goal.id }));
+      const createdMetrics = await tx.insert(goalMetrics).values(metricsWithGoalId).returning();
+
+      // 3. Create milestones with goal_id
+      const milestonesWithGoalId = params.milestones.map(m => ({ ...m, goalId: goal.id }));
+      const createdMilestones = await tx.insert(goalMilestones).values(milestonesWithGoalId).returning();
+
+      // 4. Create plans with goal_id
+      const plansWithGoalId = params.plans.map(p => ({ ...p, goalId: goal.id }));
+      const createdPlans = await tx.insert(goalPlans).values(plansWithGoalId).returning();
+
+      return {
+        goal,
+        metrics: createdMetrics,
+        milestones: createdMilestones,
+        plans: createdPlans,
+      };
+    });
+  }
+
+  // Goals v2 - Get user's available data sources (tracked metrics)
+  async getUserAvailableDataSources(userId: string): Promise<{
+    healthkit: string[];
+    oura: string[];
+    whoop: string[];
+    manual: string[];
+  }> {
+    // Check which metrics the user has tracked in the last 30 days
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    // HealthKit metrics (from hk_events_raw or biomarkers with source='healthkit')
+    const healthkitBiomarkers = await db
+      .select()
+      .from(biomarkers)
+      .where(
+        and(
+          eq(biomarkers.userId, userId),
+          eq(biomarkers.source, 'healthkit'),
+          gte(biomarkers.recordedAt, thirtyDaysAgo)
+        )
+      )
+      .limit(1000);
+
+    const healthkitMetrics = [...new Set(healthkitBiomarkers.map(b => b.type))];
+
+    // Manual metrics
+    const manualBiomarkers = await db
+      .select()
+      .from(biomarkers)
+      .where(
+        and(
+          eq(biomarkers.userId, userId),
+          eq(biomarkers.source, 'manual'),
+          gte(biomarkers.recordedAt, thirtyDaysAgo)
+        )
+      )
+      .limit(1000);
+
+    const manualMetrics = [...new Set(manualBiomarkers.map(b => b.type))];
+
+    // TODO: Add Oura and Whoop integration when available
+    return {
+      healthkit: healthkitMetrics,
+      oura: [],
+      whoop: [],
+      manual: manualMetrics,
+    };
+  }
+
+  // Goals v2 - Metrics
+  async createGoalMetric(metric: InsertGoalMetric): Promise<GoalMetric> {
+    const result = await db.insert(goalMetrics).values(metric).returning();
+    return result[0];
+  }
+
+  async getGoalMetrics(goalId: string): Promise<GoalMetric[]> {
+    return await db
+      .select()
+      .from(goalMetrics)
+      .where(eq(goalMetrics.goalId, goalId))
+      .orderBy(goalMetrics.priority);
+  }
+
+  async updateGoalMetric(id: string, data: Partial<GoalMetric>): Promise<GoalMetric | undefined> {
+    const result = await db
+      .update(goalMetrics)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(goalMetrics.id, id))
+      .returning();
+    return result[0];
+  }
+
+  // Goals v2 - Milestones
+  async createGoalMilestone(milestone: InsertGoalMilestone): Promise<GoalMilestone> {
+    const result = await db.insert(goalMilestones).values(milestone).returning();
+    return result[0];
+  }
+
+  async getGoalMilestones(goalId: string): Promise<GoalMilestone[]> {
+    return await db
+      .select()
+      .from(goalMilestones)
+      .where(eq(goalMilestones.goalId, goalId))
+      .orderBy(goalMilestones.dueDate);
+  }
+
+  async updateGoalMilestone(id: string, data: Partial<GoalMilestone>): Promise<GoalMilestone | undefined> {
+    const result = await db
+      .update(goalMilestones)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(goalMilestones.id, id))
+      .returning();
+    return result[0];
+  }
+
+  // Goals v2 - Plans
+  async createGoalPlan(plan: InsertGoalPlan): Promise<GoalPlan> {
+    const result = await db.insert(goalPlans).values(plan).returning();
+    return result[0];
+  }
+
+  async getGoalPlans(goalId: string, planType?: string): Promise<GoalPlan[]> {
+    const query = db
+      .select()
+      .from(goalPlans)
+      .where(eq(goalPlans.goalId, goalId));
+
+    if (planType) {
+      return await query.where(and(eq(goalPlans.goalId, goalId), eq(goalPlans.planType, planType)));
+    }
+
+    return await query;
+  }
+
+  async updateGoalPlan(id: string, data: Partial<GoalPlan>): Promise<GoalPlan | undefined> {
+    const result = await db
+      .update(goalPlans)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(goalPlans.id, id))
+      .returning();
+    return result[0];
   }
 
   async createAiAction(action: InsertAiAction): Promise<AiAction> {
