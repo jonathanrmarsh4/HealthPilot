@@ -1933,9 +1933,9 @@ Include:
 - Offer to check in periodically to assess progress and update based on feedback, goals, or new biomarkers
 
 ### 6. IMPORTANT - Saving Training Plans:
-**When the user confirms/agrees to a training plan** (e.g., "yes", "looks good", "let's do it", "perfect"), you MUST output the plan in both formats:
-1. First, show the human-readable version above for them to read
-2. Then, immediately after, include the structured JSON format wrapped in special markers so it can be saved to their Training page:
+**CRITICAL: When you present a training plan to the user, ALWAYS include BOTH formats in THE SAME MESSAGE:**
+1. First, show the human-readable version for them to read
+2. Then, immediately after in the SAME response, include the structured JSON format wrapped in special markers:
 
 <<<SAVE_TRAINING_PLAN>>>
 [
@@ -1944,20 +1944,33 @@ Include:
     "workoutType": "Full Body Strength",
     "duration": 50,
     "intensity": "Moderate",
+    "description": "Full body strength session focusing on compound movements",
     "exercises": [
       {"name": "Squats", "sets": 3, "reps": "12"},
-      {"name": "Push-ups", "sets": 3, "reps": "10"}
+      {"name": "Push-ups", "sets": 3, "reps": "10"},
+      {"name": "Rows", "sets": 3, "reps": "12"}
+    ]
+  },
+  {
+    "day": "Wednesday",
+    "workoutType": "Run/Walk Intervals",
+    "duration": 30,
+    "intensity": "Moderate",
+    "description": "Beginner running intervals with walk recovery",
+    "exercises": [
+      "5 min warm-up walk",
+      "8 rounds: Run 1 min / Walk 2 min",
+      "5 min cool-down walk"
     ]
   }
 ]
 <<<END_SAVE_TRAINING_PLAN>>>
 
 **Rules for saving:**
-- Only output this JSON when user explicitly agrees/confirms the plan
+- ALWAYS output the JSON markers when presenting a complete training plan (do NOT wait for confirmation)
 - Include all workout days discussed (typically 3-5 days)
-- Intensity must be: "Low", "Moderate", or "High"
-- Duration in minutes
-- After outputting the JSON, tell user: "I've added this training plan to your Training page! You can view and track your progress there."
+- Each day must have: day, workoutType, duration (minutes), intensity ("Low"/"Moderate"/"High"), description, exercises
+- After the markers, tell user: "I've saved this training plan to your Training page! You can view and track your progress there, or let me know if you'd like any adjustments."
 
 **Constraints**:
 - Default workout duration: 45-60 minutes unless specified otherwise

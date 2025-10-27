@@ -8323,6 +8323,8 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
 
       // Check if AI response contains a training plan to save
       let trainingPlanSaved = false;
+      console.log("🔍 Checking for SAVE_TRAINING_PLAN markers in AI response...");
+      console.log("📝 AI Response (first 500 chars):", aiResponse.substring(0, 500));
       const trainingPlanMatch = aiResponse.match(/<<<SAVE_TRAINING_PLAN>>>([\s\S]*?)<<<END_SAVE_TRAINING_PLAN>>>/);
       
       if (trainingPlanMatch) {
@@ -8332,6 +8334,66 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
           console.log("📋 Training plan JSON:", trainingPlanJson);
           const trainingPlans = JSON.parse(trainingPlanJson);
           console.log("✅ Parsed training plans:", trainingPlans.length, "workouts");
+          
+          // Extract goal context from user's last message and AI response
+          const lastUserMessage = messages[messages.length - 1];
+          const goalContext = lastUserMessage?.content || "Training Plan";
+          
+          // Infer goal details from training plan
+          const firstPlan = trainingPlans[0];
+          const isRunningPlan = firstPlan.workoutType?.toLowerCase().includes('run');
+          const isDurationBased = trainingPlans.some((p: any) => p.duration);
+          const goalCategory = isRunningPlan ? 'endurance' : 'fitness';
+          
+          // Calculate target date (12 weeks from now for typical plans)
+          const { addWeeks } = await import('date-fns');
+          const targetDate = addWeeks(new Date(), 12);
+          
+          // Create parent goal for the training plan
+          console.log("🎯 Creating parent goal for training plan...");
+          const goal = await storage.createGoal({
+            userId,
+            inputText: goalContext,
+            canonicalGoalType: isRunningPlan ? 'complete_5k_run' : 'beginner_fitness',
+            goalEntitiesJson: { 
+              activityType: firstPlan.workoutType,
+              sessionsPerWeek: trainingPlans.length,
+              planDuration: isDurationBased ? firstPlan.duration : null
+            },
+            targetDate,
+            status: 'active',
+            createdByAI: 1,
+          });
+          console.log("✅ Goal created with ID:", goal.id);
+          
+          // Build weekly progression plan
+          const weeklyProgression = {
+            name: `${isRunningPlan ? 'Running' : 'Training'} Plan`,
+            description: `AI-generated ${trainingPlans.length}x weekly training plan`,
+            sessionsPerWeek: trainingPlans.length,
+            preferredDays: trainingPlans.map((p: any) => p.day),
+            progression: [{
+              week: 1,
+              sessions: trainingPlans.map((p: any) => ({
+                day: p.day,
+                type: p.workoutType?.toLowerCase().replace(/\s+/g, '_') || 'general',
+                duration: p.duration || 45,
+                structure: p.description || p.exercises.map((e: any) => 
+                  typeof e === 'string' ? e : `${e.name || e.exercise}: ${e.sets || 3}x${e.reps || 10}`
+                ).join(', '),
+                notes: `${p.intensity} intensity session`
+              }))
+            }]
+          };
+          
+          // Save goal plan
+          console.log("📅 Creating goal plan...");
+          await storage.createGoalPlan({
+            goalId: goal.id,
+            planType: 'training',
+            contentJson: weeklyProgression,
+          });
+          console.log("✅ Goal plan created");
           
           // Save each workout from the plan
           for (const plan of trainingPlans) {
@@ -8361,7 +8423,7 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
           }
           
           trainingPlanSaved = true;
-          console.log("✨ Training plan saved successfully!");
+          console.log("✨ Training plan saved successfully with parent goal!");
           
           // Mark training setup as complete when first training plan is saved
           if (onboardingStatus && !onboardingStatus.trainingSetupComplete) {

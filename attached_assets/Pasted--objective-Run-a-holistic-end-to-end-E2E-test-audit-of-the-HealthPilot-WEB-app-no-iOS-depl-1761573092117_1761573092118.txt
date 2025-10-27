@@ -1,0 +1,295 @@
+{
+  "objective": "Run a holistic end-to-end (E2E) test/audit of the HealthPilot WEB app (no iOS deployment yet). Verify that the AI accesses ALL relevant data across modules, respects guardrails, and that chat can create/update goals, add training items, and schedule recovery activities. Produce evidence-backed defects and a prioritized action plan to close gaps.",
+  "context": {
+    "product": "HealthPilot",
+    "platforms": ["Web (desktop + mobile web)"],
+    "timezone": "Australia/Perth (UTC+8)",
+    "notes": [
+      "iOS is NOT deployed. Simulate HealthKit via mock ingestion only.",
+      "Goals module has significant recent improvements and must be deeply verified.",
+      "Meal/recipe UI may be parked; SmartFuel advice-only may exist."
+    ]
+  },
+  "environments": {
+    "web": {
+      "url": "<DEV_URL>",
+      "auth": {
+        "method": "test_user_or_magic_link",
+        "test_accounts": ["qa+1@healthpilot.pro", "qa+2@healthpilot.pro"]
+      },
+      "feature_flags": {
+        "goals": true,
+        "workouts": true,
+        "recovery_scheduler": true,
+        "ai_insights": true,
+        "smartfuel_advice_only": true,
+        "medical_records_ingest": true,
+        "cost_control_instrumentation": true
+      }
+    }
+  },
+  "data_sources_coverage": {
+    "expected_sources": [
+      "User profile & preferences",
+      "Goals (metric goals + natural-language goals)",
+      "Workouts & muscle balance/readiness",
+      "Recovery scheduler (rest, mobility, HRV/parasympathetic-focused tasks)",
+      "Mock HealthKit ingestion (VO2max, HRV, HR, SpO2, ECG flags, sleep, BP if modeled)",
+      "Biomarkers (lab panels)",
+      "Medical records (PDF/OCR pipeline if enabled)",
+      "AI Insights (daily review pipeline)",
+      "SmartFuel (advice-only Have/Avoid), no recipe generation if 'parked'",
+      "Notifications/in-app messages (web only if present)",
+      "Cost control telemetry (per-feature metering)"
+    ],
+    "audit_tasks": [
+      "Trace data lineage for each feature: confirm queries/inputs used by AI include the latest from all relevant sources.",
+      "Assert timestamps/timezone handling (AWT, UTC+8) and recency windows per feature.",
+      "Confirm guardrail policies applied to all AI responses (medical safety, disclaimers, escalation triggers)."
+    ]
+  },
+  "tooling": {
+    "web_e2e": "Playwright",
+    "api_tests": "Postman/Newman or lightweight k6 smoke for critical endpoints",
+    "reporting": ["JUnit XML", "HTML report", "Markdown executive summary"],
+    "artifacts": ["screenshots", "videos (optional)", "console/network logs", "HAR files"],
+    "coverage": ["route coverage", "critical API paths used by AI and chat"]
+  },
+  "preflight": {
+    "steps": [
+      "Install dependencies and build web app.",
+      "Validate required ENV/feature flags; fail-fast with clear red summary if missing.",
+      "Run DB migrations and seed minimal QA data.",
+      "Load mock HealthKit fixture data (JSON) for the active QA user.",
+      "Verify guardrail config file(s) are present and loaded at runtime."
+    ],
+    "outputs": ["build_logs/*.log", "env_audit.json", "seeds_audit.json"]
+  },
+  "test_data": {
+    "users": [
+      {
+        "email": "qa+1@healthpilot.pro",
+        "profile": {"age": 51, "sex": "M", "height_cm": 173, "weight_kg": 71},
+        "preferences": {"units": "metric", "diet": "balanced", "training_days": ["Mon","Wed","Fri"]}
+      },
+      {"email": "qa+2@healthpilot.pro"}
+    ],
+    "fixtures": {
+      "healthkit": [
+        "fixtures/healthkit/vo2max.json",
+        "fixtures/healthkit/hrv.json",
+        "fixtures/healthkit/heartrate_spo2.json",
+        "fixtures/healthkit/sleep_summary.json",
+        "fixtures/healthkit/bp_recent.json"
+      ],
+      "biomarkers": "fixtures/biomarkers/panel_mixed.json",
+      "medical_records": [
+        "fixtures/records/good_quality.pdf",
+        "fixtures/records/low_quality_scan.pdf"
+      ]
+    }
+  },
+  "chat_command_intents": [
+    {"intent": "create_goal_natural_language", "examples": ["I want to run the New York Marathon next November", "Help me drop 3 kg by March"]},
+    {"intent": "update_goal", "examples": ["Change my VO2max target to 50 by June"]},
+    {"intent": "add_training_item", "examples": ["Add 4x8 back squats at RPE 7 on Wednesday", "Include a 30-min zone 2 ride tomorrow"]},
+    {"intent": "schedule_recovery", "examples": ["Schedule breathwork and mobility 20 minutes tonight", "Add cold exposure on Saturday morning"]},
+    {"intent": "ask_ai_insight", "examples": ["What did you learn from my data yesterday?", "Why was my HRV down and what should I do?"]}
+  ],
+  "guardrails_expectations": [
+    "No diagnosis or med dosing; use safe-language guidance.",
+    "Escalate to 'seek urgent care' for red flags (e.g., chest pain + abnormal ECG flag) with clear disclaimers.",
+    "Cite trusted sources where applicable; avoid unsupported claims.",
+    "Respect user preferences, privacy boundaries, and PII hygiene (no sensitive data in logs)."
+  ],
+  "test_matrix": {
+    "suites": [
+      {
+        "name": "Auth & Navigation",
+        "goals": ["Login, route access, basic performance"],
+        "cases": [
+          "Login with qa+1; land on dashboard under 5s.",
+          "Navigate key routes without console errors; capture route coverage."
+        ]
+      },
+      {
+        "name": "Goals (Deep Verification)",
+        "goals": ["Creation/update, progress calc, data binding, recent improvements"],
+        "cases": [
+          "Create metric goal: weight target; current prefilled; target + date saved and rendered.",
+          "Natural-language goal: 'Run the New York Marathon'; system infers linked metrics (e.g., VO2max target) and associates training & recovery suggestions.",
+          "Progress auto-updates when mock HealthKit data changes; timestamps correct.",
+          "Edge cases: invalid dates, past targets, extreme values handled with UX feedback."
+        ]
+      },
+      {
+        "name": "Chat → Goals/Training/Recovery Integration",
+        "goals": ["NL intents become structured actions"],
+        "cases": [
+          "Chat creates a goal from NL text; verify DB + UI reflect it.",
+          "Chat adds a training item (exercise, sets/reps/RPE or duration/zone); verify appears in training plan.",
+          "Chat schedules recovery (breathwork/mobility/sleep task/HRV-focused); verify appears in recovery scheduler/calendar.",
+          "Conflict resolution: overlapping items prompt user choices; persistence confirmed."
+        ]
+      },
+      {
+        "name": "AI Insights (Daily Review)",
+        "goals": ["Uses prior-day data from ALL relevant sources", "Confidence + rationale", "Guardrails"],
+        "cases": [
+          "Trigger daily review; verify insights reference HealthKit (mock), biomarkers, goals progress, workouts, recovery adherence, and preferences.",
+          "No meal recipes; SmartFuel advice-only appears if enabled.",
+          "Guardrail language present; any red-flag logic escalates correctly."
+        ]
+      },
+      {
+        "name": "Workouts & Muscle Balance",
+        "goals": ["Respect readiness, avoid repetition, align with goals"],
+        "cases": [
+          "Generate plan; ensure variety and alignment with muscle-balance tile.",
+          "Accept a plan; tracker/planner show identical items (no drift).",
+          "User updates via chat; UI syncs without duplicates."
+        ]
+      },
+      {
+        "name": "Recovery Scheduler",
+        "goals": ["Create/schedule/edit/cancel recovery tasks"],
+        "cases": [
+          "Schedule breathwork, mobility, and sleep-hygiene prompts via chat and UI.",
+          "Reschedule and cancel; ensure reminders reflect latest state."
+        ]
+      },
+      {
+        "name": "SmartFuel (Advice-Only)",
+        "goals": ["Have/Avoid aligned to goals, biomarkers, preferences"],
+        "cases": [
+          "Display personalized Have/Avoid; persists likes/dislikes.",
+          "Ensure hidden meal/recipe UI is not invoked if parked."
+        ]
+      },
+      {
+        "name": "Medical Records (If Enabled)",
+        "goals": ["Upload + OCR fallback + summary"],
+        "cases": [
+          "Good PDF yields structured summary.",
+          "Low-quality scan uses OCR path with confidence + caveats."
+        ]
+      },
+      {
+        "name": "Cost Control Instrumentation",
+        "goals": ["Non-empty telemetry; per-feature visibility"],
+        "cases": [
+          "Cost panel shows events and feature-level costs.",
+          "High-cost pathway flagged with recommendation."
+        ]
+      },
+      {
+        "name": "Guardrails & Safety",
+        "goals": ["No unsafe advice; proper disclaimers; PII hygiene"],
+        "cases": [
+          "Probe medical queries; ensure safe-language and source citations where applicable.",
+          "Verify no sensitive data in console/network logs (PII scrub)."
+        ]
+      },
+      {
+        "name": "Performance & Stability (Smoke)",
+        "goals": ["Cold-start <5s, no fatal errors"],
+        "cases": [
+          "Dashboard <5s on typical dev hardware.",
+          "No unhandled exceptions; memory/CPU reasonable during flows."
+        ]
+      }
+    ]
+  },
+  "data_lineage_audit": {
+    "method": [
+      "Enable verbose AI input logging (redacted) for the QA run.",
+      "For each AI response (insight, chat action, recommendations), capture the exact data sources and timestamps referenced.",
+      "Compare against 'expected_sources' and flag missing inputs (e.g., goals considered? latest HRV? biomarker deltas?)."
+    ],
+    "deliverable": "artifacts/data_lineage/ai_input_coverage.json"
+  },
+  "orchestration_flow": [
+    "Preflight: env check, build, seeds, fixtures, guardrails load.",
+    "API smoke: core endpoints reachable and authenticated.",
+    "Run Playwright E2E suites with JUnit + HTML; generate HAR and route coverage.",
+    "Run data lineage audit alongside E2E.",
+    "Collect artifacts and analyze failures.",
+    "Generate defects with evidence and propose targeted fixes.",
+    "Create Action Plan: prioritize by user impact, risk, effort; include owners and estimates.",
+    "Output reports and executive summary."
+  ],
+  "defect_protocol": {
+    "tracker": "Markdown defect log (+ optional GitHub issues if token available)",
+    "fields": ["Title","Environment","Build SHA","Steps to Reproduce","Expected","Actual","Evidence (screenshot/log/HAR)","Severity (Blocker/Critical/Major/Minor)","Owner","Fix Suggestion","Verification Notes"],
+    "gates": {
+      "blocker": "Stop pipeline unless explicitly waived.",
+      "critical": "Tag in executive summary as Go/No-Go risk."
+    }
+  },
+  "action_plan_output": {
+    "files": {
+      "summary_md": "artifacts/reports/HealthPilot_E2E_Summary.md",
+      "defects_md": "artifacts/reports/Defects.md",
+      "action_plan_md": "artifacts/reports/Action_Plan.md",
+      "lineage_json": "artifacts/data_lineage/ai_input_coverage.json",
+      "costs_csv": "artifacts/reports/cost_breakdown.csv",
+      "html_report": "artifacts/reports/html/index.html",
+      "junit_xml_dir": "artifacts/reports/junit/"
+    },
+    "action_plan_structure": [
+      "Overview & Build Info",
+      "Critical Gaps Blocking AI Holism (data not accessed or stale)",
+      "Guardrails Gaps (exact failure examples + fixes)",
+      "Chat → Goals/Training/Recovery Integration Gaps",
+      "Goals Module Regressions or UX Issues",
+      "Performance/Telemetry Issues",
+      "Prioritized Backlog (MoSCoW: Must/Should/Could/Won’t)",
+      "Dependencies & Sequencing (simple graph)",
+      "Effort Estimates (S/M/L) and Suggested Owners",
+      "Exit Criteria for Re-test (what must be green)"
+    ]
+  },
+  "reporting": {
+    "markdown_summary_sections": [
+      "Overall Status (PASS/FAIL) with counts",
+      "Module Stoplight (Goals, Chat-Intents, Workouts, Recovery, AI Insights, SmartFuel, Medical, Cost Control, Guardrails, Perf)",
+      "Top Failures with Evidence Links",
+      "Data Lineage Findings (what the AI actually used vs expected)",
+      "Guardrails Compliance Snapshot",
+      "Cost Metrics Snapshot",
+      "Residual Risk & Go/No-Go Recommendation",
+      "Next Actions (from Action Plan)"
+    ]
+  },
+  "rerun_policy": {
+    "targeted_reruns": "After fixes, rerun only impacted suites and any dependencies.",
+    "flaky_detection": "Immediate 1x rerun; if pass-after-fail, mark FLAKY and open deflake task.",
+    "max_attempts": 2
+  },
+  "success_criteria": [
+    "Goals, Chat intents (goal/train/recovery), and AI Insights suites PASS.",
+    "Data lineage shows AI used all expected sources where applicable, with correct recency.",
+    "No guardrails violations; red-flag flow escalates correctly.",
+    "No Blockers; Criticals mitigated or explicitly waived with rationale.",
+    "Reports + Action Plan generated at specified paths with linked evidence."
+  ],
+  "commands_reference": {
+    "web": [
+      "npx playwright install --with-deps",
+      "npx playwright test --reporter=junit,html --output=artifacts/evidence/web"
+    ],
+    "api": [
+      "newman run tests/postman_collection.json -e tests/env.postman.json -r junit,cli --reporter-junit-export artifacts/reports/junit/api.xml"
+    ],
+    "utilities": [
+      "node scripts/seed_mocks.js --fixtures fixtures/healthkit/*.json fixtures/biomarkers/panel_mixed.json",
+      "node scripts/route_coverage_dump.js > artifacts/reports/route_coverage.json"
+    ]
+  },
+  "rules_of_engagement": [
+    "Attach evidence for every failure.",
+    "Never mark PASS without asserting visible user outcome.",
+    "Use Australia/Perth timestamps in all logs.",
+    "Propose minimal, safe fixes and include test updates with each fix."
+  ]
+}
