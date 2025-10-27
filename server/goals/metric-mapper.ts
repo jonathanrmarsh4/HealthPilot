@@ -63,8 +63,8 @@ export async function mapMetricsForGoal(
         source: determineSource(metric.metric_key, availableSources),
         priority: metric.priority || 1,
         targetValue: null, // Will be calculated by plan generator
-        baselineValue: values.baseline,
-        currentValue: values.current,
+        baselineValue: values.baseline !== null ? values.baseline.toString() : null,
+        currentValue: values.current !== null ? values.current.toString() : null,
         confidence: sourceAvailable ? 0.9 : 0.5,
       },
       is_tracked: isTracked,

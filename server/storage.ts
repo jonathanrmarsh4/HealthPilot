@@ -3519,7 +3519,7 @@ export class DbStorage implements IStorage {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    // HealthKit metrics (from hk_events_raw or biomarkers with source='healthkit')
+    // HealthKit metrics from biomarkers table
     const healthkitBiomarkers = await db
       .select()
       .from(biomarkers)
@@ -3532,7 +3532,22 @@ export class DbStorage implements IStorage {
       )
       .limit(1000);
 
-    const healthkitMetrics = [...new Set(healthkitBiomarkers.map(b => b.type))];
+    // HealthKit metrics from hk_events_raw table
+    const healthkitRawEvents = await db
+      .select()
+      .from(hkEventsRaw)
+      .where(
+        and(
+          eq(hkEventsRaw.userId, userId),
+          gte(hkEventsRaw.startDate, thirtyDaysAgo)
+        )
+      )
+      .limit(1000);
+
+    // Combine both sources and remove duplicates
+    const healthkitFromBiomarkers = healthkitBiomarkers.map(b => b.type);
+    const healthkitFromRaw = healthkitRawEvents.map(e => e.metricType);
+    const healthkitMetrics = [...new Set([...healthkitFromBiomarkers, ...healthkitFromRaw])];
 
     // Manual metrics
     const manualBiomarkers = await db

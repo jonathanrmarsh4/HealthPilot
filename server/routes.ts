@@ -6754,10 +6754,10 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
 
       // Build user profile for standards manager
       const userProfile = {
-        age: fitnessProfile?.dateOfBirth 
-          ? Math.floor((Date.now() - new Date(fitnessProfile.dateOfBirth).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
+        age: user?.dateOfBirth 
+          ? Math.floor((Date.now() - new Date(user.dateOfBirth).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
           : undefined,
-        gender: fitnessProfile?.sex as 'male' | 'female' | undefined,
+        gender: user?.gender as 'male' | 'female' | undefined,
         weight: user?.weight,
         height: user?.height,
         fitness_level: fitnessProfile?.fitnessLevel,
@@ -6770,7 +6770,8 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
         canonicalGoalType,
         goalEntities || {},
         userId,
-        availableSources
+        availableSources,
+        storage // Pass storage to enable current value fetching
       );
 
       // Generate comprehensive plan (milestones, training, nutrition, supplements)

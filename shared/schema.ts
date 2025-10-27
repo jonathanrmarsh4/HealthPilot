@@ -32,7 +32,7 @@ export const users = pgTable("users", {
   // Health profile fields
   height: real("height"), // in cm
   dateOfBirth: timestamp("date_of_birth"),
-  gender: varchar("gender"), // 'male', 'female', 'other', 'prefer_not_to_say'
+  gender: varchar("gender", { enum: ['male', 'female'] }), // Only male or female
   bloodType: varchar("blood_type"), // 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'
   activityLevel: varchar("activity_level"), // 'sedentary', 'light', 'moderate', 'active', 'very_active'
   location: varchar("location"), // City, Country

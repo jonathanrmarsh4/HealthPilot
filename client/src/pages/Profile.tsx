@@ -429,10 +429,11 @@ export default function Profile() {
                             <SelectContent>
                               <SelectItem value="male">Male</SelectItem>
                               <SelectItem value="female">Female</SelectItem>
-                              <SelectItem value="other">Other</SelectItem>
-                              <SelectItem value="prefer_not_to_say">Prefer not to say</SelectItem>
                             </SelectContent>
                           </Select>
+                          <FormDescription>
+                            Used for accurate health metrics and standards-based targets
+                          </FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
