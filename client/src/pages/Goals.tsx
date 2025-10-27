@@ -283,7 +283,7 @@ export default function Goals() {
               className="gap-2"
               data-testid="button-ai-suggestions"
             >
-              <Link href="/ai-coach">
+              <Link href="/chat?context=goals">
                 <Sparkles className="h-4 w-4" />
                 AI Suggestions
               </Link>
@@ -431,7 +431,7 @@ export default function Goals() {
                   Create Goal
                 </Button>
                 <Button variant="outline" asChild>
-                  <Link href="/ai-coach">
+                  <Link href="/chat?context=goals">
                     <MessageCircle className="h-4 w-4 mr-2" />
                     Ask AI for Help
                   </Link>
