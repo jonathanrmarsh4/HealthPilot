@@ -23,7 +23,7 @@ I prefer simple language and clear explanations. I want iterative development wh
 - **AI Intelligence Layer:** Provides daily personalized insights, context-aware chat, multi-metric recommendations, and alternative therapy suggestions with safeguards.
 - **Freemium Model:** Subscription tiers (free/premium/enterprise) for feature access.
 - **Data Tracking & Management:** Biomarker tracking, smart deduplication, comprehensive workout tracking from Apple Health.
-- **Universal HealthKit Ingest System v1.0:** Append-only raw data warehouse for HealthKit events, with idempotent ingestion, type registry for 50+ metric types, and automatic unit normalization.
+- **Universal HealthKit Ingest System v1.0:** Append-only raw data warehouse for HealthKit events, with idempotent ingestion, type registry for 50+ metric types, and automatic unit normalization. Fixed double conversion bug (Oct 2024) where weight/lean body mass was converted twice (kg→lbs in normalizeHealthKitEvent, then mappers re-extracted raw kg values without converting), causing 69kg to display as 31kg. Solution: routeEventToMappers now enriches payload with `_normalizedValue` field, and mappers prefer normalized value over raw payload extraction.
 - **Personalized Recommendations & Automation:** AI-generated meal plans, macro, and exercise recommendations with auto-scheduling.
 - **Readiness Score System:** Multi-factor weighted scoring.
 - **Scheduling & Reminders:** AI insights scheduling, supplement tracking, daily reminders.
