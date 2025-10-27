@@ -50,6 +50,8 @@ import {
   type InsertGoalMilestone,
   type GoalPlan,
   type InsertGoalPlan,
+  type GoalConversation,
+  type InsertGoalConversation,
   type ExerciseFeedback,
   type InsertExerciseFeedback,
   type RecoveryProtocol,
@@ -163,6 +165,7 @@ import {
   goalMetrics,
   goalMilestones,
   goalPlans,
+  goalConversations,
   aiActions,
   symptomEvents,
   exerciseFeedback,
@@ -452,6 +455,12 @@ export interface IStorage {
   createGoalPlan(plan: InsertGoalPlan): Promise<GoalPlan>;
   getGoalPlans(goalId: string, planType?: string): Promise<GoalPlan[]>;
   updateGoalPlan(id: string, data: Partial<GoalPlan>): Promise<GoalPlan | undefined>;
+  
+  // Goal Conversations - Conversational goal creation
+  createGoalConversation(conversation: InsertGoalConversation): Promise<GoalConversation>;
+  getGoalConversation(id: string, userId: string): Promise<GoalConversation | undefined>;
+  getActiveGoalConversation(userId: string): Promise<GoalConversation | undefined>;
+  updateGoalConversation(id: string, userId: string, data: Partial<GoalConversation>): Promise<GoalConversation | undefined>;
   
   // Metric Standards
   getAllMetricStandards(filters?: {
@@ -3719,6 +3728,34 @@ export class DbStorage implements IStorage {
       .update(goalPlans)
       .set({ ...data, updatedAt: new Date() })
       .where(eq(goalPlans.id, id))
+      .returning();
+    return result[0];
+  }
+
+  // Goal Conversations - Conversational Goal Creation
+  async createGoalConversation(conversation: InsertGoalConversation): Promise<GoalConversation> {
+    const result = await db.insert(goalConversations).values(conversation).returning();
+    return result[0];
+  }
+
+  async getGoalConversation(id: string, userId: string): Promise<GoalConversation | undefined> {
+    const result = await db.select().from(goalConversations)
+      .where(and(eq(goalConversations.id, id), eq(goalConversations.userId, userId)));
+    return result[0];
+  }
+
+  async getActiveGoalConversation(userId: string): Promise<GoalConversation | undefined> {
+    const result = await db.select().from(goalConversations)
+      .where(and(eq(goalConversations.userId, userId), eq(goalConversations.status, 'active')))
+      .orderBy(desc(goalConversations.createdAt))
+      .limit(1);
+    return result[0];
+  }
+
+  async updateGoalConversation(id: string, userId: string, data: Partial<GoalConversation>): Promise<GoalConversation | undefined> {
+    const result = await db.update(goalConversations)
+      .set({ ...data, updatedAt: new Date() })
+      .where(and(eq(goalConversations.id, id), eq(goalConversations.userId, userId)))
       .returning();
     return result[0];
   }

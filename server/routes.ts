@@ -16,6 +16,7 @@ import { assessWorkflow, type Input as WorkflowInput, type Biomarker as Workflow
 import { parseISO, isValid, subDays, format as formatDate } from "date-fns";
 import { eq, and, gte, or, inArray, isNull, isNotNull, sql } from "drizzle-orm";
 import { isAuthenticated, isAdmin, webhookAuth } from "./replitAuth";
+import type { ConversationMessage, ExtractedContext } from "./goals/conversation-intelligence";
 import { checkMessageLimit, incrementMessageCount, requirePremium, PremiumFeature, isPremiumUser, filterHistoricalData, canAddBiomarkerType } from "./premiumMiddleware";
 import { z } from "zod";
 import { spoonacularService } from "./spoonacular";
@@ -7018,6 +7019,210 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
       });
     } catch (error: any) {
       console.error('Error fetching standards:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Goal Conversation API - Conversational Goal Creation
+  app.post("/api/goals/conversation", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    try {
+      const { message, isFirstMessage, conversationId } = req.body;
+
+      if (!message || typeof message !== 'string') {
+        return res.status(400).json({ error: 'Message is required' });
+      }
+
+      // Import conversation intelligence functions
+      const { 
+        generateNextQuestion, 
+        extractContextFromResponse, 
+        hasEnoughContext
+      } = await import('./goals/conversation-intelligence');
+
+      let conversation;
+
+      // Get or create conversation
+      if (isFirstMessage) {
+        // Start new conversation
+        conversation = await storage.createGoalConversation({
+          userId,
+          status: 'active',
+          initialInput: message,
+          conversationHistory: [],
+          extractedContext: {},
+          questionCount: 0,
+          readyForSynthesis: 0,
+        });
+      } else if (conversationId) {
+        // Continue existing conversation
+        conversation = await storage.getGoalConversation(conversationId, userId);
+        if (!conversation) {
+          return res.status(404).json({ error: 'Conversation not found' });
+        }
+      } else {
+        // Try to get active conversation
+        conversation = await storage.getActiveGoalConversation(userId);
+        if (!conversation) {
+          return res.status(400).json({ error: 'No active conversation found. Start a new conversation with isFirstMessage: true' });
+        }
+      }
+
+      const history = (conversation.conversationHistory as any[]) || [];
+      const currentContext = (conversation.extractedContext as any) || {};
+
+      // Add user message to history
+      const userMessage: ConversationMessage = {
+        role: 'user',
+        content: message,
+        timestamp: new Date().toISOString(),
+      };
+      history.push(userMessage);
+
+      // Extract context from this response (if not first message)
+      let newContext = {};
+      if (!isFirstMessage && history.length > 1) {
+        // Get the type of the last question we asked
+        const lastAssistantMessage = history.slice().reverse().find(m => m.role === 'assistant');
+        const questionType = (lastAssistantMessage as any)?.type || 'unknown';
+        
+        newContext = await extractContextFromResponse(message, currentContext, questionType);
+      }
+
+      // Merge new context with existing
+      const mergedContext = {
+        ...currentContext,
+        ...newContext,
+        // Deep merge timeAvailability if both exist
+        ...(currentContext.timeAvailability || newContext.timeAvailability ? {
+          timeAvailability: {
+            ...(currentContext.timeAvailability || {}),
+            ...(newContext.timeAvailability || {}),
+          }
+        } : {}),
+      };
+
+      // Generate next question
+      const user = await storage.getUser(userId);
+      const userProfile = user ? {
+        age: user.dateOfBirth ? new Date().getFullYear() - new Date(user.dateOfBirth).getFullYear() : undefined,
+        gender: user.gender,
+      } : undefined;
+
+      // Check if we have enough context
+      const isComplete = hasEnoughContext(mergedContext);
+
+      // Generate next question or completion message
+      let nextQ;
+      if (isComplete) {
+        // Create completion message instead of asking another question
+        nextQ = {
+          question: "Perfect! I have all the information I need. Creating your personalized goal and training plan now...",
+          type: 'complete',
+          rationale: 'Conversation complete',
+        };
+      } else {
+        nextQ = await generateNextQuestion({
+          ...conversation,
+          conversationHistory: history,
+          extractedContext: mergedContext,
+          questionCount: conversation.questionCount + 1,
+        } as any, userProfile);
+      }
+
+      // Add assistant message to history
+      const assistantMessage: ConversationMessage & { type: string } = {
+        role: 'assistant',
+        content: nextQ.question,
+        timestamp: new Date().toISOString(),
+        type: nextQ.type,
+      };
+      history.push(assistantMessage);
+
+      // If complete, synthesize and create the goal
+      let createdGoalId: string | undefined;
+      if (isComplete) {
+        const { synthesizeGoal } = await import('./goals/plan-synthesis');
+        const goalData = await synthesizeGoal(mergedContext, userId);
+        
+        // Create the goal with all its metrics, milestones, and plans
+        const goal = await storage.createGoal({
+          userId,
+          canonicalGoalType: goalData.canonicalGoalType,
+          inputText: conversation.initialInput || '',
+          goalEntitiesJson: goalData.goalEntities,
+          targetDate: goalData.targetDate,
+          status: 'active',
+          createdByAI: 1,
+        });
+        
+        createdGoalId = goal.id;
+        
+        // Create metrics
+        for (const metric of goalData.metrics) {
+          await storage.createGoalMetric({
+            goalId: goal.id,
+            ...metric,
+          });
+        }
+        
+        // Create milestones
+        for (const milestone of goalData.milestones) {
+          await storage.createGoalMilestone({
+            goalId: goal.id,
+            ...milestone,
+          });
+        }
+        
+        // Create plans
+        for (const plan of goalData.plans) {
+          await storage.createGoalPlan({
+            goalId: goal.id,
+            ...plan,
+          });
+        }
+        
+        // Mark conversation as completed
+        await storage.updateGoalConversation(
+          conversation.id,
+          userId,
+          {
+            conversationHistory: history,
+            extractedContext: mergedContext,
+            questionCount: conversation.questionCount + 1,
+            readyForSynthesis: 1,
+            detectedGoalType: mergedContext.goalType || conversation.detectedGoalType,
+            status: 'completed',
+            completedAt: new Date(),
+          }
+        );
+      } else {
+        // Just update conversation
+        await storage.updateGoalConversation(
+          conversation.id,
+          userId,
+          {
+            conversationHistory: history,
+            extractedContext: mergedContext,
+            questionCount: conversation.questionCount + 1,
+            readyForSynthesis: 0,
+            detectedGoalType: mergedContext.goalType || conversation.detectedGoalType,
+          }
+        );
+      }
+
+      res.json({
+        conversationId: conversation.id,
+        message: nextQ.question,
+        questionType: nextQ.type,
+        rationale: nextQ.rationale,
+        isComplete,
+        extractedContext: mergedContext,
+        questionCount: conversation.questionCount + 1,
+        goalId: createdGoalId,
+      });
+    } catch (error: any) {
+      console.error('Error in goal conversation:', error);
       res.status(500).json({ error: error.message });
     }
   });

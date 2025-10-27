@@ -644,6 +644,36 @@ export const goalPlans = pgTable("goal_plans", {
   index("goal_plans_plan_type_idx").on(table.planType),
 ]);
 
+// Goal Conversations - Track conversational goal creation state
+export const goalConversations = pgTable("goal_conversations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  status: text("status").notNull().default("active"), // active, completed, abandoned
+  initialInput: text("initial_input").notNull(), // User's first message (e.g., "I want to run 5km")
+  conversationHistory: jsonb("conversation_history").notNull().default(sql`'[]'::jsonb`), // Array of {role, content, timestamp}
+  extractedContext: jsonb("extracted_context").default(sql`'{}'::jsonb`), // {currentAbility, timeAvailability, motivation, constraints, fitnessLevel, etc.}
+  detectedGoalType: text("detected_goal_type"), // endurance_event, health_marker, strength, etc.
+  questionCount: integer("question_count").notNull().default(0), // How many questions asked so far
+  readyForSynthesis: integer("ready_for_synthesis").notNull().default(0), // 1 if enough context gathered
+  synthesizedGoal: jsonb("synthesized_goal"), // Final goal structure when ready
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  completedAt: timestamp("completed_at"),
+}, (table) => [
+  index("goal_conversations_user_idx").on(table.userId),
+  index("goal_conversations_status_idx").on(table.status),
+]);
+
+export const insertGoalConversationSchema = createInsertSchema(goalConversations).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  completedAt: true,
+});
+
+export type InsertGoalConversation = z.infer<typeof insertGoalConversationSchema>;
+export type GoalConversation = typeof goalConversations.$inferSelect;
+
 // Metric Standards - Evidence-based reference standards for goal metrics
 // This table stores both hardcoded standards (ACSM, ExRx, VDOT) and AI-discovered standards
 // Shared across all users to continuously improve the knowledge base
