@@ -28,7 +28,8 @@ export async function mapMetricsForGoal(
   goalType: string,
   goalEntities: Record<string, any>,
   userId: string,
-  availableSources?: AvailableDataSources
+  availableSources?: AvailableDataSources,
+  storage?: any
 ): Promise<MetricSuggestion[]> {
   const canonicalType = getCanonicalGoalType(goalType);
   if (!canonicalType) {
@@ -38,10 +39,19 @@ export async function mapMetricsForGoal(
   // Get baseline metrics from seed data
   const baselineMetrics = canonicalType.default_metrics;
 
-  // Enhance metrics with availability information
+  // Fetch current/baseline values if storage is provided
+  const metricKeys = baselineMetrics.map(m => m.metric_key);
+  let metricValues: Record<string, { baseline: number | null; current: number | null }> = {};
+  
+  if (storage) {
+    metricValues = await fetchMetricBaselines(userId, metricKeys, storage);
+  }
+
+  // Enhance metrics with availability information and current values
   const suggestions: MetricSuggestion[] = baselineMetrics.map(metric => {
     const isTracked = isMetricTracked(metric.metric_key, availableSources);
     const sourceAvailable = isDataSourceAvailable(metric.metric_key, availableSources);
+    const values = metricValues[metric.metric_key] || { baseline: null, current: null };
 
     return {
       metric: {
@@ -53,8 +63,8 @@ export async function mapMetricsForGoal(
         source: determineSource(metric.metric_key, availableSources),
         priority: metric.priority || 1,
         targetValue: null, // Will be calculated by plan generator
-        baselineValue: null, // Will be fetched from recent data
-        currentValue: null,
+        baselineValue: values.baseline,
+        currentValue: values.current,
         confidence: sourceAvailable ? 0.9 : 0.5,
       },
       is_tracked: isTracked,
@@ -218,22 +228,61 @@ function calculatePace(timeHMS: string, distanceKm: number): string {
 }
 
 /**
+ * Map metric keys to biomarker/healthkit types
+ */
+const METRIC_TO_DATA_TYPE_MAP: Record<string, string[]> = {
+  'vo2max': ['vo2-max', 'cardio-fitness'],
+  'resting_hr': ['resting-heart-rate', 'heart-rate'],
+  'hrv': ['hrv', 'heart-rate-variability'],
+  'body_weight': ['body-weight', 'weight'],
+  'body_fat_pct': ['body-fat', 'body-fat-percentage'],
+  'weekly_distance_km': ['weekly-distance', 'running-distance', 'distance'],
+  'long_run_distance_km': ['long-run-distance', 'running-distance'],
+  'sleep_score': ['sleep-score', 'sleep-quality'],
+  'readiness_score': ['readiness-score', 'readiness'],
+  'recovery': ['recovery', 'recovery-score'],
+  'strain': ['strain', 'daily-strain'],
+};
+
+/**
  * Fetch current/baseline values for metrics from user's data
  */
 export async function fetchMetricBaselines(
   userId: string,
   metricKeys: string[],
   storage: any // IStorage instance
-): Promise<Record<string, { baseline: string | null; current: string | null }>> {
-  const baselines: Record<string, { baseline: string | null; current: string | null }> = {};
+): Promise<Record<string, { baseline: number | null; current: number | null }>> {
+  const baselines: Record<string, { baseline: number | null; current: number | null }> = {};
 
   for (const metricKey of metricKeys) {
     try {
-      // This would query the user's recent data for each metric
-      // For now, return nulls - will be implemented in storage layer
+      const dataTypes = METRIC_TO_DATA_TYPE_MAP[metricKey] || [metricKey];
+      
+      // Query latest biomarker values for any matching type
+      let latestValue: number | null = null;
+
+      for (const dataType of dataTypes) {
+        try {
+          // Get the most recent value
+          const recent = await storage.getLatestBiomarkerByType(userId, dataType);
+          if (recent && recent.value !== null) {
+            // Check if it's within the last 30 days
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            
+            if (recent.recordedAt >= thirtyDaysAgo) {
+              latestValue = parseFloat(recent.value.toString());
+              break; // Found recent data, no need to check other types
+            }
+          }
+        } catch (err) {
+          // Continue to next data type
+        }
+      }
+      
       baselines[metricKey] = {
-        baseline: null,
-        current: null,
+        baseline: latestValue, // Use current as baseline for now
+        current: latestValue,
       };
     } catch (error) {
       console.error(`Error fetching baseline for ${metricKey}:`, error);

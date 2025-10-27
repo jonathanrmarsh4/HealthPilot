@@ -6693,13 +6693,14 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
       // Get user's available data sources for metric mapping
       const availableSources = await storage.getUserAvailableDataSources(userId);
       
-      // Generate suggested metrics based on parsed goal
+      // Generate suggested metrics based on parsed goal (with current values fetched from user's data)
       const { mapMetricsForGoal } = await import('./goals/metric-mapper');
       const metricSuggestions = await mapMetricsForGoal(
         parsedGoal.canonical_goal_type,
         parsedGoal.entities || {},
         userId,
-        availableSources
+        availableSources,
+        storage // Pass storage to fetch current metric values
       );
       
       // Return structured response matching frontend expectations
@@ -6720,7 +6721,7 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
           targetValue: s.metric.targetValue?.toString() || null,
           direction: s.metric.direction,
           baselineValue: s.metric.baselineValue?.toString() || null,
-          currentValue: s.currentValue?.toString() || null,
+          currentValue: s.metric.currentValue?.toString() || null,
           confidence: null, // Metrics don't have individual confidence scores
           priority: s.metric.priority,
         })),
