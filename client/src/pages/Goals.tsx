@@ -36,6 +36,7 @@ import { format } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "wouter";
 import { GoalForm } from "@/components/goals/GoalForm";
+import { GoalInsightCard } from "@/components/goals/GoalInsightCard";
 import { getMetric } from "@/lib/metrics/registry";
 import { useChat } from "@/contexts/ChatContext";
 import { useAuth } from "@/hooks/useAuth";
@@ -43,18 +44,119 @@ import { useAuth } from "@/hooks/useAuth";
 interface Goal {
   id: string;
   userId: string;
-  metricType: string;
-  targetValue: number | null;
+  
+  // V2 fields (NLP-powered goals with plans)
+  canonicalGoalType?: string;
+  inputText?: string;
+  goalEntitiesJson?: any;
+  targetDate?: string | null;
+  
+  // V1 legacy fields
+  metricType?: string;
+  targetValue?: number | null;
   targetValueData?: any;
-  currentValue: number | null;
+  currentValue?: number | null;
   currentValueData?: any;
-  startValue: number | null;
+  startValue?: number | null;
   startValueData?: any;
-  deadline: string;
-  unit: string;
-  status: "active" | "completed" | "overdue";
+  deadline?: string;
+  unit?: string;
+  
+  status: "active" | "completed" | "overdue" | "paused" | "abandoned";
   createdByAI: number;
   createdAt: string;
+}
+
+interface GoalMetric {
+  id: string;
+  goalId: string;
+  metricKey: string;
+  label: string;
+  targetValue: string | null;
+  unit: string | null;
+  source: string;
+  direction: 'increase' | 'decrease' | 'maintain' | 'achieve';
+  baselineValue: string | null;
+  currentValue: string | null;
+  confidence: number | null;
+  priority: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface GoalMilestone {
+  id: string;
+  goalId: string;
+  title: string;
+  description: string | null;
+  dueDate: string;
+  status: 'pending' | 'in_progress' | 'achieved' | 'skipped';
+  progressPct: number;
+}
+
+// Wrapper component for V2 goals that fetches related data
+function GoalV2Card({ 
+  goal, 
+  onDelete, 
+  isDeleting 
+}: { 
+  goal: Goal; 
+  onDelete: () => void; 
+  isDeleting: boolean;
+}) {
+  const { data: metrics } = useQuery<GoalMetric[]>({
+    queryKey: ['/api/goals', goal.id, 'metrics'],
+    enabled: !!goal.canonicalGoalType,
+  });
+
+  const { data: milestones } = useQuery<GoalMilestone[]>({
+    queryKey: ['/api/goals', goal.id, 'milestones'],
+    enabled: !!goal.canonicalGoalType,
+  });
+
+  const { data: plans } = useQuery<any[]>({
+    queryKey: ['/api/goals', goal.id, 'plans'],
+    enabled: !!goal.canonicalGoalType,
+  });
+
+  // Extract safety warnings from plans
+  const safetyWarnings: string[] = [];
+  if (plans && plans.length > 0) {
+    plans.forEach(plan => {
+      if (plan.contentJson?.safety_notes) {
+        safetyWarnings.push(...plan.contentJson.safety_notes);
+      }
+      if (plan.contentJson?.safety_warnings) {
+        safetyWarnings.push(...plan.contentJson.safety_warnings);
+      }
+    });
+  }
+
+  return (
+    <div className="relative">
+      <GoalInsightCard
+        goal={goal}
+        metrics={metrics}
+        milestones={milestones}
+        safetyWarnings={safetyWarnings}
+      />
+      {/* Delete button overlay */}
+      <div className="absolute top-4 right-4">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+          disabled={isDeleting}
+          data-testid={`button-delete-goal-${goal.id}`}
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
 }
 
 export default function Goals() {
@@ -343,6 +445,21 @@ export default function Goals() {
         ) : goals && goals.length > 0 ? (
           <div className="grid gap-4">
             {goals.map((goal) => {
+              const isV2Goal = !!goal.canonicalGoalType;
+              
+              // V2 Goal with full insight card
+              if (isV2Goal) {
+                return (
+                  <GoalV2Card
+                    key={goal.id}
+                    goal={goal}
+                    onDelete={() => deleteMutation.mutate(goal.id)}
+                    isDeleting={deleteMutation.isPending}
+                  />
+                );
+              }
+              
+              // V1 Legacy Goal
               const progress = calculateProgress(goal);
               return (
                 <Card key={goal.id} className="overflow-hidden" data-testid={`card-goal-${goal.id}`}>
@@ -352,7 +469,7 @@ export default function Goals() {
                         <div className="flex items-center gap-2 mb-1">
                           {getStatusIcon(goal.status)}
                           <CardTitle className="text-lg" data-testid={`title-goal-${goal.id}`}>
-                            {getMetricLabel(goal.metricType)}
+                            {getMetricLabel(goal.metricType!)}
                           </CardTitle>
                           {getStatusBadge(goal.status)}
                           {goal.createdByAI === 1 && (
@@ -364,7 +481,7 @@ export default function Goals() {
                         </div>
                         <CardDescription className="flex items-center gap-2">
                           <Calendar className="h-3.5 w-3.5" />
-                          Deadline: {format(new Date(goal.deadline), "MMM dd, yyyy")}
+                          Deadline: {format(new Date(goal.deadline!), "MMM dd, yyyy")}
                         </CardDescription>
                       </div>
                       <div className="flex gap-1">
@@ -405,19 +522,19 @@ export default function Goals() {
                       <div>
                         <div className="text-muted-foreground mb-1">Start</div>
                         <div className="font-medium" data-testid={`start-value-${goal.id}`}>
-                          {formatValue(getValue(goal, "startValue"), goal.metricType)} {getMetricUnit(goal.metricType)}
+                          {formatValue(getValue(goal, "startValue"), goal.metricType!)} {getMetricUnit(goal.metricType!)}
                         </div>
                       </div>
                       <div>
                         <div className="text-muted-foreground mb-1">Current</div>
                         <div className="font-medium" data-testid={`current-value-${goal.id}`}>
-                          {formatValue(getValue(goal, "currentValue"), goal.metricType)} {getMetricUnit(goal.metricType)}
+                          {formatValue(getValue(goal, "currentValue"), goal.metricType!)} {getMetricUnit(goal.metricType!)}
                         </div>
                       </div>
                       <div>
                         <div className="text-muted-foreground mb-1">Target</div>
                         <div className="font-medium text-chart-3" data-testid={`target-value-${goal.id}`}>
-                          {formatValue(getValue(goal, "targetValue"), goal.metricType)} {getMetricUnit(goal.metricType)}
+                          {formatValue(getValue(goal, "targetValue"), goal.metricType!)} {getMetricUnit(goal.metricType!)}
                         </div>
                       </div>
                     </div>
