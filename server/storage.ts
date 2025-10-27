@@ -3471,17 +3471,26 @@ export class DbStorage implements IStorage {
       // 1. Create goal
       const [goal] = await tx.insert(goals).values(params.goal).returning();
 
-      // 2. Create metrics with goal_id
-      const metricsWithGoalId = params.metrics.map(m => ({ ...m, goalId: goal.id }));
-      const createdMetrics = await tx.insert(goalMetrics).values(metricsWithGoalId).returning();
+      // 2. Create metrics with goal_id (only if not empty)
+      let createdMetrics: GoalMetric[] = [];
+      if (params.metrics.length > 0) {
+        const metricsWithGoalId = params.metrics.map(m => ({ ...m, goalId: goal.id }));
+        createdMetrics = await tx.insert(goalMetrics).values(metricsWithGoalId).returning();
+      }
 
-      // 3. Create milestones with goal_id
-      const milestonesWithGoalId = params.milestones.map(m => ({ ...m, goalId: goal.id }));
-      const createdMilestones = await tx.insert(goalMilestones).values(milestonesWithGoalId).returning();
+      // 3. Create milestones with goal_id (only if not empty)
+      let createdMilestones: GoalMilestone[] = [];
+      if (params.milestones.length > 0) {
+        const milestonesWithGoalId = params.milestones.map(m => ({ ...m, goalId: goal.id }));
+        createdMilestones = await tx.insert(goalMilestones).values(milestonesWithGoalId).returning();
+      }
 
-      // 4. Create plans with goal_id
-      const plansWithGoalId = params.plans.map(p => ({ ...p, goalId: goal.id }));
-      const createdPlans = await tx.insert(goalPlans).values(plansWithGoalId).returning();
+      // 4. Create plans with goal_id (only if not empty)
+      let createdPlans: GoalPlan[] = [];
+      if (params.plans.length > 0) {
+        const plansWithGoalId = params.plans.map(p => ({ ...p, goalId: goal.id }));
+        createdPlans = await tx.insert(goalPlans).values(plansWithGoalId).returning();
+      }
 
       return {
         goal,

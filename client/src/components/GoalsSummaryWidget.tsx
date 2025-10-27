@@ -13,7 +13,11 @@ export function GoalsSummaryWidget() {
     queryKey: ["/api/goals"],
   });
 
-  const activeGoals = useMemo(() => goals?.filter(g => g.status === 'active') || [], [goals]);
+  // Show both v1 and v2 active goals
+  const activeGoals = useMemo(() => 
+    goals?.filter(g => g.status === 'active') || [], 
+    [goals]
+  );
   const [animatedWidths, setAnimatedWidths] = useState<number[]>([]);
 
   // Trigger animations when data loads or changes
@@ -43,29 +47,33 @@ export function GoalsSummaryWidget() {
   }
 
   const calculateProgress = (goal: Goal) => {
+    // V2 goals: Simple placeholder - widget is basic, just show as starting
+    if (goal.canonicalGoalType) {
+      return 5; // Show minimal progress for new v2 goals
+    }
+
+    // V1 goals: Legacy calculation
     const start = goal.startValue ?? 0;
     const current = goal.currentValue ?? 0;
     const target = goal.targetValue;
 
-    if (start === target) return 100;
+    if (!target || start === target) return 100;
 
     // Determine if this is a decrease goal (want to go DOWN)
-    const isDecreaseGoal = goal.metricType.toLowerCase().includes('weight') || 
-                          goal.metricType.toLowerCase().includes('cholesterol') ||
-                          goal.metricType.toLowerCase().includes('glucose') ||
-                          goal.metricType.toLowerCase().includes('body fat');
+    const isDecreaseGoal = goal.metricType?.toLowerCase().includes('weight') || 
+                          goal.metricType?.toLowerCase().includes('cholesterol') ||
+                          goal.metricType?.toLowerCase().includes('glucose') ||
+                          goal.metricType?.toLowerCase().includes('body fat');
 
     if (isDecreaseGoal) {
       // Decrease goals: start > target (e.g., weight 80kg -> 73kg)
-      // Progress is based on how much we've decreased from start toward target
-      if (current <= target) return 100; // Reached or exceeded target
-      if (current >= start) return 0;     // No progress yet
+      if (current <= target) return 100;
+      if (current >= start) return 0;
       return Math.round(((start - current) / (start - target)) * 100);
     } else {
       // Increase goals: start < target (e.g., steps 5000 -> 10000)
-      // Progress is based on how much we've increased from start toward target
-      if (current >= target) return 100; // Reached or exceeded target
-      if (current <= start) return 0;     // No progress yet
+      if (current >= target) return 100;
+      if (current <= start) return 0;
       return Math.round(((current - start) / (target - start)) * 100);
     }
   };
@@ -82,11 +90,21 @@ export function GoalsSummaryWidget() {
     return colorSets[index % colorSets.length];
   };
 
-  const isDecrease = (metricType: string) => {
+  const isDecrease = (metricType: string | null | undefined) => {
+    if (!metricType) return false;
     return metricType.toLowerCase().includes('weight') || 
            metricType.toLowerCase().includes('cholesterol') ||
            metricType.toLowerCase().includes('glucose') ||
            metricType.toLowerCase().includes('body fat');
+  };
+
+  const getGoalTitle = (goal: Goal) => {
+    // V2 goals: use inputText or canonicalGoalType
+    if (goal.canonicalGoalType) {
+      return goal.inputText || goal.canonicalGoalType.replace(/_/g, ' ');
+    }
+    // V1 goals: use metricType
+    return goal.metricType || 'Goal';
   };
 
   if (activeGoals.length === 0) {
@@ -131,8 +149,10 @@ export function GoalsSummaryWidget() {
         <div className="space-y-4">
           {activeGoals.slice(0, 3).map((goal, index) => {
             const progress = calculateProgress(goal);
+            const goalTitle = getGoalTitle(goal);
+            const isV2Goal = !!goal.canonicalGoalType;
             const isDecreaseGoal = isDecrease(goal.metricType);
-            const colors = getGoalColor(index, goal.metricType);
+            const colors = getGoalColor(index, goal.metricType || goalTitle);
             const animatedWidth = animatedWidths[index] ?? 0;
             
             return (
@@ -144,7 +164,7 @@ export function GoalsSummaryWidget() {
                     ) : (
                       <TrendingUp className={`h-4 w-4 ${colors.text}`} />
                     )}
-                    <span className="font-medium">{goal.metricType}</span>
+                    <span className="font-medium truncate">{goalTitle}</span>
                   </div>
                   <span className={`text-xs font-semibold ${colors.text}`} data-testid={`text-progress-${goal.id}`}>
                     {progress}%
@@ -160,10 +180,17 @@ export function GoalsSummaryWidget() {
                     data-testid={`bar-progress-${goal.id}`}
                   />
                 </div>
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>Current: {goal.currentValue} {goal.unit}</span>
-                  <span>Target: {goal.targetValue} {goal.unit}</span>
-                </div>
+                {!isV2Goal && goal.currentValue !== undefined && goal.targetValue !== undefined && (
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>Current: {goal.currentValue} {goal.unit}</span>
+                    <span>Target: {goal.targetValue} {goal.unit}</span>
+                  </div>
+                )}
+                {isV2Goal && (
+                  <div className="text-xs text-muted-foreground text-center">
+                    View in Goals page for details
+                  </div>
+                )}
               </div>
             );
           })}

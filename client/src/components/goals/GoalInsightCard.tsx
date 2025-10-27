@@ -13,6 +13,9 @@ import {
   ChevronRight
 } from "lucide-react";
 import { format } from "date-fns";
+import { useState } from "react";
+import { PlanDetailsDialog } from "./PlanDetailsDialog";
+import { useQuery } from "@tanstack/react-query";
 
 interface GoalMetric {
   id: string;
@@ -60,6 +63,17 @@ interface Goal {
   unit?: string;
 }
 
+interface GoalPlan {
+  id: string;
+  goalId: string;
+  planType: 'training' | 'nutrition' | 'supplement' | 'habit' | 'recovery';
+  frequencyPerWeek: number | null;
+  contentJson: any;
+  generatedBy: 'ai' | 'user' | 'template';
+  createdAt: string;
+  updatedAt: string;
+}
+
 interface GoalInsightCardProps {
   goal: Goal;
   metrics?: GoalMetric[];
@@ -78,6 +92,13 @@ export function GoalInsightCard({
   compact = false
 }: GoalInsightCardProps) {
   const isV2Goal = !!goal.canonicalGoalType;
+  const [showPlanDialog, setShowPlanDialog] = useState(false);
+
+  // Fetch plans when dialog opens
+  const { data: plans = [] } = useQuery<GoalPlan[]>({
+    queryKey: ['/api/goals', goal.id, 'plans'],
+    enabled: showPlanDialog && isV2Goal,
+  });
 
   // Calculate overall progress
   const calculateProgress = () => {
@@ -341,12 +362,25 @@ export function GoalInsightCard({
           variant="ghost" 
           className="w-full justify-between" 
           size="sm"
+          onClick={() => setShowPlanDialog(true)}
           data-testid={`button-view-details-${goal.id}`}
         >
           View Full Plan
           <ChevronRight className="h-4 w-4" />
         </Button>
       </CardContent>
+
+      {/* Plan Details Dialog */}
+      {isV2Goal && (
+        <PlanDetailsDialog
+          open={showPlanDialog}
+          onOpenChange={setShowPlanDialog}
+          goalTitle={goal.inputText || goal.canonicalGoalType || 'Goal Details'}
+          metrics={metrics}
+          milestones={milestones}
+          plans={plans}
+        />
+      )}
     </Card>
   );
 }
