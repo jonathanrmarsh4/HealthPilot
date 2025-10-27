@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Sparkles, Calendar, ChevronRight, Clock, Target } from "lucide-react";
+import { Sparkles, Calendar, ChevronRight, Clock, Target, ChevronLeft } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { format, addDays, startOfWeek, isSameDay } from "date-fns";
 import { useState } from "react";
@@ -148,16 +148,16 @@ export function AITrainingPlanTile() {
   return (
     <Card data-testid="card-ai-training-plan">
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary" />
-            <CardTitle>Your AI Training Plan</CardTitle>
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <Sparkles className="h-5 w-5 text-primary flex-shrink-0" />
+            <CardTitle className="truncate">Your AI Training Plan</CardTitle>
           </div>
-          <Badge variant="secondary" data-testid="badge-plan-status">
-            Week {currentWeek} of {totalWeeks}
+          <Badge variant="secondary" data-testid="badge-plan-status" className="flex-shrink-0">
+            W{currentWeek}/{totalWeeks}
           </Badge>
         </div>
-        <CardDescription>
+        <CardDescription className="truncate">
           {primaryPlan.contentJson.name} • {primaryPlan.goalName}
         </CardDescription>
       </CardHeader>
@@ -167,39 +167,45 @@ export function AITrainingPlanTile() {
           <p className="text-sm text-muted-foreground mb-2">
             {primaryPlan.contentJson.description}
           </p>
-          <div className="flex items-center gap-4 text-xs text-muted-foreground">
-            <div className="flex items-center gap-1">
-              <Calendar className="h-3 w-3" />
-              <span>{primaryPlan.contentJson.sessionsPerWeek}x per week</span>
+          <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+            <div className="flex items-center gap-1 whitespace-nowrap">
+              <Calendar className="h-3 w-3 flex-shrink-0" />
+              <span>{primaryPlan.contentJson.sessionsPerWeek}x/week</span>
             </div>
             <div className="flex items-center gap-1">
-              <Target className="h-3 w-3" />
-              <span>{primaryPlan.contentJson.preferredDays.join(", ")}</span>
+              <Target className="h-3 w-3 flex-shrink-0" />
+              <span className="line-clamp-1">{primaryPlan.contentJson.preferredDays.join(", ")}</span>
             </div>
           </div>
         </div>
 
         {/* Week navigation */}
         {totalWeeks > 1 && (
-          <div className="flex items-center justify-between pb-2 border-b">
+          <div className="flex items-center justify-between gap-2 pb-2 border-b">
             <Button
               variant="outline"
               size="sm"
               onClick={() => setCurrentWeek(Math.max(1, currentWeek - 1))}
               disabled={currentWeek === 1}
               data-testid="button-previous-week"
+              className="flex-shrink-0"
             >
-              Previous Week
+              <ChevronLeft className="h-4 w-4 md:mr-1" />
+              <span className="hidden md:inline">Previous</span>
             </Button>
-            <span className="text-sm font-medium">Week {currentWeek}</span>
+            <span className="text-sm font-medium whitespace-nowrap">
+              Week {currentWeek} of {totalWeeks}
+            </span>
             <Button
               variant="outline"
               size="sm"
               onClick={() => setCurrentWeek(Math.min(totalWeeks, currentWeek + 1))}
               disabled={currentWeek === totalWeeks}
               data-testid="button-next-week"
+              className="flex-shrink-0"
             >
-              Next Week
+              <span className="hidden md:inline">Next</span>
+              <ChevronRight className="h-4 w-4 md:ml-1" />
             </Button>
           </div>
         )}
@@ -220,25 +226,25 @@ export function AITrainingPlanTile() {
                 }`}
                 data-testid={`session-${session.day.toLowerCase()}`}
               >
-                <div className="flex items-start justify-between mb-2">
-                  <div>
-                    <div className="flex items-center gap-2">
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
                       <h4 className="font-medium">
                         {session.day}
-                        {isToday && (
-                          <Badge variant="default" className="ml-2">
-                            Today
-                          </Badge>
-                        )}
                       </h4>
+                      {isToday && (
+                        <Badge variant="default" className="flex-shrink-0">
+                          Today
+                        </Badge>
+                      )}
                     </div>
                     <p className="text-xs text-muted-foreground">
                       {format(sessionDate, "MMM d")}
                     </p>
                   </div>
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground flex-shrink-0">
                     <Clock className="h-3 w-3" />
-                    <span>{session.duration} min</span>
+                    <span className="whitespace-nowrap">{session.duration} min</span>
                   </div>
                 </div>
 
