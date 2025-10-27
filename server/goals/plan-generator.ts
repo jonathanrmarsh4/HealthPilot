@@ -5,6 +5,8 @@
 
 import { getCanonicalGoalType } from './seed-data';
 import type { InsertGoalMilestone, InsertGoalPlan, GoalMetric } from '@shared/schema';
+import { standardsManager } from './standards-manager';
+import { standardsDiscovery } from './standards-discovery';
 
 export interface GeneratePlanInput {
   goal_id: string;
@@ -52,7 +54,10 @@ export async function generateComprehensivePlan(
     ? Math.max(4, Math.ceil((input.target_date.getTime() - Date.now()) / (7 * 24 * 60 * 60 * 1000)))
     : 12; // Default to 12 weeks if no target date
 
-  // Generate milestones using AI
+  // Enrich metrics with target values from standards
+  await enrichMetricsWithTargets(input, weeksToGoal);
+
+  // Generate milestones using AI (now with enriched metrics)
   const milestones = await generateMilestones(input, weeksToGoal);
 
   // Generate plans based on goal type
@@ -89,6 +94,119 @@ export async function generateComprehensivePlan(
 }
 
 /**
+ * Enrich metrics with target values using Standards Manager
+ * Mutates the metrics array in place to add targetValue, confidence, and source
+ */
+async function enrichMetricsWithTargets(
+  input: GeneratePlanInput,
+  weeksToGoal: number
+): Promise<void> {
+  if (!input.metrics || input.metrics.length === 0) {
+    return;
+  }
+
+  // Initialize standards manager (seeds DB if needed)
+  await standardsManager.initialize();
+
+  // Build user profile from input
+  const userProfile = {
+    age: input.user_profile?.age || 30, // Default if not provided
+    gender: (input.user_profile?.gender as 'male' | 'female') || 'male',
+    bodyweight: input.user_profile?.weight,
+    height: input.user_profile?.height,
+  };
+
+  // Infer desired level from goal description
+  const desiredLevel = standardsManager.inferDesiredLevel(input.display_name);
+
+  for (const metric of input.metrics) {
+    try {
+      // Get current value (prefer currentValue over baselineValue)
+      const currentValue = metric.currentValue 
+        ? parseFloat(metric.currentValue) 
+        : metric.baselineValue 
+          ? parseFloat(metric.baselineValue) 
+          : null;
+
+      // Calculate target using standards manager
+      const result = await standardsManager.calculateTarget(
+        metric.metricKey,
+        currentValue,
+        input.display_name,
+        userProfile,
+        desiredLevel
+      );
+
+      if (result) {
+        // Success! Enrich metric with target data
+        (metric as any).targetValue = result.targetValue.toString();
+        (metric as any).confidence = result.confidence;
+        (metric as any).targetSource = result.source;
+        (metric as any).targetDescription = result.description;
+
+        console.log(`✅ Calculated target for ${metric.metricKey}: ${result.targetValue} (from ${result.source})`);
+
+        // Track usage
+        await standardsManager.trackStandardUsage(result.standard.id);
+      } else {
+        // No standard found - trigger AI discovery (fire-and-forget)
+        console.log(`⚠️ No standard found for ${metric.metricKey}, triggering discovery...`);
+        
+        // Fire-and-forget discovery - don't block plan generation
+        standardsDiscovery.discoverAndStore(
+          metric.metricKey,
+          `${input.display_name} - ${metric.label}`
+        ).catch(err => {
+          console.error(`Error discovering standard for ${metric.metricKey}:`, err);
+        });
+
+        // Set default target (10% improvement from current if available)
+        if (currentValue) {
+          const direction = metric.direction || 'increase';
+          const defaultTarget = direction === 'increase' 
+            ? currentValue * 1.1 
+            : currentValue * 0.9;
+          
+          (metric as any).targetValue = defaultTarget.toString();
+          (metric as any).confidence = 0.5; // Low confidence for estimated targets
+          (metric as any).targetSource = 'estimated';
+          (metric as any).targetDescription = 'Estimated based on 10% improvement';
+        }
+      }
+    } catch (error) {
+      console.error(`Error enriching metric ${metric.metricKey}:`, error);
+      // Continue with other metrics
+    }
+  }
+}
+
+/**
+ * Build weekly progression from current to target value
+ * Returns array of weekly checkpoints with linear or phase-based progression
+ */
+function buildMetricProgression(
+  currentValue: number | null,
+  targetValue: number,
+  weeks: number,
+  metricKey: string
+): Array<{ week: number; value: number }> {
+  // If no current value, start from 80% of target (conservative)
+  const startValue = currentValue || (targetValue * 0.8);
+  
+  // For now, use simple linear progression
+  // TODO: Add phase-aware progression (slow start, faster middle, taper at end)
+  const progressionSteps: Array<{ week: number; value: number }> = [];
+  const stepSize = (targetValue - startValue) / weeks;
+
+  for (let week = 1; week <= weeks; week++) {
+    const value = startValue + (stepSize * week);
+    progressionSteps.push({ week, value: Math.round(value * 100) / 100 });
+  }
+
+  return progressionSteps;
+}
+
+/**
  * Generate milestones based on goal type and timeline
  */
 async function generateMilestones(
@@ -103,21 +221,50 @@ async function generateMilestones(
   });
   const canonicalType = getCanonicalGoalType(input.canonical_goal_type);
 
+  // Build metric progressions for AI context
+  const metricProgressions: Record<string, any[]> = {};
+  for (const metric of input.metrics) {
+    if ((metric as any).targetValue) {
+      const current = metric.currentValue ? parseFloat(metric.currentValue) : null;
+      const target = parseFloat((metric as any).targetValue);
+      const progression = buildMetricProgression(current, target, weeksToGoal, metric.metricKey);
+      metricProgressions[metric.metricKey] = progression;
+    }
+  }
+
   const systemPrompt = `You are HealthPilot's goal planning AI. Generate realistic, measurable milestones for a ${input.canonical_goal_type} goal.
 
 GOAL: ${input.display_name}
 TIMELINE: ${weeksToGoal} weeks
 TARGET DATE: ${input.target_date?.toISOString() || 'Not specified'}
 
+TRACKED METRICS WITH TARGETS:
+${input.metrics.map(m => {
+  const target = (m as any).targetValue;
+  const source = (m as any).targetSource;
+  const current = m.currentValue || m.baselineValue || 'unknown';
+  if (target) {
+    return `- ${m.label}: ${current} → ${target} ${m.unit || ''} (Source: ${source})`;
+  }
+  return `- ${m.label}: Currently ${current} ${m.unit || ''}`;
+}).join('\n')}
+
+METRIC PROGRESSIONS (Weekly Checkpoints):
+${Object.entries(metricProgressions).map(([key, prog]) => {
+  const metric = input.metrics.find(m => m.metricKey === key);
+  return `${metric?.label || key}: ${JSON.stringify(prog.slice(0, 3))}... (showing first 3 weeks)`;
+}).join('\n')}
+
 DEFAULT MILESTONES FOR THIS GOAL TYPE:
 ${JSON.stringify(canonicalType?.default_milestones || [], null, 2)}
 
 TASK:
 1. Create ${Math.min(6, Math.max(3, Math.floor(weeksToGoal / 4)))} progressive milestones
-2. Space them evenly across the timeline
-3. Make each milestone specific and measurable
-4. Start with foundation, build to peak, include taper if applicable
-5. Include completion rules when possible (metric-based auto-checks)
+2. Space them evenly across the timeline (every ${Math.floor(weeksToGoal / Math.min(6, Math.max(3, Math.floor(weeksToGoal / 4))))} weeks)
+3. Make each milestone specific and measurable using the metric progressions above
+4. Use actual numeric thresholds from the progressions for completion rules
+5. Start with foundation, build to peak, include taper if applicable
+6. Include completion rules when possible (metric-based auto-checks)
 
 OUTPUT FORMAT (JSON array):
 [
