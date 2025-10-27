@@ -1373,7 +1373,6 @@ export default function Training() {
           "readiness-score",
           "daily-recommendation",
           "daily-generated-workout",
-          "ai-training-plan",
           "muscle-group-balance",
           "recovery-protocols",
           "scheduled-calendar",
