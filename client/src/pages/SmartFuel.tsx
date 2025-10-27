@@ -36,9 +36,7 @@ export default function SmartFuel() {
 
   const generateGuidanceMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest("/api/smartfuel/guidance:generate", {
-        method: "POST",
-      });
+      return await apiRequest("POST", "/api/smartfuel/guidance:generate");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/smartfuel/guidance/current"] });
