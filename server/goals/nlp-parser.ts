@@ -4,9 +4,7 @@
  * into structured format with canonical_goal_type and extracted entities.
  */
 
-import OpenAI from 'openai';
 import { getCanonicalGoalType, CANONICAL_GOAL_TYPES } from './seed-data';
-import { getInstrumentedOpenAIClient } from '../ai/instrumented-openai-client';
 
 export interface ParsedGoal {
   canonical_goal_type: string;
@@ -34,7 +32,12 @@ export async function parseGoal(
   inputText: string,
   options?: ParseGoalOptions
 ): Promise<ParsedGoal> {
-  const openai = getInstrumentedOpenAIClient(options?.user_id);
+  // Import OpenAI client lazily to avoid issues with instrumentation setup
+  const { default: OpenAI } = await import('openai');
+  const openai = new OpenAI({
+    apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY,
+    baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+  });
 
   const goalTypes = CANONICAL_GOAL_TYPES.map(t => ({
     type: t.type,

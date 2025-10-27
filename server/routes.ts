@@ -6688,9 +6688,46 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
       }
 
       const { parseGoal } = await import('./goals/nlp-parser');
-      const parsed = await parseGoal(inputText, { user_id: userId });
+      const parsedGoal = await parseGoal(inputText, { user_id: userId });
       
-      res.json(parsed);
+      // Get user's available data sources for metric mapping
+      const availableSources = await storage.getUserAvailableDataSources(userId);
+      
+      // Generate suggested metrics based on parsed goal
+      const { mapMetricsForGoal } = await import('./goals/metric-mapper');
+      const metricSuggestions = await mapMetricsForGoal(
+        parsedGoal.canonical_goal_type,
+        parsedGoal.entities || {},
+        userId,
+        availableSources
+      );
+      
+      // Return structured response matching frontend expectations
+      res.json({
+        parsedGoal: {
+          canonicalGoalType: parsedGoal.canonical_goal_type,
+          goalEntities: parsedGoal.entities || {},
+          confidence: parsedGoal.confidence || 0.8,
+          suggestedDeadline: parsedGoal.target_date || null,
+          riskFlags: [], // TODO: Implement risk detection
+        },
+        suggestedMetrics: metricSuggestions.map((s, idx) => ({
+          metricKey: s.metric.metricKey,
+          label: s.metric.label,
+          source: s.metric.source,
+          unit: s.metric.unit || '',
+          targetValue: s.metric.targetValue?.toString() || null,
+          direction: s.metric.direction,
+          baselineValue: s.metric.baselineValue?.toString() || null,
+          currentValue: s.currentValue?.toString() || null,
+          confidence: null, // Metrics don't have individual confidence scores
+          priority: s.metric.priority,
+        })),
+        suggestedMilestones: [], // Milestones generated during creation, not parsing
+        warnings: parsedGoal.confidence && parsedGoal.confidence < 0.7 
+          ? ['Low confidence in parsing - please review carefully'] 
+          : [],
+      });
     } catch (error: any) {
       console.error('Error parsing goal:', error);
       res.status(500).json({ error: error.message });

@@ -3,10 +3,8 @@
  * Uses AI to generate adaptive, personalized plans based on goal type, metrics, and user profile
  */
 
-import OpenAI from 'openai';
 import { getCanonicalGoalType } from './seed-data';
 import type { InsertGoalMilestone, InsertGoalPlan, GoalMetric } from '@shared/schema';
-import { getInstrumentedOpenAIClient } from '../ai/instrumented-openai-client';
 
 export interface GeneratePlanInput {
   goal_id: string;
@@ -97,7 +95,12 @@ async function generateMilestones(
   input: GeneratePlanInput,
   weeksToGoal: number
 ): Promise<InsertGoalMilestone[]> {
-  const openai = getInstrumentedOpenAIClient(input.user_id);
+  // Import OpenAI client lazily
+  const { default: OpenAI } = await import('openai');
+  const openai = new OpenAI({
+    apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY,
+    baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+  });
   const canonicalType = getCanonicalGoalType(input.canonical_goal_type);
 
   const systemPrompt = `You are HealthPilot's goal planning AI. Generate realistic, measurable milestones for a ${input.canonical_goal_type} goal.
@@ -173,7 +176,12 @@ async function generateTrainingPlan(
   input: GeneratePlanInput,
   weeksToGoal: number
 ): Promise<InsertGoalPlan> {
-  const openai = getInstrumentedOpenAIClient(input.user_id);
+  // Import OpenAI client lazily
+  const { default: OpenAI } = await import('openai');
+  const openai = new OpenAI({
+    apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY,
+    baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+  });
 
   const systemPrompt = `You are HealthPilot's training plan AI. Create a progressive, periodized training plan following ACSM/NSCA/WHO guidelines.
 
@@ -250,7 +258,12 @@ async function generateNutritionPlan(
   input: GeneratePlanInput,
   weeksToGoal: number
 ): Promise<InsertGoalPlan> {
-  const openai = getInstrumentedOpenAIClient(input.user_id);
+  // Import OpenAI client lazily
+  const { default: OpenAI } = await import('openai');
+  const openai = new OpenAI({
+    apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY,
+    baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+  });
 
   const systemPrompt = `You are HealthPilot's nutrition AI. Create evidence-based nutrition guidance.
 
