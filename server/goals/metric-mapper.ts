@@ -109,7 +109,11 @@ function isDataSourceAvailable(metricKey: string, sources?: AvailableDataSources
   if (!sources) return false;
   
   // Map metric keys to their potential sources
-  const healthkitMetrics = ['vo2max', 'resting_hr', 'hrv', 'body_weight', 'weekly_distance_km', 'long_run_distance_km'];
+  const healthkitMetrics = [
+    'vo2max', 'resting_hr', 'hrv', 'body_weight', 
+    'weekly_distance_km', 'long_run_distance_km',
+    'running-distance', 'cycling-distance', 'swimming-distance', 'walking-distance'
+  ];
   const ouraMetrics = ['hrv', 'resting_hr', 'sleep_score', 'readiness_score'];
   const whoopMetrics = ['hrv', 'resting_hr', 'strain', 'recovery'];
   
@@ -133,7 +137,10 @@ function determineSource(metricKey: string, sources?: AvailableDataSources): str
   if (sources.manual.includes(metricKey)) return 'manual';
   
   // Check if source is available (even if not currently tracked)
-  const healthkitMetrics = ['vo2max', 'resting_hr', 'hrv', 'body_weight', 'weekly_distance_km'];
+  const healthkitMetrics = [
+    'vo2max', 'resting_hr', 'hrv', 'body_weight', 'weekly_distance_km',
+    'running-distance', 'cycling-distance', 'swimming-distance', 'walking-distance'
+  ];
   const ouraMetrics = ['hrv', 'resting_hr', 'sleep_score'];
   const whoopMetrics = ['hrv', 'strain', 'recovery'];
   
@@ -238,6 +245,10 @@ const METRIC_TO_DATA_TYPE_MAP: Record<string, string[]> = {
   'body_fat_pct': ['body-fat', 'body-fat-percentage'],
   'weekly_distance_km': ['weekly-distance', 'running-distance', 'distance'],
   'long_run_distance_km': ['long-run-distance', 'running-distance'],
+  'running-distance': ['running-distance', 'distance'], // Workout-based
+  'cycling-distance': ['cycling-distance', 'distance'], // Workout-based
+  'swimming-distance': ['swimming-distance', 'distance'], // Workout-based
+  'walking-distance': ['walking-distance', 'distance'], // Workout-based
   'sleep_score': ['sleep-score', 'sleep-quality'],
   'readiness_score': ['readiness-score', 'readiness'],
   'recovery': ['recovery', 'recovery-score'],
@@ -256,34 +267,51 @@ export async function fetchMetricBaselines(
 
   for (const metricKey of metricKeys) {
     try {
-      const dataTypes = METRIC_TO_DATA_TYPE_MAP[metricKey] || [metricKey];
+      // Check if this is a workout-based metric
+      const workoutMetrics = ['running-distance', 'cycling-distance', 'swimming-distance', 'walking-distance'];
       
-      // Query latest biomarker values for any matching type
-      let latestValue: number | null = null;
+      if (workoutMetrics.includes(metricKey)) {
+        // Extract workout type from metric key (e.g., 'running-distance' -> 'running')
+        const workoutType = metricKey.replace('-distance', '');
+        
+        // Get latest workout distance
+        const latestDistance = await storage.getWorkoutMetricValue(userId, workoutType, 'latest');
+        
+        baselines[metricKey] = {
+          baseline: latestDistance,
+          current: latestDistance,
+        };
+      } else {
+        // Handle biomarker-based metrics
+        const dataTypes = METRIC_TO_DATA_TYPE_MAP[metricKey] || [metricKey];
+        
+        // Query latest biomarker values for any matching type
+        let latestValue: number | null = null;
 
-      for (const dataType of dataTypes) {
-        try {
-          // Get the most recent value
-          const recent = await storage.getLatestBiomarkerByType(userId, dataType);
-          if (recent && recent.value !== null) {
-            // Check if it's within the last 30 days
-            const thirtyDaysAgo = new Date();
-            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-            
-            if (recent.recordedAt >= thirtyDaysAgo) {
-              latestValue = parseFloat(recent.value.toString());
-              break; // Found recent data, no need to check other types
+        for (const dataType of dataTypes) {
+          try {
+            // Get the most recent value
+            const recent = await storage.getLatestBiomarkerByType(userId, dataType);
+            if (recent && recent.value !== null) {
+              // Check if it's within the last 30 days
+              const thirtyDaysAgo = new Date();
+              thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+              
+              if (recent.recordedAt >= thirtyDaysAgo) {
+                latestValue = parseFloat(recent.value.toString());
+                break; // Found recent data, no need to check other types
+              }
             }
+          } catch (err) {
+            // Continue to next data type
           }
-        } catch (err) {
-          // Continue to next data type
         }
+        
+        baselines[metricKey] = {
+          baseline: latestValue, // Use current as baseline for now
+          current: latestValue,
+        };
       }
-      
-      baselines[metricKey] = {
-        baseline: latestValue, // Use current as baseline for now
-        current: latestValue,
-      };
     } catch (error) {
       console.error(`Error fetching baseline for ${metricKey}:`, error);
       baselines[metricKey] = { baseline: null, current: null };

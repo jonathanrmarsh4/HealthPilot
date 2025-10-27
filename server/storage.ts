@@ -3544,10 +3544,47 @@ export class DbStorage implements IStorage {
       )
       .limit(1000);
 
-    // Combine both sources and remove duplicates
+    // HealthKit workout-based metrics (running, cycling, swimming, etc.)
+    const workoutSessionsData = await db
+      .select()
+      .from(workoutSessions)
+      .where(
+        and(
+          eq(workoutSessions.userId, userId),
+          gte(workoutSessions.startTime, thirtyDaysAgo),
+          or(
+            eq(workoutSessions.sourceType, 'apple_health'),
+            eq(workoutSessions.sourceType, 'healthkit')
+          )
+        )
+      )
+      .limit(1000);
+
+    // Map workout types to metric types
+    const workoutMetrics: string[] = [];
+    const uniqueWorkoutTypes = [...new Set(workoutSessionsData.map(w => w.workoutType))];
+    
+    for (const workoutType of uniqueWorkoutTypes) {
+      const normalized = workoutType.toLowerCase();
+      if (normalized.includes('run')) {
+        workoutMetrics.push('running-distance');
+      } else if (normalized.includes('cycl')) {
+        workoutMetrics.push('cycling-distance');
+      } else if (normalized.includes('swim')) {
+        workoutMetrics.push('swimming-distance');
+      } else if (normalized.includes('walk')) {
+        workoutMetrics.push('walking-distance');
+      }
+    }
+
+    // Combine all HealthKit sources and remove duplicates
     const healthkitFromBiomarkers = healthkitBiomarkers.map(b => b.type);
     const healthkitFromRaw = healthkitRawEvents.map(e => e.type);
-    const healthkitMetrics = [...new Set([...healthkitFromBiomarkers, ...healthkitFromRaw])];
+    const healthkitMetrics = [...new Set([
+      ...healthkitFromBiomarkers, 
+      ...healthkitFromRaw,
+      ...workoutMetrics
+    ])];
 
     // Manual metrics
     const manualBiomarkers = await db
@@ -3571,6 +3608,45 @@ export class DbStorage implements IStorage {
       whoop: [],
       manual: manualMetrics,
     };
+  }
+
+  // Goals v2 - Get workout-based metric values (running-distance, cycling-distance, etc.)
+  async getWorkoutMetricValue(
+    userId: string,
+    workoutType: string, // 'running', 'cycling', 'swimming', 'walking'
+    aggregation: 'max' | 'latest' = 'latest'
+  ): Promise<number | null> {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    // Query workouts matching the type
+    const workouts = await db
+      .select()
+      .from(workoutSessions)
+      .where(
+        and(
+          eq(workoutSessions.userId, userId),
+          gte(workoutSessions.startTime, thirtyDaysAgo),
+          like(workoutSessions.workoutType, `%${workoutType}%`)
+        )
+      )
+      .orderBy(desc(workoutSessions.startTime))
+      .limit(100);
+
+    if (workouts.length === 0) return null;
+
+    // Filter workouts with distance
+    const workoutsWithDistance = workouts.filter(w => w.distance && w.distance > 0);
+    if (workoutsWithDistance.length === 0) return null;
+
+    if (aggregation === 'max') {
+      // Return maximum distance
+      const maxDistance = Math.max(...workoutsWithDistance.map(w => w.distance!));
+      return maxDistance / 1000; // Convert meters to km
+    } else {
+      // Return latest distance
+      return workoutsWithDistance[0].distance! / 1000; // Convert meters to km
+    }
   }
 
   // Goals v2 - Metrics

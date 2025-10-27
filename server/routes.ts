@@ -6895,6 +6895,44 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
     }
   });
 
+  app.patch("/api/goals/:goalId/metrics/:metricId", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { goalId, metricId } = req.params;
+    try {
+      // Verify goal belongs to user
+      const goal = await storage.getGoal(goalId, userId);
+      if (!goal) {
+        return res.status(404).json({ error: "Goal not found" });
+      }
+
+      const { currentValue } = req.body;
+      
+      if (currentValue === undefined || currentValue === null) {
+        return res.status(400).json({ error: "currentValue is required" });
+      }
+
+      // Verify metric belongs to this specific goal (IDOR protection)
+      const metrics = await storage.getGoalMetrics(goalId);
+      const metricBelongsToGoal = metrics.some(m => m.id === metricId);
+      if (!metricBelongsToGoal) {
+        return res.status(403).json({ error: "Metric does not belong to this goal" });
+      }
+
+      // Update the metric's current value
+      const updatedMetric = await storage.updateGoalMetric(metricId, {
+        currentValue: currentValue.toString(),
+      });
+
+      if (!updatedMetric) {
+        return res.status(404).json({ error: "Metric not found" });
+      }
+
+      res.json(updatedMetric);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Standards Discovery API (Admin)
   app.post("/api/goals/discover-standard", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;

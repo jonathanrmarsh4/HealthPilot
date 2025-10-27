@@ -10,11 +10,13 @@ import {
   Clock,
   Activity,
   Calendar,
-  ChevronRight
+  ChevronRight,
+  Edit
 } from "lucide-react";
 import { format } from "date-fns";
 import { useState } from "react";
 import { PlanDetailsDialog } from "./PlanDetailsDialog";
+import { MetricUpdateDialog } from "./MetricUpdateDialog";
 import { useQuery } from "@tanstack/react-query";
 
 interface GoalMetric {
@@ -93,6 +95,7 @@ export function GoalInsightCard({
 }: GoalInsightCardProps) {
   const isV2Goal = !!goal.canonicalGoalType;
   const [showPlanDialog, setShowPlanDialog] = useState(false);
+  const [editingMetric, setEditingMetric] = useState<GoalMetric | null>(null);
 
   // Fetch plans when dialog opens
   const { data: plans = [] } = useQuery<GoalPlan[]>({
@@ -296,22 +299,36 @@ export function GoalInsightCard({
         {isV2Goal && metrics.length > 0 && (
           <div className="space-y-2" data-testid={`goal-metrics-${goal.id}`}>
             <h4 className="text-sm font-medium">Key Metrics</h4>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 gap-2">
               {metrics.slice(0, 4).map((metric) => {
                 const current = metric.currentValue ? parseFloat(metric.currentValue).toFixed(1) : '--';
                 const target = metric.targetValue ? parseFloat(metric.targetValue).toFixed(1) : '?';
                 return (
                   <div 
                     key={metric.id} 
-                    className="flex flex-col p-2 rounded-md bg-muted/50"
+                    className="flex items-center justify-between p-2 rounded-md bg-muted/50 gap-2"
                     data-testid={`metric-${metric.metricKey}-${goal.id}`}
                   >
-                    <span className="text-xs text-muted-foreground">
-                      {metric.label}
-                    </span>
-                    <span className="text-sm font-medium">
-                      {current} / {target} {metric.unit || ''}
-                    </span>
+                    <div className="flex flex-col flex-1 min-w-0">
+                      <span className="text-xs text-muted-foreground">
+                        {metric.label}
+                      </span>
+                      <span className="text-sm font-medium">
+                        {current} / {target} {metric.unit || ''}
+                      </span>
+                    </div>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7 flex-shrink-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditingMetric(metric);
+                      }}
+                      data-testid={`button-update-metric-${metric.metricKey}`}
+                    >
+                      <Edit className="h-3.5 w-3.5" />
+                    </Button>
                   </div>
                 );
               })}
@@ -379,6 +396,16 @@ export function GoalInsightCard({
           metrics={metrics}
           milestones={milestones}
           plans={plans}
+        />
+      )}
+
+      {/* Metric Update Dialog */}
+      {editingMetric && (
+        <MetricUpdateDialog
+          open={!!editingMetric}
+          onOpenChange={(open) => !open && setEditingMetric(null)}
+          goalId={goal.id}
+          metric={editingMetric}
         />
       )}
     </Card>
