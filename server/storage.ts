@@ -203,7 +203,7 @@ import {
   labs,
   dailyHealthInsights,
 } from "@shared/schema";
-import { eq, desc, and, gte, lte, lt, sql, or, like, count, isNull, inArray, notInArray, not } from "drizzle-orm";
+import { eq, desc, and, gte, lte, lt, sql, or, like, ilike, count, isNull, inArray, notInArray, not } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -3619,7 +3619,7 @@ export class DbStorage implements IStorage {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    // Query workouts matching the type
+    // Query workouts matching the type (case-insensitive to capture Running, running, RUNNING, etc.)
     const workouts = await db
       .select()
       .from(workoutSessions)
@@ -3627,7 +3627,7 @@ export class DbStorage implements IStorage {
         and(
           eq(workoutSessions.userId, userId),
           gte(workoutSessions.startTime, thirtyDaysAgo),
-          like(workoutSessions.workoutType, `%${workoutType}%`)
+          ilike(workoutSessions.workoutType, `%${workoutType}%`)
         )
       )
       .orderBy(desc(workoutSessions.startTime))
