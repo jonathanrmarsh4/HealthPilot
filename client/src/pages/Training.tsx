@@ -19,6 +19,7 @@ import { ScheduledInsightsCard } from "@/components/ScheduledInsightsCard";
 import { TileManager, type TileConfig } from "@/components/TileManager";
 import { MuscleGroupHeatmap } from "@/components/MuscleGroupHeatmap";
 import { DailyGeneratedWorkout } from "@/components/DailyGeneratedWorkout";
+import { AITrainingPlanTile } from "@/components/AITrainingPlanTile";
 
 interface TrainingSchedule {
   id: string;
@@ -695,6 +696,12 @@ export default function Training() {
       renderTile: () => <ScheduledInsightsCard />
     },
     {
+      id: "ai-training-plan",
+      title: "AI Training Plan",
+      description: "Your personalized training schedule from goal conversations",
+      renderTile: () => <AITrainingPlanTile />
+    },
+    {
       id: "daily-recommendation-old",
       title: "Daily Workout Recommendation (Old)",
       description: "AI-powered workout plan based on readiness",
@@ -1366,6 +1373,7 @@ export default function Training() {
           "readiness-score",
           "daily-recommendation",
           "daily-generated-workout",
+          "ai-training-plan",
           "muscle-group-balance",
           "recovery-protocols",
           "scheduled-calendar",
