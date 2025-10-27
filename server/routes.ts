@@ -7143,15 +7143,22 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
       let createdGoalId: string | undefined;
       if (isComplete) {
         const { synthesizeGoal } = await import('./goals/plan-synthesis');
-        const goalData = await synthesizeGoal(mergedContext, userId);
+        const goalData = await synthesizeGoal(mergedContext, conversation.initialInput || '', userId);
         
         // Create the goal with all its metrics, milestones, and plans
+        // Map the synthesized goal fields to V2 goal schema
         const goal = await storage.createGoal({
           userId,
-          canonicalGoalType: goalData.canonicalGoalType,
+          canonicalGoalType: mergedContext.goalType || 'endurance_event',
           inputText: conversation.initialInput || '',
-          goalEntitiesJson: goalData.goalEntities,
-          targetDate: goalData.targetDate,
+          goalEntitiesJson: {
+            targetDistance: mergedContext.targetDistance,
+            currentAbility: mergedContext.currentAbility,
+            fitnessLevel: mergedContext.fitnessLevel,
+            timeAvailability: mergedContext.timeAvailability,
+            motivation: mergedContext.motivation,
+          },
+          targetDate: goalData.goal.targetDate,
           status: 'active',
           createdByAI: 1,
         });
