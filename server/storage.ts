@@ -50,6 +50,8 @@ import {
   type InsertGoalMilestone,
   type GoalPlan,
   type InsertGoalPlan,
+  type GoalPlanSession,
+  type InsertGoalPlanSession,
   type GoalConversation,
   type InsertGoalConversation,
   type ExerciseFeedback,
@@ -165,6 +167,7 @@ import {
   goalMetrics,
   goalMilestones,
   goalPlans,
+  goalPlanSessions,
   goalConversations,
   aiActions,
   symptomEvents,
@@ -455,6 +458,10 @@ export interface IStorage {
   createGoalPlan(plan: InsertGoalPlan): Promise<GoalPlan>;
   getGoalPlans(goalId: string, planType?: string): Promise<GoalPlan[]>;
   updateGoalPlan(id: string, data: Partial<GoalPlan>): Promise<GoalPlan | undefined>;
+  
+  // Goal Plan Sessions - Flattened sessions for workout scheduling
+  createGoalPlanSession(session: InsertGoalPlanSession): Promise<GoalPlanSession>;
+  getGoalPlanSessions(goalPlanId: string, status?: string): Promise<GoalPlanSession[]>;
   
   // Goal Conversations - Conversational goal creation
   createGoalConversation(conversation: InsertGoalConversation): Promise<GoalConversation>;
@@ -3730,6 +3737,25 @@ export class DbStorage implements IStorage {
       .where(eq(goalPlans.id, id))
       .returning();
     return result[0];
+  }
+
+  // Goal Plan Sessions - Flattened sessions for workout scheduling
+  async createGoalPlanSession(session: InsertGoalPlanSession): Promise<GoalPlanSession> {
+    const result = await db.insert(goalPlanSessions).values(session).returning();
+    return result[0];
+  }
+
+  async getGoalPlanSessions(goalPlanId: string, status?: string): Promise<GoalPlanSession[]> {
+    const query = db
+      .select()
+      .from(goalPlanSessions)
+      .where(eq(goalPlanSessions.goalPlanId, goalPlanId));
+
+    if (status) {
+      return await query.where(and(eq(goalPlanSessions.goalPlanId, goalPlanId), eq(goalPlanSessions.status, status)));
+    }
+
+    return await query.orderBy(goalPlanSessions.phaseNumber, goalPlanSessions.weekNumber);
   }
 
   // Goal Conversations - Conversational Goal Creation

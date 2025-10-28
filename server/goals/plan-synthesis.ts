@@ -3,24 +3,36 @@
  * 
  * Takes the extracted context from a goal conversation and synthesizes:
  * - Appropriate goal type and metrics
- * - Progressive training plans
+ * - AI-generated progressive training plans
  * - Milestones tailored to ability level
  * 
  * Key principles:
  * - Beginner goals → session-based metrics (3x/week sessions)
  * - Advanced goals → volume-based metrics (weekly distance/volume)
- * - Progressive overload with appropriate periodization
+ * - AI-powered plan generation for comprehensive, phased training
  */
 
 import type { ExtractedContext } from './conversation-intelligence';
-import type { InsertGoal, InsertGoalMetric, InsertGoalMilestone, InsertGoalPlan } from '@shared/schema';
-import { addWeeks, addMonths, format } from 'date-fns';
+import type { InsertGoal, InsertGoalMetric, InsertGoalMilestone, InsertGoalPlan, InsertGoalPlanSession } from '@shared/schema';
+import { addWeeks, addMonths, format, differenceInWeeks } from 'date-fns';
+import OpenAI from 'openai';
+import { validateGoalPlanContent, flattenPlanToSessions, type GoalPlanContent } from '@shared/types/goal-plans';
+import { db } from '../db';
+import { users } from '@shared/schema';
+import { eq } from 'drizzle-orm';
+
+// Initialize OpenAI client (uses AI Integrations if available, falls back to OPENAI_API_KEY)
+const openai = new OpenAI({
+  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY,
+  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+});
 
 export interface SynthesizedGoal {
   goal: Omit<InsertGoal, 'id' | 'userId'>;
   metrics: Omit<InsertGoalMetric, 'id' | 'goalId'>[];
   milestones: Omit<InsertGoalMilestone, 'id' | 'goalId'>[];
   plans: Omit<InsertGoalPlan, 'id' | 'goalId'>[];
+  flattenedSessions?: Omit<InsertGoalPlanSession, 'id' | 'createdAt' | 'updatedAt'>[]; // For Stage 2 scheduling
 }
 
 /**
@@ -44,15 +56,23 @@ export async function synthesizeGoal(
 
   // Build goal object
   const goal: Omit<InsertGoal, 'id' | 'userId'> = {
+    inputText: initialInput,
     name: displayName,
-    description: `${context.motivation || 'Personal goal'} - ${context.underlyingNeed || 'Building fitness'}`,
-    category: isRunningGoal ? 'endurance' : isStrengthGoal ? 'strength' : 'fitness',
-    targetValue: 1, // Placeholder - actual tracking via metrics
+    metricType: null,
+    targetValue: 1,
     currentValue: 0,
-    targetDate,
+    startValue: null,
+    targetValueData: null,
+    currentValueData: null,
+    startValueData: null,
     unit: 'completion',
+    canonicalGoalType: null,
+    goalEntitiesJson: null,
+    targetDate,
+    deadline: targetDate,
     status: 'active',
-    priority: 'high',
+    notes: `${context.motivation || 'Personal goal'} - ${context.underlyingNeed || 'Building fitness'}`,
+    createdByAI: 1,
   };
 
   // Build metrics based on fitness level
@@ -60,17 +80,18 @@ export async function synthesizeGoal(
     ? buildBeginnerMetrics(context, isRunningGoal)
     : buildAdvancedMetrics(context, isRunningGoal);
 
-  // Build milestones
-  const milestones = buildMilestones(context, targetDate, isBeginner);
+  // Build AI-powered training plan
+  const { plans, flattenedSessions } = await buildAITrainingPlan(context, initialInput, userId, targetDate);
 
-  // Build training plan
-  const plans = await buildTrainingPlan(context, isBeginner, isRunningGoal, targetDate);
+  // Build AI-powered milestones aligned with training phases
+  const milestones = await buildAIMilestones(context, initialInput, targetDate, plans[0]?.contentJson as GoalPlanContent);
 
   return {
     goal,
     metrics,
     milestones,
     plans,
+    flattenedSessions,
   };
 }
 
@@ -100,37 +121,42 @@ function buildBeginnerMetrics(context: ExtractedContext, isRunning: boolean): Om
   const metrics: Omit<InsertGoalMetric, 'id' | 'goalId'>[] = [
     {
       metricKey: 'weekly_sessions',
-      displayName: 'Training Sessions per Week',
-      targetValue: sessionsPerWeek,
-      currentValue: 0,
+      label: 'Training Sessions per Week',
+      targetValue: String(sessionsPerWeek),
       unit: 'sessions',
-      trackingFrequency: 'weekly',
-      dataSource: 'manual',
+      source: 'manual',
+      direction: 'achieve',
+      baselineValue: '0',
+      currentValue: '0',
+      confidence: 1.0,
       priority: 1,
     },
     {
       metricKey: 'consistency_streak',
-      displayName: 'Consistency Streak',
-      targetValue: 4, // 4 weeks of consistency
-      currentValue: 0,
+      label: 'Consistency Streak',
+      targetValue: '4',
       unit: 'weeks',
-      trackingFrequency: 'weekly',
-      dataSource: 'manual',
+      source: 'manual',
+      direction: 'increase',
+      baselineValue: '0',
+      currentValue: '0',
+      confidence: 1.0,
       priority: 2,
     },
   ];
 
   // Add goal-specific metric
   if (isRunning) {
-    // For running beginners, track longest continuous run (not total distance!)
     metrics.push({
       metricKey: 'longest_continuous_run',
-      displayName: 'Longest Continuous Run',
-      targetValue: context.targetDetails?.distance || 5, // Default to 5km
-      currentValue: 0,
+      label: 'Longest Continuous Run',
+      targetValue: String(context.targetDetails?.distance || 5),
       unit: 'km',
-      trackingFrequency: 'as_achieved',
-      dataSource: 'manual',
+      source: 'manual',
+      direction: 'increase',
+      baselineValue: '0',
+      currentValue: '0',
+      confidence: 1.0,
       priority: 3,
     });
   }
@@ -146,26 +172,29 @@ function buildAdvancedMetrics(context: ExtractedContext, isRunning: boolean): Om
   const metrics: Omit<InsertGoalMetric, 'id' | 'goalId'>[] = [];
 
   if (isRunning) {
-    // Advanced runners track weekly volume
     metrics.push({
       metricKey: 'weekly_running_distance',
-      displayName: 'Weekly Running Distance',
-      targetValue: 40, // Example for marathon training
-      currentValue: 0,
+      label: 'Weekly Running Distance',
+      targetValue: '40',
       unit: 'km',
-      trackingFrequency: 'weekly',
-      dataSource: 'healthkit',
+      source: 'healthkit',
+      direction: 'increase',
+      baselineValue: '0',
+      currentValue: '0',
+      confidence: 1.0,
       priority: 1,
     });
 
     metrics.push({
       metricKey: 'long_run_distance',
-      displayName: 'Long Run Distance',
-      targetValue: context.targetDetails?.distance || 21, // Half marathon default
-      currentValue: 0,
+      label: 'Long Run Distance',
+      targetValue: String(context.targetDetails?.distance || 21),
       unit: 'km',
-      trackingFrequency: 'weekly',
-      dataSource: 'healthkit',
+      source: 'healthkit',
+      direction: 'increase',
+      baselineValue: '0',
+      currentValue: '0',
+      confidence: 1.0,
       priority: 2,
     });
   }
@@ -174,186 +203,401 @@ function buildAdvancedMetrics(context: ExtractedContext, isRunning: boolean): Om
 }
 
 /**
- * Build progressive milestones
+ * Build AI-powered training plan
+ * Uses GPT-4o to generate comprehensive, phased training plans
  */
-function buildMilestones(
+async function buildAITrainingPlan(
   context: ExtractedContext,
-  targetDate: Date,
-  isBeginner: boolean
-): Omit<InsertGoalMilestone, 'id' | 'goalId'>[] {
-  const milestones: Omit<InsertGoalMilestone, 'id' | 'goalId'>[] = [];
-  const weeks = Math.floor((targetDate.getTime() - new Date().getTime()) / (7 * 24 * 60 * 60 * 1000));
+  initialInput: string,
+  userId: string,
+  targetDate: Date
+): Promise<{ 
+  plans: Omit<InsertGoalPlan, 'id' | 'goalId'>[], 
+  flattenedSessions?: Omit<InsertGoalPlanSession, 'id' | 'createdAt' | 'updatedAt'>[]
+}> {
+  try {
+    // Fetch user health profile
+    const userProfile = await fetchUserHealthProfile(userId);
+    
+    // Calculate timeline
+    const weeksUntilTarget = differenceInWeeks(targetDate, new Date());
+    const monthsUntilTarget = Math.ceil(weeksUntilTarget / 4);
 
-  if (isBeginner) {
-    // Week 2: First milestone
-    milestones.push({
-      name: 'Complete first week of training',
-      description: 'Build the habit - consistency is key!',
-      dueDate: addWeeks(new Date(), 1),
-      targetValue: 3,
-      unit: 'sessions',
-      status: 'pending',
-      orderIndex: 1,
+    // Build comprehensive prompt
+    const prompt = buildTrainingPlanPrompt(
+      initialInput,
+      context,
+      userProfile,
+      weeksUntilTarget,
+      monthsUntilTarget,
+      targetDate
+    );
+
+    console.log('🤖 Generating AI training plan for:', initialInput);
+    
+    // Call OpenAI with structured output request
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      max_tokens: 16000, // Large token budget for comprehensive plans
+      temperature: 0.7, // Some creativity but still focused
+      response_format: { type: 'json_object' },
+      messages: [
+        {
+          role: 'system',
+          content: 'You are an elite exercise physiologist and strength coach with 20+ years of experience designing evidence-based training programs. You create comprehensive, phased training plans following ACSM, NSCA, and WHO guidelines. Always respond with valid JSON in the exact format specified.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ]
     });
 
-    // Week 4: Consistency milestone
-    milestones.push({
-      name: 'One month of consistency',
-      description: 'You\'re building a solid foundation',
-      dueDate: addWeeks(new Date(), 4),
-      targetValue: 12,
-      unit: 'sessions',
-      status: 'pending',
-      orderIndex: 2,
-    });
+    const content = completion.choices[0].message.content;
+    if (!content) {
+      throw new Error('No content in AI response');
+    }
 
-    // Week 8: Progress milestone
-    milestones.push({
-      name: 'Halfway there',
-      description: 'You should feel stronger and more confident',
-      dueDate: addWeeks(new Date(), Math.floor(weeks / 2)),
-      targetValue: Math.floor(weeks / 2) * (context.timeAvailability?.sessionsPerWeek || 3),
-      unit: 'sessions',
-      status: 'pending',
-      orderIndex: 3,
-    });
+    // Parse and validate response
+    const parsedContent = JSON.parse(content);
+    const validation = validateGoalPlanContent(parsedContent);
 
-    // Final milestone
-    milestones.push({
-      name: 'Goal achieved!',
-      description: context.motivation || 'You did it!',
-      dueDate: targetDate,
-      targetValue: weeks * (context.timeAvailability?.sessionsPerWeek || 3),
-      unit: 'sessions',
-      status: 'pending',
-      orderIndex: 4,
-    });
-  } else {
-    // Advanced milestones based on volume/performance
-    milestones.push({
-      name: 'Base building phase complete',
-      description: 'Aerobic foundation established',
-      dueDate: addWeeks(new Date(), 4),
-      targetValue: 120,
-      unit: 'km',
-      status: 'pending',
-      orderIndex: 1,
-    });
+    if (!validation.success) {
+      console.error('❌ AI plan validation failed:', validation.error?.format());
+      // Fallback to simple plan
+      return { plans: [buildFallbackPlan(context, initialInput, targetDate)] };
+    }
+
+    const planContent = validation.data!;
+    
+    console.log(`✅ Generated ${planContent.phases.length}-phase training plan with ${planContent.phases.reduce((sum, p) => sum + p.weeks.length, 0)} weeks`);
+
+    // Store full plan in goal_plans.contentJson
+    const plan: Omit<InsertGoalPlan, 'id' | 'goalId'> = {
+      planType: 'training',
+      period: 'block',
+      contentJson: planContent as any,
+      version: 1,
+      sourcePromptHash: null,
+      isActive: 1,
+    };
+
+    return {
+      plans: [plan],
+      // Note: flattenedSessions will be populated when goal is saved in routes.ts
+    };
+
+  } catch (error) {
+    console.error('❌ Error generating AI training plan:', error);
+    // Return fallback plan on error
+    return { plans: [buildFallbackPlan(context, initialInput, targetDate)] };
   }
-
-  return milestones;
 }
 
 /**
- * Build progressive training plan
+ * Fetch user's health profile for personalized plan generation
  */
-async function buildTrainingPlan(
-  context: ExtractedContext,
-  isBeginner: boolean,
-  isRunning: boolean,
-  targetDate: Date
-): Promise<Omit<InsertGoalPlan, 'id' | 'goalId'>[]> {
-  const plans: Omit<InsertGoalPlan, 'id' | 'goalId'>[] = [];
-  const sessionsPerWeek = context.timeAvailability?.sessionsPerWeek || 3;
-  const preferredDays = context.timeAvailability?.preferredDays || ['Monday', 'Wednesday', 'Friday'];
+async function fetchUserHealthProfile(userId: string): Promise<{
+  age?: number;
+  gender?: string;
+  height?: number;
+  activityLevel?: string;
+  constraints?: string[];
+}> {
+  try {
+    const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+    
+    if (!user) {
+      return {};
+    }
 
-  if (isBeginner && isRunning) {
-    // Beginner running plan - session-based progression
-    plans.push({
-      planType: 'training',
-      period: 'weekly',
-      version: 1,
-      isActive: 1,
-      contentJson: {
-        name: 'Beginner Running Program',
-        description: 'Progressive run/walk program to build endurance',
-        sessionsPerWeek,
-        preferredDays,
-        constraints: context.constraints || [],
-        progression: [
-          {
-            week: 1,
-            sessions: Array(sessionsPerWeek).fill(null).map((_, i) => ({
-              day: preferredDays[i] || `Day ${i + 1}`,
-              type: 'run_walk',
-              duration: 20,
-              structure: 'Walk 5 min warmup, then alternate 1 min run / 2 min walk x 5, walk 5 min cooldown',
-              notes: 'Focus on consistent easy pace - you should be able to talk',
-            })),
-          },
-          {
-            week: 2,
-            sessions: Array(sessionsPerWeek).fill(null).map((_, i) => ({
-              day: preferredDays[i] || `Day ${i + 1}`,
-              type: 'run_walk',
-              duration: 22,
-              structure: 'Walk 5 min warmup, then alternate 1.5 min run / 1.5 min walk x 5, walk 5 min cooldown',
-              notes: 'Gradual increase in running time',
-            })),
-          },
-          {
-            week: 3,
-            sessions: Array(sessionsPerWeek).fill(null).map((_, i) => ({
-              day: preferredDays[i] || `Day ${i + 1}`,
-              type: 'run_walk',
-              duration: 25,
-              structure: 'Walk 5 min warmup, then alternate 2 min run / 1 min walk x 6, walk 5 min cooldown',
-              notes: 'You should start to feel more comfortable running',
-            })),
-          },
-          {
-            week: 4,
-            sessions: Array(sessionsPerWeek).fill(null).map((_, i) => ({
-              day: preferredDays[i] || `Day ${i + 1}`,
-              type: 'run_walk',
-              duration: 28,
-              structure: 'Walk 5 min warmup, then alternate 3 min run / 1 min walk x 5, walk 5 min cooldown',
-              notes: 'Building confidence and endurance',
-            })),
-          },
-        ],
-      },
+    // Calculate age from date of birth
+    let age: number | undefined;
+    if (user.dateOfBirth) {
+      const birthDate = new Date(user.dateOfBirth);
+      const today = new Date();
+      age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+    }
+
+    return {
+      age,
+      gender: user.gender || undefined,
+      height: user.height || undefined,
+      activityLevel: user.activityLevel || undefined,
+    };
+  } catch (error) {
+    console.error('Error fetching user health profile:', error);
+    return {};
+  }
+}
+
+/**
+ * Build comprehensive AI prompt for training plan generation
+ */
+function buildTrainingPlanPrompt(
+  initialInput: string,
+  context: ExtractedContext,
+  userProfile: { age?: number; gender?: string; height?: number; activityLevel?: string },
+  weeksUntilTarget: number,
+  monthsUntilTarget: number,
+  targetDate: Date
+): string {
+  const userContextSection = `
+## User Profile:
+- Age: ${userProfile.age || 'Not specified'}
+- Gender: ${userProfile.gender || 'Not specified'}
+- Current Fitness Level: ${context.fitnessLevel || 'intermediate'}
+- Activity Level: ${userProfile.activityLevel || context.currentAbility || 'moderate'}
+- Current Ability: ${context.currentAbility || 'Building baseline fitness'}
+
+## Goal Information:
+- User's Goal: "${initialInput}"
+- Target Date: ${format(targetDate, 'MMMM yyyy')} (${monthsUntilTarget} months, ${weeksUntilTarget} weeks from now)
+- Motivation: ${context.motivation || 'Personal improvement'}
+- Underlying Need: ${context.underlyingNeed || 'Health and fitness'}
+${context.targetDetails?.distance ? `- Target Distance: ${context.targetDetails.distance} km` : ''}
+${context.targetDetails?.event ? `- Event: ${context.targetDetails.event}` : ''}
+
+## Time Availability:
+- Sessions per Week: ${context.timeAvailability?.sessionsPerWeek || 3-4}
+- Preferred Days: ${context.timeAvailability?.preferredDays?.join(', ') || 'Flexible'}
+- Session Duration: ${context.timeAvailability?.sessionLength || '45-60 minutes'}
+
+## Constraints & Considerations:
+${context.constraints && context.constraints.length > 0 ? context.constraints.map(c => `- ${c}`).join('\n') : '- None specified'}
+${context.injuries && context.injuries.length > 0 ? `\n## Previous Injuries:\n${context.injuries.map(i => `- ${i}`).join('\n')}` : ''}
+`;
+
+  return `${userContextSection}
+
+## Your Task:
+Create a COMPREHENSIVE, PHASED training plan that matches or exceeds the quality of professional coaching programs. This plan should leverage the user's actual health data to provide truly personalized guidance.
+
+**CRITICAL REQUIREMENTS:**
+
+1. **Phased Progression Structure:**
+   - Divide the ${weeksUntilTarget}-week timeline into 4-6 distinct training phases
+   - Each phase should have a clear objective and focus
+   - Common phase structure: Base Building → Build → Specific Preparation → Peak → Taper
+   - Adapt phase names and focus to the specific goal type
+
+2. **Weekly Detail:**
+   - For each week within each phase, provide:
+     * Week number and label
+     * Weekly focus/objective
+     * Complete list of training sessions (typically 3-7 sessions/week)
+   - Each session must include:
+     * Unique sessionTemplateId (format: "phase{N}-week{N}-session{N}")
+     * Session type, title, and objective
+     * Duration, distance (if applicable), elevation (for hiking/climbing)
+     * Pack weight progression (for hiking/rucking goals)
+     * Intensity level and detailed structure
+     * Equipment needed
+     * Specific notes and coaching cues
+
+3. **Evidence-Based Programming:**
+   - Follow ACSM, NSCA, or WHO guidelines appropriate to the goal
+   - Progressive overload with appropriate deload weeks
+   - Include strength training, conditioning, skill work, and recovery sessions
+   - Age-appropriate training volume and intensity
+   - Injury prevention and recovery strategies
+
+4. **Goal-Specific Customization:**
+   - For endurance events (running, hiking, cycling): Include long sessions, tempo work, intervals, and recovery
+   - For strength goals: Include progressive resistance training with specific exercises
+   - For hiking/mountaineering: Include pack weight progression, elevation training, equipment adaptation
+   - For sports: Include skill development, conditioning, and game-specific work
+
+5. **Additional Guidance:**
+   - Equipment adaptation plan (e.g., when to introduce hiking boots, pack weight progression)
+   - Strength focus exercises with sets/reps and purpose
+   - Recovery and mindset guidance
+   - Nutrition recommendations
+   - Health monitoring suggestions
+
+**OUTPUT FORMAT:**
+Return ONLY valid JSON following this exact structure:
+
+{
+  "planVersion": "2.0",
+  "generatedAt": "${new Date().toISOString()}",
+  "goalSummary": {
+    "goalText": "${initialInput}",
+    "targetDate": "${format(targetDate, 'yyyy-MM-dd')}",
+    "goalType": "endurance_event" | "strength" | "body_composition" | "skill_development" | "health_improvement",
+    "userAge": ${userProfile.age || null},
+    "userFitnessLevel": "${context.fitnessLevel || 'intermediate'}"
+  },
+  "planOverview": {
+    "totalDurationWeeks": ${weeksUntilTarget},
+    "phasesCount": <number of phases>,
+    "primaryFocus": "<brief description of the plan's main focus>",
+    "adaptations": ["<personalized adaptations based on age/fitness/constraints>"]
+  },
+  "phases": [
+    {
+      "phaseName": "<e.g., Base Conditioning>",
+      "phaseNumber": 1,
+      "durationWeeks": <number>,
+      "objective": "<what this phase accomplishes>",
+      "focus": ["<key training focuses>"],
+      "weeks": [
+        {
+          "weekNumber": 1,
+          "weekLabel": "Week 1" | "Base Week 1",
+          "focus": "<this week's focus>",
+          "totalVolume": { "value": <number>, "unit": "km" | "hours" | "sessions" },
+          "sessions": [
+            {
+              "sessionTemplateId": "phase1-week1-session1",
+              "sessionType": "hike" | "run" | "strength" | "recovery" | etc,
+              "title": "<session name>",
+              "objective": "<what this session accomplishes>",
+              "durationMinutes": <number>,
+              "distance": { "value": <number>, "unit": "km" },
+              "elevation": { "value": <number>, "unit": "m" },
+              "packWeight": { "value": <number>, "unit": "kg" },
+              "intensity": "light" | "moderate" | "hard",
+              "perceivedExertionTarget": <1-10>,
+              "structure": "<detailed workout structure>",
+              "equipment": ["<required equipment>"],
+              "notes": "<coaching cues and tips>"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "equipmentGuidance": [
+    {
+      "equipmentType": "<e.g., hiking boots>",
+      "startPhase": <phase number>,
+      "progressionNotes": "<how to progress with this equipment>"
+    }
+  ],
+  "strengthFocus": [
+    {
+      "movement": "<exercise name>",
+      "targetSetsReps": "<e.g., 3x12>",
+      "purpose": "<why this exercise>"
+    }
+  ],
+  "recoveryGuidance": {
+    "recoveryStrategies": ["<recovery recommendations>"],
+    "mindsetTips": ["<mental preparation tips>"],
+    "nutritionGuidance": "<nutrition recommendations>",
+    "healthMonitoring": ["<health checks to schedule>"]
+  },
+  "additionalNotes": "<any other important context or recommendations>"
+}
+
+**QUALITY STANDARDS:**
+- Your plan should be as detailed and comprehensive as the best professional coaching programs
+- Each session should have clear purpose and progression
+- Include specific numbers (distance, duration, sets, reps, pack weight, etc.)
+- Provide actionable coaching cues and tips
+- Make it progressive but achievable for the user's fitness level
+- Personalize based on the user's age, constraints, and specific goal
+
+Generate the complete training plan now:`;
+}
+
+/**
+ * Build AI-powered milestones aligned with training phases
+ */
+async function buildAIMilestones(
+  context: ExtractedContext,
+  initialInput: string,
+  targetDate: Date,
+  planContent?: GoalPlanContent
+): Promise<Omit<InsertGoalMilestone, 'id' | 'goalId'>[]> {
+  // If we have a structured plan, extract milestones from phases
+  if (planContent && planContent.phases) {
+    const milestones: Omit<InsertGoalMilestone, 'id' | 'goalId'>[] = [];
+    let accumulatedWeeks = 0;
+
+    planContent.phases.forEach((phase, phaseIndex) => {
+      // Add milestone at end of each phase
+      accumulatedWeeks += phase.durationWeeks;
+      const phaseEndDate = addWeeks(new Date(), accumulatedWeeks);
+
+      milestones.push({
+        title: `Complete ${phase.phaseName}`,
+        description: phase.objective,
+        dueDate: phaseEndDate,
+        completionRule: null,
+        status: 'pending',
+        progressPct: 0,
+      });
     });
-  } else if (!isBeginner && isRunning) {
-    // Advanced running plan - volume-based
-    plans.push({
-      planType: 'training',
-      period: 'block',
-      version: 1,
-      isActive: 1,
-      contentJson: {
-        name: 'Advanced Running Program',
-        description: 'Periodized training with volume progression',
-        weeklyDistance: 40,
-        phases: [
-          {
-            name: 'Base Building',
-            weeks: 4,
-            focus: 'Aerobic development',
-            weeklyDistance: 35,
-          },
-          {
-            name: 'Build',
-            weeks: 4,
-            focus: 'Volume and tempo',
-            weeklyDistance: 50,
-          },
-          {
-            name: 'Peak',
-            weeks: 3,
-            focus: 'Race-specific work',
-            weeklyDistance: 60,
-          },
-          {
-            name: 'Taper',
-            weeks: 2,
-            focus: 'Recovery and sharpening',
-            weeklyDistance: 30,
-          },
-        ],
-      },
+
+    // Add final goal achievement milestone
+    milestones.push({
+      title: 'Goal Achieved!',
+      description: `Successfully complete: ${initialInput}`,
+      dueDate: targetDate,
+      completionRule: null,
+      status: 'pending',
+      progressPct: 0,
     });
+
+    return milestones;
   }
 
-  return plans;
+  // Fallback: Generate simple time-based milestones
+  const weeks = Math.floor((targetDate.getTime() - new Date().getTime()) / (7 * 24 * 60 * 60 * 1000));
+  return [
+    {
+      title: 'First month complete',
+      description: 'Build consistent training habit',
+      dueDate: addWeeks(new Date(), 4),
+      completionRule: null,
+      status: 'pending',
+      progressPct: 0,
+    },
+    {
+      title: 'Halfway checkpoint',
+      description: 'Significant progress toward goal',
+      dueDate: addWeeks(new Date(), Math.floor(weeks / 2)),
+      completionRule: null,
+      status: 'pending',
+      progressPct: 0,
+    },
+    {
+      title: 'Goal achieved!',
+      description: context.motivation || initialInput,
+      dueDate: targetDate,
+      completionRule: null,
+      status: 'pending',
+      progressPct: 0,
+    },
+  ];
+}
+
+/**
+ * Fallback plan when AI generation fails
+ */
+function buildFallbackPlan(
+  context: ExtractedContext,
+  initialInput: string,
+  targetDate: Date
+): Omit<InsertGoalPlan, 'id' | 'goalId'> {
+  return {
+    planType: 'training',
+    period: 'weekly',
+    contentJson: {
+      name: 'Basic Training Plan',
+      description: `Progressive training plan for: ${initialInput}`,
+      sessionsPerWeek: context.timeAvailability?.sessionsPerWeek || 3,
+      constraints: context.constraints || [],
+      notes: 'AI plan generation temporarily unavailable. This is a basic framework - consult with a qualified coach for personalized guidance.',
+    } as any,
+    version: 1,
+    sourcePromptHash: null,
+    isActive: 1,
+  };
 }

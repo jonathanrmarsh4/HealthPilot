@@ -7195,10 +7195,44 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
         
         // Create plans
         for (const plan of goalData.plans) {
-          await storage.createGoalPlan({
+          const createdPlan = await storage.createGoalPlan({
             goalId: goal.id,
             ...plan,
           });
+          
+          // Dual-write: If plan has structured content, flatten sessions to goal_plan_sessions table
+          // This enables Stage 2 workout scheduling
+          if (plan.contentJson && typeof plan.contentJson === 'object' && (plan.contentJson as any).planVersion === '2.0') {
+            try {
+              const { flattenPlanToSessions } = await import('@shared/types/goal-plans');
+              const { validateGoalPlanContent } = await import('@shared/types/goal-plans');
+              
+              // Validate and flatten sessions
+              const validation = validateGoalPlanContent(plan.contentJson);
+              if (validation.success && validation.data) {
+                const flattenedSessions = flattenPlanToSessions(createdPlan.id, validation.data);
+                
+                // Insert all flattened sessions
+                for (const session of flattenedSessions) {
+                  await storage.createGoalPlanSession({
+                    goalPlanId: session.goalPlanId,
+                    sessionTemplateId: session.sessionTemplateId,
+                    phaseNumber: session.phaseNumber,
+                    phaseName: session.phaseName,
+                    weekNumber: session.weekNumber,
+                    weekLabel: session.weekLabel,
+                    sessionData: session.sessionData as any,
+                    status: 'unscheduled',
+                  });
+                }
+                
+                console.log(`✅ Flattened ${flattenedSessions.length} sessions to goal_plan_sessions table`);
+              }
+            } catch (error) {
+              console.error('❌ Error flattening plan sessions:', error);
+              // Don't fail the entire goal creation if flattening fails
+            }
+          }
         }
         
         // Mark conversation as completed
