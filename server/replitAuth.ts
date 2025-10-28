@@ -246,13 +246,20 @@ export async function setupAuth(app: Express) {
           return res.redirect("/api/login");
         }
         
-        // For mobile, generate a one-time token and redirect to intermediate page
+        // For mobile, generate a one-time token and redirect to app URL scheme
         if (isMobile) {
           const userId = user.claims?.sub;
           if (userId) {
+            // Check if we've already generated a token in this session (prevent double redirect)
+            if ((req.session as any).mobileAuthGenerated) {
+              console.log("⚠️ Mobile auth already generated in this session, skipping duplicate");
+              return res.send('<html><body><h1>Login Complete</h1><p>You can close this window and return to the app.</p></body></html>');
+            }
+            
             const token = generateMobileAuthToken(userId);
+            (req.session as any).mobileAuthGenerated = true;
             console.log("📱 Generated mobile auth token for user:", userId);
-            return res.redirect(`/mobile-auth?token=${token}`);
+            return res.redirect(`healthpilot://auth?token=${token}`);
           } else {
             console.error("❌ No user ID in claims for mobile auth");
             return res.redirect("/api/login");
