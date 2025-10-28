@@ -49,5 +49,16 @@
         <string>Health Insights AI needs access to your health data to provide personalized insights, track biomarkers, and optimize your training and nutrition recommendations.</string>
         <key>NSHealthUpdateUsageDescription</key>
         <string>Health Insights AI can write workout and activity data back to Apple Health to keep your health records synchronized.</string>
+        <key>CFBundleURLTypes</key>
+        <array>
+                <dict>
+                        <key>CFBundleURLName</key>
+                        <string>com.nuvitae.healthpilot</string>
+                        <key>CFBundleURLSchemes</key>
+                        <array>
+                                <string>healthpilot</string>
+                        </array>
+                </dict>
+        </array>
 </dict>
 </plist>

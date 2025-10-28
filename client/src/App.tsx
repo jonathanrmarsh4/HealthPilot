@@ -52,6 +52,7 @@ import AdminCostDashboard from "@/pages/AdminCostDashboard";
 import AIAuditLog from "@/pages/AIAuditLog";
 import Login from "@/pages/Login";
 import Logout from "@/pages/Logout";
+import OAuthSuccess from "@/pages/OAuthSuccess";
 import LandingPage from "@/pages/LandingPage";
 import NotFound from "@/pages/not-found";
 import { NativeDiagnostics } from "@/mobile/features/diagnostics/NativeDiagnostics";
@@ -292,6 +293,7 @@ function AppContent() {
   const currentPath = window.location.pathname;
   const isLoggedOutPage = currentPath === "/logged-out";
   const isLoginPage = currentPath === "/login";
+  const isOAuthSuccessPage = currentPath === "/oauth-success";
   
   // Public routes that don't require authentication
   const publicRoutes = ["/pricing", "/privacy", "/security", "/terms"];
@@ -307,6 +309,10 @@ function AppContent() {
 
   if (isLoggedOutPage) {
     return <Logout />;
+  }
+
+  if (isOAuthSuccessPage) {
+    return <OAuthSuccess />;
   }
 
   // Treat auth errors same as not logged in (Safari caching issues) 

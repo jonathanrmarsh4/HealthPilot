@@ -175,12 +175,17 @@ export async function setupAuth(app: Express) {
 
   app.get("/api/callback", (req, res, next) => {
     const domain = getOAuthDomain(req.hostname);
+    const userAgent = req.headers['user-agent'] || '';
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(userAgent);
+    
     console.log("🔄 OAuth callback:", {
       requestHostname: req.hostname,
       mappedDomain: domain,
       strategyName: `replitauth:${domain}`,
       hasCode: !!req.query.code,
-      hasError: !!req.query.error
+      hasError: !!req.query.error,
+      isMobile,
+      userAgent
     });
     
     // If Replit returned an error, log it clearly
@@ -192,7 +197,7 @@ export async function setupAuth(app: Express) {
     }
     
     passport.authenticate(`replitauth:${domain}`, {
-      successReturnToOrRedirect: "/",
+      successRedirect: isMobile ? "/oauth-success" : "/",
       failureRedirect: "/api/login",
     })(req, res, next);
   });

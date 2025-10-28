@@ -3,10 +3,44 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Activity, Heart, Dumbbell, Sparkles, Shield, Brain, TrendingUp, Apple, Lock, Check } from "lucide-react";
 import logo from "@assets/HealthPilot_Logo_1759904141260.png";
+import { getBrowserAdapter } from "@/mobile/adapters";
+import { isNativePlatform } from "@/mobile/MobileBootstrap";
+import { App as CapacitorApp } from '@capacitor/app';
+import { queryClient } from "@/lib/queryClient";
+import { useEffect } from "react";
 
 export default function Login() {
-  const handleLogin = () => {
-    window.location.href = "/api/login";
+  useEffect(() => {
+    if (!isNativePlatform()) return;
+
+    const handleAppUrlOpen = async (event: { url: string }) => {
+      console.log('[Login] App URL opened:', event.url);
+      
+      if (event.url.includes('oauth-success')) {
+        const browser = getBrowserAdapter();
+        await browser.close();
+        
+        await queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
+        
+        window.location.href = '/';
+      }
+    };
+
+    const listener = CapacitorApp.addListener('appUrlOpen', handleAppUrlOpen);
+
+    return () => {
+      listener.remove();
+    };
+  }, []);
+
+  const handleLogin = async () => {
+    if (isNativePlatform()) {
+      const browser = getBrowserAdapter();
+      const loginUrl = `${window.location.origin}/api/login`;
+      await browser.openInApp(loginUrl);
+    } else {
+      window.location.href = "/api/login";
+    }
   };
 
   return (
