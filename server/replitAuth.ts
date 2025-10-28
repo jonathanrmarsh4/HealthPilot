@@ -218,7 +218,9 @@ export async function setupAuth(app: Express) {
       hasCode: !!req.query.code,
       hasError: !!req.query.error,
       isMobile,
-      userAgent
+      userAgent,
+      hasSession: !!req.session,
+      sessionID: req.sessionID
     });
     
     // If Replit returned an error, log it clearly
@@ -229,7 +231,10 @@ export async function setupAuth(app: Express) {
       });
     }
     
-    passport.authenticate(`replitauth:${domain}`, (err: any, user: any) => {
+    // For mobile, use session:false to bypass session requirement
+    const authOptions = isMobile ? { session: false } : {};
+    
+    passport.authenticate(`replitauth:${domain}`, authOptions, (err: any, user: any) => {
       if (err) {
         console.error("❌ OAuth authentication error:", err);
         return res.redirect("/api/login");
@@ -240,33 +245,27 @@ export async function setupAuth(app: Express) {
         return res.redirect("/api/login");
       }
       
+      // For mobile, don't use session - just generate token and redirect
+      if (isMobile) {
+        const userId = user.claims?.sub;
+        if (userId) {
+          const token = generateMobileAuthToken(userId);
+          console.log("📱 Generated mobile auth token for user:", userId);
+          return res.redirect(`healthpilot://auth?token=${token}`);
+        } else {
+          console.error("❌ No user ID in claims for mobile auth");
+          return res.redirect("/api/login");
+        }
+      }
+      
+      // For web, use session-based login
       req.login(user, (loginErr) => {
         if (loginErr) {
           console.error("❌ Login error:", loginErr);
           return res.redirect("/api/login");
         }
         
-        // For mobile, generate a one-time token and redirect to app URL scheme
-        if (isMobile) {
-          const userId = user.claims?.sub;
-          if (userId) {
-            // Check if we've already generated a token in this session (prevent double redirect)
-            if ((req.session as any).mobileAuthGenerated) {
-              console.log("⚠️ Mobile auth already generated in this session, skipping duplicate");
-              return res.send('<html><body><h1>Login Complete</h1><p>You can close this window and return to the app.</p></body></html>');
-            }
-            
-            const token = generateMobileAuthToken(userId);
-            (req.session as any).mobileAuthGenerated = true;
-            console.log("📱 Generated mobile auth token for user:", userId);
-            return res.redirect(`healthpilot://auth?token=${token}`);
-          } else {
-            console.error("❌ No user ID in claims for mobile auth");
-            return res.redirect("/api/login");
-          }
-        }
-        
-        // For web, redirect to home
+        // Redirect to home
         res.redirect("/");
       });
     })(req, res, next);

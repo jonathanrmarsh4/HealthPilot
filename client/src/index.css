@@ -14,80 +14,80 @@
   --elevate-1: rgba(0,0,0, .03);
   --elevate-2: rgba(0,0,0, .08);
 
-  --background: 0 0% 98%;
+  --background: 0 0% 94.12%;
 
-  --foreground: 217 52% 9%;
+  --foreground: 0 0% 10.2%;
 
-  --border: 217 20% 88%;
+  --border: 0 0% 90.98%;
 
-  --card: 0 0% 100%;
+  --card: 0 0% 98.82%;
 
-  --card-foreground: 217 52% 9%;
+  --card-foreground: 0 0% 0%;
 
   --card-border: 217 16% 93%;
 
-  --sidebar: 217 20% 95%;
+  --sidebar: 45 25% 97%;
 
-  --sidebar-foreground: 217 52% 9%;
+  --sidebar-foreground: 20 14% 17%;
 
-  --sidebar-border: 217 16% 90%;
+  --sidebar-border: 45 15% 80%;
 
-  --sidebar-primary: 170 100% 44%;
+  --sidebar-primary: 9 75% 61%;
 
-  --sidebar-primary-foreground: 0 0% 98%;
+  --sidebar-primary-foreground: 0 0% 100%;
 
-  --sidebar-accent: 217 20% 88%;
+  --sidebar-accent: 25 45% 80%;
 
-  --sidebar-accent-foreground: 217 52% 9%;
+  --sidebar-accent-foreground: 20 14% 17%;
 
-  --sidebar-ring: 170 100% 44%;
+  --sidebar-ring: 9 75% 61%;
 
-  --popover: 0 0% 100%;
+  --popover: 45 25% 97%;
 
-  --popover-foreground: 217 52% 9%;
+  --popover-foreground: 0 0% 100%;
 
   --popover-border: 217 16% 90%;
 
-  --primary: 170 100% 44%;
+  --primary: 342 85.11% 52.55%;
 
-  --primary-foreground: 0 0% 98%;
+  --primary-foreground: 0 0% 100%;
 
-  --secondary: 217 20% 90%;
+  --secondary: 0 0% 76.86%;
 
-  --secondary-foreground: 217 52% 9%;
+  --secondary-foreground: 0 0% 10.2%;
 
-  --muted: 217 16% 92%;
+  --muted: 0 0% 89.02%;
 
-  --muted-foreground: 217 20% 45%;
+  --muted-foreground: 0 0% 12.94%;
 
-  --accent: 217 18% 90%;
+  --accent: 0 0% 100%;
 
-  --accent-foreground: 217 52% 9%;
+  --accent-foreground: 0 0% 10.2%;
 
-  --destructive: 0 84% 60%;
+  --destructive: 0 0% 0%;
 
-  --destructive-foreground: 0 0% 98%;
+  --destructive-foreground: 0 0% 100%;
 
-  --input: 215 20% 75%;
-  --ring: 210 100% 45%;
-  --chart-1: 270 70% 50%;
-  --chart-2: 190 70% 45%;
-  --chart-3: 25 85% 55%;
-  --chart-4: 142 71% 45%;
-  --chart-5: 38 92% 50%;
+  --input: 0 0% 70.98%;
+  --ring: 0 0% 41.96%;
+  --chart-1: 203.8863 88.2845% 53.1373%;
+  --chart-2: 159.7826 100% 36.0784%;
+  --chart-3: 42.0290 92.8251% 56.2745%;
+  --chart-4: 147.1429 78.5047% 41.9608%;
+  --chart-5: 341.4894 75.2000% 50.9804%;
 
-  --font-sans: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-serif: Georgia, serif;
-  --font-mono: "SF Mono", "Roboto Mono", Menlo, monospace;
-  --radius: .5rem; /* 8px */
-  --shadow-2xs: 0px 1px 2px 0px hsl(215 20% 20% / 0.05);
-  --shadow-xs: 0px 1px 3px 0px hsl(215 20% 20% / 0.08);
-  --shadow-sm: 0px 2px 4px 0px hsl(215 20% 20% / 0.06), 0px 1px 2px -1px hsl(215 20% 20% / 0.04);
-  --shadow: 0px 4px 6px -1px hsl(215 20% 20% / 0.08), 0px 2px 4px -2px hsl(215 20% 20% / 0.05);
-  --shadow-md: 0px 6px 12px -2px hsl(215 20% 20% / 0.10), 0px 3px 6px -3px hsl(215 20% 20% / 0.06);
-  --shadow-lg: 0px 12px 24px -4px hsl(215 20% 20% / 0.12), 0px 6px 12px -6px hsl(215 20% 20% / 0.08);
-  --shadow-xl: 0px 20px 40px -8px hsl(215 20% 20% / 0.14), 0px 10px 20px -10px hsl(215 20% 20% / 0.10);
-  --shadow-2xl: 0px 32px 64px -12px hsl(215 20% 20% / 0.16);
+  --font-sans: 'Poppins', sans-serif;
+  --font-serif: 'Poppins', sans-serif;
+  --font-mono: Menlo, monospace;
+  --radius: 0.8rem; /* 8px */
+  --shadow-2xs: 0px 2px 0px 0px hsl(9, 75%, 61% / 0.00);
+  --shadow-xs: 0px 2px 0px 0px hsl(9, 75%, 61% / 0.00);
+  --shadow-sm: 0px 2px 0px 0px hsl(9, 75%, 61% / 0.00), 0px 1px 2px -1px hsl(9, 75%, 61% / 0.00);
+  --shadow: 0px 2px 0px 0px hsl(9, 75%, 61% / 0.00), 0px 1px 2px -1px hsl(9, 75%, 61% / 0.00);
+  --shadow-md: 0px 2px 0px 0px hsl(9, 75%, 61% / 0.00), 0px 2px 4px -1px hsl(9, 75%, 61% / 0.00);
+  --shadow-lg: 0px 2px 0px 0px hsl(9, 75%, 61% / 0.00), 0px 4px 6px -1px hsl(9, 75%, 61% / 0.00);
+  --shadow-xl: 0px 2px 0px 0px hsl(9, 75%, 61% / 0.00), 0px 8px 10px -1px hsl(9, 75%, 61% / 0.00);
+  --shadow-2xl: 0px 2px 0px 0px hsl(9, 75%, 61% / 0.00);
   --tracking-normal: 0em;
   --spacing: 0.25rem;
 
@@ -132,67 +132,67 @@
   --elevate-1: rgba(255,255,255, .04);
   --elevate-2: rgba(255,255,255, .09);
 
-  --background: 217 52% 9%;
+  --background: 20 14% 4%;
 
-  --foreground: 0 0% 98%;
+  --foreground: 45 25% 91%;
 
-  --border: 217 33% 18%;
+  --border: 20 14% 15%;
 
-  --card: 217 40% 13%;
+  --card: 20 14% 8%;
 
-  --card-foreground: 0 0% 98%;
+  --card-foreground: 45 25% 85%;
 
   --card-border: 217 33% 20%;
 
-  --sidebar: 217 40% 15%;
+  --sidebar: 20 14% 8%;
 
-  --sidebar-foreground: 0 0% 98%;
+  --sidebar-foreground: 45 25% 85%;
 
-  --sidebar-border: 217 33% 22%;
+  --sidebar-border: 20 14% 15%;
 
-  --sidebar-primary: 170 100% 44%;
+  --sidebar-primary: 9 75% 61%;
 
-  --sidebar-primary-foreground: 217 52% 9%;
+  --sidebar-primary-foreground: 0 0% 100%;
 
-  --sidebar-accent: 217 33% 22%;
+  --sidebar-accent: 25 45% 20%;
 
-  --sidebar-accent-foreground: 0 0% 98%;
+  --sidebar-accent-foreground: 45 25% 85%;
 
-  --sidebar-ring: 170 100% 44%;
+  --sidebar-ring: 9 75% 61%;
 
-  --popover: 217 40% 15%;
+  --popover: 20 14% 4%;
 
-  --popover-foreground: 0 0% 98%;
+  --popover-foreground: 45 25% 91%;
 
   --popover-border: 217 33% 24%;
 
-  --primary: 170 100% 44%;
+  --primary: 9 75% 61%;
 
-  --primary-foreground: 217 52% 9%;
+  --primary-foreground: 0 0% 100%;
 
-  --secondary: 217 33% 22%;
+  --secondary: 30 15% 52%;
 
-  --secondary-foreground: 0 0% 98%;
+  --secondary-foreground: 0 0% 100%;
 
-  --muted: 217 20% 20%;
+  --muted: 20 14% 15%;
 
-  --muted-foreground: 215 20% 65%;
+  --muted-foreground: 45 15% 46%;
 
-  --accent: 217 20% 22%;
+  --accent: 25 45% 20%;
 
-  --accent-foreground: 0 0% 98%;
+  --accent-foreground: 45 25% 85%;
 
-  --destructive: 0 84% 65%;
+  --destructive: 356.3033 90.5579% 54.3137%;
 
-  --destructive-foreground: 0 0% 98%;
+  --destructive-foreground: 0 0% 100%;
 
-  --input: 217 33% 35%;
-  --ring: 170 100% 44%;
-  --chart-1: 270 70% 65%;
-  --chart-2: 190 70% 55%;
-  --chart-3: 25 85% 65%;
-  --chart-4: 142 71% 55%;
-  --chart-5: 38 92% 60%;
+  --input: 20 14% 18%;
+  --ring: 9 75% 61%;
+  --chart-1: 203.8863 88.2845% 53.1373%;
+  --chart-2: 159.7826 100% 36.0784%;
+  --chart-3: 42.0290 92.8251% 56.2745%;
+  --chart-4: 147.1429 78.5047% 41.9608%;
+  --chart-5: 341.4894 75.2000% 50.9804%;
 
   --shadow-2xs: 0px 1px 2px 0px hsl(222 47% 5% / 0.20);
   --shadow-xs: 0px 1px 3px 0px hsl(222 47% 5% / 0.24);
