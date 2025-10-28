@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Activity, Heart, Dumbbell, Sparkles, Shield, Brain, TrendingUp, Apple, Lock, Check, Loader2 } from "lucide-react";
+import { Activity, Heart, Dumbbell, Sparkles, Shield, Brain, TrendingUp, Apple, Lock, Check, Loader2, Trash2 } from "lucide-react";
 import logo from "@assets/HealthPilot_Logo_1759904141260.png";
 import { isNativePlatform } from "@/mobile/MobileBootstrap";
 import { Browser } from '@capacitor/browser';
@@ -10,10 +10,13 @@ import { Preferences } from '@capacitor/preferences';
 import { SecureStorage } from '@aparajita/capacitor-secure-storage';
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useState, useEffect, useRef } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Login() {
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showDevTools, setShowDevTools] = useState(false);
   const pollIntervalRef = useRef<number | null>(null);
+  const { toast } = useToast();
 
   // Poll server for auth token using device ID
   const checkForPendingAuth = async () => {
@@ -122,6 +125,48 @@ export default function Login() {
     }
   };
 
+  const handleForceLogout = async () => {
+    if (!isNativePlatform()) {
+      toast({
+        variant: "destructive",
+        title: "Mobile Only",
+        description: "This feature is only available on the native iOS app",
+      });
+      return;
+    }
+
+    const confirmed = confirm(
+      '⚠️ FORCE LOGOUT\n\n' +
+      'This will clear ALL authentication data from iOS Keychain including:\n' +
+      '- Session tokens\n' +
+      '- User ID\n' +
+      '- Refresh tokens\n' +
+      '- Device ID\n\n' +
+      'You will need to sign in again.\n\n' +
+      'Continue?'
+    );
+
+    if (!confirmed) return;
+
+    try {
+      await SecureStorage.clear();
+      await Preferences.remove({ key: 'deviceId' });
+      
+      toast({
+        title: "Keychain Cleared",
+        description: "All authentication data has been removed. Please sign in again.",
+      });
+      
+      window.location.reload();
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Clear Failed",
+        description: error.message || "Failed to clear Keychain data",
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#0A0F1F]">
       {/* Hero Section */}
@@ -166,7 +211,18 @@ export default function Login() {
           {/* Login Card - Centered */}
           <Card className="w-full max-w-md mx-auto mb-16 bg-white/5 backdrop-blur-xl border-white/10">
             <CardHeader className="text-center">
-              <CardTitle className="text-2xl text-white">Start Your Health Journey</CardTitle>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex-1" />
+                <CardTitle className="text-2xl text-white flex-1">Start Your Health Journey</CardTitle>
+                {isNativePlatform() && (
+                  <button
+                    onClick={() => setShowDevTools(!showDevTools)}
+                    className="text-xs text-gray-500 hover:text-gray-300 px-2"
+                  >
+                    {showDevTools ? 'Hide' : 'Dev'}
+                  </button>
+                )}
+              </div>
               <CardDescription className="text-gray-400">
                 Join thousands optimizing their health with AI-powered insights
               </CardDescription>
@@ -191,6 +247,27 @@ export default function Login() {
                   </>
                 )}
               </Button>
+
+              {isNativePlatform() && showDevTools && (
+                <div className="space-y-2 pt-2 border-t border-white/10">
+                  <p className="text-xs text-gray-400">
+                    🔧 Dev Tools (iOS only)
+                  </p>
+                  <Button
+                    onClick={handleForceLogout}
+                    variant="destructive"
+                    size="sm"
+                    className="w-full"
+                    data-testid="button-force-logout"
+                  >
+                    <Trash2 className="h-3 w-3 mr-2" />
+                    Clear Keychain & Force Logout
+                  </Button>
+                  <p className="text-xs text-gray-500 text-center">
+                    Use this if you're stuck in auto-login loop
+                  </p>
+                </div>
+              )}
               
               <p className="text-xs text-center text-gray-500">
                 By signing in, you agree to our{" "}

@@ -186,6 +186,50 @@ export function NativeDiagnostics() {
     await browser.openInApp('https://healthpilot.pro');
   }
 
+  async function viewKeychainContents() {
+    const storage = getSecureStorage();
+    const sessionToken = await storage.getAuthToken();
+    const userId = await storage.getUserId();
+    const refreshToken = await storage.getRefreshToken();
+
+    alert(
+      `🔐 iOS Keychain Contents:\n\n` +
+      `Session Token: ${sessionToken ? '✅ STORED (' + sessionToken.substring(0, 20) + '...)' : '❌ NOT FOUND'}\n` +
+      `User ID: ${userId || '❌ NOT FOUND'}\n` +
+      `Refresh Token: ${refreshToken ? '✅ STORED (' + refreshToken.substring(0, 20) + '...)' : '❌ NOT FOUND'}\n\n` +
+      `This data persists even when you delete and reinstall the app!`
+    );
+  }
+
+  async function clearAllKeychain() {
+    const confirmed = confirm(
+      '⚠️ WARNING: This will completely clear ALL authentication data from iOS Keychain!\n\n' +
+      'This includes:\n' +
+      '- Session tokens\n' +
+      '- User ID\n' +
+      '- Refresh tokens\n' +
+      '- Device ID\n\n' +
+      'You will be logged out and need to sign in again.\n\n' +
+      'Continue?'
+    );
+
+    if (!confirmed) return;
+
+    try {
+      const storage = getSecureStorage();
+      await storage.clearAll();
+      
+      // Also clear device ID from Preferences
+      const { Preferences } = await import('@capacitor/preferences');
+      await Preferences.remove({ key: 'deviceId' });
+      
+      alert('✅ iOS Keychain cleared successfully!\n\nRedirecting to login...');
+      window.location.href = '/login';
+    } catch (error: any) {
+      alert(`❌ Failed to clear Keychain: ${error.message}`);
+    }
+  }
+
   const getStatusIcon = (status: TestResult['status']) => {
     switch (status) {
       case 'pass':
@@ -308,6 +352,33 @@ export function NativeDiagnostics() {
             data-testid="button-test-browser"
           >
             Test In-App Browser
+          </Button>
+        </div>
+      </Card>
+
+      <Card className="p-4 border-destructive/50">
+        <h2 className="font-semibold mb-2 text-destructive flex items-center gap-2">
+          ⚠️ Keychain Management (Dev Tools)
+        </h2>
+        <p className="text-sm text-muted-foreground mb-4">
+          iOS Keychain data persists even when you delete and reinstall the app. Use these tools to debug authentication issues.
+        </p>
+        <div className="space-y-2">
+          <Button 
+            onClick={viewKeychainContents} 
+            variant="outline" 
+            className="w-full justify-start"
+            data-testid="button-view-keychain"
+          >
+            🔍 View Keychain Contents
+          </Button>
+          <Button 
+            onClick={clearAllKeychain} 
+            variant="destructive" 
+            className="w-full justify-start"
+            data-testid="button-clear-keychain"
+          >
+            🗑️ Clear ALL Keychain Data (Force Logout)
           </Button>
         </div>
       </Card>
