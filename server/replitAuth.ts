@@ -239,13 +239,13 @@ export async function setupAuth(app: Express) {
           return res.redirect("/api/login");
         }
         
-        // For mobile, generate a one-time token and redirect to app
+        // For mobile, generate a one-time token and redirect to intermediate page
         if (isMobile) {
           const userId = user.claims?.sub;
           if (userId) {
             const token = generateMobileAuthToken(userId);
             console.log("📱 Generated mobile auth token for user:", userId);
-            return res.redirect(`healthpilot://auth?token=${token}`);
+            return res.redirect(`/mobile-auth?token=${token}`);
           }
         }
         
