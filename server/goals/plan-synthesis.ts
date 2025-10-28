@@ -244,7 +244,7 @@ async function buildAITrainingPlan(
       messages: [
         {
           role: 'system',
-          content: 'You are an elite exercise physiologist and strength coach with 20+ years of experience designing evidence-based training programs. You create comprehensive, phased training plans following ACSM, NSCA, and WHO guidelines. Always respond with valid JSON in the exact format specified.'
+          content: 'You are an elite exercise physiologist and strength coach with 20+ years of experience designing evidence-based training programs. You create comprehensive, phased training plans following ACSM, NSCA, and WHO guidelines. CRITICAL: You MUST respond with valid JSON that EXACTLY matches the schema provided. Do NOT add extra fields, do NOT use different field names, do NOT deviate from the specified structure in any way. The JSON will be validated against a strict schema - any deviation will cause failure.'
         },
         {
           role: 'user',
@@ -260,10 +260,27 @@ async function buildAITrainingPlan(
 
     // Parse and validate response
     const parsedContent = JSON.parse(content);
+    
+    // Debug logging (only in development to avoid leaking user data in production)
+    const isDevelopment = process.env.NODE_ENV !== 'production';
+    if (isDevelopment) {
+      console.log('🔍 AI generated plan structure:', {
+        hasPlanVersion: !!parsedContent.planVersion,
+        planVersion: parsedContent.planVersion,
+        hasPhases: !!parsedContent.phases,
+        phaseCount: parsedContent.phases?.length,
+        firstPhaseKeys: parsedContent.phases?.[0] ? Object.keys(parsedContent.phases[0]) : [],
+        topLevelKeys: Object.keys(parsedContent),
+      });
+    }
+    
     const validation = validateGoalPlanContent(parsedContent);
 
     if (!validation.success) {
       console.error('❌ AI plan validation failed:', validation.error?.format());
+      if (isDevelopment) {
+        console.error('❌ Failing plan structure:', JSON.stringify(parsedContent, null, 2).substring(0, 1000));
+      }
       // Fallback to simple plan
       return { plans: [buildFallbackPlan(context, initialInput, targetDate)] };
     }
@@ -419,8 +436,21 @@ Create a COMPREHENSIVE, PHASED training plan that matches or exceeds the quality
    - Nutrition recommendations
    - Health monitoring suggestions
 
-**OUTPUT FORMAT:**
-Return ONLY valid JSON following this exact structure:
+**OUTPUT FORMAT - CRITICAL:**
+⚠️ **YOU MUST FOLLOW THIS EXACT SCHEMA** ⚠️
+STRICT SCHEMA VALIDATION - Any deviation will cause the plan to be rejected.
+
+**PROHIBITED FIELDS** (do NOT include these):
+- "program_name", "safety_notes", "progression_rules", "name", "weekly_structure", "type", "duration"
+
+**REQUIRED FIELD NAMES** (use exactly as shown):
+- Use "phaseName" NOT "name" for phases
+- Use "weeks" array NOT "weekly_structure" 
+- Use "durationMinutes" (number) NOT "duration" (string) when specifying duration
+- Use "sessionType" from allowed enum only
+- Use "intensity" from enum: "very_light", "light", "moderate", "hard", "very_hard" (if provided)
+
+Return ONLY valid JSON with EXACTLY these fields in EXACTLY this structure:
 
 {
   "planVersion": "2.0",
@@ -454,18 +484,18 @@ Return ONLY valid JSON following this exact structure:
           "sessions": [
             {
               "sessionTemplateId": "phase1-week1-session1",
-              "sessionType": "hike" | "run" | "strength" | "recovery" | etc,
+              "sessionType": "run" | "hike" | "bike" | "swim" | "strength" | "cross_training" | "recovery" | "flexibility" | "intervals" | "tempo" | "long_endurance" | "hill_repeats" | "stairs" | "equipment_adaptation" | "rest",
               "title": "<session name>",
               "objective": "<what this session accomplishes>",
-              "durationMinutes": <number>,
-              "distance": { "value": <number>, "unit": "km" },
-              "elevation": { "value": <number>, "unit": "m" },
-              "packWeight": { "value": <number>, "unit": "kg" },
-              "intensity": "light" | "moderate" | "hard",
-              "perceivedExertionTarget": <1-10>,
+              "durationMinutes": <number> (optional but recommended),
+              "distance": { "value": <number>, "unit": "km" | "mi" | "meters" | "feet" } (optional),
+              "elevation": { "value": <number>, "unit": "m" | "ft" } (optional),
+              "packWeight": { "value": <number>, "unit": "kg" | "lbs" } (optional),
+              "intensity": "very_light" | "light" | "moderate" | "hard" | "very_hard" (optional),
+              "perceivedExertionTarget": <1-10> (optional),
               "structure": "<detailed workout structure>",
-              "equipment": ["<required equipment>"],
-              "notes": "<coaching cues and tips>"
+              "equipment": ["<required equipment>"] (optional),
+              "notes": "<coaching cues and tips>" (optional)
             }
           ]
         }
