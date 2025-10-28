@@ -230,12 +230,19 @@ export async function setupAuth(app: Express) {
     }
     
     passport.authenticate(`replitauth:${domain}`, (err: any, user: any) => {
-      if (err || !user) {
+      if (err) {
+        console.error("❌ OAuth authentication error:", err);
+        return res.redirect("/api/login");
+      }
+      
+      if (!user) {
+        console.error("❌ No user returned from OAuth");
         return res.redirect("/api/login");
       }
       
       req.login(user, (loginErr) => {
         if (loginErr) {
+          console.error("❌ Login error:", loginErr);
           return res.redirect("/api/login");
         }
         
@@ -246,6 +253,9 @@ export async function setupAuth(app: Express) {
             const token = generateMobileAuthToken(userId);
             console.log("📱 Generated mobile auth token for user:", userId);
             return res.redirect(`/mobile-auth?token=${token}`);
+          } else {
+            console.error("❌ No user ID in claims for mobile auth");
+            return res.redirect("/api/login");
           }
         }
         
