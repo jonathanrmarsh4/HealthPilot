@@ -76,12 +76,7 @@ function getTrainingStatus(timesTrainedInPeriod: number): {
 
 export function MuscleGroupHeatmap() {
   const { data: frequencyData, isLoading, isError, error } = useQuery<MuscleGroupData[]>({
-    queryKey: ["/api/analytics/muscle-group-frequency"],
-    queryFn: async () => {
-      const res = await fetch("/api/analytics/muscle-group-frequency?daysBack=14");
-      if (!res.ok) throw new Error("Failed to fetch muscle group frequency");
-      return res.json();
-    },
+    queryKey: ["/api/analytics/muscle-group-frequency?daysBack=14"],
   });
 
   const muscleGroupMap = new Map<string, MuscleGroupData>();

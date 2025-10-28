@@ -49,14 +49,7 @@ export function RecoveryProtocols() {
   const today = new Date().toISOString().split('T')[0];
 
   const { data: completions } = useQuery<ProtocolCompletion[]>({
-    queryKey: ["/api/recovery-protocols/completions", today],
-    queryFn: async () => {
-      const res = await fetch(`/api/recovery-protocols/completions?date=${today}`, {
-        credentials: 'include',
-      });
-      if (!res.ok) throw new Error('Failed to fetch completions');
-      return res.json();
-    },
+    queryKey: [`/api/recovery-protocols/completions?date=${today}`],
   });
 
   const voteMutation = useMutation({
