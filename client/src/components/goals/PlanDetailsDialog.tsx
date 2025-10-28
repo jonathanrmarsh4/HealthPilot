@@ -220,7 +220,7 @@ export function PlanDetailsDialog({
                     )}
 
                     {/* v2.0 Training Plan - Phased Structure */}
-                    {plan.planType === 'training' && plan.contentJson?.version === '2.0' && (
+                    {plan.planType === 'training' && plan.contentJson?.planVersion === '2.0' && (
                       <div className="space-y-4">
                         {plan.contentJson.durationWeeks && (
                           <div className="text-sm">
@@ -236,11 +236,11 @@ export function PlanDetailsDialog({
                               <Badge variant="outline" className="bg-primary/10">
                                 Phase {phase.phaseNumber}
                               </Badge>
-                              <h4 className="font-semibold">{phase.name}</h4>
+                              <h4 className="font-semibold">{phase.phaseName}</h4>
                             </div>
                             
-                            {phase.description && (
-                              <p className="text-sm text-muted-foreground">{phase.description}</p>
+                            {phase.objective && (
+                              <p className="text-sm text-muted-foreground">{phase.objective}</p>
                             )}
 
                             {/* Focus Areas */}
@@ -280,21 +280,21 @@ export function PlanDetailsDialog({
                                         <ChevronRight className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
                                         <div className="flex-1 min-w-0">
                                           <div className="flex items-center gap-2 flex-wrap">
-                                            <span className="font-medium">{session.name}</span>
-                                            {session.duration && (
+                                            <span className="font-medium">{session.title}</span>
+                                            {session.durationMinutes && (
                                               <Badge variant="secondary" className="text-xs">
-                                                {session.duration} min
+                                                {session.durationMinutes} min
                                               </Badge>
                                             )}
-                                            {session.type && (
+                                            {session.sessionType && (
                                               <Badge variant="outline" className="text-xs capitalize">
-                                                {session.type}
+                                                {session.sessionType}
                                               </Badge>
                                             )}
                                           </div>
-                                          {session.description && (
+                                          {session.objective && (
                                             <p className="text-xs text-muted-foreground mt-1">
-                                              {session.description}
+                                              {session.objective}
                                             </p>
                                           )}
                                         </div>
