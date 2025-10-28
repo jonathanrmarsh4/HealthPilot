@@ -6,13 +6,24 @@ import logo from "@assets/HealthPilot_Logo_1759904141260.png";
 
 export default function OAuthSuccess() {
   useEffect(() => {
-    setTimeout(() => {
-      window.location.href = "healthpilot://oauth-success";
-    }, 500);
+    const timer = setTimeout(() => {
+      try {
+        window.location.replace("healthpilot://oauth-success");
+      } catch (err) {
+        console.error("Failed to redirect to app:", err);
+      }
+    }, 1000);
+    
+    return () => clearTimeout(timer);
   }, []);
 
   const handleManualReturn = () => {
-    window.location.href = "healthpilot://oauth-success";
+    try {
+      window.location.replace("healthpilot://oauth-success");
+    } catch (err) {
+      console.error("Failed to redirect to app:", err);
+      alert("Please close this window and return to the app");
+    }
   };
 
   return (
@@ -32,18 +43,27 @@ export default function OAuthSuccess() {
             You've successfully logged in to HealthPilot.
           </p>
           <p className="text-sm text-gray-500">
-            Returning to the app...
+            Tap the button below to return to the app
           </p>
+          <a 
+            href="healthpilot://oauth-success"
+            className="block w-full"
+          >
+            <Button
+              className="w-full bg-[#00E0C6] text-[#0A0F1F] hover:bg-[#00E0C6]/90"
+              data-testid="button-return-to-app"
+            >
+              Return to App
+            </Button>
+          </a>
           <Button
             onClick={handleManualReturn}
-            className="w-full bg-[#00E0C6] text-[#0A0F1F] hover:bg-[#00E0C6]/90"
-            data-testid="button-return-to-app"
+            variant="outline"
+            className="w-full"
+            data-testid="button-return-alt"
           >
-            Return to App
+            Alternative: Tap Here
           </Button>
-          <p className="text-xs text-gray-600">
-            If the app doesn't open automatically, tap the button above.
-          </p>
         </CardContent>
       </Card>
     </div>
