@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Upload, FileText, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { queryClient } from "@/lib/queryClient";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 export function HealthRecordUpload() {
@@ -20,20 +20,13 @@ export function HealthRecordUpload() {
       const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minutes
 
       try {
-        const res = await fetch("/api/health-records/upload", {
+        const res = await apiRequest("/api/health-records/upload", {
           method: "POST",
           body: formData,
-          credentials: "include",
           signal: controller.signal,
         });
 
         clearTimeout(timeoutId);
-
-        if (!res.ok) {
-          const text = await res.text();
-          throw new Error(text || "Upload failed");
-        }
-
         return res.json();
       } catch (error: any) {
         clearTimeout(timeoutId);

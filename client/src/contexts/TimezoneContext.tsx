@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { apiRequest } from "@/lib/queryClient";
 
 interface TimezoneContextType {
   timezone: string;
@@ -15,7 +16,7 @@ export function TimezoneProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const fetchTimezone = async () => {
       try {
-        const response = await fetch("/api/user/settings");
+        const response = await apiRequest("/api/user/settings");
         if (response.ok) {
           const data = await response.json();
           if (data.timezone) {

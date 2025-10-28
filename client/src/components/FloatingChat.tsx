@@ -49,15 +49,7 @@ export function VoiceChatModal({ isOpen, onClose, context }: VoiceChatModalProps
 
       // Get authentication token from backend
       console.log("🔑 Requesting authentication token...");
-      const tokenResponse = await fetch('/api/voice-chat/token', {
-        method: 'POST',
-        credentials: 'include',
-      });
-
-      if (!tokenResponse.ok) {
-        throw new Error('Failed to get authentication token');
-      }
-
+      const tokenResponse = await apiRequest('/api/voice-chat/token', { method: 'POST' });
       const { token } = await tokenResponse.json();
       console.log("✅ Got token, connecting to WebSocket...");
 

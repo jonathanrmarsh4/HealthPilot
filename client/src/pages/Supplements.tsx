@@ -29,12 +29,7 @@ export default function Supplements() {
   });
 
   const { data: recommendations = [], isLoading: recommendationsLoading } = useQuery<SupplementRecommendation[]>({
-    queryKey: ["/api/supplement-recommendations"],
-    queryFn: async () => {
-      const res = await fetch("/api/supplement-recommendations?status=pending");
-      if (!res.ok) throw new Error("Failed to fetch recommendations");
-      return res.json();
-    }
+    queryKey: ["/api/supplement-recommendations?status=pending"]
   });
 
   const form = useForm<z.infer<typeof supplementFormSchema>>({

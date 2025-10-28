@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Mic, MicOff, Phone, PhoneOff, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { PremiumFeature } from "@/components/PremiumFeature";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -53,15 +54,7 @@ export default function VoiceChat() {
 
       // Get authentication token from backend
       console.log("🔑 Requesting authentication token...");
-      const tokenResponse = await fetch('/api/voice-chat/token', {
-        method: 'POST',
-        credentials: 'include',
-      });
-
-      if (!tokenResponse.ok) {
-        throw new Error('Failed to get authentication token');
-      }
-
+      const tokenResponse = await apiRequest('/api/voice-chat/token', { method: 'POST' });
       const { token } = await tokenResponse.json();
       console.log("✅ Got token, connecting to WebSocket...");
 

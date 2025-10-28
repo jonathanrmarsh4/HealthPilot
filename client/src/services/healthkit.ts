@@ -350,17 +350,14 @@ export class HealthKitService {
       console.log('Health data retrieved:', healthData);
       
       // POST to /api/apple-health/sync endpoint
-      const response = await fetch('/api/apple-health/sync', {
+      const { apiRequest } = await import('@/lib/queryClient');
+      const response = await apiRequest('/api/apple-health/sync', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(healthData),
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to sync health data to backend');
-      }
 
       console.log('Health data synced successfully');
     } catch (error) {

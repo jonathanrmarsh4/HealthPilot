@@ -94,8 +94,7 @@ export default function ReadinessSettings() {
   // Auto-calculate baselines mutation
   const autoCalculateMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch("/api/training/readiness/auto-calculate-baselines");
-      if (!response.ok) throw new Error("Failed to calculate baselines");
+      const response = await apiRequest("/api/training/readiness/auto-calculate-baselines");
       return await response.json();
     },
     onSuccess: (data) => {

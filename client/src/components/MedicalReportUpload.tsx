@@ -22,16 +22,10 @@ export function MedicalReportUpload() {
       const formData = new FormData();
       formData.append('file', file);
       
-      const response = await fetch('/api/medical-reports/upload', {
+      const response = await apiRequest('/api/medical-reports/upload', {
         method: 'POST',
         body: formData,
-        credentials: 'include',
       });
-      
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Upload failed');
-      }
       
       return response.json();
     },
