@@ -15,41 +15,59 @@ export default function Login() {
   const [isProcessing, setIsProcessing] = useState(false);
   const pollIntervalRef = useRef<number | null>(null);
 
-  // Poll for auth token when app resumes
-  const checkForPendingToken = async () => {
+  // Poll server for auth token using device ID
+  const checkForPendingAuth = async () => {
     try {
-      const { value: token } = await Preferences.get({ key: 'pendingAuthToken' });
+      // Get device ID (create one if it doesn't exist)
+      let { value: deviceId } = await Preferences.get({ key: 'deviceId' });
       
-      if (token) {
-        console.log('[Login] Found pending auth token, exchanging...');
-        setIsProcessing(true);
-        
-        // Clear the token immediately
-        await Preferences.remove({ key: 'pendingAuthToken' });
-        
-        // Exchange token for session
-        const response = await apiRequest('/api/mobile-auth', {
-          method: 'POST',
-          body: JSON.stringify({ token }),
-          headers: { 'Content-Type': 'application/json' }
-        });
-        
-        if (!response.ok) {
-          throw new Error('Failed to exchange token');
-        }
-        
-        const data = await response.json();
-        console.log('[Login] Session created successfully');
-        
-        // Store session token
-        await SecureStorage.set('sessionToken', data.sessionToken);
-        
-        // Invalidate queries and redirect
-        await queryClient.invalidateQueries();
-        window.location.href = '/';
+      if (!deviceId) {
+        deviceId = `${Date.now()}-${Math.random().toString(36).substring(7)}`;
+        await Preferences.set({ key: 'deviceId', value: deviceId });
+        console.log('[Login] Created new device ID:', deviceId);
       }
+      
+      console.log('[Login] Polling server with device ID...');
+      
+      // Poll the server using device ID
+      const response = await fetch(`/api/mobile-auth/poll?deviceId=${encodeURIComponent(deviceId)}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to poll for auth');
+      }
+      
+      const data = await response.json();
+      
+      if (!data.ready) {
+        // Not ready yet, keep polling silently
+        return;
+      }
+      
+      console.log('[Login] Auth ready, exchanging token...');
+      setIsProcessing(true);
+      
+      // Exchange token for session
+      const authResponse = await apiRequest('/api/mobile-auth', {
+        method: 'POST',
+        body: JSON.stringify({ token: data.token }),
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      if (!authResponse.ok) {
+        throw new Error('Failed to exchange token');
+      }
+      
+      const authData = await authResponse.json();
+      console.log('[Login] Session created successfully');
+      
+      // Store session token
+      await SecureStorage.set('sessionToken', authData.sessionToken);
+      
+      // Invalidate queries and redirect
+      await queryClient.invalidateQueries();
+      window.location.href = '/';
     } catch (error) {
-      console.error('[Login] Error checking for token:', error);
+      console.error('[Login] Error checking for auth:', error);
       setIsProcessing(false);
     }
   };
@@ -58,19 +76,19 @@ export default function Login() {
     if (!isNativePlatform()) return;
 
     // Check immediately when component mounts
-    checkForPendingToken();
+    checkForPendingAuth();
 
     // Listen for app state changes (when user returns from browser)
     const stateListener = CapacitorApp.addListener('appStateChange', ({ isActive }) => {
       if (isActive) {
-        console.log('[Login] App became active, checking for pending token...');
-        checkForPendingToken();
+        console.log('[Login] App became active, checking for pending auth...');
+        checkForPendingAuth();
       }
     });
 
     // Also poll every second while on this page
     pollIntervalRef.current = window.setInterval(() => {
-      checkForPendingToken();
+      checkForPendingAuth();
     }, 1000);
 
     return () => {
@@ -83,7 +101,16 @@ export default function Login() {
 
   const handleLogin = async () => {
     if (isNativePlatform()) {
-      const loginUrl = `${window.location.origin}/api/login`;
+      // Get or create device ID
+      let { value: deviceId } = await Preferences.get({ key: 'deviceId' });
+      
+      if (!deviceId) {
+        deviceId = `${Date.now()}-${Math.random().toString(36).substring(7)}`;
+        await Preferences.set({ key: 'deviceId', value: deviceId });
+        console.log('[Login] Created new device ID for auth:', deviceId);
+      }
+      
+      const loginUrl = `${window.location.origin}/api/login?deviceId=${encodeURIComponent(deviceId)}`;
       await Browser.open({
         url: loginUrl,
         presentationStyle: 'popover',

@@ -78,6 +78,22 @@ async function upsertUser(
 // In-memory store for mobile auth tokens (in production, use Redis or database)
 const mobileAuthTokens = new Map<string, { userId: string, expiresAt: number }>();
 
+// In-memory store for pending auth sessions (polling mechanism)
+const pendingAuthSessions = new Map<string, { token: string; timestamp: number }>();
+
+// Clean up expired pending sessions every minute
+setInterval(() => {
+  const now = Date.now();
+  const fiveMinutesAgo = now - 5 * 60 * 1000;
+  
+  for (const [key, session] of pendingAuthSessions.entries()) {
+    if (session.timestamp < fiveMinutesAgo) {
+      pendingAuthSessions.delete(key);
+      console.log(`🧹 Cleaned up expired pending session: ${key}`);
+    }
+  }
+}, 60 * 1000);
+
 // Generate a secure random token for mobile auth
 function generateMobileAuthToken(userId: string): string {
   const token = crypto.randomBytes(32).toString('base64url');
@@ -216,9 +232,13 @@ export async function setupAuth(app: Express) {
         const codeVerifier = client.randomPKCECodeVerifier();
         const codeChallenge = await client.calculatePKCECodeChallenge(codeVerifier);
         
-        // Embed the code verifier in the state parameter (base64 encoded)
+        // Get device ID from query parameter
+        const deviceId = req.query.deviceId as string | undefined;
+        
+        // Embed the code verifier and deviceId in the state parameter (base64 encoded)
         const stateData = {
           mobile: true,
+          deviceId: deviceId,
           verifier: codeVerifier
         };
         const state = Buffer.from(JSON.stringify(stateData)).toString('base64url');
@@ -307,9 +327,23 @@ export async function setupAuth(app: Express) {
         const userId = claims.sub;
         if (userId) {
           const token = generateMobileAuthToken(userId);
-          console.log("📱 Generated mobile auth token for user:", userId);
-          // Redirect to a web page that will then deep link into the app
-          const redirectUrl = `https://${domain}/mobile-auth-redirect?token=${token}`;
+          
+          // Get deviceId from state if available
+          const deviceId = stateData.deviceId;
+          
+          if (deviceId) {
+            // Store token for polling with deviceId
+            pendingAuthSessions.set(deviceId, {
+              token,
+              timestamp: Date.now()
+            });
+            
+            console.log("📱 Generated mobile auth token for user:", userId);
+            console.log("📱 Stored pending session for device:", deviceId);
+          }
+          
+          // Redirect to success page
+          const redirectUrl = `https://${domain}/mobile-auth-redirect`;
           console.log("📱 Redirecting to:", redirectUrl);
           return res.redirect(redirectUrl);
         } else {
@@ -363,6 +397,28 @@ export async function setupAuth(app: Express) {
   });
 
   // Endpoint for mobile app to exchange token for session
+  // Polling endpoint for mobile auth
+  app.get("/api/mobile-auth/poll", async (req, res) => {
+    const { deviceId } = req.query;
+    
+    if (!deviceId || typeof deviceId !== 'string') {
+      return res.status(400).json({ error: "Missing device ID" });
+    }
+    
+    const pending = pendingAuthSessions.get(deviceId);
+    
+    if (!pending) {
+      // No session found - might be expired or not ready yet
+      return res.json({ ready: false });
+    }
+    
+    // Remove the session and return the token
+    pendingAuthSessions.delete(deviceId);
+    console.log(`📱 Device ${deviceId} retrieved token, logging in`);
+    
+    return res.json({ ready: true, token: pending.token });
+  });
+
   app.post("/api/mobile-auth", async (req, res) => {
     const { token } = req.body;
     
