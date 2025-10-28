@@ -103,6 +103,7 @@ function Router() {
       <Route path="/admin/cost" component={AdminCostDashboard} />
       <Route path="/admin/ai-audit" component={AIAuditLog} />
       <Route path="/mobile-diagnostics" component={NativeDiagnostics} />
+      <Route path="/mobile-auth-redirect" component={MobileAuthRedirect} />
       <Route path="/logged-out" component={Logout} />
       <Route component={NotFound} />
     </Switch>

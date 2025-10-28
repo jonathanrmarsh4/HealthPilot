@@ -308,7 +308,8 @@ export async function setupAuth(app: Express) {
         if (userId) {
           const token = generateMobileAuthToken(userId);
           console.log("📱 Generated mobile auth token for user:", userId);
-          return res.redirect(`healthpilot://auth?token=${token}`);
+          // Redirect to a web page that will then deep link into the app
+          return res.redirect(`/mobile-auth-redirect?token=${token}`);
         } else {
           console.error("❌ No user ID in claims");
           return res.redirect("/api/login");
