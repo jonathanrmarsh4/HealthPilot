@@ -309,7 +309,9 @@ export async function setupAuth(app: Express) {
           const token = generateMobileAuthToken(userId);
           console.log("📱 Generated mobile auth token for user:", userId);
           // Redirect to a web page that will then deep link into the app
-          return res.redirect(`/mobile-auth-redirect?token=${token}`);
+          const redirectUrl = `https://${domain}/mobile-auth-redirect?token=${token}`;
+          console.log("📱 Redirecting to:", redirectUrl);
+          return res.redirect(redirectUrl);
         } else {
           console.error("❌ No user ID in claims");
           return res.redirect("/api/login");
