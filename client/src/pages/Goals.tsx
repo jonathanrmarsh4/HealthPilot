@@ -17,6 +17,7 @@ import {
   AlertCircle,
   Clock,
   Sparkles,
+  MessageCircle,
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -378,14 +379,6 @@ export default function Goals() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleEditClick(goal)}
-                          data-testid={`button-edit-goal-${goal.id}`}
-                        >
-                          <Edit2 className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
                           onClick={() => deleteMutation.mutate(goal.id)}
                           disabled={deleteMutation.isPending}
                           data-testid={`button-delete-goal-${goal.id}`}
@@ -439,28 +432,22 @@ export default function Goals() {
               <Target className="h-16 w-16 text-muted-foreground mb-4" />
               <h3 className="text-lg font-semibold mb-2">No goals yet</h3>
               <p className="text-muted-foreground mb-6 max-w-sm">
-                Set your first health goal to start tracking your progress. The AI can also suggest goals based on your health data.
+                Chat with your AI health coach to create personalized health goals based on your data and motivations.
               </p>
-              <div className="flex gap-2">
-                <Button onClick={() => setIsDialogOpen(true)} data-testid="button-create-first-goal">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create Goal
-                </Button>
-                <Button 
-                  variant="outline"
-                  onClick={() => {
-                    const isPremium = user?.subscriptionTier === 'premium' || user?.subscriptionTier === 'enterprise';
-                    if (isPremium) {
-                      openVoiceChat('goals');
-                    } else {
-                      openChat('goals');
-                    }
-                  }}
-                >
-                  <MessageCircle className="h-4 w-4 mr-2" />
-                  Ask AI for Help
-                </Button>
-              </div>
+              <Button 
+                onClick={() => {
+                  const isPremium = user?.subscriptionTier === 'premium' || user?.subscriptionTier === 'enterprise';
+                  if (isPremium) {
+                    openVoiceChat('goals');
+                  } else {
+                    openChat('goals');
+                  }
+                }}
+                data-testid="button-create-first-goal"
+              >
+                <Sparkles className="h-4 w-4 mr-2" />
+                Create Goal with AI Coach
+              </Button>
             </CardContent>
           </Card>
         )}
