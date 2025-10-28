@@ -10,23 +10,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
   Target,
-  Plus,
   Trash2,
   Calendar,
-  Edit2,
   CheckCircle2,
   AlertCircle,
   Clock,
-  MessageCircle,
   Sparkles,
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -34,11 +23,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Link } from "wouter";
-import { GoalForm } from "@/components/goals/GoalForm";
 import { GoalInsightCard } from "@/components/goals/GoalInsightCard";
-import { NLGoalDialog } from "@/components/goals/NLGoalDialog";
-import { GoalConversationDialog } from "@/components/goals/GoalConversationDialog";
 import { getMetric } from "@/lib/metrics/registry";
 import { useChat } from "@/contexts/ChatContext";
 import { useAuth } from "@/hooks/useAuth";
@@ -163,60 +148,11 @@ function GoalV2Card({
 
 export default function Goals() {
   const { toast } = useToast();
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
   const { openChat, openVoiceChat } = useChat();
   const { user } = useAuth();
 
   const { data: goals, isLoading } = useQuery<Goal[]>({
     queryKey: ["/api/goals"],
-  });
-
-  const createMutation = useMutation({
-    mutationFn: async (data: any) => {
-      const res = await apiRequest("POST", "/api/goals", data);
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/goals"] });
-      toast({
-        title: "Success",
-        description: "Goal created successfully!",
-      });
-      setIsDialogOpen(false);
-      setEditingGoal(null);
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to create goal",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: async (data: any & { id: string }) => {
-      const { id, ...payload } = data;
-      const res = await apiRequest("PATCH", `/api/goals/${id}`, payload);
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/goals"] });
-      toast({
-        title: "Success",
-        description: "Goal updated successfully!",
-      });
-      setIsDialogOpen(false);
-      setEditingGoal(null);
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to update goal",
-        variant: "destructive",
-      });
-    },
   });
 
   const deleteMutation = useMutation({
@@ -239,26 +175,6 @@ export default function Goals() {
       });
     },
   });
-
-  const handleFormSubmit = (data: any) => {
-    if (editingGoal) {
-      updateMutation.mutate({ ...data, id: editingGoal.id });
-    } else {
-      createMutation.mutate(data);
-    }
-  };
-
-  const handleEditClick = (goal: Goal) => {
-    setEditingGoal(goal);
-    setIsDialogOpen(true);
-  };
-
-  const handleDialogClose = (open: boolean) => {
-    setIsDialogOpen(open);
-    if (!open) {
-      setEditingGoal(null);
-    }
-  };
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, string> = {
@@ -384,51 +300,21 @@ export default function Goals() {
               Track your health and fitness progress
             </p>
           </div>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={() => {
-                const isPremium = user?.subscriptionTier === 'premium' || user?.subscriptionTier === 'enterprise';
-                if (isPremium) {
-                  openVoiceChat('goals');
-                } else {
-                  openChat('goals');
-                }
-              }}
-              className="gap-2"
-              data-testid="button-ai-suggestions"
-            >
-              <Sparkles className="h-4 w-4" />
-              Goal Setting with AI
-            </Button>
-            <NLGoalDialog onSuccess={() => queryClient.invalidateQueries({ queryKey: ["/api/goals"] })} />
-            <GoalConversationDialog onSuccess={() => queryClient.invalidateQueries({ queryKey: ["/api/goals"] })} />
-            <Dialog open={isDialogOpen} onOpenChange={handleDialogClose}>
-              <DialogTrigger asChild>
-                <Button variant="outline" className="gap-2" data-testid="button-create-goal">
-                  <Plus className="h-4 w-4" />
-                  Manual Goal
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>
-                    {editingGoal ? "Edit Goal" : "Create New Goal"}
-                  </DialogTitle>
-                  <DialogDescription>
-                    {editingGoal
-                      ? "Update your health goal"
-                      : "Set a new health goal to track your progress"}
-                  </DialogDescription>
-                </DialogHeader>
-                <GoalForm
-                  goal={editingGoal}
-                  onSubmit={handleFormSubmit}
-                  isPending={createMutation.isPending || updateMutation.isPending}
-                />
-              </DialogContent>
-            </Dialog>
-          </div>
+          <Button
+            onClick={() => {
+              const isPremium = user?.subscriptionTier === 'premium' || user?.subscriptionTier === 'enterprise';
+              if (isPremium) {
+                openVoiceChat('goals');
+              } else {
+                openChat('goals');
+              }
+            }}
+            className="gap-2"
+            data-testid="button-create-goal-with-ai"
+          >
+            <Sparkles className="h-4 w-4" />
+            Create Goal with AI Coach
+          </Button>
         </div>
 
         {/* Goals List */}
