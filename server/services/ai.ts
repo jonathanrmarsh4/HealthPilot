@@ -993,6 +993,48 @@ export async function chatWithHealthCoach(
     
     if (context.currentPage) {
       contextSection += `- Currently viewing: ${context.currentPage}\n`;
+      
+      // Special 5 Whys technique for goal creation
+      if (context.currentPage === 'goals') {
+        contextSection += `\n🎯 GOAL SETTING PROTOCOL - 5 WHYS TECHNIQUE:\n`;
+        contextSection += `You are in GOAL DISCOVERY MODE. Your primary task is to help the user define a CLEAR, MEASURABLE, and PERSONALLY MEANINGFUL health goal.\n\n`;
+        contextSection += `**CRITICAL**: DO NOT create a goal until you have deeply understood the user's true motivation through the 5 Whys technique.\n\n`;
+        contextSection += `**PROCESS**:\n`;
+        contextSection += `1. When the user first expresses interest in creating a goal, acknowledge it warmly\n`;
+        contextSection += `2. Start the 5 Whys discovery process:\n`;
+        contextSection += `   - Ask WHY this goal matters to them\n`;
+        contextSection += `   - For each answer they give, dig deeper with another "why"\n`;
+        contextSection += `   - Continue until you've asked WHY approximately 5 times (can be 4-6 depending on conversation flow)\n`;
+        contextSection += `   - The goal is to uncover their CORE MOTIVATION (not surface-level desires)\n\n`;
+        contextSection += `3. Throughout the conversation, also gather:\n`;
+        contextSection += `   - Their current fitness level / health status\n`;
+        contextSection += `   - Time available per week\n`;
+        contextSection += `   - Any constraints (injuries, medical conditions, equipment access)\n`;
+        contextSection += `   - When they want to achieve this by (target date)\n`;
+        contextSection += `   - Previous attempts and what happened\n\n`;
+        contextSection += `4. ONLY AFTER you have:\n`;
+        contextSection += `   - Uncovered their deep motivation through 5 Whys\n`;
+        contextSection += `   - Gathered sufficient context about their situation\n`;
+        contextSection += `   - Confirmed they want to proceed\n`;
+        contextSection += `   ...THEN use the CREATE_GOAL marker to save the goal\n\n`;
+        contextSection += `**EXAMPLE 5 WHYS FLOW**:\n`;
+        contextSection += `User: "I want to lose 10kg"\n`;
+        contextSection += `You: "That's a great goal! Why is losing 10kg important to you?"\n`;
+        contextSection += `User: "I want to look better"\n`;
+        contextSection += `You: "I understand. Why does looking better matter to you right now?"\n`;
+        contextSection += `User: "I have a wedding coming up"\n`;
+        contextSection += `You: "A wedding - that's exciting! Why is it important for you to look your best at this wedding?"\n`;
+        contextSection += `User: "It's my own wedding, and I want to feel confident"\n`;
+        contextSection += `You: "Your wedding day - what a special milestone! Why does feeling confident on that day matter so much to you?"\n`;
+        contextSection += `User: "I want to start this new chapter of my life feeling like the best version of myself"\n`;
+        contextSection += `You: "That's beautiful - starting your marriage as your best self. It sounds like this is about more than just the number on the scale - it's about stepping into this new chapter with confidence and self-love. When is your wedding?"\n\n`;
+        contextSection += `**IMPORTANT**:\n`;
+        contextSection += `- Be natural and conversational, not robotic\n`;
+        contextSection += `- Each "why" should build on their previous answer\n`;
+        contextSection += `- Show empathy and understanding\n`;
+        contextSection += `- Help them see how their deep motivation connects to the goal\n`;
+        contextSection += `- Once you understand the TRUE WHY, craft a goal that reflects both the measurable outcome AND their deeper purpose\n\n`;
+      }
     }
     
     // Display personal memories for relationship building
