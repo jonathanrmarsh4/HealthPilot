@@ -60,6 +60,9 @@ import { NativeDiagnostics } from "@/mobile/features/diagnostics/NativeDiagnosti
 import { Loader2, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
+import { App as CapacitorApp } from '@capacitor/app';
+import { SecureStorage } from '@aparajita/capacitor-secure-storage';
+import { isNativePlatform } from "@/mobile/MobileBootstrap";
 
 function Router() {
   return (
@@ -290,6 +293,63 @@ function AppContent() {
     queryKey: ["/api/auth/user"],
     retry: false,
   });
+
+  // Global deep link handler for mobile OAuth
+  useEffect(() => {
+    if (!isNativePlatform()) return;
+
+    const handleAppUrlOpen = async (event: { url: string }) => {
+      console.log('[App] Deep link received:', event.url);
+      
+      // Check if this is an auth callback
+      if (event.url.startsWith('healthpilot://auth')) {
+        try {
+          const url = new URL(event.url);
+          const token = url.searchParams.get('token');
+          
+          if (!token) {
+            console.error('[App] No token in deep link');
+            return;
+          }
+          
+          console.log('[App] Exchanging token for session...');
+          
+          // Exchange the one-time token for a long-lived session token
+          const response = await apiRequest('/api/mobile-auth', {
+            method: 'POST',
+            body: JSON.stringify({ token }),
+            headers: { 'Content-Type': 'application/json' }
+          });
+          
+          if (!response.ok) {
+            throw new Error('Failed to exchange token');
+          }
+          
+          const data = await response.json();
+          console.log('[App] Session created successfully');
+          
+          // Store the session token securely
+          await SecureStorage.set('sessionToken', data.sessionToken);
+          
+          // Invalidate queries to fetch fresh data with new auth
+          await queryClient.invalidateQueries();
+          
+          // Redirect to home
+          window.location.href = '/';
+        } catch (error) {
+          console.error('[App] Error during token exchange:', error);
+        }
+      }
+    };
+
+    console.log('[App] Setting up global deep link listener');
+    const listener = CapacitorApp.addListener('appUrlOpen', handleAppUrlOpen);
+
+    return () => {
+      console.log('[App] Removing global deep link listener');
+      listener.remove();
+    };
+  }, []);
 
   // Check current path
   const currentPath = window.location.pathname;

@@ -1,74 +1,12 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Activity, Heart, Dumbbell, Sparkles, Shield, Brain, TrendingUp, Apple, Lock, Check, Loader2 } from "lucide-react";
+import { Activity, Heart, Dumbbell, Sparkles, Shield, Brain, TrendingUp, Apple, Lock, Check } from "lucide-react";
 import logo from "@assets/HealthPilot_Logo_1759904141260.png";
 import { isNativePlatform } from "@/mobile/MobileBootstrap";
 import { Browser } from '@capacitor/browser';
-import { App as CapacitorApp } from '@capacitor/app';
-import { SecureStorage } from '@aparajita/capacitor-secure-storage';
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useEffect, useState } from "react";
 
 export default function Login() {
-  const [isProcessing, setIsProcessing] = useState(false);
-
-  useEffect(() => {
-    if (!isNativePlatform()) return;
-
-    const handleAppUrlOpen = async (event: { url: string }) => {
-      console.log('[Login] App URL opened:', event.url);
-      
-      // Check if this is an auth callback
-      if (event.url.startsWith('healthpilot://auth')) {
-        try {
-          setIsProcessing(true);
-          const url = new URL(event.url);
-          const token = url.searchParams.get('token');
-          
-          if (!token) {
-            console.error('[Login] No token in URL');
-            setIsProcessing(false);
-            return;
-          }
-          
-          console.log('[Login] Exchanging token for session...');
-          
-          // Exchange the one-time token for a long-lived session token
-          const response = await apiRequest('/api/mobile-auth', {
-            method: 'POST',
-            body: JSON.stringify({ token }),
-            headers: { 'Content-Type': 'application/json' }
-          });
-          
-          if (!response.ok) {
-            throw new Error('Failed to exchange token');
-          }
-          
-          const data = await response.json();
-          console.log('[Login] Session created successfully');
-          
-          // Store the session token securely
-          await SecureStorage.set('sessionToken', data.sessionToken);
-          
-          // Invalidate queries to fetch fresh data with new auth
-          await queryClient.invalidateQueries();
-          
-          // Redirect to home
-          window.location.href = '/';
-        } catch (error) {
-          console.error('[Login] Error during token exchange:', error);
-          setIsProcessing(false);
-        }
-      }
-    };
-
-    const listener = CapacitorApp.addListener('appUrlOpen', handleAppUrlOpen);
-
-    return () => {
-      listener.remove();
-    };
-  }, []);
 
   const handleLogin = async () => {
     if (isNativePlatform()) {
