@@ -62,6 +62,7 @@ import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { App as CapacitorApp } from '@capacitor/app';
 import { SecureStorage } from '@aparajita/capacitor-secure-storage';
+import { Preferences } from '@capacitor/preferences';
 import { isNativePlatform } from "@/mobile/MobileBootstrap";
 
 function Router() {
@@ -192,7 +193,24 @@ function AppLayout() {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => window.location.href = "/api/logout"}
+                onClick={async () => {
+                  if (isNativePlatform()) {
+                    // Mobile logout: Clear local session
+                    try {
+                      console.log('[Logout] Clearing mobile session...');
+                      await SecureStorage.remove('sessionToken');
+                      await Preferences.remove({ key: 'deviceId' });
+                      console.log('[Logout] Mobile session cleared, redirecting to login');
+                      window.location.href = "/login";
+                    } catch (error) {
+                      console.error('[Logout] Error clearing mobile session:', error);
+                      window.location.href = "/login";
+                    }
+                  } else {
+                    // Web logout: Use server endpoint
+                    window.location.href = "/api/logout";
+                  }
+                }}
                 data-testid="button-logout"
               >
                 <LogOut className="h-5 w-5" />
