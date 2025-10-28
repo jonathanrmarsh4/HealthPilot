@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Mic, MicOff, Phone, PhoneOff, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, getWebSocketBaseUrl, getWebSocketProtocol } from "@/lib/queryClient";
 import { PremiumFeature } from "@/components/PremiumFeature";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -58,9 +58,10 @@ export default function VoiceChat() {
       const { token } = await tokenResponse.json();
       console.log("✅ Got token, connecting to WebSocket...");
 
-      // Connect to WebSocket with token
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const wsUrl = `${protocol}//${window.location.host}/api/voice-chat?token=${token}`;
+      // Connect to WebSocket with token (mobile-aware URL construction)
+      const protocol = getWebSocketProtocol();
+      const host = getWebSocketBaseUrl();
+      const wsUrl = `${protocol}//${host}/api/voice-chat?token=${token}`;
       
       console.log(`🔌 Connecting to: ${wsUrl}`);
       const ws = new WebSocket(wsUrl);

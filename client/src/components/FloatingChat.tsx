@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest, queryClient, getWebSocketBaseUrl, getWebSocketProtocol } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -53,9 +53,10 @@ export function VoiceChatModal({ isOpen, onClose, context }: VoiceChatModalProps
       const { token } = await tokenResponse.json();
       console.log("✅ Got token, connecting to WebSocket...");
 
-      // Connect to WebSocket with token
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const wsUrl = `${protocol}//${window.location.host}/api/voice-chat?token=${token}`;
+      // Connect to WebSocket with token (mobile-aware URL construction)
+      const protocol = getWebSocketProtocol();
+      const host = getWebSocketBaseUrl();
+      const wsUrl = `${protocol}//${host}/api/voice-chat?token=${token}`;
       
       console.log(`🔌 Connecting to: ${wsUrl}`);
       const ws = new WebSocket(wsUrl);

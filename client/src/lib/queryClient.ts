@@ -28,21 +28,95 @@ async function getAuthHeaders(): Promise<HeadersInit> {
   return headers;
 }
 
+// Get the API base URL - handles mobile vs web
+export function getApiBaseUrl(): string {
+  if (isNativePlatform()) {
+    // On mobile, use the Capacitor config hostname with https
+    return 'https://0d420476-b7bb-4cc4-9f5a-da35f5e473e4-00-1n1tyyvrb5uvz.pike.replit.dev';
+  } else {
+    // On web, use window.location.origin
+    return window.location.origin;
+  }
+}
+
+// Get the WebSocket base URL - handles mobile vs web
+export function getWebSocketBaseUrl(): string {
+  if (isNativePlatform()) {
+    // On mobile, use the Capacitor config hostname
+    return '0d420476-b7bb-4cc4-9f5a-da35f5e473e4-00-1n1tyyvrb5uvz.pike.replit.dev';
+  } else {
+    // On web, use window.location.host
+    return window.location.host;
+  }
+}
+
+// Get the WebSocket protocol - handles mobile vs web
+export function getWebSocketProtocol(): string {
+  if (isNativePlatform()) {
+    // On mobile, always use wss (secure WebSocket)
+    return 'wss:';
+  } else {
+    // On web, match the current protocol
+    return window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  }
+}
+
+// Overload signatures for apiRequest
+export async function apiRequest(
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
+  url: string,
+  body?: any,
+): Promise<Response>;
 export async function apiRequest(
   url: string,
   options?: RequestInit,
+): Promise<Response>;
+
+// Implementation
+export async function apiRequest(
+  methodOrUrl: string,
+  urlOrOptions?: string | RequestInit,
+  body?: any,
 ): Promise<Response> {
   const authHeaders = await getAuthHeaders();
-  
-  const res = await fetch(url, {
-    method: options?.method || 'GET',
-    headers: {
+  let url: string;
+  let options: RequestInit;
+
+  // Determine which signature was used
+  if (typeof urlOrOptions === 'string') {
+    // Called as apiRequest(method, url, body)
+    const method = methodOrUrl;
+    url = urlOrOptions;
+    options = {
+      method,
+      headers: {
+        ...authHeaders,
+      },
+    };
+    
+    if (body !== undefined) {
+      options.headers = {
+        ...options.headers,
+        'Content-Type': 'application/json',
+      };
+      options.body = JSON.stringify(body);
+    }
+  } else {
+    // Called as apiRequest(url, options)
+    url = methodOrUrl;
+    options = urlOrOptions || {};
+    options.headers = {
       ...authHeaders,
-      ...(options?.headers || {}),
-    },
-    body: options?.body,
+      ...(options.headers || {}),
+    };
+  }
+
+  // Construct full URL for mobile
+  const fullUrl = url.startsWith('http') ? url : `${getApiBaseUrl()}${url}`;
+
+  const res = await fetch(fullUrl, {
+    ...options,
     credentials: "include",
-    signal: options?.signal,
   });
 
   await throwIfResNotOk(res);
@@ -56,8 +130,12 @@ export const getQueryFn: <T>(options: {
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
     const authHeaders = await getAuthHeaders();
+    const relativePath = queryKey.join("/") as string;
     
-    const res = await fetch(queryKey.join("/") as string, {
+    // Construct full URL for mobile
+    const fullUrl = relativePath.startsWith('http') ? relativePath : `${getApiBaseUrl()}${relativePath}`;
+    
+    const res = await fetch(fullUrl, {
       headers: authHeaders,
       credentials: "include",
     });
