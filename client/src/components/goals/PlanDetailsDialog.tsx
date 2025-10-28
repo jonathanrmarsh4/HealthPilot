@@ -2,6 +2,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Separator } from "@/components/ui/separator";
 import {
   CheckCircle2,
   Circle,
@@ -11,9 +12,11 @@ import {
   TrendingUp,
   Dumbbell,
   Apple,
-  Pill
+  Pill,
+  ChevronRight
 } from "lucide-react";
 import { format } from "date-fns";
+import type { GoalPlanContent } from "@shared/types/goal-plans";
 
 interface GoalMetric {
   id: string;
@@ -216,8 +219,142 @@ export function PlanDetailsDialog({
                       </p>
                     )}
 
-                    {/* Training Plan Details */}
-                    {plan.planType === 'training' && plan.contentJson?.weekly_structure && (
+                    {/* v2.0 Training Plan - Phased Structure */}
+                    {plan.planType === 'training' && plan.contentJson?.version === '2.0' && (
+                      <div className="space-y-4">
+                        {plan.contentJson.durationWeeks && (
+                          <div className="text-sm">
+                            <span className="font-medium">Duration:</span> {plan.contentJson.durationWeeks} weeks
+                          </div>
+                        )}
+
+                        {/* Phases */}
+                        {plan.contentJson.phases && Array.isArray(plan.contentJson.phases) && plan.contentJson.phases.length > 0 ? (
+                          (plan.contentJson as GoalPlanContent).phases.map((phase, phaseIdx) => (
+                          <div key={phaseIdx} className="space-y-3">
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="bg-primary/10">
+                                Phase {phase.phaseNumber}
+                              </Badge>
+                              <h4 className="font-semibold">{phase.name}</h4>
+                            </div>
+                            
+                            {phase.description && (
+                              <p className="text-sm text-muted-foreground">{phase.description}</p>
+                            )}
+
+                            {/* Focus Areas */}
+                            {phase.focusAreas && phase.focusAreas.length > 0 && (
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-xs font-medium text-muted-foreground">Focus:</span>
+                                {phase.focusAreas.map((focus, idx) => (
+                                  <Badge key={idx} variant="secondary" className="text-xs">
+                                    {focus}
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* Weeks in this Phase */}
+                            {phase.weeks && Array.isArray(phase.weeks) && phase.weeks.length > 0 ? (
+                              <div className="space-y-2 ml-4">
+                                {phase.weeks.map((week, weekIdx) => (
+                                <div key={weekIdx} className="border rounded-md p-3 space-y-2">
+                                  <div className="flex items-center justify-between">
+                                    <h5 className="text-sm font-medium">Week {week.weekNumber}</h5>
+                                    {week.sessions && Array.isArray(week.sessions) && week.sessions.length > 0 && (
+                                      <Badge variant="outline" className="text-xs">
+                                        {week.sessions.length} sessions
+                                      </Badge>
+                                    )}
+                                  </div>
+
+                                  {/* Sessions */}
+                                  {week.sessions && Array.isArray(week.sessions) && week.sessions.length > 0 ? (
+                                    <div className="space-y-1.5">
+                                      {week.sessions.map((session, sessionIdx) => (
+                                      <div 
+                                        key={sessionIdx} 
+                                        className="flex items-start gap-2 p-2 rounded bg-muted/50 text-sm"
+                                      >
+                                        <ChevronRight className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+                                        <div className="flex-1 min-w-0">
+                                          <div className="flex items-center gap-2 flex-wrap">
+                                            <span className="font-medium">{session.name}</span>
+                                            {session.duration && (
+                                              <Badge variant="secondary" className="text-xs">
+                                                {session.duration} min
+                                              </Badge>
+                                            )}
+                                            {session.type && (
+                                              <Badge variant="outline" className="text-xs capitalize">
+                                                {session.type}
+                                              </Badge>
+                                            )}
+                                          </div>
+                                          {session.description && (
+                                            <p className="text-xs text-muted-foreground mt-1">
+                                              {session.description}
+                                            </p>
+                                          )}
+                                        </div>
+                                      </div>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <div className="text-center py-3 text-muted-foreground text-xs">
+                                      <p>No sessions scheduled for this week</p>
+                                    </div>
+                                  )}
+                                </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="text-center py-4 text-muted-foreground text-sm ml-4">
+                                <p>No weeks scheduled for this phase</p>
+                              </div>
+                            )}
+
+                            {/* Phase separator */}
+                            {phaseIdx < (plan.contentJson as GoalPlanContent).phases.length - 1 && (
+                              <Separator className="my-4" />
+                            )}
+                          </div>
+                          ))
+                        ) : (
+                          <div className="text-center py-6 text-muted-foreground text-sm">
+                            <p>No training plan phases defined yet</p>
+                          </div>
+                        )}
+
+                        {/* Equipment and Guidance */}
+                        {(plan.contentJson.equipmentNeeded || plan.contentJson.strengthFocus || plan.contentJson.recoveryGuidance) && (
+                          <div className="space-y-2 mt-4 pt-4 border-t">
+                            {plan.contentJson.equipmentNeeded && (
+                              <div>
+                                <p className="text-xs font-medium text-muted-foreground mb-1">Equipment Needed:</p>
+                                <p className="text-sm">{plan.contentJson.equipmentNeeded}</p>
+                              </div>
+                            )}
+                            {plan.contentJson.strengthFocus && (
+                              <div>
+                                <p className="text-xs font-medium text-muted-foreground mb-1">Strength Focus:</p>
+                                <p className="text-sm">{plan.contentJson.strengthFocus}</p>
+                              </div>
+                            )}
+                            {plan.contentJson.recoveryGuidance && (
+                              <div>
+                                <p className="text-xs font-medium text-muted-foreground mb-1">Recovery Guidance:</p>
+                                <p className="text-sm">{plan.contentJson.recoveryGuidance}</p>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* OLD Training Plan Details - Backward Compatibility */}
+                    {plan.planType === 'training' && !plan.contentJson?.version && plan.contentJson?.weekly_structure && (
                       <div className="space-y-2">
                         <p className="text-sm font-medium">Weekly Structure:</p>
                         <div className="grid gap-2">
