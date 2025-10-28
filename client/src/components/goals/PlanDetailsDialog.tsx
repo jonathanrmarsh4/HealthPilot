@@ -329,7 +329,7 @@ export function PlanDetailsDialog({
 
                         {/* Equipment and Guidance */}
                         {(plan.contentJson.equipmentNeeded || plan.contentJson.strengthFocus || plan.contentJson.recoveryGuidance) && (
-                          <div className="space-y-2 mt-4 pt-4 border-t">
+                          <div className="space-y-3 mt-4 pt-4 border-t">
                             {plan.contentJson.equipmentNeeded && (
                               <div>
                                 <p className="text-xs font-medium text-muted-foreground mb-1">Equipment Needed:</p>
@@ -344,8 +344,49 @@ export function PlanDetailsDialog({
                             )}
                             {plan.contentJson.recoveryGuidance && (
                               <div>
-                                <p className="text-xs font-medium text-muted-foreground mb-1">Recovery Guidance:</p>
-                                <p className="text-sm">{plan.contentJson.recoveryGuidance}</p>
+                                <p className="text-xs font-medium text-muted-foreground mb-1">Recovery & Mindset:</p>
+                                {typeof plan.contentJson.recoveryGuidance === 'string' ? (
+                                  <p className="text-sm">{plan.contentJson.recoveryGuidance}</p>
+                                ) : (
+                                  <div className="space-y-2 text-sm">
+                                    {plan.contentJson.recoveryGuidance.recoveryStrategies && Array.isArray(plan.contentJson.recoveryGuidance.recoveryStrategies) && plan.contentJson.recoveryGuidance.recoveryStrategies.length > 0 && (
+                                      <div>
+                                        <p className="font-medium text-xs mb-0.5">Recovery Strategies:</p>
+                                        <ul className="list-disc list-inside space-y-0.5 text-muted-foreground">
+                                          {plan.contentJson.recoveryGuidance.recoveryStrategies.map((strategy: string, idx: number) => (
+                                            <li key={idx}>{strategy}</li>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                    )}
+                                    {plan.contentJson.recoveryGuidance.mindsetTips && Array.isArray(plan.contentJson.recoveryGuidance.mindsetTips) && plan.contentJson.recoveryGuidance.mindsetTips.length > 0 && (
+                                      <div>
+                                        <p className="font-medium text-xs mb-0.5">Mindset Tips:</p>
+                                        <ul className="list-disc list-inside space-y-0.5 text-muted-foreground">
+                                          {plan.contentJson.recoveryGuidance.mindsetTips.map((tip: string, idx: number) => (
+                                            <li key={idx}>{tip}</li>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                    )}
+                                    {plan.contentJson.recoveryGuidance.nutritionGuidance && typeof plan.contentJson.recoveryGuidance.nutritionGuidance === 'string' && (
+                                      <div>
+                                        <p className="font-medium text-xs mb-0.5">Nutrition Guidance:</p>
+                                        <p className="text-muted-foreground">{plan.contentJson.recoveryGuidance.nutritionGuidance}</p>
+                                      </div>
+                                    )}
+                                    {plan.contentJson.recoveryGuidance.healthMonitoring && Array.isArray(plan.contentJson.recoveryGuidance.healthMonitoring) && plan.contentJson.recoveryGuidance.healthMonitoring.length > 0 && (
+                                      <div>
+                                        <p className="font-medium text-xs mb-0.5">Health Monitoring:</p>
+                                        <ul className="list-disc list-inside space-y-0.5 text-muted-foreground">
+                                          {plan.contentJson.recoveryGuidance.healthMonitoring.map((item: string, idx: number) => (
+                                            <li key={idx}>{item}</li>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
                               </div>
                             )}
                           </div>
