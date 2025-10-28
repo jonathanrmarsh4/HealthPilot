@@ -192,21 +192,48 @@ export async function setupAuth(app: Express) {
     cb(null, user);
   });
 
-  app.get("/api/login", (req, res, next) => {
+  app.get("/api/login", async (req, res, next) => {
     const domain = getOAuthDomain(req.hostname);
+    const userAgent = req.headers['user-agent'] || '';
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(userAgent);
+    
     console.log("🔐 Login request:", {
       requestHostname: req.hostname,
       mappedDomain: domain,
-      strategyName: `replitauth:${domain}`
+      strategyName: `replitauth:${domain}`,
+      isMobile,
+      userAgent
     });
     
+    // For mobile, generate authorization URL manually (stateless)
+    if (isMobile) {
+      try {
+        console.log("📱 Generating stateless mobile auth URL");
+        
+        const redirectUri = `https://${domain}/api/callback`;
+        const authUrl = client.buildAuthorizationUrl(config, {
+          redirect_uri: redirectUri,
+          scope: "openid email profile offline_access",
+          state: "mobile_stateless", // Use a fixed state for mobile
+          code_challenge_method: undefined, // Skip PKCE for simplicity
+        });
+        
+        console.log("📱 Redirecting to:", authUrl.href);
+        return res.redirect(authUrl.href);
+      } catch (error) {
+        console.error("❌ Error generating mobile auth URL:", error);
+        return res.status(500).send("Authentication error");
+      }
+    }
+    
+    // For web, use standard Passport flow
     passport.authenticate(`replitauth:${domain}`, {
       prompt: "login consent",
       scope: ["openid", "email", "profile", "offline_access"],
     })(req, res, next);
   });
 
-  app.get("/api/callback", (req, res, next) => {
+  app.get("/api/callback", async (req, res, next) => {
     const domain = getOAuthDomain(req.hostname);
     const userAgent = req.headers['user-agent'] || '';
     const isMobile = /iPhone|iPad|iPod|Android/i.test(userAgent);
@@ -220,7 +247,8 @@ export async function setupAuth(app: Express) {
       isMobile,
       userAgent,
       hasSession: !!req.session,
-      sessionID: req.sessionID
+      sessionID: req.sessionID,
+      state: req.query.state
     });
     
     // If Replit returned an error, log it clearly
@@ -229,10 +257,43 @@ export async function setupAuth(app: Express) {
         error: req.query.error,
         description: req.query.error_description
       });
+      return res.redirect("/api/login");
     }
     
-    // For mobile, use session:false to bypass session requirement
-    const authOptions = isMobile ? { session: false } : {};
+    // For mobile flows with our fixed state, handle OAuth manually (stateless)
+    if (isMobile && req.query.code && req.query.state === "mobile_stateless") {
+      try {
+        console.log("📱 Handling mobile OAuth callback manually (stateless)");
+        
+        const redirectUri = `https://${domain}/api/callback`;
+        const params = client.validateAuthResponse(config, redirectUri, req.query as any);
+        
+        console.log("📱 Exchanging authorization code for tokens");
+        const response = await client.authorizationCodeGrant(config, params);
+        const tokens = await client.processAuthorizationCodeResponse(config, response);
+        
+        console.log("🎫 Mobile OAuth tokens received");
+        
+        const claims = tokens.claims();
+        await upsertUser(claims);
+        
+        const userId = claims.sub;
+        if (userId) {
+          const token = generateMobileAuthToken(userId);
+          console.log("📱 Generated mobile auth token for user:", userId);
+          return res.redirect(`healthpilot://auth?token=${token}`);
+        } else {
+          console.error("❌ No user ID in claims");
+          return res.redirect("/api/login");
+        }
+      } catch (error) {
+        console.error("❌ Mobile OAuth error:", error);
+        return res.redirect("/api/login");
+      }
+    }
+    
+    // For web, use standard Passport flow
+    const authOptions = {};
     
     passport.authenticate(`replitauth:${domain}`, authOptions, (err: any, user: any) => {
       if (err) {
