@@ -327,21 +327,40 @@ export function PlanDetailsDialog({
                           </div>
                         )}
 
-                        {/* Equipment and Guidance */}
-                        {(plan.contentJson.equipmentNeeded || plan.contentJson.strengthFocus || plan.contentJson.recoveryGuidance) && (
+                        {/* Equipment, Strength Focus, and Recovery Guidance */}
+                        {(plan.contentJson.equipmentGuidance || plan.contentJson.strengthFocus || plan.contentJson.recoveryGuidance) && (
                           <div className="space-y-3 mt-4 pt-4 border-t">
-                            {plan.contentJson.equipmentNeeded && (
+                            {/* Equipment Guidance */}
+                            {plan.contentJson.equipmentGuidance && Array.isArray(plan.contentJson.equipmentGuidance) && plan.contentJson.equipmentGuidance.length > 0 && (
                               <div>
-                                <p className="text-xs font-medium text-muted-foreground mb-1">Equipment Needed:</p>
-                                <p className="text-sm">{plan.contentJson.equipmentNeeded}</p>
+                                <p className="text-xs font-medium text-muted-foreground mb-1">Equipment Guidance:</p>
+                                <div className="space-y-2 text-sm">
+                                  {plan.contentJson.equipmentGuidance.map((equipment: any, idx: number) => (
+                                    <div key={idx} className="pl-3 border-l-2 border-muted">
+                                      <p className="font-medium text-xs">{equipment.equipmentType || 'Equipment'} (Phase {equipment.startPhase || '?'})</p>
+                                      <p className="text-muted-foreground text-xs">{equipment.progressionNotes || 'No notes available'}</p>
+                                    </div>
+                                  ))}
+                                </div>
                               </div>
                             )}
-                            {plan.contentJson.strengthFocus && (
+
+                            {/* Strength Focus */}
+                            {plan.contentJson.strengthFocus && Array.isArray(plan.contentJson.strengthFocus) && plan.contentJson.strengthFocus.length > 0 && (
                               <div>
                                 <p className="text-xs font-medium text-muted-foreground mb-1">Strength Focus:</p>
-                                <p className="text-sm">{plan.contentJson.strengthFocus}</p>
+                                <div className="space-y-2 text-sm">
+                                  {plan.contentJson.strengthFocus.map((exercise: any, idx: number) => (
+                                    <div key={idx} className="pl-3 border-l-2 border-muted">
+                                      <p className="font-medium text-xs">{exercise.movement || 'Exercise'} - {exercise.targetSetsReps || 'Sets/Reps TBD'}</p>
+                                      <p className="text-muted-foreground text-xs">{exercise.purpose || 'Purpose not specified'}</p>
+                                    </div>
+                                  ))}
+                                </div>
                               </div>
                             )}
+
+                            {/* Recovery & Mindset */}
                             {plan.contentJson.recoveryGuidance && (
                               <div>
                                 <p className="text-xs font-medium text-muted-foreground mb-1">Recovery & Mindset:</p>
