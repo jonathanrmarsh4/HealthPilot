@@ -337,7 +337,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     req.app.set('etag', false);
     
     try {
-      if (!req.isAuthenticated()) {
+      // Check for mobile auth token in Authorization header
+      const authHeader = req.headers['authorization'];
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const token = authHeader.substring(7);
+        const dbUser = await storage.getUserByMobileToken(token);
+        
+        if (dbUser) {
+          console.log("✅ Mobile auth successful for /api/auth/user:", dbUser.id);
+          // Set up user object for mobile auth
+          (req as any).user = {
+            claims: {
+              sub: dbUser.id,
+              email: dbUser.email,
+              first_name: dbUser.firstName,
+              last_name: dbUser.lastName,
+              profile_image_url: dbUser.profileImageUrl,
+            },
+            expires_at: Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60), // 30 days
+          };
+        }
+      }
+      
+      if (!req.isAuthenticated() && !req.user) {
         // Send with explicit no-cache and without ETag
         return res.status(200).send('null');
       }
