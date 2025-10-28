@@ -2227,6 +2227,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const updates = validationResult.data;
       const updatedUser = await storage.updateUserProfile(userId, updates as any);
+      
+      // Mark basic info as complete if key health fields are provided
+      if (updates.dateOfBirth || updates.gender || updates.height || updates.activityLevel) {
+        await storage.updateOnboardingFlag(userId, 'basicInfoComplete', true);
+      }
+      
       res.json(updatedUser);
     } catch (error: any) {
       console.error("Error updating profile:", error);
@@ -4413,6 +4419,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const profile = await storage.upsertFitnessProfile(validation.data);
+      
+      // Mark training setup as complete after saving fitness profile
+      await storage.updateOnboardingFlag(userId, 'trainingSetupComplete', true);
+      
       res.json(profile);
     } catch (error: any) {
       console.error("Error updating fitness profile:", error);
