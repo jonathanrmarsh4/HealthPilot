@@ -205,17 +205,30 @@ export async function setupAuth(app: Express) {
       userAgent
     });
     
-    // For mobile, generate authorization URL manually (stateless)
+    // For mobile, generate authorization URL manually with stateless PKCE
     if (isMobile) {
       try {
-        console.log("📱 Generating stateless mobile auth URL");
+        console.log("📱 Generating stateless mobile auth URL with PKCE");
         
         const redirectUri = `https://${domain}/api/callback`;
+        
+        // Generate PKCE code verifier and challenge
+        const codeVerifier = client.randomPKCECodeVerifier();
+        const codeChallenge = await client.calculatePKCECodeChallenge(codeVerifier);
+        
+        // Embed the code verifier in the state parameter (base64 encoded)
+        const stateData = {
+          mobile: true,
+          verifier: codeVerifier
+        };
+        const state = Buffer.from(JSON.stringify(stateData)).toString('base64url');
+        
         const authUrl = client.buildAuthorizationUrl(config, {
           redirect_uri: redirectUri,
           scope: "openid email profile offline_access",
-          state: "mobile_stateless", // Use a fixed state for mobile
-          // Don't include code_challenge to skip PKCE
+          state: state,
+          code_challenge: codeChallenge,
+          code_challenge_method: 'S256',
         });
         
         console.log("📱 Redirecting to:", authUrl.href);
@@ -260,16 +273,30 @@ export async function setupAuth(app: Express) {
       return res.redirect("/api/login");
     }
     
-    // For mobile flows with our fixed state, handle OAuth manually (stateless)
-    if (isMobile && req.query.code && req.query.state === "mobile_stateless") {
+    // For mobile flows, extract code verifier from state and handle OAuth
+    if (isMobile && req.query.code && req.query.state) {
       try {
-        console.log("📱 Handling mobile OAuth callback manually (stateless)");
+        console.log("📱 Handling mobile OAuth callback with stateless PKCE");
+        
+        // Extract code verifier from state parameter
+        const stateJson = Buffer.from(req.query.state as string, 'base64url').toString('utf-8');
+        const stateData = JSON.parse(stateJson);
+        
+        if (!stateData.mobile || !stateData.verifier) {
+          console.error("❌ Invalid state parameter");
+          return res.redirect("/api/login");
+        }
+        
+        const codeVerifier = stateData.verifier;
+        console.log("📱 Extracted code verifier from state");
         
         const redirectUri = `https://${domain}/api/callback`;
         const params = client.validateAuthResponse(config, redirectUri, req.query as any);
         
-        console.log("📱 Exchanging authorization code for tokens");
-        const response = await client.authorizationCodeGrant(config, params);
+        console.log("📱 Exchanging authorization code for tokens with PKCE");
+        const response = await client.authorizationCodeGrant(config, params, {
+          pkceCodeVerifier: codeVerifier
+        });
         const tokens = await client.processAuthorizationCodeResponse(config, response);
         
         console.log("🎫 Mobile OAuth tokens received");
