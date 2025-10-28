@@ -338,56 +338,122 @@ async function generateTrainingPlan(
   input: GeneratePlanInput,
   weeksToGoal: number
 ): Promise<InsertGoalPlan> {
-  // Import OpenAI client lazily
+  // Import dependencies
   const { default: OpenAI } = await import('openai');
+  const { validateGoalPlanContent } = await import('@shared/types/goal-plans');
+  
   const openai = new OpenAI({
     apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY,
     baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
   });
 
-  const systemPrompt = `You are HealthPilot's training plan AI. Create a progressive, periodized training plan following ACSM/NSCA/WHO guidelines.
+  const targetDate = input.target_date ? input.target_date.toISOString().split('T')[0] : undefined;
+  const userContext = buildUserContextString(input);
+
+  const systemPrompt = `You are HealthPilot's training plan AI. Create a comprehensive, progressive training plan following ACSM/NSCA/WHO guidelines.
 
 GOAL: ${input.display_name}
 TYPE: ${input.canonical_goal_type}
 TIMELINE: ${weeksToGoal} weeks
+TARGET DATE: ${targetDate || 'Not specified'}
+${userContext}
 
 PRINCIPLES:
-1. Progressive overload: Gradual increase in volume/intensity
+1. Progressive overload: Gradual volume/intensity increase
 2. Periodization: Base building → Specific training → Peak → Taper
-3. Recovery: Include rest days and deload weeks
+3. Recovery: Include rest days, deload weeks, and recovery guidance
 4. Safety: Start conservative, respect recovery needs
-5. Individuality: Consider user's current fitness level
+5. Specificity: Tailor sessions to the goal type
 
-OUTPUT FORMAT (JSON):
+REQUIRED OUTPUT STRUCTURE (v2.0):
 {
-  "program_name": "Plan name",
+  "planVersion": "2.0",
+  "generatedAt": "${new Date().toISOString()}",
+  "goalSummary": {
+    "goalText": "${input.display_name}",
+    "targetDate": "${targetDate || ''}",
+    "goalType": "${input.canonical_goal_type}",
+    "userAge": ${input.user_profile?.age || null},
+    "userFitnessLevel": "${input.user_profile?.fitness_level || 'intermediate'}"
+  },
+  "planOverview": {
+    "totalDurationWeeks": ${weeksToGoal},
+    "phasesCount": 3,
+    "primaryFocus": "Build aerobic base, specific strength, and goal-specific conditioning",
+    "adaptations": ["Personalized based on age and fitness level"]
+  },
   "phases": [
     {
-      "name": "Base Building",
-      "weeks": 4,
-      "focus": "Aerobic base, technique",
-      "weekly_structure": {
-        "days_per_week": 4,
-        "sessions": [
-          {"type": "easy_run", "duration": "30-45min", "intensity": "Zone 2"},
-          {"type": "tempo_run", "duration": "20min", "intensity": "Zone 3"}
-        ]
-      }
+      "phaseName": "Base Conditioning",
+      "phaseNumber": 1,
+      "durationWeeks": 4,
+      "objective": "Build aerobic foundation and general strength",
+      "focus": ["Low-intensity endurance", "Functional strength", "Mobility"],
+      "weeks": [
+        {
+          "weekNumber": 1,
+          "weekLabel": "Week 1",
+          "focus": "Establishing base volume",
+          "sessions": [
+            {
+              "sessionTemplateId": "phase1-week1-session1",
+              "sessionType": "run",
+              "title": "Easy Run",
+              "objective": "Build aerobic base at conversational pace",
+              "durationMinutes": 30,
+              "intensity": "light",
+              "heartRateZone": 2,
+              "structure": "5 min warmup, 20 min easy pace, 5 min cooldown",
+              "notes": "Keep pace conversational - you should be able to talk",
+              "recoveryEmphasis": false
+            }
+          ]
+        }
+      ]
     }
   ],
-  "safety_notes": ["Monitor HRV", "Respect recovery"],
-  "progression_rules": "Increase weekly volume by max 10%"
-}`;
+  "equipmentGuidance": [
+    {
+      "equipmentType": "proper running shoes",
+      "startPhase": 1,
+      "progressionNotes": "Get properly fitted shoes before starting training"
+    }
+  ],
+  "strengthFocus": [
+    {
+      "movement": "Squats",
+      "targetSetsReps": "3x10-12",
+      "purpose": "Build leg strength for endurance"
+    }
+  ],
+  "recoveryGuidance": {
+    "recoveryStrategies": ["Track sleep quality", "Monitor resting heart rate"],
+    "mindsetTips": ["Focus on consistency over intensity"],
+    "nutritionGuidance": "Maintain adequate protein (1.6-2g/kg/day) and hydration",
+    "healthMonitoring": ["Check with physician before starting"]
+  },
+  "additionalNotes": "Adjust training based on how you feel. Rest is progress."
+}
+
+CRITICAL REQUIREMENTS:
+- Use exact schema structure shown above
+- Include 3-4 phases with complete weekly breakdowns
+- Each week must have 3-6 sessions with detailed structure
+- Include sessionTemplateId for each session (format: "phaseX-weekY-sessionZ")
+- Specify session types: run, hike, bike, swim, strength, intervals, tempo, long_endurance, hill_repeats, recovery, rest
+- Include equipment guidance, strength focus, and recovery guidance
+- All duration/distance/intensity fields must be appropriate for goal type`;
 
   try {
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o',
       messages: [
         { role: 'system', content: systemPrompt },
-        { role: 'user', content: `Create training plan for: ${input.display_name}` },
+        { role: 'user', content: `Create a comprehensive v2.0 training plan for: ${input.display_name}. Timeline: ${weeksToGoal} weeks. Include ALL required fields: phases with weeks and sessions, equipment guidance, strength focus, and recovery guidance.` },
       ],
       response_format: { type: 'json_object' },
-      temperature: 0.3,
+      temperature: 0.4,
+      max_tokens: 4096,
     });
 
     const content = completion.choices[0].message.content;
@@ -396,21 +462,55 @@ OUTPUT FORMAT (JSON):
     }
 
     const planContent = JSON.parse(content);
+    
+    // Validate against v2.0 schema
+    const validation = validateGoalPlanContent(planContent);
+    if (!validation.success) {
+      console.error('❌ AI generated invalid v2.0 plan structure:', validation.error);
+      throw new Error('Invalid plan structure - falling back to default');
+    }
+
+    console.log('✅ Generated valid v2.0 training plan with', validation.data!.phases.length, 'phases');
 
     return {
       goalId: input.goal_id,
       planType: 'training',
       period: 'weekly',
-      contentJson: planContent,
-      version: 1,
+      contentJson: validation.data,
+      version: 2, // v2.0 schema
       sourcePromptHash: null,
       isActive: 1,
     };
   } catch (error) {
-    console.error('Error generating training plan:', error);
-    // Fallback to deterministic plan
+    console.error('Error generating AI training plan:', error);
+    // Fallback to deterministic v2.0 plan
     return generateFallbackTrainingPlan(input, weeksToGoal);
   }
+}
+
+/**
+ * Build user context string for AI prompt
+ */
+function buildUserContextString(input: GeneratePlanInput): string {
+  const parts: string[] = [];
+  
+  if (input.user_profile?.age) {
+    parts.push(`AGE: ${input.user_profile.age} years`);
+  }
+  if (input.user_profile?.gender) {
+    parts.push(`GENDER: ${input.user_profile.gender}`);
+  }
+  if (input.user_profile?.fitness_level) {
+    parts.push(`FITNESS LEVEL: ${input.user_profile.fitness_level}`);
+  }
+  if (input.user_profile?.weight) {
+    parts.push(`WEIGHT: ${input.user_profile.weight}kg`);
+  }
+  if (input.user_profile?.medical_conditions && input.user_profile.medical_conditions.length > 0) {
+    parts.push(`MEDICAL CONDITIONS: ${input.user_profile.medical_conditions.join(', ')}`);
+  }
+  
+  return parts.length > 0 ? '\n' + parts.join('\n') : '';
 }
 
 /**
@@ -609,43 +709,76 @@ function generateFallbackTrainingPlan(
   input: GeneratePlanInput,
   weeksToGoal: number
 ): InsertGoalPlan {
+  const targetDate = input.target_date ? input.target_date.toISOString().split('T')[0] : '';
+  
+  // Generate v2.0 compliant fallback plan with basic structure
+  const phase1Weeks = Math.max(2, Math.floor(weeksToGoal * 0.4));
+  const phase2Weeks = Math.max(2, Math.floor(weeksToGoal * 0.4));
+  const phase3Weeks = Math.max(1, weeksToGoal - phase1Weeks - phase2Weeks);
+
   const content = {
-    program_name: `${input.display_name} - Progressive Training Plan`,
+    planVersion: '2.0',
+    generatedAt: new Date().toISOString(),
+    goalSummary: {
+      goalText: input.display_name,
+      targetDate,
+      goalType: input.canonical_goal_type,
+      userAge: input.user_profile?.age || null,
+      userFitnessLevel: input.user_profile?.fitness_level || 'intermediate',
+    },
+    planOverview: {
+      totalDurationWeeks: weeksToGoal,
+      phasesCount: 3,
+      primaryFocus: 'Progressive training toward goal achievement',
+      adaptations: ['Standard progression plan - customize based on your needs'],
+    },
     phases: [
       {
-        name: 'Foundation',
-        weeks: Math.floor(weeksToGoal * 0.4),
-        focus: 'Base building and technique',
-        weekly_structure: {
-          days_per_week: 3-4,
-          note: 'Start conservative, build consistency',
-        },
+        phaseName: 'Foundation Phase',
+        phaseNumber: 1,
+        durationWeeks: phase1Weeks,
+        objective: 'Build base fitness and establish training routine',
+        focus: ['Aerobic conditioning', 'Movement patterns', 'Consistency'],
+        weeks: generateGenericWeeks(1, phase1Weeks, 'foundation'),
       },
       {
-        name: 'Progressive Overload',
-        weeks: Math.floor(weeksToGoal * 0.4),
-        focus: 'Gradual increase in volume and intensity',
-        weekly_structure: {
-          days_per_week: 4-5,
-          note: 'Increase by max 10% per week',
-        },
+        phaseName: 'Progressive Overload',
+        phaseNumber: 2,
+        durationWeeks: phase2Weeks,
+        objective: 'Gradual increase in training volume and intensity',
+        focus: ['Progressive loading', 'Skill development', 'Volume increase'],
+        weeks: generateGenericWeeks(2, phase2Weeks, 'build'),
       },
       {
-        name: 'Taper / Peak',
-        weeks: Math.floor(weeksToGoal * 0.2),
-        focus: 'Reduce volume, maintain intensity',
-        weekly_structure: {
-          days_per_week: 3,
-          note: 'Recovery and preparation',
-        },
+        phaseName: 'Taper & Peak',
+        phaseNumber: 3,
+        durationWeeks: phase3Weeks,
+        objective: 'Reduce fatigue while maintaining fitness',
+        focus: ['Recovery', 'Freshness', 'Goal preparation'],
+        weeks: generateGenericWeeks(3, phase3Weeks, 'taper'),
       },
     ],
-    safety_notes: [
-      'Monitor for signs of overtraining',
-      'Respect recovery needs',
-      'Listen to your body',
+    equipmentGuidance: [
+      {
+        equipmentType: 'appropriate training gear',
+        startPhase: 1,
+        progressionNotes: 'Ensure proper equipment before starting training',
+      },
     ],
-    progression_rules: 'Increase weekly volume by max 10%',
+    strengthFocus: [
+      {
+        movement: 'Compound movements',
+        targetSetsReps: '3x8-12',
+        purpose: 'Build foundational strength',
+      },
+    ],
+    recoveryGuidance: {
+      recoveryStrategies: ['Adequate sleep (7-9 hours)', 'Active recovery days', 'Monitor fatigue levels'],
+      mindsetTips: ['Focus on consistency over intensity', 'Progress is not always linear'],
+      nutritionGuidance: 'Balanced diet with adequate protein and hydration',
+      healthMonitoring: ['Consult healthcare provider before starting', 'Listen to your body'],
+    },
+    additionalNotes: 'This is a template plan. Adjust based on your individual response and recovery.',
   };
 
   return {
@@ -653,10 +786,49 @@ function generateFallbackTrainingPlan(
     planType: 'training',
     period: 'weekly',
     contentJson: content,
-    version: 1,
+    version: 2, // v2.0 schema
     sourcePromptHash: null,
     isActive: 1,
   };
+}
+
+/**
+ * Generate generic weeks for fallback plan
+ */
+function generateGenericWeeks(
+  phaseNumber: number,
+  weekCount: number,
+  phaseType: 'foundation' | 'build' | 'taper'
+): Array<any> {
+  const weeks = [];
+  
+  for (let weekNum = 1; weekNum <= weekCount; weekNum++) {
+    const sessionsPerWeek = phaseType === 'taper' ? 3 : 4;
+    const sessions = [];
+    
+    for (let sessionNum = 1; sessionNum <= sessionsPerWeek; sessionNum++) {
+      sessions.push({
+        sessionTemplateId: `phase${phaseNumber}-week${weekNum}-session${sessionNum}`,
+        sessionType: sessionNum === sessionsPerWeek ? 'rest' : 'run',
+        title: sessionNum === sessionsPerWeek ? 'Rest Day' : `Training Session ${sessionNum}`,
+        objective: sessionNum === sessionsPerWeek ? 'Recovery' : 'Build fitness',
+        durationMinutes: sessionNum === sessionsPerWeek ? 0 : 30 + (weekNum * 5),
+        intensity: phaseType === 'taper' ? 'light' : (phaseType === 'foundation' ? 'light' : 'moderate'),
+        structure: sessionNum === sessionsPerWeek ? 'Complete rest or light stretching' : 'Warmup, main work, cooldown',
+        notes: 'Adjust based on how you feel',
+        recoveryEmphasis: sessionNum === sessionsPerWeek,
+      });
+    }
+    
+    weeks.push({
+      weekNumber: weekNum,
+      weekLabel: `Week ${weekNum}`,
+      focus: `${phaseType} training`,
+      sessions,
+    });
+  }
+  
+  return weeks;
 }
 
 /**

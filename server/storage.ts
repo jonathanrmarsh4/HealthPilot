@@ -3541,6 +3541,51 @@ export class DbStorage implements IStorage {
       if (params.plans.length > 0) {
         const plansWithGoalId = params.plans.map(p => ({ ...p, goalId: goal.id }));
         createdPlans = await tx.insert(goalPlans).values(plansWithGoalId).returning();
+        
+        // 5. Flatten v2.0 training plan sessions into goal_plan_sessions table for scheduling
+        for (const plan of createdPlans) {
+          if (plan.planType === 'training' && plan.version === 2) {
+            try {
+              // Import goal-plans module
+              const goalPlansModule = await import('@shared/types/goal-plans');
+              const flattenPlanToSessions = goalPlansModule.flattenPlanToSessions;
+              const validateGoalPlanContent = goalPlansModule.validateGoalPlanContent;
+              
+              // Validate plan content
+              const validation = validateGoalPlanContent(plan.contentJson);
+              if (validation.success && validation.data) {
+                // Flatten into individual sessions
+                const flattenedSessions = flattenPlanToSessions(plan.id, validation.data);
+                
+                // Insert sessions into goal_plan_sessions table
+                if (flattenedSessions.length > 0) {
+                  const sessionInserts = flattenedSessions.map(s => ({
+                    goalPlanId: s.goalPlanId,
+                    sessionTemplateId: s.sessionTemplateId,
+                    phaseNumber: s.phaseNumber,
+                    phaseName: s.phaseName,
+                    weekNumber: s.weekNumber,
+                    weekLabel: s.weekLabel,
+                    sessionData: s.sessionData as any, // JSONB field
+                    status: 'pending' as const,
+                    scheduledDate: null,
+                    completedAt: null,
+                  }));
+                  
+                  await tx.insert(goalPlanSessions).values(sessionInserts);
+                  console.log(`✅ Flattened ${flattenedSessions.length} sessions from v2.0 plan ${plan.id}`);
+                } else {
+                  console.log(`ℹ️ v2.0 plan ${plan.id} has no sessions to flatten`);
+                }
+              } else {
+                console.warn(`⚠️ v2.0 plan ${plan.id} failed validation:`, validation.error);
+              }
+            } catch (error) {
+              console.error(`❌ Error flattening v2.0 plan ${plan.id}:`, error);
+              // Continue transaction - don't fail goal creation if session flattening fails
+            }
+          }
+        }
       }
 
       return {
