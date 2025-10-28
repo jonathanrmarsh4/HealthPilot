@@ -146,10 +146,6 @@ export default function VoiceChat() {
             variant: "destructive",
             title: "Premium Required",
             description: "Voice chat requires a Premium subscription. Please upgrade to continue.",
-            action: {
-              label: "Upgrade",
-              onClick: () => window.location.href = "/pricing",
-            },
           });
         } else if (event.code === 4001) {
           toast({
@@ -165,10 +161,24 @@ export default function VoiceChat() {
 
     } catch (error: any) {
       console.error("Failed to connect:", error);
+      
+      // Provide specific error message based on error type
+      let errorMessage = "Please allow microphone access to use voice chat";
+      
+      if (error.name === 'NotAllowedError') {
+        errorMessage = "Microphone access was denied. Please go to Settings > HealthPilot > Microphone and enable access.";
+      } else if (error.name === 'NotFoundError') {
+        errorMessage = "No microphone found on this device.";
+      } else if (error.name === 'NotSupportedError') {
+        errorMessage = "Microphone access is not supported in this context.";
+      } else if (error.name === 'SecurityError') {
+        errorMessage = "Microphone access is blocked due to security restrictions.";
+      }
+      
       toast({
         variant: "destructive",
         title: "Microphone Access Required",
-        description: "Please allow microphone access to use voice chat",
+        description: errorMessage,
       });
     }
   };
