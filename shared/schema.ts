@@ -644,6 +644,30 @@ export const goalPlans = pgTable("goal_plans", {
   index("goal_plans_plan_type_idx").on(table.planType),
 ]);
 
+// Goal Plan Sessions - Flattened individual workout sessions for scheduling (v2 Stage 2)
+// Enables extracting and scheduling individual workouts from AI-generated training plans
+export const goalPlanSessions = pgTable("goal_plan_sessions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  goalPlanId: varchar("goal_plan_id").notNull(), // Reference to goal_plans.id
+  sessionTemplateId: text("session_template_id").notNull(), // Unique ID from AI plan (e.g., "phase1-week1-session1")
+  phaseNumber: integer("phase_number").notNull(), // Which phase (1, 2, 3, etc.)
+  phaseName: text("phase_name").notNull(), // "Base Conditioning", "Build", etc.
+  weekNumber: integer("week_number").notNull(), // Week within phase
+  weekLabel: text("week_label").notNull(), // "Week 1" or "Base Week 3"
+  sessionData: jsonb("session_data").notNull(), // Full TrainingSession object from plan
+  // Scheduling metadata
+  scheduledFor: timestamp("scheduled_for"), // When user schedules this session
+  scheduledWorkoutId: varchar("scheduled_workout_id"), // Reference to workout_sessions.id when scheduled
+  status: text("status").notNull().default("unscheduled"), // unscheduled, scheduled, completed, skipped
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => [
+  index("goal_plan_sessions_plan_id_idx").on(table.goalPlanId),
+  index("goal_plan_sessions_template_id_idx").on(table.sessionTemplateId),
+  index("goal_plan_sessions_status_idx").on(table.status),
+  uniqueIndex("goal_plan_sessions_plan_template_idx").on(table.goalPlanId, table.sessionTemplateId),
+]);
+
 // Goal Conversations - Track conversational goal creation state
 export const goalConversations = pgTable("goal_conversations", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -945,6 +969,12 @@ export const insertGoalMilestoneSchema = createInsertSchema(goalMilestones).omit
 });
 
 export const insertGoalPlanSchema = createInsertSchema(goalPlans).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertGoalPlanSessionSchema = createInsertSchema(goalPlanSessions).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
@@ -1380,6 +1410,9 @@ export type GoalMilestone = typeof goalMilestones.$inferSelect;
 
 export type InsertGoalPlan = z.infer<typeof insertGoalPlanSchema>;
 export type GoalPlan = typeof goalPlans.$inferSelect;
+
+export type InsertGoalPlanSession = z.infer<typeof insertGoalPlanSessionSchema>;
+export type GoalPlanSession = typeof goalPlanSessions.$inferSelect;
 
 export type InsertMetricStandard = z.infer<typeof insertMetricStandardSchema>;
 export type MetricStandard = typeof metricStandards.$inferSelect;
