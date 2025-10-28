@@ -215,7 +215,7 @@ export async function setupAuth(app: Express) {
           redirect_uri: redirectUri,
           scope: "openid email profile offline_access",
           state: "mobile_stateless", // Use a fixed state for mobile
-          code_challenge_method: undefined, // Skip PKCE for simplicity
+          // Don't include code_challenge to skip PKCE
         });
         
         console.log("📱 Redirecting to:", authUrl.href);
