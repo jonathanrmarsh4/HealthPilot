@@ -3,9 +3,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Activity, Heart, Dumbbell, Sparkles, Shield, Brain, TrendingUp, Apple, Lock, Check } from "lucide-react";
 import logo from "@assets/HealthPilot_Logo_1759904141260.png";
-import { getBrowserAdapter } from "@/mobile/adapters";
 import { isNativePlatform } from "@/mobile/MobileBootstrap";
-import { App as CapacitorApp } from '@capacitor/app';
+import { Browser } from '@capacitor/browser';
 import { queryClient } from "@/lib/queryClient";
 import { useEffect } from "react";
 
@@ -13,20 +12,30 @@ export default function Login() {
   useEffect(() => {
     if (!isNativePlatform()) return;
 
-    const handleAppUrlOpen = async (event: { url: string }) => {
-      console.log('[Login] App URL opened:', event.url);
+    const handleBrowserFinished = async () => {
+      console.log('[Login] Browser closed, checking auth status...');
       
-      if (event.url.includes('oauth-success')) {
-        const browser = getBrowserAdapter();
-        await browser.close();
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        console.log(`[Login] Auth check attempt ${attempt}/3`);
+        
+        await new Promise(resolve => setTimeout(resolve, attempt * 500));
         
         await queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
         
-        window.location.href = '/';
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        const userData = queryClient.getQueryData(['/api/auth/user']);
+        if (userData) {
+          console.log('[Login] User is authenticated! Redirecting to home...');
+          window.location.href = '/';
+          return;
+        }
       }
+      
+      console.log('[Login] No auth detected after 3 attempts. User may need to try again.');
     };
 
-    const listener = CapacitorApp.addListener('appUrlOpen', handleAppUrlOpen);
+    const listener = Browser.addListener('browserFinished', handleBrowserFinished);
 
     return () => {
       listener.remove();
@@ -35,9 +44,12 @@ export default function Login() {
 
   const handleLogin = async () => {
     if (isNativePlatform()) {
-      const browser = getBrowserAdapter();
       const loginUrl = `${window.location.origin}/api/login`;
-      await browser.openInApp(loginUrl);
+      await Browser.open({
+        url: loginUrl,
+        presentationStyle: 'popover',
+        toolbarColor: '#000000',
+      });
     } else {
       window.location.href = "/api/login";
     }

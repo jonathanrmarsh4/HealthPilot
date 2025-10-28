@@ -1,31 +1,9 @@
-import { useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle } from "lucide-react";
+import { CheckCircle, X } from "lucide-react";
 import logo from "@assets/HealthPilot_Logo_1759904141260.png";
 
 export default function OAuthSuccess() {
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      try {
-        window.location.replace("healthpilot://oauth-success");
-      } catch (err) {
-        console.error("Failed to redirect to app:", err);
-      }
-    }, 1000);
-    
-    return () => clearTimeout(timer);
-  }, []);
-
-  const handleManualReturn = () => {
-    try {
-      window.location.replace("healthpilot://oauth-success");
-    } catch (err) {
-      console.error("Failed to redirect to app:", err);
-      alert("Please close this window and return to the app");
-    }
-  };
-
   return (
     <div className="min-h-screen bg-[#0A0F1F] flex items-center justify-center p-4">
       <Card className="w-full max-w-md bg-white/5 backdrop-blur-xl border-white/10">
@@ -42,28 +20,16 @@ export default function OAuthSuccess() {
           <p className="text-gray-400">
             You've successfully logged in to HealthPilot.
           </p>
-          <p className="text-sm text-gray-500">
-            Tap the button below to return to the app
-          </p>
-          <a 
-            href="healthpilot://oauth-success"
-            className="block w-full"
-          >
-            <Button
-              className="w-full bg-[#00E0C6] text-[#0A0F1F] hover:bg-[#00E0C6]/90"
-              data-testid="button-return-to-app"
-            >
-              Return to App
-            </Button>
-          </a>
-          <Button
-            onClick={handleManualReturn}
-            variant="outline"
-            className="w-full"
-            data-testid="button-return-alt"
-          >
-            Alternative: Tap Here
-          </Button>
+          <div className="bg-[#00E0C6]/10 border border-[#00E0C6]/30 rounded-lg p-4">
+            <p className="text-white font-semibold mb-2">Next Step:</p>
+            <p className="text-sm text-gray-300">
+              Tap the <strong>Done</strong> or <strong>×</strong> button at the top of this screen to close this browser and return to the app.
+            </p>
+          </div>
+          <div className="flex items-center justify-center gap-2 text-xs text-gray-500">
+            <X className="h-4 w-4" />
+            <span>Look for the close button above</span>
+          </div>
         </CardContent>
       </Card>
     </div>
