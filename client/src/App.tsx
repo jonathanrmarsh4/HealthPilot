@@ -356,7 +356,7 @@ function AppContent() {
   const isLoggedOutPage = currentPath === "/logged-out";
   const isLoginPage = currentPath === "/login";
   const isOAuthSuccessPage = currentPath === "/oauth-success";
-  const isMobileAuthRedirectPage = currentPath === "/mobile-auth";
+  const isMobileAuthRedirectPage = currentPath === "/mobile-auth-redirect";
   
   // Public routes that don't require authentication
   const publicRoutes = ["/pricing", "/privacy", "/security", "/terms"];
@@ -384,6 +384,11 @@ function AppContent() {
 
   // Treat auth errors same as not logged in (Safari caching issues) 
   if (!user || isError) {
+    // Mobile apps: skip landing page, go straight to login
+    if (isNativePlatform()) {
+      return <Login />;
+    }
+    
     // Show Login page if explicitly on /login route
     if (isLoginPage) {
       return <Login />;
@@ -401,7 +406,7 @@ function AppContent() {
         </div>
       );
     }
-    // Show LandingPage for home page when not authenticated
+    // Show LandingPage for web users when not authenticated
     return <LandingPage />;
   }
 
