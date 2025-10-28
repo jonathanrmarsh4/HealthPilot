@@ -294,12 +294,10 @@ export async function setupAuth(app: Express) {
         const currentUrl = new URL(`https://${req.get('host')}${req.originalUrl}`);
         
         console.log("📱 Exchanging authorization code for tokens with PKCE");
-        const response = await client.authorizationCodeGrant(config, currentUrl, {
+        const tokens = await client.authorizationCodeGrant(config, currentUrl, {
           pkceCodeVerifier: codeVerifier,
           expectedState: req.query.state as string,
         });
-        
-        const tokens = await client.processAuthorizationCodeResponse(config, response);
         
         console.log("🎫 Mobile OAuth tokens received");
         
