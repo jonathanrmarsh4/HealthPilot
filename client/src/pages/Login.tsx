@@ -1,12 +1,85 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Activity, Heart, Dumbbell, Sparkles, Shield, Brain, TrendingUp, Apple, Lock, Check } from "lucide-react";
+import { Activity, Heart, Dumbbell, Sparkles, Shield, Brain, TrendingUp, Apple, Lock, Check, Loader2 } from "lucide-react";
 import logo from "@assets/HealthPilot_Logo_1759904141260.png";
 import { isNativePlatform } from "@/mobile/MobileBootstrap";
 import { Browser } from '@capacitor/browser';
+import { App as CapacitorApp } from '@capacitor/app';
+import { Preferences } from '@capacitor/preferences';
+import { SecureStorage } from '@aparajita/capacitor-secure-storage';
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useState, useEffect, useRef } from "react";
 
 export default function Login() {
+  const [isProcessing, setIsProcessing] = useState(false);
+  const pollIntervalRef = useRef<number | null>(null);
+
+  // Poll for auth token when app resumes
+  const checkForPendingToken = async () => {
+    try {
+      const { value: token } = await Preferences.get({ key: 'pendingAuthToken' });
+      
+      if (token) {
+        console.log('[Login] Found pending auth token, exchanging...');
+        setIsProcessing(true);
+        
+        // Clear the token immediately
+        await Preferences.remove({ key: 'pendingAuthToken' });
+        
+        // Exchange token for session
+        const response = await apiRequest('/api/mobile-auth', {
+          method: 'POST',
+          body: JSON.stringify({ token }),
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to exchange token');
+        }
+        
+        const data = await response.json();
+        console.log('[Login] Session created successfully');
+        
+        // Store session token
+        await SecureStorage.set('sessionToken', data.sessionToken);
+        
+        // Invalidate queries and redirect
+        await queryClient.invalidateQueries();
+        window.location.href = '/';
+      }
+    } catch (error) {
+      console.error('[Login] Error checking for token:', error);
+      setIsProcessing(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!isNativePlatform()) return;
+
+    // Check immediately when component mounts
+    checkForPendingToken();
+
+    // Listen for app state changes (when user returns from browser)
+    const stateListener = CapacitorApp.addListener('appStateChange', ({ isActive }) => {
+      if (isActive) {
+        console.log('[Login] App became active, checking for pending token...');
+        checkForPendingToken();
+      }
+    });
+
+    // Also poll every second while on this page
+    pollIntervalRef.current = window.setInterval(() => {
+      checkForPendingToken();
+    }, 1000);
+
+    return () => {
+      stateListener.remove();
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+      }
+    };
+  }, []);
 
   const handleLogin = async () => {
     if (isNativePlatform()) {
@@ -16,6 +89,7 @@ export default function Login() {
         presentationStyle: 'popover',
         toolbarColor: '#000000',
       });
+      // Polling will handle the token exchange when user returns
     } else {
       window.location.href = "/api/login";
     }
@@ -76,9 +150,19 @@ export default function Login() {
                 className="w-full bg-[#00E0C6] text-[#0A0F1F] hover:bg-[#00E0C6]/90 shadow-[0_0_24px_rgba(0,224,198,0.35)] hover:shadow-[0_0_36px_rgba(0,224,198,0.55)]"
                 size="lg"
                 data-testid="button-login"
+                disabled={isProcessing}
               >
-                <Sparkles className="h-4 w-4 mr-2" />
-                Sign In with Replit
+                {isProcessing ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Completing Login...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Sign In with Replit
+                  </>
+                )}
               </Button>
               
               <p className="text-xs text-center text-gray-500">

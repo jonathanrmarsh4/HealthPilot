@@ -2,24 +2,33 @@ import { useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 import logo from "@assets/HealthPilot_Logo_1759904141260.png";
-import { Browser } from '@capacitor/browser';
-import { isNativePlatform } from "@/mobile/MobileBootstrap";
+import { Preferences } from '@capacitor/preferences';
 
 export default function MobileAuthRedirect() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const token = params.get('token');
     
+    console.log('[MobileAuthRedirect] Token received:', token ? 'yes' : 'no');
+    
     if (token) {
-      // Redirect to app URL scheme
-      window.location.href = `healthpilot://auth?token=${token}`;
-      
-      // Close the browser after a short delay
-      setTimeout(() => {
-        if (isNativePlatform()) {
-          Browser.close();
-        }
-      }, 1000);
+      // Store token in Preferences so the app can pick it up
+      Preferences.set({ key: 'pendingAuthToken', value: token })
+        .then(() => {
+          console.log('[MobileAuthRedirect] Token stored in Preferences');
+          // Show success message
+          window.document.body.innerHTML = `
+            <div style="display: flex; align-items: center; justify-center; height: 100vh; background: #0A0F1F; color: white; text-align: center; font-family: system-ui;">
+              <div>
+                <h1 style="font-size: 24px; margin-bottom: 16px;">✅ Authentication Complete!</h1>
+                <p style="color: #00E0C6; font-size: 18px;">You can close this tab and return to the app</p>
+              </div>
+            </div>
+          `;
+        })
+        .catch(err => {
+          console.error('[MobileAuthRedirect] Error storing token:', err);
+        });
     }
   }, []);
 
