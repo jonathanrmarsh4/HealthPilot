@@ -64,6 +64,7 @@ import { App as CapacitorApp } from '@capacitor/app';
 import { SecureStorage } from '@aparajita/capacitor-secure-storage';
 import { Preferences } from '@capacitor/preferences';
 import { isNativePlatform } from "@/mobile/MobileBootstrap";
+import SafariData from "@/lib/safariData";
 
 function Router() {
   return (
@@ -195,9 +196,19 @@ function AppLayout() {
                 size="icon"
                 onClick={async () => {
                   if (isNativePlatform()) {
-                    // Mobile logout: Clear local session
+                    // Mobile logout: Clear local session AND Safari cookies
                     try {
                       console.log('[Logout] Clearing mobile session...');
+                      
+                      // Clear SFSafariViewController cookies (iOS 16+ only)
+                      try {
+                        const result = await SafariData.clearData();
+                        console.log('[Logout] Safari data clear result:', result);
+                      } catch (error) {
+                        console.log('[Logout] Could not clear Safari data (iOS 16+ required):', error);
+                      }
+                      
+                      // Clear local session tokens
                       await SecureStorage.remove('sessionToken');
                       await Preferences.remove({ key: 'deviceId' });
                       console.log('[Logout] Mobile session cleared, redirecting to login');
