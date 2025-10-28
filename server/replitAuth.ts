@@ -7,6 +7,7 @@ import type { Express, RequestHandler } from "express";
 import memoize from "memoizee";
 import connectPg from "connect-pg-simple";
 import { storage } from "./storage";
+import crypto from "crypto";
 
 if (!process.env.REPLIT_DOMAINS) {
   throw new Error("Environment variable REPLIT_DOMAINS not provided");
@@ -74,6 +75,38 @@ async function upsertUser(
 }
 
 // Helper to determine which OAuth strategy domain to use
+// In-memory store for mobile auth tokens (in production, use Redis or database)
+const mobileAuthTokens = new Map<string, { userId: string, expiresAt: number }>();
+
+// Generate a secure random token for mobile auth
+function generateMobileAuthToken(userId: string): string {
+  const token = crypto.randomBytes(32).toString('base64url');
+  const expiresAt = Date.now() + (5 * 60 * 1000); // 5 minutes
+  mobileAuthTokens.set(token, { userId, expiresAt });
+  
+  // Clean up expired tokens
+  setTimeout(() => {
+    mobileAuthTokens.delete(token);
+  }, 5 * 60 * 1000);
+  
+  return token;
+}
+
+// Verify and consume a mobile auth token
+async function verifyMobileAuthToken(token: string): Promise<string | null> {
+  const data = mobileAuthTokens.get(token);
+  if (!data) return null;
+  
+  if (Date.now() > data.expiresAt) {
+    mobileAuthTokens.delete(token);
+    return null;
+  }
+  
+  // Token is one-time use
+  mobileAuthTokens.delete(token);
+  return data.userId;
+}
+
 function getOAuthDomain(hostname: string): string {
   const configuredDomains = process.env.REPLIT_DOMAINS!.split(",").map(d => d.trim());
   
@@ -196,10 +229,79 @@ export async function setupAuth(app: Express) {
       });
     }
     
-    passport.authenticate(`replitauth:${domain}`, {
-      successRedirect: isMobile ? "/oauth-success" : "/",
-      failureRedirect: "/api/login",
+    passport.authenticate(`replitauth:${domain}`, (err: any, user: any) => {
+      if (err || !user) {
+        return res.redirect("/api/login");
+      }
+      
+      req.login(user, (loginErr) => {
+        if (loginErr) {
+          return res.redirect("/api/login");
+        }
+        
+        // For mobile, generate a one-time token and redirect to app
+        if (isMobile) {
+          const userId = user.claims?.sub;
+          if (userId) {
+            const token = generateMobileAuthToken(userId);
+            console.log("📱 Generated mobile auth token for user:", userId);
+            return res.redirect(`healthpilot://auth?token=${token}`);
+          }
+        }
+        
+        // For web, redirect to home
+        res.redirect("/");
+      });
     })(req, res, next);
+  });
+
+  // Endpoint for mobile app to exchange token for session
+  app.post("/api/mobile-auth", async (req, res) => {
+    const { token } = req.body;
+    
+    if (!token) {
+      return res.status(400).json({ message: "Token required" });
+    }
+    
+    const userId = await verifyMobileAuthToken(token);
+    if (!userId) {
+      return res.status(401).json({ message: "Invalid or expired token" });
+    }
+    
+    try {
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Create a long-lived session token for the mobile app
+      const sessionToken = crypto.randomBytes(32).toString('base64url');
+      
+      // Store session token in database (you'll need to add this to schema)
+      await storage.createMobileSession({
+        token: sessionToken,
+        userId: userId,
+        expiresAt: new Date(Date.now() + (30 * 24 * 60 * 60 * 1000)) // 30 days
+      });
+      
+      console.log("✅ Mobile session created for user:", userId);
+      
+      res.json({ 
+        sessionToken,
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          profileImageUrl: user.profileImageUrl,
+          role: user.role,
+          subscriptionTier: user.subscriptionTier,
+        }
+      });
+    } catch (error) {
+      console.error("❌ Error creating mobile session:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
   });
 
   app.get("/api/logout", (req, res) => {
@@ -223,6 +325,34 @@ export async function setupAuth(app: Express) {
 }
 
 export const isAuthenticated: RequestHandler = async (req, res, next) => {
+  // Check for mobile auth token in Authorization header
+  const authHeader = req.headers['authorization'];
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.substring(7);
+    const dbUser = await storage.getUserByMobileToken(token);
+    
+    if (dbUser) {
+      console.log("✅ Mobile auth successful:", dbUser.id);
+      // Create a user object that matches the session-based format
+      (req as any).user = {
+        claims: {
+          sub: dbUser.id,
+          email: dbUser.email,
+          first_name: dbUser.firstName,
+          last_name: dbUser.lastName,
+          profile_image_url: dbUser.profileImageUrl,
+        },
+        // Set a far-future expiry for mobile tokens
+        expires_at: Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60), // 30 days
+      };
+      return next();
+    } else {
+      console.log("❌ Invalid mobile auth token");
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+  }
+
+  // Fall back to session-based auth for web
   const user = req.user as any;
 
   console.log("🔍 isAuthenticated check:", {

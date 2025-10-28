@@ -208,6 +208,7 @@ import {
   dailyMetrics,
   labs,
   dailyHealthInsights,
+  mobileSessions,
 } from "@shared/schema";
 import { eq, desc, and, gte, lte, lt, sql, or, like, ilike, count, isNull, inArray, notInArray, not } from "drizzle-orm";
 
@@ -222,6 +223,11 @@ export interface IStorage {
   savePageTilePreferences(userId: string, page: string, preferences: { visible: string[], order: string[] }): Promise<PageTilePreferences>;
   updateUserProfile(userId: string, profileData: Partial<Pick<User, "firstName" | "lastName" | "height" | "dateOfBirth" | "gender" | "bloodType" | "activityLevel" | "location" | "timezone">>): Promise<User>;
   acceptEula(userId: string): Promise<void>;
+  
+  // Mobile session management
+  createMobileSession(data: { token: string, userId: string, expiresAt: Date }): Promise<void>;
+  getUserByMobileToken(token: string): Promise<User | undefined>;
+  deleteMobileSession(token: string): Promise<void>;
   
   // Onboarding methods - contextual onboarding with granular flags
   getOnboardingStatus(userId: string): Promise<{ 
@@ -815,6 +821,28 @@ export class DbStorage implements IStorage {
     await db.execute(
       sql`UPDATE users SET timezone = ${settings.timezone} WHERE id = ${userId}`
     );
+  }
+
+  async createMobileSession(data: { token: string, userId: string, expiresAt: Date }): Promise<void> {
+    await db.insert(mobileSessions).values(data);
+  }
+
+  async getUserByMobileToken(token: string): Promise<User | undefined> {
+    const result = await db
+      .select({ user: users })
+      .from(mobileSessions)
+      .innerJoin(users, eq(mobileSessions.userId, users.id))
+      .where(and(
+        eq(mobileSessions.token, token),
+        gte(mobileSessions.expiresAt, new Date())
+      ))
+      .limit(1);
+    
+    return result[0]?.user;
+  }
+
+  async deleteMobileSession(token: string): Promise<void> {
+    await db.delete(mobileSessions).where(eq(mobileSessions.token, token));
   }
 
   async getDashboardPreferences(userId: string): Promise<{ visible: string[], order: string[] } | null> {

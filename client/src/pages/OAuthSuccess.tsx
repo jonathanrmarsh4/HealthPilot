@@ -1,6 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { CheckCircle, X } from "lucide-react";
+import { CheckCircle, ArrowLeft } from "lucide-react";
 import logo from "@assets/HealthPilot_Logo_1759904141260.png";
 
 export default function OAuthSuccess() {
@@ -20,16 +19,19 @@ export default function OAuthSuccess() {
           <p className="text-gray-400">
             You've successfully logged in to HealthPilot.
           </p>
-          <div className="bg-[#00E0C6]/10 border border-[#00E0C6]/30 rounded-lg p-4">
-            <p className="text-white font-semibold mb-2">Next Step:</p>
-            <p className="text-sm text-gray-300">
-              Tap the <strong>Done</strong> or <strong>×</strong> button at the top of this screen to close this browser and return to the app.
+          <div className="bg-[#00E0C6]/10 border border-[#00E0C6]/30 rounded-lg p-6">
+            <p className="text-white font-semibold text-lg mb-3">Next Step:</p>
+            <p className="text-base text-white mb-4">
+              Tap the blue <strong>"Done"</strong> button at the top-left corner of this screen
             </p>
+            <div className="flex items-center justify-center gap-2 text-sm text-gray-300">
+              <ArrowLeft className="h-5 w-5" />
+              <span>Look for "Done" in the top-left</span>
+            </div>
           </div>
-          <div className="flex items-center justify-center gap-2 text-xs text-gray-500">
-            <X className="h-4 w-4" />
-            <span>Look for the close button above</span>
-          </div>
+          <p className="text-xs text-gray-500">
+            The app will automatically log you in once you close this browser
+          </p>
         </CardContent>
       </Card>
     </div>

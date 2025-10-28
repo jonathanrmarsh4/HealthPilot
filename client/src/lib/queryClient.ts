@@ -1,4 +1,6 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import { isNativePlatform } from "@/mobile/MobileBootstrap";
+import { SecureStorage } from '@aparajita/capacitor-secure-storage';
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
@@ -7,16 +9,38 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
+async function getAuthHeaders(): Promise<HeadersInit> {
+  const headers: HeadersInit = {};
+  
+  // For mobile, include the session token in Authorization header
+  if (isNativePlatform()) {
+    try {
+      const token = await SecureStorage.get('sessionToken');
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+    } catch (error) {
+      // Token not found or SecureStorage error, continue without auth header
+      console.log('[Auth] No session token found');
+    }
+  }
+  
+  return headers;
+}
+
 export async function apiRequest(
-  method: string,
   url: string,
-  data?: unknown | undefined,
-  options?: { signal?: AbortSignal },
+  options?: RequestInit,
 ): Promise<Response> {
+  const authHeaders = await getAuthHeaders();
+  
   const res = await fetch(url, {
-    method,
-    headers: data ? { "Content-Type": "application/json" } : {},
-    body: data ? JSON.stringify(data) : undefined,
+    method: options?.method || 'GET',
+    headers: {
+      ...authHeaders,
+      ...(options?.headers || {}),
+    },
+    body: options?.body,
     credentials: "include",
     signal: options?.signal,
   });
@@ -31,7 +55,10 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
+    const authHeaders = await getAuthHeaders();
+    
     const res = await fetch(queryKey.join("/") as string, {
+      headers: authHeaders,
       credentials: "include",
     });
 
