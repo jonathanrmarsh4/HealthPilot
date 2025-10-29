@@ -26,8 +26,6 @@ end
 
 target 'App' do
   capacitor_pods
-  # Add custom HealthKit plugin
-  pod 'HealthPilotHealthKit', :path => '../HealthPilotHealthKit'
 end
 
 post_install do |installer|
