@@ -65,10 +65,12 @@ import { Loader2, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { App as CapacitorApp } from '@capacitor/app';
+import { Capacitor } from '@capacitor/core';
 import { SecureStorage } from '@aparajita/capacitor-secure-storage';
 import { Preferences } from '@capacitor/preferences';
 import { isNativePlatform } from "@/mobile/MobileBootstrap";
 import SafariData from "@/lib/safariData";
+import { initializeDeepLinkHandling } from "@/lib/notifications/deeplink";
 
 function Router() {
   return (
@@ -418,6 +420,33 @@ function AppContent() {
     return () => {
       console.log('[App] Removing global deep link listener');
       listener.remove();
+    };
+  }, []);
+
+  // Initialize deep link handling for notifications, settings, etc.
+  useEffect(() => {
+    // Initialize deep link handling on native platforms (iOS/Android)
+    // Runs in both development and production builds
+    if (!Capacitor.isNativePlatform()) {
+      return; // Skip on web
+    }
+
+    let cleanup: (() => void) | undefined;
+
+    // Initialize and store cleanup function
+    initializeDeepLinkHandling()
+      .then(cleanupFn => {
+        cleanup = cleanupFn;
+      })
+      .catch(error => {
+        console.error('[App] Failed to initialize deep linking:', error);
+      });
+
+    // Return cleanup function for useEffect
+    return () => {
+      if (cleanup) {
+        cleanup();
+      }
     };
   }, []);
 

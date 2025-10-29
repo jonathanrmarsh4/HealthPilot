@@ -21,6 +21,10 @@ const config: CapacitorConfig = {
     }
   },
   plugins: {
+    App: {
+      deepLinkingEnabled: true,
+      customURLScheme: 'healthpilot',
+    },
     SplashScreen: {
       launchShowDuration: 2000,
       launchAutoHide: true,

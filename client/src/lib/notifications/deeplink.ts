@@ -1,4 +1,5 @@
 import { useLocation } from 'wouter';
+import { App as CapacitorApp } from '@capacitor/app';
 
 // Centralized route mapping - maps deep link paths to app routes
 const DEEP_LINK_ROUTES: Record<string, (params: URLSearchParams) => string> = {
@@ -21,6 +22,11 @@ const DEEP_LINK_ROUTES: Record<string, (params: URLSearchParams) => string> = {
   '/supplements': () => '/supplements',
   '/training': () => '/training',
   '/insights': () => '/insights',
+  '/notifications': (params) => {
+    const id = params.get('id');
+    return id ? `/notifications?id=${id}` : '/notifications';
+  },
+  '/settings': () => '/settings',
 };
 
 function routeToPath(url: string) {
@@ -85,4 +91,30 @@ export function useDeepLinkRoutes() {
   }
 
   return routes;
+}
+
+// Initialize deep link handling for Capacitor
+export async function initializeDeepLinkHandling() {
+  console.log('[DeepLink] Initializing deep link handler...');
+  
+  const listener = await CapacitorApp.addListener('appUrlOpen', (event) => {
+    console.log('[DeepLink] URL received:', event.url);
+    
+    // Skip auth URLs (handled separately in App.tsx for OAuth flow)
+    if (event.url.startsWith('healthpilot://auth')) {
+      console.log('[DeepLink] Skipping auth URL (handled by OAuth handler)');
+      return;
+    }
+    
+    // Handle all other deep links
+    handleDeepLink(event.url);
+  });
+  
+  console.log('[DeepLink] Deep link handler initialized successfully');
+  
+  // Return cleanup function
+  return () => {
+    listener.remove();
+    console.log('[DeepLink] Deep link handler removed');
+  };
 }
