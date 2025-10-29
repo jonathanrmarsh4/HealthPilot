@@ -8,6 +8,7 @@ interface OnboardingStatus {
   mealsSetupComplete: boolean;
   supplementsSetupComplete: boolean;
   biomarkersSetupComplete: boolean;
+  healthKitSetupComplete: boolean;
   startedAt: Date | null;
 }
 

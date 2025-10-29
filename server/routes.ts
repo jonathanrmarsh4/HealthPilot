@@ -9723,6 +9723,7 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
           mealsSetupComplete: false,
           supplementsSetupComplete: false,
           biomarkersSetupComplete: false,
+          healthKitSetupComplete: false,
           startedAt: new Date(),
         };
         res.json(defaultStatus);
@@ -9734,6 +9735,7 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
           mealsSetupComplete: status.mealsSetupComplete || false,
           supplementsSetupComplete: status.supplementsSetupComplete || false,
           biomarkersSetupComplete: status.biomarkersSetupComplete || false,
+          healthKitSetupComplete: status.healthKitSetupComplete || false,
           startedAt: status.startedAt,
         });
       }
@@ -9745,6 +9747,17 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
   // Note: Onboarding now uses granular flags (basicInfoComplete, trainingSetupComplete, etc.)
   // Completion flags are set automatically when users add data to each section
   // No manual step progression needed
+
+  app.post("/api/onboarding/complete-healthkit", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+
+    try {
+      await storage.completeHealthKitSetup(userId);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
 
   app.get("/api/user/webhook-credentials", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;

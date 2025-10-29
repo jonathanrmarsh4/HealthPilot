@@ -240,9 +240,11 @@ export interface IStorage {
     mealsSetupComplete: boolean;
     supplementsSetupComplete: boolean;
     biomarkersSetupComplete: boolean;
+    healthKitSetupComplete: boolean;
   } | null>;
   updateOnboardingStep(userId: string, step: string): Promise<void>;
-  updateOnboardingFlag(userId: string, flag: 'basicInfoComplete' | 'trainingSetupComplete' | 'mealsSetupComplete' | 'supplementsSetupComplete' | 'biomarkersSetupComplete', value: boolean): Promise<void>;
+  updateOnboardingFlag(userId: string, flag: 'basicInfoComplete' | 'trainingSetupComplete' | 'mealsSetupComplete' | 'supplementsSetupComplete' | 'biomarkersSetupComplete' | 'healthKitSetupComplete', value: boolean): Promise<void>;
+  completeHealthKitSetup(userId: string): Promise<void>;
   completeOnboarding(userId: string): Promise<void>;
   skipOnboardingStep(userId: string, currentStep: string, nextStep: string): Promise<boolean>;
   
@@ -933,6 +935,7 @@ export class DbStorage implements IStorage {
     mealsSetupComplete: boolean;
     supplementsSetupComplete: boolean;
     biomarkersSetupComplete: boolean;
+    healthKitSetupComplete: boolean;
   } | null> {
     const result = await db.execute(
       sql`SELECT 
@@ -944,7 +947,8 @@ export class DbStorage implements IStorage {
         training_setup_complete,
         meals_setup_complete,
         supplements_setup_complete,
-        biomarkers_setup_complete
+        biomarkers_setup_complete,
+        health_kit_setup_complete
       FROM users WHERE id = ${userId}`
     );
     const rows: any[] = result.rows || [];
@@ -962,6 +966,7 @@ export class DbStorage implements IStorage {
       mealsSetupComplete: row.meals_setup_complete === 1,
       supplementsSetupComplete: row.supplements_setup_complete === 1,
       biomarkersSetupComplete: row.biomarkers_setup_complete === 1,
+      healthKitSetupComplete: row.health_kit_setup_complete === 1,
     };
   }
 
@@ -997,13 +1002,14 @@ export class DbStorage implements IStorage {
     return (result.rowCount ?? 0) > 0;
   }
 
-  async updateOnboardingFlag(userId: string, flag: 'basicInfoComplete' | 'trainingSetupComplete' | 'mealsSetupComplete' | 'supplementsSetupComplete' | 'biomarkersSetupComplete', value: boolean): Promise<void> {
+  async updateOnboardingFlag(userId: string, flag: 'basicInfoComplete' | 'trainingSetupComplete' | 'mealsSetupComplete' | 'supplementsSetupComplete' | 'biomarkersSetupComplete' | 'healthKitSetupComplete', value: boolean): Promise<void> {
     const columnMap: Record<typeof flag, string> = {
       basicInfoComplete: 'basic_info_complete',
       trainingSetupComplete: 'training_setup_complete',
       mealsSetupComplete: 'meals_setup_complete',
       supplementsSetupComplete: 'supplements_setup_complete',
       biomarkersSetupComplete: 'biomarkers_setup_complete',
+      healthKitSetupComplete: 'health_kit_setup_complete',
     };
     
     const column = columnMap[flag];
@@ -1012,6 +1018,15 @@ export class DbStorage implements IStorage {
     await db.execute(
       sql`UPDATE users SET 
         ${sql.raw(column)} = ${intValue},
+        updated_at = NOW()
+      WHERE id = ${userId}`
+    );
+  }
+
+  async completeHealthKitSetup(userId: string): Promise<void> {
+    await db.execute(
+      sql`UPDATE users SET 
+        health_kit_setup_complete = 1,
         updated_at = NOW()
       WHERE id = ${userId}`
     );

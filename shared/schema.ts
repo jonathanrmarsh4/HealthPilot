@@ -58,6 +58,7 @@ export const users = pgTable("users", {
   mealsSetupComplete: integer("meals_setup_complete").notNull().default(0), // Nutrition preferences + meal plan setup
   supplementsSetupComplete: integer("supplements_setup_complete").notNull().default(0), // Supplement recommendations received
   biomarkersSetupComplete: integer("biomarkers_setup_complete").notNull().default(0), // Blood work upload prompted
+  healthKitSetupComplete: integer("health_kit_setup_complete").notNull().default(0), // Apple HealthKit sync completed or skipped
   onboardingStartedAt: timestamp("onboarding_started_at"),
   onboardingCompletedAt: timestamp("onboarding_completed_at"),
   eulaAcceptedAt: timestamp("eula_accepted_at"),

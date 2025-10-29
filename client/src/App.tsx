@@ -17,6 +17,7 @@ import { FloatingChat, FloatingChatTrigger, VoiceChatModal } from "@/components/
 import { useAuth } from "@/hooks/useAuth";
 import { TimezoneDetector } from "@/components/TimezoneDetector";
 import { EulaDialog } from "@/components/EulaDialog";
+import { HealthKitOnboarding } from "@/components/HealthKitOnboarding";
 import Dashboard from "@/pages/Dashboard";
 import HealthRecords from "@/pages/HealthRecords";
 import Biomarkers from "@/pages/Biomarkers";
@@ -119,8 +120,13 @@ function AppLayout() {
   const { isChatOpen, isVoiceChatOpen, setIsChatOpen, setIsVoiceChatOpen, chatContext } = useChat();
   const [hasAutoOpened, setHasAutoOpened] = useState(false);
   const [location] = useLocation();
-  const { shouldShowOnboarding, isLoading: onboardingLoading } = useOnboarding();
+  const { shouldShowOnboarding, status: onboardingStatus, isLoading: onboardingLoading } = useOnboarding();
   const { user } = useAuth();
+  
+  // Show HealthKit onboarding for iOS users who haven't completed it
+  const shouldShowHealthKitOnboarding = isNativePlatform() && 
+    onboardingStatus && 
+    !onboardingStatus.healthKitSetupComplete;
   
   const style = {
     "--sidebar-width": "16rem",
@@ -159,6 +165,20 @@ function AppLayout() {
   };
 
   const currentPage = pageNames[location] || "Unknown Page";
+  
+  // Show HealthKit onboarding screen if applicable (before main app)
+  if (shouldShowHealthKitOnboarding && !onboardingLoading) {
+    return (
+      <HealthKitOnboarding 
+        onComplete={() => {
+          queryClient.invalidateQueries({ queryKey: ['/api/onboarding/status'] });
+        }}
+        onSkip={() => {
+          queryClient.invalidateQueries({ queryKey: ['/api/onboarding/status'] });
+        }}
+      />
+    );
+  }
 
   // Invalidate all queries on navigation to ensure fresh data
   useEffect(() => {
