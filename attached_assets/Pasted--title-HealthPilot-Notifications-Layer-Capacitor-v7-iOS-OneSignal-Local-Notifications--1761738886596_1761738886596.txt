@@ -1,0 +1,113 @@
+{
+  "title": "HealthPilot Notifications Layer (Capacitor v7, iOS) — OneSignal + Local Notifications + Deep Links + Backend Orchestration",
+  "why": "Deliver flexible, granular, and testable notifications across push, in-app, and local reminders with future portability.",
+  "assumptions": {
+    "stack": {
+      "frontend": "React + Capacitor v7 (iOS target), TypeScript",
+      "backend": "Node 20 + Express/Fastify (TypeScript) + PostgreSQL (Drizzle ORM)",
+      "auth": "Existing session/JWT",
+      "app_id": "com.nuvitae.healthpilot",
+      "deeplink_scheme": "healthpilot://",
+      "universal_link_domain": "links.healthpilot.pro"
+    },
+    "providers": {
+      "push": "OneSignal",
+      "local": "@capacitor/local-notifications"
+    }
+  },
+  "env_vars": {
+    "server": [
+      "ONESIGNAL_REST_API_KEY=<secure>",
+      "ONESIGNAL_APP_ID=<uuid-from-onesignal>",
+      "APP_BASE_URL=https://app.healthpilot.pro",
+      "DEEP_LINK_DOMAIN=links.healthpilot.pro"
+    ],
+    "ios": [
+      "ONESIGNAL_APP_ID=<same as server>",
+      "APPLE_TEAM_ID=<team_id>",
+      "APPLE_BUNDLE_ID=com.nuvitae.healthpilot"
+    ]
+  },
+  "ios_setup": {
+    "xcode_capabilities": [
+      "Push Notifications",
+      "Background Modes: Remote notifications",
+      "Associated Domains: applinks:links.healthpilot.pro"
+    ],
+    "files_to_edit": [
+      "ios/App/App/Info.plist",
+      "ios/App/App/AppDelegate.swift",
+      "ios/App/Podfile"
+    ],
+    "plist_additions": {
+      "UNIVERSAL_LINKS": "Associated Domains entry for applinks:links.healthpilot.pro",
+      "FirebaseAutoScreenReportingEnabled": "NO (if applicable)",
+      "NSUserTrackingUsageDescription": "Used to personalize notifications and measure engagement."
+    }
+  },
+  "packages": {
+    "install_frontend": [
+      "npm i @capacitor/push-notifications @capacitor/local-notifications",
+      "npm i react-native-onesignal",
+      "npx cap sync ios"
+    ],
+    "install_backend": [
+      "npm i onesignal-node drizzle-orm zod uuid",
+      "npm i -D @types/uuid"
+    ]
+  },
+  "app_permissions_flow": {
+    "iOS": "Request push permission on a purposeful moment (after user completes onboarding), fallback to provisional if available, and expose granular toggles in settings."
+  },
+  "frontend_tasks": [
+    {
+      "id": "FE-INIT-ONESIGNAL",
+      "description": "Initialize OneSignal and register device/user.",
+      "changes": [
+        {
+          "file": "src/lib/notifications/onesignal.ts",
+          "content": "import OneSignal from 'react-native-onesignal';\n\nexport function initOneSignal(appId: string) {\n  OneSignal.initialize(appId);\n  OneSignal.Notifications.requestPermission(true);\n  OneSignal.Notifications.addEventListener('click', (event) => {\n    const data = event?.notification?.additionalData || {};\n    if (data?.deeplink) {\n      window.location.href = data.deeplink; // Capacitor will route via App URL handling\n    }\n  });\n}\n\nexport async function setExternalUserId(userId: string) {\n  await OneSignal.login(userId);\n}\n"
+        },
+        {
+          "file": "src/lib/notifications/push.ts",
+          "content": "import { PushNotifications } from '@capacitor/push-notifications';\n\nexport async function ensurePushPermissions() {\n  let perm = await PushNotifications.checkPermissions();\n  if (perm.receive !== 'granted') {\n    perm = await PushNotifications.requestPermissions();\n  }\n  return perm.receive === 'granted';\n}\n\nexport async function registerForPush() {\n  await PushNotifications.register();\n  PushNotifications.addListener('registration', (token) => {\n    // Optionally send token to backend; OneSignal manages its own token too\n    console.log('APNs Token', token.value);\n  });\n  PushNotifications.addListener('registrationError', (err) => {\n    console.error('Push registration error', err);\n  });\n}\n"
+        },
+        {
+          "file": "src/lib/notifications/local.ts",
+          "content": "import { LocalNotifications, ScheduleOptions } from '@capacitor/local-notifications';\n\nexport async function ensureLocalPermissions() {\n  const perm = await LocalNotifications.checkPermissions();\n  if (perm.display !== 'granted') await LocalNotifications.requestPermissions();\n}\n\nexport async function scheduleLocal(opts: { id: number; title: string; body: string; at: Date; repeats?: boolean; }) {\n  const options: ScheduleOptions = {\n    notifications: [\n      { id: opts.id, title: opts.title, body: opts.body, schedule: { at: opts.at, repeats: !!opts.repeats } }\n    ]\n  };\n  await LocalNotifications.schedule(options);\n}\n\nexport async function cancelLocal(id: number) {\n  await LocalNotifications.cancel({ notifications: [{ id }] });\n}\n"
+        },
+        {
+          "file": "src/app/routes/deeplink-handler.ts",
+          "content": "export function handleDeepLink(url: string) {\n  try {\n    const u = new URL(url);\n    const path = u.pathname;\n    const params = Object.fromEntries(u.searchParams.entries());\n    // Map known targets to router paths\n    if (path.startsWith('/insights/recovery')) {\n      // navigate to Insights->Recovery with params\n      window.location.hash = `#/insights/recovery?${u.searchParams.toString()}`;\n    }\n    // Add more routes as needed\n  } catch (e) { console.error('Invalid deeplink', url, e); }\n}\n"
+        },
+        {
+          "file": "src/app/settings/NotificationSettings.tsx",
+          "content": "import React, { useEffect, useState } from 'react';\nimport { ensurePushPermissions } from '@/lib/notifications/push';\nimport { ensureLocalPermissions } from '@/lib/notifications/local';\n\nexport default function NotificationSettings() {\n  const [channels, setChannels] = useState({ health_alert: true, insight: true, reminder: true, marketing: false, quiet_hours: '22:00-07:00' });\n\n  useEffect(() => { (async () => { await ensurePushPermissions(); await ensureLocalPermissions(); })(); }, []);\n\n  return (\n    <div className=\"space-y-4\">\n      <h2 className=\"text-xl font-semibold\">Notifications</h2>\n      <div>\n        <label><input type=\"checkbox\" checked={channels.health_alert} onChange={e=>setChannels(c=>({...c, health_alert:e.target.checked}))}/> Health Alerts</label>\n      </div>\n      <div>\n        <label><input type=\"checkbox\" checked={channels.insight} onChange={e=>setChannels(c=>({...c, insight:e.target.checked}))}/> Insights</label>\n      </div>\n      <div>\n        <label><input type=\"checkbox\" checked={channels.reminder} onChange={e=>setChannels(c=>({...c, reminder:e.target.checked}))}/> Reminders</label>\n      </div>\n      <div>\n        <label><input type=\"checkbox\" checked={channels.marketing} onChange={e=>setChannels(c=>({...c, marketing:e.target.checked}))}/> Marketing</label>\n      </div>\n      <div>\n        <label>Quiet Hours: <input value={channels.quiet_hours} onChange={e=>setChannels(c=>({...c, quiet_hours:e.target.value}))}/></label>\n      </div>\n    </div>\n  );\n}\n"
+        }
+      ]
+    },
+    {
+      "id": "FE-DEEPLINKS",
+      "description": "Configure Capacitor URL handling for custom scheme + universal links.",
+      "changes": [
+        {
+          "file": "capacitor.config.ts",
+          "content": "import { CapacitorConfig } from '@capacitor/cli';\n\nconst config: CapacitorConfig = {\n  appId: 'com.nuvitae.healthpilot',\n  appName: 'HealthPilot',\n  webDir: 'dist',\n  server: { iosScheme: 'capacitor' },\n  ios: { contentInset: 'automatic' },\n  urlScheme: 'healthpilot',\n  android: {},\n};\nexport default config;\n"
+        }
+      ]
+    }
+  ],
+  "backend_tasks": [
+    {
+      "id": "BE-DB-SCHEMA",
+      "description": "Add notifications tables with throttling and audit.",
+      "drizzle_sql": [
+        "CREATE TABLE IF NOT EXISTS notification_channels (user_id uuid NOT NULL, channel text NOT NULL, enabled boolean NOT NULL DEFAULT true, quiet_hours text DEFAULT '22:00-07:00', PRIMARY KEY (user_id, channel));",
+        "CREATE TABLE IF NOT EXISTS notifications (id uuid PRIMARY KEY, user_id uuid NOT NULL, channel text NOT NULL, payload jsonb NOT NULL, scheduled_at timestamptz, sent_at timestamptz, provider_message_id text, status text NOT NULL DEFAULT 'scheduled', created_at timestamptz DEFAULT now());",
+        "CREATE INDEX IF NOT EXISTS idx_notifications_user_scheduled ON notifications (user_id, scheduled_at);",
+        "CREATE TABLE IF NOT EXISTS notification_events (id uuid PRIMARY KEY, notification_id uuid REFERENCES notifications(id) ON DELETE CASCADE, event text NOT NULL, event_at timestamptz DEFAULT now(), meta jsonb);"
+      ],
+      "models_ts": {
+        "file": "server/db/schema/notifications.ts",
+        "content": "import { pgTable, text, timestamp, uuid, boolean, jsonb } from 'drizzle-orm/pg-core';\n\nexport const notificationChannels = pgTable('notification_channels', {\n  userId: uuid('user_id').notNull(),\n  channel: text('channel').notNull(),\n  enabled: boolean('enabled').notNull().default(true),\n  quietHours: text('quiet_hours').default('22:00-07:00')\n});\n\nexport const notifications = pgTable('notifications', {\n  id: uuid('id').primaryKey(),\n  userId: uuid('user_id').notNull(),\n  channel: text('channel').notNull(),\n  payload: jsonb('payload').notNull(),\n  scheduledAt: timestamp('scheduled_at', { withTimezone: true }),\n  sentAt: timestamp('sent_at', { withTimezone: true }),\n  providerMessageId: text('provider_message_id'),\n  status: text('status').notNull().default('scheduled'),\n  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow()\n});\n"
+      }
