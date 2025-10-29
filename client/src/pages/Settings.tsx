@@ -43,10 +43,19 @@ export default function Settings() {
   const [selectedTimezone, setSelectedTimezone] = useState(timezone);
   const [isHealthKitSyncing, setIsHealthKitSyncing] = useState(false);
   const [healthKitStatus, setHealthKitStatus] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle');
+  const [currentPlatform, setCurrentPlatform] = useState<string>('');
 
   useEffect(() => {
     setSelectedTimezone(timezone);
   }, [timezone]);
+
+  useEffect(() => {
+    // Debug platform detection
+    const platform = getPlatform();
+    setCurrentPlatform(platform);
+    console.log('[Settings] Platform detected:', platform);
+    console.log('[Settings] Is iOS?', platform === 'ios');
+  }, []);
 
   const { isLoading } = useQuery({
     queryKey: ["/api/user/settings"],
@@ -196,6 +205,23 @@ export default function Settings() {
             <p className="text-sm text-muted-foreground">
               All timestamps in the application will be displayed in your selected timezone.
             </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Debug Platform Info - Remove after testing */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Platform Debug Info</CardTitle>
+          <CardDescription>
+            This shows what platform is detected (remove this after debugging)
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2 text-sm">
+            <p><strong>Detected Platform:</strong> {currentPlatform || 'Loading...'}</p>
+            <p><strong>Is iOS?</strong> {getPlatform() === 'ios' ? 'YES ✅' : 'NO ❌'}</p>
+            <p><strong>HealthKit Section Visible?</strong> {getPlatform() === 'ios' ? 'YES ✅' : 'NO ❌'}</p>
           </div>
         </CardContent>
       </Card>
