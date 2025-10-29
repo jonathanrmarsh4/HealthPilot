@@ -168,8 +168,19 @@ function AppLayout() {
 
   const currentPage = pageNames[location] || "Unknown Page";
   
+  // Wait for onboarding status to load before deciding what to show
+  // This prevents the dashboard from flashing before HealthKit onboarding
+  if (onboardingLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+        <p className="text-sm text-muted-foreground">Loading...</p>
+      </div>
+    );
+  }
+  
   // Show HealthKit onboarding screen if applicable (before main app)
-  if (shouldShowHealthKitOnboarding && !onboardingLoading) {
+  if (shouldShowHealthKitOnboarding) {
     return (
       <HealthKitOnboarding 
         onComplete={() => {
