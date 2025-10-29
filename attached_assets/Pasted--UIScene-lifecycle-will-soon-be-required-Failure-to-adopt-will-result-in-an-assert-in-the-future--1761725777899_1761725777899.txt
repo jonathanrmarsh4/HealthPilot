@@ -1,0 +1,54 @@
+`UIScene` lifecycle will soon be required. Failure to adopt will result in an assert in the future.
+Could not create a sandbox extension for '/var/containers/Bundle/Application/FF1A1E6A-7756-4F39-B1B0-9291500E3CC8/App.app'
+KeyboardPlugin: resize mode - body
+⚡️  Loading app at https://0d420476-b7bb-4cc4-9f5a-da35f5e473e4-00-1n1tyyvrb5uvz.pike.replit.dev...
+WebContent[9019] Unable to hide query parameters from script (missing data)
+⚡️  [debug] - [vite] connecting...
+SplashScreen.hideSplash: SplashScreen was automatically hidden after default timeout. You should call `SplashScreen.hide()` as soon as your web app is loaded (or increase the timeout). Read more at https://capacitorjs.com/docs/apis/splash-screen#hiding-the-splash-screen
+⚡️  WebView loaded
+⚡️  [log] - [MobileBootstrap] Initializing on ios...
+⚡️  To Native ->  StatusBar setStyle 37466743
+⚡️  TO JS {}
+⚡️  To Native ->  SplashScreen hide 37466744
+⚡️  [log] - [MobileBootstrap] Status bar configured
+⚡️  TO JS undefined
+⚡️  [log] - [MobileBootstrap] Splash screen hidden
+⚡️  To Native ->  Keyboard addListener ⚡️  [log] - [MobileBootstrap] Keyboard listeners configured
+37466745
+⚡️  To Native ->  Keyboard addListener 37466746
+⚡️  To Native ->  App addListener 37466747
+⚡️  To Native ->  App getInfo 37466748
+⚡️  [log] - [MobileBootstrap] Back button handler configured
+⚡️  TO JS {"id":"HealthPilot","build":"1","name":"Health Insights AI","version":"1.0"}
+⚡️  [log] - [MobileBootstrap] App Info: {"name":"Health Insights AI","id":"HealthPilot","version":"1.0","build":"1"}
+⚡️  [log] - [MobileBootstrap] ✅ Mobile initialization complete
+⚡️  [log] - [App] Setting up global deep link listener
+⚡️  To Native ->  App addListener 37466749
+⚡️  To Native ->  SecureStorage internalGetItem 37466750
+⚡️  TO JS {"data":"\"sC5WdZCeTvW9S9qakrtCsinPX87YVrSVfzxVc3iJdZE\""}
+Error acquiring assertion: <Error Domain=RBSAssertionErrorDomain Code=2 "Could not find attribute name in domain plist" UserInfo={NSLocalizedFailureReason=Could not find attribute name in domain plist}>
+59638328 Plugin query method called
+(501) Invalidation handler invoked, clearing connection
+(501) personaAttributesForPersonaType for type:0 failed with error Error Domain=NSCocoaErrorDomain Code=4099 "The connection to service named com.apple.mobile.usermanagerd.xpc was invalidated: failed at lookup with error 159 - Sandbox restriction." UserInfo={NSDebugDescription=The connection to service named com.apple.mobile.usermanagerd.xpc was invalidated: failed at lookup with error 159 - Sandbox restriction.}
+LaunchServices: store (null) or url (null) was nil: Error Domain=NSOSStatusErrorDomain Code=-54 "process may not map database" UserInfo={_LSLine=72, _LSFunction=_LSServer_GetServerStoreForConnectionWithCompletionHandler, _LSFile=LSDReadService.mm, NSDebugDescription=process may not map database}
+Attempt to map database failed: permission was denied. This attempt will not be retried.
+Failed to initialize client context with error Error Domain=NSOSStatusErrorDomain Code=-54 "process may not map database" UserInfo={_LSLine=72, _LSFunction=_LSServer_GetServerStoreForConnectionWithCompletionHandler, _LSFile=LSDReadService.mm, NSDebugDescription=process may not map database}
+Failed to change to usage state 2: (null)
+LaunchServices: store (null) or url (null) was nil: Error Domain=NSOSStatusErrorDomain Code=-54 "process may not map database" UserInfo={_LSLine=72, _LSFunction=_LSServer_GetServerStoreForConnectionWithCompletionHandler, _LSFile=LSDReadService.mm, NSDebugDescription=process may not map database}
+Attempt to map database failed: permission was denied. This attempt will not be retried.
+Failed to initialize client context with error Error Domain=NSOSStatusErrorDomain Code=-54 "process may not map database" UserInfo={_LSLine=72, _LSFunction=_LSServer_GetServerStoreForConnectionWithCompletionHandler, _LSFile=LSDReadService.mm, NSDebugDescription=process may not map database}
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  To Native ->  SecureStorage internalGetItem 37466751
+⚡️  To Native ->  SecureStorage internalGetItem 37466752
+⚡️  To Native ->  SecureStorage internalGetItem 37466753
+⚡️  To Native ->  SecureStorage internalGetItem 37466754
+⚡️  TO JS {"data":"\"sC5WdZCeTvW9S9qakrtCsinPX87YVrSVfzxVc3iJdZE\""}
+⚡️  TO JS {"data":"\"sC5WdZCeTvW9S9qakrtCsinPX87YVrSVfzxVc3iJdZE\""}
+⚡️  TO JS {"data":"\"sC5WdZCeTvW9S9qakrtCsinPX87YVrSVfzxVc3iJdZE\""}
+⚡️  TO JS {"data":"\"sC5WdZCeTvW9S9qakrtCsinPX87YVrSVfzxVc3iJdZE\""}
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  [log] - [HealthKitOnboarding] Checking HealthKit availability...
+⚡️  [warn] - [HealthKit] Plugin check failed: "HealthPilotHealthKit" plugin is not implemented on ios
+⚡️  [log] - [HealthKitOnboarding] HealthKit available: false
