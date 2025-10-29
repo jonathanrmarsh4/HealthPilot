@@ -1,6 +1,7 @@
 import OpenAI from 'openai';
 import { DeviationResult } from './thresholdDetection';
 import { storage } from '../storage';
+import { eventBus } from '../lib/eventBus';
 
 /**
  * Insight Generation Service
@@ -84,7 +85,7 @@ export async function generateInsightFromDeviation(
     const parsed = JSON.parse(content);
 
     // Validate and return
-    return {
+    const insight = {
       category: parsed.category,
       title: parsed.title,
       description: parsed.description,
@@ -96,6 +97,38 @@ export async function generateInsightFromDeviation(
       baselineValue: deviation.baselineValue,
       deviation: deviation.percentageDeviation,
     };
+    
+    // Emit biomarker alert event if this is a biomarker deviation (non-breaking)
+    try {
+      // Check if this is a biomarker-related metric
+      const isBiomarker = deviation.threshold.metricName.includes('cholesterol') ||
+                         deviation.threshold.metricName.includes('glucose') ||
+                         deviation.threshold.metricName.includes('hrv') ||
+                         deviation.threshold.metricName.includes('heart_rate') ||
+                         deviation.threshold.metricName.includes('crp') ||
+                         deviation.threshold.metricName.includes('cortisol') ||
+                         deviation.threshold.metricName.includes('testosterone') ||
+                         deviation.threshold.metricName.includes('vitamin');
+      
+      if (isBiomarker && (deviation.severity === 'significant' || deviation.severity === 'critical')) {
+        const alertPayload = {
+          userId: userId,
+          biomarkerName: deviation.threshold.description,
+          value: deviation.currentValue,
+          unit: deviation.threshold.unit,
+          status: deviation.severity === 'critical' ? 'critical' as const : 'high' as const,
+          message: `${deviation.threshold.description} ${deviation.direction} by ${Math.abs(deviation.percentageDeviation).toFixed(1)}%`,
+        };
+        
+        console.log('[InsightGeneration] Emitting biomarker alert:', alertPayload);
+        eventBus.emit('biomarker:alert', alertPayload);
+      }
+    } catch (error) {
+      console.error('[InsightGeneration] Error emitting biomarker alert event:', error);
+      // Continue execution - don't let event emission break the insight generation
+    }
+    
+    return insight;
   } catch (error) {
     console.error('[InsightGeneration] Error generating insight:', error);
     return null;

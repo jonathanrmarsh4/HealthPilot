@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import { buildGuardrailsSystemPrompt, checkAutoRegulation, getGoalGuidance } from "../config/guardrails";
 import { recordLLMEvent } from "./telemetry";
+import { eventBus } from '../lib/eventBus';
 
 const rawOpenAI = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
@@ -2533,6 +2534,7 @@ If this is the first message, introduce yourself briefly and ask about their pri
 }
 
 export async function generateDailyInsights(data: {
+  userId?: string;
   biomarkers: any[];
   sleepSessions: any[];
   recentActivity?: any;
@@ -2664,7 +2666,33 @@ Generate 3-5 insights prioritized by importance. Focus on what matters most to t
     if (content) {
       try {
         const parsedData = JSON.parse(content);
-        return parsedData.insights || [];
+        const insights = parsedData.insights || [];
+        
+        // Emit events for each insight generated (non-breaking)
+        if (data.userId && insights && insights.length > 0) {
+          insights.forEach((insight: any) => {
+            try {
+              const eventPayload = {
+                userId: data.userId!,
+                insightId: `daily-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                insightType: 'general' as const,
+                title: insight.title || 'Daily Health Insight',
+                summary: insight.description || '',
+                priority: (insight.priority === 'high' || insight.priority === 'critical') ? 
+                  'high' as const : 
+                  (insight.priority === 'low' ? 'low' as const : 'medium' as const),
+              };
+              
+              console.log('[AI] Emitting daily insight event:', eventPayload);
+              eventBus.emit('insight:generated', eventPayload);
+            } catch (error) {
+              console.error('[AI] Error emitting daily insight event:', error);
+              // Continue execution - don't let event emission break the API
+            }
+          });
+        }
+        
+        return insights;
       } catch (e) {
         console.error("Failed to parse insights JSON:", e);
         console.error("Raw content:", content);
@@ -2681,6 +2709,7 @@ Generate 3-5 insights prioritized by importance. Focus on what matters most to t
 }
 
 export async function generateRecoveryInsights(data: {
+  userId?: string;
   trainingLoad: { weeklyLoad: number; monthlyLoad: number; weeklyHours: number };
   workoutStats: {
     totalWorkouts: number;
@@ -2816,8 +2845,34 @@ Generate 3-5 insights, ordered by importance. Focus on actionable recovery strat
   const content = completion.choices[0].message.content;
   if (content) {
     try {
-      const data = JSON.parse(content);
-      return data.insights || [];
+      const parsedData = JSON.parse(content);
+      const insights = parsedData.insights || [];
+      
+      // Emit events for recovery insights (non-breaking)
+      if (data.userId && insights && insights.length > 0) {
+        insights.forEach((insight: any) => {
+          try {
+            const eventPayload = {
+              userId: data.userId!,
+              insightId: `recovery-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+              insightType: 'recovery' as const,
+              title: insight.title || 'Recovery Insight',
+              summary: insight.description || insight.recommendation || '',
+              priority: (insight.severity === 'warning' || insight.severity === 'caution') ? 
+                'high' as const : 
+                (insight.severity === 'excellent' ? 'low' as const : 'medium' as const),
+            };
+            
+            console.log('[AI] Emitting recovery insight event:', eventPayload);
+            eventBus.emit('insight:generated', eventPayload);
+          } catch (error) {
+            console.error('[AI] Error emitting recovery insight event:', error);
+            // Continue execution - don't let event emission break the API
+          }
+        });
+      }
+      
+      return insights;
     } catch (e) {
       console.error("Failed to parse recovery insights:", e);
     }
