@@ -114,11 +114,16 @@ export class HealthKitService {
     endDate: Date
   ): Promise<HealthDataSample[]> {
     try {
+      console.log(`[HealthKit] Querying ${dataType} from ${startDate.toISOString()} to ${endDate.toISOString()}`);
       const result = await HealthPilotHealthKit.queryHealthData({
         dataType,
         startDate: startDate.toISOString(),
         endDate: endDate.toISOString(),
       });
+      console.log(`[HealthKit] ${dataType} returned ${result.samples?.length || 0} samples`);
+      if (result.samples && result.samples.length > 0) {
+        console.log(`[HealthKit] ${dataType} sample example:`, result.samples[0]);
+      }
       return result.samples || [];
     } catch (error) {
       console.error(`[HealthKit] Failed to query ${dataType}:`, error);
@@ -215,11 +220,16 @@ export class HealthKitService {
    */
   async getWorkouts(startDate: Date, endDate: Date): Promise<WorkoutSample[]> {
     try {
+      console.log(`[HealthKit] Querying workouts from ${startDate.toISOString()} to ${endDate.toISOString()}`);
       const result = await HealthPilotHealthKit.queryHealthData({
         dataType: 'workouts',
         startDate: startDate.toISOString(),
         endDate: endDate.toISOString(),
       });
+      console.log(`[HealthKit] Workouts returned ${result.workouts?.length || 0} items`);
+      if (result.workouts && result.workouts.length > 0) {
+        console.log(`[HealthKit] Workout example:`, result.workouts[0]);
+      }
       return result.workouts || [];
     } catch (error) {
       console.error('[HealthKit] Failed to get workouts:', error);
@@ -232,11 +242,16 @@ export class HealthKitService {
    */
   async getSleep(startDate: Date, endDate: Date): Promise<SleepSample[]> {
     try {
+      console.log(`[HealthKit] Querying sleep from ${startDate.toISOString()} to ${endDate.toISOString()}`);
       const result = await HealthPilotHealthKit.queryHealthData({
         dataType: 'sleep',
         startDate: startDate.toISOString(),
         endDate: endDate.toISOString(),
       });
+      console.log(`[HealthKit] Sleep returned ${result.sleepSamples?.length || 0} samples`);
+      if (result.sleepSamples && result.sleepSamples.length > 0) {
+        console.log(`[HealthKit] Sleep sample example:`, result.sleepSamples[0]);
+      }
       return result.sleepSamples || [];
     } catch (error) {
       console.error('[HealthKit] Failed to get sleep:', error);
