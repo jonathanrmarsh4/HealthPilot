@@ -1,0 +1,81 @@
+⚡️  To Native ->  HealthPilotHealthKit requestAuthorization 67592656
+⚡️  [log] - [HealthKit] Requesting permissions...
+⚡️  TO JS {"success":true}
+⚡️  [log] - [HealthKit] Permission request result: {"success":true}
+⚡️  [log] - [HealthKit] Querying steps from 2025-07-31T23:32:16.905Z to 2025-10-29T23:32:16.905Z
+⚡️  [log] - [HealthKit] Querying distance from 2025-07-31T23:32:16.905Z to 2025-10-29T23:32:16.905Z
+⚡️  [log] - [HealthKit] Querying activeCalories from 2025-07-31T23:32:16.905Z to 2025-10-29T23:32:16.905Z
+⚡️  [log] - [HealthKit] Querying heartRate from 2025-07-31T23:32:16.905Z to 2025-10-29T23:32:16.905Z
+⚡️  [log] - [HealthKit] Querying restingHeartRate from 2025-07-31T23:32:16.905Z to 2025-10-29T23:32:16.905Z
+⚡️  [log] - [HealthKit] Querying hrv from 2025-07-31T23:32:16.905Z to 2025-10-29T23:32:16.905Z
+⚡️  [log] - [HealthKit] Querying weight from 2025-07-31T23:32:16.905Z to 2025-10-29T23:32:16.905Z
+⚡️  [log] - [HealthKit] Querying leanBodyMass from 2025-07-31T23:32:16.905Z to 2025-10-29T23:32:16.905Z
+⚡️  [log] - [HealthKit] Querying bodyFat from 2025-07-31T23:32:16.905Z to 2025-10-29T23:32:16.905Z
+⚡️  [log] - [HealthKit] Querying bloodPressureSystolic from 2025-07-31T23:32:16.905Z to 2025-10-29T23:32:16.905Z
+⚡️  [log] - [HealthKit] Querying bloodPressureDiastolic from 2025-07-31T23:32:16.905Z to 2025-10-29T23:32:16.905Z
+⚡️  [log] - [HealthKit] Querying bloodGlucose from 2025-07-31T23:32:16.905Z to 2025-10-29T23:32:16.905Z
+⚡️  [log] - [HealthKit] Querying workouts from 2025-07-31T23:32:16.905Z to 2025-10-29T23:32:16.905Z
+⚡️  To Native ->  ⚡️  [log] - [HealthKit] Querying sleep from 2025-07-31T23:32:16.905Z to 2025-10-29T23:32:16.905Z
+HealthPilotHealthKit queryHealthData 67592657
+⚡️  To Native ->  HealthPilotHealthKit queryHealthData 67592658
+⚡️  To Native ->  HealthPilotHealthKit queryHealthData 67592659
+⚡️  To Native ->  HealthPilotHealthKit queryHealthData 67592660
+⚡️  To Native ->  HealthPilotHealthKit queryHealthData 67592661
+⚡️  To Native ->  HealthPilotHealthKit queryHealthData 67592662
+ERROR MESSAGE:  {"errorMessage":"Invalid date format. Use ISO 8601.","message":"Invalid date format. Use ISO 8601."}
+⚡️  To Native ->  HealthPilotHealthKit queryHealthData 67592663
+⚡️  To Native ->  HealthPilotHealthKit queryHealthData 67592664
+⚡️  To Native ->  HealthPilotHealthKit queryHealthData 67592665
+⚡️  To Native ->  HealthPilotHealthKit queryHealthData 67592666
+⚡️  To Native ->  HealthPilotHealthKit queryHealthData 67592667
+⚡️  To Native ->  HealthPilotHealthKit queryHealthData 67592668
+ERROR MESSAGE:  {"message":"Invalid date format. Use ISO 8601.","errorMessage":"Invalid date format. Use ISO 8601."}
+⚡️  To Native ->  HealthPilotHealthKit queryHealthData 67592669
+⚡️  To Native ->  HealthPilotHealthKit queryHealthData 67592670
+ERROR MESSAGE:  {"message":"Invalid date format. Use ISO 8601.","errorMessage":"Invalid date format. Use ISO 8601."}
+ERROR MESSAGE:  {"errorMessage":"Invalid date format. Use ISO 8601.","message":"Invalid date format. Use ISO 8601."}
+ERROR MESSAGE:  {"errorMessage":"Invalid date format. Use ISO 8601.","message":"Invalid date format. Use ISO 8601."}
+ERROR MESSAGE:  {"errorMessage":"Invalid date format. Use ISO 8601.","message":"Invalid date format. Use ISO 8601."}
+ERROR MESSAGE:  {"errorMessage":"Invalid date format. Use ISO 8601.","message":"Invalid date format. Use ISO 8601."}
+ERROR MESSAGE:  {"errorMessage":"Invalid date format. Use ISO 8601.","message":"Invalid date format. Use ISO 8601."}
+ERROR MESSAGE:  {"message":"Invalid date format. Use ISO 8601.","errorMessage":"Invalid date format. Use ISO 8601."}
+ERROR MESSAGE:  {"message":"Invalid date format. Use ISO 8601.","errorMessage":"Invalid date format. Use ISO 8601."}
+ERROR MESSAGE:  {"message":"Invalid date format. Use ISO 8601.","errorMessage":"Invalid date format. Use ISO 8601."}
+ERROR MESSAGE:  {"message":"Invalid date format. Use ISO 8601.","errorMessage":"Invalid date format. Use ISO 8601."}
+ERROR MESSAGE:  {"message":"Invalid date format. Use ISO 8601.","errorMessage":"Invalid date format. Use ISO 8601."}
+ERROR MESSAGE:  {"errorMessage":"Invalid date format. Use ISO 8601.","message":"Invalid date format. Use ISO 8601."}
+⚡️  [error] - {"errorMessage":"Invalid date format. Use ISO 8601.","message":"Invalid date format. Use ISO 8601."}
+⚡️  [error] - [HealthKit] Failed to query steps: {"errorMessage":"Invalid date format. Use ISO 8601."}
+⚡️  [error] - {"message":"Invalid date format. Use ISO 8601.","errorMessage":"Invalid date format. Use ISO 8601."}
+⚡️  [error] - [HealthKit] Failed to query distance: {"errorMessage":"Invalid date format. Use ISO 8601."}
+⚡️  [error] - {"message":"Invalid date format. Use ISO 8601.","errorMessage":"Invalid date format. Use ISO 8601."}
+⚡️  [error] - [HealthKit] Failed to query activeCalories: {"errorMessage":"Invalid date format. Use ISO 8601."}
+⚡️  [error] - {"errorMessage":"Invalid date format. Use ISO 8601.","message":"Invalid date format. Use ISO 8601."}
+⚡️  [error] - [HealthKit] Failed to query heartRate: {"errorMessage":"Invalid date format. Use ISO 8601."}
+⚡️  To Native ->  SecureStorage ⚡️  [error] - {"errorMessage":"Invalid date format. Use ISO 8601.","message":"Invalid date format. Use ISO 8601."}
+internalGetItem 67592671
+⚡️  [error] - [HealthKit] Failed to query restingHeartRate: {"errorMessage":"Invalid date format. Use ISO 8601."}
+⚡️  [error] - {"errorMessage":"Invalid date format. Use ISO 8601.","message":"Invalid date format. Use ISO 8601."}
+⚡️  [error] - [HealthKit] Failed to query hrv: {"errorMessage":"Invalid date format. Use ISO 8601."}
+⚡️  [error] - {"errorMessage":"Invalid date format. Use ISO 8601.","message":"Invalid date format. Use ISO 8601."}
+⚡️  [error] - [HealthKit] Failed to query weight: {"errorMessage":"Invalid date format. Use ISO 8601."}
+⚡️  [error] - {"errorMessage":"Invalid date format. Use ISO 8601.","message":"Invalid date format. Use ISO 8601."}
+⚡️  [error] - [HealthKit] Failed to query leanBodyMass: {"errorMessage":"Invalid date format. Use ISO 8601."}
+⚡️  [error] - {"message":"Invalid date format. Use ISO 8601.","errorMessage":"Invalid date format. Use ISO 8601."}
+⚡️  [error] - [HealthKit] Failed to query bodyFat: {"errorMessage":"Invalid date format. Use ISO 8601."}
+⚡️  [error] - {"message":"Invalid date format. Use ISO 8601.","errorMessage":"Invalid date format. Use ISO 8601."}
+⚡️  [error] - [HealthKit] Failed to query bloodPressureSystolic: {"errorMessage":"Invalid date format. Use ISO 8601."}
+⚡️  [error] - {"message":"Invalid date format. Use ISO 8601.","errorMessage":"Invalid date format. Use ISO 8601."}
+⚡️  [error] - [HealthKit] Failed to query bloodPressureDiastolic: {"errorMessage":"Invalid date format. Use ISO 8601."}
+⚡️  [error] - {"message":"Invalid date format. Use ISO 8601.","errorMessage":"Invalid date format. Use ISO 8601."}
+⚡️  [error] - [HealthKit] Failed to query bloodGlucose: {"errorMessage":"Invalid date format. Use ISO 8601."}
+⚡️  [error] - {"message":"Invalid date format. Use ISO 8601.","errorMessage":"Invalid date format. Use ISO 8601."}
+⚡️  [error] - [HealthKit] Failed to get workouts: {"errorMessage":"Invalid date format. Use ISO 8601."}
+⚡️  [error] - {"errorMessage":"Invalid date format. Use ISO 8601.","message":"Invalid date format. Use ISO 8601."}
+⚡️  [error] - [HealthKit] Failed to get sleep: {"errorMessage":"Invalid date format. Use ISO 8601."}
+⚡️  [log] - [HealthKit] Comprehensive health data retrieved: {"steps":0,"distance":0,"activeCalories":0,"heartRate":0,"restingHeartRate":0,"hrv":0,"weight":0,"leanBodyMass":0,"bodyFat":0,"bloodPressureSystolic":0,"bloodPressureDiastolic":0,"bloodGlucose":0,"workouts":0,"sleep":0}
+⚡️  TO JS {"data":"\"3VjigIXtafYZr7tYN7iSYh5_Pfaw7fXcYadUr187HmA\""}
+⚡️  To Native ->  SecureStorage internalGetItem 67592672
+⚡️  TO JS {"data":"\"3VjigIXtafYZr7tYN7iSYh5_Pfaw7fXcYadUr187HmA\""}
+⚡️  To Native ->  SecureStorage internalGetItem 67592673
+⚡️  TO JS {"data":"\"3VjigIXtafYZr7tYN7iSYh5_Pfaw7fXcYadUr187HmA\""}
