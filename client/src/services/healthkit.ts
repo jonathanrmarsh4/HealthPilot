@@ -57,9 +57,11 @@ export class HealthKitService {
   /**
    * Check if HealthKit is available on this device
    * Uses plugin availability check, not just platform detection
+   * 
+   * Important: Does NOT cache timeout/error results to allow retry on next attempt
    */
   async isHealthKitAvailable(): Promise<boolean> {
-    // Return cached result if we've already checked
+    // Return cached result ONLY if we successfully determined availability
     if (this.isAvailable !== null) {
       return this.isAvailable;
     }
@@ -72,14 +74,27 @@ export class HealthKitService {
       }
 
       // Try to call the plugin to verify it's actually available
-      // If this throws or the plugin doesn't exist, we're in a web browser
-      const result = await HealthPlugin.isAvailable();
+      // Add timeout to prevent hanging if plugin doesn't respond
+      const timeoutPromise = new Promise<{ available: boolean }>((_, reject) => {
+        setTimeout(() => reject(new Error('HealthKit availability check timed out after 8s')), 8000);
+      });
+      
+      const availabilityPromise = HealthPlugin.isAvailable();
+      
+      const result = await Promise.race([availabilityPromise, timeoutPromise]);
+      
+      // Only cache the result if we got a definitive answer from the plugin
       this.isAvailable = result?.available ?? false;
+      console.log('[HealthKit] Availability check result:', this.isAvailable);
       return this.isAvailable;
-    } catch (error) {
-      // Plugin not available (likely iOS Safari web browser)
-      console.log('HealthKit plugin not available:', error);
-      this.isAvailable = false;
+    } catch (error: any) {
+      // Plugin not available or timed out
+      // DO NOT cache false result - allow retry on next attempt
+      const isTimeout = error?.message?.includes('timed out');
+      console.warn(`[HealthKit] Plugin check failed (timeout: ${isTimeout}):`, error.message);
+      
+      // Return false for this attempt, but don't cache it
+      // This allows the check to be retried later
       return false;
     }
   }

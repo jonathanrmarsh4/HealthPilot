@@ -17,25 +17,45 @@ export function HealthKitOnboarding({ onComplete, onSkip }: HealthKitOnboardingP
   const [isSyncing, setIsSyncing] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
   const [isHealthKitAvailable, setIsHealthKitAvailable] = useState<boolean>(false);
+  const [checkFailed, setCheckFailed] = useState(false);
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState<string>('');
   const { toast } = useToast();
 
   // Check HealthKit availability on mount
   useEffect(() => {
-    const checkAvailability = async () => {
-      if (!isNativePlatform()) {
-        setIsHealthKitAvailable(false);
-        setIsChecking(false);
-        return;
-      }
-
-      const available = await healthKitService.isHealthKitAvailable();
-      setIsHealthKitAvailable(available);
-      setIsChecking(false);
-    };
     checkAvailability();
   }, []);
+
+  const checkAvailability = async () => {
+    if (!isNativePlatform()) {
+      console.log('[HealthKitOnboarding] Not on native platform, skipping');
+      setIsHealthKitAvailable(false);
+      setIsChecking(false);
+      return;
+    }
+
+    console.log('[HealthKitOnboarding] Checking HealthKit availability...');
+    setIsChecking(true);
+    setCheckFailed(false);
+    
+    try {
+      const available = await healthKitService.isHealthKitAvailable();
+      console.log('[HealthKitOnboarding] HealthKit available:', available);
+      setIsHealthKitAvailable(available);
+      setIsChecking(false);
+      
+      // If check returned false (timeout or error), mark as failed
+      if (!available) {
+        setCheckFailed(true);
+      }
+    } catch (error) {
+      console.error('[HealthKitOnboarding] Error checking availability:', error);
+      setIsHealthKitAvailable(false);
+      setCheckFailed(true);
+      setIsChecking(false);
+    }
+  };
 
   const handleSetupHealthKit = async () => {
     if (!isHealthKitAvailable) {
@@ -109,19 +129,19 @@ export function HealthKitOnboarding({ onComplete, onSkip }: HealthKitOnboardingP
     }
   };
 
-  // Auto-skip if HealthKit is not available (web or Android)
+  // Auto-skip if HealthKit is not available (web or Android) AND the check didn't fail
   // Using ref to prevent infinite loops
   const hasAutoSkipped = useRef(false);
   const [isAutoSkipping, setIsAutoSkipping] = useState(false);
   
   useEffect(() => {
-    if (!isChecking && !isHealthKitAvailable && !hasAutoSkipped.current) {
+    if (!isChecking && !isHealthKitAvailable && !checkFailed && !hasAutoSkipped.current) {
       hasAutoSkipped.current = true;
       setIsAutoSkipping(true);
-      console.log('[HealthKitOnboarding] Auto-skipping (HealthKit not available)');
+      console.log('[HealthKitOnboarding] Auto-skipping (not on iOS or plugin unavailable)');
       handleSkip();
     }
-  }, [isChecking, isHealthKitAvailable]);
+  }, [isChecking, isHealthKitAvailable, checkFailed]);
 
   // Show loader while checking availability or auto-skipping
   if (isChecking || isAutoSkipping) {
@@ -135,11 +155,52 @@ export function HealthKitOnboarding({ onComplete, onSkip }: HealthKitOnboardingP
     );
   }
 
-  // If HealthKit is not available, show nothing (auto-skip already called)
-  if (!isHealthKitAvailable) {
+  // If HealthKit check failed (timeout or error), show retry option
+  if (checkFailed && !isHealthKitAvailable) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="flex items-center justify-center min-h-screen p-4 bg-background">
+        <Card className="w-full max-w-2xl">
+          <CardHeader className="text-center">
+            <div className="flex justify-center mb-4">
+              <div className="p-4 bg-destructive/10 rounded-full">
+                <XCircle className="h-12 w-12 text-destructive" />
+              </div>
+            </div>
+            <CardTitle className="text-3xl">Connection Issue</CardTitle>
+            <CardDescription className="text-base mt-2">
+              We couldn't connect to Apple Health. This might be due to a temporary issue.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <Alert>
+              <AlertDescription className="text-sm">
+                You can try again or skip this step and set up Apple Health sync later from the Biomarkers page.
+              </AlertDescription>
+            </Alert>
+
+            <div className="flex flex-col gap-3">
+              <Button
+                onClick={() => checkAvailability()}
+                size="lg"
+                className="w-full"
+                data-testid="button-retry-healthkit"
+              >
+                <Heart className="h-4 w-4 mr-2" />
+                Try Again
+              </Button>
+              
+              <Button
+                onClick={handleSkip}
+                variant="ghost"
+                size="lg"
+                className="w-full"
+                data-testid="button-skip-healthkit"
+              >
+                Skip for Now
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
