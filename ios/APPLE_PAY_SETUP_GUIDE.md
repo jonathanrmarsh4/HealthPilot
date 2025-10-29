@@ -56,18 +56,27 @@ This certificate allows Apple Pay to securely encrypt payment data.
 
 ### Step 5: Generate Certificate Signing Request (CSR) on Your Mac
 
+> ⚠️ **IMPORTANT:** Apple Pay requires a special **ECC 256-bit certificate** (not the default RSA)
+
 1. Open **Keychain Access** app (found in Applications → Utilities)
-2. In the menu bar, go to: **Keychain Access → Certificate Assistant → Request a Certificate from a Certificate Authority**
+2. In the **menu bar at the top of your screen**, go to: **Keychain Access → Certificate Assistant → Request a Certificate from a Certificate Authority**
 3. In the dialog that appears:
    - **User Email Address:** Enter your email (e.g., `you@example.com`)
    - **Common Name:** Enter `HealthPilot Apple Pay Certificate`
    - **CA Email Address:** Leave this field **EMPTY**
    - **Request is:** Select **"Saved to disk"**
+   - ✅ **CHECK THIS BOX:** **"Let me specify key pair information"** ← **CRITICAL!**
 4. Click **"Continue"**
 5. Save the file as `HealthPilot_CSR.certSigningRequest` to your Desktop
-6. Click **"Done"**
 
-> 💡 **What just happened?** You created a private key (stored in Keychain) and a certificate request file on your Desktop.
+6. **NEW: Key Pair Information dialog will appear**
+   - **Algorithm:** Select **"ECC"** (NOT "RSA")
+   - **Key Size:** Select **"256 bits"**
+   - Click **"Continue"**
+
+7. Click **"Done"**
+
+> 💡 **What just happened?** You created an ECC 256-bit private key (stored in Keychain) and a certificate request file on your Desktop.
 
 ### Step 6: Upload CSR to Apple Developer Portal
 
