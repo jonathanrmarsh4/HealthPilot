@@ -748,6 +748,14 @@ export interface IStorage {
   updateScheduledReminder(id: string, data: Partial<InsertScheduledReminder>): Promise<void>;
   deleteScheduledReminder(id: string): Promise<void>;
   getPendingReminders(): Promise<ScheduledReminder[]>;
+  
+  // Reminder Scheduler Methods (alternative names for scheduler service)
+  getAllEnabledReminders(): Promise<ScheduledReminder[]>;
+  createReminder(reminder: InsertScheduledReminder): Promise<ScheduledReminder>;
+  updateReminder(id: string, updates: Partial<InsertScheduledReminder>): Promise<void>;
+  updateReminderLastSent(id: string, sentAt: Date): Promise<void>;
+  deleteReminder(id: string, userId: string): Promise<void>;
+  getUserReminders(userId: string, type?: string): Promise<ScheduledReminder[]>;
 }
 
 export class DbStorage implements IStorage {
@@ -6156,6 +6164,65 @@ export class DbStorage implements IStorage {
       .from(scheduledReminders)
       .where(eq(scheduledReminders.enabled, true))
       .orderBy(scheduledReminders.lastSentAt);
+  }
+
+  // Reminder Scheduler Methods (alternative names for scheduler service)
+  async getAllEnabledReminders(): Promise<ScheduledReminder[]> {
+    return await db
+      .select()
+      .from(scheduledReminders)
+      .where(eq(scheduledReminders.enabled, true));
+  }
+
+  async createReminder(reminder: InsertScheduledReminder): Promise<ScheduledReminder> {
+    const [created] = await db
+      .insert(scheduledReminders)
+      .values(reminder)
+      .returning();
+    return created;
+  }
+
+  async updateReminder(id: string, updates: Partial<InsertScheduledReminder>): Promise<void> {
+    await db
+      .update(scheduledReminders)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(scheduledReminders.id, id));
+  }
+
+  async updateReminderLastSent(id: string, sentAt: Date): Promise<void> {
+    await db
+      .update(scheduledReminders)
+      .set({ lastSentAt: sentAt })
+      .where(eq(scheduledReminders.id, id));
+  }
+
+  async deleteReminder(id: string, userId: string): Promise<void> {
+    await db
+      .delete(scheduledReminders)
+      .where(
+        and(
+          eq(scheduledReminders.id, id),
+          eq(scheduledReminders.userId, userId)
+        )
+      );
+  }
+
+  async getUserReminders(userId: string, type?: string): Promise<ScheduledReminder[]> {
+    if (type) {
+      return await db
+        .select()
+        .from(scheduledReminders)
+        .where(
+          and(
+            eq(scheduledReminders.userId, userId),
+            eq(scheduledReminders.type, type)
+          )
+        );
+    }
+    return await db
+      .select()
+      .from(scheduledReminders)
+      .where(eq(scheduledReminders.userId, userId));
   }
 }
 

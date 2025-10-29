@@ -3,6 +3,7 @@ import cors from "cors";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { setupAuth } from "./replitAuth";
+import { reminderScheduler } from './services/reminderScheduler';
 
 const app = express();
 
@@ -176,5 +177,15 @@ app.use((req, res, next) => {
         log(`❌ Cost Rollup Scheduler error: ${error.message}`);
       }
     }, 9000); // Wait 9 seconds after startup
+    
+    // Start Reminder Scheduler (runs every minute)
+    setTimeout(() => {
+      try {
+        log('⏰ Starting Reminder Scheduler...');
+        reminderScheduler.start();
+      } catch (error: any) {
+        log(`❌ Reminder Scheduler error: ${error.message}`);
+      }
+    }, 10000); // Wait 10 seconds after startup
   });
 })();

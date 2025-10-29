@@ -13444,6 +13444,24 @@ DATA AVAILABILITY:
   });
 
   // Scheduled Reminders Routes
+  // GET /api/reminders - Get user's reminders
+  app.get("/api/reminders", isAuthenticated, async (req, res) => {
+    try {
+      if (!isNotificationsLayerEnabled()) {
+        return res.status(503).json({ error: "Notifications feature is disabled" });
+      }
+
+      const userId = (req.user as any).claims.sub;
+      const type = req.query.type as string | undefined;
+      
+      const reminders = await storage.getUserReminders(userId, type);
+      res.json(reminders);
+    } catch (error: any) {
+      console.error("Error fetching reminders:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // POST /api/reminders - Create scheduled reminder
   app.post("/api/reminders", isAuthenticated, async (req, res) => {
     try {
@@ -13452,14 +13470,13 @@ DATA AVAILABILITY:
       }
 
       const userId = (req.user as any).claims.sub;
-      const data = insertScheduledReminderSchema.parse({
-        userId,
+      const reminderData = insertScheduledReminderSchema.parse({
         ...req.body,
+        userId,
       });
       
-      const reminder = await storage.createScheduledReminder(data);
-      
-      res.json({ reminder });
+      const reminder = await storage.createReminder(reminderData);
+      res.json(reminder);
     } catch (error: any) {
       if (error.name === 'ZodError') {
         return res.status(400).json({ error: "Invalid request data", details: error.errors });
@@ -13469,38 +13486,26 @@ DATA AVAILABILITY:
     }
   });
 
-  // GET /api/reminders - Get user's reminders
-  app.get("/api/reminders", isAuthenticated, async (req, res) => {
+  // PATCH /api/reminders/:id - Update reminder
+  app.patch("/api/reminders/:id", isAuthenticated, async (req, res) => {
     try {
       if (!isNotificationsLayerEnabled()) {
         return res.status(503).json({ error: "Notifications feature is disabled" });
       }
 
       const userId = (req.user as any).claims.sub;
-      const { type } = req.query;
-      
-      const reminders = await storage.getScheduledReminders(userId, type as string | undefined);
-      
-      res.json({ reminders, total: reminders.length });
-    } catch (error: any) {
-      console.error("Error fetching reminders:", error);
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  // PUT /api/reminders/:id - Update reminder
-  app.put("/api/reminders/:id", isAuthenticated, async (req, res) => {
-    try {
-      if (!isNotificationsLayerEnabled()) {
-        return res.status(503).json({ error: "Notifications feature is disabled" });
-      }
-
       const { id } = req.params;
-      const updateData = req.body;
       
-      await storage.updateScheduledReminder(id, updateData);
+      // Verify ownership (get reminder first)
+      const reminders = await storage.getUserReminders(userId);
+      const reminder = reminders.find(r => r.id === id);
       
-      res.json({ success: true, id });
+      if (!reminder) {
+        return res.status(404).json({ error: 'Reminder not found' });
+      }
+      
+      await storage.updateReminder(id, req.body);
+      res.json({ success: true });
     } catch (error: any) {
       console.error("Error updating reminder:", error);
       res.status(500).json({ error: error.message });
@@ -13514,10 +13519,11 @@ DATA AVAILABILITY:
         return res.status(503).json({ error: "Notifications feature is disabled" });
       }
 
+      const userId = (req.user as any).claims.sub;
       const { id } = req.params;
-      await storage.deleteScheduledReminder(id);
       
-      res.json({ success: true, id });
+      await storage.deleteReminder(id, userId);
+      res.json({ success: true });
     } catch (error: any) {
       console.error("Error deleting reminder:", error);
       res.status(500).json({ error: error.message });
