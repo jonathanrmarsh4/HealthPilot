@@ -90,6 +90,7 @@ public class HealthPilotHealthKit: CAPPlugin {
         print("📅 [HealthKit] Date range: \(startDateString) to \(endDateString)")
         
         let dateFormatter = ISO8601DateFormatter()
+        dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         guard let startDate = dateFormatter.date(from: startDateString),
               let endDate = dateFormatter.date(from: endDateString) else {
             print("❌ [HealthKit] Invalid date format")
