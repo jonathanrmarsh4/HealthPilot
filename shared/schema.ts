@@ -2271,6 +2271,79 @@ export const smartFuelGuidance = pgTable("smartfuel_guidance", {
   index("smartfuel_guidance_user_status_idx").on(table.userId, table.status),
 ]);
 
+// ============================================================================
+// NOTIFICATION SYSTEM TABLES
+// ============================================================================
+
+// Notification channel preferences - controls which notification types users want to receive
+export const notificationChannels = pgTable("notification_channels", {
+  userId: varchar("user_id").notNull(),
+  channel: varchar("channel").notNull(), // health_alert, insight, training_ready, recovery_alert, supplement_reminder, workout_reminder, marketing
+  enabled: boolean("enabled").notNull().default(true),
+  quietHours: varchar("quiet_hours").default("22:00-07:00"), // Time range when notifications are suppressed
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index("notification_channels_user_idx").on(table.userId),
+  uniqueIndex("notification_channels_user_channel_unique").on(table.userId, table.channel),
+]);
+
+// All notifications sent or scheduled
+export const notifications = pgTable("notifications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  channel: varchar("channel").notNull(), // Which channel this notification belongs to
+  title: text("title").notNull(),
+  body: text("body").notNull(),
+  payload: jsonb("payload"), // Deep link data, additional context
+  deepLink: varchar("deep_link"), // e.g., healthpilot://insights/recovery?id=xyz
+  scheduledAt: timestamp("scheduled_at", { withTimezone: true }), // When to send (null = send immediately)
+  sentAt: timestamp("sent_at", { withTimezone: true }), // When actually sent
+  readAt: timestamp("read_at", { withTimezone: true }), // When user marked as read/opened
+  providerMessageId: varchar("provider_message_id"), // OneSignal notification ID for tracking
+  status: varchar("status").notNull().default("pending"), // pending, scheduled, sent, delivered, read, failed
+  errorMessage: text("error_message"), // If delivery failed
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index("notifications_user_idx").on(table.userId),
+  index("notifications_user_status_idx").on(table.userId, table.status),
+  index("notifications_user_read_idx").on(table.userId, table.readAt),
+  index("notifications_scheduled_idx").on(table.scheduledAt),
+  index("notifications_status_scheduled_idx").on(table.status, table.scheduledAt), // For scheduler "pending & due now" queries
+]);
+
+// Audit log for notification lifecycle events
+export const notificationEvents = pgTable("notification_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  notificationId: varchar("notification_id").notNull(),
+  event: varchar("event").notNull(), // created, scheduled, sent, delivered, opened, clicked, failed
+  eventAt: timestamp("event_at", { withTimezone: true }).notNull().defaultNow(),
+  meta: jsonb("meta"), // Additional event metadata (error details, click data, etc.)
+}, (table) => [
+  index("notification_events_notification_idx").on(table.notificationId),
+  index("notification_events_event_at_idx").on(table.eventAt.desc()),
+]);
+
+// Scheduled recurring reminders for supplements, workouts, recovery activities
+export const scheduledReminders = pgTable("scheduled_reminders", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  type: varchar("type").notNull(), // supplement, workout, recovery, custom
+  title: text("title").notNull(),
+  body: text("body").notNull(),
+  schedule: varchar("schedule").notNull(), // Cron expression or time string (e.g., "09:00", "14:00,20:00")
+  deepLink: varchar("deep_link"), // Where to navigate when clicked
+  enabled: boolean("enabled").notNull().default(true),
+  lastSentAt: timestamp("last_sent_at", { withTimezone: true }), // Track last execution
+  metadata: jsonb("metadata"), // Supplement ID, workout ID, etc.
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index("scheduled_reminders_user_idx").on(table.userId),
+  index("scheduled_reminders_user_type_idx").on(table.userId, table.type),
+  index("scheduled_reminders_enabled_idx").on(table.enabled),
+]);
+
 // Zod insert schemas for Daily Insights tables
 export const insertDailyMetricSchema = createInsertSchema(dailyMetrics).omit({
   id: true,
@@ -2314,3 +2387,37 @@ export const insertSmartFuelGuidanceSchema = createInsertSchema(smartFuelGuidanc
 
 export type SmartFuelGuidance = typeof smartFuelGuidance.$inferSelect;
 export type InsertSmartFuelGuidance = z.infer<typeof insertSmartFuelGuidanceSchema>;
+
+// Notification System insert schemas and types
+export const insertNotificationChannelSchema = createInsertSchema(notificationChannels).omit({
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertNotificationSchema = createInsertSchema(notifications).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertNotificationEventSchema = createInsertSchema(notificationEvents).omit({
+  id: true,
+  eventAt: true,
+});
+
+export const insertScheduledReminderSchema = createInsertSchema(scheduledReminders).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type NotificationChannel = typeof notificationChannels.$inferSelect;
+export type InsertNotificationChannel = z.infer<typeof insertNotificationChannelSchema>;
+
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+
+export type NotificationEvent = typeof notificationEvents.$inferSelect;
+export type InsertNotificationEvent = z.infer<typeof insertNotificationEventSchema>;
+
+export type ScheduledReminder = typeof scheduledReminders.$inferSelect;
+export type InsertScheduledReminder = z.infer<typeof insertScheduledReminderSchema>;

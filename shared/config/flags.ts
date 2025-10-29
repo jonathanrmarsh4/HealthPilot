@@ -81,6 +81,30 @@ export const FLAG_DEFINITIONS: Record<string, FlagConfig> = {
     level: 'site',
     description: 'Show legacy meal plan and recipe features (parked for future reactivation)'
   },
+  NOTIFICATIONS_LAYER_ENABLED: {
+    name: 'NOTIFICATIONS_LAYER_ENABLED',
+    default: true,
+    level: 'site',
+    description: 'Master flag: enables entire notifications infrastructure (push, local, inbox)'
+  },
+  PUSH_NOTIFICATIONS_ENABLED: {
+    name: 'PUSH_NOTIFICATIONS_ENABLED',
+    default: true,
+    level: 'site',
+    description: 'Enable OneSignal push notifications for AI insights and alerts'
+  },
+  LOCAL_NOTIFICATIONS_ENABLED: {
+    name: 'LOCAL_NOTIFICATIONS_ENABLED',
+    default: true,
+    level: 'site',
+    description: 'Enable local scheduled notifications for supplement and workout reminders'
+  },
+  NOTIFICATION_INBOX_ENABLED: {
+    name: 'NOTIFICATION_INBOX_ENABLED',
+    default: true,
+    level: 'site',
+    description: 'Enable notification center/inbox UI for viewing notification history'
+  },
 } as const;
 
 // Type-safe flag names
@@ -153,7 +177,11 @@ class FeatureFlags {
     
     // Infrastructure flags that work independently of baseline mode
     const infrastructureFlags: FlagName[] = [
-      'BASELINE_MODE_ENABLED'
+      'BASELINE_MODE_ENABLED',
+      'NOTIFICATIONS_LAYER_ENABLED',
+      'PUSH_NOTIFICATIONS_ENABLED',
+      'LOCAL_NOTIFICATIONS_ENABLED',
+      'NOTIFICATION_INBOX_ENABLED'
     ];
     
     // If this is an infrastructure flag, return the raw value
@@ -217,6 +245,10 @@ export const canUseAIWorkoutSelection = () => flags.isEnabled('AI_WORKOUT_SELECT
 export const canUseDailyAITrainingGenerator = () => flags.isEnabled('DAILY_AI_TRAINING_GENERATOR_ENABLED');
 export const showSmartFuel = () => flags.isEnabled('FEATURE_SHOW_SMARTFUEL');
 export const showRecipeFeatures = () => flags.isEnabled('FEATURE_SHOW_RECIPE_FEATURES');
+export const isNotificationsLayerEnabled = () => flags.isEnabled('NOTIFICATIONS_LAYER_ENABLED');
+export const canUsePushNotifications = () => flags.isEnabled('PUSH_NOTIFICATIONS_ENABLED');
+export const canUseLocalNotifications = () => flags.isEnabled('LOCAL_NOTIFICATIONS_ENABLED');
+export const canUseNotificationInbox = () => flags.isEnabled('NOTIFICATION_INBOX_ENABLED');
 
 /**
  * Development helper: log all flag states
