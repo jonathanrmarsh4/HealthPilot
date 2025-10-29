@@ -3,7 +3,7 @@ import { Health } from 'capacitor-health';
 
 // Type augmentation for capacitor-health (incomplete TypeScript definitions)
 interface CapacitorHealthPlugin {
-  isAvailable(): Promise<{ available: boolean }>;
+  isHealthAvailable(): Promise<{ available: boolean }>;
   requestAuthorization(options: { read: string[]; write: string[] }): Promise<void>;
   query(options: {
     sampleType: string;
@@ -79,7 +79,7 @@ export class HealthKitService {
         setTimeout(() => reject(new Error('HealthKit availability check timed out after 8s')), 8000);
       });
       
-      const availabilityPromise = HealthPlugin.isAvailable();
+      const availabilityPromise = HealthPlugin.isHealthAvailable();
       
       const result = await Promise.race([availabilityPromise, timeoutPromise]);
       
