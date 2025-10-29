@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { healthKitService } from '@/services/healthkit';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -110,23 +110,38 @@ export function HealthKitOnboarding({ onComplete, onSkip }: HealthKitOnboardingP
   };
 
   // Auto-skip if HealthKit is not available (web or Android)
+  // Using ref to prevent infinite loops
+  const hasAutoSkipped = useRef(false);
+  const [isAutoSkipping, setIsAutoSkipping] = useState(false);
+  
   useEffect(() => {
-    if (!isChecking && !isHealthKitAvailable) {
+    if (!isChecking && !isHealthKitAvailable && !hasAutoSkipped.current) {
+      hasAutoSkipped.current = true;
+      setIsAutoSkipping(true);
+      console.log('[HealthKitOnboarding] Auto-skipping (HealthKit not available)');
       handleSkip();
     }
   }, [isChecking, isHealthKitAvailable]);
 
-  if (isChecking) {
+  // Show loader while checking availability or auto-skipping
+  if (isChecking || isAutoSkipping) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="flex flex-col items-center justify-center min-h-screen bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+        <p className="text-sm text-muted-foreground">
+          {isChecking ? 'Checking health data availability...' : 'Setting up your account...'}
+        </p>
       </div>
     );
   }
 
-  // If HealthKit is not available, show nothing (auto-skip handles it)
+  // If HealthKit is not available, show nothing (auto-skip already called)
   if (!isHealthKitAvailable) {
-    return null;
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
   }
 
   return (

@@ -18,6 +18,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { TimezoneDetector } from "@/components/TimezoneDetector";
 import { EulaDialog } from "@/components/EulaDialog";
 import { HealthKitOnboarding } from "@/components/HealthKitOnboarding";
+import { getPlatform } from "@/mobile/MobileBootstrap";
 import Dashboard from "@/pages/Dashboard";
 import HealthRecords from "@/pages/HealthRecords";
 import Biomarkers from "@/pages/Biomarkers";
@@ -123,8 +124,9 @@ function AppLayout() {
   const { shouldShowOnboarding, status: onboardingStatus, isLoading: onboardingLoading } = useOnboarding();
   const { user } = useAuth();
   
-  // Show HealthKit onboarding for iOS users who haven't completed it
-  const shouldShowHealthKitOnboarding = isNativePlatform() && 
+  // Show HealthKit onboarding ONLY for iOS users who haven't completed it
+  // (Android and web users skip this)
+  const shouldShowHealthKitOnboarding = getPlatform() === 'ios' && 
     onboardingStatus && 
     !onboardingStatus.healthKitSetupComplete;
   
