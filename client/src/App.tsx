@@ -168,8 +168,30 @@ function AppLayout() {
 
   const currentPage = pageNames[location] || "Unknown Page";
   
+  // Invalidate all queries on navigation to ensure fresh data
+  useEffect(() => {
+    queryClient.invalidateQueries();
+  }, [location]);
+
+  // Auto-open floating chat once on first login if onboarding not completed
+  // Disabled: Users prefer to open chat manually via sparkle icon
+  // useEffect(() => {
+  //   if (!onboardingLoading && shouldShowOnboarding && location !== "/chat" && !hasAutoOpened) {
+  //     setIsChatOpen(true);
+  //     setHasAutoOpened(true);
+  //   }
+  // }, [onboardingLoading, shouldShowOnboarding, location, hasAutoOpened]);
+
+  // Reset auto-open flag when onboarding is completed
+  useEffect(() => {
+    if (!shouldShowOnboarding) {
+      setHasAutoOpened(false);
+    }
+  }, [shouldShowOnboarding]);
+  
   // Wait for onboarding status to load before deciding what to show
   // This prevents the dashboard from flashing before HealthKit onboarding
+  // IMPORTANT: This must come AFTER all hooks to avoid React Hooks violations
   if (onboardingLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-background">
@@ -192,27 +214,6 @@ function AppLayout() {
       />
     );
   }
-
-  // Invalidate all queries on navigation to ensure fresh data
-  useEffect(() => {
-    queryClient.invalidateQueries();
-  }, [location]);
-
-  // Auto-open floating chat once on first login if onboarding not completed
-  // Disabled: Users prefer to open chat manually via sparkle icon
-  // useEffect(() => {
-  //   if (!onboardingLoading && shouldShowOnboarding && location !== "/chat" && !hasAutoOpened) {
-  //     setIsChatOpen(true);
-  //     setHasAutoOpened(true);
-  //   }
-  // }, [onboardingLoading, shouldShowOnboarding, location, hasAutoOpened]);
-
-  // Reset auto-open flag when onboarding is completed
-  useEffect(() => {
-    if (!shouldShowOnboarding) {
-      setHasAutoOpened(false);
-    }
-  }, [shouldShowOnboarding]);
 
   return (
     <SidebarProvider style={style as React.CSSProperties}>
