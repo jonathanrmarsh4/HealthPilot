@@ -287,7 +287,7 @@ export default function Settings() {
                 
                 {/* Recovery Insights */}
                 {(() => {
-                  const channel = notificationChannels.find(c => c.channel === 'recovery_insight');
+                  const channel = notificationChannels.find(c => c.channel === 'recovery_alert');
                   return (
                     <div className="flex items-center justify-between py-3 border-b">
                       <div className="space-y-1">
@@ -302,7 +302,7 @@ export default function Settings() {
                         id="recovery-insights"
                         checked={channel?.enabled ?? true}
                         onCheckedChange={(enabled) => 
-                          updateChannelMutation.mutate({ channel: 'recovery_insight', enabled })
+                          updateChannelMutation.mutate({ channel: 'recovery_alert', enabled })
                         }
                         data-testid="switch-recovery-insights"
                       />
@@ -312,7 +312,7 @@ export default function Settings() {
 
                 {/* Biomarker Alerts */}
                 {(() => {
-                  const channel = notificationChannels.find(c => c.channel === 'biomarker_alert');
+                  const channel = notificationChannels.find(c => c.channel === 'health_alert');
                   return (
                     <div className="flex items-center justify-between py-3 border-b">
                       <div className="space-y-1">
@@ -327,7 +327,7 @@ export default function Settings() {
                         id="biomarker-alerts"
                         checked={channel?.enabled ?? true}
                         onCheckedChange={(enabled) => 
-                          updateChannelMutation.mutate({ channel: 'biomarker_alert', enabled })
+                          updateChannelMutation.mutate({ channel: 'health_alert', enabled })
                         }
                         data-testid="switch-biomarker-alerts"
                       />
@@ -405,7 +405,7 @@ export default function Settings() {
                       onChange={(e) => setQuietHoursStart(e.target.value)}
                       onBlur={() => {
                         const newQuietHours = `${quietHoursStart}-${quietHoursEnd}`;
-                        ['recovery_insight', 'biomarker_alert', 'supplement_reminder', 'workout_reminder'].forEach(channel => {
+                        ['recovery_alert', 'health_alert', 'supplement_reminder', 'workout_reminder'].forEach(channel => {
                           updateQuietHoursMutation.mutate({ channel, quietHours: newQuietHours });
                         });
                       }}
@@ -421,7 +421,7 @@ export default function Settings() {
                       onChange={(e) => setQuietHoursEnd(e.target.value)}
                       onBlur={() => {
                         const newQuietHours = `${quietHoursStart}-${quietHoursEnd}`;
-                        ['recovery_insight', 'biomarker_alert', 'supplement_reminder', 'workout_reminder'].forEach(channel => {
+                        ['recovery_alert', 'health_alert', 'supplement_reminder', 'workout_reminder'].forEach(channel => {
                           updateQuietHoursMutation.mutate({ channel, quietHours: newQuietHours });
                         });
                       }}

@@ -13350,6 +13350,65 @@ DATA AVAILABILITY:
     }
   });
 
+  // GET /api/notifications/channels - Get user's channel preferences
+  app.get("/api/notifications/channels", isAuthenticated, async (req, res) => {
+    try {
+      if (!isNotificationsLayerEnabled()) {
+        return res.status(503).json({ error: "Notifications layer disabled" });
+      }
+      
+      const userId = (req.user as any).claims.sub;
+      const channels = await storage.getNotificationChannels(userId);
+      res.json({ channels });
+    } catch (error: any) {
+      console.error("Error fetching notification channels:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // POST /api/notifications/channels - Update channel preferences
+  app.post("/api/notifications/channels", isAuthenticated, async (req, res) => {
+    try {
+      if (!isNotificationsLayerEnabled()) {
+        return res.status(503).json({ error: "Notifications layer disabled" });
+      }
+      
+      const userId = (req.user as any).claims.sub;
+      const { channel, enabled, quietHours } = req.body;
+      
+      // Validate channel name
+      const validChannels = ['health_alert', 'insight', 'training_ready', 'recovery_alert', 
+                            'supplement_reminder', 'workout_reminder', 'marketing'];
+      if (!validChannels.includes(channel)) {
+        return res.status(400).json({ error: "Invalid channel" });
+      }
+      
+      // Validate at least one field provided
+      if (enabled === undefined && quietHours === undefined) {
+        return res.status(400).json({ error: "Must provide enabled or quietHours" });
+      }
+      
+      // Get existing channel preferences to preserve values not being updated
+      const existingChannels = await storage.getNotificationChannels(userId);
+      const existingChannel = existingChannels.find(c => c.channel === channel);
+      
+      // Build update data with only provided fields, preserving existing values
+      const data: InsertNotificationChannel = {
+        userId,
+        channel,
+        enabled: enabled !== undefined ? enabled : (existingChannel?.enabled ?? true),
+        quietHours: quietHours !== undefined ? quietHours : (existingChannel?.quietHours || null),
+      };
+      
+      const updated = await storage.upsertNotificationChannel(data);
+      
+      res.json({ success: true, channel: updated });
+    } catch (error: any) {
+      console.error("Error updating notification channel:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Notification History Routes
   // GET /api/notifications - Get notification history for user
   app.get("/api/notifications", isAuthenticated, async (req, res) => {

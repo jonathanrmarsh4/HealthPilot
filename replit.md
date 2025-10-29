@@ -58,6 +58,7 @@ I prefer simple language and clear explanations. I want iterative development wh
 - **Advanced Goals System v2 - Workout-Based Metric Detection & Manual Updates:** Enhanced goal tracking system with automatic detection of running/cycling/swimming/walking distances from HealthKit workout sessions and manual metric update capability.
 - **AI-Powered Training Plan Generation System v2.0:** Replaces hardcoded training templates with comprehensive GPT-4o-generated phased plans that work for any goal type.
 - **Native Apple Pay + Stripe Integration v1.0:** Production-ready dual-platform payment system supporting iOS native Apple Pay via Stripe iOS SDK and web Stripe Checkout Sessions.
+- **Comprehensive Notifications Layer v1.0:** Event-driven notification system featuring OneSignal push notifications, local scheduled reminders, in-app notification center, and deep linking (healthpilot:// custom scheme + links.healthpilot.pro universal links). Integrates with AI insights, biomarker alerts, and scheduled reminders via EventBus architecture. Supports timezone-aware quiet hours, per-channel preferences, and multi-time daily reminders.
 
 ## External Dependencies
 - **Database:** PostgreSQL
@@ -66,3 +67,4 @@ I prefer simple language and clear explanations. I want iterative development wh
 - **Health Data Integration:** Apple Health (primary: native HealthKit via custom Capacitor plugin on iOS; fallback: Health Auto Export iOS app webhook for web users)
 - **Mobile Platform:** Capacitor 7
 - **Payment Processing:** Stripe (iOS native PaymentSheet + web Checkout Sessions)
+- **Push Notifications:** OneSignal (iOS/Android push notifications with deep linking)
