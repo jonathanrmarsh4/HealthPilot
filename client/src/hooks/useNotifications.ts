@@ -10,9 +10,11 @@ export interface NotificationWithRead extends Notification {
 
 export function useNotifications() {
   // Fetch all notifications
-  const { data: rawNotifications = [], isLoading } = useQuery<Notification[]>({
+  const { data, isLoading } = useQuery<{ notifications: Notification[], total: number }>({
     queryKey: ['/api/notifications'],
   });
+
+  const rawNotifications = data?.notifications || [];
 
   // Transform notifications to include computed fields
   const notifications: NotificationWithRead[] = rawNotifications.map(n => ({
