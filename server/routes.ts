@@ -11192,7 +11192,33 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
 
     try {
       console.log("📱 Received Capacitor HealthKit sync");
-      const { steps, hrv, restingHR, sleep, workouts, weight, bodyFat, leanMass } = req.body;
+      console.log("📦 Request body keys:", Object.keys(req.body));
+      console.log("📊 Data counts:", {
+        steps: req.body.steps?.length || 0,
+        hrv: req.body.hrv?.length || 0,
+        restingHeartRate: req.body.restingHeartRate?.length || 0,
+        sleep: req.body.sleep?.length || 0,
+        workouts: req.body.workouts?.length || 0,
+        weight: req.body.weight?.length || 0,
+        bodyFat: req.body.bodyFat?.length || 0,
+        leanBodyMass: req.body.leanBodyMass?.length || 0,
+      });
+      
+      // Match field names from mobile app (restingHeartRate, leanBodyMass)
+      const { 
+        steps, 
+        hrv, 
+        restingHeartRate, 
+        sleep, 
+        workouts, 
+        weight, 
+        bodyFat, 
+        leanBodyMass 
+      } = req.body;
+      
+      // Get user timezone for sleep processing
+      const user = await storage.getUser(userId);
+      const userTimezone = user?.timezone || 'UTC';
 
       let insertedCount = 0;
 
@@ -11229,9 +11255,9 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
       }
 
       // Process resting heart rate data
-      if (restingHR && restingHR.length > 0) {
-        console.log(`❤️  Processing ${restingHR.length} resting HR samples`);
-        for (const sample of restingHR) {
+      if (restingHeartRate && restingHeartRate.length > 0) {
+        console.log(`❤️  Processing ${restingHeartRate.length} resting HR samples`);
+        for (const sample of restingHeartRate) {
           await storage.upsertBiomarker({
             userId,
             type: "heart-rate",
@@ -11285,9 +11311,9 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
       }
 
       // Process lean body mass data
-      if (leanMass && leanMass.length > 0) {
-        console.log(`💪 Processing ${leanMass.length} lean mass samples`);
-        for (const sample of leanMass) {
+      if (leanBodyMass && leanBodyMass.length > 0) {
+        console.log(`💪 Processing ${leanBodyMass.length} lean mass samples`);
+        for (const sample of leanBodyMass) {
           // Normalize lean mass to lbs for consistent storage (matching Health Auto Export behavior)
           let leanMassValue = sample.value;
           const sampleUnit = (sample.unit || "kg").toLowerCase();
