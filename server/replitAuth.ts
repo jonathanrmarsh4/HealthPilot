@@ -249,7 +249,6 @@ export async function setupAuth(app: Express) {
           state: state,
           code_challenge: codeChallenge,
           code_challenge_method: 'S256',
-          prompt: 'select_account', // Force account picker on mobile
         });
         
         console.log("📱 Redirecting to:", authUrl.href);

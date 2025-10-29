@@ -218,7 +218,7 @@ function AppLayout() {
                 size="icon"
                 onClick={async () => {
                   if (isNativePlatform()) {
-                    // Mobile logout: Clear local session AND Safari cookies
+                    // Mobile logout: Clear local session, Safari cookies, AND Replit OAuth session
                     try {
                       console.log('[Logout] Clearing mobile session...');
                       
@@ -233,11 +233,14 @@ function AppLayout() {
                       // Clear local session tokens
                       await SecureStorage.remove('sessionToken');
                       await Preferences.remove({ key: 'deviceId' });
-                      console.log('[Logout] Mobile session cleared, redirecting to login');
-                      window.location.href = "/login";
+                      console.log('[Logout] Mobile session cleared');
+                      
+                      // Clear Replit OAuth session by calling server logout endpoint
+                      // This ensures the account picker appears on next login
+                      window.location.href = "/api/logout";
                     } catch (error) {
                       console.error('[Logout] Error clearing mobile session:', error);
-                      window.location.href = "/login";
+                      window.location.href = "/api/logout";
                     }
                   } else {
                     // Web logout: Use server endpoint
