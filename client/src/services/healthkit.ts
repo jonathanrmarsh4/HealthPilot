@@ -1,5 +1,5 @@
+import { registerPlugin } from '@capacitor/core';
 import { Capacitor } from '@capacitor/core';
-import { Health } from 'capacitor-health';
 
 export interface HealthDataSample {
   value: number;
@@ -9,10 +9,42 @@ export interface HealthDataSample {
   uuid?: string;
 }
 
+export interface WorkoutSample {
+  workoutType: number;
+  workoutTypeName: string;
+  startDate: string;
+  endDate: string;
+  duration: number;
+  distance?: number;
+  distanceUnit?: string;
+  energy?: number;
+  energyUnit?: string;
+  uuid: string;
+}
+
+export interface SleepSample {
+  value: number;
+  category: string; // 'asleep' | 'awake' | 'core' | 'deep' | 'rem' | 'inBed'
+  startDate: string;
+  endDate: string;
+  uuid: string;
+}
+
+export interface HealthPilotHealthKitPlugin {
+  isAvailable(): Promise<{ available: boolean }>;
+  requestAuthorization(): Promise<{ success: boolean }>;
+  queryHealthData(options: {
+    dataType: string;
+    startDate: string;
+    endDate: string;
+  }): Promise<{ samples?: HealthDataSample[]; workouts?: WorkoutSample[]; sleepSamples?: SleepSample[] }>;
+}
+
+const HealthPilotHealthKit = registerPlugin<HealthPilotHealthKitPlugin>('HealthPilotHealthKit');
+
 /**
  * HealthKit service for iOS native health data integration
- * Uses capacitor-health plugin - limited to supported data types:
- * - Steps, Active Calories, Workouts, Heart Rate (via workouts), Distance (via workouts)
+ * Supports comprehensive data types: HRV, sleep, weight, body composition, resting HR, steps, workouts, etc.
  */
 export class HealthKitService {
   private static instance: HealthKitService;
@@ -41,26 +73,19 @@ export class HealthKitService {
         return false;
       }
 
-      const timeoutPromise = new Promise<{ available: boolean }>((_, reject) => {
-        setTimeout(() => reject(new Error('HealthKit availability check timed out after 8s')), 8000);
-      });
-      
-      const availabilityPromise = Health.isHealthAvailable();
-      const result = await Promise.race([availabilityPromise, timeoutPromise]);
-      
+      const result = await HealthPilotHealthKit.isAvailable();
       this.isAvailable = result?.available ?? false;
       console.log('[HealthKit] Availability check result:', this.isAvailable);
       return this.isAvailable;
     } catch (error: any) {
-      const isTimeout = error?.message?.includes('timed out');
-      console.warn(`[HealthKit] Plugin check failed (timeout: ${isTimeout}):`, error.message);
+      console.warn('[HealthKit] Plugin check failed:', error.message);
+      this.isAvailable = false;
       return false;
     }
   }
 
   /**
-   * Request permissions for supported health data types
-   * capacitor-health only supports: steps, workouts, active calories, total calories, distance, heart rate, mindfulness
+   * Request permissions for all supported health data types
    */
   async requestPermissions(): Promise<boolean> {
     const available = await this.isHealthKitAvailable();
@@ -71,20 +96,9 @@ export class HealthKitService {
 
     try {
       console.log('[HealthKit] Requesting permissions...');
-      
-      const result = await Health.requestHealthPermissions({
-        permissions: [
-          'READ_STEPS',
-          'READ_WORKOUTS',
-          'READ_ACTIVE_CALORIES',
-          'READ_TOTAL_CALORIES',
-          'READ_DISTANCE',
-          'READ_HEART_RATE',
-        ]
-      });
-
+      const result = await HealthPilotHealthKit.requestAuthorization();
       console.log('[HealthKit] Permission request result:', result);
-      return true; // iOS always returns true (can't detect if denied)
+      return result.success;
     } catch (error) {
       console.error('[HealthKit] Failed to request permissions:', error);
       throw error;
@@ -92,66 +106,120 @@ export class HealthKitService {
   }
 
   /**
+   * Query health data for a specific type
+   */
+  private async queryData(
+    dataType: string,
+    startDate: Date,
+    endDate: Date
+  ): Promise<HealthDataSample[]> {
+    try {
+      const result = await HealthPilotHealthKit.queryHealthData({
+        dataType,
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+      });
+      return result.samples || [];
+    } catch (error) {
+      console.error(`[HealthKit] Failed to query ${dataType}:`, error);
+      return [];
+    }
+  }
+
+  /**
    * Get steps data
    */
   async getSteps(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
-    try {
-      const result = await Health.queryAggregated({
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
-        dataType: 'steps',
-        bucket: 'day'
-      });
+    return this.queryData('steps', startDate, endDate);
+  }
 
-      return result.aggregatedData.map(sample => ({
-        value: sample.value,
-        unit: 'count',
-        startDate: sample.startDate,
-        endDate: sample.endDate,
-      }));
-    } catch (error) {
-      console.error('[HealthKit] Failed to get steps:', error);
-      return [];
-    }
+  /**
+   * Get distance data
+   */
+  async getDistance(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
+    return this.queryData('distance', startDate, endDate);
   }
 
   /**
    * Get active calories data
    */
   async getActiveCalories(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
-    try {
-      const result = await Health.queryAggregated({
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
-        dataType: 'active-calories',
-        bucket: 'day'
-      });
-
-      return result.aggregatedData.map(sample => ({
-        value: sample.value,
-        unit: 'kcal',
-        startDate: sample.startDate,
-        endDate: sample.endDate,
-      }));
-    } catch (error) {
-      console.error('[HealthKit] Failed to get active calories:', error);
-      return [];
-    }
+    return this.queryData('activeCalories', startDate, endDate);
   }
 
   /**
-   * Get workouts with optional heart rate, route, and steps
+   * Get heart rate data
    */
-  async getWorkouts(startDate: Date, endDate: Date): Promise<any[]> {
+  async getHeartRate(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
+    return this.queryData('heartRate', startDate, endDate);
+  }
+
+  /**
+   * Get resting heart rate data
+   */
+  async getRestingHeartRate(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
+    return this.queryData('restingHeartRate', startDate, endDate);
+  }
+
+  /**
+   * Get HRV (Heart Rate Variability) data
+   */
+  async getHRV(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
+    return this.queryData('hrv', startDate, endDate);
+  }
+
+  /**
+   * Get weight data
+   */
+  async getWeight(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
+    return this.queryData('weight', startDate, endDate);
+  }
+
+  /**
+   * Get lean body mass data
+   */
+  async getLeanBodyMass(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
+    return this.queryData('leanBodyMass', startDate, endDate);
+  }
+
+  /**
+   * Get body fat percentage data
+   */
+  async getBodyFat(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
+    return this.queryData('bodyFat', startDate, endDate);
+  }
+
+  /**
+   * Get blood pressure (systolic) data
+   */
+  async getBloodPressureSystolic(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
+    return this.queryData('bloodPressureSystolic', startDate, endDate);
+  }
+
+  /**
+   * Get blood pressure (diastolic) data
+   */
+  async getBloodPressureDiastolic(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
+    return this.queryData('bloodPressureDiastolic', startDate, endDate);
+  }
+
+  /**
+   * Get blood glucose data
+   */
+  async getBloodGlucose(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
+    return this.queryData('bloodGlucose', startDate, endDate);
+  }
+
+  /**
+   * Get workouts
+   */
+  async getWorkouts(startDate: Date, endDate: Date): Promise<WorkoutSample[]> {
     try {
-      const result = await Health.queryWorkouts({
+      const result = await HealthPilotHealthKit.queryHealthData({
+        dataType: 'workouts',
         startDate: startDate.toISOString(),
         endDate: endDate.toISOString(),
-        includeHeartRate: true,
-        includeRoute: false,
-        includeSteps: true,
       });
-
       return result.workouts || [];
     } catch (error) {
       console.error('[HealthKit] Failed to get workouts:', error);
@@ -160,21 +228,59 @@ export class HealthKitService {
   }
 
   /**
+   * Get sleep data
+   */
+  async getSleep(startDate: Date, endDate: Date): Promise<SleepSample[]> {
+    try {
+      const result = await HealthPilotHealthKit.queryHealthData({
+        dataType: 'sleep',
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+      });
+      return result.sleepSamples || [];
+    } catch (error) {
+      console.error('[HealthKit] Failed to get sleep:', error);
+      return [];
+    }
+  }
+
+  /**
    * Retrieve all supported health data from HealthKit
-   * Limited to what capacitor-health plugin supports
    */
   async getAllHealthData(daysBack: number = 30): Promise<{
     steps: HealthDataSample[];
+    distance: HealthDataSample[];
     activeCalories: HealthDataSample[];
-    workouts: any[];
+    heartRate: HealthDataSample[];
+    restingHeartRate: HealthDataSample[];
+    hrv: HealthDataSample[];
+    weight: HealthDataSample[];
+    leanBodyMass: HealthDataSample[];
+    bodyFat: HealthDataSample[];
+    bloodPressureSystolic: HealthDataSample[];
+    bloodPressureDiastolic: HealthDataSample[];
+    bloodGlucose: HealthDataSample[];
+    workouts: WorkoutSample[];
+    sleep: SleepSample[];
   }> {
     const available = await this.isHealthKitAvailable();
     if (!available) {
       console.log('[HealthKit] Not available, returning empty data');
       return {
         steps: [],
+        distance: [],
         activeCalories: [],
+        heartRate: [],
+        restingHeartRate: [],
+        hrv: [],
+        weight: [],
+        leanBodyMass: [],
+        bodyFat: [],
+        bloodPressureSystolic: [],
+        bloodPressureDiastolic: [],
+        bloodGlucose: [],
         workouts: [],
+        sleep: [],
       };
     }
 
@@ -183,35 +289,75 @@ export class HealthKitService {
     startDate.setDate(startDate.getDate() - daysBack);
 
     try {
-      const [steps, activeCalories, workouts] = await Promise.all([
+      const [
+        steps,
+        distance,
+        activeCalories,
+        heartRate,
+        restingHeartRate,
+        hrv,
+        weight,
+        leanBodyMass,
+        bodyFat,
+        bloodPressureSystolic,
+        bloodPressureDiastolic,
+        bloodGlucose,
+        workouts,
+        sleep,
+      ] = await Promise.all([
         this.getSteps(startDate, endDate),
+        this.getDistance(startDate, endDate),
         this.getActiveCalories(startDate, endDate),
+        this.getHeartRate(startDate, endDate),
+        this.getRestingHeartRate(startDate, endDate),
+        this.getHRV(startDate, endDate),
+        this.getWeight(startDate, endDate),
+        this.getLeanBodyMass(startDate, endDate),
+        this.getBodyFat(startDate, endDate),
+        this.getBloodPressureSystolic(startDate, endDate),
+        this.getBloodPressureDiastolic(startDate, endDate),
+        this.getBloodGlucose(startDate, endDate),
         this.getWorkouts(startDate, endDate),
+        this.getSleep(startDate, endDate),
       ]);
 
-      console.log('[HealthKit] Health data retrieved:', {
+      console.log('[HealthKit] Comprehensive health data retrieved:', {
         steps: steps.length,
+        distance: distance.length,
         activeCalories: activeCalories.length,
+        heartRate: heartRate.length,
+        restingHeartRate: restingHeartRate.length,
+        hrv: hrv.length,
+        weight: weight.length,
+        leanBodyMass: leanBodyMass.length,
+        bodyFat: bodyFat.length,
+        bloodPressureSystolic: bloodPressureSystolic.length,
+        bloodPressureDiastolic: bloodPressureDiastolic.length,
+        bloodGlucose: bloodGlucose.length,
         workouts: workouts.length,
+        sleep: sleep.length,
       });
 
       return {
         steps,
+        distance,
         activeCalories,
+        heartRate,
+        restingHeartRate,
+        hrv,
+        weight,
+        leanBodyMass,
+        bodyFat,
+        bloodPressureSystolic,
+        bloodPressureDiastolic,
+        bloodGlucose,
         workouts,
+        sleep,
       };
     } catch (error) {
-      console.error('[HealthKit] Failed to retrieve health data:', error);
+      console.error('[HealthKit] Failed to retrieve comprehensive health data:', error);
       throw error;
     }
-  }
-
-  /**
-   * @deprecated Use getAllHealthData() and send to backend from the caller
-   */
-  async syncAllHealthData(daysBack: number = 30): Promise<void> {
-    console.warn('[HealthKit] syncAllHealthData() is deprecated. Use getAllHealthData() instead.');
-    await this.getAllHealthData(daysBack);
   }
 }
 
