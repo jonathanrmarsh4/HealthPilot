@@ -14,7 +14,9 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useTimezone } from "@/contexts/TimezoneContext";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Heart, Loader2, CheckCircle2 } from "lucide-react";
+import { Heart, Loader2, CheckCircle2, Bell } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
 import { healthKitService } from "@/services/healthkit";
 import { getPlatform } from "@/mobile/MobileBootstrap";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -44,6 +46,8 @@ export default function Settings() {
   const [isHealthKitSyncing, setIsHealthKitSyncing] = useState(false);
   const [healthKitStatus, setHealthKitStatus] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle');
   const [currentPlatform, setCurrentPlatform] = useState<string>('');
+  const [quietHoursStart, setQuietHoursStart] = useState('22:00');
+  const [quietHoursEnd, setQuietHoursEnd] = useState('07:00');
 
   useEffect(() => {
     setSelectedTimezone(timezone);
@@ -62,6 +66,20 @@ export default function Settings() {
     enabled: false,
   });
 
+  const { data: notificationChannels = [], isLoading: channelsLoading } = useQuery({
+    queryKey: ['/api/notifications/channels'],
+  });
+
+  useEffect(() => {
+    if (notificationChannels.length > 0) {
+      const firstChannel = notificationChannels[0];
+      const currentQuietHours = firstChannel?.quietHours || '22:00-07:00';
+      const [start, end] = currentQuietHours.split('-');
+      setQuietHoursStart(start);
+      setQuietHoursEnd(end);
+    }
+  }, [notificationChannels]);
+
   const updateTimezoneMutation = useMutation({
     mutationFn: async (tz: string) => {
       return await apiRequest("PATCH", "/api/user/settings", { timezone: tz });
@@ -79,6 +97,46 @@ export default function Settings() {
         title: "Error",
         description: "Failed to update timezone. Please try again.",
         variant: "destructive",
+      });
+    },
+  });
+
+  const updateChannelMutation = useMutation({
+    mutationFn: async ({ channel, enabled }: { channel: string; enabled: boolean }) => {
+      return await apiRequest('POST', '/api/notifications/channels', { channel, enabled });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/notifications/channels'] });
+      toast({
+        title: 'Settings updated',
+        description: 'Your notification preferences have been saved.',
+      });
+    },
+    onError: () => {
+      toast({
+        title: 'Error',
+        description: 'Failed to update notification settings. Please try again.',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const updateQuietHoursMutation = useMutation({
+    mutationFn: async ({ channel, quietHours }: { channel: string; quietHours: string }) => {
+      return await apiRequest('POST', '/api/notifications/channels', { channel, quietHours });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/notifications/channels'] });
+      toast({
+        title: 'Quiet hours updated',
+        description: 'Your quiet hours have been saved.',
+      });
+    },
+    onError: () => {
+      toast({
+        title: 'Error',
+        description: 'Failed to update quiet hours. Please try again.',
+        variant: 'destructive',
       });
     },
   });
@@ -206,6 +264,174 @@ export default function Settings() {
               All timestamps in the application will be displayed in your selected timezone.
             </p>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Bell className="h-5 w-5" />
+            Notification Preferences
+          </CardTitle>
+          <CardDescription>
+            Choose which notifications you want to receive and set quiet hours
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {channelsLoading ? (
+            <Skeleton className="h-32 w-full" />
+          ) : (
+            <>
+              <div className="space-y-4">
+                <h4 className="text-sm font-semibold">Notification Types</h4>
+                
+                {/* Recovery Insights */}
+                {(() => {
+                  const channel = notificationChannels.find(c => c.channel === 'recovery_insight');
+                  return (
+                    <div className="flex items-center justify-between py-3 border-b">
+                      <div className="space-y-1">
+                        <Label htmlFor="recovery-insights" className="text-sm font-medium cursor-pointer">
+                          Recovery Insights
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                          AI-powered insights about your recovery metrics
+                        </p>
+                      </div>
+                      <Switch
+                        id="recovery-insights"
+                        checked={channel?.enabled ?? true}
+                        onCheckedChange={(enabled) => 
+                          updateChannelMutation.mutate({ channel: 'recovery_insight', enabled })
+                        }
+                        data-testid="switch-recovery-insights"
+                      />
+                    </div>
+                  );
+                })()}
+
+                {/* Biomarker Alerts */}
+                {(() => {
+                  const channel = notificationChannels.find(c => c.channel === 'biomarker_alert');
+                  return (
+                    <div className="flex items-center justify-between py-3 border-b">
+                      <div className="space-y-1">
+                        <Label htmlFor="biomarker-alerts" className="text-sm font-medium cursor-pointer">
+                          Biomarker Alerts
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                          Get notified when biomarkers are out of range
+                        </p>
+                      </div>
+                      <Switch
+                        id="biomarker-alerts"
+                        checked={channel?.enabled ?? true}
+                        onCheckedChange={(enabled) => 
+                          updateChannelMutation.mutate({ channel: 'biomarker_alert', enabled })
+                        }
+                        data-testid="switch-biomarker-alerts"
+                      />
+                    </div>
+                  );
+                })()}
+
+                {/* Supplement Reminders */}
+                {(() => {
+                  const channel = notificationChannels.find(c => c.channel === 'supplement_reminder');
+                  return (
+                    <div className="flex items-center justify-between py-3 border-b">
+                      <div className="space-y-1">
+                        <Label htmlFor="supplement-reminders" className="text-sm font-medium cursor-pointer">
+                          Supplement Reminders
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                          Daily reminders for your supplement schedule
+                        </p>
+                      </div>
+                      <Switch
+                        id="supplement-reminders"
+                        checked={channel?.enabled ?? true}
+                        onCheckedChange={(enabled) => 
+                          updateChannelMutation.mutate({ channel: 'supplement_reminder', enabled })
+                        }
+                        data-testid="switch-supplement-reminders"
+                      />
+                    </div>
+                  );
+                })()}
+
+                {/* Workout Reminders */}
+                {(() => {
+                  const channel = notificationChannels.find(c => c.channel === 'workout_reminder');
+                  return (
+                    <div className="flex items-center justify-between py-3">
+                      <div className="space-y-1">
+                        <Label htmlFor="workout-reminders" className="text-sm font-medium cursor-pointer">
+                          Workout Reminders
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                          Reminders for scheduled training sessions
+                        </p>
+                      </div>
+                      <Switch
+                        id="workout-reminders"
+                        checked={channel?.enabled ?? true}
+                        onCheckedChange={(enabled) => 
+                          updateChannelMutation.mutate({ channel: 'workout_reminder', enabled })
+                        }
+                        data-testid="switch-workout-reminders"
+                      />
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* Quiet Hours Section */}
+              <div className="space-y-4 pt-4 border-t">
+                <div>
+                  <h4 className="text-sm font-semibold mb-1">Quiet Hours</h4>
+                  <p className="text-xs text-muted-foreground">
+                    Set a time range when you don't want to receive notifications (critical alerts will still come through)
+                  </p>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="quiet-hours-start" className="text-sm">Start Time</Label>
+                    <Input
+                      id="quiet-hours-start"
+                      type="time"
+                      value={quietHoursStart}
+                      onChange={(e) => setQuietHoursStart(e.target.value)}
+                      onBlur={() => {
+                        const newQuietHours = `${quietHoursStart}-${quietHoursEnd}`;
+                        ['recovery_insight', 'biomarker_alert', 'supplement_reminder', 'workout_reminder'].forEach(channel => {
+                          updateQuietHoursMutation.mutate({ channel, quietHours: newQuietHours });
+                        });
+                      }}
+                      data-testid="input-quiet-hours-start"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="quiet-hours-end" className="text-sm">End Time</Label>
+                    <Input
+                      id="quiet-hours-end"
+                      type="time"
+                      value={quietHoursEnd}
+                      onChange={(e) => setQuietHoursEnd(e.target.value)}
+                      onBlur={() => {
+                        const newQuietHours = `${quietHoursStart}-${quietHoursEnd}`;
+                        ['recovery_insight', 'biomarker_alert', 'supplement_reminder', 'workout_reminder'].forEach(channel => {
+                          updateQuietHoursMutation.mutate({ channel, quietHours: newQuietHours });
+                        });
+                      }}
+                      data-testid="input-quiet-hours-end"
+                    />
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
 
