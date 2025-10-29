@@ -599,6 +599,7 @@ export interface IStorage {
   getPromoCode(code: string): Promise<PromoCode | undefined>;
   getPromoCodes(isActive?: boolean): Promise<PromoCode[]>;
   updatePromoCodeUsage(code: string): Promise<PromoCode | undefined>;
+  incrementPromoCodeUsage(id: string): Promise<void>;
   updatePromoCode(id: string, data: Partial<PromoCode>): Promise<PromoCode | undefined>;
   
   // Referral methods
@@ -5086,6 +5087,17 @@ export class DbStorage implements IStorage {
       .where(eq(promoCodes.id, id))
       .returning();
     return result;
+  }
+
+  async incrementPromoCodeUsage(id: string): Promise<void> {
+    const { promoCodes } = await import("@shared/schema");
+    await db
+      .update(promoCodes)
+      .set({ 
+        usedCount: sql`${promoCodes.usedCount} + 1`,
+        updatedAt: new Date()
+      })
+      .where(eq(promoCodes.id, id));
   }
 
   // Referral implementations

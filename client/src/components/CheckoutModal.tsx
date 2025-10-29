@@ -4,41 +4,31 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Check, Sparkles } from "lucide-react";
+import { Check, Sparkles, Loader2 } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { paymentService, type SubscriptionTier, type BillingCycle } from "@/services/payment";
 
 interface CheckoutModalProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  tier: "premium" | "enterprise";
-  tierName: string;
+  isOpen: boolean;
+  onClose: () => void;
+  defaultTier?: SubscriptionTier;
 }
 
-export function CheckoutModal({ open, onOpenChange, tier, tierName }: CheckoutModalProps) {
-  const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("monthly");
+export function CheckoutModal({ isOpen, onClose, defaultTier = "premium" }: CheckoutModalProps) {
+  const [tier, setTier] = useState<SubscriptionTier>(defaultTier);
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
   const [promoCode, setPromoCode] = useState("");
   const [validatedPromo, setValidatedPromo] = useState<any>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
-
-  const pricing = {
-    premium: {
-      monthly: 19.99,
-      annual: 191.88, // 20% off
-    },
-    enterprise: {
-      monthly: 99.99,
-      annual: 959.88, // 20% off
-    },
-  };
 
   const validatePromoMutation = useMutation({
     mutationFn: async (code: string) => {
       return await apiRequest<any>("/api/checkout/validate-promo", {
         method: "POST",
         body: JSON.stringify({ code, tier }),
-        headers: { "Content-Type": "application/json" },
       });
     },
     onSuccess: (data) => {
@@ -67,35 +57,55 @@ export function CheckoutModal({ open, onOpenChange, tier, tierName }: CheckoutMo
     },
   });
 
-  const checkoutMutation = useMutation({
-    mutationFn: async () => {
-      return await apiRequest<{ sessionUrl: string }>("/api/stripe/create-checkout", {
-        method: "POST",
-        body: JSON.stringify({
-          tier,
-          billingCycle,
-          promoCode: validatedPromo?.code || undefined,
-        }),
-        headers: { "Content-Type": "application/json" },
+  const handleCheckout = async () => {
+    setIsProcessing(true);
+    try {
+      const result = await paymentService.initiatePayment({
+        tier,
+        billingCycle,
+        promoCode: validatedPromo?.code,
       });
-    },
-    onSuccess: (data) => {
-      window.location.href = data.sessionUrl;
-    },
-    onError: (error: any) => {
+
+      if (result.success) {
+        // If iOS native payment completed, refresh user data and close modal
+        if (result.subscriptionId) {
+          toast({
+            title: "Subscription activated!",
+            description: "Your premium features are now unlocked.",
+          });
+          await queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+          onClose();
+        }
+        // If web checkout, redirect happens automatically in paymentService
+      } else {
+        toast({
+          title: "Payment failed",
+          description: result.error || "Something went wrong",
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
       toast({
         title: "Checkout failed",
         description: error.message,
         variant: "destructive",
       });
-    },
-  });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
-  const price = pricing[tier][billingCycle];
-  const savings = billingCycle === "annual" ? Math.round(((pricing[tier].monthly * 12) - pricing[tier].annual) * 100) / 100 : 0;
+  const pricing = paymentService.calculatePrice(
+    tier,
+    billingCycle,
+    validatedPromo?.discountPercent
+  );
+
+  const tierName = tier === "premium" ? "Premium" : "Enterprise";
+  const paymentPlatform = paymentService.getPaymentPlatform();
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md" data-testid="modal-checkout">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -108,6 +118,27 @@ export function CheckoutModal({ open, onOpenChange, tier, tierName }: CheckoutMo
         </DialogHeader>
 
         <div className="space-y-4">
+          {/* Tier Selection */}
+          <div className="space-y-2">
+            <Label>Plan</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                variant={tier === "premium" ? "default" : "outline"}
+                onClick={() => setTier("premium")}
+                data-testid="button-premium"
+              >
+                Premium
+              </Button>
+              <Button
+                variant={tier === "enterprise" ? "default" : "outline"}
+                onClick={() => setTier("enterprise")}
+                data-testid="button-enterprise"
+              >
+                Enterprise
+              </Button>
+            </div>
+          </div>
+
           {/* Billing Cycle Toggle */}
           <div className="space-y-2">
             <Label>Billing Cycle</Label>
@@ -167,31 +198,26 @@ export function CheckoutModal({ open, onOpenChange, tier, tierName }: CheckoutMo
               <span className="text-sm text-muted-foreground">
                 {tierName} - {billingCycle === "monthly" ? "Monthly" : "Annual"}
               </span>
-              <span className="font-medium">${price.toFixed(2)}</span>
+              <span className="font-medium">${pricing.basePrice.toFixed(2)}</span>
             </div>
-            {billingCycle === "annual" && (
+            {pricing.savingsPercent && (
               <div className="flex justify-between text-sm text-green-600 dark:text-green-400">
-                <span>Annual discount (20%)</span>
-                <span>-${savings.toFixed(2)}</span>
+                <span>Annual discount ({pricing.savingsPercent}%)</span>
+                <span>Included</span>
               </div>
             )}
-            {validatedPromo && (
+            {pricing.discountAmount > 0 && (
               <div className="flex justify-between text-sm text-green-600 dark:text-green-400">
                 <span>Promo: {validatedPromo.code}</span>
-                <span>-{validatedPromo.discountPercent}%</span>
+                <span>-${pricing.discountAmount.toFixed(2)}</span>
               </div>
             )}
             <div className="border-t pt-2 flex justify-between font-bold">
               <span>First Payment</span>
-              <span>
-                $
-                {validatedPromo
-                  ? (price * (1 - validatedPromo.discountPercent / 100)).toFixed(2)
-                  : price.toFixed(2)}
-              </span>
+              <span>${pricing.finalPrice.toFixed(2)}</span>
             </div>
             <p className="text-xs text-muted-foreground text-center">
-              7-day free trial, then ${price}/{billingCycle === "monthly" ? "month" : "year"}
+              7-day free trial, then ${pricing.basePrice.toFixed(2)}/{billingCycle === "monthly" ? "month" : "year"}
             </p>
           </div>
 
@@ -199,15 +225,26 @@ export function CheckoutModal({ open, onOpenChange, tier, tierName }: CheckoutMo
           <Button
             className="w-full"
             size="lg"
-            onClick={() => checkoutMutation.mutate()}
-            disabled={checkoutMutation.isPending}
+            onClick={handleCheckout}
+            disabled={isProcessing}
             data-testid="button-start-trial"
           >
-            {checkoutMutation.isPending ? "Loading..." : "Start 7-Day Free Trial"}
+            {isProcessing ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Processing...
+              </>
+            ) : (
+              <>
+                {paymentPlatform === "Apple Pay" ? "Pay with Apple Pay" : "Start 7-Day Free Trial"}
+              </>
+            )}
           </Button>
 
           <p className="text-xs text-center text-muted-foreground">
-            Cancel anytime during trial, no charges
+            {paymentPlatform === "Apple Pay" 
+              ? "Secure payment via Apple Pay"
+              : "Cancel anytime during trial, no charges"}
           </p>
         </div>
       </DialogContent>

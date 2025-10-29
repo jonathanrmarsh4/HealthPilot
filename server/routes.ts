@@ -1602,6 +1602,227 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // iOS Native Payment Intent creation (for Apple Pay via Stripe iOS SDK)
+  app.post("/api/payments/create-intent", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any).claims.sub;
+      const { tier, billingCycle, promoCode } = req.body;
+
+      if (!tier || (tier !== "premium" && tier !== "enterprise")) {
+        return res.status(400).json({ error: "Invalid subscription tier" });
+      }
+
+      if (!billingCycle || (billingCycle !== "monthly" && billingCycle !== "annual")) {
+        return res.status(400).json({ error: "Invalid billing cycle" });
+      }
+
+      const Stripe = (await import("stripe")).default;
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+        apiVersion: "2024-11-20",
+      });
+
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Validate promo code if provided
+      let validatedPromoCode = null;
+      let discountAmount = 0;
+      if (promoCode) {
+        const dbPromoCode = await storage.getPromoCode(promoCode.toUpperCase());
+        
+        if (!dbPromoCode || !dbPromoCode.isActive) {
+          return res.status(400).json({ error: "Invalid or inactive promo code" });
+        }
+
+        if (dbPromoCode.expiresAt && new Date(dbPromoCode.expiresAt) < new Date()) {
+          return res.status(400).json({ error: "Promo code has expired" });
+        }
+
+        if (dbPromoCode.maxUses && dbPromoCode.usedCount >= dbPromoCode.maxUses) {
+          return res.status(400).json({ error: "Promo code has reached its usage limit" });
+        }
+
+        if (dbPromoCode.tierRestriction && dbPromoCode.tierRestriction !== tier) {
+          return res.status(400).json({ error: `Promo code is only valid for ${dbPromoCode.tierRestriction} tier` });
+        }
+
+        validatedPromoCode = dbPromoCode;
+      }
+
+      // Pricing structure with 20% annual discount
+      const pricing = {
+        premium: {
+          monthly: 1999,  // $19.99/month
+          annual: 19188,  // $191.88/year (20% off)
+        },
+        enterprise: {
+          monthly: 9999,  // $99.99/month
+          annual: 95988,  // $959.88/year (20% off)
+        },
+      };
+
+      let unitAmount = pricing[tier as "premium" | "enterprise"][billingCycle as "monthly" | "annual"];
+      
+      // Apply promo code discount
+      if (validatedPromoCode) {
+        discountAmount = Math.round(unitAmount * (validatedPromoCode.discountPercent / 100));
+        unitAmount = unitAmount - discountAmount;
+      }
+
+      // Create or retrieve Stripe customer
+      let customerId = user.stripeCustomerId;
+      if (!customerId) {
+        const customer = await stripe.customers.create({
+          email: user.email,
+          metadata: { userId },
+        });
+        customerId = customer.id;
+        await storage.updateUser(userId, { stripeCustomerId: customerId });
+      }
+
+      // Create ephemeral key for customer
+      const ephemeralKey = await stripe.ephemeralKeys.create(
+        { customer: customerId },
+        { apiVersion: '2024-11-20' }
+      );
+
+      // Create PaymentIntent for iOS
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: unitAmount,
+        currency: "usd",
+        customer: customerId,
+        automatic_payment_methods: {
+          enabled: true,
+        },
+        metadata: {
+          userId,
+          tier,
+          billingCycle,
+          promoCode: validatedPromoCode?.code || "",
+          platform: "ios",
+        },
+      });
+
+      res.json({
+        clientSecret: paymentIntent.client_secret,
+        ephemeralKey: ephemeralKey.secret,
+        amount: unitAmount,
+        currency: "usd",
+        customerId,
+        discountApplied: discountAmount > 0,
+        discountAmount,
+      });
+    } catch (error: any) {
+      console.error("Error creating payment intent:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // iOS Native Subscription confirmation (after successful payment)
+  app.post("/api/payments/confirm-subscription", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any).claims.sub;
+      const { paymentIntentId } = req.body;
+
+      if (!paymentIntentId) {
+        return res.status(400).json({ error: "Payment intent ID is required" });
+      }
+
+      const Stripe = (await import("stripe")).default;
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+        apiVersion: "2024-11-20",
+      });
+
+      // Retrieve and verify payment intent
+      const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+      
+      if (paymentIntent.status !== "succeeded") {
+        return res.status(400).json({ error: "Payment not completed" });
+      }
+
+      // Verify this payment belongs to the authenticated user
+      if (paymentIntent.metadata.userId !== userId) {
+        return res.status(403).json({ error: "Payment does not belong to this user" });
+      }
+
+      const { tier, billingCycle, promoCode } = paymentIntent.metadata;
+      
+      // Create Stripe subscription
+      const interval = billingCycle === "monthly" ? "month" : "year";
+      const pricing = {
+        premium: {
+          monthly: 1999,
+          annual: 19188,
+        },
+        enterprise: {
+          monthly: 9999,
+          annual: 95988,
+        },
+      };
+
+      const unitAmount = pricing[tier as "premium" | "enterprise"][billingCycle as "monthly" | "annual"];
+
+      // Get or create Stripe price
+      const priceData = {
+        currency: "usd",
+        product_data: {
+          name: tier === "premium" ? "HealthPilot Premium" : "HealthPilot Enterprise",
+        },
+        recurring: {
+          interval: interval as "month" | "year",
+        },
+        unit_amount: unitAmount,
+      };
+
+      // Create subscription
+      const subscriptionConfig: any = {
+        customer: paymentIntent.customer as string,
+        items: [{
+          price_data: priceData,
+        }],
+        metadata: {
+          userId,
+          tier,
+          billingCycle,
+          promoCode: promoCode || "",
+          platform: "ios",
+        },
+        payment_behavior: "default_incomplete",
+        payment_settings: { save_default_payment_method: "on_subscription" },
+      };
+
+      const subscription = await stripe.subscriptions.create(subscriptionConfig);
+
+      // Update user subscription in database
+      await storage.updateUser(userId, {
+        subscriptionTier: tier,
+        stripeSubscriptionId: subscription.id,
+        stripeCustomerId: paymentIntent.customer as string,
+      });
+
+      // Increment promo code usage if applicable
+      if (promoCode) {
+        const dbPromoCode = await storage.getPromoCode(promoCode.toUpperCase());
+        if (dbPromoCode) {
+          await storage.incrementPromoCodeUsage(dbPromoCode.id);
+        }
+      }
+
+      console.log(`✅ iOS subscription created: ${subscription.id} for user ${userId} (${tier})`);
+
+      res.json({
+        success: true,
+        subscriptionId: subscription.id,
+        tier,
+      });
+    } catch (error: any) {
+      console.error("Error confirming subscription:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Stripe webhook handler for subscription events
   app.post("/api/stripe/webhook", async (req, res) => {
     try {

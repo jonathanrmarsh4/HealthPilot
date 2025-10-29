@@ -13,13 +13,15 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { Loader2, User, Heart, CreditCard, Settings, MapPin, Dumbbell, ArrowRight } from "lucide-react";
+import { Loader2, User, Heart, CreditCard, Settings, MapPin, Dumbbell, ArrowRight, Sparkles, Crown } from "lucide-react";
 import { Link } from "wouter";
 import { format } from "date-fns";
 import { useLocale } from "@/contexts/LocaleContext";
 import { convertValue, unitConfigs } from "@/lib/unitConversions";
 import { useTimezone } from "@/contexts/TimezoneContext";
 import { Label } from "@/components/ui/label";
+import { CheckoutModal } from "@/components/CheckoutModal";
+import { Badge } from "@/components/ui/badge";
 
 const COMMON_TIMEZONES = [
   { value: "Pacific/Auckland", label: "Auckland (GMT+12)" },
@@ -80,6 +82,7 @@ export default function Profile() {
   const [locationSuggestions, setLocationSuggestions] = useState<Array<{ display_name: string }>>([]);
   const [locationOpen, setLocationOpen] = useState(false);
   const [selectedTimezone, setSelectedTimezone] = useState(timezone);
+  const [showCheckout, setShowCheckout] = useState(false);
 
   useEffect(() => {
     setSelectedTimezone(timezone);
@@ -543,30 +546,97 @@ export default function Profile() {
             <CardContent className="space-y-6">
               <div>
                 <h3 className="font-semibold mb-2">Current Plan</h3>
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div>
-                    <p className="font-medium capitalize">{profile?.subscriptionTier || "Free"}</p>
-                    <p className="text-sm text-muted-foreground capitalize">
-                      Status: {profile?.subscriptionStatus || "active"}
-                    </p>
+                <div className="flex items-center justify-between p-4 border rounded-lg bg-gradient-to-r from-primary/5 to-primary/10">
+                  <div className="flex items-center gap-3">
+                    {profile?.subscriptionTier === "premium" || profile?.subscriptionTier === "enterprise" ? (
+                      <Crown className="h-6 w-6 text-primary" />
+                    ) : (
+                      <Sparkles className="h-6 w-6 text-muted-foreground" />
+                    )}
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium capitalize text-lg">
+                          {profile?.subscriptionTier === "premium" ? "Premium" : 
+                           profile?.subscriptionTier === "enterprise" ? "Enterprise" : "Free"}
+                        </p>
+                        {(profile?.subscriptionTier === "premium" || profile?.subscriptionTier === "enterprise") && (
+                          <Badge variant="default" className="bg-primary">Active</Badge>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {profile?.subscriptionTier === "premium" 
+                          ? "Unlimited AI messages, meal plans, and more"
+                          : profile?.subscriptionTier === "enterprise"
+                          ? "Enterprise features with team management"
+                          : "Basic features with limited AI messages"}
+                      </p>
+                    </div>
                   </div>
                   {profile?.subscriptionTier === "free" && (
-                    <Button data-testid="button-upgrade">Upgrade to Premium</Button>
+                    <Button onClick={() => setShowCheckout(true)} data-testid="button-upgrade">
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      Upgrade Now
+                    </Button>
                   )}
                 </div>
               </div>
 
-              <div>
-                <h3 className="font-semibold mb-2">Payment Methods</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Manage your payment methods and billing information
-                </p>
-                <Button variant="outline" data-testid="button-add-payment">
-                  Add Payment Method
-                </Button>
-              </div>
+              {profile?.subscriptionTier === "free" && (
+                <div className="rounded-lg border-2 border-primary/20 p-6 bg-gradient-to-br from-primary/5 to-primary/10">
+                  <div className="flex items-start gap-4">
+                    <div className="p-3 rounded-full bg-primary/10">
+                      <Crown className="h-6 w-6 text-primary" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-lg mb-1">Unlock Premium Features</h3>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Get unlimited AI messages, personalized meal plans, voice chat, and advanced analytics
+                      </p>
+                      <ul className="space-y-2 mb-4">
+                        <li className="flex items-center gap-2 text-sm">
+                          <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                          Unlimited AI chat messages
+                        </li>
+                        <li className="flex items-center gap-2 text-sm">
+                          <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                          AI-generated meal plans & recipes
+                        </li>
+                        <li className="flex items-center gap-2 text-sm">
+                          <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                          Voice chat with AI coach
+                        </li>
+                        <li className="flex items-center gap-2 text-sm">
+                          <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                          Advanced health analytics
+                        </li>
+                      </ul>
+                      <Button onClick={() => setShowCheckout(true)} size="lg" data-testid="button-upgrade-premium">
+                        <Sparkles className="mr-2 h-4 w-4" />
+                        Start 7-Day Free Trial
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {(profile?.subscriptionTier === "premium" || profile?.subscriptionTier === "enterprise") && (
+                <div>
+                  <h3 className="font-semibold mb-2">Manage Subscription</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    View billing history, update payment method, or cancel your subscription
+                  </p>
+                  <Button variant="outline" data-testid="button-manage-subscription">
+                    Manage in Stripe
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
+
+          <CheckoutModal
+            isOpen={showCheckout}
+            onClose={() => setShowCheckout(false)}
+          />
         </TabsContent>
 
         <TabsContent value="preferences" className="space-y-4">
