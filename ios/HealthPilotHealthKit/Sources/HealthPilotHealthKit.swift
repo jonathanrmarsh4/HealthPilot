@@ -9,12 +9,15 @@ public class HealthPilotHealthKit: CAPPlugin {
     // Check if HealthKit is available
     @objc func isAvailable(_ call: CAPPluginCall) {
         let available = HKHealthStore.isHealthDataAvailable()
+        print("🏥 [HealthKit] isAvailable called, result: \(available)")
         call.resolve(["available": available])
     }
     
     // Request authorization for all supported health data types
     @objc func requestAuthorization(_ call: CAPPluginCall) {
+        print("🔐 [HealthKit] requestAuthorization called")
         guard HKHealthStore.isHealthDataAvailable() else {
+            print("❌ [HealthKit] HealthKit not available on this device")
             call.reject("HealthKit is not available on this device")
             return
         }
@@ -61,10 +64,13 @@ public class HealthPilotHealthKit: CAPPlugin {
             HKQuantityType.quantityType(forIdentifier: .dietaryFatTotal)!,
         ]
         
+        print("📋 [HealthKit] Requesting authorization for \(readTypes.count) data types")
         healthStore.requestAuthorization(toShare: [], read: readTypes) { success, error in
             if let error = error {
+                print("❌ [HealthKit] Authorization failed: \(error.localizedDescription)")
                 call.reject("Authorization failed: \(error.localizedDescription)")
             } else {
+                print("✅ [HealthKit] Authorization completed, success: \(success)")
                 call.resolve(["success": success])
             }
         }
@@ -75,16 +81,23 @@ public class HealthPilotHealthKit: CAPPlugin {
         guard let dataType = call.getString("dataType"),
               let startDateString = call.getString("startDate"),
               let endDateString = call.getString("endDate") else {
+            print("❌ [HealthKit] Missing required parameters")
             call.reject("Missing required parameters: dataType, startDate, endDate")
             return
         }
         
+        print("📊 [HealthKit] queryHealthData called for type: \(dataType)")
+        print("📅 [HealthKit] Date range: \(startDateString) to \(endDateString)")
+        
         let dateFormatter = ISO8601DateFormatter()
         guard let startDate = dateFormatter.date(from: startDateString),
               let endDate = dateFormatter.date(from: endDateString) else {
+            print("❌ [HealthKit] Invalid date format")
             call.reject("Invalid date format. Use ISO 8601.")
             return
         }
+        
+        print("📅 [HealthKit] Parsed dates - Start: \(startDate), End: \(endDate)")
         
         // Route to appropriate query method based on data type
         switch dataType {
@@ -109,21 +122,37 @@ public class HealthPilotHealthKit: CAPPlugin {
     // Query quantity type data (steps, heart rate, weight, etc.)
     private func queryQuantityType(call: CAPPluginCall, dataType: String, startDate: Date, endDate: Date) {
         guard let quantityType = mapToQuantityType(dataType) else {
+            print("❌ [HealthKit] Invalid quantity type: \(dataType)")
             call.reject("Invalid quantity type: \(dataType)")
             return
         }
+        
+        print("🔍 [HealthKit] Querying \(dataType)...")
+        
+        let authStatus = healthStore.authorizationStatus(for: quantityType)
+        print("🔐 [HealthKit] Authorization status for \(dataType): \(self.authStatusString(authStatus))")
         
         let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate, options: .strictStartDate)
         
         let query = HKSampleQuery(sampleType: quantityType, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: nil) { _, samples, error in
             if let error = error {
+                print("❌ [HealthKit] Query failed for \(dataType): \(error.localizedDescription)")
                 call.reject("Query failed: \(error.localizedDescription)")
                 return
             }
             
             guard let samples = samples as? [HKQuantitySample] else {
+                print("⚠️ [HealthKit] No samples returned for \(dataType) (or wrong type)")
                 call.resolve(["samples": []])
                 return
+            }
+            
+            print("✅ [HealthKit] Found \(samples.count) samples for \(dataType)")
+            
+            if samples.count > 0 {
+                let unit = self.getUnit(for: quantityType)
+                let firstValue = samples[0].quantity.doubleValue(for: unit)
+                print("📈 [HealthKit] First sample: \(firstValue) \(unit.unitString) at \(samples[0].startDate)")
             }
             
             let unit = self.getUnit(for: quantityType)
@@ -145,17 +174,30 @@ public class HealthPilotHealthKit: CAPPlugin {
     
     // Query workouts
     private func queryWorkouts(call: CAPPluginCall, startDate: Date, endDate: Date) {
+        print("🔍 [HealthKit] Querying workouts...")
+        
+        let authStatus = healthStore.authorizationStatus(for: .workoutType())
+        print("🔐 [HealthKit] Authorization status for workouts: \(self.authStatusString(authStatus))")
+        
         let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate, options: .strictStartDate)
         
         let query = HKSampleQuery(sampleType: .workoutType(), predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: nil) { _, samples, error in
             if let error = error {
+                print("❌ [HealthKit] Workouts query failed: \(error.localizedDescription)")
                 call.reject("Query failed: \(error.localizedDescription)")
                 return
             }
             
             guard let workouts = samples as? [HKWorkout] else {
+                print("⚠️ [HealthKit] No workouts returned")
                 call.resolve(["workouts": []])
                 return
+            }
+            
+            print("✅ [HealthKit] Found \(workouts.count) workouts")
+            
+            if workouts.count > 0 {
+                print("🏃 [HealthKit] First workout: \(self.workoutTypeName(workouts[0].workoutActivityType)) at \(workouts[0].startDate)")
             }
             
             let results = workouts.map { workout -> [String: Any] in
@@ -189,18 +231,32 @@ public class HealthPilotHealthKit: CAPPlugin {
     
     // Query sleep data
     private func querySleep(call: CAPPluginCall, startDate: Date, endDate: Date) {
+        print("🔍 [HealthKit] Querying sleep...")
+        
         let sleepType = HKCategoryType.categoryType(forIdentifier: .sleepAnalysis)!
+        
+        let authStatus = healthStore.authorizationStatus(for: sleepType)
+        print("🔐 [HealthKit] Authorization status for sleep: \(self.authStatusString(authStatus))")
+        
         let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate, options: .strictStartDate)
         
         let query = HKSampleQuery(sampleType: sleepType, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: nil) { _, samples, error in
             if let error = error {
+                print("❌ [HealthKit] Sleep query failed: \(error.localizedDescription)")
                 call.reject("Query failed: \(error.localizedDescription)")
                 return
             }
             
             guard let sleepSamples = samples as? [HKCategorySample] else {
+                print("⚠️ [HealthKit] No sleep samples returned")
                 call.resolve(["sleepSamples": []])
                 return
+            }
+            
+            print("✅ [HealthKit] Found \(sleepSamples.count) sleep samples")
+            
+            if sleepSamples.count > 0 {
+                print("😴 [HealthKit] First sleep sample at \(sleepSamples[0].startDate)")
             }
             
             let results = sleepSamples.map { sample -> [String: Any] in
@@ -343,6 +399,20 @@ public class HealthPilotHealthKit: CAPPlugin {
         case .tennis: return "Tennis"
         case .golf: return "Golf"
         default: return "Other"
+        }
+    }
+    
+    // Convert authorization status to readable string
+    private func authStatusString(_ status: HKAuthorizationStatus) -> String {
+        switch status {
+        case .notDetermined:
+            return "notDetermined (user hasn't been asked yet)"
+        case .sharingDenied:
+            return "sharingDenied (user denied permission)"
+        case .sharingAuthorized:
+            return "sharingAuthorized (permission granted)"
+        @unknown default:
+            return "unknown"
         }
     }
 }
