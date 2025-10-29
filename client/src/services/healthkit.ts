@@ -313,14 +313,33 @@ export class HealthKitService {
   }
 
   /**
-   * Sync all health data to the backend
-   * This replaces the webhook-based sync system
+   * Retrieve all health data from HealthKit
+   * Returns data for caller to send to backend
+   * This avoids dynamic imports and module loading issues in Capacitor
    */
-  async syncAllHealthData(daysBack: number = 30): Promise<void> {
+  async getAllHealthData(daysBack: number = 30): Promise<{
+    steps: HealthDataSample[];
+    hrv: HealthDataSample[];
+    restingHR: HealthDataSample[];
+    sleep: HealthDataSample[];
+    workouts: HealthDataSample[];
+    weight: HealthDataSample[];
+    bodyFat: HealthDataSample[];
+    leanMass: HealthDataSample[];
+  }> {
     const available = await this.isHealthKitAvailable();
     if (!available) {
-      console.log('HealthKit not available, skipping sync');
-      return;
+      console.log('HealthKit not available, returning empty data');
+      return {
+        steps: [],
+        hrv: [],
+        restingHR: [],
+        sleep: [],
+        workouts: [],
+        weight: [],
+        bodyFat: [],
+        leanMass: [],
+      };
     }
 
     const endDate = new Date();
@@ -349,7 +368,6 @@ export class HealthKitService {
         this.getLeanBodyMass(startDate, endDate),
       ]);
 
-      // Send to backend API (this will be implemented in the next task)
       const healthData = {
         steps,
         hrv,
@@ -361,24 +379,31 @@ export class HealthKitService {
         leanMass,
       };
 
-      // TODO: Send to backend via API
-      console.log('Health data retrieved:', healthData);
-      
-      // POST to /api/apple-health/sync endpoint
-      const { apiRequest } = await import('@/lib/queryClient');
-      const response = await apiRequest('/api/apple-health/sync', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(healthData),
+      console.log('[HealthKit] Health data retrieved:', {
+        steps: steps.length,
+        hrv: hrv.length,
+        restingHR: restingHR.length,
+        sleep: sleep.length,
+        workouts: workouts.length,
+        weight: weight.length,
+        bodyFat: bodyFat.length,
+        leanMass: leanMass.length,
       });
 
-      console.log('Health data synced successfully');
+      return healthData;
     } catch (error) {
-      console.error('Failed to sync health data:', error);
+      console.error('[HealthKit] Failed to retrieve health data:', error);
       throw error;
     }
+  }
+
+  /**
+   * @deprecated Use getAllHealthData() and send to backend from the caller
+   * This method is kept for backwards compatibility but should not be used
+   */
+  async syncAllHealthData(daysBack: number = 30): Promise<void> {
+    console.warn('[HealthKit] syncAllHealthData() is deprecated. Use getAllHealthData() instead.');
+    await this.getAllHealthData(daysBack);
   }
 }
 

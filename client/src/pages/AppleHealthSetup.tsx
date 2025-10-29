@@ -2,11 +2,14 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Smartphone, Download, Settings, Zap, CheckCircle2, Copy, ExternalLink, Key, User } from "lucide-react";
-import { useState } from "react";
+import { Smartphone, Download, Settings, Zap, CheckCircle2, Copy, ExternalLink, Key, User, Heart, Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
+import { healthKitService } from "@/services/healthkit";
+import { getPlatform } from "@/mobile/MobileBootstrap";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 interface WebhookCredentials {
   userId: string;
@@ -19,10 +22,85 @@ export default function AppleHealthSetup() {
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [copiedUserId, setCopiedUserId] = useState(false);
   const [copiedSecret, setCopiedSecret] = useState(false);
+  const [isHealthKitSyncing, setIsHealthKitSyncing] = useState(false);
+  const [healthKitStatus, setHealthKitStatus] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle');
+  const [currentPlatform, setCurrentPlatform] = useState<string>('');
   
   const { data: credentials, isLoading } = useQuery<WebhookCredentials>({
     queryKey: ["/api/user/webhook-credentials"],
   });
+
+  useEffect(() => {
+    // Debug platform detection
+    const platform = getPlatform();
+    setCurrentPlatform(platform);
+    console.log('[AppleHealthSetup] Platform detected:', platform);
+    console.log('[AppleHealthSetup] Is iOS?', platform === 'ios');
+  }, []);
+
+  const handleSetupHealthKit = async () => {
+    setIsHealthKitSyncing(true);
+    setHealthKitStatus('syncing');
+
+    try {
+      // Check if HealthKit is available
+      const available = await healthKitService.isHealthKitAvailable();
+      
+      if (!available) {
+        throw new Error('HealthKit is not available on this device');
+      }
+
+      // Request permissions
+      const permissionsGranted = await healthKitService.requestPermissions();
+      
+      if (!permissionsGranted) {
+        throw new Error('HealthKit permissions were not granted. Please enable them in Settings.');
+      }
+
+      // Get health data (last 90 days)
+      const healthData = await healthKitService.getAllHealthData(90);
+      
+      // Send to backend
+      await apiRequest('POST', '/api/apple-health/sync', healthData);
+      
+      setHealthKitStatus('success');
+      
+      toast({
+        title: 'Sync Complete',
+        description: 'Your health data has been synced successfully',
+      });
+
+      // Mark HealthKit setup as complete
+      await apiRequest('POST', '/api/onboarding/complete-healthkit');
+      
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['/api/onboarding/status'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/biomarkers'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
+
+      // Reset status after 3 seconds
+      setTimeout(() => {
+        setHealthKitStatus('idle');
+      }, 3000);
+    } catch (error: any) {
+      console.error('HealthKit sync failed:', error);
+      
+      setHealthKitStatus('error');
+
+      toast({
+        title: 'Sync Failed',
+        description: error.message || 'Failed to sync health data',
+        variant: 'destructive',
+      });
+
+      // Reset status after 3 seconds
+      setTimeout(() => {
+        setHealthKitStatus('idle');
+      }, 3000);
+    } finally {
+      setIsHealthKitSyncing(false);
+    }
+  };
 
   const copyToClipboard = (text: string, type: 'url' | 'userId' | 'secret') => {
     navigator.clipboard.writeText(text);
@@ -45,19 +123,144 @@ export default function AppleHealthSetup() {
   return (
     <div className="space-y-8 max-w-5xl">
       <div>
-        <h1 className="text-4xl font-bold tracking-tight">Apple HealthKit Integration</h1>
+        <h1 className="text-4xl font-bold tracking-tight">Apple Health Integration</h1>
         <p className="text-muted-foreground mt-2">
-          Automatically sync your Apple Health data using Health Auto Export
+          Connect your Apple Health data to get personalized AI-powered insights
         </p>
       </div>
 
-      <Alert>
-        <Smartphone className="h-4 w-4" />
-        <AlertDescription>
-          This integration uses the <strong>Health Auto Export</strong> iOS app to automatically send your Apple Health data to this dashboard. 
-          The app costs around $5-10 for the premium version with REST API support.
-        </AlertDescription>
-      </Alert>
+      {/* Debug Platform Info - Remove after testing */}
+      <Card className="border-amber-500/50 bg-amber-50 dark:bg-amber-950/20">
+        <CardHeader>
+          <CardTitle className="text-amber-900 dark:text-amber-100">🔧 Platform Debug Info</CardTitle>
+          <CardDescription>
+            This shows what platform is detected (this card will be removed after debugging)
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2 text-sm">
+            <p><strong>Detected Platform:</strong> <code className="bg-muted px-2 py-1 rounded">{currentPlatform || 'Loading...'}</code></p>
+            <p><strong>Is iOS?</strong> {getPlatform() === 'ios' ? '✅ YES' : '❌ NO'}</p>
+            <p><strong>Native HealthKit Section Visible?</strong> {getPlatform() === 'ios' ? '✅ YES (should appear below)' : '❌ NO (running in browser or web)'}</p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Native HealthKit Setup - Only show on iOS native app */}
+      {getPlatform() === 'ios' && (
+        <Card className="border-primary/50 bg-primary/5">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Heart className="h-5 w-5 text-primary" />
+              Native Apple Health (Recommended)
+            </CardTitle>
+            <CardDescription>
+              Instant setup with direct HealthKit integration - no third-party apps needed
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Alert>
+              <Heart className="h-4 w-4" />
+              <AlertDescription>
+                <strong>You're using the native iOS app!</strong> Connect directly to Apple Health for automatic, real-time data sync.
+              </AlertDescription>
+            </Alert>
+
+            <div className="grid gap-3 text-sm">
+              <div className="flex items-start gap-3">
+                <CheckCircle2 className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                <div>
+                  <p className="font-medium">Instant Setup</p>
+                  <p className="text-muted-foreground">One tap to connect - no manual configuration needed</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <CheckCircle2 className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                <div>
+                  <p className="font-medium">Real-Time Sync</p>
+                  <p className="text-muted-foreground">Your data updates automatically in the background</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <CheckCircle2 className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                <div>
+                  <p className="font-medium">100% Private</p>
+                  <p className="text-muted-foreground">Data stays on your device - no third-party access</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <CheckCircle2 className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                <div>
+                  <p className="font-medium">Free Forever</p>
+                  <p className="text-muted-foreground">No subscription or in-app purchase required</p>
+                </div>
+              </div>
+            </div>
+
+            <Button
+              onClick={handleSetupHealthKit}
+              disabled={isHealthKitSyncing}
+              size="lg"
+              className="w-full"
+              data-testid="button-setup-native-healthkit"
+            >
+              {isHealthKitSyncing ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Syncing Health Data...
+                </>
+              ) : healthKitStatus === 'success' ? (
+                <>
+                  <CheckCircle2 className="h-4 w-4 mr-2" />
+                  Sync Complete
+                </>
+              ) : (
+                <>
+                  <Heart className="h-4 w-4 mr-2" />
+                  Connect Apple Health Now
+                </>
+              )}
+            </Button>
+
+            <p className="text-xs text-muted-foreground text-center">
+              You'll be asked to grant permission to read your health data from the Health app
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Webhook-based integration (fallback for web or manual preference) */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            {getPlatform() === 'ios' ? (
+              <>
+                <Smartphone className="h-5 w-5" />
+                Alternative: Webhook Integration
+              </>
+            ) : (
+              <>
+                <Smartphone className="h-5 w-5" />
+                Webhook Integration via Health Auto Export
+              </>
+            )}
+          </CardTitle>
+          <CardDescription>
+            {getPlatform() === 'ios' 
+              ? 'Already using another health app? You can also sync via Health Auto Export webhooks'
+              : 'Automatically sync your Apple Health data using the Health Auto Export iOS app'}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Alert>
+            <Smartphone className="h-4 w-4" />
+            <AlertDescription>
+              This method uses the <strong>Health Auto Export</strong> iOS app to send your Apple Health data to this dashboard. 
+              The app costs around $5-10 for the premium version with REST API support.
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
 
       <Card className="border-primary/50 bg-primary/5">
         <CardHeader>
