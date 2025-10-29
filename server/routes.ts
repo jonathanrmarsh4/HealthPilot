@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
 import multer from "multer";
-import { insertBiomarkerSchema, insertHealthRecordSchema, insertScheduledExerciseRecommendationSchema, insertFitnessProfileSchema, insertExerciseSetSchema, biomarkers, sleepSessions, healthRecords, mealPlans, mealLibrary, trainingSchedules, recommendations, readinessScores, exerciseSets, exercises, users, referrals, insertLandingPageContentSchema, insertLandingPageFeatureSchema, insertLandingPageTestimonialSchema, insertLandingPagePricingPlanSchema, insertLandingPageSocialLinkSchema } from "@shared/schema";
+import { insertBiomarkerSchema, insertHealthRecordSchema, insertScheduledExerciseRecommendationSchema, insertFitnessProfileSchema, insertExerciseSetSchema, biomarkers, sleepSessions, healthRecords, mealPlans, mealLibrary, trainingSchedules, recommendations, readinessScores, exerciseSets, exercises, users, referrals, insertLandingPageContentSchema, insertLandingPageFeatureSchema, insertLandingPageTestimonialSchema, insertLandingPagePricingPlanSchema, insertLandingPageSocialLinkSchema, insertNotificationChannelSchema, insertNotificationSchema, insertScheduledReminderSchema } from "@shared/schema";
 import { listHealthDocuments, downloadFile, getFileMetadata } from "./services/googleDrive";
 import { analyzeHealthDocument, generateMealPlan, generateTrainingSchedule, generateHealthRecommendations, chatWithHealthCoach, generateDailyInsights, generateRecoveryInsights, generateTrendPredictions, generatePeriodComparison, generateDailyTrainingRecommendation, generateMacroRecommendations } from "./services/ai";
 import { buildGuardrailsSystemPrompt } from "./config/guardrails";
@@ -22,6 +22,8 @@ import { z } from "zod";
 import { spoonacularService } from "./spoonacular";
 import { WebSocketServer } from "ws";
 import type { IncomingMessage } from "http";
+import { initNotificationOrchestrator } from "./services/notifications";
+import { isNotificationsLayerEnabled } from "@shared/config/flags";
 
 // Zod schema for admin user updates
 const adminUserUpdateSchema = z.object({
@@ -13304,6 +13306,191 @@ DATA AVAILABILITY:
       res.status(500).json({ error: error.message });
     }
   });
+
+  // Notification Preferences Routes
+  // GET /api/notifications/preferences - Get user's notification channel preferences
+  app.get("/api/notifications/preferences", isAuthenticated, async (req, res) => {
+    try {
+      if (!isNotificationsLayerEnabled()) {
+        return res.status(503).json({ error: "Notifications feature is disabled" });
+      }
+
+      const userId = (req.user as any).claims.sub;
+      const channels = await storage.getNotificationChannels(userId);
+      
+      res.json({ channels });
+    } catch (error: any) {
+      console.error("Error fetching notification preferences:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // PUT /api/notifications/preferences - Update channel preferences
+  app.put("/api/notifications/preferences", isAuthenticated, async (req, res) => {
+    try {
+      if (!isNotificationsLayerEnabled()) {
+        return res.status(503).json({ error: "Notifications feature is disabled" });
+      }
+
+      const userId = (req.user as any).claims.sub;
+      const data = insertNotificationChannelSchema.parse({
+        userId,
+        ...req.body,
+      });
+      
+      const channel = await storage.upsertNotificationChannel(data);
+      
+      res.json({ channel });
+    } catch (error: any) {
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ error: "Invalid request data", details: error.errors });
+      }
+      console.error("Error updating notification preferences:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Notification History Routes
+  // GET /api/notifications - Get notification history for user
+  app.get("/api/notifications", isAuthenticated, async (req, res) => {
+    try {
+      if (!isNotificationsLayerEnabled()) {
+        return res.status(503).json({ error: "Notifications feature is disabled" });
+      }
+
+      const userId = (req.user as any).claims.sub;
+      const { status, limit } = req.query;
+      
+      const filters: any = {};
+      if (status) filters.status = status as string;
+      if (limit) filters.limit = parseInt(limit as string, 10);
+      
+      const notifications = await storage.getNotifications(userId, filters);
+      
+      res.json({ notifications, total: notifications.length });
+    } catch (error: any) {
+      console.error("Error fetching notifications:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // GET /api/notifications/unread-count - Get unread notification count
+  app.get("/api/notifications/unread-count", isAuthenticated, async (req, res) => {
+    try {
+      if (!isNotificationsLayerEnabled()) {
+        return res.status(503).json({ error: "Notifications feature is disabled" });
+      }
+
+      const userId = (req.user as any).claims.sub;
+      const count = await storage.getUnreadCount(userId);
+      
+      res.json({ count });
+    } catch (error: any) {
+      console.error("Error fetching unread count:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // POST /api/notifications/:id/read - Mark notification as read
+  app.post("/api/notifications/:id/read", isAuthenticated, async (req, res) => {
+    try {
+      if (!isNotificationsLayerEnabled()) {
+        return res.status(503).json({ error: "Notifications feature is disabled" });
+      }
+
+      const { id } = req.params;
+      await storage.markNotificationRead(id);
+      
+      res.json({ success: true, id });
+    } catch (error: any) {
+      console.error("Error marking notification as read:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Scheduled Reminders Routes
+  // POST /api/reminders - Create scheduled reminder
+  app.post("/api/reminders", isAuthenticated, async (req, res) => {
+    try {
+      if (!isNotificationsLayerEnabled()) {
+        return res.status(503).json({ error: "Notifications feature is disabled" });
+      }
+
+      const userId = (req.user as any).claims.sub;
+      const data = insertScheduledReminderSchema.parse({
+        userId,
+        ...req.body,
+      });
+      
+      const reminder = await storage.createScheduledReminder(data);
+      
+      res.json({ reminder });
+    } catch (error: any) {
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ error: "Invalid request data", details: error.errors });
+      }
+      console.error("Error creating reminder:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // GET /api/reminders - Get user's reminders
+  app.get("/api/reminders", isAuthenticated, async (req, res) => {
+    try {
+      if (!isNotificationsLayerEnabled()) {
+        return res.status(503).json({ error: "Notifications feature is disabled" });
+      }
+
+      const userId = (req.user as any).claims.sub;
+      const { type } = req.query;
+      
+      const reminders = await storage.getScheduledReminders(userId, type as string | undefined);
+      
+      res.json({ reminders, total: reminders.length });
+    } catch (error: any) {
+      console.error("Error fetching reminders:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // PUT /api/reminders/:id - Update reminder
+  app.put("/api/reminders/:id", isAuthenticated, async (req, res) => {
+    try {
+      if (!isNotificationsLayerEnabled()) {
+        return res.status(503).json({ error: "Notifications feature is disabled" });
+      }
+
+      const { id } = req.params;
+      const updateData = req.body;
+      
+      await storage.updateScheduledReminder(id, updateData);
+      
+      res.json({ success: true, id });
+    } catch (error: any) {
+      console.error("Error updating reminder:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // DELETE /api/reminders/:id - Delete reminder
+  app.delete("/api/reminders/:id", isAuthenticated, async (req, res) => {
+    try {
+      if (!isNotificationsLayerEnabled()) {
+        return res.status(503).json({ error: "Notifications feature is disabled" });
+      }
+
+      const { id } = req.params;
+      await storage.deleteScheduledReminder(id);
+      
+      res.json({ success: true, id });
+    } catch (error: any) {
+      console.error("Error deleting reminder:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Initialize notification orchestrator after all routes are defined
+  initNotificationOrchestrator(storage);
 
   return httpServer;
 }

@@ -138,6 +138,14 @@ import {
   type InsertGeneratedWorkout,
   type SmartFuelGuidance,
   type InsertSmartFuelGuidance,
+  type NotificationChannel,
+  type InsertNotificationChannel,
+  type Notification,
+  type InsertNotification,
+  type NotificationEvent,
+  type InsertNotificationEvent,
+  type ScheduledReminder,
+  type InsertScheduledReminder,
   users,
   healthRecords,
   biomarkers,
@@ -209,6 +217,10 @@ import {
   labs,
   dailyHealthInsights,
   mobileSessions,
+  notificationChannels,
+  notifications,
+  notificationEvents,
+  scheduledReminders,
 } from "@shared/schema";
 import { eq, desc, and, gte, lte, lt, sql, or, like, ilike, count, isNull, inArray, notInArray, not } from "drizzle-orm";
 
@@ -711,6 +723,29 @@ export interface IStorage {
   getCurrentSmartFuelGuidance(userId: string): Promise<SmartFuelGuidance | undefined>;
   getSmartFuelGuidanceHistory(userId: string, limit?: number): Promise<SmartFuelGuidance[]>;
   supersedePreviousGuidance(userId: string, newGuidanceId: string): Promise<void>;
+  
+  // Notification Channel Preferences
+  getNotificationChannels(userId: string): Promise<NotificationChannel[]>;
+  upsertNotificationChannel(data: InsertNotificationChannel): Promise<NotificationChannel>;
+  deleteNotificationChannel(userId: string, channel: string): Promise<void>;
+  
+  // Notifications
+  createNotification(data: InsertNotification): Promise<Notification>;
+  getNotifications(userId: string, filters?: { status?: string, limit?: number }): Promise<Notification[]>;
+  getNotificationById(id: string): Promise<Notification | null>;
+  updateNotificationStatus(id: string, status: string, errorMessage?: string): Promise<void>;
+  markNotificationRead(id: string): Promise<void>;
+  getUnreadCount(userId: string): Promise<number>;
+  
+  // Notification Events (audit log)
+  createNotificationEvent(data: InsertNotificationEvent): Promise<NotificationEvent>;
+  
+  // Scheduled Reminders
+  createScheduledReminder(data: InsertScheduledReminder): Promise<ScheduledReminder>;
+  getScheduledReminders(userId: string, type?: string): Promise<ScheduledReminder[]>;
+  updateScheduledReminder(id: string, data: Partial<InsertScheduledReminder>): Promise<void>;
+  deleteScheduledReminder(id: string): Promise<void>;
+  getPendingReminders(): Promise<ScheduledReminder[]>;
 }
 
 export class DbStorage implements IStorage {
@@ -5909,6 +5944,193 @@ export class DbStorage implements IStorage {
           not(eq(smartFuelGuidance.id, newGuidanceId))  // Don't supersede the new guidance!
         )
       );
+  }
+
+  // Notification Channel Preferences
+  async getNotificationChannels(userId: string): Promise<NotificationChannel[]> {
+    return await db
+      .select()
+      .from(notificationChannels)
+      .where(eq(notificationChannels.userId, userId));
+  }
+
+  async upsertNotificationChannel(data: InsertNotificationChannel): Promise<NotificationChannel> {
+    const existing = await db
+      .select()
+      .from(notificationChannels)
+      .where(
+        and(
+          eq(notificationChannels.userId, data.userId),
+          eq(notificationChannels.channel, data.channel)
+        )
+      )
+      .limit(1);
+
+    if (existing.length > 0) {
+      const [updated] = await db
+        .update(notificationChannels)
+        .set({ ...data, updatedAt: new Date() })
+        .where(
+          and(
+            eq(notificationChannels.userId, data.userId),
+            eq(notificationChannels.channel, data.channel)
+          )
+        )
+        .returning();
+      return updated;
+    } else {
+      const [created] = await db
+        .insert(notificationChannels)
+        .values(data)
+        .returning();
+      return created;
+    }
+  }
+
+  async deleteNotificationChannel(userId: string, channel: string): Promise<void> {
+    await db
+      .delete(notificationChannels)
+      .where(
+        and(
+          eq(notificationChannels.userId, userId),
+          eq(notificationChannels.channel, channel)
+        )
+      );
+  }
+
+  // Notifications
+  async createNotification(data: InsertNotification): Promise<Notification> {
+    const [created] = await db
+      .insert(notifications)
+      .values(data)
+      .returning();
+    return created;
+  }
+
+  async getNotifications(userId: string, filters?: { status?: string; limit?: number }): Promise<Notification[]> {
+    let query = db
+      .select()
+      .from(notifications)
+      .where(eq(notifications.userId, userId))
+      .orderBy(desc(notifications.createdAt));
+
+    if (filters?.status) {
+      query = query.where(
+        and(
+          eq(notifications.userId, userId),
+          eq(notifications.status, filters.status)
+        )
+      );
+    }
+
+    if (filters?.limit) {
+      query = query.limit(filters.limit);
+    }
+
+    return await query;
+  }
+
+  async getNotificationById(id: string): Promise<Notification | null> {
+    const result = await db
+      .select()
+      .from(notifications)
+      .where(eq(notifications.id, id))
+      .limit(1);
+    return result[0] || null;
+  }
+
+  async updateNotificationStatus(id: string, status: string, errorMessage?: string): Promise<void> {
+    const updateData: any = { status };
+    
+    if (status === 'sent') {
+      updateData.sentAt = new Date();
+    }
+    
+    if (errorMessage) {
+      updateData.errorMessage = errorMessage;
+    }
+
+    await db
+      .update(notifications)
+      .set(updateData)
+      .where(eq(notifications.id, id));
+  }
+
+  async markNotificationRead(id: string): Promise<void> {
+    await db
+      .update(notifications)
+      .set({ readAt: new Date(), status: 'read' })
+      .where(eq(notifications.id, id));
+  }
+
+  async getUnreadCount(userId: string): Promise<number> {
+    const result = await db
+      .select({ count: count() })
+      .from(notifications)
+      .where(
+        and(
+          eq(notifications.userId, userId),
+          isNull(notifications.readAt)
+        )
+      );
+    return result[0]?.count || 0;
+  }
+
+  // Notification Events (audit log)
+  async createNotificationEvent(data: InsertNotificationEvent): Promise<NotificationEvent> {
+    const [created] = await db
+      .insert(notificationEvents)
+      .values(data)
+      .returning();
+    return created;
+  }
+
+  // Scheduled Reminders
+  async createScheduledReminder(data: InsertScheduledReminder): Promise<ScheduledReminder> {
+    const [created] = await db
+      .insert(scheduledReminders)
+      .values(data)
+      .returning();
+    return created;
+  }
+
+  async getScheduledReminders(userId: string, type?: string): Promise<ScheduledReminder[]> {
+    let query = db
+      .select()
+      .from(scheduledReminders)
+      .where(eq(scheduledReminders.userId, userId));
+
+    if (type) {
+      query = query.where(
+        and(
+          eq(scheduledReminders.userId, userId),
+          eq(scheduledReminders.type, type)
+        )
+      );
+    }
+
+    return await query.orderBy(desc(scheduledReminders.createdAt));
+  }
+
+  async updateScheduledReminder(id: string, data: Partial<InsertScheduledReminder>): Promise<void> {
+    await db
+      .update(scheduledReminders)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(scheduledReminders.id, id));
+  }
+
+  async deleteScheduledReminder(id: string): Promise<void> {
+    await db
+      .delete(scheduledReminders)
+      .where(eq(scheduledReminders.id, id));
+  }
+
+  async getPendingReminders(): Promise<ScheduledReminder[]> {
+    return await db
+      .select()
+      .from(scheduledReminders)
+      .where(eq(scheduledReminders.enabled, true))
+      .orderBy(scheduledReminders.lastSentAt);
   }
 }
 
