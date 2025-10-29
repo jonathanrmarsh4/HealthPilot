@@ -9,6 +9,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LocaleProvider } from "@/contexts/LocaleContext";
 import { LocaleSelector } from "@/components/LocaleSelector";
+import { NotificationBadge } from "@/components/NotificationBadge";
 import { TimezoneProvider } from "@/contexts/TimezoneContext";
 import { OnboardingProvider, useOnboarding } from "@/contexts/OnboardingContext";
 import { ChatProvider, useChat } from "@/contexts/ChatContext";
@@ -36,6 +37,7 @@ import Supplements from "@/pages/Supplements";
 import Symptoms from "@/pages/Symptoms";
 import BiologicalAge from "@/pages/BiologicalAge";
 import AppleHealthSetup from "@/pages/AppleHealthSetup";
+import Notifications from "@/pages/Notifications";
 import Chat from "@/pages/Chat";
 import VoiceChat from "@/pages/VoiceChat";
 import Profile from "@/pages/Profile";
@@ -92,6 +94,7 @@ function Router() {
       }} />
       <Route path="/goals" component={Goals} />
       <Route path="/biological-age" component={BiologicalAge} />
+      <Route path="/notifications" component={Notifications} />
       <Route path="/chat" component={Chat} />
       <Route path="/voice-chat" component={VoiceChat} />
       <Route path="/profile" component={Profile} />
@@ -223,6 +226,7 @@ function AppLayout() {
           <header className="flex items-center justify-between p-4 border-b border-border shrink-0">
             <SidebarTrigger data-testid="button-sidebar-toggle" />
             <div className="flex items-center gap-2">
+              <NotificationBadge />
               <LocaleSelector />
               <ThemeToggle />
               <Button

@@ -735,6 +735,8 @@ export interface IStorage {
   getNotificationById(id: string): Promise<Notification | null>;
   updateNotificationStatus(id: string, status: string, errorMessage?: string): Promise<void>;
   markNotificationRead(id: string): Promise<void>;
+  markAllNotificationsRead(userId: string): Promise<void>;
+  deleteNotification(id: string, userId: string): Promise<void>;
   getUnreadCount(userId: string): Promise<number>;
   
   // Notification Events (audit log)
@@ -6061,6 +6063,29 @@ export class DbStorage implements IStorage {
       .update(notifications)
       .set({ readAt: new Date(), status: 'read' })
       .where(eq(notifications.id, id));
+  }
+
+  async markAllNotificationsRead(userId: string): Promise<void> {
+    await db
+      .update(notifications)
+      .set({ readAt: new Date(), status: 'read' })
+      .where(
+        and(
+          eq(notifications.userId, userId),
+          isNull(notifications.readAt)
+        )
+      );
+  }
+
+  async deleteNotification(id: string, userId: string): Promise<void> {
+    await db
+      .delete(notifications)
+      .where(
+        and(
+          eq(notifications.id, id),
+          eq(notifications.userId, userId)
+        )
+      );
   }
 
   async getUnreadCount(userId: string): Promise<number> {

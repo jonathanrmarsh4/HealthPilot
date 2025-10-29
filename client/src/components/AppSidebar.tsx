@@ -28,6 +28,7 @@ import {
   ShieldCheck,
   Globe,
   AlertCircle,
+  Bell,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import {
@@ -162,6 +163,18 @@ export function AppSidebar() {
                   <Link href="/">
                     <LayoutDashboard className="h-4 w-4" />
                     <span>Dashboard</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={location === "/notifications"}
+                  data-testid="link-notifications"
+                >
+                  <Link href="/notifications">
+                    <Bell className="h-4 w-4" />
+                    <span>Notifications</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

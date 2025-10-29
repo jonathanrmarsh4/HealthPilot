@@ -13408,6 +13408,41 @@ DATA AVAILABILITY:
     }
   });
 
+  // POST /api/notifications/read-all - Mark all notifications as read
+  app.post("/api/notifications/read-all", isAuthenticated, async (req, res) => {
+    try {
+      if (!isNotificationsLayerEnabled()) {
+        return res.status(503).json({ error: "Notifications feature is disabled" });
+      }
+
+      const userId = (req.user as any).claims.sub;
+      await storage.markAllNotificationsRead(userId);
+      
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error marking all notifications as read:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // DELETE /api/notifications/:id - Delete notification
+  app.delete("/api/notifications/:id", isAuthenticated, async (req, res) => {
+    try {
+      if (!isNotificationsLayerEnabled()) {
+        return res.status(503).json({ error: "Notifications feature is disabled" });
+      }
+
+      const { id } = req.params;
+      const userId = (req.user as any).claims.sub;
+      await storage.deleteNotification(id, userId);
+      
+      res.json({ success: true, id });
+    } catch (error: any) {
+      console.error("Error deleting notification:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Scheduled Reminders Routes
   // POST /api/reminders - Create scheduled reminder
   app.post("/api/reminders", isAuthenticated, async (req, res) => {
