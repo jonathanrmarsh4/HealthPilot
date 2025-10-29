@@ -1,0 +1,36 @@
+jonathanmarsh@Jonathans-MacBook-Air healthpilot % npm run build
+
+> rest-express@1.0.0 build
+> vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+
+vite v5.4.20 building for production...
+transforming (3) src/main.tsxBrowserslist: browsers data (caniuse-lite) is 12 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+transforming (4) src/App.tsx
+A PostCSS plugin did not pass the `from` option to `postcss.parse`. This may cause imported assets to be incorrectly transformed. If you've recently added a PostCSS plugin that raised this warning, please contact the package author to fix the issue.
+✓ 4031 modules transformed.
+../dist/public/index.html                                              2.91 kB │ gzip:   1.12 kB
+../dist/public/assets/HealthPilot_Logo_1759904141260-vsk9EWYG.png  1,430.42 kB
+../dist/public/assets/IMG_0088_1760794249248-rzWpvWYO.png          2,071.89 kB
+../dist/public/assets/index-9TsykcpE.css                             112.29 kB │ gzip:  18.00 kB
+../dist/public/assets/web-El-I-GhH.js                                  0.12 kB │ gzip:   0.13 kB
+../dist/public/assets/web-D21XXtND.js                                  0.36 kB │ gzip:   0.25 kB
+../dist/public/assets/web-CnxwUPv-.js                                  0.38 kB │ gzip:   0.25 kB
+../dist/public/assets/native-MZ-sRJiW.js                               0.75 kB │ gzip:   0.35 kB
+../dist/public/assets/web-CiOHPgM8.js                                  0.76 kB │ gzip:   0.36 kB
+../dist/public/assets/web-uzfiLbiW.js                                  0.80 kB │ gzip:   0.42 kB
+../dist/public/assets/web-DZ9Wnm2S.js                                  0.94 kB │ gzip:   0.47 kB
+../dist/public/assets/web-HoOXaVeB.js                                  1.25 kB │ gzip:   0.59 kB
+../dist/public/assets/base-1Fh42z5y.js                                 2.52 kB │ gzip:   0.93 kB
+../dist/public/assets/index-bRC4P8AR.js                            2,912.81 kB │ gzip: 705.52 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 4.20s
+
+  dist/index.js  1.3mb ⚠️
+
+⚡ Done in 29ms
