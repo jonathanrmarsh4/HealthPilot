@@ -68,3 +68,55 @@ I prefer simple language and clear explanations. I want iterative development wh
 - **Mobile Platform:** Capacitor 7
 - **Payment Processing:** Stripe (iOS native PaymentSheet + web Checkout Sessions)
 - **Push Notifications:** OneSignal (iOS/Android push notifications with deep linking)
+
+## CRITICAL ISSUE - HealthKit Plugin Broken After Stripe Integration (Oct 30, 2024)
+
+**Status:** UNRESOLVED - Taking break, resuming tomorrow
+
+**Problem:**
+Custom HealthPilotHealthKit Capacitor plugin worked perfectly until Stripe iOS SDK (StripePaymentSheet) was added via CocoaPods. After running `pod install` for Stripe, the HealthKit plugin fails with:
+```
+"HealthPilotHealthKit" plugin is not implemented on ios
+Error code: UNIMPLEMENTED
+```
+
+**Root Cause (Identified by Architect):**
+After Stripe's `pod install`, the App target lost the `-ObjC` linker flag that's required for Capacitor's Objective-C category-based plugin registration system. The CAP_PLUGIN macro in `HealthPilotHealthKit.m` generates an Objective-C category to register the plugin, but without `-ObjC`, the linker strips these categories at build time.
+
+**What We Tried (All Failed):**
+1. ✅ Verified `HealthPilotHealthKit.m` and `.swift` are in App target's Compile Sources
+2. ✅ Re-added `.m` file to Build Phases → Compile Sources (was missing after pod install)
+3. ✅ Added `$(inherited) -ObjC` to Other Linker Flags in Build Settings
+4. ✅ Manually registered plugin in AppDelegate.swift:
+   ```swift
+   CAPBridge.registerPlugin("HealthPilotHealthKit", pluginClass: HealthPilotHealthKit.self)
+   ```
+5. ✅ Ran `npx cap sync ios` multiple times
+6. ✅ Clean build (Cmd+Shift+K) and fresh installs
+7. ✅ Deleted app from device and reinstalled
+8. ✅ Closed/reopened Xcode
+9. ✅ Plugin is in `capacitor.config.json` packageClassList
+
+**Files Modified During Troubleshooting:**
+- `ios/App/Podfile` - Added StripePaymentSheet pod
+- `ios/App/App/AppDelegate.swift` - Added manual plugin registration
+- `client/src/services/healthkit.ts` - Improved error logging
+- Xcode Build Settings: Other Linker Flags set to `$(inherited) -ObjC`
+
+**Current State:**
+- Stripe SDK successfully installed and working
+- HealthKit plugin files exist and compile without errors
+- Manual registration code compiles but plugin still not discovered by Capacitor
+- Suggests deeper Xcode project corruption from pod install regenerating workspace
+
+**Remaining Options to Try Tomorrow:**
+1. **Option A (Recommended):** Git rollback to before Stripe changes, then carefully re-add Stripe while preserving HealthKit
+2. **Option B:** Nuclear fix - Delete `ios/App` folder and regenerate with `npx cap add ios`, manually re-add both plugins
+3. **Option C:** Investigate if there's a Podfile configuration that can declare local plugins alongside CocoaPods dependencies
+4. **Option D:** Check `project.pbxproj` for corruption/duplicate entries that might prevent .m compilation
+
+**Important Notes:**
+- HealthKit integration was fully functional before this issue
+- Incremental sync system (7 day initial, 1 day subsequent) was working perfectly
+- This is a build configuration issue, not a code logic issue
+- The manual registration approach SHOULD work but isn't - suggests something is preventing the Swift class from being accessible to CAPBridge
