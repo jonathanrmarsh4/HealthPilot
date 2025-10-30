@@ -94,10 +94,17 @@ export function CheckoutModal({ open, onOpenChange, tier: initialTier, tierName 
         }
       );
 
+      console.log("[CheckoutModal] Payment Intent Response:", {
+        hasClientSecret: !!response.clientSecret,
+        hasPaymentIntentId: !!response.paymentIntentId,
+        clientSecretLength: response.clientSecret?.length,
+      });
+
       setClientSecret(response.clientSecret);
       setPaymentIntentId(response.paymentIntentId);
       setShowPaymentForm(true);
     } catch (error: any) {
+      console.error("[CheckoutModal] Payment Intent Error:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to initialize payment",
@@ -335,24 +342,34 @@ export function CheckoutModal({ open, onOpenChange, tier: initialTier, tierName 
             </div>
 
             {/* Embedded Stripe Payment Form */}
-            {clientSecret && !subscriptionCreationFailed && (
-              <Elements
-                stripe={stripePromise}
-                options={{
-                  clientSecret,
-                  appearance: {
-                    theme: "stripe",
-                  },
-                }}
-              >
-                <StripePaymentForm
-                  onSuccess={handlePaymentSuccess}
-                  onError={handlePaymentError}
-                  amount={pricing.finalPrice}
-                  tier={tier}
-                  billingCycle={billingCycle}
-                />
-              </Elements>
+            {!subscriptionCreationFailed && (
+              <>
+                {!clientSecret && (
+                  <div className="flex flex-col items-center justify-center py-8 space-y-3">
+                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                    <p className="text-sm text-muted-foreground">Loading payment form...</p>
+                  </div>
+                )}
+                {clientSecret && (
+                  <Elements
+                    stripe={stripePromise}
+                    options={{
+                      clientSecret,
+                      appearance: {
+                        theme: "stripe",
+                      },
+                    }}
+                  >
+                    <StripePaymentForm
+                      onSuccess={handlePaymentSuccess}
+                      onError={handlePaymentError}
+                      amount={pricing.finalPrice}
+                      tier={tier}
+                      billingCycle={billingCycle}
+                    />
+                  </Elements>
+                )}
+              </>
             )}
 
             {/* Subscription Creation Failed - Show Retry */}
