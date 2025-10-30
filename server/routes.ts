@@ -1641,8 +1641,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = (req.user as any).claims.sub;
       const { tier, billingCycle, promoCode } = req.body;
+      
+      console.log('💳 Payment Intent Request:', { userId, tier, billingCycle, promoCode, bodyKeys: Object.keys(req.body) });
 
       if (!tier || (tier !== "premium" && tier !== "enterprise")) {
+        console.log('❌ Invalid tier received:', tier, 'Type:', typeof tier);
         return res.status(400).json({ error: "Invalid subscription tier" });
       }
 
