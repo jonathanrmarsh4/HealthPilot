@@ -206,12 +206,16 @@ export class PaymentService {
       },
     };
     
-    const basePrice = pricing[tier][billingCycle];
+    // Safety check: default to premium/monthly if tier/billingCycle is invalid
+    const safeTier = (tier === 'premium' || tier === 'enterprise') ? tier : 'premium';
+    const safeBillingCycle = (billingCycle === 'monthly' || billingCycle === 'annual') ? billingCycle : 'monthly';
+    
+    const basePrice = pricing[safeTier][safeBillingCycle];
     let savingsPercent: number | undefined;
     
     // Calculate annual discount
-    if (billingCycle === 'annual') {
-      const monthlyEquivalent = pricing[tier].monthly * 12;
+    if (safeBillingCycle === 'annual') {
+      const monthlyEquivalent = pricing[safeTier].monthly * 12;
       savingsPercent = Math.round(((monthlyEquivalent - basePrice) / monthlyEquivalent) * 100);
     }
     

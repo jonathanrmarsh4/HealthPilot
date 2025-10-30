@@ -117,6 +117,16 @@ function Router() {
       <Route path="/mobile-diagnostics" component={NativeDiagnostics} />
       <Route path="/mobile-auth-redirect" component={MobileAuthRedirect} />
       <Route path="/logged-out" component={Logout} />
+      <Route path="/checkout/success" component={() => {
+        const [, setLocation] = useLocation();
+        setLocation('/?upgrade=success');
+        return null;
+      }} />
+      <Route path="/checkout/cancel" component={() => {
+        const [, setLocation] = useLocation();
+        setLocation('/?upgrade=cancelled');
+        return null;
+      }} />
       <Route component={NotFound} />
     </Switch>
   );
