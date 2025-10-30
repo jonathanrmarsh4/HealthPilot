@@ -40,6 +40,7 @@ export function CheckoutModal({ open, onOpenChange, tier: initialTier, tierName 
   const [paymentIntentId, setPaymentIntentId] = useState<string | null>(null);
   const [isLoadingIntent, setIsLoadingIntent] = useState(false);
   const [isCreatingSubscription, setIsCreatingSubscription] = useState(false);
+  const [subscriptionCreationFailed, setSubscriptionCreationFailed] = useState(false);
   const { toast } = useToast();
 
   const validatePromoMutation = useMutation({
@@ -118,6 +119,7 @@ export function CheckoutModal({ open, onOpenChange, tier: initialTier, tierName 
     }
 
     setIsCreatingSubscription(true);
+    setSubscriptionCreationFailed(false); // Reset failure state on retry
     
     try {
       // Call backend to create subscription - this is idempotent
@@ -143,11 +145,13 @@ export function CheckoutModal({ open, onOpenChange, tier: initialTier, tierName 
       setShowPaymentForm(false);
       setClientSecret(null);
       setPaymentIntentId(null);
+      setSubscriptionCreationFailed(false);
     } catch (error: any) {
       // Keep modal open so user can retry
+      setSubscriptionCreationFailed(true);
       toast({
         title: "Subscription activation failed",
-        description: `Payment succeeded but subscription setup failed: ${error.message || "Unknown error"}. Please click "Retry Activation" or contact support.`,
+        description: `Payment succeeded but subscription setup failed: ${error.message || "Unknown error"}. Please click "Retry Activation" below or contact support.`,
         variant: "destructive",
       });
     } finally {
@@ -331,7 +335,7 @@ export function CheckoutModal({ open, onOpenChange, tier: initialTier, tierName 
             </div>
 
             {/* Embedded Stripe Payment Form */}
-            {clientSecret && (
+            {clientSecret && !subscriptionCreationFailed && (
               <Elements
                 stripe={stripePromise}
                 options={{
@@ -351,14 +355,45 @@ export function CheckoutModal({ open, onOpenChange, tier: initialTier, tierName 
               </Elements>
             )}
 
+            {/* Subscription Creation Failed - Show Retry */}
+            {subscriptionCreationFailed && (
+              <div className="space-y-3">
+                <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
+                  <p className="text-sm font-medium text-destructive">Payment succeeded but subscription activation failed</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Your payment was processed successfully, but we encountered an error setting up your subscription.
+                    Please try activating again or contact support if the problem persists.
+                  </p>
+                </div>
+                <Button
+                  className="w-full"
+                  size="lg"
+                  onClick={handlePaymentSuccess}
+                  disabled={isCreatingSubscription}
+                  data-testid="button-retry-activation"
+                >
+                  {isCreatingSubscription ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Activating...
+                    </>
+                  ) : (
+                    "Retry Activation"
+                  )}
+                </Button>
+              </div>
+            )}
+
             <Button
               variant="ghost"
               onClick={() => {
                 setShowPaymentForm(false);
                 setClientSecret(null);
+                setSubscriptionCreationFailed(false);
               }}
               className="w-full"
               data-testid="button-back"
+              disabled={isCreatingSubscription}
             >
               Back
             </Button>
