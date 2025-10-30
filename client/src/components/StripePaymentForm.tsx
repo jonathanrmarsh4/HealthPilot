@@ -16,7 +16,7 @@ export function StripePaymentForm({ onSuccess, onError, amount, tier, billingCyc
   const stripe = useStripe();
   const elements = useElements();
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isReady, setIsReady] = useState(false);
+  const [isElementReady, setIsElementReady] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -24,10 +24,12 @@ export function StripePaymentForm({ onSuccess, onError, amount, tier, billingCyc
       hasStripe: !!stripe, 
       hasElements: !!elements 
     });
-    if (stripe && elements) {
-      setIsReady(true);
-    }
   }, [stripe, elements]);
+
+  const handleElementReady = () => {
+    console.log("[StripePaymentForm] PaymentElement is ready");
+    setIsElementReady(true);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,12 +75,18 @@ export function StripePaymentForm({ onSuccess, onError, amount, tier, billingCyc
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <PaymentElement />
+      <PaymentElement onReady={handleElementReady} />
+      {!isElementReady && (
+        <div className="flex items-center justify-center py-4">
+          <Loader2 className="w-6 h-6 animate-spin text-primary" />
+          <span className="ml-2 text-sm text-muted-foreground">Loading payment form...</span>
+        </div>
+      )}
       <Button
         type="submit"
         className="w-full"
         size="lg"
-        disabled={!stripe || !elements || isProcessing}
+        disabled={!stripe || !elements || !isElementReady || isProcessing}
         data-testid="button-submit-payment"
       >
         {isProcessing ? (
