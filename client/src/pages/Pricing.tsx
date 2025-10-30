@@ -217,7 +217,7 @@ export default function Pricing() {
       {checkoutModal.tier === "premium" && (
         <CheckoutModal
           open={checkoutModal.open}
-          onOpenChange={(open) => setCheckoutModal({ ...checkoutModal, open })}
+          onOpenChange={(open: boolean) => setCheckoutModal({ ...checkoutModal, open })}
           tier="premium"
           tierName="Premium"
         />

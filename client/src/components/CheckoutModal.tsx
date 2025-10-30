@@ -11,13 +11,22 @@ import { useToast } from "@/hooks/use-toast";
 import { paymentService, type SubscriptionTier, type BillingCycle } from "@/services/payment";
 
 interface CheckoutModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  defaultTier?: SubscriptionTier;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  tier: SubscriptionTier;
+  tierName: string;
 }
 
-export function CheckoutModal({ isOpen, onClose, defaultTier = "premium" }: CheckoutModalProps) {
-  const [tier, setTier] = useState<SubscriptionTier>(defaultTier);
+interface PromoCodeResponse {
+  valid: boolean;
+  code?: string;
+  discountPercent?: number;
+  description?: string;
+  error?: string;
+}
+
+export function CheckoutModal({ open, onOpenChange, tier: initialTier, tierName }: CheckoutModalProps) {
+  const [tier, setTier] = useState<SubscriptionTier>(initialTier);
   const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
   const [promoCode, setPromoCode] = useState("");
   const [validatedPromo, setValidatedPromo] = useState<any>(null);
@@ -26,7 +35,7 @@ export function CheckoutModal({ isOpen, onClose, defaultTier = "premium" }: Chec
 
   const validatePromoMutation = useMutation({
     mutationFn: async (code: string) => {
-      return await apiRequest<any>("/api/checkout/validate-promo", {
+      return await apiRequest<PromoCodeResponse>("/api/checkout/validate-promo", {
         method: "POST",
         body: JSON.stringify({ code, tier }),
       });
@@ -74,7 +83,7 @@ export function CheckoutModal({ isOpen, onClose, defaultTier = "premium" }: Chec
             description: "Your premium features are now unlocked.",
           });
           await queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-          onClose();
+          onOpenChange(false);
         }
         // If web checkout, redirect happens automatically in paymentService
       } else {
@@ -101,11 +110,10 @@ export function CheckoutModal({ isOpen, onClose, defaultTier = "premium" }: Chec
     validatedPromo?.discountPercent
   );
 
-  const tierName = tier === "premium" ? "Premium" : "Enterprise";
   const paymentPlatform = paymentService.getPaymentPlatform();
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md" data-testid="modal-checkout">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
