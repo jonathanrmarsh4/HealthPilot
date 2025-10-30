@@ -11742,66 +11742,16 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
       const userTimezone = user?.timezone || 'UTC';
 
       let insertedCount = 0;
-      const BATCH_SIZE = 500; // Process in chunks of 500 to avoid timeouts
 
-      // Helper function to process data in batches
-      // Processes items in parallel within each batch for faster sync
-      const processBatch = async <T>(
-        items: T[],
-        processor: (item: T) => Promise<boolean>,
-        label: string
-      ) => {
-        if (!items || items.length === 0) return 0;
-        
-        console.log(`${label} Processing ${items.length} samples in batches of ${BATCH_SIZE}...`);
-        
-        let successCount = 0;
-        
-        for (let i = 0; i < items.length; i += BATCH_SIZE) {
-          const batch = items.slice(i, i + BATCH_SIZE);
-          const batchNum = Math.floor(i / BATCH_SIZE) + 1;
-          const totalBatches = Math.ceil(items.length / BATCH_SIZE);
-          
-          console.log(`  Batch ${batchNum}/${totalBatches}: Processing ${batch.length} items in parallel...`);
-          
-          // Update job progress
-          const currentJob = syncJobs.get(jobId);
-          if (currentJob) {
-            currentJob.progress.currentBatch = `${label} ${batchNum}/${totalBatches}`;
-            currentJob.updatedAt = new Date();
-          }
-          
-          // Process batch items in parallel for speed
-          const results = await Promise.allSettled(
-            batch.map(item => processor(item))
-          );
-          
-          // Count successes
-          for (const result of results) {
-            if (result.status === 'fulfilled' && result.value) {
-              successCount++;
-            } else if (result.status === 'rejected') {
-              console.error(`  ⚠️ Error processing item:`, result.reason);
-            }
-          }
-          
-          // Update processed count
-          if (currentJob) {
-            currentJob.progress.processedSamples += batch.length;
-            currentJob.updatedAt = new Date();
-          }
-          
-          console.log(`  ✓ Batch ${batchNum}/${totalBatches} complete (${successCount} successful)`);
-        }
-        
-        return successCount;
-      };
+      // Collect all biomarkers for bulk insert
+      console.log('📦 Collecting biomarkers for bulk insert...');
+      const allBiomarkers: InsertBiomarker[] = [];
 
-      // Process steps data in batches
-      insertedCount += await processBatch(
-        steps || [],
-        async (sample) => {
-          await storage.upsertBiomarker({
+      // Collect steps
+      if (steps && steps.length > 0) {
+        console.log(`👟 Collecting ${steps.length} steps samples...`);
+        for (const sample of steps) {
+          allBiomarkers.push({
             userId,
             type: "steps",
             value: sample.value,
@@ -11809,16 +11759,14 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
             source: "ios-healthkit",
             recordedAt: new Date(sample.startDate),
           });
-          return true;
-        },
-        "👟"
-      );
+        }
+      }
 
-      // Process HRV data in batches
-      insertedCount += await processBatch(
-        hrv || [],
-        async (sample) => {
-          await storage.upsertBiomarker({
+      // Collect HRV
+      if (hrv && hrv.length > 0) {
+        console.log(`💓 Collecting ${hrv.length} HRV samples...`);
+        for (const sample of hrv) {
+          allBiomarkers.push({
             userId,
             type: "hrv",
             value: sample.value,
@@ -11826,16 +11774,14 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
             source: "ios-healthkit",
             recordedAt: new Date(sample.startDate),
           });
-          return true;
-        },
-        "💓"
-      );
+        }
+      }
 
-      // Process resting heart rate data in batches
-      insertedCount += await processBatch(
-        restingHeartRate || [],
-        async (sample) => {
-          await storage.upsertBiomarker({
+      // Collect resting heart rate
+      if (restingHeartRate && restingHeartRate.length > 0) {
+        console.log(`❤️  Collecting ${restingHeartRate.length} resting HR samples...`);
+        for (const sample of restingHeartRate) {
+          allBiomarkers.push({
             userId,
             type: "heart-rate",
             value: sample.value,
@@ -11843,16 +11789,13 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
             source: "ios-healthkit",
             recordedAt: new Date(sample.startDate),
           });
-          return true;
-        },
-        "❤️ "
-      );
+        }
+      }
 
-      // Process weight data in batches
-      insertedCount += await processBatch(
-        weight || [],
-        async (sample) => {
-          // Normalize weight to lbs for consistent storage (matching Health Auto Export behavior)
+      // Collect weight
+      if (weight && weight.length > 0) {
+        console.log(`⚖️  Collecting ${weight.length} weight samples...`);
+        for (const sample of weight) {
           let weightValue = sample.value;
           const sampleUnit = (sample.unit || "kg").toLowerCase();
           
@@ -11860,24 +11803,22 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
             weightValue = weightValue * 2.20462; // Convert kg to lbs
           }
           
-          await storage.upsertBiomarker({
+          allBiomarkers.push({
             userId,
             type: "weight",
             value: weightValue,
-            unit: "lbs", // Always store in lbs
+            unit: "lbs",
             source: "ios-healthkit",
             recordedAt: new Date(sample.startDate),
           });
-          return true;
-        },
-        "⚖️ "
-      );
+        }
+      }
 
-      // Process body fat percentage data in batches
-      insertedCount += await processBatch(
-        bodyFat || [],
-        async (sample) => {
-          await storage.upsertBiomarker({
+      // Collect body fat
+      if (bodyFat && bodyFat.length > 0) {
+        console.log(`📊 Collecting ${bodyFat.length} body fat samples...`);
+        for (const sample of bodyFat) {
+          allBiomarkers.push({
             userId,
             type: "body-fat-percentage",
             value: sample.value,
@@ -11885,16 +11826,13 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
             source: "ios-healthkit",
             recordedAt: new Date(sample.startDate),
           });
-          return true;
-        },
-        "📊"
-      );
+        }
+      }
 
-      // Process lean body mass data in batches
-      insertedCount += await processBatch(
-        leanBodyMass || [],
-        async (sample) => {
-          // Normalize lean mass to lbs for consistent storage (matching Health Auto Export behavior)
+      // Collect lean body mass
+      if (leanBodyMass && leanBodyMass.length > 0) {
+        console.log(`💪 Collecting ${leanBodyMass.length} lean mass samples...`);
+        for (const sample of leanBodyMass) {
           let leanMassValue = sample.value;
           const sampleUnit = (sample.unit || "kg").toLowerCase();
           
@@ -11902,24 +11840,22 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
             leanMassValue = leanMassValue * 2.20462; // Convert kg to lbs
           }
           
-          await storage.upsertBiomarker({
+          allBiomarkers.push({
             userId,
             type: "lean-body-mass",
             value: leanMassValue,
-            unit: "lbs", // Always store in lbs
+            unit: "lbs",
             source: "ios-healthkit",
             recordedAt: new Date(sample.startDate),
           });
-          return true;
-        },
-        "💪"
-      );
+        }
+      }
 
-      // Process active calories data in batches
-      insertedCount += await processBatch(
-        activeCalories || [],
-        async (sample) => {
-          await storage.upsertBiomarker({
+      // Collect active calories
+      if (activeCalories && activeCalories.length > 0) {
+        console.log(`🔥 Collecting ${activeCalories.length} calorie samples...`);
+        for (const sample of activeCalories) {
+          allBiomarkers.push({
             userId,
             type: "calories",
             value: sample.value,
@@ -11927,10 +11863,24 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
             source: "ios-healthkit",
             recordedAt: new Date(sample.startDate),
           });
-          return true;
-        },
-        "🔥"
-      );
+        }
+      }
+
+      // Bulk insert all biomarkers at once
+      if (allBiomarkers.length > 0) {
+        console.log(`💾 Bulk inserting ${allBiomarkers.length} biomarkers...`);
+        const biomarkerCount = await storage.bulkUpsertBiomarkers(allBiomarkers);
+        insertedCount += biomarkerCount;
+        console.log(`✅ Inserted ${biomarkerCount} biomarkers`);
+        
+        // Update job progress
+        const currentJob = syncJobs.get(jobId);
+        if (currentJob) {
+          currentJob.progress.processedSamples += allBiomarkers.length;
+          currentJob.progress.currentBatch = `Biomarkers (${biomarkerCount} inserted)`;
+          currentJob.updatedAt = new Date();
+        }
+      }
 
       // Process sleep data using v2.0 algorithm
       if (sleep && sleep.length > 0) {
@@ -12078,38 +12028,53 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
         }
       }
 
-      // Process workout data in batches
-      insertedCount += await processBatch(
-        workouts || [],
-        async (workout) => {
-          const startTime = new Date(workout.startDate);
-          const endTime = new Date(workout.endDate);
-          const duration = Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60));
+      // Process workout data
+      if (workouts && workouts.length > 0) {
+        console.log(`🏃 Processing ${workouts.length} workouts...`);
+        let workoutCount = 0;
+        
+        for (const workout of workouts) {
+          try {
+            const startTime = new Date(workout.startDate);
+            const endTime = new Date(workout.endDate);
+            const duration = Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60));
 
-          // Map workout type from HealthKit to our schema
-          const workoutType = workout.workoutActivityType?.toLowerCase() || "other";
-          const distance = workout.totalDistance ? Math.round(workout.totalDistance) : null; // meters
-          const calories = workout.totalEnergyBurned ? Math.round(workout.totalEnergyBurned) : null;
+            const workoutType = workout.workoutActivityType?.toLowerCase() || "other";
+            const distance = workout.totalDistance ? Math.round(workout.totalDistance) : null;
+            const calories = workout.totalEnergyBurned ? Math.round(workout.totalEnergyBurned) : null;
 
-          await storage.createWorkoutSession({
-            userId,
-            workoutType,
-            sessionType: "workout",
-            startTime,
-            endTime,
-            duration,
-            distance,
-            calories,
-            avgHeartRate: workout.averageHeartRate ? Math.round(workout.averageHeartRate) : null,
-            maxHeartRate: workout.maxHeartRate ? Math.round(workout.maxHeartRate) : null,
-            sourceType: "ios-healthkit",
-            sourceId: workout.uuid || null,
-            notes: distance ? `Distance: ${distance}m` : null,
-          });
-          return true;
-        },
-        "🏃"
-      );
+            await storage.createWorkoutSession({
+              userId,
+              workoutType,
+              sessionType: "workout",
+              startTime,
+              endTime,
+              duration,
+              distance,
+              calories,
+              avgHeartRate: workout.averageHeartRate ? Math.round(workout.averageHeartRate) : null,
+              maxHeartRate: workout.maxHeartRate ? Math.round(workout.maxHeartRate) : null,
+              sourceType: "ios-healthkit",
+              sourceId: workout.uuid || null,
+              notes: distance ? `Distance: ${distance}m` : null,
+            });
+            workoutCount++;
+          } catch (error) {
+            console.error('Error processing workout:', error);
+          }
+        }
+        
+        insertedCount += workoutCount;
+        console.log(`✅ Inserted ${workoutCount} workouts`);
+        
+        // Update job progress
+        const currentJob = syncJobs.get(jobId);
+        if (currentJob) {
+          currentJob.progress.processedSamples += workouts.length;
+          currentJob.progress.currentBatch = `Workouts (${workoutCount} inserted)`;
+          currentJob.updatedAt = new Date();
+        }
+      }
 
       console.log(`✅ Capacitor sync complete: ${insertedCount} items inserted/updated`);
         

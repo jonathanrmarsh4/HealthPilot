@@ -276,6 +276,7 @@ export interface IStorage {
   
   createBiomarker(biomarker: InsertBiomarker): Promise<Biomarker>;
   upsertBiomarker(biomarker: InsertBiomarker): Promise<Biomarker>;
+  bulkUpsertBiomarkers(biomarkers: InsertBiomarker[]): Promise<number>;
   updateBiomarker(id: string, userId: string, data: Partial<InsertBiomarker>): Promise<Biomarker | undefined>;
   getBiomarkers(userId: string, type?: string): Promise<Biomarker[]>;
   getBiomarkersByTimeRange(userId: string, type: string, startDate: Date, endDate: Date): Promise<Biomarker[]>;
@@ -1207,6 +1208,53 @@ export class DbStorage implements IStorage {
     // Insert new record
     const [inserted] = await db.insert(biomarkers).values(biomarker).returning();
     return inserted;
+  }
+
+  async bulkUpsertBiomarkers(biomarkersToInsert: InsertBiomarker[]): Promise<number> {
+    if (biomarkersToInsert.length === 0) return 0;
+
+    // Deduplicate input array by (userId, type, recordedAt, source) - keep last occurrence
+    const deduped = new Map<string, InsertBiomarker>();
+    for (const biomarker of biomarkersToInsert) {
+      const key = `${biomarker.userId}_${biomarker.type}_${biomarker.recordedAt.getTime()}_${biomarker.source}`;
+      deduped.set(key, biomarker);
+    }
+    const uniqueBiomarkers = Array.from(deduped.values());
+
+    // Use bulk insert with ON CONFLICT for maximum performance
+    // The unique index on (userId, type, recordedAt, source) allows us to handle duplicates efficiently
+    try {
+      const result = await db
+        .insert(biomarkers)
+        .values(uniqueBiomarkers)
+        .onConflictDoUpdate({
+          target: [
+            biomarkers.userId,
+            biomarkers.type,
+            biomarkers.recordedAt,
+            biomarkers.source,
+          ],
+          set: {
+            value: sql`EXCLUDED.value`,
+            unit: sql`EXCLUDED.unit`,
+          },
+        })
+        .returning();
+      return result.length;
+    } catch (error) {
+      // If there's an error (e.g., unique index not yet created), fall back to individual upserts
+      console.error('[bulkUpsertBiomarkers] Bulk upsert failed, falling back to individual upserts:', error);
+      let count = 0;
+      for (const biomarker of uniqueBiomarkers) {
+        try {
+          await this.upsertBiomarker(biomarker);
+          count++;
+        } catch (err) {
+          console.error('[bulkUpsertBiomarkers] Failed to upsert biomarker:', err);
+        }
+      }
+      return count;
+    }
   }
 
   async updateBiomarker(id: string, userId: string, data: Partial<InsertBiomarker>): Promise<Biomarker | undefined> {
