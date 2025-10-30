@@ -13,7 +13,15 @@ import { Elements } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
 import { StripePaymentForm } from "./StripePaymentForm";
 
+console.log("[CheckoutModal] Stripe Key:", import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY?.substring(0, 20) + "...");
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || "");
+
+// Log when Stripe loads
+stripePromise.then((stripe) => {
+  console.log("[CheckoutModal] Stripe loaded:", !!stripe);
+}).catch((err) => {
+  console.error("[CheckoutModal] Stripe load error:", err);
+});
 
 interface CheckoutModalProps {
   open: boolean;

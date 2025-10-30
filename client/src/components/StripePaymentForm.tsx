@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useStripe, useElements, PaymentElement } from "@stripe/react-stripe-js";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
@@ -16,7 +16,18 @@ export function StripePaymentForm({ onSuccess, onError, amount, tier, billingCyc
   const stripe = useStripe();
   const elements = useElements();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isReady, setIsReady] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    console.log("[StripePaymentForm] Stripe initialized:", { 
+      hasStripe: !!stripe, 
+      hasElements: !!elements 
+    });
+    if (stripe && elements) {
+      setIsReady(true);
+    }
+  }, [stripe, elements]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
