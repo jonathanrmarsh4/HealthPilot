@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { Smartphone, Download, Settings, Zap, CheckCircle2, Copy, ExternalLink, Key, User, Heart, Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -17,17 +18,46 @@ interface WebhookCredentials {
   webhookUrl: string;
 }
 
+interface SyncJobStatus {
+  jobId: string;
+  status: 'processing' | 'completed' | 'failed';
+  progress: {
+    totalSamples: number;
+    processedSamples: number;
+    currentBatch?: string;
+  };
+  result?: {
+    insertedCount: number;
+    message: string;
+  };
+  error?: string;
+}
+
 export default function AppleHealthSetup() {
   const { toast } = useToast();
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [copiedUserId, setCopiedUserId] = useState(false);
   const [copiedSecret, setCopiedSecret] = useState(false);
   const [isHealthKitSyncing, setIsHealthKitSyncing] = useState(false);
+  const [currentJobId, setCurrentJobId] = useState<string | null>(null);
   const [healthKitStatus, setHealthKitStatus] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle');
   const [currentPlatform, setCurrentPlatform] = useState<string>('');
   
   const { data: credentials, isLoading } = useQuery<WebhookCredentials>({
     queryKey: ["/api/user/webhook-credentials"],
+  });
+
+  // Poll for job status when we have a jobId
+  const { data: jobStatus } = useQuery<SyncJobStatus>({
+    queryKey: ['/api/apple-health/sync/status', currentJobId],
+    enabled: !!currentJobId && isHealthKitSyncing,
+    refetchInterval: (data) => {
+      // Stop polling when job is completed or failed
+      if (data?.status === 'completed' || data?.status === 'failed') {
+        return false;
+      }
+      return 1000; // Poll every second while processing
+    },
   });
 
   useEffect(() => {
@@ -38,9 +68,57 @@ export default function AppleHealthSetup() {
     console.log('[AppleHealthSetup] Is iOS?', platform === 'ios');
   }, []);
 
+  // Handle job status changes
+  useEffect(() => {
+    if (!jobStatus) return;
+
+    if (jobStatus.status === 'completed') {
+      setIsHealthKitSyncing(false);
+      setCurrentJobId(null);
+      setHealthKitStatus('success');
+
+      toast({
+        title: 'Sync Complete',
+        description: jobStatus.result?.message || 'Your health data has been synced successfully',
+      });
+
+      // Mark HealthKit setup as complete and invalidate queries
+      (async () => {
+        await apiRequest('POST', '/api/onboarding/complete-healthkit');
+        
+        // NOW invalidate queries - data is in the database
+        queryClient.invalidateQueries({ queryKey: ['/api/onboarding/status'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/biomarkers'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/sleep-sessions'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
+      })();
+
+      // Reset status after 3 seconds
+      setTimeout(() => {
+        setHealthKitStatus('idle');
+      }, 3000);
+    } else if (jobStatus.status === 'failed') {
+      setIsHealthKitSyncing(false);
+      setCurrentJobId(null);
+      setHealthKitStatus('error');
+
+      toast({
+        title: 'Sync Failed',
+        description: jobStatus.error || 'Failed to sync health data',
+        variant: 'destructive',
+      });
+
+      // Reset status after 3 seconds
+      setTimeout(() => {
+        setHealthKitStatus('idle');
+      }, 3000);
+    }
+  }, [jobStatus, toast]);
+
   const handleSetupHealthKit = async () => {
     setIsHealthKitSyncing(true);
     setHealthKitStatus('syncing');
+    setCurrentJobId(null);
 
     try {
       // Check if HealthKit is available
@@ -62,31 +140,27 @@ export default function AppleHealthSetup() {
       const healthData = await healthKitService.getAllHealthData(1);
       console.log('[AppleHealthSetup] Data fetched, uploading...');
       
-      // Send to backend
-      await apiRequest('POST', '/api/apple-health/sync', healthData);
+      // Send to backend - will get jobId back
+      const response = await apiRequest('POST', '/api/apple-health/sync', healthData);
+      const result = await response.json();
       
-      setHealthKitStatus('success');
+      console.log('[AppleHealthSetup] Upload accepted:', result);
       
-      toast({
-        title: 'Sync Complete',
-        description: 'Your health data has been synced successfully',
-      });
-
-      // Mark HealthKit setup as complete
-      await apiRequest('POST', '/api/onboarding/complete-healthkit');
+      // Start polling for status
+      if (result.jobId) {
+        setCurrentJobId(result.jobId);
+        toast({
+          title: 'Processing',
+          description: `Syncing ${result.totalSamples} health data samples...`,
+        });
+      } else {
+        throw new Error('No job ID received from server');
+      }
       
-      // Invalidate queries to refresh data
-      queryClient.invalidateQueries({ queryKey: ['/api/onboarding/status'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/biomarkers'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
-
-      // Reset status after 3 seconds
-      setTimeout(() => {
-        setHealthKitStatus('idle');
-      }, 3000);
     } catch (error: any) {
       console.error('HealthKit sync failed:', error);
       
+      setIsHealthKitSyncing(false);
       setHealthKitStatus('error');
 
       toast({
@@ -99,8 +173,6 @@ export default function AppleHealthSetup() {
       setTimeout(() => {
         setHealthKitStatus('idle');
       }, 3000);
-    } finally {
-      setIsHealthKitSyncing(false);
     }
   };
 
@@ -223,6 +295,24 @@ export default function AppleHealthSetup() {
                 </>
               )}
             </Button>
+
+            {/* Show progress while syncing */}
+            {isHealthKitSyncing && jobStatus && (
+              <div className="space-y-2" data-testid="sync-progress">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">
+                    {jobStatus.progress.currentBatch || 'Processing...'}
+                  </span>
+                  <span className="font-medium">
+                    {jobStatus.progress.processedSamples} / {jobStatus.progress.totalSamples}
+                  </span>
+                </div>
+                <Progress 
+                  value={(jobStatus.progress.processedSamples / jobStatus.progress.totalSamples) * 100} 
+                  className="h-2"
+                />
+              </div>
+            )}
 
             <p className="text-xs text-muted-foreground text-center">
               You'll be asked to grant permission to read your health data from the Health app
