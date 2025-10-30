@@ -1715,6 +1715,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         amount,
         currency: "usd",
         customer: stripeCustomerId,
+        automatic_payment_methods: {
+          enabled: true,
+        },
         setup_future_usage: "off_session", // For subscription
         metadata: {
           userId,
