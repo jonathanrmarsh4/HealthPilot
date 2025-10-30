@@ -1639,6 +1639,104 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Web Embedded Payment Intent creation (for embedded Stripe Elements)
+  app.post("/api/stripe/create-payment-intent", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = (req.user as any).claims.sub;
+      const { tier, billingCycle, promoCode } = req.body;
+      
+      console.log("💳 Creating Payment Intent:", { tier, billingCycle, promoCode, userId });
+
+      if (!tier || (tier !== "premium" && tier !== "enterprise")) {
+        return res.status(400).json({ error: "Invalid subscription tier" });
+      }
+
+      if (!billingCycle || (billingCycle !== "monthly" && billingCycle !== "annual")) {
+        return res.status(400).json({ error: "Invalid billing cycle" });
+      }
+
+      const Stripe = (await import("stripe")).default;
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+        apiVersion: "2025-09-30.clover",
+      });
+
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Get or create Stripe customer
+      let stripeCustomerId = user.stripeCustomerId;
+      if (!stripeCustomerId) {
+        const customer = await stripe.customers.create({
+          email: user.email,
+          metadata: {
+            userId,
+          },
+        });
+        stripeCustomerId = customer.id;
+        await storage.updateUser(userId, { stripeCustomerId: customer.id });
+      }
+
+      // Pricing structure
+      const pricing = {
+        premium: {
+          monthly: 1999,
+          annual: 19188,
+        },
+        enterprise: {
+          monthly: 9999,
+          annual: 95988,
+        },
+      };
+
+      let amount = pricing[tier as "premium" | "enterprise"][billingCycle as "monthly" | "annual"];
+      
+      // Validate and apply promo code discount
+      let appliedDiscount = 0;
+      if (promoCode) {
+        const dbPromoCode = await storage.getPromoCode(promoCode.toUpperCase());
+        
+        if (dbPromoCode && dbPromoCode.isActive) {
+          const now = new Date();
+          const isExpired = dbPromoCode.expiresAt && new Date(dbPromoCode.expiresAt) < now;
+          const isOverLimit = dbPromoCode.maxUses && dbPromoCode.usedCount >= dbPromoCode.maxUses;
+          const isTierMismatch = dbPromoCode.tierRestriction && dbPromoCode.tierRestriction !== tier;
+          
+          if (!isExpired && !isOverLimit && !isTierMismatch) {
+            appliedDiscount = Math.round((amount * dbPromoCode.discountPercent) / 100);
+            amount = amount - appliedDiscount;
+          }
+        }
+      }
+
+      // Create Payment Intent for subscription setup
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount,
+        currency: "usd",
+        customer: stripeCustomerId,
+        setup_future_usage: "off_session", // For subscription
+        metadata: {
+          userId,
+          tier,
+          billingCycle,
+          promoCode: promoCode || "",
+          appliedDiscount: appliedDiscount.toString(),
+        },
+        description: `HealthPilot ${tier} subscription - ${billingCycle}`,
+      });
+
+      res.json({
+        clientSecret: paymentIntent.client_secret,
+        amount,
+        discount: appliedDiscount,
+      });
+    } catch (error: any) {
+      console.error("Error creating payment intent:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // iOS Native Payment Intent creation (for Apple Pay via Stripe iOS SDK)
   app.post("/api/payments/create-intent", isAuthenticated, async (req, res) => {
     try {
