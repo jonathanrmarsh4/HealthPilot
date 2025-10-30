@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Smartphone, Download, Settings, Zap, CheckCircle2, Copy, ExternalLink, Key, User, Heart, Loader2 } from "lucide-react";
+import { Smartphone, Download, Settings, Zap, CheckCircle2, Copy, ExternalLink, Key, User, Heart, Loader2, Trash2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { healthKitService } from "@/services/healthkit";
 import { getPlatform } from "@/mobile/MobileBootstrap";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { Preferences } from "@capacitor/preferences";
 
 interface WebhookCredentials {
   userId: string;
@@ -176,6 +177,28 @@ export default function AppleHealthSetup() {
     }
   };
 
+  const handleClearSyncHistory = async () => {
+    try {
+      // Clear the sync timestamp from Preferences
+      await Preferences.remove({ key: 'healthkit_last_sync' });
+      
+      console.log('[AppleHealthSetup] Cleared HealthKit sync history');
+      
+      toast({
+        title: 'Sync History Cleared',
+        description: 'Your next sync will fetch the full 7 days of data',
+      });
+    } catch (error: any) {
+      console.error('[AppleHealthSetup] Failed to clear sync history:', error);
+      
+      toast({
+        title: 'Error',
+        description: 'Failed to clear sync history. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const copyToClipboard = (text: string, type: 'url' | 'userId' | 'secret') => {
     navigator.clipboard.writeText(text);
     
@@ -296,6 +319,17 @@ export default function AppleHealthSetup() {
               )}
             </Button>
 
+            <Button
+              onClick={handleClearSyncHistory}
+              variant="outline"
+              size="default"
+              className="w-full"
+              data-testid="button-clear-sync-history"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Clear Sync History
+            </Button>
+
             {/* Show progress while syncing */}
             {isHealthKitSyncing && jobStatus && (
               <div className="space-y-2" data-testid="sync-progress">
@@ -316,6 +350,9 @@ export default function AppleHealthSetup() {
 
             <p className="text-xs text-muted-foreground text-center">
               You'll be asked to grant permission to read your health data from the Health app
+            </p>
+            <p className="text-xs text-muted-foreground text-center">
+              Clear sync history to force a full 7-day sync on your next attempt
             </p>
           </CardContent>
         </Card>
