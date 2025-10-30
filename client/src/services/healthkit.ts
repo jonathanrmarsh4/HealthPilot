@@ -79,7 +79,9 @@ export class HealthKitService {
       console.log('[HealthKit] Availability check result:', this.isAvailable);
       return this.isAvailable;
     } catch (error: any) {
-      console.warn('[HealthKit] Plugin check failed:', error.message);
+      console.warn('[HealthKit] Plugin check failed:', error.message || error);
+      console.warn('[HealthKit] Full error object:', JSON.stringify(error));
+      console.warn('[HealthKit] Error stack:', error?.stack);
       this.isAvailable = false;
       return false;
     }
