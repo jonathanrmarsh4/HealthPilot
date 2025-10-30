@@ -116,7 +116,8 @@ export function parseRawSegments(rawSegments: RawSleepSegment[]): ProcessedSegme
     const sleepType = seg.value?.toLowerCase() || '';
     let stage: 'awake' | 'light' | 'deep' | 'rem';
     
-    if (sleepType.includes('awake')) {
+    // Treat "in_bed" as awake time (pre-sleep/post-sleep, not actual sleep)
+    if (sleepType.includes('awake') || sleepType.includes('in_bed')) {
       stage = 'awake';
     } else if (sleepType.includes('rem') || sleepType === 'asleep_rem') {
       stage = 'rem';
