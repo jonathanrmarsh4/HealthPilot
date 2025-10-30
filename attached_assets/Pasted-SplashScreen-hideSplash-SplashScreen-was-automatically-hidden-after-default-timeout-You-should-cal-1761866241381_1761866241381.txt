@@ -1,0 +1,101 @@
+SplashScreen.hideSplash: SplashScreen was automatically hidden after default timeout. You should call `SplashScreen.hide()` as soon as your web app is loaded (or increase the timeout). Read more at https://capacitorjs.com/docs/apis/splash-screen#hiding-the-splash-screen
+⚡️  [log] - [CheckoutModal] Stripe Key: pk_live_51SFq6hAwBzK...
+⚡️  [log] - [MobileBootstrap] Initializing on ios...
+⚡️  To Native ->  StatusBar setStyle 20969284
+⚡️  TO JS {}
+⚡️  To Native ->  SplashScreen hide 20969285
+⚡️  [log] - [MobileBootstrap] Status bar configured
+⚡️  TO JS undefined
+⚡️  [log] - [MobileBootstrap] Splash screen hidden
+⚡️  To Native ->  ⚡️  [log] - [MobileBootstrap] Keyboard listeners configured
+Keyboard addListener 20969286
+⚡️  To Native ->  Keyboard addListener 20969287
+⚡️  To Native ->  App addListener 20969288
+⚡️  To Native ->  App getInfo 20969289
+⚡️  [log] - [MobileBootstrap] Back button handler configured
+⚡️  TO JS {"id":"HealthPilot","version":"1.0","name":"HealthPilot","build":"1"}
+⚡️  [log] - [MobileBootstrap] App Info: {"name":"HealthPilot","id":"HealthPilot","version":"1.0","build":"1"}
+⚡️  [log] - [MobileBootstrap] ✅ Mobile initialization complete
+⚡️  [log] - [App] Setting up global deep link listener
+⚡️  [log] - [DeepLink] Initializing deep link handler...
+⚡️  To Native ->  App addListener 20969290
+⚡️  To Native ->  App addListener 20969291
+⚡️  [log] - [DeepLink] Deep link handler initialized successfully
+⚡️  To Native ->  SecureStorage internalGetItem 20969292
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  [log] - [CheckoutModal] Stripe loaded: true
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  To Native ->  SecureStorage internalGetItem 20969293
+⚡️  To Native ->  SecureStorage internalGetItem 20969294
+⚡️  To Native ->  SecureStorage internalGetItem 20969295
+⚡️  To Native ->  SecureStorage internalGetItem 20969296
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  To Native ->  SecureStorage internalGetItem 20969297
+⚡️  To Native ->  SecureStorage internalGetItem 20969298
+⚡️  To Native ->  SecureStorage internalGetItem 20969299
+⚡️  To Native ->  SecureStorage internalGetItem 20969300
+⚡️  To Native ->  SecureStorage internalGetItem 20969301
+⚡️  To Native ->  SecureStorage internalGetItem 20969302
+⚡️  To Native ->  SecureStorage internalGetItem 20969303
+⚡️  To Native ->  SecureStorage internalGetItem 20969304
+⚡️  To Native ->  SecureStorage internalGetItem 20969305
+⚡️  To Native ->  SecureStorage internalGetItem 20969306
+⚡️  To Native ->  SecureStorage internalGetItem 20969307
+⚡️  To Native ->  SecureStorage internalGetItem 20969308
+⚡️  To Native ->  SecureStorage internalGetItem 20969309
+⚡️  To Native ->  SecureStorage internalGetItem 20969310
+⚡️  To Native ->  SecureStorage internalGetItem 20969311
+⚡️  To Native ->  SecureStorage internalGetItem 20969312
+⚡️  To Native ->  SecureStorage internalGetItem 20969313
+⚡️  To Native ->  SecureStorage internalGetItem 20969314
+⚡️  To Native ->  SecureStorage internalGetItem 20969315
+⚡️  To Native ->  SecureStorage internalGetItem 20969316
+⚡️  To Native ->  SecureStorage internalGetItem 20969317
+⚡️  To Native ->  SecureStorage internalGetItem 20969318
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  To Native ->  SecureStorage internalGetItem 20969319
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  To Native ->  SecureStorage internalGetItem 20969320
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  To Native ->  SecureStorage internalGetItem 20969321
+⚡️  To Native ->  SecureStorage internalGetItem 20969322
+⚡️  To Native ->  SecureStorage internalGetItem 20969323
+⚡️  To Native ->  SecureStorage internalGetItem 20969324
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  [warn] - [HealthKit] Plugin check failed: "HealthPilotHealthKit" plugin is not implemented on ios
+⚡️  [warn] - [HealthKit] Full error object: {"code":"UNIMPLEMENTED"}
+⚡️  [warn] - [HealthKit] Error stack: CapacitorException@https://0d420476-b7bb-4cc4-9f5a-da35f5e473e4-00-1n1tyyvrb5uvz.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RX45STYP.js:9:10
+createPluginMethod@https://0d420476-b7bb-4cc4-9f5a-da35f5e473e4-00-1n1tyyvrb5uvz.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RX45STYP.js:82:37
+@https://0d420476-b7bb-4cc4-9f5a-da35f5e473e4-00-1n1tyyvrb5uvz.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RX45STYP.js:89:40
+⚡️  [error] - HealthKit sync failed: {}
