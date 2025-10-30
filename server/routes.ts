@@ -1351,7 +1351,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const Stripe = (await import("stripe")).default;
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-        apiVersion: "2025-09-30.clover",
+        apiVersion: "2024-11-20.acacia",
       });
 
       // Update Stripe subscription to cancel at period end
@@ -1388,7 +1388,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const Stripe = (await import("stripe")).default;
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-        apiVersion: "2025-09-30.clover",
+        apiVersion: "2024-11-20.acacia",
       });
 
       // Update Stripe subscription to NOT cancel
@@ -1421,7 +1421,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const Stripe = (await import("stripe")).default;
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-        apiVersion: "2025-09-30.clover",
+        apiVersion: "2024-11-20.acacia",
       });
 
       const session = await stripe.billingPortal.sessions.create({
@@ -1508,7 +1508,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const Stripe = (await import("stripe")).default;
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-        apiVersion: "2025-09-30.clover",
+        apiVersion: "2024-11-20.acacia",
       });
 
       const user = await storage.getUser(userId);
@@ -1657,7 +1657,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const Stripe = (await import("stripe")).default;
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-        apiVersion: "2025-09-30.clover",
+        apiVersion: "2024-11-20.acacia",
       });
 
       const user = await storage.getUser(userId);
@@ -1761,7 +1761,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const Stripe = (await import("stripe")).default;
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-        apiVersion: "2025-09-30.clover",
+        apiVersion: "2024-11-20.acacia",
       });
 
       // Retrieve the payment intent to get metadata and payment method
@@ -1899,7 +1899,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const Stripe = (await import("stripe")).default;
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-        apiVersion: "2025-09-30.clover",
+        apiVersion: "2024-11-20.acacia",
       });
 
       const user = await storage.getUser(userId);
@@ -1966,7 +1966,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create ephemeral key for customer
       const ephemeralKey = await stripe.ephemeralKeys.create(
         { customer: customerId },
-        { apiVersion: '2025-09-30.clover' }
+        { apiVersion: '2024-11-20.acacia' }
       );
 
       // Create PaymentIntent for iOS
@@ -2013,7 +2013,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const Stripe = (await import("stripe")).default;
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-        apiVersion: "2025-09-30.clover",
+        apiVersion: "2024-11-20.acacia",
       });
 
       // Retrieve and verify payment intent
@@ -2109,7 +2109,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const Stripe = (await import("stripe")).default;
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-        apiVersion: "2025-09-30.clover",
+        apiVersion: "2024-11-20.acacia",
       });
 
       const sig = req.headers["stripe-signature"];
