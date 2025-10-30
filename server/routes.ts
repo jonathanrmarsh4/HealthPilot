@@ -9531,10 +9531,10 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
       const userSettings = await storage.getUserSettings(userId);
       const userTimezone = userSettings?.timezone || 'UTC';
       
-      // Calculate start of today in user's timezone using date-fns-tz
+      // Calculate start of today in user's timezone
+      const now = new Date();
       const { startOfDay } = await import('date-fns');
       const { utcToZonedTime, zonedTimeToUtc } = await import('date-fns-tz');
-      const now = new Date();
       const nowInUserTz = utcToZonedTime(now, userTimezone);
       const todayStartInUserTz = startOfDay(nowInUserTz);
       const todayStart = zonedTimeToUtc(todayStartInUserTz, userTimezone);
