@@ -14,12 +14,13 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useTimezone } from "@/contexts/TimezoneContext";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Heart, Loader2, CheckCircle2, Bell } from "lucide-react";
+import { Heart, Loader2, CheckCircle2, Bell, Trash2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { healthKitService } from "@/services/healthkit";
 import { getPlatform } from "@/mobile/MobileBootstrap";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Preferences } from "@capacitor/preferences";
 
 const COMMON_TIMEZONES = [
   { value: "Pacific/Auckland", label: "Auckland (GMT+12)" },
@@ -206,6 +207,28 @@ export default function Settings() {
       }, 3000);
     } finally {
       setIsHealthKitSyncing(false);
+    }
+  };
+
+  const handleClearSyncHistory = async () => {
+    try {
+      // Clear the sync timestamp from Preferences
+      await Preferences.remove({ key: 'healthkit_last_sync' });
+      
+      console.log('[Settings] Cleared HealthKit sync history');
+      
+      toast({
+        title: 'Sync History Cleared',
+        description: 'Your next sync will fetch the full 7 days of data',
+      });
+    } catch (error: any) {
+      console.error('[Settings] Failed to clear sync history:', error);
+      
+      toast({
+        title: 'Error',
+        description: 'Failed to clear sync history. Please try again.',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -521,8 +544,22 @@ export default function Settings() {
                 )}
               </Button>
 
+              <Button
+                onClick={handleClearSyncHistory}
+                variant="outline"
+                size="default"
+                className="w-full"
+                data-testid="button-clear-sync-history"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Clear Sync History
+              </Button>
+
               <p className="text-xs text-muted-foreground text-center">
                 You'll be asked to grant permission to read your health data from the Health app
+              </p>
+              <p className="text-xs text-muted-foreground text-center">
+                Clear sync history to force a full 7-day sync on your next attempt
               </p>
             </div>
           </CardContent>
