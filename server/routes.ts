@@ -1613,8 +1613,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         subscription_data: {
           trial_period_days: 7, // 7-day free trial for all new subscriptions
         },
-        success_url: `${baseUrl}/checkout/success`,
-        cancel_url: `${baseUrl}/checkout/cancel`,
+        success_url: `${baseUrl}/?upgrade=success`,
+        cancel_url: `${baseUrl}/?upgrade=cancelled`,
         metadata: {
           userId,
           tier,
