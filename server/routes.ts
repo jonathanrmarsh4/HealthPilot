@@ -1726,12 +1726,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         description: `HealthPilot ${tier} subscription - ${billingCycle}`,
       });
 
-      res.json({
+      const responseData = {
         clientSecret: paymentIntent.client_secret,
         paymentIntentId: paymentIntent.id,
         amount,
         discount: appliedDiscount,
+      };
+
+      console.log("💳 Payment Intent created successfully:", {
+        hasClientSecret: !!responseData.clientSecret,
+        hasPaymentIntentId: !!responseData.paymentIntentId,
+        clientSecretPrefix: responseData.clientSecret?.substring(0, 10),
+        paymentIntentIdPrefix: responseData.paymentIntentId?.substring(0, 10),
       });
+
+      res.json(responseData);
     } catch (error: any) {
       console.error("Error creating payment intent:", error);
       res.status(500).json({ error: error.message });
