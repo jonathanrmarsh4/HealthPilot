@@ -1972,6 +1972,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Create or retrieve Stripe customer
       let customerId = user.stripeCustomerId;
+      
+      // Verify the customer exists in Stripe (or create new one)
+      if (customerId) {
+        try {
+          await stripe.customers.retrieve(customerId);
+          console.log("✅ Existing Stripe customer verified:", customerId);
+        } catch (error: any) {
+          // Customer doesn't exist (e.g., switched Stripe accounts)
+          console.log("⚠️ Stored customer ID invalid, creating new customer:", error.message);
+          customerId = null;
+        }
+      }
+      
+      // Create new customer if needed
       if (!customerId) {
         const customer = await stripe.customers.create({
           email: user.email,
@@ -1979,6 +1993,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
         customerId = customer.id;
         await storage.updateUser(userId, { stripeCustomerId: customerId });
+        console.log("✅ Created new Stripe customer for iOS:", customerId);
       }
 
       // Create ephemeral key for customer
