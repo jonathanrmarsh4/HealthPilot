@@ -1667,6 +1667,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Get or create Stripe customer
       let stripeCustomerId = user.stripeCustomerId;
+      
+      // Verify the customer exists in Stripe (or create new one)
+      if (stripeCustomerId) {
+        try {
+          await stripe.customers.retrieve(stripeCustomerId);
+          console.log("✅ Existing Stripe customer verified:", stripeCustomerId);
+        } catch (error: any) {
+          // Customer doesn't exist (e.g., switched Stripe accounts)
+          console.log("⚠️ Stored customer ID invalid, creating new customer:", error.message);
+          stripeCustomerId = null;
+        }
+      }
+      
+      // Create new customer if needed
       if (!stripeCustomerId) {
         const customer = await stripe.customers.create({
           email: user.email,
@@ -1676,6 +1690,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
         stripeCustomerId = customer.id;
         await storage.updateUser(userId, { stripeCustomerId: customer.id });
+        console.log("✅ Created new Stripe customer:", stripeCustomerId);
       }
 
       // Pricing structure
