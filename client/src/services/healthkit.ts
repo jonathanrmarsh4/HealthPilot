@@ -311,9 +311,16 @@ export class HealthKitService {
       };
     }
 
+    // Fetch complete days: from start of (today - daysBack) to end of today
+    // This ensures we get ALL of today's data, not just from current time
     const endDate = new Date();
+    endDate.setHours(23, 59, 59, 999); // End of today
+    
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - daysBack);
+    startDate.setHours(0, 0, 0, 0); // Start of that day
+    
+    console.log(`[HealthKit] Fetching ${daysBack} complete days: ${startDate.toISOString()} to ${endDate.toISOString()}`);
 
     try {
       const [
