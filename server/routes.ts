@@ -1728,11 +1728,112 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({
         clientSecret: paymentIntent.client_secret,
+        paymentIntentId: paymentIntent.id,
         amount,
         discount: appliedDiscount,
       });
     } catch (error: any) {
       console.error("Error creating payment intent:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Confirm and create subscription after embedded payment succeeds
+  app.post("/api/stripe/confirm-subscription", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = (req.user as any).claims.sub;
+      const { paymentIntentId } = req.body;
+      
+      console.log("✅ Confirming subscription for Payment Intent:", paymentIntentId);
+
+      if (!paymentIntentId) {
+        return res.status(400).json({ error: "Payment Intent ID is required" });
+      }
+
+      const Stripe = (await import("stripe")).default;
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+        apiVersion: "2025-09-30.clover",
+      });
+
+      // Retrieve the payment intent to get metadata and payment method
+      const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+
+      if (paymentIntent.status !== "succeeded") {
+        return res.status(400).json({ error: "Payment has not succeeded yet" });
+      }
+
+      const { tier, billingCycle, promoCode } = paymentIntent.metadata;
+      const paymentMethodId = paymentIntent.payment_method as string;
+
+      if (!tier || !billingCycle) {
+        return res.status(400).json({ error: "Missing subscription metadata" });
+      }
+
+      // Get Stripe price ID for recurring subscription
+      const stripePriceIds = {
+        premium: {
+          monthly: "price_1QZ1tTClXJAtf6T8E1X3tnAZ",
+          annual: "price_1QZ1ukClXJAtf6T8i0R6CsP2",
+        },
+        enterprise: {
+          monthly: "price_1QZ1vsClXJAtf6T8SRgAVzzt",
+          annual: "price_1QZ1wlClXJAtf6T8bXy1BRCL",
+        },
+      };
+
+      const priceId = stripePriceIds[tier as "premium" | "enterprise"][billingCycle as "monthly" | "annual"];
+
+      // Create recurring Stripe subscription
+      const stripeSubscription = await stripe.subscriptions.create({
+        customer: paymentIntent.customer as string,
+        items: [{ price: priceId }],
+        default_payment_method: paymentMethodId,
+        metadata: {
+          userId,
+          tier,
+          billingCycle,
+        },
+      });
+
+      // Update user tier and status
+      await storage.updateUserAdminFields(userId, {
+        subscriptionTier: tier as "premium" | "enterprise",
+        subscriptionStatus: "active",
+        stripeCustomerId: paymentIntent.customer as string,
+      });
+
+      // Create subscription record in database
+      await storage.createSubscription({
+        userId,
+        stripeSubscriptionId: stripeSubscription.id,
+        stripePriceId: priceId,
+        tier,
+        billingCycle,
+        status: stripeSubscription.status,
+        currentPeriodStart: new Date(stripeSubscription.current_period_start * 1000),
+        currentPeriodEnd: new Date(stripeSubscription.current_period_end * 1000),
+        cancelAtPeriodEnd: stripeSubscription.cancel_at_period_end ? 1 : 0,
+        trialStart: stripeSubscription.trial_start ? new Date(stripeSubscription.trial_start * 1000) : null,
+        trialEnd: stripeSubscription.trial_end ? new Date(stripeSubscription.trial_end * 1000) : null,
+      });
+
+      // Increment promo code usage if applicable
+      if (promoCode) {
+        const dbPromoCode = await storage.getPromoCode(promoCode.toUpperCase());
+        if (dbPromoCode) {
+          await storage.incrementPromoCodeUsage(dbPromoCode.id);
+        }
+      }
+
+      console.log(`✅ Web subscription created: ${stripeSubscription.id} for user ${userId} (${tier})`);
+
+      res.json({
+        success: true,
+        subscriptionId: stripeSubscription.id,
+        tier,
+      });
+    } catch (error: any) {
+      console.error("Error confirming subscription:", error);
       res.status(500).json({ error: error.message });
     }
   });

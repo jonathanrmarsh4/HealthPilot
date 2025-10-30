@@ -37,6 +37,7 @@ export function CheckoutModal({ open, onOpenChange, tier: initialTier, tierName 
   const [validatedPromo, setValidatedPromo] = useState<any>(null);
   const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [paymentIntentId, setPaymentIntentId] = useState<string | null>(null);
   const [isLoadingIntent, setIsLoadingIntent] = useState(false);
   const { toast } = useToast();
 
@@ -76,7 +77,7 @@ export function CheckoutModal({ open, onOpenChange, tier: initialTier, tierName 
   const handleProceedToPayment = async () => {
     setIsLoadingIntent(true);
     try {
-      const response = await apiRequest<{ clientSecret: string; amount: number; discount: number }>(
+      const response = await apiRequest<{ clientSecret: string; paymentIntentId: string; amount: number; discount: number }>(
         "/api/stripe/create-payment-intent",
         {
           method: "POST",
@@ -92,6 +93,7 @@ export function CheckoutModal({ open, onOpenChange, tier: initialTier, tierName 
       );
 
       setClientSecret(response.clientSecret);
+      setPaymentIntentId(response.paymentIntentId);
       setShowPaymentForm(true);
     } catch (error: any) {
       toast({
@@ -105,15 +107,45 @@ export function CheckoutModal({ open, onOpenChange, tier: initialTier, tierName 
   };
 
   const handlePaymentSuccess = async () => {
-    toast({
-      title: "Payment successful!",
-      description: "Your subscription is now active.",
-    });
-    await queryClient.invalidateQueries({ queryKey: ["/api/subscriptions"] });
-    await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-    onOpenChange(false);
-    setShowPaymentForm(false);
-    setClientSecret(null);
+    if (!paymentIntentId) {
+      toast({
+        title: "Error",
+        description: "Payment Intent ID missing",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // Call backend to create subscription
+      await apiRequest("/api/stripe/confirm-subscription", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          paymentIntentId,
+        }),
+      });
+
+      toast({
+        title: "Payment successful!",
+        description: "Your subscription is now active.",
+      });
+      
+      await queryClient.invalidateQueries({ queryKey: ["/api/subscriptions"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      onOpenChange(false);
+      setShowPaymentForm(false);
+      setClientSecret(null);
+      setPaymentIntentId(null);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to activate subscription",
+        variant: "destructive",
+      });
+    }
   };
 
   const handlePaymentError = (error: string) => {
@@ -135,6 +167,7 @@ export function CheckoutModal({ open, onOpenChange, tier: initialTier, tierName 
     if (!open) {
       setShowPaymentForm(false);
       setClientSecret(null);
+      setPaymentIntentId(null);
     }
   }, [open]);
 
