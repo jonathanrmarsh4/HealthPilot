@@ -10,15 +10,11 @@ Pod::Spec.new do |s|
   s.ios.deployment_target = '14.0'
   s.swift_version = '5.0'
   
-  s.source_files = '../App/*.{swift,h,m}'
-  s.public_header_files = '../App/*.h'
+  s.source_files = '../App/HealthPilotHealthKit.{swift,m}'
   
   s.dependency 'Capacitor'
-  s.dependency 'CapacitorCordova'
   
-  s.frameworks = 'HealthKit'
+  s.frameworks = 'Foundation', 'HealthKit'
   
-  s.xcconfig = {
-    'SWIFT_OBJC_BRIDGING_HEADER' => '$(PODS_TARGET_SRCROOT)/../App/HealthPilotHealthKit.m'
-  }
+  s.static_framework = true
 end
