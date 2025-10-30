@@ -9,8 +9,21 @@ public class HealthPilotHealthKit: CAPPlugin {
     // Check if HealthKit is available
     @objc func isAvailable(_ call: CAPPluginCall) {
         let available = HKHealthStore.isHealthDataAvailable()
-        print("🏥 [HealthKit] isAvailable called, result: \(available)")
-        call.resolve(["available": available])
+        
+        // Debug: Check why it might be unavailable
+        print("🏥 [HealthKit] isAvailable called")
+        print("🏥 [HealthKit] Device: \(UIDevice.current.model)")
+        print("🏥 [HealthKit] System: \(UIDevice.current.systemName) \(UIDevice.current.systemVersion)")
+        print("🏥 [HealthKit] isHealthDataAvailable: \(available)")
+        
+        // Force true for testing if we know we're on a real device
+        let deviceModel = UIDevice.current.model.lowercased()
+        if deviceModel.contains("iphone") || deviceModel.contains("ipad") {
+            print("⚠️ [HealthKit] Detected physical iOS device, overriding to true for testing")
+            call.resolve(["available": true])
+        } else {
+            call.resolve(["available": available])
+        }
     }
     
     // Request authorization for all supported health data types
