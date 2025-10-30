@@ -129,6 +129,9 @@ export class PaymentService {
     try {
       const response = await apiRequest<{ sessionUrl: string }>('/api/stripe/create-checkout', {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
           tier: options.tier,
           billingCycle: options.billingCycle,
