@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Capacitor } from '@capacitor/core';
+import { Preferences } from '@capacitor/preferences';
 import { healthKitService } from '@/services/healthkit';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -80,6 +81,11 @@ export function HealthKitSync() {
         description: jobStatus.result?.message || 'Your health data has been synced successfully',
       });
 
+      // Store last successful sync timestamp for incremental sync
+      const now = new Date().toISOString();
+      Preferences.set({ key: 'healthkit_last_sync', value: now });
+      console.log('[HealthKitSync] Stored last sync timestamp:', now);
+
       // NOW invalidate queries - data is in the database
       queryClient.invalidateQueries({ queryKey: ['/api/biomarkers'] });
       queryClient.invalidateQueries({ queryKey: ['/api/sleep-sessions'] });
@@ -122,11 +128,27 @@ export function HealthKitSync() {
         throw new Error('HealthKit permissions not granted');
       }
 
-      // Get health data from HealthKit (7 days to include today's current data + recent history)
-      console.log('[HealthKitSync] Fetching 7 days of health data...');
-      const healthData = await healthKitService.getAllHealthData(7);
+      // Get last sync timestamp to determine if this is first sync
+      const { value: lastSyncTimestamp } = await Preferences.get({ key: 'healthkit_last_sync' });
       
-      console.log('[HealthKitSync] Data fetched, uploading to server...');
+      let daysBack: number;
+      let syncType: string;
+      
+      if (lastSyncTimestamp) {
+        // Subsequent sync: always fetch last 24 hours
+        daysBack = 1;
+        syncType = 'incremental (24h)';
+        console.log('[HealthKitSync] Incremental sync: fetching last 24 hours of data');
+      } else {
+        // First sync: get 7 days of history
+        daysBack = 7;
+        syncType = 'initial (7 days)';
+        console.log('[HealthKitSync] First sync: fetching 7 days of health data...');
+      }
+
+      const healthData = await healthKitService.getAllHealthData(daysBack);
+      
+      console.log(`[HealthKitSync] ${syncType} sync: data fetched, uploading to server...`);
       
       // Send to backend - will get jobId back
       const response = await apiRequest('POST', '/api/apple-health/sync', healthData);
