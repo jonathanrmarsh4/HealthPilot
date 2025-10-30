@@ -9558,9 +9558,9 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
       const recentWorkouts = await storage.getWorkoutSessions(userId);
       const activeDaysSet = new Set(
         recentWorkouts
-          .filter(w => w.startedAt && new Date(w.startedAt) >= sevenDaysAgo)
+          .filter(w => w.startTime && new Date(w.startTime) >= sevenDaysAgo)
           .map(w => {
-            const date = new Date(w.startedAt!);
+            const date = new Date(w.startTime!);
             return date.toLocaleDateString('en-CA', { timeZone: userTimezone }); // YYYY-MM-DD format
           })
       );
