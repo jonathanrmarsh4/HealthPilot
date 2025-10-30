@@ -7,6 +7,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+        // Manually register HealthPilotHealthKit plugin
+        CAPBridge.registerPlugin("HealthPilotHealthKit", pluginClass: HealthPilotHealthKit.self)
+        
         // Override point for customization after application launch.
         return true
     }
