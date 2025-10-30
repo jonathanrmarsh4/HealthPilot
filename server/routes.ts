@@ -13,7 +13,8 @@ import { runInterpretationPipeline } from "./services/medical-interpreter/pipeli
 import { extractBiomarkersFromLabs } from "./services/medical-interpreter/biomarkerExtractor";
 import { buildUserContext, generateDailySession } from "./services/trainingGenerator";
 import { assessWorkflow, type Input as WorkflowInput, type Biomarker as WorkflowBiomarker } from "./services/workflowAssessor";
-import { parseISO, isValid, subDays, format as formatDate } from "date-fns";
+import { parseISO, isValid, subDays, format as formatDate, startOfDay } from "date-fns";
+import { toZonedTime, fromZonedTime } from "date-fns-tz";
 import { eq, and, gte, or, inArray, isNull, isNotNull, sql } from "drizzle-orm";
 import { isAuthenticated, isAdmin, webhookAuth } from "./replitAuth";
 import type { ConversationMessage, ExtractedContext } from "./goals/conversation-intelligence";
@@ -9533,11 +9534,9 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
       
       // Calculate start of today in user's timezone
       const now = new Date();
-      const { startOfDay } = await import('date-fns');
-      const { utcToZonedTime, zonedTimeToUtc } = await import('date-fns-tz');
-      const nowInUserTz = utcToZonedTime(now, userTimezone);
+      const nowInUserTz = toZonedTime(now, userTimezone);
       const todayStartInUserTz = startOfDay(nowInUserTz);
-      const todayStart = zonedTimeToUtc(todayStartInUserTz, userTimezone);
+      const todayStart = fromZonedTime(todayStartInUserTz, userTimezone);
       
       // Sum all steps from today (HealthKit sends multiple samples throughout the day)
       const todaySteps = biomarkers
