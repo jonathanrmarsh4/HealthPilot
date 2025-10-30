@@ -1,5 +1,5 @@
-#import <Foundation/Foundation.h>
-#import <Capacitor/Capacitor.h>
+@import Foundation;
+@import Capacitor;
 
 CAP_PLUGIN(HealthPilotHealthKit, "HealthPilotHealthKit",
   CAP_PLUGIN_METHOD(isAvailable, CAPPluginReturnPromise);
