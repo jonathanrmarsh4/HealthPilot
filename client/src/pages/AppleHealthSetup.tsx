@@ -49,7 +49,7 @@ export default function AppleHealthSetup() {
 
   // Poll for job status when we have a jobId
   const { data: jobStatus } = useQuery<SyncJobStatus>({
-    queryKey: ['/api/apple-health/sync/status', currentJobId],
+    queryKey: [`/api/apple-health/sync/status/${currentJobId}`],
     enabled: !!currentJobId && isHealthKitSyncing,
     refetchInterval: (data) => {
       // Stop polling when job is completed or failed
