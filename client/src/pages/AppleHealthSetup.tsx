@@ -57,8 +57,10 @@ export default function AppleHealthSetup() {
         throw new Error('HealthKit permissions were not granted. Please enable them in Settings.');
       }
 
-      // Get health data (last 90 days)
-      const healthData = await healthKitService.getAllHealthData(90);
+      // Get health data (last 1 day for reliable initial sync)
+      console.log('[AppleHealthSetup] Fetching 1 day of health data...');
+      const healthData = await healthKitService.getAllHealthData(1);
+      console.log('[AppleHealthSetup] Data fetched, uploading...');
       
       // Send to backend
       await apiRequest('POST', '/api/apple-health/sync', healthData);

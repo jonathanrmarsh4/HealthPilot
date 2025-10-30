@@ -6,7 +6,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Smartphone, Download, CheckCircle2, XCircle, Info, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { apiRequest, queryClient } from '@/lib/queryClient';
+import { getApiBaseUrl, queryClient } from '@/lib/queryClient';
+import { isNativePlatform } from '@/mobile/MobileBootstrap';
+import { SecureStorage } from '@aparajita/capacitor-secure-storage';
 
 export function HealthKitSync() {
   const [isSyncing, setIsSyncing] = useState(false);
@@ -50,11 +52,60 @@ export function HealthKitSync() {
         throw new Error('HealthKit permissions not granted');
       }
 
-      // Get health data from HealthKit (3 days for faster initial sync)
-      const healthData = await healthKitService.getAllHealthData(3);
+      // Get health data from HealthKit (1 day for reliable sync)
+      console.log('[HealthKitSync] Fetching 1 day of health data...');
+      const healthData = await healthKitService.getAllHealthData(1);
       
-      // Send to backend
-      await apiRequest('POST', '/api/apple-health/sync', healthData);
+      console.log('[HealthKitSync] Data fetched, uploading to server...');
+      
+      // Send to backend with extended timeout (2 minutes)
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 min timeout
+        
+        const apiUrl = `${getApiBaseUrl()}/api/apple-health/sync`;
+        console.log('[HealthKitSync] Uploading to:', apiUrl);
+        
+        // Get auth headers for mobile
+        const headers: HeadersInit = {
+          'Content-Type': 'application/json',
+        };
+        
+        if (isNativePlatform()) {
+          try {
+            const token = await SecureStorage.get('sessionToken');
+            if (token) {
+              headers['Authorization'] = `Bearer ${token}`;
+            }
+          } catch (error) {
+            console.warn('[HealthKitSync] No session token found');
+          }
+        }
+        
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(healthData),
+          credentials: 'include',
+          signal: controller.signal,
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+          const error = await response.text();
+          throw new Error(error || 'Upload failed');
+        }
+        
+        const result = await response.json();
+        console.log('[HealthKitSync] Upload successful:', result);
+      } catch (uploadError: any) {
+        console.error('[HealthKitSync] Upload error:', uploadError);
+        if (uploadError.name === 'AbortError') {
+          throw new Error('Upload timed out after 2 minutes. Your data may still be processing.');
+        }
+        throw uploadError;
+      }
       
       setLastSyncResult({
         success: true,
@@ -156,7 +207,7 @@ export function HealthKitSync() {
       <CardContent className="space-y-4">
         <div className="flex flex-col gap-3">
           <p className="text-sm text-muted-foreground">
-            Sync data from the last 3 days including steps, HRV, sleep, workouts, and biomarkers.
+            Quick sync of today's data including steps, HRV, sleep, workouts, and biomarkers.
           </p>
 
           <Button
