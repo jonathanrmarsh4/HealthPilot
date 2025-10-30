@@ -65,6 +65,9 @@ export class PaymentService {
         discountAmount: number;
       }>('/api/payments/create-intent', {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
           tier: options.tier,
           billingCycle: options.billingCycle,
@@ -96,6 +99,9 @@ export class PaymentService {
         tier: SubscriptionTier;
       }>('/api/payments/confirm-subscription', {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
           paymentIntentId,
         }),
