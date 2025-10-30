@@ -372,6 +372,7 @@ export function CheckoutModal({ open, onOpenChange, tier: initialTier, tierName 
                       appearance: {
                         theme: "stripe",
                       },
+                      loader: "auto",
                     }}
                   >
                     <StripePaymentForm
