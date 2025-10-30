@@ -39,6 +39,7 @@ export function CheckoutModal({ open, onOpenChange, tier: initialTier, tierName 
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [paymentIntentId, setPaymentIntentId] = useState<string | null>(null);
   const [isLoadingIntent, setIsLoadingIntent] = useState(false);
+  const [isCreatingSubscription, setIsCreatingSubscription] = useState(false);
   const { toast } = useToast();
 
   const validatePromoMutation = useMutation({
@@ -110,14 +111,16 @@ export function CheckoutModal({ open, onOpenChange, tier: initialTier, tierName 
     if (!paymentIntentId) {
       toast({
         title: "Error",
-        description: "Payment Intent ID missing",
+        description: "Payment Intent ID missing. Please contact support.",
         variant: "destructive",
       });
       return;
     }
 
+    setIsCreatingSubscription(true);
+    
     try {
-      // Call backend to create subscription
+      // Call backend to create subscription - this is idempotent
       await apiRequest("/api/stripe/confirm-subscription", {
         method: "POST",
         headers: {
@@ -128,6 +131,7 @@ export function CheckoutModal({ open, onOpenChange, tier: initialTier, tierName 
         }),
       });
 
+      // Only show success and close modal after subscription is confirmed
       toast({
         title: "Payment successful!",
         description: "Your subscription is now active.",
@@ -140,11 +144,14 @@ export function CheckoutModal({ open, onOpenChange, tier: initialTier, tierName 
       setClientSecret(null);
       setPaymentIntentId(null);
     } catch (error: any) {
+      // Keep modal open so user can retry
       toast({
-        title: "Error",
-        description: error.message || "Failed to activate subscription",
+        title: "Subscription activation failed",
+        description: `Payment succeeded but subscription setup failed: ${error.message || "Unknown error"}. Please click "Retry Activation" or contact support.`,
         variant: "destructive",
       });
+    } finally {
+      setIsCreatingSubscription(false);
     }
   };
 

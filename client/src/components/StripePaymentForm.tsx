@@ -44,11 +44,9 @@ export function StripePaymentForm({ onSuccess, onError, amount, tier, billingCyc
           variant: "destructive",
         });
       } else {
+        // Call onSuccess to trigger subscription creation
+        // Do NOT show success toast here - that happens after subscription is created
         onSuccess();
-        toast({
-          title: "Payment successful!",
-          description: "Your subscription is now active.",
-        });
       }
     } catch (err: any) {
       onError(err.message || "An unexpected error occurred");

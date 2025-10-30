@@ -1738,7 +1738,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Confirm and create subscription after embedded payment succeeds
+  // Confirm and create subscription after embedded payment succeeds (IDEMPOTENT)
   app.post("/api/stripe/confirm-subscription", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = (req.user as any).claims.sub;
@@ -1769,6 +1769,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Missing subscription metadata" });
       }
 
+      // Check if we already created a subscription for this payment intent (idempotency)
+      // Look for subscriptions created in the last hour with matching customer and tier
+      const customerId = paymentIntent.customer as string;
+      const recentSubscriptions = await stripe.subscriptions.list({
+        customer: customerId,
+        limit: 10,
+        created: {
+          gte: Math.floor(Date.now() / 1000) - 3600, // Last hour
+        },
+      });
+
+      // Check if any recent subscription matches this tier/billing cycle
+      const existingSubscription = recentSubscriptions.data.find(
+        sub => sub.metadata.userId === userId && 
+               sub.metadata.tier === tier && 
+               sub.metadata.billingCycle === billingCycle &&
+               sub.status === "active"
+      );
+
+      if (existingSubscription) {
+        console.log(`ℹ️ Subscription already exists for Payment Intent ${paymentIntentId}: ${existingSubscription.id}`);
+        return res.json({
+          success: true,
+          subscriptionId: existingSubscription.id,
+          tier,
+          alreadyExisted: true,
+        });
+      }
+
       // Get Stripe price ID for recurring subscription
       const stripePriceIds = {
         premium: {
@@ -1785,13 +1814,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Create recurring Stripe subscription
       const stripeSubscription = await stripe.subscriptions.create({
-        customer: paymentIntent.customer as string,
+        customer: customerId,
         items: [{ price: priceId }],
         default_payment_method: paymentMethodId,
         metadata: {
           userId,
           tier,
           billingCycle,
+          paymentIntentId, // Store for reference
         },
       });
 
@@ -1799,25 +1829,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.updateUserAdminFields(userId, {
         subscriptionTier: tier as "premium" | "enterprise",
         subscriptionStatus: "active",
-        stripeCustomerId: paymentIntent.customer as string,
+        stripeCustomerId: customerId,
       });
 
-      // Create subscription record in database
-      await storage.createSubscription({
-        userId,
-        stripeSubscriptionId: stripeSubscription.id,
-        stripePriceId: priceId,
-        tier,
-        billingCycle,
-        status: stripeSubscription.status,
-        currentPeriodStart: new Date(stripeSubscription.current_period_start * 1000),
-        currentPeriodEnd: new Date(stripeSubscription.current_period_end * 1000),
-        cancelAtPeriodEnd: stripeSubscription.cancel_at_period_end ? 1 : 0,
-        trialStart: stripeSubscription.trial_start ? new Date(stripeSubscription.trial_start * 1000) : null,
-        trialEnd: stripeSubscription.trial_end ? new Date(stripeSubscription.trial_end * 1000) : null,
-      });
+      // Create subscription record in database (with duplicate check)
+      const existingDbSubscription = await storage.getSubscriptionByStripeId(stripeSubscription.id);
+      if (!existingDbSubscription) {
+        await storage.createSubscription({
+          userId,
+          stripeSubscriptionId: stripeSubscription.id,
+          stripePriceId: priceId,
+          tier,
+          billingCycle,
+          status: stripeSubscription.status,
+          currentPeriodStart: new Date(stripeSubscription.current_period_start * 1000),
+          currentPeriodEnd: new Date(stripeSubscription.current_period_end * 1000),
+          cancelAtPeriodEnd: stripeSubscription.cancel_at_period_end ? 1 : 0,
+          trialStart: stripeSubscription.trial_start ? new Date(stripeSubscription.trial_start * 1000) : null,
+          trialEnd: stripeSubscription.trial_end ? new Date(stripeSubscription.trial_end * 1000) : null,
+        });
+      }
 
-      // Increment promo code usage if applicable
+      // Increment promo code usage if applicable (only once)
       if (promoCode) {
         const dbPromoCode = await storage.getPromoCode(promoCode.toUpperCase());
         if (dbPromoCode) {
