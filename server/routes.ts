@@ -9546,10 +9546,24 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
         .filter(b => b.type === 'calories' && new Date(b.recordedAt) >= todayStart)
         .reduce((sum, b) => sum + (b.value || 0), 0);
       
+      // Calculate active days (last 7 days with workouts)
+      const sevenDaysAgo = new Date(todayStart);
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      const recentWorkouts = await storage.getWorkoutSessions(userId);
+      const activeDaysSet = new Set(
+        recentWorkouts
+          .filter(w => w.startedAt && new Date(w.startedAt) >= sevenDaysAgo)
+          .map(w => {
+            const date = new Date(w.startedAt!);
+            return date.toLocaleDateString('en-CA', { timeZone: userTimezone }); // YYYY-MM-DD format
+          })
+      );
+      const activeDays = activeDaysSet.size;
+      
       res.json({
         dailySteps: Math.round(todaySteps),
         restingHR: heartRate ? heartRate.value : 0,
-        activeDays: 5,
+        activeDays,
         calories: Math.round(todayCalories),
         heartRate: heartRate ? {
           value: heartRate.value,
