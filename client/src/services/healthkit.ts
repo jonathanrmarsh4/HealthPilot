@@ -68,7 +68,8 @@ export class HealthKitService {
     }
 
     try {
-      if (Capacitor.getPlatform() !== 'ios') {
+      // Check if running on native iOS platform
+      if (!Capacitor.isNativePlatform() || Capacitor.getPlatform() !== 'ios') {
         this.isAvailable = false;
         return false;
       }
@@ -396,7 +397,7 @@ export class HealthKitService {
 
   /**
    * Sync all health data to backend
-   * Convenience method that retrieves data from HealthKit and sends it to the backend
+   * Retrieves data from HealthKit and sends it to the backend API
    */
   async syncAllHealthData(daysBack: number = 30): Promise<void> {
     try {
@@ -405,10 +406,20 @@ export class HealthKitService {
       // Get all health data from HealthKit
       const healthData = await this.getAllHealthData(daysBack);
       
-      // Send to backend (import apiRequest from @/lib/queryClient in component that calls this)
-      // This method just retrieves the data - the calling component should handle the API call
-      // to maintain separation of concerns
-      console.log('[HealthKit] Data retrieved, ready for backend sync');
+      console.log('[HealthKit] Data retrieved, sending to backend...', {
+        steps: healthData.steps.length,
+        workouts: healthData.workouts.length,
+        sleep: healthData.sleep.length,
+      });
+      
+      // Import apiRequest dynamically to avoid circular dependencies
+      const { apiRequest } = await import('../lib/queryClient');
+      
+      // Send to backend using apiRequest (handles mobile vs web API URLs)
+      const response = await apiRequest('POST', '/api/mobile/healthkit/sync', { healthData });
+      const result = await response.json();
+      
+      console.log('[HealthKit] Sync complete:', result);
       
       return;
     } catch (error) {

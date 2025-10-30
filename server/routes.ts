@@ -10400,6 +10400,144 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
     }
   });
 
+  // Mobile HealthKit Sync - iOS native app sync endpoint
+  app.post("/api/mobile/healthkit/sync", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    
+    try {
+      const { healthData } = req.body;
+      
+      if (!healthData || typeof healthData !== 'object') {
+        return res.status(400).json({ error: 'Invalid request: healthData object required' });
+      }
+      
+      console.log(`[Mobile HealthKit Sync] Starting sync for user ${userId}`);
+      
+      let totalInserted = 0;
+      let totalSkipped = 0;
+      
+      // Helper to create idempotency key
+      const createIdempotencyKey = (type: string, value: any, startDate: string, uuid?: string) => {
+        return `${type}-${JSON.stringify(value)}-${startDate}-${uuid || 'no-uuid'}`;
+      };
+      
+      // Process each data type
+      const dataTypes = [
+        { key: 'steps', type: 'StepCount' },
+        { key: 'distance', type: 'DistanceWalkingRunning' },
+        { key: 'activeCalories', type: 'ActiveEnergyBurned' },
+        { key: 'heartRate', type: 'HeartRate' },
+        { key: 'restingHeartRate', type: 'RestingHeartRate' },
+        { key: 'hrv', type: 'HeartRateVariability' },
+        { key: 'weight', type: 'BodyMass' },
+        { key: 'leanBodyMass', type: 'LeanBodyMass' },
+        { key: 'bodyFat', type: 'BodyFatPercentage' },
+        { key: 'bloodPressureSystolic', type: 'BloodPressureSystolic' },
+        { key: 'bloodPressureDiastolic', type: 'BloodPressureDiastolic' },
+        { key: 'bloodGlucose', type: 'BloodGlucose' },
+      ];
+      
+      for (const { key, type } of dataTypes) {
+        const samples = healthData[key] || [];
+        
+        for (const sample of samples) {
+          const idempotencyKey = createIdempotencyKey(type, sample.value, sample.startDate, sample.uuid);
+          
+          const event = {
+            userId,
+            type,
+            tsStartUtc: new Date(sample.startDate),
+            tsEndUtc: new Date(sample.endDate),
+            tsInstantUtc: null,
+            unit: sample.unit,
+            valueJson: { value: sample.value },
+            source: 'healthkit-mobile',
+            idempotencyKey,
+          };
+          
+          const result = await storage.insertHkEventRaw(event);
+          if (result) {
+            totalInserted++;
+          } else {
+            totalSkipped++;
+          }
+        }
+      }
+      
+      // Process workouts
+      const workouts = healthData.workouts || [];
+      for (const workout of workouts) {
+        const idempotencyKey = createIdempotencyKey('Workout', workout.workoutTypeName, workout.startDate, workout.uuid);
+        
+        const event = {
+          userId,
+          type: 'Workout',
+          tsStartUtc: new Date(workout.startDate),
+          tsEndUtc: new Date(workout.endDate),
+          tsInstantUtc: null,
+          unit: 'workout',
+          valueJson: {
+            workoutType: workout.workoutType,
+            workoutTypeName: workout.workoutTypeName,
+            duration: workout.duration,
+            distance: workout.distance,
+            distanceUnit: workout.distanceUnit,
+            energy: workout.energy,
+            energyUnit: workout.energyUnit,
+          },
+          source: 'healthkit-mobile',
+          idempotencyKey,
+        };
+        
+        const result = await storage.insertHkEventRaw(event);
+        if (result) {
+          totalInserted++;
+        } else {
+          totalSkipped++;
+        }
+      }
+      
+      // Process sleep
+      const sleepSamples = healthData.sleep || [];
+      for (const sleep of sleepSamples) {
+        const idempotencyKey = createIdempotencyKey('Sleep', sleep.category, sleep.startDate, sleep.uuid);
+        
+        const event = {
+          userId,
+          type: 'Sleep',
+          tsStartUtc: new Date(sleep.startDate),
+          tsEndUtc: new Date(sleep.endDate),
+          tsInstantUtc: null,
+          unit: 'category',
+          valueJson: {
+            value: sleep.value,
+            category: sleep.category,
+          },
+          source: 'healthkit-mobile',
+          idempotencyKey,
+        };
+        
+        const result = await storage.insertHkEventRaw(event);
+        if (result) {
+          totalInserted++;
+        } else {
+          totalSkipped++;
+        }
+      }
+      
+      console.log(`[Mobile HealthKit Sync] Complete: ${totalInserted} inserted, ${totalSkipped} skipped (duplicates)`);
+      
+      res.json({
+        success: true,
+        inserted: totalInserted,
+        skipped: totalSkipped,
+      });
+    } catch (error: any) {
+      console.error('[Mobile HealthKit Sync] Error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Universal HealthKit Ingest Webhook - writes ALL events to raw table first, then routes to curated tables
   app.post("/api/health-auto-export/ingest", (req, res, next) => {
     console.log("🔍 WEBHOOK DEBUG - Incoming request to /api/health-auto-export/ingest");
