@@ -9531,10 +9531,13 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
       const userSettings = await storage.getUserSettings(userId);
       const userTimezone = userSettings?.timezone || 'UTC';
       
-      // Calculate start of today in user's timezone
+      // Calculate start of today in user's timezone using date-fns-tz
+      const { startOfDay } = await import('date-fns');
+      const { utcToZonedTime, zonedTimeToUtc } = await import('date-fns-tz');
       const now = new Date();
-      const todayStart = new Date(now.toLocaleString('en-US', { timeZone: userTimezone }));
-      todayStart.setHours(0, 0, 0, 0);
+      const nowInUserTz = utcToZonedTime(now, userTimezone);
+      const todayStartInUserTz = startOfDay(nowInUserTz);
+      const todayStart = zonedTimeToUtc(todayStartInUserTz, userTimezone);
       
       // Sum all steps from today (HealthKit sends multiple samples throughout the day)
       const todaySteps = biomarkers
@@ -9542,9 +9545,13 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
         .reduce((sum, b) => sum + (b.value || 0), 0);
       
       // Sum all calories from today
-      const todayCalories = biomarkers
-        .filter(b => b.type === 'calories' && new Date(b.recordedAt) >= todayStart)
-        .reduce((sum, b) => sum + (b.value || 0), 0);
+      const caloriesSamples = biomarkers.filter(b => b.type === 'calories' && new Date(b.recordedAt) >= todayStart);
+      const todayCalories = caloriesSamples.reduce((sum, b) => sum + (b.value || 0), 0);
+      
+      console.log(`📊 Calories calculation debug:`);
+      console.log(`  Today start (${userTimezone}): ${todayStart.toISOString()}`);
+      console.log(`  Total calories samples today: ${caloriesSamples.length}`);
+      console.log(`  Sum: ${todayCalories}`);
       
       // Calculate active days (last 7 days with workouts)
       const sevenDaysAgo = new Date(todayStart);
@@ -11662,24 +11669,25 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
           const endTime = new Date(workout.endDate);
           const duration = Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60));
 
-          // Map workout type from HealthKit
+          // Map workout type from HealthKit to our schema
           const workoutType = workout.workoutActivityType?.toLowerCase() || "other";
-          const calories = workout.totalEnergyBurned || 0;
+          const distance = workout.totalDistance ? Math.round(workout.totalDistance) : null; // meters
+          const calories = workout.totalEnergyBurned ? Math.round(workout.totalEnergyBurned) : null;
 
           await storage.createWorkoutSession({
             userId,
-            date: startTime.toISOString().split('T')[0],
-            exerciseName: workoutType,
-            sets: 1,
-            reps: null,
-            weight: null,
-            notes: `Distance: ${workout.totalDistance || 0}m`,
+            workoutType,
+            sessionType: "workout",
+            startTime,
+            endTime,
             duration,
+            distance,
             calories,
             avgHeartRate: workout.averageHeartRate ? Math.round(workout.averageHeartRate) : null,
             maxHeartRate: workout.maxHeartRate ? Math.round(workout.maxHeartRate) : null,
             sourceType: "ios-healthkit",
             sourceId: workout.uuid || null,
+            notes: distance ? `Distance: ${distance}m` : null,
           });
           return true;
         },
