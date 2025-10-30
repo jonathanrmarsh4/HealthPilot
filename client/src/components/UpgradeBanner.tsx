@@ -42,8 +42,10 @@ export function UpgradeBanner() {
       </Card>
 
       <CheckoutModal
-        isOpen={showCheckout}
-        onClose={() => setShowCheckout(false)}
+        open={showCheckout}
+        onOpenChange={setShowCheckout}
+        tier="premium"
+        tierName="Premium"
       />
     </>
   );
