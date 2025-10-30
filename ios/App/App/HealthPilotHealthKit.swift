@@ -11,7 +11,12 @@ public class HealthPilotHealthKit: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "requestAuthorization", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "queryHealthData", returnType: CAPPluginReturnPromise)
     ]
+    
     private let healthStore = HKHealthStore()
+    
+    override public func load() {
+        print("🏥 HealthPilotHealthKit plugin loaded successfully!")
+    }
     
     // Check if HealthKit is available
     @objc func isAvailable(_ call: CAPPluginCall) {
