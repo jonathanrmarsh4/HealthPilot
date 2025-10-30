@@ -49,6 +49,37 @@ const safetyEscalationSchema = z.object({
   context: z.string().nullable().optional(),
 });
 
+// In-memory job tracking for Apple Health sync
+interface SyncJob {
+  jobId: string;
+  userId: string;
+  status: 'processing' | 'completed' | 'failed';
+  progress: {
+    totalSamples: number;
+    processedSamples: number;
+    currentBatch?: string;
+  };
+  result?: {
+    insertedCount: number;
+    message: string;
+  };
+  error?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const syncJobs = new Map<string, SyncJob>();
+
+// Clean up old jobs after 1 hour
+setInterval(() => {
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+  for (const [jobId, job] of syncJobs.entries()) {
+    if (job.updatedAt < oneHourAgo) {
+      syncJobs.delete(jobId);
+    }
+  }
+}, 5 * 60 * 1000); // Run every 5 minutes
+
 // Helper function to parse biomarker dates with fallback
 function parseBiomarkerDate(dateStr: string | undefined, documentDate: string | undefined, fileDate: Date | undefined): Date {
   // Try the biomarker's specific date first
@@ -11209,15 +11240,33 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
       
       const totalSamples = Object.values(dataCounts).reduce((sum, count) => sum + count, 0);
       
-      // Respond immediately to prevent client timeout
-      res.json({
-        success: true,
-        message: `Processing ${totalSamples} health data samples in background`,
+      // Create a job for tracking
+      const jobId = `sync_${userId}_${Date.now()}`;
+      const job: SyncJob = {
+        jobId,
+        userId,
         status: 'processing',
+        progress: {
+          totalSamples,
+          processedSamples: 0,
+        },
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      syncJobs.set(jobId, job);
+      
+      // Respond with 202 Accepted + jobId
+      res.status(202).json({
+        success: true,
+        jobId,
+        status: 'processing',
+        message: `Processing ${totalSamples} health data samples`,
+        totalSamples,
       });
       
       // Process data in background (don't await)
       (async () => {
+        try {
       
       // Match field names from mobile app (restingHeartRate, leanBodyMass)
       const { 
@@ -11258,6 +11307,13 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
           
           console.log(`  Batch ${batchNum}/${totalBatches}: Processing ${batch.length} items in parallel...`);
           
+          // Update job progress
+          const currentJob = syncJobs.get(jobId);
+          if (currentJob) {
+            currentJob.progress.currentBatch = `${label} ${batchNum}/${totalBatches}`;
+            currentJob.updatedAt = new Date();
+          }
+          
           // Process batch items in parallel for speed
           const results = await Promise.allSettled(
             batch.map(item => processor(item))
@@ -11270,6 +11326,12 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
             } else if (result.status === 'rejected') {
               console.error(`  ⚠️ Error processing item:`, result.reason);
             }
+          }
+          
+          // Update processed count
+          if (currentJob) {
+            currentJob.progress.processedSamples += batch.length;
+            currentJob.updatedAt = new Date();
           }
           
           console.log(`  ✓ Batch ${batchNum}/${totalBatches} complete (${successCount} successful)`);
@@ -11575,15 +11637,70 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
       );
 
       console.log(`✅ Capacitor sync complete: ${insertedCount} items inserted/updated`);
-      })().catch(error => {
-        console.error("❌ Background sync processing error:", error);
-      });
+        
+        // Mark job as completed
+        const finalJob = syncJobs.get(jobId);
+        if (finalJob) {
+          finalJob.status = 'completed';
+          finalJob.result = {
+            insertedCount,
+            message: `Successfully synced ${insertedCount} health data records`,
+          };
+          finalJob.updatedAt = new Date();
+        }
+        
+        } catch (error: any) {
+          console.error("❌ Background sync processing error:", error);
+          
+          // Mark job as failed
+          const failedJob = syncJobs.get(jobId);
+          if (failedJob) {
+            failedJob.status = 'failed';
+            failedJob.error = error.message || 'Unknown error during sync';
+            failedJob.updatedAt = new Date();
+          }
+        }
+      })();
 
     } catch (error: any) {
       console.error("Error processing Capacitor HealthKit sync:", error);
       if (!res.headersSent) {
         res.status(500).json({ error: error.message });
       }
+    }
+  });
+
+  // Get Apple Health sync job status
+  app.get("/api/apple-health/sync/status/:jobId", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { jobId } = req.params;
+
+    try {
+      const job = syncJobs.get(jobId);
+      
+      if (!job) {
+        return res.status(404).json({ error: 'Job not found' });
+      }
+      
+      // Verify job belongs to this user
+      if (job.userId !== userId) {
+        return res.status(403).json({ error: 'Unauthorized' });
+      }
+      
+      // Return job status
+      res.json({
+        jobId: job.jobId,
+        status: job.status,
+        progress: job.progress,
+        result: job.result,
+        error: job.error,
+        createdAt: job.createdAt,
+        updatedAt: job.updatedAt,
+      });
+      
+    } catch (error: any) {
+      console.error("Error fetching sync job status:", error);
+      res.status(500).json({ error: error.message });
     }
   });
 
