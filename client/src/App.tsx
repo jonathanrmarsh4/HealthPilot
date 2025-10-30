@@ -61,7 +61,7 @@ import MobileAuthRedirect from "@/pages/MobileAuthRedirect";
 import LandingPage from "@/pages/LandingPage";
 import NotFound from "@/pages/not-found";
 import { NativeDiagnostics } from "@/mobile/features/diagnostics/NativeDiagnostics";
-import { Loader2, LogOut } from "lucide-react";
+import { Loader2, LogOut, Settings as SettingsIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { App as CapacitorApp } from '@capacitor/app';
@@ -229,6 +229,14 @@ function AppLayout() {
             <SidebarTrigger data-testid="button-sidebar-toggle" />
             <div className="flex items-center gap-2">
               <NotificationBadge />
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => window.location.href = '/settings'}
+                data-testid="button-settings"
+              >
+                <SettingsIcon className="h-5 w-5" />
+              </Button>
               <LocaleSelector />
               <ThemeToggle />
               <Button
