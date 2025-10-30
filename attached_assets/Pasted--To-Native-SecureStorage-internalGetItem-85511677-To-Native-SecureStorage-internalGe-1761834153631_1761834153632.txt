@@ -1,0 +1,257 @@
+⚡️  To Native ->  SecureStorage internalGetItem 85511677
+⚡️  To Native ->  SecureStorage internalGetItem 85511678
+⚡️  To Native ->  SecureStorage internalGetItem 85511679
+⚡️  To Native ->  SecureStorage internalGetItem 85511680
+⚡️  To Native ->  SecureStorage internalGetItem 85511681
+⚡️  To Native ->  SecureStorage internalGetItem 85511682
+⚡️  To Native ->  SecureStorage internalGetItem 85511683
+⚡️  To Native ->  SecureStorage internalGetItem 85511684
+⚡️  To Native ->  SecureStorage internalGetItem 85511685
+⚡️  To Native ->  SecureStorage internalGetItem 85511686
+⚡️  To Native ->  SecureStorage internalGetItem 85511687
+⚡️  To Native ->  SecureStorage internalGetItem 85511688
+⚡️  To Native ->  SecureStorage internalGetItem 85511689
+⚡️  To Native ->  SecureStorage internalGetItem 85511690
+⚡️  To Native ->  SecureStorage internalGetItem 85511691
+⚡️  To Native ->  SecureStorage internalGetItem 85511692
+⚡️  To Native ->  SecureStorage internalGetItem 85511693
+⚡️  To Native ->  SecureStorage internalGetItem 85511694
+⚡️  To Native ->  SecureStorage internalGetItem 85511695
+⚡️  To Native ->  SecureStorage internalGetItem 85511696
+⚡️  To Native ->  SecureStorage internalGetItem 85511697
+⚡️  To Native ->  SecureStorage internalGetItem 85511698
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  To Native ->  SecureStorage internalGetItem 85511699
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  To Native ->  SecureStorage internalGetItem 85511700
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  To Native ->  SecureStorage internalGetItem 85511701
+⚡️  To Native ->  SecureStorage internalGetItem 85511702
+⚡️  To Native ->  SecureStorage internalGetItem 85511703
+⚡️  To Native ->  SecureStorage internalGetItem 85511704
+⚡️  To Native ->  SecureStorage internalGetItem 85511705
+⚡️  To Native ->  SecureStorage internalGetItem 85511706
+⚡️  To Native ->  SecureStorage internalGetItem 85511707
+⚡️  To Native ->  SecureStorage internalGetItem 85511708
+⚡️  To Native ->  SecureStorage internalGetItem 85511709
+⚡️  To Native ->  SecureStorage internalGetItem 85511710
+⚡️  To Native ->  SecureStorage internalGetItem 85511711
+⚡️  To Native ->  SecureStorage internalGetItem 85511712
+⚡️  To Native ->  SecureStorage internalGetItem 85511713
+⚡️  To Native ->  SecureStorage internalGetItem 85511714
+⚡️  To Native ->  SecureStorage internalGetItem 85511715
+⚡️  To Native ->  SecureStorage internalGetItem 85511716
+⚡️  To Native ->  SecureStorage internalGetItem 85511717
+⚡️  To Native ->  SecureStorage internalGetItem 85511718
+⚡️  To Native ->  SecureStorage internalGetItem 85511719
+⚡️  To Native ->  SecureStorage internalGetItem 85511720
+⚡️  To Native ->  SecureStorage internalGetItem 85511721
+⚡️  To Native ->  SecureStorage internalGetItem 85511722
+⚡️  To Native ->  SecureStorage internalGetItem 85511723
+⚡️  To Native ->  SecureStorage internalGetItem 85511724
+⚡️  To Native ->  SecureStorage internalGetItem 85511725
+⚡️  To Native ->  SecureStorage internalGetItem 85511726
+⚡️  To Native ->  SecureStorage internalGetItem 85511727
+⚡️  To Native ->  SecureStorage internalGetItem 85511728
+⚡️  To Native ->  SecureStorage internalGetItem 85511729
+⚡️  To Native ->  SecureStorage internalGetItem 85511730
+⚡️  To Native ->  SecureStorage internalGetItem 85511731
+⚡️  To Native ->  SecureStorage internalGetItem 85511732
+⚡️  To Native ->  SecureStorage internalGetItem 85511733
+⚡️  To Native ->  SecureStorage internalGetItem 85511734
+⚡️  To Native ->  SecureStorage internalGetItem 85511735
+⚡️  To Native ->  SecureStorage internalGetItem 85511736
+⚡️  To Native ->  SecureStorage internalGetItem 85511737
+⚡️  To Native ->  SecureStorage internalGetItem 85511738
+⚡️  To Native ->  SecureStorage internalGetItem 85511739
+⚡️  To Native ->  SecureStorage internalGetItem 85511740
+⚡️  To Native ->  SecureStorage internalGetItem 85511741
+⚡️  To Native ->  SecureStorage internalGetItem 85511742
+⚡️  To Native ->  SecureStorage internalGetItem 85511743
+⚡️  To Native ->  SecureStorage internalGetItem 85511744
+⚡️  To Native ->  SecureStorage internalGetItem 85511745
+⚡️  To Native ->  SecureStorage internalGetItem 85511746
+⚡️  To Native ->  SecureStorage internalGetItem 85511747
+⚡️  To Native ->  SecureStorage internalGetItem 85511748
+⚡️  To Native ->  SecureStorage internalGetItem 85511749
+⚡️  To Native ->  SecureStorage internalGetItem 85511750
+⚡️  To Native ->  SecureStorage internalGetItem 85511751
+⚡️  To Native ->  SecureStorage internalGetItem 85511752
+⚡️  To Native ->  SecureStorage internalGetItem 85511753
+⚡️  To Native ->  SecureStorage internalGetItem 85511754
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  [warn] - No config found for biomarker type: active-energy
+⚡️  [warn] - No config found for biomarker type: resting-heart-rate
+⚡️  [warn] - No config found for biomarker type: blood-pressure-diastolic
+⚡️  [warn] - No config found for biomarker type: blood-pressure-systolic
+⚡️  [warn] - No config found for biomarker type: free-testosterone
+⚡️  [warn] - No config found for biomarker type: shbg
+⚡️  [warn] - No config found for biomarker type: dhea-sulphate
+⚡️  [warn] - No config found for biomarker type: serum-cortisol
+⚡️  [warn] - No config found for biomarker type: oestradiol
+⚡️  [warn] - No config found for biomarker type: prolactin
+⚡️  [warn] - No config found for biomarker type: follicle-stimulating-hormone
+⚡️  [warn] - No config found for biomarker type: luteinizing-hormone
+⚡️  [warn] - No config found for biomarker type: haemoglobin
+⚡️  [warn] - No config found for biomarker type: mpv
+⚡️  [warn] - No config found for biomarker type: non-hdl-cholesterol
+⚡️  [warn] - No config found for biomarker type: glucose
+⚡️  [warn] - No config found for biomarker type: hscrp
+⚡️  [warn] - No config found for biomarker type: igf-1
+⚡️  [warn] - No config found for biomarker type: growth-hormone
+⚡️  [warn] - No config found for biomarker type: anion-gap
+⚡️  [warn] - No config found for biomarker type: adjusted-calcium
+⚡️  [warn] - No config found for biomarker type: phosphate
+⚡️  [warn] - No config found for biomarker type: alkaline-phosphatase
+⚡️  [warn] - No config found for biomarker type: gamma-gt
+⚡️  [warn] - No config found for biomarker type: hct
+⚡️  [warn] - No config found for biomarker type: total-bilirubin
+⚡️  [warn] - No config found for biomarker type: estradiol
+⚡️  [warn] - No config found for biomarker type: lh
+⚡️  [warn] - No config found for biomarker type: fsh
+⚡️  To Native ->  SecureStorage internalGetItem 85511755
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  [warn] - No config found for biomarker type: active-energy
+⚡️  [warn] - No config found for biomarker type: resting-heart-rate
+⚡️  [warn] - No config found for biomarker type: blood-pressure-diastolic
+⚡️  [warn] - No config found for biomarker type: blood-pressure-systolic
+⚡️  [warn] - No config found for biomarker type: free-testosterone
+⚡️  [warn] - No config found for biomarker type: shbg
+⚡️  [warn] - No config found for biomarker type: dhea-sulphate
+⚡️  [warn] - No config found for biomarker type: serum-cortisol
+⚡️  [warn] - No config found for biomarker type: oestradiol
+⚡️  [warn] - No config found for biomarker type: prolactin
+⚡️  [warn] - No config found for biomarker type: follicle-stimulating-hormone
+⚡️  [warn] - No config found for biomarker type: luteinizing-hormone
+⚡️  [warn] - No config found for biomarker type: haemoglobin
+⚡️  [warn] - No config found for biomarker type: mpv
+⚡️  [warn] - No config found for biomarker type: non-hdl-cholesterol
+⚡️  [warn] - No config found for biomarker type: glucose
+⚡️  [warn] - No config found for biomarker type: hscrp
+⚡️  [warn] - No config found for biomarker type: igf-1
+⚡️  [warn] - No config found for biomarker type: growth-hormone
+⚡️  [warn] - No config found for biomarker type: anion-gap
+⚡️  [warn] - No config found for biomarker type: adjusted-calcium
+⚡️  [warn] - No config found for biomarker type: phosphate
+⚡️  [warn] - No config found for biomarker type: alkaline-phosphatase
+⚡️  [warn] - No config found for biomarker type: gamma-gt
+⚡️  [warn] - No config found for biomarker type: hct
+⚡️  [warn] - No config found for biomarker type: total-bilirubin
+⚡️  [warn] - No config found for biomarker type: estradiol
+⚡️  [warn] - No config found for biomarker type: lh
+⚡️  [warn] - No config found for biomarker type: fsh
+⚡️  [warn] - No config found for biomarker type: active-energy
+⚡️  [warn] - No config found for biomarker type: resting-heart-rate
+⚡️  [warn] - No config found for biomarker type: blood-pressure-diastolic
+⚡️  [warn] - No config found for biomarker type: blood-pressure-systolic
+⚡️  [warn] - No config found for biomarker type: free-testosterone
+⚡️  [warn] - No config found for biomarker type: shbg
+⚡️  [warn] - No config found for biomarker type: dhea-sulphate
+⚡️  [warn] - No config found for biomarker type: serum-cortisol
+⚡️  [warn] - No config found for biomarker type: oestradiol
+⚡️  [warn] - No config found for biomarker type: prolactin
+⚡️  [warn] - No config found for biomarker type: follicle-stimulating-hormone
+⚡️  [warn] - No config found for biomarker type: luteinizing-hormone
+⚡️  [warn] - No config found for biomarker type: haemoglobin
+⚡️  [warn] - No config found for biomarker type: mpv
+⚡️  [warn] - No config found for biomarker type: non-hdl-cholesterol
+⚡️  [warn] - No config found for biomarker type: glucose
+⚡️  [warn] - No config found for biomarker type: hscrp
+⚡️  [warn] - No config found for biomarker type: igf-1
+⚡️  [warn] - No config found for biomarker type: growth-hormone
+⚡️  [warn] - No config found for biomarker type: anion-gap
+⚡️  [warn] - No config found for biomarker type: adjusted-calcium
+⚡️  [warn] - No config found for biomarker type: phosphate
+⚡️  [warn] - No config found for biomarker type: alkaline-phosphatase
+⚡️  [warn] - No config found for biomarker type: gamma-gt
+⚡️  [warn] - No config found for biomarker type: hct
+⚡️  [warn] - No config found for biomarker type: total-bilirubin
+⚡️  [warn] - No config found for biomarker type: estradiol
+⚡️  [warn] - No config found for biomarker type: lh
+⚡️  [warn] - No config found for biomarker type: fsh
+⚡️  To Native ->  SecureStorage internalGetItem 85511756
+⚡️  To Native ->  SecureStorage internalGetItem 85511757
+⚡️  To Native ->  SecureStorage internalGetItem 85511758
+⚡️  To Native ->  SecureStorage internalGetItem 85511759
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  TO JS {"data":"\"iiwGoMLLby2eM_2yl3vZF70PhUncr1jJHRR6guEPUEk\""}
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  [warn] - [HealthKit] Plugin check failed: "HealthPilotHealthKit" plugin is not implemented on ios
+⚡️  [error] - HealthKit sync failed: {}
