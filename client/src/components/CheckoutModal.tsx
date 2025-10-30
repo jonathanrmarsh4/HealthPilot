@@ -88,7 +88,7 @@ export function CheckoutModal({ open, onOpenChange, tier: initialTier, tierName 
     setIsLoadingIntent(true);
     try {
       console.log("[CheckoutModal] Requesting Payment Intent...");
-      const response = await apiRequest<{ clientSecret: string; paymentIntentId: string; amount: number; discount: number }>(
+      const res = await apiRequest(
         "/api/stripe/create-payment-intent",
         {
           method: "POST",
@@ -103,14 +103,15 @@ export function CheckoutModal({ open, onOpenChange, tier: initialTier, tierName 
         }
       );
 
-      console.log("[CheckoutModal] Raw Response:", response);
+      // Parse the JSON response
+      const response = await res.json() as { clientSecret: string; paymentIntentId: string; amount: number; discount: number };
+
+      console.log("[CheckoutModal] Parsed Response:", response);
       console.log("[CheckoutModal] Response Keys:", Object.keys(response || {}));
       console.log("[CheckoutModal] Payment Intent Response:", {
         hasClientSecret: !!response.clientSecret,
         hasPaymentIntentId: !!response.paymentIntentId,
         clientSecretLength: response.clientSecret?.length,
-        clientSecretType: typeof response.clientSecret,
-        paymentIntentIdType: typeof response.paymentIntentId,
       });
 
       setClientSecret(response.clientSecret);
