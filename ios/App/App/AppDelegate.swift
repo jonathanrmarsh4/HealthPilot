@@ -7,7 +7,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Manual registration removed - will use automatic registration via .m file
+        // Override point for customization after application launch.
         
         // Override point for customization after application launch.
         return true
