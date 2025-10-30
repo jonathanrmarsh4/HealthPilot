@@ -248,7 +248,12 @@ function createEpisodeFromSegments(
   const stageSum = awakeMinutes + lightMinutes + deepMinutes + remMinutes;
   const flags: string[] = [];
   
-  if (Math.abs(stageSum - inBedMinutes) > CONSTANTS.STAGE_SUM_TOLERANCE_MINUTES) {
+  const stageDiff = Math.abs(stageSum - inBedMinutes);
+  if (stageDiff > CONSTANTS.STAGE_SUM_TOLERANCE_MINUTES) {
+    console.log(`⚠️ Stage validation failed for ${nightKeyLocalDate}:`);
+    console.log(`  inBedMinutes: ${inBedMinutes}`);
+    console.log(`  stageSum: ${stageSum} (awake:${awakeMinutes} + light:${lightMinutes} + deep:${deepMinutes} + rem:${remMinutes})`);
+    console.log(`  difference: ${stageDiff} minutes (tolerance: ${CONSTANTS.STAGE_SUM_TOLERANCE_MINUTES})`);
     flags.push('data_inconsistent');
   }
   
