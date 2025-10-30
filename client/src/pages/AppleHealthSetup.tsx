@@ -59,8 +59,14 @@ export default function AppleHealthSetup() {
         description: jobStatus.result?.message || 'Your health data has been synced successfully',
       });
 
-      // Mark HealthKit setup as complete and invalidate queries
+      // Save sync timestamp for next incremental sync
       (async () => {
+        await Preferences.set({ 
+          key: 'healthkit_last_sync', 
+          value: new Date().toISOString() 
+        });
+        console.log('[AppleHealthSetup] Saved sync timestamp for incremental sync');
+
         await apiRequest('POST', '/api/onboarding/complete-healthkit');
         
         // NOW invalidate queries - data is in the database
@@ -112,9 +118,29 @@ export default function AppleHealthSetup() {
         throw new Error('HealthKit permissions were not granted. Please enable them in Settings.');
       }
 
-      // Get health data (last 7 days to include today's current data + recent history)
-      console.log('[AppleHealthSetup] Fetching 7 days of health data...');
-      const healthData = await healthKitService.getAllHealthData(7);
+      // Check for last sync timestamp to determine if this is incremental or full sync
+      const { value: lastSyncTimestamp } = await Preferences.get({ key: 'healthkit_last_sync' });
+      let daysToSync = 7; // Default to 7 days for first sync
+      
+      if (lastSyncTimestamp) {
+        const lastSyncDate = new Date(lastSyncTimestamp);
+        const hoursSinceLastSync = (Date.now() - lastSyncDate.getTime()) / (1000 * 60 * 60);
+        
+        // If last sync was less than 48 hours ago, only sync 1 day (incremental)
+        // Otherwise do a full 7-day sync to catch up
+        if (hoursSinceLastSync < 48) {
+          daysToSync = 1;
+          console.log('[AppleHealthSetup] Incremental sync: last synced', Math.round(hoursSinceLastSync), 'hours ago');
+        } else {
+          console.log('[AppleHealthSetup] Full sync: last synced', Math.round(hoursSinceLastSync / 24), 'days ago');
+        }
+      } else {
+        console.log('[AppleHealthSetup] First sync: fetching 7 days of data');
+      }
+
+      // Get health data
+      console.log(`[AppleHealthSetup] Fetching ${daysToSync} day(s) of health data...`);
+      const healthData = await healthKitService.getAllHealthData(daysToSync);
       console.log('[AppleHealthSetup] Data fetched, uploading...');
       
       // Send to backend - will get jobId back
