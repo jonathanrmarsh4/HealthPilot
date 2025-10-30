@@ -66,9 +66,11 @@ export default function Settings() {
     enabled: false,
   });
 
-  const { data: notificationChannels = [], isLoading: channelsLoading } = useQuery({
+  const { data: channelsData, isLoading: channelsLoading } = useQuery({
     queryKey: ['/api/notifications/channels'],
   });
+  
+  const notificationChannels = channelsData?.channels || [];
 
   useEffect(() => {
     if (notificationChannels.length > 0) {
