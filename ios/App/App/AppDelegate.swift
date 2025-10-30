@@ -1,14 +1,13 @@
 import UIKit
 import Capacitor
 
-@UIApplicationMain
+@UIApplicationMain  
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
     var window: UIWindow?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Manually register HealthPilotHealthKit plugin
-        CAPBridge.registerPlugin("HealthPilotHealthKit", pluginClass: HealthPilotHealthKit.self)
+        // Manual registration removed - will use automatic registration via .m file
         
         // Override point for customization after application launch.
         return true

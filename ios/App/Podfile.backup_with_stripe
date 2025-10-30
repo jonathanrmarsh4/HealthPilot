@@ -27,9 +27,6 @@ end
 target 'App' do
   capacitor_pods
   
-  # Local HealthKit plugin
-  pod 'HealthPilotHealthKit', :path => './HealthPilotHealthKit'
-  
   # Stripe SDK for iOS native payments
   pod 'StripePaymentSheet', '~> 23.0'
 end
