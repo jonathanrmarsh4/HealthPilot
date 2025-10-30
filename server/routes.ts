@@ -1351,7 +1351,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const Stripe = (await import("stripe")).default;
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-        apiVersion: "2024-11-20",
+        apiVersion: "2024-10-28",
       });
 
       // Update Stripe subscription to cancel at period end
@@ -1388,7 +1388,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const Stripe = (await import("stripe")).default;
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-        apiVersion: "2024-11-20",
+        apiVersion: "2024-10-28",
       });
 
       // Update Stripe subscription to NOT cancel
@@ -1421,7 +1421,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const Stripe = (await import("stripe")).default;
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-        apiVersion: "2024-11-20",
+        apiVersion: "2024-10-28",
       });
 
       const session = await stripe.billingPortal.sessions.create({
@@ -1505,7 +1505,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const Stripe = (await import("stripe")).default;
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-        apiVersion: "2024-11-20",
+        apiVersion: "2024-10-28",
       });
 
       const user = await storage.getUser(userId);
@@ -1655,7 +1655,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const Stripe = (await import("stripe")).default;
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-        apiVersion: "2024-11-20",
+        apiVersion: "2024-10-28",
       });
 
       const user = await storage.getUser(userId);
@@ -1722,7 +1722,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create ephemeral key for customer
       const ephemeralKey = await stripe.ephemeralKeys.create(
         { customer: customerId },
-        { apiVersion: '2024-11-20' }
+        { apiVersion: '2024-10-28' }
       );
 
       // Create PaymentIntent for iOS
@@ -1769,7 +1769,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const Stripe = (await import("stripe")).default;
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-        apiVersion: "2024-11-20",
+        apiVersion: "2024-10-28",
       });
 
       // Retrieve and verify payment intent
@@ -1865,7 +1865,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const Stripe = (await import("stripe")).default;
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-        apiVersion: "2024-11-20",
+        apiVersion: "2024-10-28",
       });
 
       const sig = req.headers["stripe-signature"];
