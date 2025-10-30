@@ -107,29 +107,36 @@ const CONSTANTS = {
  * Parse raw HealthKit sleep segments into processed segments
  */
 export function parseRawSegments(rawSegments: RawSleepSegment[]): ProcessedSegment[] {
-  return rawSegments.map(seg => {
-    const start = new Date(seg.startDate);
-    const end = new Date(seg.endDate);
-    const durationMinutes = Math.round((end.getTime() - start.getTime()) / (1000 * 60));
-    
-    // Map sleep stage types
-    const sleepType = seg.value?.toLowerCase() || '';
-    let stage: 'awake' | 'light' | 'deep' | 'rem';
-    
-    // Treat "in_bed" as awake time (pre-sleep/post-sleep, not actual sleep)
-    if (sleepType.includes('awake') || sleepType.includes('in_bed')) {
-      stage = 'awake';
-    } else if (sleepType.includes('rem') || sleepType === 'asleep_rem') {
-      stage = 'rem';
-    } else if (sleepType.includes('deep') || sleepType === 'asleep_deep') {
-      stage = 'deep';
-    } else {
-      // Default to light for core/light/unknown
-      stage = 'light';
-    }
-    
-    return { start, end, durationMinutes, stage };
-  }).sort((a, b) => a.start.getTime() - b.start.getTime());
+  return rawSegments
+    .filter(seg => {
+      const sleepType = seg.value?.toLowerCase() || '';
+      // CRITICAL: Filter out "in_bed" segments - they're container segments that overlap
+      // with all other stages. Including them causes awake time to balloon to full session.
+      return !sleepType.includes('in_bed');
+    })
+    .map(seg => {
+      const start = new Date(seg.startDate);
+      const end = new Date(seg.endDate);
+      const durationMinutes = Math.round((end.getTime() - start.getTime()) / (1000 * 60));
+      
+      // Map sleep stage types
+      const sleepType = seg.value?.toLowerCase() || '';
+      let stage: 'awake' | 'light' | 'deep' | 'rem';
+      
+      if (sleepType.includes('awake')) {
+        stage = 'awake';
+      } else if (sleepType.includes('rem') || sleepType === 'asleep_rem') {
+        stage = 'rem';
+      } else if (sleepType.includes('deep') || sleepType === 'asleep_deep') {
+        stage = 'deep';
+      } else {
+        // Default to light for core/light/unknown
+        stage = 'light';
+      }
+      
+      return { start, end, durationMinutes, stage };
+    })
+    .sort((a, b) => a.start.getTime() - b.start.getTime());
 }
 
 /**

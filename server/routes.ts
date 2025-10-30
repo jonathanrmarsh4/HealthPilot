@@ -11251,6 +11251,7 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
         weight: req.body.weight?.length || 0,
         bodyFat: req.body.bodyFat?.length || 0,
         leanBodyMass: req.body.leanBodyMass?.length || 0,
+        activeCalories: req.body.activeCalories?.length || 0,
       };
       
       console.log("📊 Data counts:", dataCounts);
@@ -11294,7 +11295,8 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
         workouts, 
         weight, 
         bodyFat, 
-        leanBodyMass 
+        leanBodyMass,
+        activeCalories 
       } = req.body;
       
       // Get user timezone for sleep processing
@@ -11473,6 +11475,23 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
           return true;
         },
         "💪"
+      );
+
+      // Process active calories data in batches
+      insertedCount += await processBatch(
+        activeCalories || [],
+        async (sample) => {
+          await storage.upsertBiomarker({
+            userId,
+            type: "calories",
+            value: sample.value,
+            unit: sample.unit || "kcal",
+            source: "ios-healthkit",
+            recordedAt: new Date(sample.startDate),
+          });
+          return true;
+        },
+        "🔥"
       );
 
       // Process sleep data using v2.0 algorithm
