@@ -1494,8 +1494,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = (req.user as any).claims.sub;
       const { tier, billingCycle, promoCode } = req.body;
+      
+      console.log("🔍 Stripe checkout request:", { tier, billingCycle, promoCode, body: req.body });
 
       if (!tier || (tier !== "premium" && tier !== "enterprise")) {
+        console.log("❌ Invalid tier received:", tier);
         return res.status(400).json({ error: "Invalid subscription tier" });
       }
 
