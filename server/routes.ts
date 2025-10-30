@@ -9526,14 +9526,31 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
       const heartRate = latestByType['heart-rate'];
       const bloodGlucose = latestByType['blood-glucose'];
       const weight = latestByType['weight'];
-      const steps = latestByType['steps'];
-      const calories = latestByType['calories'];
+      
+      // Get user's timezone for proper "today" calculation
+      const userSettings = await storage.getUserSettings(userId);
+      const userTimezone = userSettings?.timezone || 'UTC';
+      
+      // Calculate start of today in user's timezone
+      const now = new Date();
+      const todayStart = new Date(now.toLocaleString('en-US', { timeZone: userTimezone }));
+      todayStart.setHours(0, 0, 0, 0);
+      
+      // Sum all steps from today (HealthKit sends multiple samples throughout the day)
+      const todaySteps = biomarkers
+        .filter(b => b.type === 'steps' && new Date(b.recordedAt) >= todayStart)
+        .reduce((sum, b) => sum + (b.value || 0), 0);
+      
+      // Sum all calories from today
+      const todayCalories = biomarkers
+        .filter(b => b.type === 'calories' && new Date(b.recordedAt) >= todayStart)
+        .reduce((sum, b) => sum + (b.value || 0), 0);
       
       res.json({
-        dailySteps: steps ? steps.value : 0,
+        dailySteps: Math.round(todaySteps),
         restingHR: heartRate ? heartRate.value : 0,
         activeDays: 5,
-        calories: calories ? calories.value : 0,
+        calories: Math.round(todayCalories),
         heartRate: heartRate ? {
           value: heartRate.value,
           trend: calculateTrend(heartRate.value, getPreviousValue('heart-rate', new Date(heartRate.recordedAt))),

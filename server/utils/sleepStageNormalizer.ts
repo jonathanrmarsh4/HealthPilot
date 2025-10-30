@@ -76,6 +76,15 @@ const STAGE_MAPPINGS: Record<string, CanonicalSleepStage> = {
   'ASLEEP': 'asleep_core',
   'sleeping': 'asleep_core',
   'SLEEPING': 'asleep_core',
+  
+  // Apple HealthKit numeric values (HKCategoryValueSleepAnalysis)
+  // https://developer.apple.com/documentation/healthkit/hkcategoryvaluesleepanalysis
+  '0': 'in_bed',        // HKCategoryValueSleepAnalysis.inBed
+  '1': 'asleep_core',   // HKCategoryValueSleepAnalysis.asleep (unspecified)
+  '2': 'awake',         // HKCategoryValueSleepAnalysis.awake
+  '3': 'asleep_core',   // HKCategoryValueSleepAnalysis.core
+  '4': 'asleep_deep',   // HKCategoryValueSleepAnalysis.deep
+  '5': 'asleep_rem',    // HKCategoryValueSleepAnalysis.rem
 };
 
 /**
