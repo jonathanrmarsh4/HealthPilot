@@ -11224,7 +11224,7 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
       const BATCH_SIZE = 500; // Process in chunks of 500 to avoid timeouts
 
       // Helper function to process data in batches
-      // Processes items sequentially within each batch to avoid overwhelming the DB connection pool
+      // Processes items in parallel within each batch for faster sync
       const processBatch = async <T>(
         items: T[],
         processor: (item: T) => Promise<boolean>,
@@ -11241,19 +11241,23 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
           const batchNum = Math.floor(i / BATCH_SIZE) + 1;
           const totalBatches = Math.ceil(items.length / BATCH_SIZE);
           
-          console.log(`  Batch ${batchNum}/${totalBatches}: Processing ${batch.length} items...`);
+          console.log(`  Batch ${batchNum}/${totalBatches}: Processing ${batch.length} items in parallel...`);
           
-          // Process batch items sequentially to avoid connection pool saturation
-          for (const item of batch) {
-            try {
-              const success = await processor(item);
-              if (success) successCount++;
-            } catch (error) {
-              console.error(`  ⚠️ Error processing item:`, error);
+          // Process batch items in parallel for speed
+          const results = await Promise.allSettled(
+            batch.map(item => processor(item))
+          );
+          
+          // Count successes
+          for (const result of results) {
+            if (result.status === 'fulfilled' && result.value) {
+              successCount++;
+            } else if (result.status === 'rejected') {
+              console.error(`  ⚠️ Error processing item:`, result.reason);
             }
           }
           
-          console.log(`  ✓ Batch ${batchNum}/${totalBatches} complete (${successCount}/${items.length} successful)`);
+          console.log(`  ✓ Batch ${batchNum}/${totalBatches} complete (${successCount} successful)`);
         }
         
         return successCount;
