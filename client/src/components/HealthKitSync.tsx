@@ -50,8 +50,8 @@ export function HealthKitSync() {
         throw new Error('HealthKit permissions not granted');
       }
 
-      // Get health data from HealthKit (7 days for faster sync)
-      const healthData = await healthKitService.getAllHealthData(7);
+      // Get health data from HealthKit (3 days for faster initial sync)
+      const healthData = await healthKitService.getAllHealthData(3);
       
       // Send to backend
       await apiRequest('POST', '/api/apple-health/sync', healthData);
@@ -156,7 +156,7 @@ export function HealthKitSync() {
       <CardContent className="space-y-4">
         <div className="flex flex-col gap-3">
           <p className="text-sm text-muted-foreground">
-            Sync data from the last 7 days including steps, HRV, sleep, workouts, and biomarkers.
+            Sync data from the last 3 days including steps, HRV, sleep, workouts, and biomarkers.
           </p>
 
           <Button

@@ -11193,7 +11193,8 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
     try {
       console.log("📱 Received Capacitor HealthKit sync");
       console.log("📦 Request body keys:", Object.keys(req.body));
-      console.log("📊 Data counts:", {
+      
+      const dataCounts = {
         steps: req.body.steps?.length || 0,
         hrv: req.body.hrv?.length || 0,
         restingHeartRate: req.body.restingHeartRate?.length || 0,
@@ -11202,7 +11203,21 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
         weight: req.body.weight?.length || 0,
         bodyFat: req.body.bodyFat?.length || 0,
         leanBodyMass: req.body.leanBodyMass?.length || 0,
+      };
+      
+      console.log("📊 Data counts:", dataCounts);
+      
+      const totalSamples = Object.values(dataCounts).reduce((sum, count) => sum + count, 0);
+      
+      // Respond immediately to prevent client timeout
+      res.json({
+        success: true,
+        message: `Processing ${totalSamples} health data samples in background`,
+        status: 'processing',
       });
+      
+      // Process data in background (don't await)
+      (async () => {
       
       // Match field names from mobile app (restingHeartRate, leanBodyMass)
       const { 
@@ -11560,15 +11575,15 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
       );
 
       console.log(`✅ Capacitor sync complete: ${insertedCount} items inserted/updated`);
-
-      res.json({
-        success: true,
-        message: `Synced ${insertedCount} health data points`,
-        insertedCount,
+      })().catch(error => {
+        console.error("❌ Background sync processing error:", error);
       });
+
     } catch (error: any) {
       console.error("Error processing Capacitor HealthKit sync:", error);
-      res.status(500).json({ error: error.message });
+      if (!res.headersSent) {
+        res.status(500).json({ error: error.message });
+      }
     }
   });
 
