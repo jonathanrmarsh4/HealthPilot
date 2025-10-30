@@ -122,9 +122,9 @@ export function HealthKitSync() {
         throw new Error('HealthKit permissions not granted');
       }
 
-      // Get health data from HealthKit (1 day for reliable sync)
-      console.log('[HealthKitSync] Fetching 1 day of health data...');
-      const healthData = await healthKitService.getAllHealthData(1);
+      // Get health data from HealthKit (7 days to include today's current data + recent history)
+      console.log('[HealthKitSync] Fetching 7 days of health data...');
+      const healthData = await healthKitService.getAllHealthData(7);
       
       console.log('[HealthKitSync] Data fetched, uploading to server...');
       

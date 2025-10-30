@@ -135,9 +135,9 @@ export default function AppleHealthSetup() {
         throw new Error('HealthKit permissions were not granted. Please enable them in Settings.');
       }
 
-      // Get health data (last 1 day for reliable initial sync)
-      console.log('[AppleHealthSetup] Fetching 1 day of health data...');
-      const healthData = await healthKitService.getAllHealthData(1);
+      // Get health data (last 7 days to include today's current data + recent history)
+      console.log('[AppleHealthSetup] Fetching 7 days of health data...');
+      const healthData = await healthKitService.getAllHealthData(7);
       console.log('[AppleHealthSetup] Data fetched, uploading...');
       
       // Send to backend - will get jobId back

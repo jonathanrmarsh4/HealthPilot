@@ -81,12 +81,13 @@ const STAGE_MAPPINGS: Record<string, CanonicalSleepStage> = {
 /**
  * Normalize a sleep stage value to canonical format
  * 
- * @param value - Raw sleep stage value from HealthKit or other source
+ * @param value - Raw sleep stage value from HealthKit or other source (string or number)
  * @returns Normalized stage with metadata
  */
-export function normalizeSleepStage(value: string): NormalizedStage {
-  // Trim whitespace and lowercase for comparison
-  const trimmed = value.trim();
+export function normalizeSleepStage(value: string | number | null | undefined): NormalizedStage {
+  // Convert to string and trim whitespace
+  const stringValue = value != null ? String(value) : 'unknown';
+  const trimmed = stringValue.trim();
   
   // Check if already in canonical form
   const canonicalStages: CanonicalSleepStage[] = [
@@ -96,7 +97,7 @@ export function normalizeSleepStage(value: string): NormalizedStage {
   if (canonicalStages.includes(trimmed as CanonicalSleepStage)) {
     return {
       canonical: trimmed as CanonicalSleepStage,
-      original: value,
+      original: stringValue,
       normalized: false,
       recognized: trimmed !== 'unknown'
     };
@@ -108,18 +109,18 @@ export function normalizeSleepStage(value: string): NormalizedStage {
   if (mapped) {
     return {
       canonical: mapped,
-      original: value,
+      original: stringValue,
       normalized: true,
       recognized: true
     };
   }
   
   // Unknown stage - return as 'unknown' but preserve original value for debugging
-  console.warn(`[SLEEP_STAGE] Unknown sleep stage value: "${value}" - mapping to "unknown"`);
+  console.warn(`[SLEEP_STAGE] Unknown sleep stage value: "${stringValue}" (type: ${typeof value}) - mapping to "unknown"`);
   
   return {
     canonical: 'unknown',
-    original: value,
+    original: stringValue,
     normalized: true,
     recognized: false
   };
