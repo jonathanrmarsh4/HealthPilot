@@ -8,6 +8,8 @@ import { Copy, CreditCard, TrendingUp, Users, Calendar, DollarSign } from "lucid
 import { format } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { CheckoutModal } from "@/components/CheckoutModal";
+import { useState } from "react";
 
 interface SubscriptionData {
   tier: string;
@@ -42,6 +44,8 @@ interface UserData {
 
 export default function Billing() {
   const { toast } = useToast();
+  const [checkoutModalOpen, setCheckoutModalOpen] = useState(false);
+  const [selectedTier, setSelectedTier] = useState<"premium" | "enterprise">("premium");
 
   const { data: subscription, isLoading: subLoading } = useQuery<SubscriptionData>({
     queryKey: ["/api/subscriptions"],
@@ -234,7 +238,10 @@ export default function Billing() {
                 <Button
                   className="w-full"
                   variant="default"
-                  onClick={() => window.location.href = "/pricing"}
+                  onClick={() => {
+                    setSelectedTier("enterprise");
+                    setCheckoutModalOpen(true);
+                  }}
                   data-testid="button-upgrade-enterprise"
                 >
                   Upgrade to Enterprise
@@ -454,10 +461,13 @@ export default function Billing() {
               <Button 
                 className="flex-1" 
                 size="lg"
-                onClick={() => window.location.href = "/pricing"}
+                onClick={() => {
+                  setSelectedTier("premium");
+                  setCheckoutModalOpen(true);
+                }}
                 data-testid="button-view-plans"
               >
-                View Plans & Pricing
+                Upgrade to Premium
               </Button>
               <Button 
                 className="flex-1" 
@@ -472,6 +482,13 @@ export default function Billing() {
           </CardContent>
         </Card>
       )}
+
+      <CheckoutModal
+        open={checkoutModalOpen}
+        onOpenChange={setCheckoutModalOpen}
+        tier={selectedTier}
+        tierName={selectedTier === "premium" ? "Premium" : "Enterprise"}
+      />
     </div>
   );
 }
