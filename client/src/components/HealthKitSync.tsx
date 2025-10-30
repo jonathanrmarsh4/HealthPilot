@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Smartphone, Download, CheckCircle2, XCircle, Info, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { apiRequest, queryClient } from '@/lib/queryClient';
 
 export function HealthKitSync() {
   const [isSyncing, setIsSyncing] = useState(false);
@@ -49,8 +50,11 @@ export function HealthKitSync() {
         throw new Error('HealthKit permissions not granted');
       }
 
-      // Sync data (7 days for better UX - subsequent syncs are fast due to UUID deduplication)
-      await healthKitService.syncAllHealthData(7); // Last 7 days
+      // Get health data from HealthKit (30 days)
+      const healthData = await healthKitService.getAllHealthData(30);
+      
+      // Send to backend
+      await apiRequest('POST', '/api/apple-health/sync', healthData);
       
       setLastSyncResult({
         success: true,
@@ -61,6 +65,10 @@ export function HealthKitSync() {
         title: 'Sync Complete',
         description: 'Your health data has been synced successfully',
       });
+
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['/api/biomarkers'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
     } catch (error: any) {
       console.error('HealthKit sync failed:', error);
       
