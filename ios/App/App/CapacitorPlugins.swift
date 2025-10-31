@@ -1,9 +1,2 @@
-import Capacitor
-import HealthPilotHealthKit
-
-@objc public class CapacitorPlugins: NSObject {
-    @objc public static func load() {
-        // Register custom HealthPilotHealthKit plugin
-        CAPBridge.registerPlugin(HealthPilotHealthKit.self)
-    }
-}
+// This file is no longer needed in Capacitor 7+
+// Plugins are auto-registered via their .m files using CAP_PLUGIN macro
