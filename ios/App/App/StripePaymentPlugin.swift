@@ -1,4 +1,4 @@
-import Foundation
+dimport Foundation
 import Capacitor
 import StripePaymentSheet
 
