@@ -1,0 +1,268 @@
+Last login: Fri Oct 31 18:43:34 on ttys106
+jonathanmarsh@Jonathans-MacBook-Air ~ % cd ~/desktop/healthpilot
+jonathanmarsh@Jonathans-MacBook-Air healthpilot % cd ~/Desktop/HealthPilot/ios/App
+rm -rf Pods Podfile.lock
+pod install --verbose
+  Preparing
+
+Analyzing dependencies
+
+Inspecting targets to integrate
+  Using `ARCHS` setting to build architectures of target `Pods-App`: (``)
+
+Fetching external sources
+-> Fetching podspec for `AparajitaCapacitorSecureStorage` from `../../node_modules/@aparajita/capacitor-secure-storage`
+-> Fetching podspec for `Capacitor` from `../../node_modules/@capacitor/ios`
+-> Fetching podspec for `CapacitorApp` from `../../node_modules/@capacitor/app`
+-> Fetching podspec for `CapacitorBrowser` from `../../node_modules/@capacitor/browser`
+-> Fetching podspec for `CapacitorCordova` from `../../node_modules/@capacitor/ios`
+-> Fetching podspec for `CapacitorFilesystem` from `../../node_modules/@capacitor/filesystem`
+-> Fetching podspec for `CapacitorHaptics` from `../../node_modules/@capacitor/haptics`
+-> Fetching podspec for `CapacitorKeyboard` from `../../node_modules/@capacitor/keyboard`
+-> Fetching podspec for `CapacitorLocalNotifications` from `../../node_modules/@capacitor/local-notifications`
+-> Fetching podspec for `CapacitorPreferences` from `../../node_modules/@capacitor/preferences`
+-> Fetching podspec for `CapacitorPushNotifications` from `../../node_modules/@capacitor/push-notifications`
+-> Fetching podspec for `CapacitorShare` from `../../node_modules/@capacitor/share`
+-> Fetching podspec for `CapacitorSplashScreen` from `../../node_modules/@capacitor/splash-screen`
+-> Fetching podspec for `CapacitorStatusBar` from `../../node_modules/@capacitor/status-bar`
+
+Resolving dependencies of `Podfile`
+  CDN: trunk Relative path: CocoaPods-version.yml exists! Returning local because checking is only
+  performed in repo update
+  CDN: trunk Relative path: all_pods_versions_e_e_e.txt exists! Returning local because checking is
+  only performed in repo update
+  CDN: trunk Relative path: Specs/e/e/e/KeychainSwift/24.0.0/KeychainSwift.podspec.json exists!
+  Returning local because checking is only performed in repo update
+  CDN: trunk Relative path: all_pods_versions_1_9_a.txt exists! Returning local because checking is
+  only performed in repo update
+  CDN: trunk Relative path: Specs/1/9/a/IONFilesystemLib/1.0.1/IONFilesystemLib.podspec.json exists!
+  Returning local because checking is only performed in repo update
+  CDN: trunk Relative path: Specs/e/e/e/KeychainSwift/21.0.0/KeychainSwift.podspec.json exists!
+  Returning local because checking is only performed in repo update
+  CDN: trunk Relative path: Specs/1/9/a/IONFilesystemLib/1.0.1/IONFilesystemLib.podspec.json exists!
+  Returning local because checking is only performed in repo update
+
+Comparing resolved specification to the sandbox manifest
+  A AparajitaCapacitorSecureStorage
+  A Capacitor
+  A CapacitorApp
+  A CapacitorBrowser
+  A CapacitorCordova
+  A CapacitorFilesystem
+  A CapacitorHaptics
+  A CapacitorKeyboard
+  A CapacitorLocalNotifications
+  A CapacitorPreferences
+  A CapacitorPushNotifications
+  A CapacitorShare
+  A CapacitorSplashScreen
+  A CapacitorStatusBar
+  A IONFilesystemLib
+  A KeychainSwift
+
+Downloading dependencies
+
+-> Installing AparajitaCapacitorSecureStorage (7.1.6)
+
+-> Installing Capacitor (7.4.4)
+
+-> Installing CapacitorApp (7.1.0)
+
+-> Installing CapacitorBrowser (7.0.2)
+
+-> Installing CapacitorCordova (7.4.4)
+
+-> Installing CapacitorFilesystem (7.1.4)
+
+-> Installing CapacitorHaptics (7.0.2)
+
+-> Installing CapacitorKeyboard (7.0.3)
+
+-> Installing CapacitorLocalNotifications (7.0.3)
+
+-> Installing CapacitorPreferences (7.0.2)
+
+-> Installing CapacitorPushNotifications (7.0.3)
+
+-> Installing CapacitorShare (7.0.2)
+
+-> Installing CapacitorSplashScreen (7.0.3)
+
+-> Installing CapacitorStatusBar (7.0.3)
+
+-> Installing IONFilesystemLib (1.0.1)
+  > Copying IONFilesystemLib from
+  `/Users/jonathanmarsh/Library/Caches/CocoaPods/Pods/Release/IONFilesystemLib/1.0.1-89258` to
+  `Pods/IONFilesystemLib`
+
+-> Installing KeychainSwift (21.0.0)
+  > Copying KeychainSwift from
+  `/Users/jonathanmarsh/Library/Caches/CocoaPods/Pods/Release/KeychainSwift/21.0.0-4a71a` to
+  `Pods/KeychainSwift`
+  - Running pre install hooks
+  - Running pre integrate hooks
+
+Generating Pods project
+  - Creating Pods project
+  - Installing files into Pods project
+    - Adding source files
+    - Adding frameworks
+    - Adding libraries
+    - Adding resources
+    - Adding development pod helper files
+    - Linking headers
+  - Installing Pod Targets
+    - Installing target `AparajitaCapacitorSecureStorage` iOS 14.0
+      - Generating module map file at `Pods/Target Support
+      Files/AparajitaCapacitorSecureStorage/AparajitaCapacitorSecureStorage.modulemap`
+      - Generating umbrella header at `Pods/Target Support
+      Files/AparajitaCapacitorSecureStorage/AparajitaCapacitorSecureStorage-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support
+      Files/AparajitaCapacitorSecureStorage/AparajitaCapacitorSecureStorage-Info.plist`
+      - Generating dummy source at `Pods/Target Support
+      Files/AparajitaCapacitorSecureStorage/AparajitaCapacitorSecureStorage-dummy.m`
+    - Installing target `Capacitor` iOS 14.0
+      - Copying module map file to `Pods/Target Support Files/Capacitor/Capacitor.modulemap`
+      - Generating Info.plist file at `Pods/Target Support Files/Capacitor/Capacitor-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/Capacitor/Capacitor-dummy.m`
+    - Installing target `CapacitorApp` iOS 14.0
+      - Generating module map file at `Pods/Target Support
+      Files/CapacitorApp/CapacitorApp.modulemap`
+      - Generating umbrella header at `Pods/Target Support
+      Files/CapacitorApp/CapacitorApp-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support
+      Files/CapacitorApp/CapacitorApp-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/CapacitorApp/CapacitorApp-dummy.m`
+    - Installing target `CapacitorBrowser` iOS 14.0
+      - Generating module map file at `Pods/Target Support
+      Files/CapacitorBrowser/CapacitorBrowser.modulemap`
+      - Generating umbrella header at `Pods/Target Support
+      Files/CapacitorBrowser/CapacitorBrowser-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support
+      Files/CapacitorBrowser/CapacitorBrowser-Info.plist`
+      - Generating dummy source at `Pods/Target Support
+      Files/CapacitorBrowser/CapacitorBrowser-dummy.m`
+    - Installing target `CapacitorCordova` iOS 14.0
+      - Copying module map file to `Pods/Target Support
+      Files/CapacitorCordova/CapacitorCordova.modulemap`
+      - Generating Info.plist file at `Pods/Target Support
+      Files/CapacitorCordova/CapacitorCordova-Info.plist`
+      - Generating dummy source at `Pods/Target Support
+      Files/CapacitorCordova/CapacitorCordova-dummy.m`
+    - Installing target `CapacitorFilesystem` iOS 14.0
+      - Generating module map file at `Pods/Target Support
+      Files/CapacitorFilesystem/CapacitorFilesystem.modulemap`
+      - Generating umbrella header at `Pods/Target Support
+      Files/CapacitorFilesystem/CapacitorFilesystem-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support
+      Files/CapacitorFilesystem/CapacitorFilesystem-Info.plist`
+      - Generating dummy source at `Pods/Target Support
+      Files/CapacitorFilesystem/CapacitorFilesystem-dummy.m`
+    - Installing target `CapacitorHaptics` iOS 14.0
+      - Generating module map file at `Pods/Target Support
+      Files/CapacitorHaptics/CapacitorHaptics.modulemap`
+      - Generating umbrella header at `Pods/Target Support
+      Files/CapacitorHaptics/CapacitorHaptics-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support
+      Files/CapacitorHaptics/CapacitorHaptics-Info.plist`
+      - Generating dummy source at `Pods/Target Support
+      Files/CapacitorHaptics/CapacitorHaptics-dummy.m`
+    - Installing target `CapacitorKeyboard` iOS 14.0
+      - Generating module map file at `Pods/Target Support
+      Files/CapacitorKeyboard/CapacitorKeyboard.modulemap`
+      - Generating umbrella header at `Pods/Target Support
+      Files/CapacitorKeyboard/CapacitorKeyboard-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support
+      Files/CapacitorKeyboard/CapacitorKeyboard-Info.plist`
+      - Generating dummy source at `Pods/Target Support
+      Files/CapacitorKeyboard/CapacitorKeyboard-dummy.m`
+    - Installing target `CapacitorLocalNotifications` iOS 14.0
+      - Generating module map file at `Pods/Target Support
+      Files/CapacitorLocalNotifications/CapacitorLocalNotifications.modulemap`
+      - Generating umbrella header at `Pods/Target Support
+      Files/CapacitorLocalNotifications/CapacitorLocalNotifications-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support
+      Files/CapacitorLocalNotifications/CapacitorLocalNotifications-Info.plist`
+      - Generating dummy source at `Pods/Target Support
+      Files/CapacitorLocalNotifications/CapacitorLocalNotifications-dummy.m`
+    - Installing target `CapacitorPreferences` iOS 14.0
+      - Generating module map file at `Pods/Target Support
+      Files/CapacitorPreferences/CapacitorPreferences.modulemap`
+      - Generating umbrella header at `Pods/Target Support
+      Files/CapacitorPreferences/CapacitorPreferences-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support
+      Files/CapacitorPreferences/CapacitorPreferences-Info.plist`
+      - Generating dummy source at `Pods/Target Support
+      Files/CapacitorPreferences/CapacitorPreferences-dummy.m`
+    - Installing target `CapacitorPushNotifications` iOS 14.0
+      - Generating module map file at `Pods/Target Support
+      Files/CapacitorPushNotifications/CapacitorPushNotifications.modulemap`
+      - Generating umbrella header at `Pods/Target Support
+      Files/CapacitorPushNotifications/CapacitorPushNotifications-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support
+      Files/CapacitorPushNotifications/CapacitorPushNotifications-Info.plist`
+      - Generating dummy source at `Pods/Target Support
+      Files/CapacitorPushNotifications/CapacitorPushNotifications-dummy.m`
+    - Installing target `CapacitorShare` iOS 14.0
+      - Generating module map file at `Pods/Target Support
+      Files/CapacitorShare/CapacitorShare.modulemap`
+      - Generating umbrella header at `Pods/Target Support
+      Files/CapacitorShare/CapacitorShare-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support
+      Files/CapacitorShare/CapacitorShare-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/CapacitorShare/CapacitorShare-dummy.m`
+    - Installing target `CapacitorSplashScreen` iOS 14.0
+      - Generating module map file at `Pods/Target Support
+      Files/CapacitorSplashScreen/CapacitorSplashScreen.modulemap`
+      - Generating umbrella header at `Pods/Target Support
+      Files/CapacitorSplashScreen/CapacitorSplashScreen-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support
+      Files/CapacitorSplashScreen/CapacitorSplashScreen-Info.plist`
+      - Generating dummy source at `Pods/Target Support
+      Files/CapacitorSplashScreen/CapacitorSplashScreen-dummy.m`
+    - Installing target `CapacitorStatusBar` iOS 14.0
+      - Generating module map file at `Pods/Target Support
+      Files/CapacitorStatusBar/CapacitorStatusBar.modulemap`
+      - Generating umbrella header at `Pods/Target Support
+      Files/CapacitorStatusBar/CapacitorStatusBar-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support
+      Files/CapacitorStatusBar/CapacitorStatusBar-Info.plist`
+      - Generating dummy source at `Pods/Target Support
+      Files/CapacitorStatusBar/CapacitorStatusBar-dummy.m`
+    - Installing target `IONFilesystemLib` iOS 14.0
+    - Installing target `KeychainSwift` iOS 12.0
+      - Generating module map file at `Pods/Target Support
+      Files/KeychainSwift/KeychainSwift.modulemap`
+      - Generating umbrella header at `Pods/Target Support
+      Files/KeychainSwift/KeychainSwift-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support
+      Files/KeychainSwift/KeychainSwift-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/KeychainSwift/KeychainSwift-dummy.m`
+  - Installing Aggregate Targets
+    - Installing target `Pods-App` iOS 14.0
+      - Generating Info.plist file at `Pods/Target Support Files/Pods-App/Pods-App-Info.plist`
+      - Generating module map file at `Pods/Target Support Files/Pods-App/Pods-App.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/Pods-App/Pods-App-umbrella.h`
+      - Generating dummy source at `Pods/Target Support Files/Pods-App/Pods-App-dummy.m`
+  - Integrating targets
+
+Integrating target `IONFilesystemLib`
+    Adding Build Phase '[CP] Copy XCFrameworks' to project.
+  - Generating deterministic UUIDs
+  - Stabilizing target UUIDs
+  - Running post install hooks
+    - Podfile
+  - Writing Xcode project file to `Pods/Pods.xcodeproj`
+  Cleaning up sandbox directory
+
+Integrating client project
+
+Integrating target `Pods-App` (`App.xcodeproj` project)
+  - Running post integrate hooks
+  - Writing Lockfile in `Podfile.lock`
+  - Writing Manifest in `Pods/Manifest.lock`
+  CDN: trunk Relative path: CocoaPods-version.yml exists! Returning local because checking is only
+  performed in repo update
+
+-> Pod installation complete! There are 14 dependencies from the Podfile and 16 total pods installed.
+jonathanmarsh@Jonathans-MacBook-Air App % 
