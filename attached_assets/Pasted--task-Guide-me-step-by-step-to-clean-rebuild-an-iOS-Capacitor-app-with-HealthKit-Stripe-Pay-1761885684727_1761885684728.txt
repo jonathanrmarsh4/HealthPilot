@@ -1,0 +1,62 @@
+{
+  "task": "Guide me step-by-step to clean-rebuild an iOS Capacitor app with HealthKit, Stripe (PaymentSheet), and Apple Pay—no steps skipped.",
+  "mode": "DO-CONFIRM",
+  "assumptions": {
+    "platform": "Capacitor v7 (iOS-first)",
+    "language": "TypeScript + Swift",
+    "tooling": ["Node 20+", "Xcode 15/16", "CocoaPods", "GitHub Actions optional"],
+    "app_name": "HealthPilot",
+    "bundle_id": "com.nuvitae.healthpilot"
+  },
+  "prereq_questions_for_me": [
+    "Confirm Apple Developer Team ID and that I can enable capabilities (HealthKit and Apple Pay).",
+    "Confirm Stripe account is active and I can create restricted API keys + webhooks.",
+    "Choose HealthKit approach: (A) **Custom Capacitor plugin** we own; or (B) **Community plugin** (Capgo Health or similar) then patch for coverage. Default to (A).",
+    "Do we have a backend? If not, create a minimal Node/Express service for Stripe: `/create-payment-intent`, `/create-setup-intent`, `/ephemeral-key`."
+  ],
+  "phases": [
+    {
+      "name": "Phase 0 — Fresh scaffold & environment sanity",
+      "steps": [
+        "Create new repo(s): `healthpilot-app-ios` (Capacitor app), `nuvitae-healthkit-plugin-ios` (if custom plugin), `healthpilot-payments-api` (minimal Stripe backend).",
+        "Initialize Capacitor app: `npm create @capacitor/app@latest` → name HealthPilot → iOS only for now.",
+        "Install base deps: `npm i @capacitor/ios @capacitor/core @capacitor/cli`.",
+        "Run `npx cap add ios` then open Xcode once to confirm targets build.",
+        "Create `.nvmrc` and lock Node version; set `engines` in package.json; add Prettier/ESLint."
+      ],
+      "acceptance": [
+        "Xcode builds and runs a blank app on simulator and a physical device.",
+        "Repo has CI placeholder (can be added later)."
+      ]
+    },
+    {
+      "name": "Phase 1 — App identity & Apple capabilities",
+      "steps": [
+        "Set `bundle_id` to `com.nuvitae.healthpilot` in Xcode.",
+        "Enable **HealthKit** capability + add entitlements: `com.apple.developer.healthkit`, `com.apple.developer.healthkit.background-delivery`.",
+        "Enable **Apple Pay** capability; create/select a **Merchant ID** (e.g., `merchant.com.nuvitae.healthpilot`).",
+        "Update `Info.plist` with human-readable consent strings: `NSHealthShareUsageDescription` and `NSHealthUpdateUsageDescription` explaining why each data type is used."
+      ],
+      "acceptance": [
+        "Capabilities compile clean.",
+        "Merchant ID visible in Signing & Capabilities.",
+        "No missing plist keys warnings."
+      ]
+    },
+    {
+      "name": "Phase 2 — HealthKit data layer",
+      "branch": "If using custom plugin (recommended for >40 HK types), follow A; otherwise follow B.",
+      "A_custom_plugin": {
+        "steps": [
+          "Create `nuvitae-healthkit-plugin-ios` with Swift + Capacitor v7 bridge.",
+          "Implement permissions per HKType (fine-grained) with user-friendly rationale mapping.",
+          "Implement `HKObserverQuery + enableBackgroundDelivery` and `HKAnchoredObjectQuery` per type.",
+          "Persist `HKQueryAnchor` per HKType (keyed by user) using secure storage.",
+          "Handle deletions (`HKDeletedObject`) and propagate them to the app layer.",
+          "Normalize dates to ISO8601; include `HKDevice`, `HKSourceRevision`, units, start/end, uuid.",
+          "Add throttling & pagination; split large payloads across JS bridge; never block main thread.",
+          "Export typed TypeScript definitions and a small TS wrapper with discriminated unions."
+        ],
+        "deliverables": [
+          "Swift package + Capacitor bridge",
+          "`README` with supported types matrix (read/write,
