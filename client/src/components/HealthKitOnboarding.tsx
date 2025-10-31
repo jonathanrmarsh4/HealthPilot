@@ -73,14 +73,28 @@ export function HealthKitOnboarding({ onComplete, onSkip }: HealthKitOnboardingP
 
     try {
       // Request permissions first
+      console.log('[HealthKitOnboarding] Requesting permissions...');
       const permissionsGranted = await healthKitService.requestPermissions();
       
       if (!permissionsGranted) {
         throw new Error('HealthKit permissions were not granted. You can enable them later in Settings.');
       }
+      console.log('[HealthKitOnboarding] Permissions granted');
 
-      // Sync data (last 90 days for initial sync)
-      await healthKitService.syncAllHealthData(90);
+      // Get health data from HealthKit (last 90 days for initial sync)
+      console.log('[HealthKitOnboarding] Fetching health data from HealthKit...');
+      const healthData = await healthKitService.getAllHealthData(90);
+      console.log('[HealthKitOnboarding] Health data retrieved:', {
+        steps: healthData.steps.length,
+        hrv: healthData.hrv.length,
+        sleep: healthData.sleep.length,
+        workouts: healthData.workouts.length,
+      });
+      
+      // Send data to backend
+      console.log('[HealthKitOnboarding] Sending data to backend...');
+      await apiRequest('POST', '/api/apple-health/sync', healthData);
+      console.log('[HealthKitOnboarding] Data sent successfully');
       
       setSyncStatus('success');
       
