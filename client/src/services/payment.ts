@@ -65,9 +65,6 @@ export class PaymentService {
         discountAmount: number;
       }>('/api/payments/create-intent', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
           tier: options.tier,
           billingCycle: options.billingCycle,
@@ -99,9 +96,6 @@ export class PaymentService {
         tier: SubscriptionTier;
       }>('/api/payments/confirm-subscription', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
           paymentIntentId,
         }),
@@ -129,9 +123,6 @@ export class PaymentService {
     try {
       const response = await apiRequest<{ sessionUrl: string }>('/api/stripe/create-checkout', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
           tier: options.tier,
           billingCycle: options.billingCycle,
@@ -206,16 +197,12 @@ export class PaymentService {
       },
     };
     
-    // Safety check: default to premium/monthly if tier/billingCycle is invalid
-    const safeTier = (tier === 'premium' || tier === 'enterprise') ? tier : 'premium';
-    const safeBillingCycle = (billingCycle === 'monthly' || billingCycle === 'annual') ? billingCycle : 'monthly';
-    
-    const basePrice = pricing[safeTier][safeBillingCycle];
+    const basePrice = pricing[tier][billingCycle];
     let savingsPercent: number | undefined;
     
     // Calculate annual discount
-    if (safeBillingCycle === 'annual') {
-      const monthlyEquivalent = pricing[safeTier].monthly * 12;
+    if (billingCycle === 'annual') {
+      const monthlyEquivalent = pricing[tier].monthly * 12;
       savingsPercent = Math.round(((monthlyEquivalent - basePrice) / monthlyEquivalent) * 100);
     }
     

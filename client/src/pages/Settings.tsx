@@ -13,9 +13,13 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useTimezone } from "@/contexts/TimezoneContext";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Bell } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Heart, Loader2, CheckCircle2, Bell } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
+import { healthKitService } from "@/services/healthkit";
+import { getPlatform } from "@/mobile/MobileBootstrap";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const COMMON_TIMEZONES = [
   { value: "Pacific/Auckland", label: "Auckland (GMT+12)" },
@@ -39,6 +43,9 @@ export default function Settings() {
   const { toast } = useToast();
   const { timezone, setTimezone, isLoading: timezoneLoading } = useTimezone();
   const [selectedTimezone, setSelectedTimezone] = useState(timezone);
+  const [isHealthKitSyncing, setIsHealthKitSyncing] = useState(false);
+  const [healthKitStatus, setHealthKitStatus] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle');
+  const [currentPlatform, setCurrentPlatform] = useState<string>('');
   const [quietHoursStart, setQuietHoursStart] = useState('22:00');
   const [quietHoursEnd, setQuietHoursEnd] = useState('07:00');
 
@@ -46,16 +53,22 @@ export default function Settings() {
     setSelectedTimezone(timezone);
   }, [timezone]);
 
+  useEffect(() => {
+    // Debug platform detection
+    const platform = getPlatform();
+    setCurrentPlatform(platform);
+    console.log('[Settings] Platform detected:', platform);
+    console.log('[Settings] Is iOS?', platform === 'ios');
+  }, []);
+
   const { isLoading } = useQuery({
     queryKey: ["/api/user/settings"],
     enabled: false,
   });
 
-  const { data: channelsData, isLoading: channelsLoading } = useQuery({
+  const { data: notificationChannels = [], isLoading: channelsLoading } = useQuery({
     queryKey: ['/api/notifications/channels'],
   });
-  
-  const notificationChannels = channelsData?.channels || [];
 
   useEffect(() => {
     if (notificationChannels.length > 0) {
@@ -131,6 +144,67 @@ export default function Settings() {
   const handleTimezoneChange = (value: string) => {
     setSelectedTimezone(value);
     updateTimezoneMutation.mutate(value);
+  };
+
+  const handleSetupHealthKit = async () => {
+    setIsHealthKitSyncing(true);
+    setHealthKitStatus('syncing');
+
+    try {
+      // Check if HealthKit is available
+      const available = await healthKitService.isHealthKitAvailable();
+      
+      if (!available) {
+        throw new Error('HealthKit is not available on this device');
+      }
+
+      // Request permissions
+      const permissionsGranted = await healthKitService.requestPermissions();
+      
+      if (!permissionsGranted) {
+        throw new Error('HealthKit permissions were not granted. Please enable them in Settings.');
+      }
+
+      // Sync data (last 90 days)
+      await healthKitService.syncAllHealthData(90);
+      
+      setHealthKitStatus('success');
+      
+      toast({
+        title: 'Sync Complete',
+        description: 'Your health data has been synced successfully',
+      });
+
+      // Mark HealthKit setup as complete
+      await apiRequest('POST', '/api/onboarding/complete-healthkit');
+      
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['/api/onboarding/status'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/biomarkers'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
+
+      // Reset status after 3 seconds
+      setTimeout(() => {
+        setHealthKitStatus('idle');
+      }, 3000);
+    } catch (error: any) {
+      console.error('HealthKit sync failed:', error);
+      
+      setHealthKitStatus('error');
+
+      toast({
+        title: 'Sync Failed',
+        description: error.message || 'Failed to sync health data',
+        variant: 'destructive',
+      });
+
+      // Reset status after 3 seconds
+      setTimeout(() => {
+        setHealthKitStatus('idle');
+      }, 3000);
+    } finally {
+      setIsHealthKitSyncing(false);
+    }
   };
 
   if (timezoneLoading) {
@@ -361,6 +435,97 @@ export default function Settings() {
         </CardContent>
       </Card>
 
+      {/* Debug Platform Info - Remove after testing */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Platform Debug Info</CardTitle>
+          <CardDescription>
+            This shows what platform is detected (remove this after debugging)
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2 text-sm">
+            <p><strong>Detected Platform:</strong> {currentPlatform || 'Loading...'}</p>
+            <p><strong>Is iOS?</strong> {getPlatform() === 'ios' ? 'YES ✅' : 'NO ❌'}</p>
+            <p><strong>HealthKit Section Visible?</strong> {getPlatform() === 'ios' ? 'YES ✅' : 'NO ❌'}</p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* HealthKit Setup - Only show on iOS */}
+      {getPlatform() === 'ios' && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Apple Health Integration</CardTitle>
+            <CardDescription>
+              Sync your health data from Apple Health to get personalized AI-powered insights
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Alert>
+              <Heart className="h-4 w-4" />
+              <AlertDescription>
+                Connect Apple Health to automatically sync your biomarkers, workouts, sleep data, and more.
+              </AlertDescription>
+            </Alert>
+
+            <div className="space-y-4">
+              <div className="grid gap-3 text-sm">
+                <div className="flex items-start gap-3">
+                  <CheckCircle2 className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                  <div>
+                    <p className="font-medium">Automatic Data Sync</p>
+                    <p className="text-muted-foreground">Your health metrics update automatically</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <CheckCircle2 className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                  <div>
+                    <p className="font-medium">AI-Powered Insights</p>
+                    <p className="text-muted-foreground">Get personalized health recommendations</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <CheckCircle2 className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                  <div>
+                    <p className="font-medium">Privacy First</p>
+                    <p className="text-muted-foreground">Your data stays secure on your device</p>
+                  </div>
+                </div>
+              </div>
+
+              <Button
+                onClick={handleSetupHealthKit}
+                disabled={isHealthKitSyncing}
+                size="lg"
+                className="w-full"
+                data-testid="button-setup-healthkit"
+              >
+                {isHealthKitSyncing ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Syncing Health Data...
+                  </>
+                ) : healthKitStatus === 'success' ? (
+                  <>
+                    <CheckCircle2 className="h-4 w-4 mr-2" />
+                    Sync Complete
+                  </>
+                ) : (
+                  <>
+                    <Heart className="h-4 w-4 mr-2" />
+                    Set Up Apple Health
+                  </>
+                )}
+              </Button>
+
+              <p className="text-xs text-muted-foreground text-center">
+                You'll be asked to grant permission to read your health data from the Health app
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

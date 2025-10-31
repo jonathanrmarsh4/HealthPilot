@@ -100,43 +100,35 @@ const CONSTANTS = {
   MIN_AWAKENING_MINUTES: 2,         // Count awakenings >= 2 min
   
   // Validation
-  STAGE_SUM_TOLERANCE_MINUTES: 15,  // Increased to handle HealthKit data overlaps/gaps
+  STAGE_SUM_TOLERANCE_MINUTES: 3,
 };
 
 /**
  * Parse raw HealthKit sleep segments into processed segments
  */
 export function parseRawSegments(rawSegments: RawSleepSegment[]): ProcessedSegment[] {
-  return rawSegments
-    .filter(seg => {
-      const sleepType = seg.value?.toLowerCase() || '';
-      // CRITICAL: Filter out "in_bed" segments - they're container segments that overlap
-      // with all other stages. Including them causes awake time to balloon to full session.
-      return !sleepType.includes('in_bed');
-    })
-    .map(seg => {
-      const start = new Date(seg.startDate);
-      const end = new Date(seg.endDate);
-      const durationMinutes = Math.round((end.getTime() - start.getTime()) / (1000 * 60));
-      
-      // Map sleep stage types
-      const sleepType = seg.value?.toLowerCase() || '';
-      let stage: 'awake' | 'light' | 'deep' | 'rem';
-      
-      if (sleepType.includes('awake')) {
-        stage = 'awake';
-      } else if (sleepType.includes('rem') || sleepType === 'asleep_rem') {
-        stage = 'rem';
-      } else if (sleepType.includes('deep') || sleepType === 'asleep_deep') {
-        stage = 'deep';
-      } else {
-        // Default to light for core/light/unknown
-        stage = 'light';
-      }
-      
-      return { start, end, durationMinutes, stage };
-    })
-    .sort((a, b) => a.start.getTime() - b.start.getTime());
+  return rawSegments.map(seg => {
+    const start = new Date(seg.startDate);
+    const end = new Date(seg.endDate);
+    const durationMinutes = Math.round((end.getTime() - start.getTime()) / (1000 * 60));
+    
+    // Map sleep stage types
+    const sleepType = seg.value?.toLowerCase() || '';
+    let stage: 'awake' | 'light' | 'deep' | 'rem';
+    
+    if (sleepType.includes('awake')) {
+      stage = 'awake';
+    } else if (sleepType.includes('rem') || sleepType === 'asleep_rem') {
+      stage = 'rem';
+    } else if (sleepType.includes('deep') || sleepType === 'asleep_deep') {
+      stage = 'deep';
+    } else {
+      // Default to light for core/light/unknown
+      stage = 'light';
+    }
+    
+    return { start, end, durationMinutes, stage };
+  }).sort((a, b) => a.start.getTime() - b.start.getTime());
 }
 
 /**
@@ -255,12 +247,7 @@ function createEpisodeFromSegments(
   const stageSum = awakeMinutes + lightMinutes + deepMinutes + remMinutes;
   const flags: string[] = [];
   
-  const stageDiff = Math.abs(stageSum - inBedMinutes);
-  if (stageDiff > CONSTANTS.STAGE_SUM_TOLERANCE_MINUTES) {
-    console.log(`⚠️ Stage validation failed for ${nightKeyLocalDate}:`);
-    console.log(`  inBedMinutes: ${inBedMinutes}`);
-    console.log(`  stageSum: ${stageSum} (awake:${awakeMinutes} + light:${lightMinutes} + deep:${deepMinutes} + rem:${remMinutes})`);
-    console.log(`  difference: ${stageDiff} minutes (tolerance: ${CONSTANTS.STAGE_SUM_TOLERANCE_MINUTES})`);
+  if (Math.abs(stageSum - inBedMinutes) > CONSTANTS.STAGE_SUM_TOLERANCE_MINUTES) {
     flags.push('data_inconsistent');
   }
   

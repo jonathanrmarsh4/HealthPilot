@@ -22,13 +22,13 @@ def capacitor_pods
   pod 'CapacitorSplashScreen', :path => '../../node_modules/@capacitor/splash-screen'
   pod 'CapacitorStatusBar', :path => '../../node_modules/@capacitor/status-bar'
   pod 'CapacitorHealth', :path => '../../node_modules/capacitor-health'
+  
+  # Stripe SDK for iOS native payments
+  pod 'StripePaymentSheet', '~> 23.0'
 end
 
 target 'App' do
   capacitor_pods
-  
-  # Stripe SDK for iOS native payments
-  pod 'StripePaymentSheet', '~> 23.0'
 end
 
 post_install do |installer|

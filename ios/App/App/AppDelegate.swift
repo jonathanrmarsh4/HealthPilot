@@ -1,18 +1,12 @@
 import UIKit
 import Capacitor
-import StripePaymentSheet
 
-@UIApplicationMain  
+@UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
     var window: UIWindow?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        print("🚀 AppDelegate: didFinishLaunchingWithOptions")
-        
-        // Register HealthKit plugin
-        HealthKitBridge.registerPlugin()
-        
         // Override point for customization after application launch.
         return true
     }

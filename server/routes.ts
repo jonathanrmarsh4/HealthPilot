@@ -13,8 +13,7 @@ import { runInterpretationPipeline } from "./services/medical-interpreter/pipeli
 import { extractBiomarkersFromLabs } from "./services/medical-interpreter/biomarkerExtractor";
 import { buildUserContext, generateDailySession } from "./services/trainingGenerator";
 import { assessWorkflow, type Input as WorkflowInput, type Biomarker as WorkflowBiomarker } from "./services/workflowAssessor";
-import { parseISO, isValid, subDays, format as formatDate, startOfDay } from "date-fns";
-import { toZonedTime, fromZonedTime } from "date-fns-tz";
+import { parseISO, isValid, subDays, format as formatDate } from "date-fns";
 import { eq, and, gte, or, inArray, isNull, isNotNull, sql } from "drizzle-orm";
 import { isAuthenticated, isAdmin, webhookAuth } from "./replitAuth";
 import type { ConversationMessage, ExtractedContext } from "./goals/conversation-intelligence";
@@ -49,37 +48,6 @@ const safetyEscalationSchema = z.object({
   triggerKeyword: z.string(),
   context: z.string().nullable().optional(),
 });
-
-// In-memory job tracking for Apple Health sync
-interface SyncJob {
-  jobId: string;
-  userId: string;
-  status: 'processing' | 'completed' | 'failed';
-  progress: {
-    totalSamples: number;
-    processedSamples: number;
-    currentBatch?: string;
-  };
-  result?: {
-    insertedCount: number;
-    message: string;
-  };
-  error?: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-const syncJobs = new Map<string, SyncJob>();
-
-// Clean up old jobs after 1 hour
-setInterval(() => {
-  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-  for (const [jobId, job] of syncJobs.entries()) {
-    if (job.updatedAt < oneHourAgo) {
-      syncJobs.delete(jobId);
-    }
-  }
-}, 5 * 60 * 1000); // Run every 5 minutes
 
 // Helper function to parse biomarker dates with fallback
 function parseBiomarkerDate(dateStr: string | undefined, documentDate: string | undefined, fileDate: Date | undefined): Date {
@@ -1351,7 +1319,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const Stripe = (await import("stripe")).default;
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-        apiVersion: "2024-11-20.acacia",
+        apiVersion: "2024-11-20",
       });
 
       // Update Stripe subscription to cancel at period end
@@ -1388,7 +1356,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const Stripe = (await import("stripe")).default;
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-        apiVersion: "2024-11-20.acacia",
+        apiVersion: "2024-11-20",
       });
 
       // Update Stripe subscription to NOT cancel
@@ -1421,7 +1389,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const Stripe = (await import("stripe")).default;
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-        apiVersion: "2024-11-20.acacia",
+        apiVersion: "2024-11-20",
       });
 
       const session = await stripe.billingPortal.sessions.create({
@@ -1494,11 +1462,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = (req.user as any).claims.sub;
       const { tier, billingCycle, promoCode } = req.body;
-      
-      console.log("🔍 Stripe checkout request:", { tier, billingCycle, promoCode, body: req.body });
 
       if (!tier || (tier !== "premium" && tier !== "enterprise")) {
-        console.log("❌ Invalid tier received:", tier);
         return res.status(400).json({ error: "Invalid subscription tier" });
       }
 
@@ -1508,7 +1473,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const Stripe = (await import("stripe")).default;
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-        apiVersion: "2024-11-20.acacia",
+        apiVersion: "2024-11-20",
       });
 
       const user = await storage.getUser(userId);
@@ -1613,8 +1578,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         subscription_data: {
           trial_period_days: 7, // 7-day free trial for all new subscriptions
         },
-        success_url: `${baseUrl}/?upgrade=success`,
-        cancel_url: `${baseUrl}/?upgrade=cancelled`,
+        success_url: `${baseUrl}/dashboard?upgrade=success`,
+        cancel_url: `${baseUrl}/dashboard?upgrade=cancelled`,
         metadata: {
           userId,
           tier,
@@ -1639,275 +1604,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Web Embedded Payment Intent creation (for embedded Stripe Elements)
-  app.post("/api/stripe/create-payment-intent", isAuthenticated, async (req: Request, res: Response) => {
-    try {
-      const userId = (req.user as any).claims.sub;
-      const { tier, billingCycle, promoCode } = req.body;
-      
-      console.log("💳 Creating Payment Intent:", { tier, billingCycle, promoCode, userId });
-
-      if (!tier || (tier !== "premium" && tier !== "enterprise")) {
-        return res.status(400).json({ error: "Invalid subscription tier" });
-      }
-
-      if (!billingCycle || (billingCycle !== "monthly" && billingCycle !== "annual")) {
-        return res.status(400).json({ error: "Invalid billing cycle" });
-      }
-
-      const Stripe = (await import("stripe")).default;
-      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-        apiVersion: "2024-11-20.acacia",
-      });
-
-      const user = await storage.getUser(userId);
-      if (!user) {
-        return res.status(404).json({ error: "User not found" });
-      }
-
-      // Get or create Stripe customer
-      let stripeCustomerId = user.stripeCustomerId;
-      
-      // Verify the customer exists in Stripe (or create new one)
-      if (stripeCustomerId) {
-        try {
-          await stripe.customers.retrieve(stripeCustomerId);
-          console.log("✅ Existing Stripe customer verified:", stripeCustomerId);
-        } catch (error: any) {
-          // Customer doesn't exist (e.g., switched Stripe accounts)
-          console.log("⚠️ Stored customer ID invalid, creating new customer:", error.message);
-          stripeCustomerId = null;
-        }
-      }
-      
-      // Create new customer if needed
-      if (!stripeCustomerId) {
-        const customer = await stripe.customers.create({
-          email: user.email,
-          metadata: {
-            userId,
-          },
-        });
-        stripeCustomerId = customer.id;
-        await storage.updateUser(userId, { stripeCustomerId: customer.id });
-        console.log("✅ Created new Stripe customer:", stripeCustomerId);
-      }
-
-      // Pricing structure
-      const pricing = {
-        premium: {
-          monthly: 1999,
-          annual: 19188,
-        },
-        enterprise: {
-          monthly: 9999,
-          annual: 95988,
-        },
-      };
-
-      let amount = pricing[tier as "premium" | "enterprise"][billingCycle as "monthly" | "annual"];
-      
-      // Validate and apply promo code discount
-      let appliedDiscount = 0;
-      if (promoCode) {
-        const dbPromoCode = await storage.getPromoCode(promoCode.toUpperCase());
-        
-        if (dbPromoCode && dbPromoCode.isActive) {
-          const now = new Date();
-          const isExpired = dbPromoCode.expiresAt && new Date(dbPromoCode.expiresAt) < now;
-          const isOverLimit = dbPromoCode.maxUses && dbPromoCode.usedCount >= dbPromoCode.maxUses;
-          const isTierMismatch = dbPromoCode.tierRestriction && dbPromoCode.tierRestriction !== tier;
-          
-          if (!isExpired && !isOverLimit && !isTierMismatch) {
-            appliedDiscount = Math.round((amount * dbPromoCode.discountPercent) / 100);
-            amount = amount - appliedDiscount;
-          }
-        }
-      }
-
-      // Create Payment Intent for subscription setup
-      const paymentIntent = await stripe.paymentIntents.create({
-        amount,
-        currency: "usd",
-        customer: stripeCustomerId,
-        automatic_payment_methods: {
-          enabled: true,
-        },
-        setup_future_usage: "off_session", // For subscription
-        metadata: {
-          userId,
-          tier,
-          billingCycle,
-          promoCode: promoCode || "",
-          appliedDiscount: appliedDiscount.toString(),
-        },
-        description: `HealthPilot ${tier} subscription - ${billingCycle}`,
-      });
-
-      const responseData = {
-        clientSecret: paymentIntent.client_secret,
-        paymentIntentId: paymentIntent.id,
-        amount,
-        discount: appliedDiscount,
-      };
-
-      console.log("💳 Payment Intent created successfully:", {
-        hasClientSecret: !!responseData.clientSecret,
-        hasPaymentIntentId: !!responseData.paymentIntentId,
-        clientSecretPrefix: responseData.clientSecret?.substring(0, 10),
-        paymentIntentIdPrefix: responseData.paymentIntentId?.substring(0, 10),
-      });
-
-      res.json(responseData);
-    } catch (error: any) {
-      console.error("Error creating payment intent:", error);
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  // Confirm and create subscription after embedded payment succeeds (IDEMPOTENT)
-  app.post("/api/stripe/confirm-subscription", isAuthenticated, async (req: Request, res: Response) => {
-    try {
-      const userId = (req.user as any).claims.sub;
-      const { paymentIntentId } = req.body;
-      
-      console.log("✅ Confirming subscription for Payment Intent:", paymentIntentId);
-
-      if (!paymentIntentId) {
-        return res.status(400).json({ error: "Payment Intent ID is required" });
-      }
-
-      const Stripe = (await import("stripe")).default;
-      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-        apiVersion: "2024-11-20.acacia",
-      });
-
-      // Retrieve the payment intent to get metadata and payment method
-      const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
-
-      if (paymentIntent.status !== "succeeded") {
-        return res.status(400).json({ error: "Payment has not succeeded yet" });
-      }
-
-      const { tier, billingCycle, promoCode } = paymentIntent.metadata;
-      const paymentMethodId = paymentIntent.payment_method as string;
-
-      if (!tier || !billingCycle) {
-        return res.status(400).json({ error: "Missing subscription metadata" });
-      }
-
-      // Check if we already created a subscription for this payment intent (idempotency)
-      // Look for subscriptions created in the last hour with matching customer and tier
-      const customerId = paymentIntent.customer as string;
-      const recentSubscriptions = await stripe.subscriptions.list({
-        customer: customerId,
-        limit: 10,
-        created: {
-          gte: Math.floor(Date.now() / 1000) - 3600, // Last hour
-        },
-      });
-
-      // Check if any recent subscription matches this tier/billing cycle
-      const existingSubscription = recentSubscriptions.data.find(
-        sub => sub.metadata.userId === userId && 
-               sub.metadata.tier === tier && 
-               sub.metadata.billingCycle === billingCycle &&
-               sub.status === "active"
-      );
-
-      if (existingSubscription) {
-        console.log(`ℹ️ Subscription already exists for Payment Intent ${paymentIntentId}: ${existingSubscription.id}`);
-        return res.json({
-          success: true,
-          subscriptionId: existingSubscription.id,
-          tier,
-          alreadyExisted: true,
-        });
-      }
-
-      // Get Stripe price ID for recurring subscription
-      const stripePriceIds = {
-        premium: {
-          monthly: "price_1QZ1tTClXJAtf6T8E1X3tnAZ",
-          annual: "price_1QZ1ukClXJAtf6T8i0R6CsP2",
-        },
-        enterprise: {
-          monthly: "price_1QZ1vsClXJAtf6T8SRgAVzzt",
-          annual: "price_1QZ1wlClXJAtf6T8bXy1BRCL",
-        },
-      };
-
-      const priceId = stripePriceIds[tier as "premium" | "enterprise"][billingCycle as "monthly" | "annual"];
-
-      // Create recurring Stripe subscription
-      const stripeSubscription = await stripe.subscriptions.create({
-        customer: customerId,
-        items: [{ price: priceId }],
-        default_payment_method: paymentMethodId,
-        metadata: {
-          userId,
-          tier,
-          billingCycle,
-          paymentIntentId, // Store for reference
-        },
-      });
-
-      // Update user tier and status
-      await storage.updateUserAdminFields(userId, {
-        subscriptionTier: tier as "premium" | "enterprise",
-        subscriptionStatus: "active",
-        stripeCustomerId: customerId,
-      });
-
-      // Create subscription record in database (with duplicate check)
-      const existingDbSubscription = await storage.getSubscriptionByStripeId(stripeSubscription.id);
-      if (!existingDbSubscription) {
-        await storage.createSubscription({
-          userId,
-          stripeSubscriptionId: stripeSubscription.id,
-          stripePriceId: priceId,
-          tier,
-          billingCycle,
-          status: stripeSubscription.status,
-          currentPeriodStart: new Date(stripeSubscription.current_period_start * 1000),
-          currentPeriodEnd: new Date(stripeSubscription.current_period_end * 1000),
-          cancelAtPeriodEnd: stripeSubscription.cancel_at_period_end ? 1 : 0,
-          trialStart: stripeSubscription.trial_start ? new Date(stripeSubscription.trial_start * 1000) : null,
-          trialEnd: stripeSubscription.trial_end ? new Date(stripeSubscription.trial_end * 1000) : null,
-        });
-      }
-
-      // Increment promo code usage if applicable (only once)
-      if (promoCode) {
-        const dbPromoCode = await storage.getPromoCode(promoCode.toUpperCase());
-        if (dbPromoCode) {
-          await storage.incrementPromoCodeUsage(dbPromoCode.id);
-        }
-      }
-
-      console.log(`✅ Web subscription created: ${stripeSubscription.id} for user ${userId} (${tier})`);
-
-      res.json({
-        success: true,
-        subscriptionId: stripeSubscription.id,
-        tier,
-      });
-    } catch (error: any) {
-      console.error("Error confirming subscription:", error);
-      res.status(500).json({ error: error.message });
-    }
-  });
-
   // iOS Native Payment Intent creation (for Apple Pay via Stripe iOS SDK)
   app.post("/api/payments/create-intent", isAuthenticated, async (req, res) => {
     try {
       const userId = (req.user as any).claims.sub;
       const { tier, billingCycle, promoCode } = req.body;
-      
-      console.log('💳 Payment Intent Request:', { userId, tier, billingCycle, promoCode, bodyKeys: Object.keys(req.body) });
 
       if (!tier || (tier !== "premium" && tier !== "enterprise")) {
-        console.log('❌ Invalid tier received:', tier, 'Type:', typeof tier);
         return res.status(400).json({ error: "Invalid subscription tier" });
       }
 
@@ -1917,7 +1620,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const Stripe = (await import("stripe")).default;
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-        apiVersion: "2024-11-20.acacia",
+        apiVersion: "2024-11-20",
       });
 
       const user = await storage.getUser(userId);
@@ -1972,20 +1675,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Create or retrieve Stripe customer
       let customerId = user.stripeCustomerId;
-      
-      // Verify the customer exists in Stripe (or create new one)
-      if (customerId) {
-        try {
-          await stripe.customers.retrieve(customerId);
-          console.log("✅ Existing Stripe customer verified:", customerId);
-        } catch (error: any) {
-          // Customer doesn't exist (e.g., switched Stripe accounts)
-          console.log("⚠️ Stored customer ID invalid, creating new customer:", error.message);
-          customerId = null;
-        }
-      }
-      
-      // Create new customer if needed
       if (!customerId) {
         const customer = await stripe.customers.create({
           email: user.email,
@@ -1993,13 +1682,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
         customerId = customer.id;
         await storage.updateUser(userId, { stripeCustomerId: customerId });
-        console.log("✅ Created new Stripe customer for iOS:", customerId);
       }
 
       // Create ephemeral key for customer
       const ephemeralKey = await stripe.ephemeralKeys.create(
         { customer: customerId },
-        { apiVersion: '2024-11-20.acacia' }
+        { apiVersion: '2024-11-20' }
       );
 
       // Create PaymentIntent for iOS
@@ -2046,7 +1734,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const Stripe = (await import("stripe")).default;
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-        apiVersion: "2024-11-20.acacia",
+        apiVersion: "2024-11-20",
       });
 
       // Retrieve and verify payment intent
@@ -2142,7 +1830,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const Stripe = (await import("stripe")).default;
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-        apiVersion: "2024-11-20.acacia",
+        apiVersion: "2024-11-20",
       });
 
       const sig = req.headers["stripe-signature"];
@@ -9807,50 +9495,14 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
       const heartRate = latestByType['heart-rate'];
       const bloodGlucose = latestByType['blood-glucose'];
       const weight = latestByType['weight'];
-      
-      // Get user's timezone for proper "today" calculation
-      const userSettings = await storage.getUserSettings(userId);
-      const userTimezone = userSettings?.timezone || 'UTC';
-      
-      // Calculate start of today in user's timezone
-      const now = new Date();
-      const nowInUserTz = toZonedTime(now, userTimezone);
-      const todayStartInUserTz = startOfDay(nowInUserTz);
-      const todayStart = fromZonedTime(todayStartInUserTz, userTimezone);
-      
-      // Sum all steps from today (HealthKit sends multiple samples throughout the day)
-      const todaySteps = biomarkers
-        .filter(b => b.type === 'steps' && new Date(b.recordedAt) >= todayStart)
-        .reduce((sum, b) => sum + (b.value || 0), 0);
-      
-      // Sum all calories from today
-      const caloriesSamples = biomarkers.filter(b => b.type === 'calories' && new Date(b.recordedAt) >= todayStart);
-      const todayCalories = caloriesSamples.reduce((sum, b) => sum + (b.value || 0), 0);
-      
-      console.log(`📊 Calories calculation debug:`);
-      console.log(`  Today start (${userTimezone}): ${todayStart.toISOString()}`);
-      console.log(`  Total calories samples today: ${caloriesSamples.length}`);
-      console.log(`  Sum: ${todayCalories}`);
-      
-      // Calculate active days (last 7 days with workouts)
-      const sevenDaysAgo = new Date(todayStart);
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-      const recentWorkouts = await storage.getWorkoutSessions(userId);
-      const activeDaysSet = new Set(
-        recentWorkouts
-          .filter(w => w.startTime && new Date(w.startTime) >= sevenDaysAgo)
-          .map(w => {
-            const date = new Date(w.startTime!);
-            return date.toLocaleDateString('en-CA', { timeZone: userTimezone }); // YYYY-MM-DD format
-          })
-      );
-      const activeDays = activeDaysSet.size;
+      const steps = latestByType['steps'];
+      const calories = latestByType['calories'];
       
       res.json({
-        dailySteps: Math.round(todaySteps),
+        dailySteps: steps ? steps.value : 0,
         restingHR: heartRate ? heartRate.value : 0,
-        activeDays,
-        calories: Math.round(todayCalories),
+        activeDays: 5,
+        calories: calories ? calories.value : 0,
         heartRate: heartRate ? {
           value: heartRate.value,
           trend: calculateTrend(heartRate.value, getPreviousValue('heart-rate', new Date(heartRate.recordedAt))),
@@ -10396,144 +10048,6 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
       });
     } catch (error: any) {
       console.error("Error cleaning up duplicates:", error);
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  // Mobile HealthKit Sync - iOS native app sync endpoint
-  app.post("/api/mobile/healthkit/sync", isAuthenticated, async (req, res) => {
-    const userId = (req.user as any).claims.sub;
-    
-    try {
-      const { healthData } = req.body;
-      
-      if (!healthData || typeof healthData !== 'object') {
-        return res.status(400).json({ error: 'Invalid request: healthData object required' });
-      }
-      
-      console.log(`[Mobile HealthKit Sync] Starting sync for user ${userId}`);
-      
-      let totalInserted = 0;
-      let totalSkipped = 0;
-      
-      // Helper to create idempotency key
-      const createIdempotencyKey = (type: string, value: any, startDate: string, uuid?: string) => {
-        return `${type}-${JSON.stringify(value)}-${startDate}-${uuid || 'no-uuid'}`;
-      };
-      
-      // Process each data type
-      const dataTypes = [
-        { key: 'steps', type: 'StepCount' },
-        { key: 'distance', type: 'DistanceWalkingRunning' },
-        { key: 'activeCalories', type: 'ActiveEnergyBurned' },
-        { key: 'heartRate', type: 'HeartRate' },
-        { key: 'restingHeartRate', type: 'RestingHeartRate' },
-        { key: 'hrv', type: 'HeartRateVariability' },
-        { key: 'weight', type: 'BodyMass' },
-        { key: 'leanBodyMass', type: 'LeanBodyMass' },
-        { key: 'bodyFat', type: 'BodyFatPercentage' },
-        { key: 'bloodPressureSystolic', type: 'BloodPressureSystolic' },
-        { key: 'bloodPressureDiastolic', type: 'BloodPressureDiastolic' },
-        { key: 'bloodGlucose', type: 'BloodGlucose' },
-      ];
-      
-      for (const { key, type } of dataTypes) {
-        const samples = healthData[key] || [];
-        
-        for (const sample of samples) {
-          const idempotencyKey = createIdempotencyKey(type, sample.value, sample.startDate, sample.uuid);
-          
-          const event = {
-            userId,
-            type,
-            tsStartUtc: new Date(sample.startDate),
-            tsEndUtc: new Date(sample.endDate),
-            tsInstantUtc: null,
-            unit: sample.unit,
-            valueJson: { value: sample.value },
-            source: 'healthkit-mobile',
-            idempotencyKey,
-          };
-          
-          const result = await storage.insertHkEventRaw(event);
-          if (result) {
-            totalInserted++;
-          } else {
-            totalSkipped++;
-          }
-        }
-      }
-      
-      // Process workouts
-      const workouts = healthData.workouts || [];
-      for (const workout of workouts) {
-        const idempotencyKey = createIdempotencyKey('Workout', workout.workoutTypeName, workout.startDate, workout.uuid);
-        
-        const event = {
-          userId,
-          type: 'Workout',
-          tsStartUtc: new Date(workout.startDate),
-          tsEndUtc: new Date(workout.endDate),
-          tsInstantUtc: null,
-          unit: 'workout',
-          valueJson: {
-            workoutType: workout.workoutType,
-            workoutTypeName: workout.workoutTypeName,
-            duration: workout.duration,
-            distance: workout.distance,
-            distanceUnit: workout.distanceUnit,
-            energy: workout.energy,
-            energyUnit: workout.energyUnit,
-          },
-          source: 'healthkit-mobile',
-          idempotencyKey,
-        };
-        
-        const result = await storage.insertHkEventRaw(event);
-        if (result) {
-          totalInserted++;
-        } else {
-          totalSkipped++;
-        }
-      }
-      
-      // Process sleep
-      const sleepSamples = healthData.sleep || [];
-      for (const sleep of sleepSamples) {
-        const idempotencyKey = createIdempotencyKey('Sleep', sleep.category, sleep.startDate, sleep.uuid);
-        
-        const event = {
-          userId,
-          type: 'Sleep',
-          tsStartUtc: new Date(sleep.startDate),
-          tsEndUtc: new Date(sleep.endDate),
-          tsInstantUtc: null,
-          unit: 'category',
-          valueJson: {
-            value: sleep.value,
-            category: sleep.category,
-          },
-          source: 'healthkit-mobile',
-          idempotencyKey,
-        };
-        
-        const result = await storage.insertHkEventRaw(event);
-        if (result) {
-          totalInserted++;
-        } else {
-          totalSkipped++;
-        }
-      }
-      
-      console.log(`[Mobile HealthKit Sync] Complete: ${totalInserted} inserted, ${totalSkipped} skipped (duplicates)`);
-      
-      res.json({
-        success: true,
-        inserted: totalInserted,
-        skipped: totalSkipped,
-      });
-    } catch (error: any) {
-      console.error('[Mobile HealthKit Sync] Error:', error);
       res.status(500).json({ error: error.message });
     }
   });
@@ -11679,8 +11193,7 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
     try {
       console.log("📱 Received Capacitor HealthKit sync");
       console.log("📦 Request body keys:", Object.keys(req.body));
-      
-      const dataCounts = {
+      console.log("📊 Data counts:", {
         steps: req.body.steps?.length || 0,
         hrv: req.body.hrv?.length || 0,
         restingHeartRate: req.body.restingHeartRate?.length || 0,
@@ -11689,40 +11202,7 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
         weight: req.body.weight?.length || 0,
         bodyFat: req.body.bodyFat?.length || 0,
         leanBodyMass: req.body.leanBodyMass?.length || 0,
-        activeCalories: req.body.activeCalories?.length || 0,
-      };
-      
-      console.log("📊 Data counts:", dataCounts);
-      
-      const totalSamples = Object.values(dataCounts).reduce((sum, count) => sum + count, 0);
-      
-      // Create a job for tracking
-      const jobId = `sync_${userId}_${Date.now()}`;
-      const job: SyncJob = {
-        jobId,
-        userId,
-        status: 'processing',
-        progress: {
-          totalSamples,
-          processedSamples: 0,
-        },
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      syncJobs.set(jobId, job);
-      
-      // Respond with 202 Accepted + jobId
-      res.status(202).json({
-        success: true,
-        jobId,
-        status: 'processing',
-        message: `Processing ${totalSamples} health data samples`,
-        totalSamples,
       });
-      
-      // Process data in background (don't await)
-      (async () => {
-        try {
       
       // Match field names from mobile app (restingHeartRate, leanBodyMass)
       const { 
@@ -11733,8 +11213,7 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
         workouts, 
         weight, 
         bodyFat, 
-        leanBodyMass,
-        activeCalories 
+        leanBodyMass 
       } = req.body;
       
       // Get user timezone for sleep processing
@@ -11742,16 +11221,49 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
       const userTimezone = user?.timezone || 'UTC';
 
       let insertedCount = 0;
+      const BATCH_SIZE = 500; // Process in chunks of 500 to avoid timeouts
 
-      // Collect all biomarkers for bulk insert
-      console.log('📦 Collecting biomarkers for bulk insert...');
-      const allBiomarkers: InsertBiomarker[] = [];
+      // Helper function to process data in batches
+      // Processes items sequentially within each batch to avoid overwhelming the DB connection pool
+      const processBatch = async <T>(
+        items: T[],
+        processor: (item: T) => Promise<boolean>,
+        label: string
+      ) => {
+        if (!items || items.length === 0) return 0;
+        
+        console.log(`${label} Processing ${items.length} samples in batches of ${BATCH_SIZE}...`);
+        
+        let successCount = 0;
+        
+        for (let i = 0; i < items.length; i += BATCH_SIZE) {
+          const batch = items.slice(i, i + BATCH_SIZE);
+          const batchNum = Math.floor(i / BATCH_SIZE) + 1;
+          const totalBatches = Math.ceil(items.length / BATCH_SIZE);
+          
+          console.log(`  Batch ${batchNum}/${totalBatches}: Processing ${batch.length} items...`);
+          
+          // Process batch items sequentially to avoid connection pool saturation
+          for (const item of batch) {
+            try {
+              const success = await processor(item);
+              if (success) successCount++;
+            } catch (error) {
+              console.error(`  ⚠️ Error processing item:`, error);
+            }
+          }
+          
+          console.log(`  ✓ Batch ${batchNum}/${totalBatches} complete (${successCount}/${items.length} successful)`);
+        }
+        
+        return successCount;
+      };
 
-      // Collect steps
-      if (steps && steps.length > 0) {
-        console.log(`👟 Collecting ${steps.length} steps samples...`);
-        for (const sample of steps) {
-          allBiomarkers.push({
+      // Process steps data in batches
+      insertedCount += await processBatch(
+        steps || [],
+        async (sample) => {
+          await storage.upsertBiomarker({
             userId,
             type: "steps",
             value: sample.value,
@@ -11759,14 +11271,16 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
             source: "ios-healthkit",
             recordedAt: new Date(sample.startDate),
           });
-        }
-      }
+          return true;
+        },
+        "👟"
+      );
 
-      // Collect HRV
-      if (hrv && hrv.length > 0) {
-        console.log(`💓 Collecting ${hrv.length} HRV samples...`);
-        for (const sample of hrv) {
-          allBiomarkers.push({
+      // Process HRV data in batches
+      insertedCount += await processBatch(
+        hrv || [],
+        async (sample) => {
+          await storage.upsertBiomarker({
             userId,
             type: "hrv",
             value: sample.value,
@@ -11774,14 +11288,16 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
             source: "ios-healthkit",
             recordedAt: new Date(sample.startDate),
           });
-        }
-      }
+          return true;
+        },
+        "💓"
+      );
 
-      // Collect resting heart rate
-      if (restingHeartRate && restingHeartRate.length > 0) {
-        console.log(`❤️  Collecting ${restingHeartRate.length} resting HR samples...`);
-        for (const sample of restingHeartRate) {
-          allBiomarkers.push({
+      // Process resting heart rate data in batches
+      insertedCount += await processBatch(
+        restingHeartRate || [],
+        async (sample) => {
+          await storage.upsertBiomarker({
             userId,
             type: "heart-rate",
             value: sample.value,
@@ -11789,13 +11305,16 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
             source: "ios-healthkit",
             recordedAt: new Date(sample.startDate),
           });
-        }
-      }
+          return true;
+        },
+        "❤️ "
+      );
 
-      // Collect weight
-      if (weight && weight.length > 0) {
-        console.log(`⚖️  Collecting ${weight.length} weight samples...`);
-        for (const sample of weight) {
+      // Process weight data in batches
+      insertedCount += await processBatch(
+        weight || [],
+        async (sample) => {
+          // Normalize weight to lbs for consistent storage (matching Health Auto Export behavior)
           let weightValue = sample.value;
           const sampleUnit = (sample.unit || "kg").toLowerCase();
           
@@ -11803,22 +11322,24 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
             weightValue = weightValue * 2.20462; // Convert kg to lbs
           }
           
-          allBiomarkers.push({
+          await storage.upsertBiomarker({
             userId,
             type: "weight",
             value: weightValue,
-            unit: "lbs",
+            unit: "lbs", // Always store in lbs
             source: "ios-healthkit",
             recordedAt: new Date(sample.startDate),
           });
-        }
-      }
+          return true;
+        },
+        "⚖️ "
+      );
 
-      // Collect body fat
-      if (bodyFat && bodyFat.length > 0) {
-        console.log(`📊 Collecting ${bodyFat.length} body fat samples...`);
-        for (const sample of bodyFat) {
-          allBiomarkers.push({
+      // Process body fat percentage data in batches
+      insertedCount += await processBatch(
+        bodyFat || [],
+        async (sample) => {
+          await storage.upsertBiomarker({
             userId,
             type: "body-fat-percentage",
             value: sample.value,
@@ -11826,13 +11347,16 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
             source: "ios-healthkit",
             recordedAt: new Date(sample.startDate),
           });
-        }
-      }
+          return true;
+        },
+        "📊"
+      );
 
-      // Collect lean body mass
-      if (leanBodyMass && leanBodyMass.length > 0) {
-        console.log(`💪 Collecting ${leanBodyMass.length} lean mass samples...`);
-        for (const sample of leanBodyMass) {
+      // Process lean body mass data in batches
+      insertedCount += await processBatch(
+        leanBodyMass || [],
+        async (sample) => {
+          // Normalize lean mass to lbs for consistent storage (matching Health Auto Export behavior)
           let leanMassValue = sample.value;
           const sampleUnit = (sample.unit || "kg").toLowerCase();
           
@@ -11840,47 +11364,18 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
             leanMassValue = leanMassValue * 2.20462; // Convert kg to lbs
           }
           
-          allBiomarkers.push({
+          await storage.upsertBiomarker({
             userId,
             type: "lean-body-mass",
             value: leanMassValue,
-            unit: "lbs",
+            unit: "lbs", // Always store in lbs
             source: "ios-healthkit",
             recordedAt: new Date(sample.startDate),
           });
-        }
-      }
-
-      // Collect active calories
-      if (activeCalories && activeCalories.length > 0) {
-        console.log(`🔥 Collecting ${activeCalories.length} calorie samples...`);
-        for (const sample of activeCalories) {
-          allBiomarkers.push({
-            userId,
-            type: "calories",
-            value: sample.value,
-            unit: sample.unit || "kcal",
-            source: "ios-healthkit",
-            recordedAt: new Date(sample.startDate),
-          });
-        }
-      }
-
-      // Bulk insert all biomarkers at once
-      if (allBiomarkers.length > 0) {
-        console.log(`💾 Bulk inserting ${allBiomarkers.length} biomarkers...`);
-        const biomarkerCount = await storage.bulkUpsertBiomarkers(allBiomarkers);
-        insertedCount += biomarkerCount;
-        console.log(`✅ Inserted ${biomarkerCount} biomarkers`);
-        
-        // Update job progress
-        const currentJob = syncJobs.get(jobId);
-        if (currentJob) {
-          currentJob.progress.processedSamples += allBiomarkers.length;
-          currentJob.progress.currentBatch = `Biomarkers (${biomarkerCount} inserted)`;
-          currentJob.updatedAt = new Date();
-        }
-      }
+          return true;
+        },
+        "💪"
+      );
 
       // Process sleep data using v2.0 algorithm
       if (sleep && sleep.length > 0) {
@@ -12028,118 +11523,47 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
         }
       }
 
-      // Process workout data
-      if (workouts && workouts.length > 0) {
-        console.log(`🏃 Processing ${workouts.length} workouts...`);
-        let workoutCount = 0;
-        
-        for (const workout of workouts) {
-          try {
-            const startTime = new Date(workout.startDate);
-            const endTime = new Date(workout.endDate);
-            const duration = Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60));
+      // Process workout data in batches
+      insertedCount += await processBatch(
+        workouts || [],
+        async (workout) => {
+          const startTime = new Date(workout.startDate);
+          const endTime = new Date(workout.endDate);
+          const duration = Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60));
 
-            const workoutType = workout.workoutActivityType?.toLowerCase() || "other";
-            const distance = workout.totalDistance ? Math.round(workout.totalDistance) : null;
-            const calories = workout.totalEnergyBurned ? Math.round(workout.totalEnergyBurned) : null;
+          // Map workout type from HealthKit
+          const workoutType = workout.workoutActivityType?.toLowerCase() || "other";
+          const calories = workout.totalEnergyBurned || 0;
 
-            await storage.createWorkoutSession({
-              userId,
-              workoutType,
-              sessionType: "workout",
-              startTime,
-              endTime,
-              duration,
-              distance,
-              calories,
-              avgHeartRate: workout.averageHeartRate ? Math.round(workout.averageHeartRate) : null,
-              maxHeartRate: workout.maxHeartRate ? Math.round(workout.maxHeartRate) : null,
-              sourceType: "ios-healthkit",
-              sourceId: workout.uuid || null,
-              notes: distance ? `Distance: ${distance}m` : null,
-            });
-            workoutCount++;
-          } catch (error) {
-            console.error('Error processing workout:', error);
-          }
-        }
-        
-        insertedCount += workoutCount;
-        console.log(`✅ Inserted ${workoutCount} workouts`);
-        
-        // Update job progress
-        const currentJob = syncJobs.get(jobId);
-        if (currentJob) {
-          currentJob.progress.processedSamples += workouts.length;
-          currentJob.progress.currentBatch = `Workouts (${workoutCount} inserted)`;
-          currentJob.updatedAt = new Date();
-        }
-      }
+          await storage.createWorkoutSession({
+            userId,
+            date: startTime.toISOString().split('T')[0],
+            exerciseName: workoutType,
+            sets: 1,
+            reps: null,
+            weight: null,
+            notes: `Distance: ${workout.totalDistance || 0}m`,
+            duration,
+            calories,
+            avgHeartRate: workout.averageHeartRate ? Math.round(workout.averageHeartRate) : null,
+            maxHeartRate: workout.maxHeartRate ? Math.round(workout.maxHeartRate) : null,
+            sourceType: "ios-healthkit",
+            sourceId: workout.uuid || null,
+          });
+          return true;
+        },
+        "🏃"
+      );
 
       console.log(`✅ Capacitor sync complete: ${insertedCount} items inserted/updated`);
-        
-        // Mark job as completed
-        const finalJob = syncJobs.get(jobId);
-        if (finalJob) {
-          finalJob.status = 'completed';
-          finalJob.result = {
-            insertedCount,
-            message: `Successfully synced ${insertedCount} health data records`,
-          };
-          finalJob.updatedAt = new Date();
-        }
-        
-        } catch (error: any) {
-          console.error("❌ Background sync processing error:", error);
-          
-          // Mark job as failed
-          const failedJob = syncJobs.get(jobId);
-          if (failedJob) {
-            failedJob.status = 'failed';
-            failedJob.error = error.message || 'Unknown error during sync';
-            failedJob.updatedAt = new Date();
-          }
-        }
-      })();
 
+      res.json({
+        success: true,
+        message: `Synced ${insertedCount} health data points`,
+        insertedCount,
+      });
     } catch (error: any) {
       console.error("Error processing Capacitor HealthKit sync:", error);
-      if (!res.headersSent) {
-        res.status(500).json({ error: error.message });
-      }
-    }
-  });
-
-  // Get Apple Health sync job status
-  app.get("/api/apple-health/sync/status/:jobId", isAuthenticated, async (req, res) => {
-    const userId = (req.user as any).claims.sub;
-    const { jobId } = req.params;
-
-    try {
-      const job = syncJobs.get(jobId);
-      
-      if (!job) {
-        return res.status(404).json({ error: 'Job not found' });
-      }
-      
-      // Verify job belongs to this user
-      if (job.userId !== userId) {
-        return res.status(403).json({ error: 'Unauthorized' });
-      }
-      
-      // Return job status
-      res.json({
-        jobId: job.jobId,
-        status: job.status,
-        progress: job.progress,
-        result: job.result,
-        error: job.error,
-        createdAt: job.createdAt,
-        updatedAt: job.updatedAt,
-      });
-      
-    } catch (error: any) {
-      console.error("Error fetching sync job status:", error);
       res.status(500).json({ error: error.message });
     }
   });

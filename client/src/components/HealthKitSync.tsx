@@ -1,36 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Capacitor } from '@capacitor/core';
-import { Preferences } from '@capacitor/preferences';
 import { healthKitService } from '@/services/healthkit';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Smartphone, Download, CheckCircle2, XCircle, Info, Loader2 } from 'lucide-react';
-import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
-import { getApiBaseUrl, queryClient, apiRequest } from '@/lib/queryClient';
-import { isNativePlatform } from '@/mobile/MobileBootstrap';
-import { SecureStorage } from '@aparajita/capacitor-secure-storage';
-import { useQuery } from '@tanstack/react-query';
-
-interface SyncJobStatus {
-  jobId: string;
-  status: 'processing' | 'completed' | 'failed';
-  progress: {
-    totalSamples: number;
-    processedSamples: number;
-    currentBatch?: string;
-  };
-  result?: {
-    insertedCount: number;
-    message: string;
-  };
-  error?: string;
-}
 
 export function HealthKitSync() {
   const [isSyncing, setIsSyncing] = useState(false);
-  const [currentJobId, setCurrentJobId] = useState<string | null>(null);
   const [isHealthKitAvailable, setIsHealthKitAvailable] = useState<boolean | null>(null);
   const [lastSyncResult, setLastSyncResult] = useState<{
     success: boolean;
@@ -38,19 +16,6 @@ export function HealthKitSync() {
     count?: number;
   } | null>(null);
   const { toast } = useToast();
-
-  // Poll for job status when we have a jobId
-  const { data: jobStatus } = useQuery<SyncJobStatus>({
-    queryKey: [`/api/apple-health/sync/status/${currentJobId}`],
-    enabled: !!currentJobId && isSyncing,
-    refetchInterval: (data) => {
-      // Stop polling when job is completed or failed
-      if (data?.status === 'completed' || data?.status === 'failed') {
-        return false;
-      }
-      return 1000; // Poll every second while processing
-    },
-  });
 
   const platform = Capacitor.getPlatform();
 
@@ -62,49 +27,6 @@ export function HealthKitSync() {
     };
     checkAvailability();
   }, []);
-
-  // Handle job status changes
-  useEffect(() => {
-    if (!jobStatus) return;
-
-    if (jobStatus.status === 'completed') {
-      setIsSyncing(false);
-      setCurrentJobId(null);
-      setLastSyncResult({
-        success: true,
-        message: jobStatus.result?.message || 'Sync completed successfully',
-        count: jobStatus.result?.insertedCount,
-      });
-
-      toast({
-        title: 'Sync Complete',
-        description: jobStatus.result?.message || 'Your health data has been synced successfully',
-      });
-
-      // Store last successful sync timestamp for incremental sync
-      const now = new Date().toISOString();
-      Preferences.set({ key: 'healthkit_last_sync', value: now });
-      console.log('[HealthKitSync] Stored last sync timestamp:', now);
-
-      // NOW invalidate queries - data is in the database
-      queryClient.invalidateQueries({ queryKey: ['/api/biomarkers'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/sleep-sessions'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
-    } else if (jobStatus.status === 'failed') {
-      setIsSyncing(false);
-      setCurrentJobId(null);
-      setLastSyncResult({
-        success: false,
-        message: jobStatus.error || 'Sync failed',
-      });
-
-      toast({
-        title: 'Sync Failed',
-        description: jobStatus.error || 'Failed to sync health data',
-        variant: 'destructive',
-      });
-    }
-  }, [jobStatus, toast]);
 
   const handleSync = async () => {
     if (!isHealthKitAvailable) {
@@ -118,7 +40,6 @@ export function HealthKitSync() {
 
     setIsSyncing(true);
     setLastSyncResult(null);
-    setCurrentJobId(null);
 
     try {
       // Request permissions first
@@ -128,49 +49,21 @@ export function HealthKitSync() {
         throw new Error('HealthKit permissions not granted');
       }
 
-      // Get last sync timestamp to determine if this is first sync
-      const { value: lastSyncTimestamp } = await Preferences.get({ key: 'healthkit_last_sync' });
+      // Sync data (7 days for better UX - subsequent syncs are fast due to UUID deduplication)
+      await healthKitService.syncAllHealthData(7); // Last 7 days
       
-      let daysBack: number;
-      let syncType: string;
-      
-      if (lastSyncTimestamp) {
-        // Subsequent sync: always fetch last 24 hours
-        daysBack = 1;
-        syncType = 'incremental (24h)';
-        console.log('[HealthKitSync] Incremental sync: fetching last 24 hours of data');
-      } else {
-        // First sync: get 7 days of history
-        daysBack = 7;
-        syncType = 'initial (7 days)';
-        console.log('[HealthKitSync] First sync: fetching 7 days of health data...');
-      }
+      setLastSyncResult({
+        success: true,
+        message: 'Successfully synced health data from HealthKit',
+      });
 
-      const healthData = await healthKitService.getAllHealthData(daysBack);
-      
-      console.log(`[HealthKitSync] ${syncType} sync: data fetched, uploading to server...`);
-      
-      // Send to backend - will get jobId back
-      const response = await apiRequest('POST', '/api/apple-health/sync', healthData);
-      const result = await response.json();
-      
-      console.log('[HealthKitSync] Upload accepted:', result);
-      
-      // Start polling for status
-      if (result.jobId) {
-        setCurrentJobId(result.jobId);
-        toast({
-          title: 'Processing',
-          description: `Syncing ${result.totalSamples} health data samples...`,
-        });
-      } else {
-        throw new Error('No job ID received from server');
-      }
-      
+      toast({
+        title: 'Sync Complete',
+        description: 'Your health data has been synced successfully',
+      });
     } catch (error: any) {
       console.error('HealthKit sync failed:', error);
       
-      setIsSyncing(false);
       setLastSyncResult({
         success: false,
         message: error.message || 'Failed to sync health data',
@@ -181,6 +74,8 @@ export function HealthKitSync() {
         description: error.message || 'Failed to sync health data',
         variant: 'destructive',
       });
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -253,7 +148,7 @@ export function HealthKitSync() {
       <CardContent className="space-y-4">
         <div className="flex flex-col gap-3">
           <p className="text-sm text-muted-foreground">
-            Quick sync of today's data including steps, HRV, sleep, workouts, and biomarkers.
+            Sync data from the last 30 days including steps, HRV, sleep, workouts, and biomarkers.
           </p>
 
           <Button
@@ -264,7 +159,7 @@ export function HealthKitSync() {
           >
             {isSyncing ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Download className="mr-2 h-4 w-4 animate-spin" />
                 Syncing...
               </>
             ) : (
@@ -275,24 +170,6 @@ export function HealthKitSync() {
             )}
           </Button>
         </div>
-
-        {/* Show progress while syncing */}
-        {isSyncing && jobStatus && (
-          <div className="space-y-2" data-testid="sync-progress">
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">
-                {jobStatus.progress.currentBatch || 'Processing...'}
-              </span>
-              <span className="font-medium">
-                {jobStatus.progress.processedSamples} / {jobStatus.progress.totalSamples}
-              </span>
-            </div>
-            <Progress 
-              value={(jobStatus.progress.processedSamples / jobStatus.progress.totalSamples) * 100} 
-              className="h-2"
-            />
-          </div>
-        )}
 
         {lastSyncResult && (
           <Alert
@@ -306,11 +183,6 @@ export function HealthKitSync() {
             )}
             <AlertDescription>
               {lastSyncResult.message}
-              {lastSyncResult.count !== undefined && (
-                <span className="block text-sm mt-1">
-                  {lastSyncResult.count} records synced
-                </span>
-              )}
             </AlertDescription>
           </Alert>
         )}

@@ -214,12 +214,12 @@ export default function Pricing() {
         </div>
       </div>
 
-      {(checkoutModal.tier === "premium" || checkoutModal.tier === "enterprise") && (
+      {checkoutModal.tier === "premium" && (
         <CheckoutModal
           open={checkoutModal.open}
-          onOpenChange={(open: boolean) => setCheckoutModal({ ...checkoutModal, open })}
-          tier={checkoutModal.tier as "premium" | "enterprise"}
-          tierName={checkoutModal.tierName}
+          onOpenChange={(open) => setCheckoutModal({ ...checkoutModal, open })}
+          tier="premium"
+          tierName="Premium"
         />
       )}
     </div>
