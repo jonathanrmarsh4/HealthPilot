@@ -68,7 +68,6 @@
     "@types/node-cron": "^3.0.11",
     "@types/supertest": "^6.0.3",
     "axios": "^1.12.2",
-    "capacitor-health": "^7.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
