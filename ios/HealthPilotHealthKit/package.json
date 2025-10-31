@@ -1,0 +1,13 @@
+{
+  "name": "healthpilot-healthkit",
+  "version": "1.0.0",
+  "description": "Comprehensive HealthKit plugin for HealthPilot",
+  "main": "dist/plugin.js",
+  "module": "dist/esm/index.js",
+  "types": "dist/esm/index.d.ts",
+  "capacitor": {
+    "ios": {
+      "src": "ios"
+    }
+  }
+}
