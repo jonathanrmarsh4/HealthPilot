@@ -216,6 +216,97 @@ export class HealthKitService {
   }
 
   /**
+   * Get basal calories data
+   */
+  async getBasalCalories(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
+    return this.queryData('basalCalories', startDate, endDate);
+  }
+
+  /**
+   * Get flights climbed data
+   */
+  async getFlightsClimbed(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
+    return this.queryData('flights', startDate, endDate);
+  }
+
+  /**
+   * Get oxygen saturation (SpO2) data
+   */
+  async getOxygenSaturation(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
+    return this.queryData('oxygenSaturation', startDate, endDate);
+  }
+
+  /**
+   * Get respiratory rate data
+   */
+  async getRespiratoryRate(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
+    return this.queryData('respiratoryRate', startDate, endDate);
+  }
+
+  /**
+   * Get body temperature data
+   */
+  async getBodyTemperature(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
+    return this.queryData('bodyTemperature', startDate, endDate);
+  }
+
+  /**
+   * Get BMI (Body Mass Index) data
+   */
+  async getBMI(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
+    return this.queryData('bmi', startDate, endDate);
+  }
+
+  /**
+   * Get height data
+   */
+  async getHeight(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
+    return this.queryData('height', startDate, endDate);
+  }
+
+  /**
+   * Get waist circumference data
+   */
+  async getWaistCircumference(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
+    return this.queryData('waist', startDate, endDate);
+  }
+
+  /**
+   * Get dietary water intake data
+   */
+  async getDietaryWater(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
+    return this.queryData('dietaryWater', startDate, endDate);
+  }
+
+  /**
+   * Get dietary energy (calories consumed) data
+   */
+  async getDietaryEnergy(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
+    return this.queryData('dietaryEnergy', startDate, endDate);
+  }
+
+  /**
+   * Get dietary protein data
+   */
+  async getDietaryProtein(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
+    return this.queryData('dietaryProtein', startDate, endDate);
+  }
+
+  /**
+   * Get dietary carbohydrates data
+   */
+  async getDietaryCarbs(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
+    return this.queryData('dietaryCarbs', startDate, endDate);
+  }
+
+  /**
+   * Get dietary fat data
+   */
+  async getDietaryFat(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
+    return this.queryData('dietaryFat', startDate, endDate);
+  }
+
+  /**
    * Get workouts
    */
   async getWorkouts(startDate: Date, endDate: Date): Promise<WorkoutSample[]> {
@@ -266,15 +357,28 @@ export class HealthKitService {
     steps: HealthDataSample[];
     distance: HealthDataSample[];
     activeCalories: HealthDataSample[];
+    basalCalories: HealthDataSample[];
+    flightsClimbed: HealthDataSample[];
     heartRate: HealthDataSample[];
     restingHeartRate: HealthDataSample[];
     hrv: HealthDataSample[];
+    oxygenSaturation: HealthDataSample[];
+    respiratoryRate: HealthDataSample[];
+    bodyTemperature: HealthDataSample[];
     weight: HealthDataSample[];
+    bmi: HealthDataSample[];
     leanBodyMass: HealthDataSample[];
     bodyFat: HealthDataSample[];
+    height: HealthDataSample[];
+    waistCircumference: HealthDataSample[];
     bloodPressureSystolic: HealthDataSample[];
     bloodPressureDiastolic: HealthDataSample[];
     bloodGlucose: HealthDataSample[];
+    dietaryWater: HealthDataSample[];
+    dietaryEnergy: HealthDataSample[];
+    dietaryProtein: HealthDataSample[];
+    dietaryCarbs: HealthDataSample[];
+    dietaryFat: HealthDataSample[];
     workouts: WorkoutSample[];
     sleep: SleepSample[];
   }> {
@@ -285,15 +389,28 @@ export class HealthKitService {
         steps: [],
         distance: [],
         activeCalories: [],
+        basalCalories: [],
+        flightsClimbed: [],
         heartRate: [],
         restingHeartRate: [],
         hrv: [],
+        oxygenSaturation: [],
+        respiratoryRate: [],
+        bodyTemperature: [],
         weight: [],
+        bmi: [],
         leanBodyMass: [],
         bodyFat: [],
+        height: [],
+        waistCircumference: [],
         bloodPressureSystolic: [],
         bloodPressureDiastolic: [],
         bloodGlucose: [],
+        dietaryWater: [],
+        dietaryEnergy: [],
+        dietaryProtein: [],
+        dietaryCarbs: [],
+        dietaryFat: [],
         workouts: [],
         sleep: [],
       };
@@ -308,30 +425,56 @@ export class HealthKitService {
         steps,
         distance,
         activeCalories,
+        basalCalories,
+        flightsClimbed,
         heartRate,
         restingHeartRate,
         hrv,
+        oxygenSaturation,
+        respiratoryRate,
+        bodyTemperature,
         weight,
+        bmi,
         leanBodyMass,
         bodyFat,
+        height,
+        waistCircumference,
         bloodPressureSystolic,
         bloodPressureDiastolic,
         bloodGlucose,
+        dietaryWater,
+        dietaryEnergy,
+        dietaryProtein,
+        dietaryCarbs,
+        dietaryFat,
         workouts,
         sleep,
       ] = await Promise.all([
         this.getSteps(startDate, endDate),
         this.getDistance(startDate, endDate),
         this.getActiveCalories(startDate, endDate),
+        this.getBasalCalories(startDate, endDate),
+        this.getFlightsClimbed(startDate, endDate),
         this.getHeartRate(startDate, endDate),
         this.getRestingHeartRate(startDate, endDate),
         this.getHRV(startDate, endDate),
+        this.getOxygenSaturation(startDate, endDate),
+        this.getRespiratoryRate(startDate, endDate),
+        this.getBodyTemperature(startDate, endDate),
         this.getWeight(startDate, endDate),
+        this.getBMI(startDate, endDate),
         this.getLeanBodyMass(startDate, endDate),
         this.getBodyFat(startDate, endDate),
+        this.getHeight(startDate, endDate),
+        this.getWaistCircumference(startDate, endDate),
         this.getBloodPressureSystolic(startDate, endDate),
         this.getBloodPressureDiastolic(startDate, endDate),
         this.getBloodGlucose(startDate, endDate),
+        this.getDietaryWater(startDate, endDate),
+        this.getDietaryEnergy(startDate, endDate),
+        this.getDietaryProtein(startDate, endDate),
+        this.getDietaryCarbs(startDate, endDate),
+        this.getDietaryFat(startDate, endDate),
         this.getWorkouts(startDate, endDate),
         this.getSleep(startDate, endDate),
       ]);
@@ -340,15 +483,28 @@ export class HealthKitService {
         steps: steps.length,
         distance: distance.length,
         activeCalories: activeCalories.length,
+        basalCalories: basalCalories.length,
+        flightsClimbed: flightsClimbed.length,
         heartRate: heartRate.length,
         restingHeartRate: restingHeartRate.length,
         hrv: hrv.length,
+        oxygenSaturation: oxygenSaturation.length,
+        respiratoryRate: respiratoryRate.length,
+        bodyTemperature: bodyTemperature.length,
         weight: weight.length,
+        bmi: bmi.length,
         leanBodyMass: leanBodyMass.length,
         bodyFat: bodyFat.length,
+        height: height.length,
+        waistCircumference: waistCircumference.length,
         bloodPressureSystolic: bloodPressureSystolic.length,
         bloodPressureDiastolic: bloodPressureDiastolic.length,
         bloodGlucose: bloodGlucose.length,
+        dietaryWater: dietaryWater.length,
+        dietaryEnergy: dietaryEnergy.length,
+        dietaryProtein: dietaryProtein.length,
+        dietaryCarbs: dietaryCarbs.length,
+        dietaryFat: dietaryFat.length,
         workouts: workouts.length,
         sleep: sleep.length,
       });
@@ -357,15 +513,28 @@ export class HealthKitService {
         steps,
         distance,
         activeCalories,
+        basalCalories,
+        flightsClimbed,
         heartRate,
         restingHeartRate,
         hrv,
+        oxygenSaturation,
+        respiratoryRate,
+        bodyTemperature,
         weight,
+        bmi,
         leanBodyMass,
         bodyFat,
+        height,
+        waistCircumference,
         bloodPressureSystolic,
         bloodPressureDiastolic,
         bloodGlucose,
+        dietaryWater,
+        dietaryEnergy,
+        dietaryProtein,
+        dietaryCarbs,
+        dietaryFat,
         workouts,
         sleep,
       };

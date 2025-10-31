@@ -1,0 +1,175 @@
+{
+  "task": "Full code review, hardening, and re-integration of a custom Capacitor v7 HealthKit plugin for iOS",
+  "context": {
+    "app": "HealthPilot (CapacitorJS, iOS first)",
+    "problem": "Custom HealthKit plugin worked, then broke during Stripe integration; repeated debugging failed. We’re doing a clean iOS rebuild and want a bulletproof HealthKit layer before reintegration.",
+    "non_goals": [
+      "No Android Health Connect work in this pass",
+      "No payments scope (Stripe) changes aside from decoupling and ensuring no regressions"
+    ]
+  },
+  "goals": [
+    "Isolate the HealthKit plugin in its own repo/package (Swift + Capacitor v7 bridge) with versioning and CI.",
+    "Audit, refactor, and harden: permissions, entitlements, background delivery, query strategy, anchors, deletions, pagination, batching, serialization, and error handling.",
+    "Ship a sample SwiftUI test-host app + a Capacitor demo app with automated integration tests that prove correctness for all configured data types.",
+    "Reintegrate into HealthPilot with a stable, typed TS API and E2E tests.",
+    "Prevent future coupling issues (e.g., Stripe, other plugins) via dependency graph checks and contract tests."
+  ],
+  "constraints_and_requirements": {
+    "capacitor_version": "7.x",
+    "xcode_targets": ["iOS 17, iOS 18"],
+    "swift_version": "Swift 5.9+",
+    "entitlements_and_plist": {
+      "entitlements": [
+        "com.apple.developer.healthkit",
+        "com.apple.developer.healthkit.background-delivery"
+      ],
+      "plist_keys": [
+        "NSHealthShareUsageDescription",
+        "NSHealthUpdateUsageDescription"
+      ]
+    },
+    "healthkit_sync_model": {
+      "permission_model": "Fine-grained per HKType; request read/write only for types we truly need; show human-readable reasons.",
+      "query_strategy": "Use HKObserverQuery + enableBackgroundDelivery + HKAnchoredObjectQuery per type.",
+      "anchors": "Persist HKQueryAnchor per HKType (secure, per-user). Resume using last known anchor.",
+      "deletions": "Consume deleted objects from HKAnchoredObjectQuery and mirror them upstream.",
+      "paging_and_batching": "Respect HK limits; throttle and batch writes; backoff on errors.",
+      "timezones": "Normalize to ISO8601 with timezone; handle DST transitions.",
+      "duplicates": "Idempotency keys based on HK UUID/sourceRevision + start/end.",
+      "devices_and_sources": "Capture HKDevice + HKSourceRevision for provenance.",
+      "sleep": "Support granular sleep stages (awake, REM, core/light, deep) with a consistent mapping."
+    },
+    "performance_and_ux": {
+      "battery": "Minimize background work; coalesce deliveries; schedule work with BGTask as needed.",
+      "threading": "Do not block main thread; use background queues; serialize JS bridge messages safely.",
+      "logging": "Structured logs with levels; redaction for PII; feature flag to toggle verbose logs.",
+      "metrics": "Record counts/latency per HKType; surface a diagnostics screen in the sample app."
+    }
+  },
+  "deliverables": [
+    {
+      "name": "healthkit-plugin-ios",
+      "contents": [
+        "Swift package + Capacitor v7 bridge",
+        "Typed TypeScript definitions",
+        "README with supported HK types & permission matrix",
+        "CHANGELOG with semantic versioning (e.g., 1.0.0)"
+      ]
+    },
+    {
+      "name": "HealthKitPluginSample",
+      "contents": [
+        "SwiftUI host app to test native flows (auth, background, anchors, deletions)",
+        "UITests that insert/delete synthetic samples where allowed and validate queries"
+      ]
+    },
+    {
+      "name": "HealthKitCapacitorDemo",
+      "contents": [
+        "Minimal Capacitor app calling the plugin",
+        "Playwright (or Webdriver) scripted tests for JS API contracts"
+      ]
+    },
+    {
+      "name": "HealthPilot-integration",
+      "contents": [
+        "Refactored client module wrapping the plugin with a stable TS API",
+        "E2E tests (deterministic) proving: authorization → initial sync → incremental sync → deletions → resume after app kill → background delivery"
+      ]
+    }
+  ],
+  "repo_structure": {
+    "monorepo": false,
+    "repos": [
+      "nuvitae-healthkit-plugin-ios",
+      "nuvitae-healthkit-sample-native",
+      "nuvitae-healthkit-capacitor-demo",
+      "healthpilot (app) – consumes released plugin via git tag/npm"
+    ]
+  },
+  "types_and_mapping": {
+    "quantity_types_example": [
+      "HKQuantityTypeIdentifier.stepCount",
+      "activeEnergyBurned",
+      "restingHeartRate",
+      "heartRate",
+      "heartRateVariabilitySDNN",
+      "respiratoryRate",
+      "oxygenSaturation",
+      "bodyMass",
+      "bodyFatPercentage",
+      "leanBodyMass",
+      "bloodGlucose",
+      "systolicBloodPressure",
+      "diastolicBloodPressure",
+      "vo2Max",
+      "walkingRunningDistance",
+      "flightsClimbed",
+      "basalBodyTemperature"
+    ],
+    "category_types_example": [
+      "sleepAnalysis (stages)",
+      "mindfulSession"
+    ],
+    "workout_routes_optional": true,
+    "ts_contract": "Export discriminated unions per HK type; include units, metadata, device, sourceRevision, startDate, endDate, uuid"
+  },
+  "tests": {
+    "unit": [
+      "Anchor persistence per HKType (save/load/advance)",
+      "Deleted objects handling (mirror and confirm)",
+      "Serialization to/from JS bridge with large payloads"
+    ],
+    "integration_native": [
+      "Authorize with subset → read/write sanity → expand to full set",
+      "Observer + background delivery (simulate delivery; validate resume after kill)"
+    ],
+    "integration_capacitor": [
+      "JS API contract tests (method names, params, return shapes, error codes)",
+      "Backpressure: large result sets chunked without UI jank"
+    ],
+    "e2e_healthpilot": [
+      "Cold start with empty anchors → initial backfill (bounded) → anchor stored",
+      "New samples arrive → observer fires → anchored query syncs only delta",
+      "Deleted sample appears → deletion propagated to app DB",
+      "Kill app → relaunch → resume from anchors with no duplication",
+      "Permissions changed/denied → graceful degradation + user messaging"
+    ],
+    "non_functional": [
+      "Battery and time budget checks",
+      "Thread-safety under concurrent requests",
+      "Memory leak checks (Instruments)"
+    ],
+    "acceptance_criteria": [
+      "All tests pass on iOS 17 & 18 simulators and one physical device",
+      "Background delivery observed at least once per supported type (where Apple allows)",
+      "No main-thread warnings; logs redacted; TS types generated and committed"
+    ]
+  },
+  "error_handling_and_codes": {
+    "codes": [
+      {"code": "HK_AUTH_DENIED", "action": "Prompt user to enable permissions; deep link to Settings"},
+      {"code": "HK_BG_DELIVERY_DISABLED", "action": "Inform user and fall back to foreground sync"},
+      {"code": "HK_ANCHOR_NOT_FOUND", "action": "Perform bounded backfill (e.g., last 30 days) then persist new anchor"},
+      {"code": "HK_PAYLOAD_TOO_LARGE", "action": "Split into pages and stream through JS bridge"}
+    ]
+  },
+  "build_and_ci": {
+    "ci": "GitHub Actions: build, unit tests, run iOS simulator tests; create release artifacts",
+    "release": "Tag + publish npm package (scoped) with generated TS types",
+    "lint": ["SwiftLint", "ESLint/TS"],
+    "format": ["swift-format", "prettier"]
+  },
+  "reintegration_steps": [
+    "Remove old plugin ref; install released version by tag",
+    "Wire DI container to new TS wrapper",
+    "Run E2E suite",
+    "Only then proceed with Stripe and other plugins"
+  ],
+  "artifacts_to_produce": [
+    "Permission copy (clear, Apple-review friendly)",
+    "Supported types matrix (per read/write, unit, category mapping)",
+    "Diagnostics screen in demo apps (anchors, last sync times, counts)"
+  ]
+}

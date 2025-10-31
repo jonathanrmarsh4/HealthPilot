@@ -61,6 +61,7 @@ import MobileAuthRedirect from "@/pages/MobileAuthRedirect";
 import LandingPage from "@/pages/LandingPage";
 import NotFound from "@/pages/not-found";
 import { NativeDiagnostics } from "@/mobile/features/diagnostics/NativeDiagnostics";
+import HealthKitDiagnostics from "@/pages/HealthKitDiagnostics";
 import { Loader2, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
@@ -115,6 +116,7 @@ function Router() {
       <Route path="/admin/cost" component={AdminCostDashboard} />
       <Route path="/admin/ai-audit" component={AIAuditLog} />
       <Route path="/mobile-diagnostics" component={NativeDiagnostics} />
+      <Route path="/healthkit-diagnostics" component={HealthKitDiagnostics} />
       <Route path="/mobile-auth-redirect" component={MobileAuthRedirect} />
       <Route path="/logged-out" component={Logout} />
       <Route component={NotFound} />
