@@ -49,8 +49,8 @@ export function HealthKitSync() {
         throw new Error('HealthKit permissions not granted');
       }
 
-      // Sync data (7 days for better UX - subsequent syncs are fast due to UUID deduplication)
-      await healthKitService.syncAllHealthData(7); // Last 7 days
+      // Sync data
+      await healthKitService.syncAllHealthData(30); // Last 30 days
       
       setLastSyncResult({
         success: true,

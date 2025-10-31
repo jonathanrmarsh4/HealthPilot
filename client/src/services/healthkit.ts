@@ -114,15 +114,11 @@ export class HealthKitService {
     endDate: Date
   ): Promise<HealthDataSample[]> {
     try {
-      // Remove milliseconds for Swift compatibility (ISO8601DateFormatter quirk)
-      const startDateString = startDate.toISOString().replace(/\.\d{3}Z$/, 'Z');
-      const endDateString = endDate.toISOString().replace(/\.\d{3}Z$/, 'Z');
-      
-      console.log(`[HealthKit] Querying ${dataType} from ${startDateString} to ${endDateString}`);
+      console.log(`[HealthKit] Querying ${dataType} from ${startDate.toISOString()} to ${endDate.toISOString()}`);
       const result = await HealthPilotHealthKit.queryHealthData({
         dataType,
-        startDate: startDateString,
-        endDate: endDateString,
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
       });
       console.log(`[HealthKit] ${dataType} returned ${result.samples?.length || 0} samples`);
       if (result.samples && result.samples.length > 0) {
@@ -224,15 +220,11 @@ export class HealthKitService {
    */
   async getWorkouts(startDate: Date, endDate: Date): Promise<WorkoutSample[]> {
     try {
-      // Remove milliseconds for Swift compatibility
-      const startDateString = startDate.toISOString().replace(/\.\d{3}Z$/, 'Z');
-      const endDateString = endDate.toISOString().replace(/\.\d{3}Z$/, 'Z');
-      
-      console.log(`[HealthKit] Querying workouts from ${startDateString} to ${endDateString}`);
+      console.log(`[HealthKit] Querying workouts from ${startDate.toISOString()} to ${endDate.toISOString()}`);
       const result = await HealthPilotHealthKit.queryHealthData({
         dataType: 'workouts',
-        startDate: startDateString,
-        endDate: endDateString,
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
       });
       console.log(`[HealthKit] Workouts returned ${result.workouts?.length || 0} items`);
       if (result.workouts && result.workouts.length > 0) {
@@ -250,15 +242,11 @@ export class HealthKitService {
    */
   async getSleep(startDate: Date, endDate: Date): Promise<SleepSample[]> {
     try {
-      // Remove milliseconds for Swift compatibility
-      const startDateString = startDate.toISOString().replace(/\.\d{3}Z$/, 'Z');
-      const endDateString = endDate.toISOString().replace(/\.\d{3}Z$/, 'Z');
-      
-      console.log(`[HealthKit] Querying sleep from ${startDateString} to ${endDateString}`);
+      console.log(`[HealthKit] Querying sleep from ${startDate.toISOString()} to ${endDate.toISOString()}`);
       const result = await HealthPilotHealthKit.queryHealthData({
         dataType: 'sleep',
-        startDate: startDateString,
-        endDate: endDateString,
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
       });
       console.log(`[HealthKit] Sleep returned ${result.sleepSamples?.length || 0} samples`);
       if (result.sleepSamples && result.sleepSamples.length > 0) {
