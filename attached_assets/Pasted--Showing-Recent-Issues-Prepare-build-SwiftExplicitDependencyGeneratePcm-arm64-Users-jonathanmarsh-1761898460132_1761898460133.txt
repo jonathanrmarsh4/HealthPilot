@@ -1,0 +1,333 @@
+
+Showing Recent Issues
+
+Prepare build
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules/Cordova-20BDAYMH7Y9TYVB4NF98W2DG1.pcm
+
+<module-includes>:1:9: note: in file included from <module-includes>:1:
+1 | #import "Headers/CapacitorCordova.h"
+  |         `- note: in file included from <module-includes>:1:
+2 | 
+
+/Users/jonathanmarsh/Desktop/HealthPilot/node_modules/@capacitor/ios/CapacitorCordova/CapacitorCordova/CapacitorCordova.h:10:9: note: in file included from /Users/jonathanmarsh/Desktop/HealthPilot/node_modules/@capacitor/ios/CapacitorCordova/CapacitorCordova/CapacitorCordova.h:10:
+ 8 | 
+ 9 | #import <Cordova/AppDelegate.h>
+10 | #import <Cordova/CDV.h>
+   |         `- note: in file included from /Users/jonathanmarsh/Desktop/HealthPilot/node_modules/@capacitor/ios/CapacitorCordova/CapacitorCordova/CapacitorCordova.h:10:
+11 | #import <Cordova/CDVAvailability.h>
+12 | #import <Cordova/CDVCommandDelegate.h>
+
+/Users/jonathanmarsh/Desktop/HealthPilot/node_modules/@capacitor/ios/CapacitorCordova/CapacitorCordova/Classes/Public/CDV.h:28:9: note: in file included from /Users/jonathanmarsh/Desktop/HealthPilot/node_modules/@capacitor/ios/CapacitorCordova/CapacitorCordova/Classes/Public/CDV.h:28:
+26 | #import "CDVURLProtocol.h"
+27 | #import "CDVScreenOrientationDelegate.h"
+28 | #import "CDVWebViewProcessPoolFactory.h"
+   |         `- note: in file included from /Users/jonathanmarsh/Desktop/HealthPilot/node_modules/@capacitor/ios/CapacitorCordova/CapacitorCordova/Classes/Public/CDV.h:28:
+29 | 
+
+/Users/jonathanmarsh/Desktop/HealthPilot/node_modules/@capacitor/ios/CapacitorCordova/CapacitorCordova/Classes/Public/CDVWebViewProcessPoolFactory.h:23:31: warning: 'WKProcessPool' is deprecated: first deprecated in iOS 15.0 - Creating and using multiple instances of WKProcessPool no longer has any effect.
+21 | 
+22 | @interface CDVWebViewProcessPoolFactory : NSObject
+23 | @property (nonatomic, retain) WKProcessPool* sharedPool;
+   |                               `- warning: 'WKProcessPool' is deprecated: first deprecated in iOS 15.0 - Creating and using multiple instances of WKProcessPool no longer has any effect.
+24 | 
+25 | +(instancetype) sharedFactory;
+
+/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/WebKit.framework/Headers/WKProcessPool.h:38:12: note: 'WKProcessPool' has been explicitly marked deprecated here
+36 | WK_SWIFT_UI_ACTOR
+37 | WK_EXTERN API_DEPRECATED("Creating and using multiple instances of WKProcessPool no longer has any effect.", macos(10.10, 12.0), ios(8.0, 15.0), visionos(1.0, 1.0))
+38 | @interface WKProcessPool : NSObject <NSSecureCoding>
+   |            `- note: 'WKProcessPool' has been explicitly marked deprecated here
+39 | @end
+40 | 
+
+<module-includes>:1:9: note: in file included from <module-includes>:1:
+1 | #import "Headers/CapacitorCordova.h"
+  |         `- note: in file included from <module-includes>:1:
+2 | 
+
+/Users/jonathanmarsh/Desktop/HealthPilot/node_modules/@capacitor/ios/CapacitorCordova/CapacitorCordova/CapacitorCordova.h:10:9: note: in file included from /Users/jonathanmarsh/Desktop/HealthPilot/node_modules/@capacitor/ios/CapacitorCordova/CapacitorCordova/CapacitorCordova.h:10:
+ 8 | 
+ 9 | #import <Cordova/AppDelegate.h>
+10 | #import <Cordova/CDV.h>
+   |         `- note: in file included from /Users/jonathanmarsh/Desktop/HealthPilot/node_modules/@capacitor/ios/CapacitorCordova/CapacitorCordova/CapacitorCordova.h:10:
+11 | #import <Cordova/CDVAvailability.h>
+12 | #import <Cordova/CDVCommandDelegate.h>
+
+/Users/jonathanmarsh/Desktop/HealthPilot/node_modules/@capacitor/ios/CapacitorCordova/CapacitorCordova/Classes/Public/CDV.h:28:9: note: in file included from /Users/jonathanmarsh/Desktop/HealthPilot/node_modules/@capacitor/ios/CapacitorCordova/CapacitorCordova/Classes/Public/CDV.h:28:
+26 | #import "CDVURLProtocol.h"
+27 | #import "CDVScreenOrientationDelegate.h"
+28 | #import "CDVWebViewProcessPoolFactory.h"
+   |         `- note: in file included from /Users/jonathanmarsh/Desktop/HealthPilot/node_modules/@capacitor/ios/CapacitorCordova/CapacitorCordova/Classes/Public/CDV.h:28:
+29 | 
+
+2 warnings generated.
+/Users/jonathanmarsh/Desktop/HealthPilot/node_modules/@capacitor/ios/CapacitorCordova/CapacitorCordova/Classes/Public/CDVWebViewProcessPoolFactory.h:26:3: warning: 'WKProcessPool' is deprecated: first deprecated in iOS 15.0 - Creating and using multiple instances of WKProcessPool no longer has any effect.
+24 | 
+25 | +(instancetype) sharedFactory;
+26 | -(WKProcessPool*) sharedProcessPool;
+   |   `- warning: 'WKProcessPool' is deprecated: first deprecated in iOS 15.0 - Creating and using multiple instances of WKProcessPool no longer has any effect.
+27 | @end
+28 | 
+
+/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/WebKit.framework/Headers/WKProcessPool.h:38:12: note: 'WKProcessPool' has been explicitly marked deprecated here
+36 | WK_SWIFT_UI_ACTOR
+37 | WK_EXTERN API_DEPRECATED("Creating and using multiple instances of WKProcessPool no longer has any effect.", macos(10.10, 12.0), ios(8.0, 15.0), visionos(1.0, 1.0))
+38 | @interface WKProcessPool : NSObject <NSSecureCoding>
+   |            `- note: 'WKProcessPool' has been explicitly marked deprecated here
+39 | @end
+40 | 
+
+/Users/jonathanmarsh/Desktop/HealthPilot/ios/App/Pods/<module-includes>:1:9: in file included from <module-includes>:1:
+
+/Users/jonathanmarsh/Desktop/HealthPilot/node_modules/@capacitor/ios/CapacitorCordova/CapacitorCordova/CapacitorCordova.h:10:9: in file included from /Users/jonathanmarsh/Desktop/HealthPilot/node_modules/@capacitor/ios/CapacitorCordova/CapacitorCordova/CapacitorCordova.h:10:
+
+/Users/jonathanmarsh/Desktop/HealthPilot/node_modules/@capacitor/ios/CapacitorCordova/CapacitorCordova/Classes/Public/CDV.h:28:9: in file included from /Users/jonathanmarsh/Desktop/HealthPilot/node_modules/@capacitor/ios/CapacitorCordova/CapacitorCordova/Classes/Public/CDV.h:28:
+
+/Users/jonathanmarsh/Desktop/HealthPilot/node_modules/@capacitor/ios/CapacitorCordova/CapacitorCordova/Classes/Public/CDVWebViewProcessPoolFactory.h:23:31: 'WKProcessPool' is deprecated: first deprecated in iOS 15.0 - Creating and using multiple instances of WKProcessPool no longer has any effect.
+
+/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/WebKit.framework/Headers/WKProcessPool.h:38:12: 'WKProcessPool' has been explicitly marked deprecated here
+
+/Users/jonathanmarsh/Desktop/HealthPilot/ios/App/Pods/<module-includes>:1:9: in file included from <module-includes>:1:
+
+/Users/jonathanmarsh/Desktop/HealthPilot/node_modules/@capacitor/ios/CapacitorCordova/CapacitorCordova/CapacitorCordova.h:10:9: in file included from /Users/jonathanmarsh/Desktop/HealthPilot/node_modules/@capacitor/ios/CapacitorCordova/CapacitorCordova/CapacitorCordova.h:10:
+
+/Users/jonathanmarsh/Desktop/HealthPilot/node_modules/@capacitor/ios/CapacitorCordova/CapacitorCordova/Classes/Public/CDV.h:28:9: in file included from /Users/jonathanmarsh/Desktop/HealthPilot/node_modules/@capacitor/ios/CapacitorCordova/CapacitorCordova/Classes/Public/CDV.h:28:
+
+/Users/jonathanmarsh/Desktop/HealthPilot/node_modules/@capacitor/ios/CapacitorCordova/CapacitorCordova/Classes/Public/CDVWebViewProcessPoolFactory.h:26:3: 'WKProcessPool' is deprecated: first deprecated in iOS 15.0 - Creating and using multiple instances of WKProcessPool no longer has any effect.
+
+/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/WebKit.framework/Headers/WKProcessPool.h:38:12: 'WKProcessPool' has been explicitly marked deprecated here
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules/Cordova-1JM485THOSQ31W9BFAMRDFVV4.pcm
+
+<module-includes>:1:9: note: in file included from <module-includes>:1:
+1 | #import "Headers/CapacitorCordova.h"
+  |         `- note: in file included from <module-includes>:1:
+2 | 
+
+/Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Products/Debug-iphoneos/CapacitorCordova/Cordova.framework/Headers/CapacitorCordova.h:10:9: note: in file included from /Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Products/Debug-iphoneos/CapacitorCordova/Cordova.framework/Headers/CapacitorCordova.h:10:
+ 8 | 
+ 9 | #import <Cordova/AppDelegate.h>
+10 | #import <Cordova/CDV.h>
+   |         `- note: in file included from /Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Products/Debug-iphoneos/CapacitorCordova/Cordova.framework/Headers/CapacitorCordova.h:10:
+11 | #import <Cordova/CDVAvailability.h>
+12 | #import <Cordova/CDVCommandDelegate.h>
+
+/Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Products/Debug-iphoneos/CapacitorCordova/Cordova.framework/Headers/CDV.h:28:9: note: in file included from /Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Products/Debug-iphoneos/CapacitorCordova/Cordova.framework/Headers/CDV.h:28:
+26 | #import "CDVURLProtocol.h"
+27 | #import "CDVScreenOrientationDelegate.h"
+28 | #import "CDVWebViewProcessPoolFactory.h"
+   |         `- note: in file included from /Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Products/Debug-iphoneos/CapacitorCordova/Cordova.framework/Headers/CDV.h:28:
+29 | 
+
+/Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Products/Debug-iphoneos/CapacitorCordova/Cordova.framework/Headers/CDVWebViewProcessPoolFactory.h:23:31: warning: 'WKProcessPool' is deprecated: first deprecated in iOS 15.0 - Creating and using multiple instances of WKProcessPool no longer has any effect.
+21 | 
+22 | @interface CDVWebViewProcessPoolFactory : NSObject
+23 | @property (nonatomic, retain) WKProcessPool* sharedPool;
+   |                               `- warning: 'WKProcessPool' is deprecated: first deprecated in iOS 15.0 - Creating and using multiple instances of WKProcessPool no longer has any effect.
+24 | 
+25 | +(instancetype) sharedFactory;
+
+/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/WebKit.framework/Headers/WKProcessPool.h:38:12: note: 'WKProcessPool' has been explicitly marked deprecated here
+36 | WK_SWIFT_UI_ACTOR
+37 | WK_EXTERN API_DEPRECATED("Creating and using multiple instances of WKProcessPool no longer has any effect.", macos(10.10, 12.0), ios(8.0, 15.0), visionos(1.0, 1.0))
+38 | @interface WKProcessPool : NSObject <NSSecureCoding>
+   |            `- note: 'WKProcessPool' has been explicitly marked deprecated here
+39 | @end
+40 | 
+
+<module-includes>:1:9: note: in file included from <module-includes>:1:
+1 | #import "Headers/CapacitorCordova.h"
+  |         `- note: in file included from <module-includes>:1:
+2 | 
+
+/Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Products/Debug-iphoneos/CapacitorCordova/Cordova.framework/Headers/CapacitorCordova.h:10:9: note: in file included from /Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Products/Debug-iphoneos/CapacitorCordova/Cordova.framework/Headers/CapacitorCordova.h:10:
+ 8 | 
+ 9 | #import <Cordova/AppDelegate.h>
+10 | #import <Cordova/CDV.h>
+   |         `- note: in file included from /Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Products/Debug-iphoneos/CapacitorCordova/Cordova.framework/Headers/CapacitorCordova.h:10:
+11 | #import <Cordova/CDVAvailability.h>
+12 | #import <Cordova/CDVCommandDelegate.h>
+
+/Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Products/Debug-iphoneos/CapacitorCordova/Cordova.framework/Headers/CDV.h:28:9: note: in file included from /Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Products/Debug-iphoneos/CapacitorCordova/Cordova.framework/Headers/CDV.h:28:
+26 | #import "CDVURLProtocol.h"
+27 | #import "CDVScreenOrientationDelegate.h"
+28 | #import "CDVWebViewProcessPoolFactory.h"
+   |         `- note: in file included from /Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Products/Debug-iphoneos/CapacitorCordova/Cordova.framework/Headers/CDV.h:28:
+29 | 
+
+2 warnings generated.
+/Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Products/Debug-iphoneos/CapacitorCordova/Cordova.framework/Headers/CDVWebViewProcessPoolFactory.h:26:3: warning: 'WKProcessPool' is deprecated: first deprecated in iOS 15.0 - Creating and using multiple instances of WKProcessPool no longer has any effect.
+24 | 
+25 | +(instancetype) sharedFactory;
+26 | -(WKProcessPool*) sharedProcessPool;
+   |   `- warning: 'WKProcessPool' is deprecated: first deprecated in iOS 15.0 - Creating and using multiple instances of WKProcessPool no longer has any effect.
+27 | @end
+28 | 
+
+/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/WebKit.framework/Headers/WKProcessPool.h:38:12: note: 'WKProcessPool' has been explicitly marked deprecated here
+36 | WK_SWIFT_UI_ACTOR
+37 | WK_EXTERN API_DEPRECATED("Creating and using multiple instances of WKProcessPool no longer has any effect.", macos(10.10, 12.0), ios(8.0, 15.0), visionos(1.0, 1.0))
+38 | @interface WKProcessPool : NSObject <NSSecureCoding>
+   |            `- note: 'WKProcessPool' has been explicitly marked deprecated here
+39 | @end
+40 | 
+
+/Users/jonathanmarsh/Desktop/HealthPilot/ios/App/<module-includes>:1:9: in file included from <module-includes>:1:
+
+/Users/jonathanmarsh/Desktop/HealthPilot/node_modules/@capacitor/ios/CapacitorCordova/CapacitorCordova/CapacitorCordova.h:10:9: in file included from /Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Products/Debug-iphoneos/CapacitorCordova/Cordova.framework/Headers/CapacitorCordova.h:10:
+
+/Users/jonathanmarsh/Desktop/HealthPilot/node_modules/@capacitor/ios/CapacitorCordova/CapacitorCordova/Classes/Public/CDV.h:28:9: in file included from /Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Products/Debug-iphoneos/CapacitorCordova/Cordova.framework/Headers/CDV.h:28:
+
+/Users/jonathanmarsh/Desktop/HealthPilot/node_modules/@capacitor/ios/CapacitorCordova/CapacitorCordova/Classes/Public/CDVWebViewProcessPoolFactory.h:23:31: 'WKProcessPool' is deprecated: first deprecated in iOS 15.0 - Creating and using multiple instances of WKProcessPool no longer has any effect.
+
+/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/WebKit.framework/Headers/WKProcessPool.h:38:12: 'WKProcessPool' has been explicitly marked deprecated here
+
+/Users/jonathanmarsh/Desktop/HealthPilot/ios/App/<module-includes>:1:9: in file included from <module-includes>:1:
+
+/Users/jonathanmarsh/Desktop/HealthPilot/node_modules/@capacitor/ios/CapacitorCordova/CapacitorCordova/CapacitorCordova.h:10:9: in file included from /Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Products/Debug-iphoneos/CapacitorCordova/Cordova.framework/Headers/CapacitorCordova.h:10:
+
+/Users/jonathanmarsh/Desktop/HealthPilot/node_modules/@capacitor/ios/CapacitorCordova/CapacitorCordova/Classes/Public/CDV.h:28:9: in file included from /Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Products/Debug-iphoneos/CapacitorCordova/Cordova.framework/Headers/CDV.h:28:
+
+/Users/jonathanmarsh/Desktop/HealthPilot/node_modules/@capacitor/ios/CapacitorCordova/CapacitorCordova/Classes/Public/CDVWebViewProcessPoolFactory.h:26:3: 'WKProcessPool' is deprecated: first deprecated in iOS 15.0 - Creating and using multiple instances of WKProcessPool no longer has any effect.
+
+/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/WebKit.framework/Headers/WKProcessPool.h:38:12: 'WKProcessPool' has been explicitly marked deprecated here
+
+
+Build target IONFilesystemLib of project Pods with configuration Debug
+warning: Run script build phase '[CP] Copy XCFrameworks' will be run during every build because it does not specify any outputs. To address this issue, either add output dependencies to the script phase, or configure it to run in every build by unchecking "Based on dependency analysis" in the script phase. (in target 'IONFilesystemLib' from project 'Pods')
+
+
+Run script build phase '[CP] Copy XCFrameworks' will be run during every build because it does not specify any outputs. To address this issue, either add output dependencies to the script phase, or configure it to run in every build by unchecking "Based on dependency analysis" in the script phase.
+
+
+Build target App of project App with configuration Debug
+warning: Run script build phase '[CP] Embed Pods Frameworks' will be run during every build because it does not specify any outputs. To address this issue, either add output dependencies to the script phase, or configure it to run in every build by unchecking "Based on dependency analysis" in the script phase. (in target 'App' from project 'App')
+
+
+Run script build phase '[CP] Embed Pods Frameworks' will be run during every build because it does not specify any outputs. To address this issue, either add output dependencies to the script phase, or configure it to run in every build by unchecking "Based on dependency analysis" in the script phase.
+
+SwiftCompile normal arm64 Compiling\ AppDelegate.swift /Users/jonathanmarsh/Desktop/HealthPilot/ios/App/App/AppDelegate.swift (in target 'App' from project 'App')
+
+Failed frontend command:
+/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swift-frontend -frontend -c -primary-file /Users/jonathanmarsh/Desktop/HealthPilot/ios/App/App/AppDelegate.swift /Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Intermediates.noindex/App.build/Debug-iphoneos/App.build/DerivedSources/GeneratedAssetSymbols.swift -emit-dependencies-path /Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Intermediates.noindex/App.build/Debug-iphoneos/App.build/Objects-normal/arm64/AppDelegate.d -emit-const-values-path /Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Intermediates.noindex/App.build/Debug-iphoneos/App.build/Objects-normal/arm64/AppDelegate.swiftconstvalues -emit-reference-dependencies-path /Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Intermediates.noindex/App.build/Debug-iphoneos/App.build/Objects-normal/arm64/AppDelegate.swiftdeps -serialize-diagnostics-path /Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Intermediates.noindex/App.build/Debug-iphoneos/App.build/Objects-normal/arm64/AppDelegate.dia -target arm64-apple-ios14.0 -module-can-import-version DeveloperToolsSupport 23.0.4 23.0.4 -module-can-import-version SwiftUI 7.0.84.1 7.0.84 -module-can-import-version UIKit 9088.1.113 9088.1.113 -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/lib/swift/host/plugins/libFoundationMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/swift-plugin-server\#FoundationMacros -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/lib/swift/host/plugins/libObservationMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/swift-plugin-server\#ObservationMacros -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/lib/swift/host/plugins/libPreviewsMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/swift-plugin-server\#PreviewsMacros -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/lib/swift/host/plugins/libSwiftMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/swift-plugin-server\#SwiftMacros -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/lib/swift/host/plugins/libSwiftUIMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/swift-plugin-server\#SwiftUIMacros -disable-implicit-swift-modules -Xcc -fno-implicit-modules -Xcc -fno-implicit-module-maps -explicit-swift-module-map-file /Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Intermediates.noindex/App.build/Debug-iphoneos/App.build/Objects-normal/arm64/App-dependencies-64.json -Xllvm -aarch64-use-tbi -enable-objc-interop -stack-check -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk -I /Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Products/Debug-iphoneos -F /Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Products/Debug-iphoneos -F /Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Products/Debug-iphoneos/AparajitaCapacitorSecureStorage -F /Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Products/Debug-iphoneos/Capacitor -F /Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Products/Debug-iphoneos/CapacitorApp -F /Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Products/Debug-iphoneos/CapacitorBrowser -F /Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Products/Debug-iphoneos/CapacitorCordova -F /Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Products/Debug-iphoneos/CapacitorFilesystem -F /Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Products/Debug-iphoneos/CapacitorHaptics -F /Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Products/Debug-iphoneos/CapacitorHealth -F /Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Products/Debug-iphoneos/CapacitorKeyboard -F /Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Products/Debug-iphoneos/CapacitorPreferences -F /Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Products/Debug-iphoneos/CapacitorShare -F /Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Products/Debug-iphoneos/CapacitorSplashScreen -F /Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Products/Debug-iphoneos/CapacitorStatusBar -F /Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Products/Debug-iphoneos/KeychainSwift -F /Users/jonathanmarsh/Desktop/HealthPilot/ios/App/Pods/IONFilesystemLib -F /Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Products/Debug-iphoneos/XCFrameworkIntermediates/IONFilesystemLib -no-color-diagnostics -Xcc -fno-color-diagnostics -enable-testing -g -debug-info-format\=dwarf -dwarf-version\=4 -module-cache-path /Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -swift-version 5 -enforce-exclusivity\=checked -Onone -D DEBUG -D COCOAPODS -D COCOAPODS -D DEBUG -serialize-debugging-options -const-gather-protocols-file /Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Intermediates.noindex/App.build/Debug-iphoneos/App.build/Objects-normal/arm64/App_const_extract_protocols.json -enable-experimental-feature DebugDescriptionMacro -enable-bare-slash-regex -empty-abi-descriptor -validate-clang-modules-once -clang-build-session-file /Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Session.modulevalidation -Xcc -working-directory -Xcc /Users/jonathanmarsh/Desktop/HealthPilot/ios/App -enable-anonymous-context-mangled-names -file-compilation-dir /Users/jonathanmarsh/Desktop/HealthPilot/ios/App -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -Xcc -ivfsstatcache -Xcc /Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphoneos26.0-23A339-81ce72e5b06c9602b9d30b56f2eed08a.sdkstatcache -Xcc -I/Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Intermediates.noindex/App.build/Debug-iphoneos/App.build/swift-overrides.hmap -Xcc -iquote -Xcc /Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Intermediates.noindex/App.build/Debug-iphoneos/App.build/App-generated-files.hmap -Xcc -I/Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Intermediates.noindex/App.build/Debug-iphoneos/App.build/App-own-target-headers.hmap -Xcc -I/Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Intermediates.noindex/App.build/Debug-iphoneos/App.build/App-all-non-framework-target-headers.hmap -Xcc -ivfsoverlay -Xcc /Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Intermediates.noindex/App.build/Debug-iphoneos/App-0ca3007d900a678c2b4d53418799ee3d-VFS-iphoneos/all-product-headers.yaml -Xcc -iquote -Xcc /Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Intermediates.noindex/App.build/Debug-iphoneos/App.build/App-project-headers.hmap -Xcc -I/Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Products/Debug-iphoneos/include -Xcc -I/Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Products/Debug-iphoneos/AparajitaCapacitorSecureStorage/AparajitaCapacitorSecureStorage.framework/Headers -Xcc -I/Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Products/Debug-iphoneos/Capacitor/Capacitor.framework/Headers -Xcc -I/Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Products/Debug-iphoneos/CapacitorApp/CapacitorApp.framework/Headers -Xcc -I/Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Products/Debug-iphoneos/CapacitorBrowser/CapacitorBrowser.framework/Headers -Xcc -I/Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Products/Debug-iphoneos/CapacitorCordova/Cordova.framework/Headers -Xcc -I/Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Products/Debug-iphoneos/CapacitorFilesystem/CapacitorFilesystem.framework/Headers -Xcc -I/Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Products/Debug-iphoneos/CapacitorHaptics/CapacitorHaptics.framework/Headers -Xcc -I/Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Products/Debug-iphoneos/CapacitorHealth/CapacitorHealth.framework/Headers -Xcc -I/Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Products/Debug-iphoneos/CapacitorKeyboard/CapacitorKeyboard.framework/Headers -Xcc -I/Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Products/Debug-iphoneos/CapacitorPreferences/CapacitorPreferences.framework/Headers -Xcc -I/Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Products/Debug-iphoneos/CapacitorShare/CapacitorShare.framework/Headers -Xcc -I/Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Products/Debug-iphoneos/CapacitorSplashScreen/CapacitorSplashScreen.framework/Headers -Xcc -I/Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Products/Debug-iphoneos/CapacitorStatusBar/CapacitorStatusBar.framework/Headers -Xcc -I/Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Products/Debug-iphoneos/KeychainSwift/KeychainSwift.framework/Headers -Xcc -I/Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Intermediates.noindex/App.build/Debug-iphoneos/App.build/DerivedSources-normal/arm64 -Xcc -I/Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Intermediates.noindex/App.build/Debug-iphoneos/App.build/DerivedSources/arm64 -Xcc -I/Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Intermediates.noindex/App.build/Debug-iphoneos/App.build/DerivedSources -Xcc -DDEBUG\=1 -Xcc -DCOCOAPODS\=1 -no-auto-bridging-header-chaining -module-name App -frontend-parseable-output -disable-clang-spi -target-sdk-version 26.0 -target-sdk-name iphoneos26.0 -clang-target arm64-apple-ios26.0 -in-process-plugin-server-path /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/libSwiftInProcPluginServer.dylib -o /Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Intermediates.noindex/App.build/Debug-iphoneos/App.build/Objects-normal/arm64/AppDelegate.o -index-unit-output-path /App.build/Debug-iphoneos/App.build/Objects-normal/arm64/AppDelegate.o -index-store-path /Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Index.noindex/DataStore -index-system-modules
+
+SwiftCompile normal arm64 /Users/jonathanmarsh/Desktop/HealthPilot/ios/App/App/AppDelegate.swift (in target 'App' from project 'App')
+    cd /Users/jonathanmarsh/Desktop/HealthPilot/ios/App
+    
+
+/Users/jonathanmarsh/Desktop/HealthPilot/ios/App/App/AppDelegate.swift:11:34: error: cannot find 'HealthPilotHealthKit' in scope
+        CAPBridge.registerPlugin(HealthPilotHealthKit.self)
+                                 ^~~~~~~~~~~~~~~~~~~~
+/Users/jonathanmarsh/Desktop/HealthPilot/ios/App/App/AppDelegate.swift:11:19: error: type 'CAPBridge' has no member 'registerPlugin'
+        CAPBridge.registerPlugin(HealthPilotHealthKit.self)
+        ~~~~~~~~~ ^~~~~~~~~~~~~~
+
+/Users/jonathanmarsh/Desktop/HealthPilot/ios/App/App/AppDelegate.swift:11:34: Cannot find 'HealthPilotHealthKit' in scope
+
+/Users/jonathanmarsh/Desktop/HealthPilot/ios/App/App/AppDelegate.swift:11:19: Type 'CAPBridge' has no member 'registerPlugin'
+
+
+Build target CapacitorKeyboard of project Pods with configuration Debug
+
+CompileC /Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Intermediates.noindex/Pods.build/Debug-iphoneos/CapacitorKeyboard.build/Objects-normal/arm64/Keyboard.o /Users/jonathanmarsh/Desktop/HealthPilot/node_modules/@capacitor/keyboard/ios/Sources/KeyboardPlugin/Keyboard.m normal arm64 objective-c com.apple.compilers.llvm.clang.1_0.compiler (in target 'CapacitorKeyboard' from project 'Pods')
+    cd /Users/jonathanmarsh/Desktop/HealthPilot/ios/App/Pods
+    
+    Using response file: /Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Intermediates.noindex/Pods.build/Debug-iphoneos/CapacitorKeyboard.build/Objects-normal/arm64/e6072d4f65d7061329687fe24e3d63a7-common-args.resp
+    
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -x objective-c -ivfsstatcache /Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphoneos26.0-23A339-81ce72e5b06c9602b9d30b56f2eed08a.sdkstatcache -fmessage-length\=0 -fdiagnostics-show-note-include-stack -fmacro-backtrace-limit\=0 -fno-color-diagnostics -fmodules-prune-interval\=86400 -fmodules-prune-after\=345600 -fbuild-session-file\=/Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Session.modulevalidation -fmodules-validate-once-per-build-session -Wnon-modular-include-in-framework-module -Werror\=non-modular-include-in-framework-module -Wno-trigraphs -Wno-missing-field-initializers -Wno-missing-prototypes -Werror\=return-type -Wdocumentation -Wunreachable-code -Wno-implicit-atomic-properties -Werror\=deprecated-objc-isa-usage -Wno-objc-interface-ivars -Werror\=objc-root-class -Wno-arc-repeated-use-of-weak -Wimplicit-retain-self -Wduplicate-method-match -Wno-missing-braces -Wparentheses -Wswitch -Wunused-function -Wno-unused-label -Wno-unused-parameter -Wunused-variable -Wunused-value -Wempty-body -Wuninitialized -Wconditional-uninitialized -Wno-unknown-pragmas -Wno-shadow -Wno-four-char-constants -Wno-conversion -Wconstant-conversion -Wint-conversion -Wbool-conversion -Wenum-conversion -Wno-float-conversion -Wnon-literal-null-conversion -Wobjc-literal-conversion -Wshorten-64-to-32 -Wpointer-sign -Wno-newline-eof -Wno-selector -Wno-strict-selector-match -Wundeclared-selector -Wdeprecated-implementations -Wno-implicit-fallthrough -fstrict-aliasing -Wprotocol -Wdeprecated-declarations -Wno-sign-conversion -Winfinite-recursion -Wcomma -Wblock-capture-autoreleasing -Wstrict-prototypes -Wno-semicolon-before-method-body -Wunguarded-availability -index-store-path /Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Index.noindex/DataStore @/Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Intermediates.noindex/Pods.build/Debug-iphoneos/CapacitorKeyboard.build/Objects-normal/arm64/e6072d4f65d7061329687fe24e3d63a7-common-args.resp -include /Users/jonathanmarsh/Desktop/HealthPilot/ios/App/Pods/Target\ Support\ Files/CapacitorKeyboard/CapacitorKeyboard-prefix.pch -MMD -MT dependencies -MF /Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Intermediates.noindex/Pods.build/Debug-iphoneos/CapacitorKeyboard.build/Objects-normal/arm64/Keyboard.d --serialize-diagnostics /Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Intermediates.noindex/Pods.build/Debug-iphoneos/CapacitorKeyboard.build/Objects-normal/arm64/Keyboard.dia -c /Users/jonathanmarsh/Desktop/HealthPilot/node_modules/@capacitor/keyboard/ios/Sources/KeyboardPlugin/Keyboard.m -o /Users/jonathanmarsh/Library/Developer/Xcode/DerivedData/App-fkrpelpzjyczpgggsmdapiadrplk/Build/Intermediates.noindex/Pods.build/Debug-iphoneos/CapacitorKeyboard.build/Objects-normal/arm64/Keyboard.o -index-unit-output-path /Pods.build/Debug-iphoneos/CapacitorKeyboard.build/Objects-normal/arm64/Keyboard.o
+
+/Users/jonathanmarsh/Desktop/HealthPilot/node_modules/@capacitor/keyboard/ios/Sources/KeyboardPlugin/Keyboard.m:49:17: warning: auto property synthesis will not synthesize property 'identifier' declared in protocol 'CAPBridgedPlugin' [-Wobjc-protocol-property-synthesis]
+   49 | @implementation KeyboardPlugin
+      |                 ^
+In module 'Capacitor' imported from /Users/jonathanmarsh/Desktop/HealthPilot/node_modules/@capacitor/keyboard/ios/Sources/KeyboardPlugin/include/Keyboard.h:2:
+/Users/jonathanmarsh/Desktop/HealthPilot/node_modules/@capacitor/ios/Capacitor/Capacitor/CAPBridgedPlugin.h:17:41: note: property declared here
+   17 | @property (nonnull, readonly) NSString *identifier;
+      |                                         ^
+/Users/jonathanmarsh/Desktop/HealthPilot/node_modules/@capacitor/keyboard/ios/Sources/KeyboardPlugin/Keyboard.m:404:1: note: add a '@synthesize' directive
+  404 | @end
+      | ^
+/Users/jonathanmarsh/Desktop/HealthPilot/node_modules/@capacitor/keyboard/ios/Sources/KeyboardPlugin/Keyboard.m:49:17: warning: auto property synthesis will not synthesize property 'jsName' declared in protocol 'CAPBridgedPlugin' [-Wobjc-protocol-property-synthesis]
+   49 | @implementation KeyboardPlugin
+      |                 ^
+In module 'Capacitor' imported from /Users/jonathanmarsh/Desktop/HealthPilot/node_modules/@capacitor/keyboard/ios/Sources/KeyboardPlugin/include/Keyboard.h:2:
+/Users/jonathanmarsh/Desktop/HealthPilot/node_modules/@capacitor/ios/Capacitor/Capacitor/CAPBridgedPlugin.h:18:41: note: property declared here
+   18 | @property (nonnull, readonly) NSString *jsName;
+      |                                         ^
+/Users/jonathanmarsh/Desktop/HealthPilot/node_modules/@capacitor/keyboard/ios/Sources/KeyboardPlugin/Keyboard.m:404:1: note: add a '@synthesize' directive
+  404 | @end
+      | ^
+/Users/jonathanmarsh/Desktop/HealthPilot/node_modules/@capacitor/keyboard/ios/Sources/KeyboardPlugin/Keyboard.m:49:17: warning: auto property synthesis will not synthesize property 'pluginMethods' declared in protocol 'CAPBridgedPlugin' [-Wobjc-protocol-property-synthesis]
+   49 | @implementation KeyboardPlugin
+      |                 ^
+In module 'Capacitor' imported from /Users/jonathanmarsh/Desktop/HealthPilot/node_modules/@capacitor/keyboard/ios/Sources/KeyboardPlugin/include/Keyboard.h:2:
+/Users/jonathanmarsh/Desktop/HealthPilot/node_modules/@capacitor/ios/Capacitor/Capacitor/CAPBridgedPlugin.h:19:59: note: property declared here
+   19 | @property (nonnull, readonly) NSArray<CAPPluginMethod *> *pluginMethods;
+      |                                                           ^
+/Users/jonathanmarsh/Desktop/HealthPilot/node_modules/@capacitor/keyboard/ios/Sources/KeyboardPlugin/Keyboard.m:404:1: note: add a '@synthesize' directive
+  404 | @end
+      | ^
+3 warnings generated.
+
+/Users/jonathanmarsh/Desktop/HealthPilot/node_modules/@capacitor/keyboard/ios/Sources/KeyboardPlugin/Keyboard.m:49:17: Auto property synthesis will not synthesize property 'identifier' declared in protocol 'CAPBridgedPlugin'
+
+/Users/jonathanmarsh/Desktop/HealthPilot/node_modules/@capacitor/keyboard/ios/Sources/KeyboardPlugin/Keyboard.m:49:17: Auto property synthesis will not synthesize property 'jsName' declared in protocol 'CAPBridgedPlugin'
+
+/Users/jonathanmarsh/Desktop/HealthPilot/node_modules/@capacitor/keyboard/ios/Sources/KeyboardPlugin/Keyboard.m:49:17: Auto property synthesis will not synthesize property 'pluginMethods' declared in protocol 'CAPBridgedPlugin'
+
+
+Build target CapacitorHealth of project Pods with configuration Debug
+
+SwiftCompile normal arm64 Compiling\ HealthPlugin.swift /Users/jonathanmarsh/Desktop/HealthPilot/node_modules/capacitor-health/ios/Sources/HealthPluginPlugin/HealthPlugin.swift (in target 'CapacitorHealth' from project 'Pods')
+
+SwiftCompile normal arm64 /Users/jonathanmarsh/Desktop/HealthPilot/node_modules/capacitor-health/ios/Sources/HealthPluginPlugin/HealthPlugin.swift (in target 'CapacitorHealth' from project 'Pods')
+    cd /Users/jonathanmarsh/Desktop/HealthPilot/ios/App/Pods
+    
+
+/Users/jonathanmarsh/Desktop/HealthPilot/node_modules/capacitor-health/ios/Sources/HealthPluginPlugin/HealthPlugin.swift:224:32: warning: expression implicitly coerced from 'Date?' to 'Any'
+                    "endDate": calendar.date(byAdding: dayComponent, to: dateAndDuration.key),
+                               ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/Users/jonathanmarsh/Desktop/HealthPilot/node_modules/capacitor-health/ios/Sources/HealthPluginPlugin/HealthPlugin.swift:224:41: note: provide a default value to avoid this warning
+                    "endDate": calendar.date(byAdding: dayComponent, to: dateAndDuration.key),
+                               ~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                                                                                              ?? <#default value#>
+/Users/jonathanmarsh/Desktop/HealthPilot/node_modules/capacitor-health/ios/Sources/HealthPluginPlugin/HealthPlugin.swift:224:41: note: force-unwrap the value to avoid this warning
+                    "endDate": calendar.date(byAdding: dayComponent, to: dateAndDuration.key),
+                               ~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                                                                                             !
+/Users/jonathanmarsh/Desktop/HealthPilot/node_modules/capacitor-health/ios/Sources/HealthPluginPlugin/HealthPlugin.swift:224:41: note: explicitly cast to 'Any' with 'as Any' to silence this warning
+                    "endDate": calendar.date(byAdding: dayComponent, to: dateAndDuration.key),
+                               ~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                                                                                              as Any
+
+/Users/jonathanmarsh/Desktop/HealthPilot/node_modules/capacitor-health/ios/Sources/HealthPluginPlugin/HealthPlugin.swift:224:32: Expression implicitly coerced from 'Date?' to 'Any'
+
+
+Build target CapacitorFilesystem of project Pods with configuration Debug
+
+SwiftEmitModule normal arm64 Emitting\ module\ for\ CapacitorFilesystem (in target 'CapacitorFilesystem' from project 'Pods')
+
+EmitSwiftModule normal arm64 (in target 'CapacitorFilesystem' from project 'Pods')
+    cd /Users/jonathanmarsh/Desktop/HealthPilot/ios/App/Pods
+    
+
+/Users/jonathanmarsh/Desktop/HealthPilot/node_modules/@capacitor/filesystem/ios/Sources/FilesystemPlugin/LegacyFilesystemImplementation.swift:77:13: warning: initialization of immutable value 'responseType' was never used; consider replacing with assignment to '_' or removing it
+        let responseType = call.getString("responseType", "text")
+        ~~~~^~~~~~~~~~~~
+        _
+
+/Users/jonathanmarsh/Desktop/HealthPilot/node_modules/@capacitor/filesystem/ios/Sources/FilesystemPlugin/LegacyFilesystemImplementation.swift:77:13: Initialization of immutable value 'responseType' was never used; consider replacing with assignment to '_' or removing it
+
+SwiftCompile normal arm64 Compiling\ LegacyFilesystemImplementation.swift /Users/jonathanmarsh/Desktop/HealthPilot/node_modules/@capacitor/filesystem/ios/Sources/FilesystemPlugin/LegacyFilesystemImplementation.swift (in target 'CapacitorFilesystem' from project 'Pods')
+
+SwiftCompile normal arm64 /Users/jonathanmarsh/Desktop/HealthPilot/node_modules/@capacitor/filesystem/ios/Sources/FilesystemPlugin/LegacyFilesystemImplementation.swift (in target 'CapacitorFilesystem' from project 'Pods')
+    cd /Users/jonathanmarsh/Desktop/HealthPilot/ios/App/Pods
+    
+
+/Users/jonathanmarsh/Desktop/HealthPilot/node_modules/@capacitor/filesystem/ios/Sources/FilesystemPlugin/LegacyFilesystemImplementation.swift:77:13: warning: initialization of immutable value 'responseType' was never used; consider replacing with assignment to '_' or removing it
+        let responseType = call.getString("responseType", "text")
+        ~~~~^~~~~~~~~~~~
+        _
+
+/Users/jonathanmarsh/Desktop/HealthPilot/node_modules/@capacitor/filesystem/ios/Sources/FilesystemPlugin/LegacyFilesystemImplementation.swift:77:13: Initialization of immutable value 'responseType' was never used; consider replacing with assignment to '_' or removing it
+
