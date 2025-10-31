@@ -1,0 +1,64 @@
+jonathanmarsh@Jonathans-MacBook-Air App % pod install --verbose | grep -E "(HealthPilot|Fetching podspec)"
+  A HealthPilotHealthKit
+-> Fetching podspec for `AparajitaCapacitorSecureStorage` from `../../node_modules/@aparajita/capacitor-secure-storage`
+-> Fetching podspec for `Capacitor` from `../../node_modules/@capacitor/ios`
+-> Fetching podspec for `CapacitorApp` from `../../node_modules/@capacitor/app`
+-> Fetching podspec for `CapacitorBrowser` from `../../node_modules/@capacitor/browser`
+-> Fetching podspec for `CapacitorCordova` from `../../node_modules/@capacitor/ios`
+-> Fetching podspec for `CapacitorFilesystem` from `../../node_modules/@capacitor/filesystem`
+-> Fetching podspec for `CapacitorHaptics` from `../../node_modules/@capacitor/haptics`
+-> Fetching podspec for `CapacitorKeyboard` from `../../node_modules/@capacitor/keyboard`
+-> Fetching podspec for `CapacitorLocalNotifications` from `../../node_modules/@capacitor/local-notifications`
+-> Fetching podspec for `CapacitorPreferences` from `../../node_modules/@capacitor/preferences`
+-> Fetching podspec for `CapacitorPushNotifications` from `../../node_modules/@capacitor/push-notifications`
+-> Fetching podspec for `CapacitorShare` from `../../node_modules/@capacitor/share`
+-> Fetching podspec for `CapacitorSplashScreen` from `../../node_modules/@capacitor/splash-screen`
+-> Fetching podspec for `CapacitorStatusBar` from `../../node_modules/@capacitor/status-bar`
+-> Fetching podspec for `HealthPilotHealthKit` from `../HealthPilotHealthKit`
+  A HealthPilotHealthKit
+-> Installing HealthPilotHealthKit (1.0.0)
+    - Installing target `HealthPilotHealthKit` iOS 14.0
+      - Generating module map file at `Pods/Target Support Files/HealthPilotHealthKit/HealthPilotHealthKit.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/HealthPilotHealthKit/HealthPilotHealthKit-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/HealthPilotHealthKit/HealthPilotHealthKit-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/HealthPilotHealthKit/HealthPilotHealthKit-dummy.m`
+jonathanmarsh@Jonathans-MacBook-Air App % cd ~/Desktop/HealthPilot/ios/App
+ls -la Pods/HealthPilotHealthKit/Sources/
+cat Pods/HealthPilotHealthKit/Sources/HealthPilotHealthKit.m
+ls: Pods/HealthPilotHealthKit/Sources/: No such file or directory
+cat: Pods/HealthPilotHealthKit/Sources/HealthPilotHealthKit.m: No such file or directory
+jonathanmarsh@Jonathans-MacBook-Air App % cd ~/Desktop/HealthPilot/ios/App
+ls -la Pods/HealthPilotHealthKit/
+ls: Pods/HealthPilotHealthKit/: No such file or directory
+jonathanmarsh@Jonathans-MacBook-Air App % cd ~/Desktop/HealthPilot/ios/App
+ls Pods/ | grep -i health
+cat Podfile.lock | grep -A 5 HealthPilot
+  - HealthPilotHealthKit (1.0.0):
+    - Capacitor
+  - IONFilesystemLib (1.0.1)
+  - KeychainSwift (21.0.0)
+
+DEPENDENCIES:
+--
+  - HealthPilotHealthKit (from `../HealthPilotHealthKit`)
+
+SPEC REPOS:
+  trunk:
+    - IONFilesystemLib
+    - KeychainSwift
+--
+  HealthPilotHealthKit:
+    :path: "../HealthPilotHealthKit"
+
+SPEC CHECKSUMS:
+  AparajitaCapacitorSecureStorage: 502bff73187cf9d0164459458ccf47ec65d5895a
+  Capacitor: 358dd1c3fdd71d969547b17e159fd8a7736cb45f
+  CapacitorApp: 26587c2ce485d88ddb39adb21cac64f8e481afe3
+--
+  HealthPilotHealthKit: 4476e6120611bcbfe7bad30defc7cc8582eedd10
+  IONFilesystemLib: 89258b8e3e85465da93127d25d7ce37f977e8a6f
+  KeychainSwift: 4a71a45c802fd9e73906457c2dcbdbdc06c9419d
+
+PODFILE CHECKSUM: 5e46d7242893cdfa3c80abbaf5d17186e64b349e
+
+jonathanmarsh@Jonathans-MacBook-Air App % 
