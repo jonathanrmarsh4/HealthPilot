@@ -23,6 +23,9 @@ def capacitor_pods
   pod 'CapacitorStatusBar', :path => '../../node_modules/@capacitor/status-bar'
   pod 'CapacitorHealth', :path => '../../node_modules/capacitor-health'
   
+  # Custom HealthKit Plugin
+  pod 'HealthPilotHealthKit', :path => '../HealthPilotHealthKit'
+  
   # Stripe SDK for iOS native payments
   pod 'StripePaymentSheet', '~> 23.0'
 end
