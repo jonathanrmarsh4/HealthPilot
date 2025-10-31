@@ -1,0 +1,469 @@
+HealthKit Plugin Registration: Forcing link
+`UIScene` lifecycle will soon be required. Failure to adopt will result in an assert in the future.
+Could not create a sandbox extension for '/var/containers/Bundle/Application/0E57ED34-C23F-4235-B825-F88462A7E7F5/App.app'
+KeyboardPlugin: resize mode - body
+⚡️  Loading app at https://0d420476-b7bb-4cc4-9f5a-da35f5e473e4-00-1n1tyyvrb5uvz.pike.replit.dev...
+WebContent[1745] Unable to hide query parameters from script (missing data)
+SplashScreen.hideSplash: SplashScreen was automatically hidden after default timeout. You should call `SplashScreen.hide()` as soon as your web app is loaded (or increase the timeout). Read more at https://capacitorjs.com/docs/apis/splash-screen#hiding-the-splash-screen
+⚡️  [debug] - [vite] connecting...
+Error acquiring assertion: <Error Domain=RBSAssertionErrorDomain Code=2 "Could not find attribute name in domain plist" UserInfo={NSLocalizedFailureReason=Could not find attribute name in domain plist}>
+59638328 Plugin query method called
+(501) personaAttributesForPersonaType for type:0 failed with error Error Domain=NSCocoaErrorDomain Code=4099 "The connection to service named com.apple.mobile.usermanagerd.xpc was invalidated: failed at lookup with error 159 - Sandbox restriction." UserInfo={NSDebugDescription=The connection to service named com.apple.mobile.usermanagerd.xpc was invalidated: failed at lookup with error 159 - Sandbox restriction.}
+(501) Invalidation handler invoked, clearing connection
+LaunchServices: store (null) or url (null) was nil: Error Domain=NSOSStatusErrorDomain Code=-54 "process may not map database" UserInfo={_LSLine=72, _LSFunction=_LSServer_GetServerStoreForConnectionWithCompletionHandler, _LSFile=LSDReadService.mm, NSDebugDescription=process may not map database}
+Attempt to map database failed: permission was denied. This attempt will not be retried.
+Failed to initialize client context with error Error Domain=NSOSStatusErrorDomain Code=-54 "process may not map database" UserInfo={_LSLine=72, _LSFunction=_LSServer_GetServerStoreForConnectionWithCompletionHandler, _LSFile=LSDReadService.mm, NSDebugDescription=process may not map database}
+LaunchServices: store (null) or url (null) was nil: Error Domain=NSOSStatusErrorDomain Code=-54 "process may not map database" UserInfo={_LSLine=72, _LSFunction=_LSServer_GetServerStoreForConnectionWithCompletionHandler, _LSFile=LSDReadService.mm, NSDebugDescription=process may not map database}
+Attempt to map database failed: permission was denied. This attempt will not be retried.
+Failed to initialize client context with error Error Domain=NSOSStatusErrorDomain Code=-54 "process may not map database" UserInfo={_LSLine=72, _LSFunction=_LSServer_GetServerStoreForConnectionWithCompletionHandler, _LSFile=LSDReadService.mm, NSDebugDescription=process may not map database}
+Failed to change to usage state 2: (null)
+⚡️  WebView loaded
+⚡️  [log] - [MobileBootstrap] Initializing on ios...
+⚡️  To Native ->  StatusBar setStyle 77542957
+⚡️  TO JS {}
+WebContent[1745] 0x100000162004100 - [sessionID=1] WebProcess::markAllLayersVolatile: Failed to mark layers as volatile for webPageID=8
+⚡️  [log] - [MobileBootstrap] Status bar configured
+⚡️  To Native ->  SplashScreen hide 77542958
+⚡️  TO JS undefined
+WebContent[1745] 0x100000162004100 - [sessionID=1] WebProcess::markAllLayersVolatile: Failed to mark layers as volatile for webPageID=8
+⚡️  [log] - [MobileBootstrap] Splash screen hidden
+⚡️  To Native ->  Keyboard addListener 77542959
+⚡️  To Native ->  Keyboard addListener 77542960
+⚡️  [log] - [MobileBootstrap] Keyboard listeners configured
+⚡️  To Native ->  App addListener 77542961
+⚡️  To Native ->  App getInfo 77542962
+⚡️  [log] - [MobileBootstrap] Back button handler configured
+⚡️  TO JS {"name":"HealthPilot","id":"HealthPilot","build":"1","version":"1.0"}
+WebContent[1745] 0x100000162004100 - [sessionID=1] WebProcess::markAllLayersVolatile: Failed to mark layers as volatile for webPageID=8
+⚡️  [log] - [MobileBootstrap] App Info: {"name":"HealthPilot","id":"HealthPilot","version":"1.0","build":"1"}
+⚡️  [log] - [MobileBootstrap] ✅ Mobile initialization complete
+⚡️  To Native ->  App addListener 77542963
+⚡️  To Native ->  App addListener 77542964
+⚡️  [log] - [App] Setting up global deep link listener
+⚡️  [log] - [DeepLink] Initializing deep link handler...
+⚡️  [log] - [DeepLink] Deep link handler initialized successfully
+⚡️  To Native ->  SecureStorage internalGetItem 77542965
+⚡️  TO JS {"data":"\"-1biIlin_paX-8WP7DexjSXwMevjplcC7lEaNUaFiaA\""}
+⚡️  To Native ->  Preferences get 77542966
+⚡️  To Native ->  App addListener 77542967
+⚡️  TO JS {"value":null}
+⚡️  To Native ->  Preferences set 77542968
+⚡️  TO JS undefined
+⚡️  [log] - [Login] Created new device ID: 1761875437966-k09mf
+⚡️  [log] - [Login] Polling server with device ID...
+⚡️  To Native ->  Preferences get 77542969
+⚡️  TO JS {"value":"1761875437966-k09mf"}
+⚡️  [log] - [Login] Polling server with device ID...
+⚡️  To Native ->  Preferences get 77542970
+⚡️  TO JS {"value":"1761875437966-k09mf"}
+⚡️  [log] - [Login] Polling server with device ID...
+⚡️  To Native ->  Preferences get 77542971
+⚡️  TO JS {"value":"1761875437966-k09mf"}
+⚡️  [log] - [Login] Polling server with device ID...
+⚡️  To Native ->  Preferences get 77542972
+⚡️  TO JS {"value":"1761875437966-k09mf"}
+⚡️  [log] - [Login] Polling server with device ID...
+⚡️  To Native ->  Preferences get 77542973
+⚡️  TO JS {"value":"1761875437966-k09mf"}
+⚡️  [log] - [Login] Polling server with device ID...
+⚡️  To Native ->  Preferences get 77542974
+⚡️  TO JS {"value":"1761875437966-k09mf"}
+⚡️  [log] - [Login] Polling server with device ID...
+⚡️  To Native ->  Preferences get 77542975
+⚡️  TO JS {"value":"1761875437966-k09mf"}
+⚡️  [log] - [Login] Polling server with device ID...
+⚡️  To Native ->  Preferences get 77542976
+⚡️  TO JS {"value":"1761875437966-k09mf"}
+⚡️  [log] - [Login] Polling server with device ID...
+⚡️  To Native ->  Preferences get 77542977
+⚡️  TO JS {"value":"1761875437966-k09mf"}
+⚡️  [log] - [Login] Polling server with device ID...
+⚡️  To Native ->  Preferences get 77542978
+⚡️  TO JS {"value":"1761875437966-k09mf"}
+⚡️  [log] - [Login] Polling server with device ID...
+⚡️  To Native ->  Preferences get 77542979
+⚡️  TO JS {"value":"1761875437966-k09mf"}
+⚡️  [log] - [Login] Polling server with device ID...
+⚡️  To Native ->  Preferences get 77542980
+⚡️  TO JS {"value":"1761875437966-k09mf"}
+⚡️  [log] - [Login] Polling server with device ID...
+⚡️  To Native ->  Preferences get 77542981
+⚡️  TO JS {"value":"1761875437966-k09mf"}
+⚡️  [log] - [Login] Polling server with device ID...
+⚡️  To Native ->  Preferences get 77542982
+⚡️  TO JS {"value":"1761875437966-k09mf"}
+⚡️  [log] - [Login] Polling server with device ID...
+⚡️  To Native ->  Preferences get 77542983
+⚡️  TO JS {"value":"1761875437966-k09mf"}
+⚡️  [log] - [Login] Polling server with device ID...
+⚡️  To Native ->  Preferences get 77542984
+⚡️  TO JS {"value":"1761875437966-k09mf"}
+⚡️  [log] - [Login] Polling server with device ID...
+⚡️  To Native ->  Preferences get 77542985
+⚡️  TO JS {"value":"1761875437966-k09mf"}
+⚡️  [log] - [Login] Polling server with device ID...
+⚡️  To Native ->  Preferences get 77542986
+⚡️  TO JS {"value":"1761875437966-k09mf"}
+⚡️  [log] - [Login] Polling server with device ID...
+⚡️  To Native ->  Preferences get 77542987
+⚡️  TO JS {"value":"1761875437966-k09mf"}
+⚡️  To Native ->  Browser open 77542988
+⚡️  To Native ->  Preferences get 77542989
+⚡️  TO JS {"value":"1761875437966-k09mf"}
+Received port for identifier response: <(null)> with error:Error Domain=RBSServiceErrorDomain Code=1 "Client not entitled" UserInfo={RBSEntitlement=com.apple.runningboard.process-state, NSLocalizedFailureReason=Client not entitled, RBSPermanent=false}
+elapsedCPUTimeForFrontBoard couldn't generate a task port
+Setting modalPresentationStyle once <SFSafariViewController: 0x115638a00> has been presented will have no effect until it is dismissed and presented again.
+Received port for identifier response: <(null)> with error:Error Domain=RBSServiceErrorDomain Code=1 "Client not entitled" UserInfo={RBSEntitlement=com.apple.runningboard.process-state, NSLocalizedFailureReason=Client not entitled, RBSPermanent=false}
+elapsedCPUTimeForFrontBoard couldn't generate a task port
+⚡️  [log] - [Login] Polling server with device ID...
+Received port for identifier response: <(null)> with error:Error Domain=RBSServiceErrorDomain Code=1 "Client not entitled" UserInfo={RBSEntitlement=com.apple.runningboard.process-state, NSLocalizedFailureReason=Client not entitled, RBSPermanent=false}
+elapsedCPUTimeForFrontBoard couldn't generate a task port
+Received port for identifier response: <(null)> with error:Error Domain=RBSServiceErrorDomain Code=1 "Client not entitled" UserInfo={RBSEntitlement=com.apple.runningboard.process-state, NSLocalizedFailureReason=Client not entitled, RBSPermanent=false}
+elapsedCPUTimeForFrontBoard couldn't generate a task port
+⚡️  TO JS undefined
+⚡️  To Native ->  Preferences get 77542990
+⚡️  TO JS {"value":"1761875437966-k09mf"}
+⚡️  [log] - [Login] Polling server with device ID...
+⚡️  To Native ->  Preferences get 77542991
+⚡️  TO JS {"value":"1761875437966-k09mf"}
+⚡️  [log] - [Login] Polling server with device ID...
+⚡️  To Native ->  Preferences get 77542992
+⚡️  TO JS {"value":"1761875437966-k09mf"}
+⚡️  [log] - [Login] Polling server with device ID...
+⚡️  To Native ->  Preferences get 77542993
+⚡️  TO JS {"value":"1761875437966-k09mf"}
+⚡️  [log] - [Login] Polling server with device ID...
+⚡️  To Native ->  Preferences get 77542994
+⚡️  TO JS {"value":"1761875437966-k09mf"}
+⚡️  [log] - [Login] Polling server with device ID...
+⚡️  To Native ->  Preferences get 77542995
+⚡️  TO JS {"value":"1761875437966-k09mf"}
+⚡️  [log] - [Login] Polling server with device ID...
+⚡️  To Native ->  Preferences get 77542996
+⚡️  TO JS {"value":"1761875437966-k09mf"}
+⚡️  [log] - [Login] Polling server with device ID...
+⚡️  To Native ->  Preferences get 77542997
+⚡️  TO JS {"value":"1761875437966-k09mf"}
+⚡️  [log] - [Login] Polling server with device ID...
+⚡️  To Native ->  Preferences get 77542998
+⚡️  TO JS {"value":"1761875437966-k09mf"}
+⚡️  [log] - [Login] Polling server with device ID...
+⚡️  To Native ->  Preferences get 77542999
+⚡️  TO JS {"value":"1761875437966-k09mf"}
+⚡️  [log] - [Login] Polling server with device ID...
+⚡️  To Native ->  Preferences get 77543000
+⚡️  TO JS {"value":"1761875437966-k09mf"}
+⚡️  [log] - [Login] Polling server with device ID...
+⚡️  To Native ->  Preferences get 77543001
+⚡️  TO JS {"value":"1761875437966-k09mf"}
+⚡️  [log] - [Login] Polling server with device ID...
+⚡️  To Native ->  Preferences get 77543002
+⚡️  TO JS {"value":"1761875437966-k09mf"}
+⚡️  [log] - [Login] Polling server with device ID...
+⚡️  To Native ->  Preferences get 77543003
+⚡️  TO JS {"value":"1761875437966-k09mf"}
+⚡️  [log] - [Login] Polling server with device ID...
+[Notifications]: Attempting to post will notification with nil userInfo
+[Notifications]: Attempting to post did notification with nil userInfo
+[Notifications]: Attempting to post will notification with nil userInfo
+[Notifications]: Attempting to post did notification with nil userInfo
+[Notifications]: Attempting to post will notification with nil userInfo
+[Notifications]: Attempting to post did notification with nil userInfo
+[Notifications]: Attempting to post will notification with nil userInfo
+[Notifications]: Attempting to post did notification with nil userInfo
+⚡️  To Native ->  Preferences get 77543004
+⚡️  TO JS {"value":"1761875437966-k09mf"}
+⚡️  [log] - [Login] Polling server with device ID...
+⚡️  TO JS {"isActive":false}
+[Notifications]: Attempting to post will notification with nil userInfo
+[Notifications]: Attempting to post did notification with nil userInfo
+[Notifications]: Attempting to post will notification with nil userInfo
+[Notifications]: Attempting to post did notification with nil userInfo
+⚡️  To Native ->  Preferences get 77543005
+⚡️  TO JS {"value":"1761875437966-k09mf"}
+⚡️  [log] - [Login] Polling server with device ID...
+[Notifications]: Attempting to post will notification with nil userInfo
+[Notifications]: Attempting to post did notification with nil userInfo
+⚡️  To Native ->  Preferences get 77543006
+⚡️  TO JS {"value":"1761875437966-k09mf"}
+⚡️  [log] - [Login] Polling server with device ID...
+⚡️  To Native ->  Preferences get 77543007
+⚡️  TO JS {"value":"1761875437966-k09mf"}
+⚡️  [log] - [Login] Polling server with device ID...
+⚡️  TO JS {"isActive":true}
+⚡️  To Native ->  Preferences get 77543008
+⚡️  [log] - [Login] App became active, checking for pending auth...
+⚡️  TO JS {"value":"1761875437966-k09mf"}
+⚡️  [log] - [Login] Polling server with device ID...
+⚡️  To Native ->  Preferences get 77543009
+⚡️  TO JS {"value":"1761875437966-k09mf"}
+⚡️  [log] - [Login] Polling server with device ID...
+⚡️  To Native ->  Preferences get 77543010
+⚡️  TO JS {"value":"1761875437966-k09mf"}
+⚡️  [log] - [Login] Polling server with device ID...
+⚡️  To Native ->  Preferences get 77543011
+⚡️  TO JS {"value":"1761875437966-k09mf"}
+⚡️  [log] - [Login] Polling server with device ID...
+⚡️  To Native ->  Preferences get 77543012
+⚡️  TO JS {"value":"1761875437966-k09mf"}
+⚡️  [log] - [Login] Polling server with device ID...
+⚡️  To Native ->  Preferences get 77543013
+⚡️  TO JS {"value":"1761875437966-k09mf"}
+⚡️  [log] - [Login] Polling server with device ID...
+⚡️  To Native ->  Preferences get 77543014
+⚡️  TO JS {"value":"1761875437966-k09mf"}
+⚡️  [log] - [Login] Polling server with device ID...
+⚡️  To Native ->  Preferences get 77543015
+⚡️  TO JS {"value":"1761875437966-k09mf"}
+⚡️  [log] - [Login] Polling server with device ID...
+⚡️  To Native ->  Preferences get 77543016
+⚡️  TO JS {"value":"1761875437966-k09mf"}
+⚡️  [log] - [Login] Polling server with device ID...
+⚡️  To Native ->  Preferences get 77543017
+⚡️  TO JS {"value":"1761875437966-k09mf"}
+⚡️  [log] - [Login] Polling server with device ID...
+⚡️  To Native ->  Preferences get 77543018
+⚡️  TO JS {"value":"1761875437966-k09mf"}
+⚡️  [log] - [Login] Polling server with device ID...
+⚡️  To Native ->  Preferences get 77543019
+⚡️  TO JS {"value":"1761875437966-k09mf"}
+⚡️  [log] - [Login] Polling server with device ID...
+⚡️  To Native ->  Preferences get 77543020
+⚡️  TO JS {"value":"1761875437966-k09mf"}
+⚡️  [log] - [Login] Polling server with device ID...
+⚡️  To Native ->  Preferences get 77543021
+⚡️  TO JS {"value":"1761875437966-k09mf"}
+⚡️  [log] - [Login] Polling server with device ID...
+⚡️  [log] - [Login] Auth ready, exchanging token...
+⚡️  To Native ->  SecureStorage internalGetItem 77543022
+⚡️  TO JS {"data":"\"-1biIlin_paX-8WP7DexjSXwMevjplcC7lEaNUaFiaA\""}
+⚡️  [log] - [Login] Session created successfully
+⚡️  To Native ->  SecureStorage internalSetItem 77543023
+⚡️  TO JS undefined
+⚡️  To Native ->  SecureStorage internalGetItem 77543024
+⚡️  TO JS {"data":"\"sVYgSHnqQV6ZlPxxXs12M9j_T8TTMURR43jGfxi-k4w\""}
+⚡️  To Native ->  Preferences get 77543025
+⚡️  TO JS {"value":"1761875437966-k09mf"}
+⚡️  [log] - [Login] Polling server with device ID...
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  [warn] - Using addListener() without 'await' is deprecated.
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  To Native ->  App removeListener 77543026
+⚡️  To Native ->  SecureStorage internalGetItem 77543027
+⚡️  To Native ->  SecureStorage internalGetItem 77543028
+⚡️  To Native ->  SecureStorage internalGetItem 77543029
+⚡️  To Native ->  SecureStorage internalGetItem 77543030
+⚡️  TO JS {"data":"\"sVYgSHnqQV6ZlPxxXs12M9j_T8TTMURR43jGfxi-k4w\""}
+⚡️  TO JS {"data":"\"sVYgSHnqQV6ZlPxxXs12M9j_T8TTMURR43jGfxi-k4w\""}
+⚡️  TO JS {"data":"\"sVYgSHnqQV6ZlPxxXs12M9j_T8TTMURR43jGfxi-k4w\""}
+⚡️  TO JS {"data":"\"sVYgSHnqQV6ZlPxxXs12M9j_T8TTMURR43jGfxi-k4w\""}
+⚡️  To Native ->  Preferences get 77543031
+⚡️  To Native ->  App addListener 77543032
+⚡️  TO JS {"value":"1761875437966-k09mf"}
+⚡️  [error] - Failed to fetch timezone: {}
+⚡️  [log] - [Login] Polling server with device ID...
+⚡️  [error] - [Login] Error checking for auth: {}
+⚡️  [debug] - [vite] connecting...
+⚡️  [log] - [MobileBootstrap] Initializing on ios...
+⚡️  To Native ->  StatusBar setStyle 132527501
+⚡️  TO JS {}
+⚡️  WebView loaded
+⚡️  To Native ->  SplashScreen hide 132527502
+⚡️  [log] - [MobileBootstrap] Status bar configured
+⚡️  TO JS undefined
+⚡️  [log] - [MobileBootstrap] Splash screen hidden
+⚡️  To Native ->  ⚡️  [log] - [MobileBootstrap] Keyboard listeners configured
+Keyboard addListener 132527503
+⚡️  To Native ->  Keyboard addListener 132527504
+⚡️  To Native ->  App addListener 132527505
+⚡️  To Native ->  App getInfo 132527506
+⚡️  [log] - [MobileBootstrap] Back button handler configured
+⚡️  TO JS {"name":"HealthPilot","id":"HealthPilot","build":"1","version":"1.0"}
+⚡️  [log] - [MobileBootstrap] App Info: {"name":"HealthPilot","id":"HealthPilot","version":"1.0","build":"1"}
+⚡️  [log] - [MobileBootstrap] ✅ Mobile initialization complete
+⚡️  [log] - [App] Setting up global deep link listener
+⚡️  To Native ->  App addListener 132527507
+⚡️  To Native ->  App addListener 132527508
+⚡️  [log] - [DeepLink] Initializing deep link handler...
+⚡️  [log] - [DeepLink] Deep link handler initialized successfully
+⚡️  To Native ->  SecureStorage internalGetItem 132527509
+⚡️  TO JS {"data":"\"sVYgSHnqQV6ZlPxxXs12M9j_T8TTMURR43jGfxi-k4w\""}
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  To Native ->  SecureStorage internalGetItem 132527510
+⚡️  To Native ->  SecureStorage internalGetItem 132527511
+⚡️  To Native ->  SecureStorage internalGetItem 132527512
+⚡️  To Native ->  SecureStorage internalGetItem 132527513
+⚡️  TO JS {"data":"\"sVYgSHnqQV6ZlPxxXs12M9j_T8TTMURR43jGfxi-k4w\""}
+⚡️  TO JS {"data":"\"sVYgSHnqQV6ZlPxxXs12M9j_T8TTMURR43jGfxi-k4w\""}
+⚡️  TO JS {"data":"\"sVYgSHnqQV6ZlPxxXs12M9j_T8TTMURR43jGfxi-k4w\""}
+⚡️  TO JS {"data":"\"sVYgSHnqQV6ZlPxxXs12M9j_T8TTMURR43jGfxi-k4w\""}
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  [log] - Clearing old dashboard preferences (version mismatch)
+⚡️  To Native ->  SecureStorage internalGetItem 132527514
+⚡️  To Native ->  SecureStorage internalGetItem 132527515
+⚡️  To Native ->  SecureStorage internalGetItem 132527516
+⚡️  To Native ->  SecureStorage internalGetItem 132527517
+⚡️  To Native ->  SecureStorage internalGetItem 132527518
+⚡️  To Native ->  SecureStorage internalGetItem 132527519
+⚡️  To Native ->  SecureStorage internalGetItem 132527520
+⚡️  To Native ->  SecureStorage internalGetItem 132527521
+⚡️  To Native ->  SecureStorage internalGetItem 132527522
+⚡️  To Native ->  SecureStorage internalGetItem 132527523
+⚡️  To Native ->  SecureStorage internalGetItem 132527524
+⚡️  To Native ->  SecureStorage internalGetItem 132527525
+⚡️  To Native ->  SecureStorage internalGetItem 132527526
+⚡️  To Native ->  SecureStorage internalGetItem 132527527
+⚡️  To Native ->  SecureStorage internalGetItem 132527528
+⚡️  To Native ->  SecureStorage internalGetItem 132527529
+⚡️  TO JS {"data":"\"sVYgSHnqQV6ZlPxxXs12M9j_T8TTMURR43jGfxi-k4w\""}
+⚡️  TO JS {"data":"\"sVYgSHnqQV6ZlPxxXs12M9j_T8TTMURR43jGfxi-k4w\""}
+⚡️  TO JS {"data":"\"sVYgSHnqQV6ZlPxxXs12M9j_T8TTMURR43jGfxi-k4w\""}
+⚡️  TO JS {"data":"\"sVYgSHnqQV6ZlPxxXs12M9j_T8TTMURR43jGfxi-k4w\""}
+⚡️  TO JS {"data":"\"sVYgSHnqQV6ZlPxxXs12M9j_T8TTMURR43jGfxi-k4w\""}
+⚡️  TO JS {"data":"\"sVYgSHnqQV6ZlPxxXs12M9j_T8TTMURR43jGfxi-k4w\""}
+⚡️  To Native ->  SecureStorage internalGetItem 132527530
+⚡️  To Native ->  SecureStorage internalGetItem 132527531
+⚡️  To Native ->  SecureStorage internalGetItem 132527532
+⚡️  To Native ->  SecureStorage internalGetItem 132527533
+⚡️  To Native ->  SecureStorage internalGetItem 132527534
+⚡️  To Native ->  SecureStorage internalGetItem 132527535
+⚡️  TO JS {"data":"\"sVYgSHnqQV6ZlPxxXs12M9j_T8TTMURR43jGfxi-k4w\""}
+⚡️  TO JS {"data":"\"sVYgSHnqQV6ZlPxxXs12M9j_T8TTMURR43jGfxi-k4w\""}
+⚡️  TO JS {"data":"\"sVYgSHnqQV6ZlPxxXs12M9j_T8TTMURR43jGfxi-k4w\""}
+⚡️  TO JS {"data":"\"sVYgSHnqQV6ZlPxxXs12M9j_T8TTMURR43jGfxi-k4w\""}
+⚡️  TO JS {"data":"\"sVYgSHnqQV6ZlPxxXs12M9j_T8TTMURR43jGfxi-k4w\""}
+⚡️  TO JS {"data":"\"sVYgSHnqQV6ZlPxxXs12M9j_T8TTMURR43jGfxi-k4w\""}
+⚡️  TO JS {"data":"\"sVYgSHnqQV6ZlPxxXs12M9j_T8TTMURR43jGfxi-k4w\""}
+⚡️  TO JS {"data":"\"sVYgSHnqQV6ZlPxxXs12M9j_T8TTMURR43jGfxi-k4w\""}
+⚡️  TO JS {"data":"\"sVYgSHnqQV6ZlPxxXs12M9j_T8TTMURR43jGfxi-k4w\""}
+⚡️  TO JS {"data":"\"sVYgSHnqQV6ZlPxxXs12M9j_T8TTMURR43jGfxi-k4w\""}
+⚡️  TO JS {"data":"\"sVYgSHnqQV6ZlPxxXs12M9j_T8TTMURR43jGfxi-k4w\""}
+⚡️  TO JS {"data":"\"sVYgSHnqQV6ZlPxxXs12M9j_T8TTMURR43jGfxi-k4w\""}
+⚡️  TO JS {"data":"\"sVYgSHnqQV6ZlPxxXs12M9j_T8TTMURR43jGfxi-k4w\""}
+⚡️  TO JS {"data":"\"sVYgSHnqQV6ZlPxxXs12M9j_T8TTMURR43jGfxi-k4w\""}
+⚡️  TO JS {"data":"\"sVYgSHnqQV6ZlPxxXs12M9j_T8TTMURR43jGfxi-k4w\""}
+⚡️  TO JS {"data":"\"sVYgSHnqQV6ZlPxxXs12M9j_T8TTMURR43jGfxi-k4w\""}
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  To Native ->  SecureStorage internalGetItem 132527536
+⚡️  TO JS {"data":"\"sVYgSHnqQV6ZlPxxXs12M9j_T8TTMURR43jGfxi-k4w\""}
+⚡️  To Native ->  SecureStorage internalGetItem 132527537
+⚡️  TO JS {"data":"\"sVYgSHnqQV6ZlPxxXs12M9j_T8TTMURR43jGfxi-k4w\""}
+⚡️  [warn] - No config found for biomarker type: active-energy
+⚡️  [warn] - No config found for biomarker type: resting-heart-rate
+⚡️  [warn] - No config found for biomarker type: blood-pressure-systolic
+⚡️  [warn] - No config found for biomarker type: blood-pressure-diastolic
+⚡️  [warn] - No config found for biomarker type: oestradiol
+⚡️  [warn] - No config found for biomarker type: prolactin
+⚡️  [warn] - No config found for biomarker type: serum-cortisol
+⚡️  [warn] - No config found for biomarker type: dhea-sulphate
+⚡️  [warn] - No config found for biomarker type: free-testosterone
+⚡️  [warn] - No config found for biomarker type: shbg
+⚡️  [warn] - No config found for biomarker type: mpv
+⚡️  [warn] - No config found for biomarker type: non-hdl-cholesterol
+⚡️  [warn] - No config found for biomarker type: glucose
+⚡️  [warn] - No config found for biomarker type: hscrp
+⚡️  [warn] - No config found for biomarker type: igf-1
+⚡️  [warn] - No config found for biomarker type: growth-hormone
+⚡️  [warn] - No config found for biomarker type: anion-gap
+⚡️  [warn] - No config found for biomarker type: adjusted-calcium
+⚡️  [warn] - No config found for biomarker type: phosphate
+⚡️  [warn] - No config found for biomarker type: alkaline-phosphatase
+⚡️  [warn] - No config found for biomarker type: gamma-gt
+⚡️  [warn] - No config found for biomarker type: follicle-stimulating-hormone
+⚡️  [warn] - No config found for biomarker type: luteinizing-hormone
+⚡️  [warn] - No config found for biomarker type: haemoglobin
+⚡️  [warn] - No config found for biomarker type: hct
+⚡️  [warn] - No config found for biomarker type: total-bilirubin
+⚡️  [warn] - No config found for biomarker type: estradiol
+⚡️  [warn] - No config found for biomarker type: lh
+⚡️  [warn] - No config found for biomarker type: fsh
+⚡️  [warn] - No config found for biomarker type: active-energy
+⚡️  [warn] - No config found for biomarker type: resting-heart-rate
+⚡️  [warn] - No config found for biomarker type: blood-pressure-systolic
+⚡️  [warn] - No config found for biomarker type: blood-pressure-diastolic
+⚡️  [warn] - No config found for biomarker type: oestradiol
+⚡️  [warn] - No config found for biomarker type: prolactin
+⚡️  [warn] - No config found for biomarker type: serum-cortisol
+⚡️  [warn] - No config found for biomarker type: dhea-sulphate
+⚡️  [warn] - No config found for biomarker type: free-testosterone
+⚡️  [warn] - No config found for biomarker type: shbg
+⚡️  [warn] - No config found for biomarker type: mpv
+⚡️  [warn] - No config found for biomarker type: non-hdl-cholesterol
+⚡️  [warn] - No config found for biomarker type: glucose
+⚡️  [warn] - No config found for biomarker type: hscrp
+⚡️  [warn] - No config found for biomarker type: igf-1
+⚡️  [warn] - No config found for biomarker type: growth-hormone
+⚡️  [warn] - No config found for biomarker type: anion-gap
+⚡️  [warn] - No config found for biomarker type: adjusted-calcium
+⚡️  [warn] - No config found for biomarker type: phosphate
+⚡️  [warn] - No config found for biomarker type: alkaline-phosphatase
+⚡️  [warn] - No config found for biomarker type: gamma-gt
+⚡️  [warn] - No config found for biomarker type: follicle-stimulating-hormone
+⚡️  [warn] - No config found for biomarker type: luteinizing-hormone
+⚡️  [warn] - No config found for biomarker type: haemoglobin
+⚡️  [warn] - No config found for biomarker type: hct
+⚡️  [warn] - No config found for biomarker type: total-bilirubin
+⚡️  [warn] - No config found for biomarker type: estradiol
+⚡️  [warn] - No config found for biomarker type: lh
+⚡️  [warn] - No config found for biomarker type: fsh
+⚡️  To Native ->  SecureStorage internalGetItem 132527538
+⚡️  TO JS {"data":"\"sVYgSHnqQV6ZlPxxXs12M9j_T8TTMURR43jGfxi-k4w\""}
+⚡️  [warn] - No config found for biomarker type: active-energy
+⚡️  [warn] - No config found for biomarker type: resting-heart-rate
+⚡️  [warn] - No config found for biomarker type: blood-pressure-systolic
+⚡️  [warn] - No config found for biomarker type: blood-pressure-diastolic
+⚡️  [warn] - No config found for biomarker type: oestradiol
+⚡️  [warn] - No config found for biomarker type: prolactin
+⚡️  [warn] - No config found for biomarker type: serum-cortisol
+⚡️  [warn] - No config found for biomarker type: dhea-sulphate
+⚡️  [warn] - No config found for biomarker type: free-testosterone
+⚡️  [warn] - No config found for biomarker type: shbg
+⚡️  [warn] - No config found for biomarker type: mpv
+⚡️  [warn] - No config found for biomarker type: non-hdl-cholesterol
+⚡️  [warn] - No config found for biomarker type: glucose
+⚡️  [warn] - No config found for biomarker type: hscrp
+⚡️  [warn] - No config found for biomarker type: igf-1
+⚡️  [warn] - No config found for biomarker type: growth-hormone
+⚡️  [warn] - No config found for biomarker type: anion-gap
+⚡️  [warn] - No config found for biomarker type: adjusted-calcium
+⚡️  [warn] - No config found for biomarker type: phosphate
+⚡️  [warn] - No config found for biomarker type: alkaline-phosphatase
+⚡️  [warn] - No config found for biomarker type: gamma-gt
+⚡️  [warn] - No config found for biomarker type: follicle-stimulating-hormone
+⚡️  [warn] - No config found for biomarker type: luteinizing-hormone
+⚡️  [warn] - No config found for biomarker type: haemoglobin
+⚡️  [warn] - No config found for biomarker type: hct
+⚡️  [warn] - No config found for biomarker type: total-bilirubin
+⚡️  [warn] - No config found for biomarker type: estradiol
+⚡️  [warn] - No config found for biomarker type: lh
+⚡️  [warn] - No config found for biomarker type: fsh
+⚡️  [warn] - No config found for biomarker type: active-energy
+⚡️  [warn] - No config found for biomarker type: resting-heart-rate
+⚡️  [warn] - No config found for biomarker type: blood-pressure-systolic
+⚡️  [warn] - No config found for biomarker type: blood-pressure-diastolic
+⚡️  [warn] - No config found for biomarker type: oestradiol
+⚡️  [warn] - No config found for biomarker type: prolactin
+⚡️  [warn] - No config found for biomarker type: serum-cortisol
+⚡️  [warn] - No config found for biomarker type: dhea-sulphate
+⚡️  [warn] - No config found for biomarker type: free-testosterone
+⚡️  [warn] - No config found for biomarker type: shbg
+⚡️  [warn] - No config found for biomarker type: mpv
+⚡️  [warn] - No config found for biomarker type: non-hdl-cholesterol
+⚡️  [warn] - No config found for biomarker type: glucose
+⚡️  [warn] - No config found for biomarker type: hscrp
+⚡️  [warn] - No config found for biomarker type: igf-1
+⚡️  [warn] - No config found for biomarker type: growth-hormone
+⚡️  [warn] - No config found for biomarker type: anion-gap
+⚡️  [warn] - No config found for biomarker type: adjusted-calcium
+⚡️  [warn] - No config found for biomarker type: phosphate
+⚡️  [warn] - No config found for biomarker type: alkaline-phosphatase
+⚡️  [warn] - No config found for biomarker type: gamma-gt
+⚡️  [warn] - No config found for biomarker type: follicle-stimulating-hormone
+⚡️  [warn] - No config found for biomarker type: luteinizing-hormone
+⚡️  [warn] - No config found for biomarker type: haemoglobin
+⚡️  [warn] - No config found for biomarker type: hct
+⚡️  [warn] - No config found for biomarker type: total-bilirubin
+⚡️  [warn] - No config found for biomarker type: estradiol
+⚡️  [warn] - No config found for biomarker type: lh
+⚡️  [warn] - No config found for biomarker type: fsh
