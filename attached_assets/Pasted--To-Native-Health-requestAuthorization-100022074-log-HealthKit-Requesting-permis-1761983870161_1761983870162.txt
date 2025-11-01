@@ -1,0 +1,57 @@
+
+⚡️  To Native ->  Health requestAuthorization 100022074
+⚡️  [log] - [HealthKit] Requesting permissions for steps, distance, calories, heartRate, weight...
+⚡️  TO JS {"readDenied":[],"writeAuthorized":[],"writeDenied":[],"readAuthorized":["steps","distance","calories","heartRate","weight"]}
+⚡️  [log] - [HealthKit] Permission request result: {"readDenied":[],"writeAuthorized":[],"writeDenied":[],"readAuthorized":["steps","distance","calories","heartRate","weight"]}
+⚡️  [log] - [HealthKit] Starting sync of last 30 days...
+⚡️  [log] - [HealthKit] Querying steps from 2025-10-02T07:57:40.133Z to 2025-11-01T07:57:40.133Z
+⚡️  [log] - [HealthKit] Querying distance from 2025-10-02T07:57:40.133Z to 2025-11-01T07:57:40.133Z
+⚡️  [log] - [HealthKit] Querying calories from 2025-10-02T07:57:40.133Z to 2025-11-01T07:57:40.133Z
+⚡️  [log] - [HealthKit] Basal calories not yet supported by Capgo Health plugin
+⚡️  [log] - [HealthKit] Flights climbed not yet supported by Capgo Health plugin
+⚡️  [log] - [HealthKit] Querying heartRate from 2025-10-02T07:57:40.133Z to 2025-11-01T07:57:40.133Z
+⚡️  [log] - [HealthKit] Resting heart rate not yet supported by Capgo Health plugin
+⚡️  [log] - [HealthKit] HRV not yet supported by Capgo Health plugin
+⚡️  [log] - [HealthKit] Oxygen saturation not yet supported by Capgo Health plugin
+⚡️  [log] - [HealthKit] Respiratory rate not yet supported by Capgo Health plugin
+⚡️  [log] - [HealthKit] Body temperature not yet supported by Capgo Health plugin
+⚡️  [log] - [HealthKit] Querying weight from 2025-10-02T07:57:40.133Z to 2025-11-01T07:57:40.133Z
+⚡️  [log] - [HealthKit] BMI not yet supported by Capgo Health plugin
+⚡️  [log] - [HealthKit] Lean body mass not yet supported by Capgo Health plugin
+⚡️  [log] - [HealthKit] Body fat not yet supported by Capgo Health plugin
+⚡️  [log] - [HealthKit] Height not yet supported by Capgo Health plugin
+⚡️  [log] - [HealthKit] Waist circumference not yet supported by Capgo Health plugin
+⚡️  [log] - [HealthKit] Blood pressure not yet supported by Capgo Health plugin
+⚡️  [log] - [HealthKit] Blood pressure not yet supported by Capgo Health plugin
+⚡️  [log] - [HealthKit] Blood glucose not yet supported by Capgo Health plugin
+⚡️  [log] - [HealthKit] Dietary water not yet supported by Capgo Health plugin
+⚡️  [log] - [HealthKit] Dietary energy not yet supported by Capgo Health plugin
+⚡️  To Native ->  Health readSamples 100022075
+⚡️  [log] - [HealthKit] Dietary protein not yet supported by Capgo Health plugin
+⚡️  To Native ->  Health readSamples 100022076
+⚡️  [log] - [HealthKit] Dietary carbs not yet supported by Capgo Health plugin
+⚡️  To Native ->  Health readSamples 100022077
+⚡️  [log] - [HealthKit] Dietary fat not yet supported by Capgo Health plugin
+⚡️  To Native ->  Health readSamples 100022078
+⚡️  [log] - [HealthKit] Workouts not yet supported by Capgo Health plugin
+⚡️  To Native ->  Health readSamples 100022079
+⚡️  [log] - [HealthKit] Sleep not yet supported by Capgo Health plugin
+⚡️  TO JS {"samples":[{"startDate":"2025-11-01T06:57:51.707Z","dataType":"distance","unit":"meter","endDate":"2025-11-01T07:05:08.177Z","value":129.51565983970067,"sourceName":"Jonathan’s Apple Watch","sourceId":"com.apple.health.FAF1019B-3E01-48BA-89F1-D835119A39E4
+⚡️  TO JS {"samples":[{"startDate":"2025-11-01T07:37:24.079Z","value":2.9890000000000008,"sourceId":"com.apple.health.FAF1019B-3E01-48BA-89F1-D835119A39E4","dataType":"calories","unit":"kilocalorie","endDate":"2025-11-01T07:46:38.672Z","sourceName":"Jonathan’s Apple
+⚡️  TO JS {"samples":[{"dataType":"weight","startDate":"2025-10-31T22:56:07.000Z","sourceId":"com.withings.wiScaleNG","unit":"kilogram","value":69.324005126953125,"endDate":"2025-10-31T22:56:07.000Z","sourceName":"Withings"},{"startDate":"2025-10-30T21:52:17.000Z","
+⚡️  TO JS {"samples":[{"dataType":"steps","endDate":"2025-11-01T07:05:08.177Z","unit":"count","startDate":"2025-11-01T06:57:51.707Z","value":187,"sourceName":"Jonathan’s Apple Watch","sourceId":"com.apple.health.FAF1019B-3E01-48BA-89F1-D835119A39E4"},{"value":177,"s
+⚡️  [log] - [HealthKit] distance returned 1000 samples
+⚡️  [log] - [HealthKit] distance sample example: {"startDate":"2025-11-01T06:57:51.707Z","dataType":"distance","unit":"meter","endDate":"2025-11-01T07:05:08.177Z","value":129.51565983970067,"sourceName":"Jonathan’s Apple Watch","sourceId":"com.apple.health.FAF1019B-3E01-48BA-89F1-D835119A39E4"}
+⚡️  [log] - [HealthKit] calories returned 1000 samples
+⚡️  [log] - [HealthKit] calories sample example: {"startDate":"2025-11-01T07:37:24.079Z","value":2.9890000000000008,"sourceId":"com.apple.health.FAF1019B-3E01-48BA-89F1-D835119A39E4","dataType":"calories","unit":"kilocalorie","endDate":"2025-11-01T07:46:38.672Z","sourceName":"Jonathan’s Apple Watch"}
+⚡️  [log] - [HealthKit] weight returned 14 samples
+⚡️  [log] - [HealthKit] weight sample example: {"dataType":"weight","startDate":"2025-10-31T22:56:07.000Z","sourceId":"com.withings.wiScaleNG","unit":"kilogram","value":69.32400512695312,"endDate":"2025-10-31T22:56:07.000Z","sourceName":"Withings"}
+⚡️  TO JS {"samples":[{"dataType":"heartRate","endDate":"2025-11-01T07:50:22.493Z","startDate":"2025-11-01T07:50:22.493Z","unit":"bpm","value":88,"sourceName":"Jonathan’s Apple Watch","sourceId":"com.apple.health.FAF1019B-3E01-48BA-89F1-D835119A39E4"},{"dataType":"h
+⚡️  [log] - [HealthKit] steps returned 1000 samples
+⚡️  [log] - [HealthKit] steps sample example: {"dataType":"steps","endDate":"2025-11-01T07:05:08.177Z","unit":"count","startDate":"2025-11-01T06:57:51.707Z","value":187,"sourceName":"Jonathan’s Apple Watch","sourceId":"com.apple.health.FAF1019B-3E01-48BA-89F1-D835119A39E4"}
+⚡️  [log] - [HealthKit] heartRate returned 1000 samples
+⚡️  [log] - [HealthKit] heartRate sample example: {"dataType":"heartRate","endDate":"2025-11-01T07:50:22.493Z","startDate":"2025-11-01T07:50:22.493Z","unit":"bpm","value":88,"sourceName":"Jonathan’s Apple Watch","sourceId":"com.apple.health.FAF1019B-3E01-48BA-89F1-D835119A39E4"}
+⚡️  [log] - [HealthKit] Comprehensive health data retrieved: {"steps":1000,"distance":1000,"activeCalories":1000,"basalCalories":0,"flightsClimbed":0,"heartRate":1000,"restingHeartRate":0,"hrv":0,"oxygenSaturation":0,"respiratoryRate":0,"bodyTemperature":0,"weight":14,"bmi":0,"leanBodyMass":0,"bodyFat":0,"height":0,"waistCircumference":0,"bloodPressureSystolic":0,"bloodPressureDiastolic":0,"bloodGlucose":0,"dietaryWater":0,"dietaryEnergy":0,"dietaryProtein":0,"dietaryCarbs":0,"dietaryFat":0,"workouts":0,"sleep":0}
+⚡️  [log] - [HealthKit] Data retrieved, ready for backend sync
+⚡️  [log] - [TileManager] Rendering. Total tiles: 3, Visible IDs in prefs: data-input, healthkit-sync, biomarker-trends, Rendering: data-input, healthkit-sync, biomarker-trends
+⚡️  [log] - [TileManager] Rendering. Total tiles: 3, Visible IDs in prefs: data-input, healthkit-sync, biomarker-trends, Rendering: data-input, healthkit-sync, biomarker-trends
