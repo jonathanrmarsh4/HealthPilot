@@ -1,0 +1,52 @@
+`UIScene` lifecycle will soon be required. Failure to adopt will result in an assert in the future.
+Could not create a sandbox extension for '/var/containers/Bundle/Application/688EE5EB-47DA-4409-8F51-FAC2D5BE6ECF/App.app'
+KeyboardPlugin: resize mode - body
+⚡️  Loading app at https://0d420476-b7bb-4cc4-9f5a-da35f5e473e4-00-1n1tyyvrb5uvz.pike.replit.dev...
+Updated list with error: DownloadFailed
+Updated list with error: DownloadFailed
+Updated list with error: DownloadFailed
+WebContent[3233] Unable to hide query parameters from script (missing data)
+Updated list with error: DownloadFailed
+Updated list with error: DownloadFailed
+SplashScreen.hideSplash: SplashScreen was automatically hidden after default timeout. You should call `SplashScreen.hide()` as soon as your web app is loaded (or increase the timeout). Read more at https://capacitorjs.com/docs/apis/splash-screen#hiding-the-splash-screen
+Updated list with error: DownloadFailed
+⚡️  [debug] - [vite] connecting...
+⚡️  WebView loaded
+⚡️  [log] - [MobileBootstrap] Initializing on ios...
+⚡️  To Native ->  StatusBar setStyle 100718067
+⚡️  TO JS {}
+⚡️  [log] - [MobileBootstrap] Status bar configured
+⚡️  To Native ->  SplashScreen hide 100718068
+⚡️  TO JS undefined
+⚡️  [log] - [MobileBootstrap] Splash screen hidden
+⚡️  [log] - [MobileBootstrap] Keyboard listeners configured
+⚡️  To Native ->  Keyboard addListener 100718069
+⚡️  To Native ->  Keyboard addListener 100718070
+⚡️  [log] - [MobileBootstrap] Back button handler configured
+⚡️  To Native ->  App addListener 100718071
+⚡️  To Native ->  App getInfo 100718072
+⚡️  TO JS {"id":"com.nuvitae.healthpilot","build":"1","version":"1.0","name":"HealthPilot"}
+⚡️  [log] - [MobileBootstrap] App Info: {"name":"HealthPilot","id":"com.nuvitae.healthpilot","version":"1.0","build":"1"}
+⚡️  [log] - [MobileBootstrap] ✅ Mobile initialization complete
+⚡️  [log] - [App] Setting up global deep link listener
+⚡️  [log] - [DeepLink] Initializing deep link handler...
+⚡️  To Native ->  App addListener 100718073
+⚡️  To Native ->  App addListener 100718074
+⚡️  [log] - [DeepLink] Deep link handler initialized successfully
+⚡️  To Native ->  SecureStorage internalGetItem 100718075
+⚡️  TO JS {"data":"\"ChXiVg_5eWmGeFKxF4NC_enCCzpzJglFayzQTkZsobs\""}
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  To Native ->  SecureStorage internalGetItem 100718076
+⚡️  To Native ->  SecureStorage internalGetItem 100718077
+⚡️  To Native ->  SecureStorage internalGetItem 100718078
+⚡️  To Native ->  SecureStorage internalGetItem 100718079
+⚡️  TO JS {"data":"\"ChXiVg_5eWmGeFKxF4NC_enCCzpzJglFayzQTkZsobs\""}
+⚡️  TO JS {"data":"\"ChXiVg_5eWmGeFKxF4NC_enCCzpzJglFayzQTkZsobs\""}
+⚡️  TO JS {"data":"\"ChXiVg_5eWmGeFKxF4NC_enCCzpzJglFayzQTkZsobs\""}
+⚡️  TO JS {"data":"\"ChXiVg_5eWmGeFKxF4NC_enCCzpzJglFayzQTkZsobs\""}
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  [log] - [HealthKitOnboarding] Checking HealthKit availability...
+⚡️  [warn] - [HealthKit] Plugin check failed: "HealthPilotHealthKit" plugin is not implemented on ios
+⚡️  [log] - [HealthKitOnboarding] HealthKit available: false
