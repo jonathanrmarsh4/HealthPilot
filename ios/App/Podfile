@@ -27,5 +27,13 @@ target 'App' do
 end
 
 post_install do |installer|
-  assertDeploymentTarget(installer)
+  # Force link HealthPilotHealthKit to prevent stripping
+  installer.pods_project.targets.each do |target|
+    if target.name == 'App'
+      target.build_configurations.each do |config|
+        config.build_settings['OTHER_LDFLAGS'] ||= ['$(inherited)']
+        config.build_settings['OTHER_LDFLAGS'] << '-framework HealthPilotHealthKit'
+      end
+    end
+  end
 end
