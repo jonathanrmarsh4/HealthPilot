@@ -74,6 +74,7 @@ export class HealthKitService {
 
   /**
    * Request permissions for all supported health data types
+   * Batch 1: Added cardiovascular metrics (HRV, resting HR, BP, SpO2, respiratory rate)
    */
   async requestPermissions(): Promise<boolean> {
     const available = await this.isHealthKitAvailable();
@@ -83,9 +84,15 @@ export class HealthKitService {
     }
 
     try {
-      console.log('[HealthKit] Requesting permissions for steps, distance, calories, heartRate, weight...');
+      console.log('[HealthKit] Requesting permissions for all health data types...');
       const result = await Health.requestAuthorization({
-        read: ['steps', 'distance', 'calories', 'heartRate', 'weight'],
+        read: [
+          // Original data types
+          'steps', 'distance', 'calories', 'heartRate', 'weight',
+          // Batch 1: Cardiovascular metrics
+          'hrv', 'restingHeartRate', 'bloodPressureSystolic', 'bloodPressureDiastolic',
+          'oxygenSaturation', 'respiratoryRate'
+        ],
         write: []
       });
       console.log('[HealthKit] Permission request result:', result);
@@ -100,7 +107,9 @@ export class HealthKitService {
    * Query health data for a specific type
    */
   private async queryData(
-    dataType: 'steps' | 'distance' | 'calories' | 'heartRate' | 'weight',
+    dataType: 'steps' | 'distance' | 'calories' | 'heartRate' | 'weight' | 
+              'hrv' | 'restingHeartRate' | 'bloodPressureSystolic' | 'bloodPressureDiastolic' |
+              'oxygenSaturation' | 'respiratoryRate',
     startDate: Date,
     endDate: Date
   ): Promise<HealthDataSample[]> {
@@ -156,16 +165,14 @@ export class HealthKitService {
    * Get resting heart rate data
    */
   async getRestingHeartRate(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
-    console.log('[HealthKit] Resting heart rate not yet supported by Capgo Health plugin');
-    return [];
+    return this.queryData('restingHeartRate', startDate, endDate);
   }
 
   /**
    * Get HRV (Heart Rate Variability) data
    */
   async getHRV(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
-    console.log('[HealthKit] HRV not yet supported by Capgo Health plugin');
-    return [];
+    return this.queryData('hrv', startDate, endDate);
   }
 
   /**
@@ -195,16 +202,14 @@ export class HealthKitService {
    * Get blood pressure (systolic) data
    */
   async getBloodPressureSystolic(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
-    console.log('[HealthKit] Blood pressure not yet supported by Capgo Health plugin');
-    return [];
+    return this.queryData('bloodPressureSystolic', startDate, endDate);
   }
 
   /**
    * Get blood pressure (diastolic) data
    */
   async getBloodPressureDiastolic(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
-    console.log('[HealthKit] Blood pressure not yet supported by Capgo Health plugin');
-    return [];
+    return this.queryData('bloodPressureDiastolic', startDate, endDate);
   }
 
   /**
@@ -235,16 +240,14 @@ export class HealthKitService {
    * Get oxygen saturation (SpO2) data
    */
   async getOxygenSaturation(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
-    console.log('[HealthKit] Oxygen saturation not yet supported by Capgo Health plugin');
-    return [];
+    return this.queryData('oxygenSaturation', startDate, endDate);
   }
 
   /**
    * Get respiratory rate data
    */
   async getRespiratoryRate(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
-    console.log('[HealthKit] Respiratory rate not yet supported by Capgo Health plugin');
-    return [];
+    return this.queryData('respiratoryRate', startDate, endDate);
   }
 
   /**
