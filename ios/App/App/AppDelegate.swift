@@ -8,6 +8,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
+        
+        // Manually register custom plugins (required for direct integration)
+        CAPPluginRegister(HealthPilotHealthKit, "HealthPilotHealthKit")
+        
         return true
     }
 
