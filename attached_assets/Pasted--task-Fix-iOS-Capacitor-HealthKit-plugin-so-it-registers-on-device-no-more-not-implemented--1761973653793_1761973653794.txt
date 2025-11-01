@@ -1,0 +1,136 @@
+{
+  "task": "Fix iOS Capacitor HealthKit plugin so it registers on-device (no more 'not implemented on ios'), then harden the HealthKit code for stability and correctness.",
+  "context": {
+    "app": "Capacitor v7 iOS app",
+    "plugin_name": "HealthPilotHealthKit",
+    "symptom": "\"HealthPilotHealthKit\" plugin is not implemented on ios",
+    "root_cause": "Objective-C CAP_PLUGIN registration unit not being loaded/linked into App target at runtime",
+    "goal": "Static-link plugin so CAP_PLUGIN runs; add -ObjC to keep Obj-C constructors; (belt-and-braces) add a force-loader call; then fix unsafe HealthKit code paths."
+  },
+  "paths": {
+    "podspec": "ios/HealthPilotHealthKit/HealthPilotHealthKit.podspec",
+    "plugin_swift": "ios/HealthPilotHealthKit/Sources/HealthPilotHealthKit.swift",
+    "plugin_objc": "ios/HealthPilotHealthKit/Sources/HealthPilotHealthKit.m",
+    "plugin_forceloader": "ios/HealthPilotHealthKit/Sources/ForceLoader.swift",
+    "podfile": "ios/App/Podfile",
+    "app_forceloader": "ios/App/App/ForceLoadHealthPilotHealthKit.swift",
+    "app_delegate": "ios/App/App/AppDelegate.swift",
+    "ts_bridge": "client/src/services/healthkit.ts"
+  },
+  "edits": [
+    {
+      "file": "ios/HealthPilotHealthKit/HealthPilotHealthKit.podspec",
+      "type": "patch",
+      "instructions": [
+        { "find": "s.static_framework = false", "replace": "s.static_framework = true" },
+        { "find": "s.swift_version = '5.9'", "replace": "s.swift_version = '5.9'\n  s.requires_arc = true" }
+      ],
+      "if_missing": [
+        { "append": "s.static_framework = true" },
+        { "append": "s.requires_arc = true" }
+      ]
+    },
+    {
+      "file": "ios/App/Podfile",
+      "type": "composite",
+      "instructions": [
+        {
+          "action": "ensure_static_linkage",
+          "details": "Prefer static linkage for plugins (no global dynamic frameworks). If 'use_frameworks!' is present, rewrite to static linkage."
+        },
+        {
+          "find": "use_frameworks!",
+          "replace": "use_frameworks! :linkage => :static",
+          "only_if_present": true
+        },
+        {
+          "action": "remove_custom_ldflags_hack",
+          "details": "Remove any lines that append '-framework HealthPilotHealthKit' to OTHER_LDFLAGS in post_install."
+        },
+        {
+          "action": "add_other_ldflags_objc",
+          "details": "In post_install, ensure App target has OTHER_LDFLAGS including '-ObjC'.",
+          "ruby_block": "post_install do |installer|\n  installer.pods_project.targets.each do |target|\n    if target.name == 'App'\n      target.build_configurations.each do |config|\n        flags = config.build_settings['OTHER_LDFLAGS'] || ['$(inherited)']\n        flags << '-ObjC' unless flags.include?('-ObjC')\n        config.build_settings['OTHER_LDFLAGS'] = flags\n      end\n    end\n  end\nend"
+        }
+      ]
+    },
+    {
+      "file": "ios/HealthPilotHealthKit/Sources/ForceLoader.swift",
+      "type": "create_if_missing",
+      "content": "import Foundation\n\n@objc(HealthPilotHealthKitForceLoader)\npublic class HealthPilotHealthKitForceLoader: NSObject {\n  @objc public static func ping() {}\n}\n"
+    },
+    {
+      "file": "ios/App/App/ForceLoadHealthPilotHealthKit.swift",
+      "type": "create_if_missing",
+      "content": "import Foundation\nimport HealthPilotHealthKit\n\n@objc(ForceLoadHealthPilotHealthKit)\nclass ForceLoadHealthPilotHealthKit: NSObject {\n  @objc static func loadPlugin() {\n    HealthPilotHealthKitForceLoader.ping()\n  }\n}\n"
+    },
+    {
+      "file": "ios/App/App/AppDelegate.swift",
+      "type": "inject_call_once",
+      "method": "application(_:didFinishLaunchingWithOptions:)",
+      "snippet": "ForceLoadHealthPilotHealthKit.loadPlugin()",
+      "place": "before_return_true"
+    },
+    {
+      "file": "ios/HealthPilotHealthKit/Sources/HealthPilotHealthKit.swift",
+      "type": "patch_block",
+      "changes": [
+        {
+          "description": "Avoid force-unwrap for HK types; build readTypes via optional binding; call requestAuthorization on main thread.",
+          "apply": "replace_requestAuthorization",
+          "from_marker": "// Request authorization for all supported health data types",
+          "to_marker": "// Query health data for specified type and date range",
+          "content": "    // Request authorization for all supported health data types\n    @objc func requestAuthorization(_ call: CAPPluginCall) {\n        guard HKHealthStore.isHealthDataAvailable() else {\n            call.reject(\"HealthKit is not available on this device\")\n            return\n        }\n\n        var readTypes = Set<HKObjectType>()\n        let qtyIds: [HKQuantityTypeIdentifier] = [\n            .stepCount, .distanceWalkingRunning, .activeEnergyBurned, .basalEnergyBurned, .flightsClimbed,\n            .heartRate, .restingHeartRate, .heartRateVariabilitySDNN,\n            .bloodPressureSystolic, .bloodPressureDiastolic, .oxygenSaturation,\n            .respiratoryRate, .bodyTemperature,\n            .bodyMass, .bodyMassIndex, .leanBodyMass, .bodyFatPercentage, .height,\n            .waistCircumference,\n            .bloodGlucose,\n            .dietaryWater, .dietaryEnergyConsumed, .dietaryProtein, .dietaryCarbohydrates, .dietaryFatTotal\n        ]\n        qtyIds.forEach { if let t = HKQuantityType.quantityType(forIdentifier: $0) { readTypes.insert(t) } }\n        if let sleep = HKCategoryType.categoryType(forIdentifier: .sleepAnalysis) { readTypes.insert(sleep) }\n        readTypes.insert(HKObjectType.workoutType())\n\n        DispatchQueue.main.async {\n            self.healthStore.requestAuthorization(toShare: [], read: readTypes) { success, error in\n                if let error = error {\n                    call.reject(\"Authorization failed: \\(error.localizedDescription)\")\n                } else {\n                    call.resolve([\"success\": success])\n                }\n            }\n        }\n    }\n"
+        },
+        {
+          "description": "Sort and limit quantity queries for determinism and performance.",
+          "apply": "modify_quantity_query",
+          "find": "let query = HKSampleQuery(sampleType: quantityType, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: nil)",
+          "replace": "let sort = [NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)]\n        let query = HKSampleQuery(sampleType: quantityType, predicate: predicate, limit: 5000, sortDescriptors: sort)"
+        },
+        {
+          "description": "Use canonical unit for blood glucose.",
+          "apply": "fix_glucose_unit",
+          "find": "case HKQuantityTypeIdentifier.bloodGlucose.rawValue:\n            return HKUnit.gramUnit(with: .milli).unitDivided(by: .literUnit(with: .deci))",
+          "replace": "case HKQuantityTypeIdentifier.bloodGlucose.rawValue:\n            return HKUnit.milligramsPerDeciliter()"
+        }
+      ]
+    },
+    {
+      "file": "client/src/services/healthkit.ts",
+      "type": "verify",
+      "checks": [
+        "registerPlugin name must be exactly 'HealthPilotHealthKit'",
+        "All calls use HealthPilotHealthKit.<method>",
+        "No polyfill or platform guard prevents iOS path (Capacitor.getPlatform() === 'ios')"
+      ]
+    }
+  ],
+  "commands": [
+    "cd ios/App",
+    "rm -rf Pods Podfile.lock",
+    "rm -rf ~/Library/Developer/Xcode/DerivedData/*",
+    "pod install",
+    "xed .",
+    "Build & run on a physical iPhone (not simulator) with a clean install"
+  ],
+  "smoke_tests": [
+    "Console should NOT print '\"HealthPilotHealthKit\" plugin is not implemented on ios' on app start.",
+    "From JS: await HealthPilotHealthKit.isAvailable() resolves with { available: boolean } (no exception).",
+    "Call requestAuthorization(): iOS Health permissions sheet appears; the promise resolves.",
+    "Call queryHealthData({ dataType: 'steps', startDate: ISO_7d_ago, endDate: ISO_now }): resolves with samples (possibly empty if no data)."
+  ],
+  "acceptance_criteria": [
+    "No 'not implemented on ios' errors at runtime.",
+    "Xcode build log shows 'Compile ios/HealthPilotHealthKit/Sources/HealthPilotHealthKit.m'.",
+    "Permissions prompt appears and requestAuthorization resolves.",
+    "No crash on iOS 14–18 when requesting types that are not available (thanks to optional binding).",
+    "Blood glucose unit is mg/dL; quantity queries are sorted and bounded."
+  ],
+  "rollback_plan": "If issues arise, temporarily comment out the ForceLoad call in AppDelegate and re-run. Revert Podfile to previous state and 'pod install' to compare behavior.",
+  "notes": [
+    "Do NOT import or manually register the plugin in CapacitorPlugins.swift—the CAP_PLUGIN macro handles auto-registration.",
+    "If a third-party plugin forces dynamic frameworks, we still keep '-ObjC' and the ForceLoader to guarantee registration.",
+    "Once stable, remove any legacy '-framework HealthPilotHealthKit' flags from Podfile to prevent conflicts."
+  ]
+}
