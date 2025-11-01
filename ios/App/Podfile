@@ -23,7 +23,7 @@ def capacitor_pods
   pod 'CapacitorShare', :path => '../../node_modules/@capacitor/share'
   pod 'CapacitorSplashScreen', :path => '../../node_modules/@capacitor/splash-screen'
   pod 'CapacitorStatusBar', :path => '../../node_modules/@capacitor/status-bar'
-  pod 'CapgoCapacitorHealth', :path => '../../node_modules/@capgo/capacitor-health'
+  pod 'CapgoCapacitorHealth', :path => './HealthPilotHealthKit'
   pod 'CordovaPluginsStatic', :path => '../capacitor-cordova-ios-plugins'
 end
 
