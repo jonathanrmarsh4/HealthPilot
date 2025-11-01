@@ -4,11 +4,12 @@ import Capacitor
 // HealthPilot Custom HealthKit Plugin
 // Extended from @capgo/capacitor-health v7.2.8
 // Adds support for additional cardiovascular metrics: HRV, resting heart rate, blood pressure, SpO2, respiratory rate
+// IMPORTANT: Must use original class name "CapacitorHealthPlugin" for proper Capacitor registration
 
-@objc(HealthPilotHealthKitPlugin)
-public class HealthPilotHealthKitPlugin: CAPPlugin, CAPBridgedPlugin {
+@objc(CapacitorHealthPlugin)
+public class CapacitorHealthPlugin: CAPPlugin, CAPBridgedPlugin {
     private let pluginVersion: String = "7.2.8-healthpilot.1"
-    public let identifier = "HealthPilotHealthKitPlugin"
+    public let identifier = "CapacitorHealth"
     public let jsName = "Health"
     public let pluginMethods: [CAPPluginMethod] = [
         CAPPluginMethod(name: "isAvailable", returnType: CAPPluginReturnPromise),

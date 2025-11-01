@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
-  s.name             = 'HealthPilotHealthKit'
-  s.version          = '1.0.0'
+  s.name             = 'CapgoCapacitorHealth'
+  s.version          = '7.2.8'
   s.summary          = 'HealthPilot Custom HealthKit Plugin - Extended from Capgo Health'
   s.license          = 'MIT'
   s.homepage         = 'https://healthpilot.pro'
