@@ -276,6 +276,7 @@ export interface IStorage {
   
   createBiomarker(biomarker: InsertBiomarker): Promise<Biomarker>;
   upsertBiomarker(biomarker: InsertBiomarker): Promise<Biomarker>;
+  batchUpsertBiomarkers(biomarkers: InsertBiomarker[]): Promise<number>;
   updateBiomarker(id: string, userId: string, data: Partial<InsertBiomarker>): Promise<Biomarker | undefined>;
   getBiomarkers(userId: string, type?: string): Promise<Biomarker[]>;
   getBiomarkersByTimeRange(userId: string, type: string, startDate: Date, endDate: Date): Promise<Biomarker[]>;
@@ -1207,6 +1208,25 @@ export class DbStorage implements IStorage {
     // Insert new record
     const [inserted] = await db.insert(biomarkers).values(biomarker).returning();
     return inserted;
+  }
+
+  async batchUpsertBiomarkers(biomarkersToUpsert: InsertBiomarker[]): Promise<number> {
+    if (biomarkersToUpsert.length === 0) return 0;
+    
+    // Use ON CONFLICT DO UPDATE to handle duplicates efficiently
+    const inserted = await db
+      .insert(biomarkers)
+      .values(biomarkersToUpsert)
+      .onConflictDoUpdate({
+        target: [biomarkers.userId, biomarkers.type, biomarkers.recordedAt, biomarkers.source],
+        set: {
+          value: sql`EXCLUDED.value`,
+          unit: sql`EXCLUDED.unit`,
+        },
+      })
+      .returning();
+    
+    return inserted.length;
   }
 
   async updateBiomarker(id: string, userId: string, data: Partial<InsertBiomarker>): Promise<Biomarker | undefined> {

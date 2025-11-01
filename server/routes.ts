@@ -11222,58 +11222,58 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
 
       let insertedCount = 0;
 
-      // Process steps data
+      // Process steps data (batch)
       if (steps && steps.length > 0) {
-        console.log(`👟 Processing ${steps.length} step samples`);
-        for (const sample of steps) {
-          await storage.upsertBiomarker({
-            userId,
-            type: "steps",
-            value: sample.value,
-            unit: sample.unit || "count",
-            source: "ios-healthkit",
-            recordedAt: new Date(sample.startDate),
-          });
-          insertedCount++;
-        }
+        console.log(`👟 Processing ${steps.length} step samples (batch)`);
+        const stepsBiomarkers = steps.map(sample => ({
+          userId,
+          type: "steps" as const,
+          value: sample.value,
+          unit: sample.unit || "count",
+          source: "ios-healthkit" as const,
+          recordedAt: new Date(sample.startDate),
+        }));
+        const count = await storage.batchUpsertBiomarkers(stepsBiomarkers);
+        insertedCount += count;
+        console.log(`✅ Inserted/updated ${count} step samples`);
       }
 
-      // Process HRV data
+      // Process HRV data (batch)
       if (hrv && hrv.length > 0) {
-        console.log(`💓 Processing ${hrv.length} HRV samples`);
-        for (const sample of hrv) {
-          await storage.upsertBiomarker({
-            userId,
-            type: "hrv",
-            value: sample.value,
-            unit: sample.unit || "ms",
-            source: "ios-healthkit",
-            recordedAt: new Date(sample.startDate),
-          });
-          insertedCount++;
-        }
+        console.log(`💓 Processing ${hrv.length} HRV samples (batch)`);
+        const hrvBiomarkers = hrv.map(sample => ({
+          userId,
+          type: "hrv" as const,
+          value: sample.value,
+          unit: sample.unit || "ms",
+          source: "ios-healthkit" as const,
+          recordedAt: new Date(sample.startDate),
+        }));
+        const count = await storage.batchUpsertBiomarkers(hrvBiomarkers);
+        insertedCount += count;
+        console.log(`✅ Inserted/updated ${count} HRV samples`);
       }
 
-      // Process resting heart rate data
+      // Process resting heart rate data (batch)
       if (restingHeartRate && restingHeartRate.length > 0) {
-        console.log(`❤️  Processing ${restingHeartRate.length} resting HR samples`);
-        for (const sample of restingHeartRate) {
-          await storage.upsertBiomarker({
-            userId,
-            type: "heart-rate",
-            value: sample.value,
-            unit: sample.unit || "bpm",
-            source: "ios-healthkit",
-            recordedAt: new Date(sample.startDate),
-          });
-          insertedCount++;
-        }
+        console.log(`❤️  Processing ${restingHeartRate.length} resting HR samples (batch)`);
+        const hrBiomarkers = restingHeartRate.map(sample => ({
+          userId,
+          type: "heart-rate" as const,
+          value: sample.value,
+          unit: sample.unit || "bpm",
+          source: "ios-healthkit" as const,
+          recordedAt: new Date(sample.startDate),
+        }));
+        const count = await storage.batchUpsertBiomarkers(hrBiomarkers);
+        insertedCount += count;
+        console.log(`✅ Inserted/updated ${count} resting HR samples`);
       }
 
-      // Process weight data
+      // Process weight data (batch)
       if (weight && weight.length > 0) {
-        console.log(`⚖️  Processing ${weight.length} weight samples`);
-        for (const sample of weight) {
+        console.log(`⚖️  Processing ${weight.length} weight samples (batch)`);
+        const weightBiomarkers = weight.map(sample => {
           // Normalize weight to lbs for consistent storage (matching Health Auto Export behavior)
           let weightValue = sample.value;
           const sampleUnit = (sample.unit || "kg").toLowerCase();
@@ -11282,38 +11282,40 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
             weightValue = weightValue * 2.20462; // Convert kg to lbs
           }
           
-          await storage.upsertBiomarker({
+          return {
             userId,
-            type: "weight",
+            type: "weight" as const,
             value: weightValue,
-            unit: "lbs", // Always store in lbs
-            source: "ios-healthkit",
+            unit: "lbs" as const, // Always store in lbs
+            source: "ios-healthkit" as const,
             recordedAt: new Date(sample.startDate),
-          });
-          insertedCount++;
-        }
+          };
+        });
+        const count = await storage.batchUpsertBiomarkers(weightBiomarkers);
+        insertedCount += count;
+        console.log(`✅ Inserted/updated ${count} weight samples`);
       }
 
-      // Process body fat percentage data
+      // Process body fat percentage data (batch)
       if (bodyFat && bodyFat.length > 0) {
-        console.log(`📊 Processing ${bodyFat.length} body fat samples`);
-        for (const sample of bodyFat) {
-          await storage.upsertBiomarker({
-            userId,
-            type: "body-fat-percentage",
-            value: sample.value,
-            unit: sample.unit || "%",
-            source: "ios-healthkit",
-            recordedAt: new Date(sample.startDate),
-          });
-          insertedCount++;
-        }
+        console.log(`📊 Processing ${bodyFat.length} body fat samples (batch)`);
+        const bodyFatBiomarkers = bodyFat.map(sample => ({
+          userId,
+          type: "body-fat-percentage" as const,
+          value: sample.value,
+          unit: sample.unit || "%",
+          source: "ios-healthkit" as const,
+          recordedAt: new Date(sample.startDate),
+        }));
+        const count = await storage.batchUpsertBiomarkers(bodyFatBiomarkers);
+        insertedCount += count;
+        console.log(`✅ Inserted/updated ${count} body fat samples`);
       }
 
-      // Process lean body mass data
+      // Process lean body mass data (batch)
       if (leanBodyMass && leanBodyMass.length > 0) {
-        console.log(`💪 Processing ${leanBodyMass.length} lean mass samples`);
-        for (const sample of leanBodyMass) {
+        console.log(`💪 Processing ${leanBodyMass.length} lean mass samples (batch)`);
+        const leanMassBiomarkers = leanBodyMass.map(sample => {
           // Normalize lean mass to lbs for consistent storage (matching Health Auto Export behavior)
           let leanMassValue = sample.value;
           const sampleUnit = (sample.unit || "kg").toLowerCase();
@@ -11322,16 +11324,18 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
             leanMassValue = leanMassValue * 2.20462; // Convert kg to lbs
           }
           
-          await storage.upsertBiomarker({
+          return {
             userId,
-            type: "lean-body-mass",
+            type: "lean-body-mass" as const,
             value: leanMassValue,
-            unit: "lbs", // Always store in lbs
-            source: "ios-healthkit",
+            unit: "lbs" as const, // Always store in lbs
+            source: "ios-healthkit" as const,
             recordedAt: new Date(sample.startDate),
-          });
-          insertedCount++;
-        }
+          };
+        });
+        const count = await storage.batchUpsertBiomarkers(leanMassBiomarkers);
+        insertedCount += count;
+        console.log(`💪 Inserted/updated ${count} lean mass samples`);
       }
 
       // Process sleep data using v2.0 algorithm
