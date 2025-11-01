@@ -1,0 +1,122 @@
+jonathanmarsh@Jonathans-MacBook-Air ~ % cd ~/Developer/HealthPilot/ios/App
+ls -la Pods/Target\ Support\ Files/Pods-App/
+ls: Pods/Target Support Files/Pods-App/: No such file or directory
+jonathanmarsh@Jonathans-MacBook-Air App % cd ~/Developer/HealthPilot/ios/App
+jonathanmarsh@Jonathans-MacBook-Air App % ls -la Pods/Target\ Support\ Files/Pods-App/
+ls: Pods/Target Support Files/Pods-App/: No such file or directory
+jonathanmarsh@Jonathans-MacBook-Air App % cd ~/Developer/HealthPilot/ios/App
+pod install --verbose
+  Preparing
+
+Analyzing dependencies
+
+Inspecting targets to integrate
+  Using `ARCHS` setting to build architectures of target `Pods-App`: (``)
+
+Fetching external sources
+-> Fetching podspec for `AparajitaCapacitorSecureStorage` from `../../node_modules/@aparajita/capacitor-secure-storage`
+-> Fetching podspec for `Capacitor` from `../../node_modules/@capacitor/ios`
+-> Fetching podspec for `CapacitorApp` from `../../node_modules/@capacitor/app`
+-> Fetching podspec for `CapacitorBrowser` from `../../node_modules/@capacitor/browser`
+-> Fetching podspec for `CapacitorCordova` from `../../node_modules/@capacitor/ios`
+-> Fetching podspec for `CapacitorFilesystem` from `../../node_modules/@capacitor/filesystem`
+-> Fetching podspec for `CapacitorHaptics` from `../../node_modules/@capacitor/haptics`
+-> Fetching podspec for `CapacitorKeyboard` from `../../node_modules/@capacitor/keyboard`
+-> Fetching podspec for `CapacitorLocalNotifications` from `../../node_modules/@capacitor/local-notifications`
+-> Fetching podspec for `CapacitorPreferences` from `../../node_modules/@capacitor/preferences`
+-> Fetching podspec for `CapacitorPushNotifications` from `../../node_modules/@capacitor/push-notifications`
+-> Fetching podspec for `CapacitorShare` from `../../node_modules/@capacitor/share`
+-> Fetching podspec for `CapacitorSplashScreen` from `../../node_modules/@capacitor/splash-screen`
+-> Fetching podspec for `CapacitorStatusBar` from `../../node_modules/@capacitor/status-bar`
+-> Fetching podspec for `HealthPilotHealthKit` from `../HealthPilotHealthKit`
+
+Resolving dependencies of `Podfile`
+  CDN: trunk Relative path: CocoaPods-version.yml exists! Returning local because checking is only performed in repo
+  update
+  CDN: trunk Relative path: all_pods_versions_e_e_e.txt exists! Returning local because checking is only performed in
+  repo update
+  CDN: trunk Relative path: Specs/e/e/e/KeychainSwift/24.0.0/KeychainSwift.podspec.json exists! Returning local because
+  checking is only performed in repo update
+  CDN: trunk Relative path: all_pods_versions_1_9_a.txt exists! Returning local because checking is only performed in
+  repo update
+  CDN: trunk Relative path: Specs/1/9/a/IONFilesystemLib/1.0.1/IONFilesystemLib.podspec.json exists! Returning local
+  because checking is only performed in repo update
+  CDN: trunk Relative path: Specs/e/e/e/KeychainSwift/21.0.0/KeychainSwift.podspec.json exists! Returning local because
+  checking is only performed in repo update
+  CDN: trunk Relative path: Specs/1/9/a/IONFilesystemLib/1.0.1/IONFilesystemLib.podspec.json exists! Returning local
+  because checking is only performed in repo update
+
+Comparing resolved specification to the sandbox manifest
+  A AparajitaCapacitorSecureStorage
+  A Capacitor
+  A CapacitorApp
+  A CapacitorBrowser
+  A CapacitorCordova
+  A CapacitorFilesystem
+  A CapacitorHaptics
+  A CapacitorKeyboard
+  A CapacitorLocalNotifications
+  A CapacitorPreferences
+  A CapacitorPushNotifications
+  A CapacitorShare
+  A CapacitorSplashScreen
+  A CapacitorStatusBar
+  A HealthPilotHealthKit
+  A IONFilesystemLib
+  A KeychainSwift
+
+Downloading dependencies
+
+-> Installing AparajitaCapacitorSecureStorage (7.1.6)
+
+-> Installing Capacitor (7.4.4)
+
+-> Installing CapacitorApp (7.1.0)
+
+-> Installing CapacitorBrowser (7.0.2)
+
+-> Installing CapacitorCordova (7.4.4)
+
+-> Installing CapacitorFilesystem (7.1.4)
+
+-> Installing CapacitorHaptics (7.0.2)
+
+-> Installing CapacitorKeyboard (7.0.3)
+
+-> Installing CapacitorLocalNotifications (7.0.3)
+
+-> Installing CapacitorPreferences (7.0.2)
+
+-> Installing CapacitorPushNotifications (7.0.3)
+
+-> Installing CapacitorShare (7.0.2)
+
+-> Installing CapacitorSplashScreen (7.0.3)
+
+-> Installing CapacitorStatusBar (7.0.3)
+
+-> Installing HealthPilotHealthKit (1.0.0)
+
+-> Installing IONFilesystemLib (1.0.1)
+  > Copying IONFilesystemLib from
+  `/Users/jonathanmarsh/Library/Caches/CocoaPods/Pods/Release/IONFilesystemLib/1.0.1-89258` to `Pods/IONFilesystemLib`
+
+-> Installing KeychainSwift (21.0.0)
+  > Copying KeychainSwift from `/Users/jonathanmarsh/Library/Caches/CocoaPods/Pods/Release/KeychainSwift/21.0.0-4a71a`
+  to `Pods/KeychainSwift`
+  - Running pre install hooks
+[!] The following Swift pods cannot yet be integrated as static libraries:
+
+The Swift pod `Capacitor` depends upon `CapacitorCordova`, which does not define modules. To opt into those targets generating module maps (which is necessary to import them from Swift when building as static libraries), you may set `use_modular_headers!` globally in your Podfile, or specify `:modular_headers => true` for particular dependencies.
+
+/opt/homebrew/Cellar/cocoapods/1.16.2_1/libexec/gems/cocoapods-1.16.2/lib/cocoapods/installer/xcode/target_validator.rb:151:in 'Pod::Installer::Xcode::TargetValidator#verify_swift_pods_have_module_dependencies'
+/opt/homebrew/Cellar/cocoapods/1.16.2_1/libexec/gems/cocoapods-1.16.2/lib/cocoapods/installer/xcode/target_validator.rb:40:in 'Pod::Installer::Xcode::TargetValidator#validate!'
+/opt/homebrew/Cellar/cocoapods/1.16.2_1/libexec/gems/cocoapods-1.16.2/lib/cocoapods/installer.rb:666:in 'Pod::Installer#validate_targets'
+/opt/homebrew/Cellar/cocoapods/1.16.2_1/libexec/gems/cocoapods-1.16.2/lib/cocoapods/installer.rb:164:in 'Pod::Installer#install!'
+/opt/homebrew/Cellar/cocoapods/1.16.2_1/libexec/gems/cocoapods-1.16.2/lib/cocoapods/command/install.rb:52:in 'Pod::Command::Install#run'
+/opt/homebrew/Cellar/cocoapods/1.16.2_1/libexec/gems/claide-1.1.0/lib/claide/command.rb:334:in 'CLAide::Command.run'
+/opt/homebrew/Cellar/cocoapods/1.16.2_1/libexec/gems/cocoapods-1.16.2/lib/cocoapods/command.rb:52:in 'Pod::Command.run'
+/opt/homebrew/Cellar/cocoapods/1.16.2_1/libexec/gems/cocoapods-1.16.2/bin/pod:55:in '<top (required)>'
+/opt/homebrew/Cellar/cocoapods/1.16.2_1/libexec/bin/pod:25:in 'Kernel#load'
+/opt/homebrew/Cellar/cocoapods/1.16.2_1/libexec/bin/pod:25:in '<main>'
+jonathanmarsh@Jonathans-MacBook-Air App % 
