@@ -8,7 +8,7 @@ import { Browser } from '@capacitor/browser';
 import { App as CapacitorApp } from '@capacitor/app';
 import { Preferences } from '@capacitor/preferences';
 import { SecureStorage } from '@aparajita/capacitor-secure-storage';
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest, queryClient, getApiBaseUrl } from "@/lib/queryClient";
 import { useState, useEffect, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -32,8 +32,11 @@ export default function Login() {
       
       console.log('[Login] Polling server with device ID...');
       
-      // Poll the server using device ID
-      const response = await fetch(`/api/mobile-auth/poll?deviceId=${encodeURIComponent(deviceId)}`);
+      // Poll the server using device ID (use full URL for mobile)
+      const pollUrl = `${getApiBaseUrl()}/api/mobile-auth/poll?deviceId=${encodeURIComponent(deviceId)}`;
+      const response = await fetch(pollUrl, {
+        credentials: 'include'
+      });
       
       if (!response.ok) {
         throw new Error('Failed to poll for auth');
@@ -114,7 +117,7 @@ export default function Login() {
           console.log('[Login] Created new device ID for auth:', deviceId);
         }
         
-        const loginUrl = `${window.location.origin}/api/login?deviceId=${encodeURIComponent(deviceId)}`;
+        const loginUrl = `${getApiBaseUrl()}/api/login?deviceId=${encodeURIComponent(deviceId)}`;
         console.log('[Login] Opening browser for OAuth:', loginUrl);
         
         // Don't use presentationStyle: 'popover' on iPhone - it fails silently
