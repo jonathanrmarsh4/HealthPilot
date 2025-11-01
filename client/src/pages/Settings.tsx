@@ -165,8 +165,13 @@ export default function Settings() {
         throw new Error('HealthKit permissions were not granted. Please enable them in Settings.');
       }
 
-      // Sync data (last 90 days)
-      await healthKitService.syncAllHealthData(90);
+      // Sync data (last 90 days) - retrieve from HealthKit
+      const healthData = await healthKitService.syncAllHealthData(90);
+      
+      // Send to backend
+      console.log('[Settings] Sending health data to backend...');
+      await apiRequest('POST', '/api/apple-health/sync', healthData);
+      console.log('[Settings] Data sent to backend successfully');
       
       setHealthKitStatus('success');
       

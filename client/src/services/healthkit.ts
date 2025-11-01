@@ -531,21 +531,19 @@ export class HealthKitService {
 
   /**
    * Sync all health data to backend
-   * Convenience method that retrieves data from HealthKit and sends it to the backend
+   * Convenience method that retrieves data from HealthKit and returns it for syncing
    */
-  async syncAllHealthData(daysBack: number = 30): Promise<void> {
+  async syncAllHealthData(daysBack: number = 30) {
     try {
       console.log(`[HealthKit] Starting sync of last ${daysBack} days...`);
       
       // Get all health data from HealthKit
       const healthData = await this.getAllHealthData(daysBack);
       
-      // Send to backend (import apiRequest from @/lib/queryClient in component that calls this)
-      // This method just retrieves the data - the calling component should handle the API call
-      // to maintain separation of concerns
       console.log('[HealthKit] Data retrieved, ready for backend sync');
       
-      return;
+      // Return the data so calling component can send it to backend
+      return healthData;
     } catch (error) {
       console.error('[HealthKit] Sync failed:', error);
       throw error;
