@@ -1,0 +1,88 @@
+`UIScene` lifecycle will soon be required. Failure to adopt will result in an assert in the future.
+Could not create a sandbox extension for '/var/containers/Bundle/Application/DB2BE208-9E2E-48A9-B9F5-604590ED9FC2/App.app'
+⚡️  Loading app at capacitor://localhost...
+WebContent[1439] Unable to hide query parameters from script (missing data)
+⚡️  [log] - onscript loading complete
+⚡️  [log] - [MobileBootstrap] Initializing on ios...
+⚡️  [warn] - [MobileBootstrap] Status bar configuration failed: {"code":"UNIMPLEMENTED"}
+⚡️  [warn] - [MobileBootstrap] Splash screen handling failed: {"code":"UNIMPLEMENTED"}
+⚡️  [log] - [MobileBootstrap] Keyboard listeners configured
+⚡️  [log] - [MobileBootstrap] Back button handler configured
+⚡️  [warn] - [MobileBootstrap] Failed to get app info: {"code":"UNIMPLEMENTED"}
+⚡️  [log] - [MobileBootstrap] ✅ Mobile initialization complete
+⚡️  [log] - [App] Setting up global deep link listener
+⚡️  [log] - [DeepLink] Initializing deep link handler...
+⚡️  [error] - [App] Failed to initialize deep linking: {"code":"UNIMPLEMENTED"}
+0x1150f0100 - [PID=1439] WebProcessProxy::didClose: (web process 0 crash)
+0x1150f0100 - [PID=1439] WebProcessProxy::processDidTerminateOrFailedToLaunch: reason=Crash
+Error acquiring assertion: <Error Domain=RBSServiceErrorDomain Code=1 "((target is not running or doesn't have entitlement com.apple.developer.web-browser-engine.rendering AND target is not running or doesn't have entitlement com.apple.developer.web-browser-engine.networking AND target is not running or doesn't have entitlement com.apple.developer.web-browser-engine.webcontent))" UserInfo={NSLocalizedFailureReason=((target is not running or doesn't have entitlement com.apple.developer.web-browser-engine.rendering AND target is not running or doesn't have entitlement com.apple.developer.web-browser-engine.networking AND target is not running or doesn't have entitlement com.apple.developer.web-browser-engine.webcontent))}>
+0x115164240 - ProcessAssertion::acquireSync Failed to acquire RBS assertion 'XPCConnectionTerminationWatchdog' for process with PID=1439, error: (null)
+0x109f74e18 - [pageProxyID=7, webPageID=8, PID=1439] WebPageProxy::processDidTerminate: (pid 1439), reason=Crash
+0x109f74e18 - [pageProxyID=7, webPageID=8, PID=1439] WebPageProxy::dispatchProcessDidTerminate: reason=Crash
+⚡️  WebView process terminated
+Failed to terminate process: Error Domain=com.apple.extensionKit.errorDomain Code=18 "(null)" UserInfo={NSUnderlyingError=0x11ac63a50 {Error Domain=RBSRequestErrorDomain Code=3 "No such process found" UserInfo={NSLocalizedFailureReason=No such process found}}}
+Failed to terminate process: Error Domain=com.apple.extensionKit.errorDomain Code=18 "(null)" UserInfo={NSUnderlyingError=0x11ac63b70 {Error Domain=RBSRequestErrorDomain Code=3 "No such process found" UserInfo={NSLocalizedFailureReason=No such process found}}}
+0x1151281e0 - GPUProcessProxy::gpuProcessExited: reason=IdleExit
+0x1150f0640 - [PID=0] WebProcessProxy::gpuProcessExited: reason=IdleExit
+⚡️  [log] - onscript loading complete
+⚡️  WebView loaded
+⚡️  [log] - [MobileBootstrap] Initializing on ios...
+⚡️  [warn] - [MobileBootstrap] Status bar configuration failed: {"code":"UNIMPLEMENTED"}
+⚡️  [warn] - [MobileBootstrap] Splash screen handling failed: {"code":"UNIMPLEMENTED"}
+⚡️  [log] - [MobileBootstrap] Keyboard listeners configured
+⚡️  [log] - [MobileBootstrap] Back button handler configured
+⚡️  [warn] - [MobileBootstrap] Failed to get app info: {"code":"UNIMPLEMENTED"}
+⚡️  [log] - [MobileBootstrap] ✅ Mobile initialization complete
+⚡️  [log] - [App] Setting up global deep link listener
+⚡️  [log] - [DeepLink] Initializing deep link handler...
+⚡️  [error] - [App] Failed to initialize deep linking: {"code":"UNIMPLEMENTED"}
+0x1150f0640 - [PID=1443] WebProcessProxy::didClose: (web process 0 crash)
+0x1150f0640 - [PID=1443] WebProcessProxy::processDidTerminateOrFailedToLaunch: reason=Crash
+Error acquiring assertion: <Error Domain=RBSServiceErrorDomain Code=1 "((target is not running or doesn't have entitlement com.apple.developer.web-browser-engine.rendering AND target is not running or doesn't have entitlement com.apple.developer.web-browser-engine.networking AND target is not running or doesn't have entitlement com.apple.developer.web-browser-engine.webcontent))" UserInfo={NSLocalizedFailureReason=((target is not running or doesn't have entitlement com.apple.developer.web-browser-engine.rendering AND target is not running or doesn't have entitlement com.apple.developer.web-browser-engine.networking AND target is not running or doesn't have entitlement com.apple.developer.web-browser-engine.webcontent))}>
+0x115164180 - ProcessAssertion::acquireSync Failed to acquire RBS assertion 'XPCConnectionTerminationWatchdog' for process with PID=1443, error: (null)
+0x109f74e18 - [pageProxyID=7, webPageID=8, PID=1443] WebPageProxy::processDidTerminate: (pid 1443), reason=Crash
+0x109f74e18 - [pageProxyID=7, webPageID=8, PID=1443] WebPageProxy::dispatchProcessDidTerminate: reason=Crash
+⚡️  WebView process terminated
+Failed to terminate process: Error Domain=com.apple.extensionKit.errorDomain Code=18 "(null)" UserInfo={NSUnderlyingError=0x11acebfc0 {Error Domain=RBSRequestErrorDomain Code=3 "No such process found" UserInfo={NSLocalizedFailureReason=No such process found}}}
+Failed to terminate process: Error Domain=com.apple.extensionKit.errorDomain Code=18 "(null)" UserInfo={NSUnderlyingError=0x11acebf90 {Error Domain=RBSRequestErrorDomain Code=3 "No such process found" UserInfo={NSLocalizedFailureReason=No such process found}}}
+0x1151281e0 - GPUProcessProxy::gpuProcessExited: reason=IdleExit
+0x1150f0100 - [PID=0] WebProcessProxy::gpuProcessExited: reason=IdleExit
+Error acquiring assertion: <Error Domain=RBSAssertionErrorDomain Code=2 "Specified target process 1444 does not exist" UserInfo={NSLocalizedFailureReason=Specified target process 1444 does not exist}>
+0x115164540 - ProcessAssertion::acquireSync Failed to acquire RBS assertion 'XPCConnectionTerminationWatchdog' for process with PID=1444, error: (null)
+⚡️  [log] - onscript loading complete
+⚡️  WebView loaded
+⚡️  [log] - [MobileBootstrap] Initializing on ios...
+⚡️  [warn] - [MobileBootstrap] Status bar configuration failed: {"code":"UNIMPLEMENTED"}
+⚡️  [warn] - [MobileBootstrap] Splash screen handling failed: {"code":"UNIMPLEMENTED"}
+⚡️  [log] - [MobileBootstrap] Keyboard listeners configured
+⚡️  [log] - [MobileBootstrap] Back button handler configured
+⚡️  [warn] - [MobileBootstrap] Failed to get app info: {"code":"UNIMPLEMENTED"}
+⚡️  [log] - [MobileBootstrap] ✅ Mobile initialization complete
+⚡️  [log] - [App] Setting up global deep link listener
+⚡️  [log] - [DeepLink] Initializing deep link handler...
+⚡️  [error] - [App] Failed to initialize deep linking: {"code":"UNIMPLEMENTED"}
+0x1150f0100 - [PID=1448] WebProcessProxy::didClose: (web process 0 crash)
+0x1150f0100 - [PID=1448] WebProcessProxy::processDidTerminateOrFailedToLaunch: reason=Crash
+Error acquiring assertion: <Error Domain=RBSServiceErrorDomain Code=1 "((target is not running or doesn't have entitlement com.apple.developer.web-browser-engine.rendering AND target is not running or doesn't have entitlement com.apple.developer.web-browser-engine.networking AND target is not running or doesn't have entitlement com.apple.developer.web-browser-engine.webcontent))" UserInfo={NSLocalizedFailureReason=((target is not running or doesn't have entitlement com.apple.developer.web-browser-engine.rendering AND target is not running or doesn't have entitlement com.apple.developer.web-browser-engine.networking AND target is not running or doesn't have entitlement com.apple.developer.web-browser-engine.webcontent))}>
+0x115164300 - ProcessAssertion::acquireSync Failed to acquire RBS assertion 'XPCConnectionTerminationWatchdog' for process with PID=1448, error: (null)
+0x109f74e18 - [pageProxyID=7, webPageID=8, PID=1448] WebPageProxy::processDidTerminate: (pid 1448), reason=Crash
+0x109f74e18 - [pageProxyID=7, webPageID=8, PID=1448] WebPageProxy::dispatchProcessDidTerminate: reason=Crash
+⚡️  WebView process terminated
+Failed to terminate process: Error Domain=com.apple.extensionKit.errorDomain Code=18 "(null)" UserInfo={NSUnderlyingError=0x11acebae0 {Error Domain=RBSRequestErrorDomain Code=3 "No such process found" UserInfo={NSLocalizedFailureReason=No such process found}}}
+Failed to terminate process: Error Domain=com.apple.extensionKit.errorDomain Code=18 "(null)" UserInfo={NSUnderlyingError=0x11acebb70 {Error Domain=RBSRequestErrorDomain Code=3 "No such process found" UserInfo={NSLocalizedFailureReason=No such process found}}}
+0x1151281e0 - GPUProcessProxy::gpuProcessExited: reason=IdleExit
+0x1150f0640 - [PID=0] WebProcessProxy::gpuProcessExited: reason=IdleExit
+Error acquiring assertion: <Error Domain=RBSServiceErrorDomain Code=1 "((target is not running or doesn't have entitlement com.apple.developer.web-browser-engine.rendering AND target is not running or doesn't have entitlement com.apple.developer.web-browser-engine.networking AND target is not running or doesn't have entitlement com.apple.developer.web-browser-engine.webcontent))" UserInfo={NSLocalizedFailureReason=((target is not running or doesn't have entitlement com.apple.developer.web-browser-engine.rendering AND target is not running or doesn't have entitlement com.apple.developer.web-browser-engine.networking AND target is not running or doesn't have entitlement com.apple.developer.web-browser-engine.webcontent))}>
+0x1151646c0 - ProcessAssertion::acquireSync Failed to acquire RBS assertion 'XPCConnectionTerminationWatchdog' for process with PID=1449, error: (null)
+⚡️  [log] - onscript loading complete
+⚡️  WebView loaded
+⚡️  [log] - [MobileBootstrap] Initializing on ios...
+⚡️  [warn] - [MobileBootstrap] Status bar configuration failed: {"code":"UNIMPLEMENTED"}
+⚡️  [warn] - [MobileBootstrap] Splash screen handling failed: {"code":"UNIMPLEMENTED"}
+⚡️  [log] - [MobileBootstrap] Keyboard listeners configured
+⚡️  [log] - [MobileBootstrap] Back button handler configured
+⚡️  [warn] - [MobileBootstrap] Failed to get app info: {"code":"UNIMPLEMENTED"}
+⚡️  [log] - [MobileBootstrap] ✅ Mobile initialization complete
+⚡️  [log] - [App] Setting up global deep link listener
+⚡️  [log] - [DeepLink] Initializing deep link handler...
+⚡️  [error] - [App] Failed to initialize deep linking: {"code":"UNIMPLEMENTED"}
