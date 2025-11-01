@@ -5,7 +5,7 @@
         <key>CFBundleDevelopmentRegion</key>
         <string>en</string>
         <key>CFBundleDisplayName</key>
-        <string>Health Insights AI</string>
+        <string>HealthPilot</string>
         <key>CFBundleExecutable</key>
         <string>$(EXECUTABLE_NAME)</string>
         <key>CFBundleIdentifier</key>
@@ -46,23 +46,8 @@
         <key>UIViewControllerBasedStatusBarAppearance</key>
         <true/>
         <key>NSHealthShareUsageDescription</key>
-        <string>Health Insights AI needs access to your health data to provide personalized insights, track biomarkers, and optimize your training and nutrition recommendations.</string>
+        <string>HealthPilot needs access to your health data to provide personalized insights, track biomarkers, and optimize your training and nutrition recommendations.</string>
         <key>NSHealthUpdateUsageDescription</key>
-        <string>Health Insights AI can write workout and activity data back to Apple Health to keep your health records synchronized.</string>
-        <key>NSMicrophoneUsageDescription</key>
-        <string>Health Insights AI needs microphone access to enable voice conversations with your AI health coach.</string>
-        <key>NSSpeechRecognitionUsageDescription</key>
-        <string>Health Insights AI uses speech recognition to understand your voice conversations with the AI health coach.</string>
-        <key>CFBundleURLTypes</key>
-        <array>
-                <dict>
-                        <key>CFBundleURLName</key>
-                        <string>com.nuvitae.healthpilot</string>
-                        <key>CFBundleURLSchemes</key>
-                        <array>
-                                <string>healthpilot</string>
-                        </array>
-                </dict>
-        </array>
+        <string>HealthPilot can write workout and activity data back to Apple Health to keep your health records synchronized.</string>
 </dict>
 </plist>

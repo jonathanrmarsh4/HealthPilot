@@ -1,8 +1,12 @@
 require_relative '../../node_modules/@capacitor/ios/scripts/pods_helpers'
 
 platform :ios, '14.0'
-use_frameworks! :linkage => :static
-use_modular_headers!
+use_frameworks!
+
+# workaround to avoid Xcode caching of Pods that requires
+# Product -> Clean Build Folder after new Cordova plugins installed
+# Requires CocoaPods 1.6 or newer
+install! 'cocoapods', :disable_input_output_paths => true
 
 def capacitor_pods
   pod 'Capacitor', :path => '../../node_modules/@capacitor/ios'
@@ -25,15 +29,9 @@ end
 
 target 'App' do
   capacitor_pods
+  # Add your Pods here
 end
 
 post_install do |installer|
-  installer.pods_project.targets.each do |target|
-    if target.name == 'App'
-      target.build_configurations.each do |config|
-        config.build_settings['OTHER_LDFLAGS'] ||= ['$(inherited)']
-        config.build_settings['OTHER_LDFLAGS'] << '-ObjC'
-      end
-    end
-  end
+  assertDeploymentTarget(installer)
 end
