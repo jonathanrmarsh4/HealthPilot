@@ -1,0 +1,22 @@
+Short answer: yes—some of those items can 100% stop the plugin from working on your iPhone 17, but a few are just “quality” fixes that wouldn’t cause the "not implemented on ios" error.
+Will block the plugin entirely (matches your symptom)
+These can make Capacitor say the plugin isn’t implemented even though it builds:
+Dynamic framework dead-stripping / registration not loaded
+If the .m with CAP_PLUGIN(...) isn’t pulled into the App target at runtime, the bridge won’t see your plugin. The fixes we gave—static framework in the podspec, -ObjC in OTHER_LDFLAGS for the App target, and (belt-and-braces) the force-loader ping—directly address this. Any one of these missing can cause your exact error on an iPhone 17.
+Wrong TS/JS plugin name vs native registration
+Must be an exact match across all three places:
+CAP_PLUGIN(HealthPilotHealthKit, "HealthPilotHealthKit", …) ↔ @objc(HealthPilotHealthKit) ↔ registerPlugin('HealthPilotHealthKit'). A mismatch causes the same “not implemented” error.
+Podfile hacks that fight CocoaPods
+Custom OTHER_LDFLAGS << '-framework HealthPilotHealthKit' or global use_frameworks! (dynamic) can allow the build to pass but still prevent the Obj-C registration from loading at runtime.
+Won’t cause “not implemented”, but can break/crash after registration
+These are important, but they don’t explain your current log:
+Force-unwrap of new HK types (e.g., waistCircumference) → would crash on older iOS, but iPhone 17 (iOS 18) supports them, so not your current blocker.
+Calling auth off main thread → may cause flaky permission UI, but not “not implemented”.
+Blood glucose unit choice, unsorted/no-limit queries, perf issues → correctness/perf problems later, not a registration failure.
+Quick on-device sanity checks (takes 2 minutes)
+In Xcode Build Log, confirm you see Compile HealthPilotHealthKit.m. If not, the source isn’t included.
+In the App target’s Build Settings → Other Linker Flags, confirm -ObjC is present (Release & Debug).
+With the force-loader in place, set a breakpoint in ForceLoadHealthPilotHealthKit.loadPlugin()—ensure it runs on launch.
+From JS, call await HealthPilotHealthKit.isAvailable() immediately after launch; if it throws, registration still hasn’t happened.
+Bottom line
+On an iPhone 17 specifically, the registration/linkage items (static framework, -ObjC, and/or force-loader) are the ones that explain why you can’t get the plugin working. Fix those first; the other code fixes are to prevent crashes or bad data once the plugin is visible.
