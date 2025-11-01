@@ -104,22 +104,37 @@ export default function Login() {
 
   const handleLogin = async () => {
     if (isNativePlatform()) {
-      // Get or create device ID
-      let { value: deviceId } = await Preferences.get({ key: 'deviceId' });
-      
-      if (!deviceId) {
-        deviceId = `${Date.now()}-${Math.random().toString(36).substring(7)}`;
-        await Preferences.set({ key: 'deviceId', value: deviceId });
-        console.log('[Login] Created new device ID for auth:', deviceId);
+      try {
+        // Get or create device ID
+        let { value: deviceId } = await Preferences.get({ key: 'deviceId' });
+        
+        if (!deviceId) {
+          deviceId = `${Date.now()}-${Math.random().toString(36).substring(7)}`;
+          await Preferences.set({ key: 'deviceId', value: deviceId });
+          console.log('[Login] Created new device ID for auth:', deviceId);
+        }
+        
+        const loginUrl = `${window.location.origin}/api/login?deviceId=${encodeURIComponent(deviceId)}`;
+        console.log('[Login] Opening browser for OAuth:', loginUrl);
+        
+        // Don't use presentationStyle: 'popover' on iPhone - it fails silently
+        // Use fullscreen presentation which works on all iOS devices
+        await Browser.open({
+          url: loginUrl,
+          presentationStyle: 'fullscreen',
+          toolbarColor: '#000000',
+        });
+        
+        console.log('[Login] Browser opened successfully');
+        // Polling will handle the token exchange when user returns
+      } catch (error) {
+        console.error('[Login] Failed to open browser:', error);
+        toast({
+          variant: "destructive",
+          title: "Login Error",
+          description: `Failed to open sign-in browser: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        });
       }
-      
-      const loginUrl = `${window.location.origin}/api/login?deviceId=${encodeURIComponent(deviceId)}`;
-      await Browser.open({
-        url: loginUrl,
-        presentationStyle: 'popover',
-        toolbarColor: '#000000',
-      });
-      // Polling will handle the token exchange when user returns
     } else {
       window.location.href = "/api/login";
     }
