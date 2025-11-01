@@ -1,0 +1,150 @@
+jonathanmarsh@Jonathans-MacBook-Air App % open App.xcworkspace
+jonathanmarsh@Jonathans-MacBook-Air App % cd ~/developer/HealthPilot
+jonathanmarsh@Jonathans-MacBook-Air HealthPilot % rm -rf ios
+jonathanmarsh@Jonathans-MacBook-Air HealthPilot % rm -rf ios
+jonathanmarsh@Jonathans-MacBook-Air HealthPilot % npx cap add ios
+✔ Adding native Xcode project in ios in 6.87ms
+✔ add in 7.05ms
+✔ Copying web assets from public to ios/App/App/public in 14.86ms
+✔ Creating capacitor.config.json in ios/App/App in 1.16ms
+[info] Found 1 Cordova plugin for ios:
+       onesignal-cordova-plugin@5.2.15
+✔ copy ios in 83.98ms
+✔ Updating iOS plugins in 7.68ms
+[info] Found 1 Cordova plugin for ios:
+       onesignal-cordova-plugin@5.2.15
+✔ Updating iOS native dependencies with pod install in 2.77s
+[warn] Configuration might be missing for onesignal-cordova-plugin.
+       Add the following to the existing UIBackgroundModes entry of Info.plist:
+       
+       <string>remote-notification</string>
+       
+[info] Found 13 Capacitor plugins for ios:
+       @aparajita/capacitor-secure-storage@7.1.6
+       @capacitor/app@7.1.0
+       @capacitor/browser@7.0.2
+       @capacitor/filesystem@7.1.4
+       @capacitor/haptics@7.0.2
+       @capacitor/keyboard@7.0.3
+       @capacitor/local-notifications@7.0.3
+       @capacitor/preferences@7.0.2
+       @capacitor/push-notifications@7.0.3
+       @capacitor/share@7.0.2
+       @capacitor/splash-screen@7.0.3
+       @capacitor/status-bar@7.0.3
+       @capgo/capacitor-health@7.2.8
+✔ update ios in 2.82s
+[success] ios platform added!
+Follow the Developer Workflow guide to get building:
+https://capacitorjs.com/docs/basics/workflow
+jonathanmarsh@Jonathans-MacBook-Air HealthPilot % cd ios/App
+jonathanmarsh@Jonathans-MacBook-Air App % mkdir -p HealthPilotHealthKit/Sources/HealthPilotHealthKit
+jonathanmarsh@Jonathans-MacBook-Air App % cd ios/App
+mkdir -p HealthPilotHealthKit/Sources/HealthPilotHealthKit
+cd: no such file or directory: ios/App
+jonathanmarsh@Jonathans-MacBook-Air App % >....                                                                         
+            return HKUnit.kilocalorie()
+        case "bpm":
+            return HKUnit.count().unitDivided(by: HKUnit.minute())
+        case "kilogram":
+            return HKUnit.gramUnit(with: .kilo)
+        default:
+            return dataType.defaultUnit
+        }
+    }
+
+    private func objectTypes(for dataTypes: [HealthDataType]) throws -> Set<HKObjectType> {
+        var set = Set<HKObjectType>()
+        for dataType in dataTypes {
+            let type = try dataType.sampleType()
+            set.insert(type)
+        }
+        return set
+    }
+
+    private func sampleTypes(for dataTypes: [HealthDataType]) throws -> Set<HKSampleType> {
+        var set = Set<HKSampleType>()
+        for dataType in dataTypes {
+            let type = try dataType.sampleType() as HKSampleType
+            set.insert(type)
+        }
+        return set
+    }
+}
+EOF
+jonathanmarsh@Jonathans-MacBook-Air App % 
+jonathanmarsh@Jonathans-MacBook-Air App % 
+jonathanmarsh@Jonathans-MacBook-Air App % 
+jonathanmarsh@Jonathans-MacBook-Air App % 
+jonathanmarsh@Jonathans-MacBook-Air App % 
+jonathanmarsh@Jonathans-MacBook-Air App % cd ~/developer/HealthPilot
+jonathanmarsh@Jonathans-MacBook-Air HealthPilot % rm -rf ios
+jonathanmarsh@Jonathans-MacBook-Air HealthPilot % npx cap add ios
+✔ Adding native Xcode project in ios in 7.68ms
+✔ add in 7.83ms
+✔ Copying web assets from public to ios/App/App/public in 17.73ms
+✔ Creating capacitor.config.json in ios/App/App in 393.33μs
+[info] Found 1 Cordova plugin for ios:
+       onesignal-cordova-plugin@5.2.15
+✔ copy ios in 79.09ms
+✔ Updating iOS plugins in 5.98ms
+[info] Found 1 Cordova plugin for ios:
+       onesignal-cordova-plugin@5.2.15
+✔ Updating iOS native dependencies with pod install in 2.31s
+[warn] Configuration might be missing for onesignal-cordova-plugin.
+       Add the following to the existing UIBackgroundModes entry of Info.plist:
+       
+       <string>remote-notification</string>
+       
+[info] Found 13 Capacitor plugins for ios:
+       @aparajita/capacitor-secure-storage@7.1.6
+       @capacitor/app@7.1.0
+       @capacitor/browser@7.0.2
+       @capacitor/filesystem@7.1.4
+       @capacitor/haptics@7.0.2
+       @capacitor/keyboard@7.0.3
+       @capacitor/local-notifications@7.0.3
+       @capacitor/preferences@7.0.2
+       @capacitor/push-notifications@7.0.3
+       @capacitor/share@7.0.2
+       @capacitor/splash-screen@7.0.3
+       @capacitor/status-bar@7.0.3
+       @capgo/capacitor-health@7.2.8
+✔ update ios in 2.37s
+[success] ios platform added!
+Follow the Developer Workflow guide to get building:
+https://capacitorjs.com/docs/basics/workflow
+jonathanmarsh@Jonathans-MacBook-Air HealthPilot % cd ios/App
+jonathanmarsh@Jonathans-MacBook-Air App % mkdir -p HealthPilotHealthKit/Sources/HealthPilotHealthKit
+jonathanmarsh@Jonathans-MacBook-Air App % cat > HealthPilotHealthKit/Sources/HealthPilotHealthKit/Health.swift << 'EOF
+quote> >....                                                                                                            
+            return HKUnit.meter()
+        case "kilocalorie":
+            return HKUnit.kilocalorie()
+        case "bpm":
+            return HKUnit.count().unitDivided(by: HKUnit.minute())
+        case "kilogram":
+            return HKUnit.gramUnit(with: .kilo)
+        default:
+            return dataType.defaultUnit
+        }
+    }
+    private func objectTypes(for dataTypes: [HealthDataType]) throws -> Set<HKObjectType> {
+        var set = Set<HKObjectType>()
+        for dataType in dataTypes {
+            let type = try dataType.sampleType()
+            set.insert(type)
+        }
+        return set
+    }
+    private func sampleTypes(for dataTypes: [HealthDataType]) throws -> Set<HKSampleType> {
+        var set = Set<HKSampleType>()
+        for dataType in dataTypes {
+            let type = try dataType.sampleType() as HKSampleType
+            set.insert(type)
+        }
+        return set
+    }
+}
+EOF
+quote> 
