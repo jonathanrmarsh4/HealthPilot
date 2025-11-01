@@ -11,5 +11,6 @@ Pod::Spec.new do |s|
   s.swift_version = '5.9'
   s.dependency 'Capacitor'
   s.static_framework = true
+  s.requires_arc = true
   s.frameworks = 'HealthKit'
 end

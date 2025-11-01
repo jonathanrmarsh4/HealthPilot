@@ -1,7 +1,6 @@
 require_relative '../../node_modules/@capacitor/ios/scripts/pods_helpers'
 
 platform :ios, '14.0'
-use_frameworks! :linkage => :static
 
 def capacitor_pods
   pod 'Capacitor', :path => '../../node_modules/@capacitor/ios'
@@ -27,5 +26,12 @@ target 'App' do
 end
 
 post_install do |installer|
-  # Static frameworks ensure CAP_PLUGIN registration runs
+  installer.pods_project.targets.each do |target|
+    if target.name == 'App'
+      target.build_configurations.each do |config|
+        config.build_settings['OTHER_LDFLAGS'] ||= ['$(inherited)']
+        config.build_settings['OTHER_LDFLAGS'] << '-ObjC'
+      end
+    end
+  end
 end
