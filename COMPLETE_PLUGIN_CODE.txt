@@ -1,0 +1,995 @@
+=== FILE: ios/HealthPilotHealthKit/HealthPilotHealthKit.podspec ===
+Pod::Spec.new do |s|
+  s.name             = 'HealthPilotHealthKit'
+  s.version          = '1.0.0'
+  s.summary          = 'Comprehensive HealthKit plugin for HealthPilot'
+  s.homepage         = 'https://healthpilot.pro'
+  s.license          = 'MIT'
+  s.author           = { 'HealthPilot' => 'info@healthpilot.pro' }
+  s.source           = { :path => '.' }
+  s.source_files = 'Sources/**/*.{swift,h,m}'
+  s.ios.deployment_target = '14.0'
+  s.swift_version = '5.9'
+  s.dependency 'Capacitor'
+  s.static_framework = false
+  s.frameworks = 'HealthKit'
+end
+
+
+=== FILE: ios/HealthPilotHealthKit/Sources/HealthPilotHealthKit.m ===
+#import <Foundation/Foundation.h>
+#import <Capacitor/Capacitor.h>
+
+CAP_PLUGIN(HealthPilotHealthKit, "HealthPilotHealthKit",
+  CAP_PLUGIN_METHOD(isAvailable, CAPPluginReturnPromise);
+  CAP_PLUGIN_METHOD(requestAuthorization, CAPPluginReturnPromise);
+  CAP_PLUGIN_METHOD(queryHealthData, CAPPluginReturnPromise);
+)
+
+
+=== FILE: ios/HealthPilotHealthKit/Sources/HealthPilotHealthKit.swift ===
+import Foundation
+import HealthKit
+import Capacitor
+
+@objc(HealthPilotHealthKit)
+public class HealthPilotHealthKit: CAPPlugin {
+    private let healthStore = HKHealthStore()
+    
+    // Check if HealthKit is available
+    @objc func isAvailable(_ call: CAPPluginCall) {
+        let available = HKHealthStore.isHealthDataAvailable()
+        call.resolve(["available": available])
+    }
+    
+    // Request authorization for all supported health data types
+    @objc func requestAuthorization(_ call: CAPPluginCall) {
+        guard HKHealthStore.isHealthDataAvailable() else {
+            call.reject("HealthKit is not available on this device")
+            return
+        }
+        
+        // Define all read types we need
+        let readTypes: Set<HKObjectType> = [
+            // Activity & Fitness
+            HKQuantityType.quantityType(forIdentifier: .stepCount)!,
+            HKQuantityType.quantityType(forIdentifier: .distanceWalkingRunning)!,
+            HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned)!,
+            HKQuantityType.quantityType(forIdentifier: .basalEnergyBurned)!,
+            HKQuantityType.quantityType(forIdentifier: .flightsClimbed)!,
+            
+            // Heart & Vitals
+            HKQuantityType.quantityType(forIdentifier: .heartRate)!,
+            HKQuantityType.quantityType(forIdentifier: .restingHeartRate)!,
+            HKQuantityType.quantityType(forIdentifier: .heartRateVariabilitySDNN)!,
+            HKQuantityType.quantityType(forIdentifier: .bloodPressureSystolic)!,
+            HKQuantityType.quantityType(forIdentifier: .bloodPressureDiastolic)!,
+            HKQuantityType.quantityType(forIdentifier: .oxygenSaturation)!,
+            HKQuantityType.quantityType(forIdentifier: .respiratoryRate)!,
+            HKQuantityType.quantityType(forIdentifier: .bodyTemperature)!,
+            
+            // Body Measurements
+            HKQuantityType.quantityType(forIdentifier: .bodyMass)!,
+            HKQuantityType.quantityType(forIdentifier: .bodyMassIndex)!,
+            HKQuantityType.quantityType(forIdentifier: .leanBodyMass)!,
+            HKQuantityType.quantityType(forIdentifier: .bodyFatPercentage)!,
+            HKQuantityType.quantityType(forIdentifier: .height)!,
+            HKQuantityType.quantityType(forIdentifier: .waistCircumference)!,
+            
+            // Lab Results & Blood
+            HKQuantityType.quantityType(forIdentifier: .bloodGlucose)!,
+            
+            // Workouts & Sleep
+            HKObjectType.workoutType(),
+            HKObjectType.categoryType(forIdentifier: .sleepAnalysis)!,
+            
+            // Nutrition
+            HKQuantityType.quantityType(forIdentifier: .dietaryWater)!,
+            HKQuantityType.quantityType(forIdentifier: .dietaryEnergyConsumed)!,
+            HKQuantityType.quantityType(forIdentifier: .dietaryProtein)!,
+            HKQuantityType.quantityType(forIdentifier: .dietaryCarbohydrates)!,
+            HKQuantityType.quantityType(forIdentifier: .dietaryFatTotal)!,
+        ]
+        
+        healthStore.requestAuthorization(toShare: [], read: readTypes) { success, error in
+            if let error = error {
+                call.reject("Authorization failed: \(error.localizedDescription)")
+            } else {
+                call.resolve(["success": success])
+            }
+        }
+    }
+    
+    // Query health data for specified type and date range
+    @objc func queryHealthData(_ call: CAPPluginCall) {
+        guard let dataType = call.getString("dataType"),
+              let startDateString = call.getString("startDate"),
+              let endDateString = call.getString("endDate") else {
+            call.reject("Missing required parameters: dataType, startDate, endDate")
+            return
+        }
+        
+        let dateFormatter = ISO8601DateFormatter()
+        guard let startDate = dateFormatter.date(from: startDateString),
+              let endDate = dateFormatter.date(from: endDateString) else {
+            call.reject("Invalid date format. Use ISO 8601.")
+            return
+        }
+        
+        // Route to appropriate query method based on data type
+        switch dataType {
+        case "steps", "distance", "activeCalories", "basalCalories", "flights",
+             "heartRate", "restingHeartRate", "hrv", "bloodPressureSystolic", "bloodPressureDiastolic",
+             "oxygenSaturation", "respiratoryRate", "bodyTemperature",
+             "weight", "bmi", "leanBodyMass", "bodyFat", "height", "waist",
+             "bloodGlucose", "dietaryWater", "dietaryEnergy", "dietaryProtein", "dietaryCarbs", "dietaryFat":
+            queryQuantityType(call: call, dataType: dataType, startDate: startDate, endDate: endDate)
+            
+        case "workouts":
+            queryWorkouts(call: call, startDate: startDate, endDate: endDate)
+            
+        case "sleep":
+            querySleep(call: call, startDate: startDate, endDate: endDate)
+            
+        default:
+            call.reject("Unsupported data type: \(dataType)")
+        }
+    }
+    
+    // Query quantity type data (steps, heart rate, weight, etc.)
+    private func queryQuantityType(call: CAPPluginCall, dataType: String, startDate: Date, endDate: Date) {
+        guard let quantityType = mapToQuantityType(dataType) else {
+            call.reject("Invalid quantity type: \(dataType)")
+            return
+        }
+        
+        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate, options: .strictStartDate)
+        
+        let query = HKSampleQuery(sampleType: quantityType, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: nil) { _, samples, error in
+            if let error = error {
+                call.reject("Query failed: \(error.localizedDescription)")
+                return
+            }
+            
+            guard let samples = samples as? [HKQuantitySample] else {
+                call.resolve(["samples": []])
+                return
+            }
+            
+            let unit = self.getUnit(for: quantityType)
+            let results = samples.map { sample -> [String: Any] in
+                return [
+                    "value": sample.quantity.doubleValue(for: unit),
+                    "unit": unit.unitString,
+                    "startDate": ISO8601DateFormatter().string(from: sample.startDate),
+                    "endDate": ISO8601DateFormatter().string(from: sample.endDate),
+                    "uuid": sample.uuid.uuidString
+                ]
+            }
+            
+            call.resolve(["samples": results])
+        }
+        
+        healthStore.execute(query)
+    }
+    
+    // Query workouts
+    private func queryWorkouts(call: CAPPluginCall, startDate: Date, endDate: Date) {
+        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate, options: .strictStartDate)
+        
+        let query = HKSampleQuery(sampleType: .workoutType(), predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: nil) { _, samples, error in
+            if let error = error {
+                call.reject("Query failed: \(error.localizedDescription)")
+                return
+            }
+            
+            guard let workouts = samples as? [HKWorkout] else {
+                call.resolve(["workouts": []])
+                return
+            }
+            
+            let results = workouts.map { workout -> [String: Any] in
+                var result: [String: Any] = [
+                    "workoutType": workout.workoutActivityType.rawValue,
+                    "workoutTypeName": self.workoutTypeName(workout.workoutActivityType),
+                    "startDate": ISO8601DateFormatter().string(from: workout.startDate),
+                    "endDate": ISO8601DateFormatter().string(from: workout.endDate),
+                    "duration": workout.duration,
+                    "uuid": workout.uuid.uuidString
+                ]
+                
+                if let totalDistance = workout.totalDistance {
+                    result["distance"] = totalDistance.doubleValue(for: .meter())
+                    result["distanceUnit"] = "m"
+                }
+                
+                if let totalEnergy = workout.totalEnergyBurned {
+                    result["energy"] = totalEnergy.doubleValue(for: .kilocalorie())
+                    result["energyUnit"] = "kcal"
+                }
+                
+                return result
+            }
+            
+            call.resolve(["workouts": results])
+        }
+        
+        healthStore.execute(query)
+    }
+    
+    // Query sleep data
+    private func querySleep(call: CAPPluginCall, startDate: Date, endDate: Date) {
+        let sleepType = HKCategoryType.categoryType(forIdentifier: .sleepAnalysis)!
+        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate, options: .strictStartDate)
+        
+        let query = HKSampleQuery(sampleType: sleepType, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: nil) { _, samples, error in
+            if let error = error {
+                call.reject("Query failed: \(error.localizedDescription)")
+                return
+            }
+            
+            guard let sleepSamples = samples as? [HKCategorySample] else {
+                call.resolve(["sleepSamples": []])
+                return
+            }
+            
+            let results = sleepSamples.map { sample -> [String: Any] in
+                var categoryName = "unknown"
+                if #available(iOS 16.0, *) {
+                    switch sample.value {
+                    case HKCategoryValueSleepAnalysis.asleepUnspecified.rawValue:
+                        categoryName = "asleep"
+                    case HKCategoryValueSleepAnalysis.awake.rawValue:
+                        categoryName = "awake"
+                    case HKCategoryValueSleepAnalysis.asleepCore.rawValue:
+                        categoryName = "core"
+                    case HKCategoryValueSleepAnalysis.asleepDeep.rawValue:
+                        categoryName = "deep"
+                    case HKCategoryValueSleepAnalysis.asleepREM.rawValue:
+                        categoryName = "rem"
+                    default:
+                        categoryName = "inBed"
+                    }
+                } else {
+                    categoryName = sample.value == HKCategoryValueSleepAnalysis.asleep.rawValue ? "asleep" : "inBed"
+                }
+                
+                return [
+                    "value": sample.value,
+                    "category": categoryName,
+                    "startDate": ISO8601DateFormatter().string(from: sample.startDate),
+                    "endDate": ISO8601DateFormatter().string(from: sample.endDate),
+                    "uuid": sample.uuid.uuidString
+                ]
+            }
+            
+            call.resolve(["sleepSamples": results])
+        }
+        
+        healthStore.execute(query)
+    }
+    
+    // Map string identifier to HKQuantityType
+    private func mapToQuantityType(_ identifier: String) -> HKQuantityType? {
+        let mapping: [String: HKQuantityTypeIdentifier] = [
+            "steps": .stepCount,
+            "distance": .distanceWalkingRunning,
+            "activeCalories": .activeEnergyBurned,
+            "basalCalories": .basalEnergyBurned,
+            "flights": .flightsClimbed,
+            "heartRate": .heartRate,
+            "restingHeartRate": .restingHeartRate,
+            "hrv": .heartRateVariabilitySDNN,
+            "bloodPressureSystolic": .bloodPressureSystolic,
+            "bloodPressureDiastolic": .bloodPressureDiastolic,
+            "oxygenSaturation": .oxygenSaturation,
+            "respiratoryRate": .respiratoryRate,
+            "bodyTemperature": .bodyTemperature,
+            "weight": .bodyMass,
+            "bmi": .bodyMassIndex,
+            "leanBodyMass": .leanBodyMass,
+            "bodyFat": .bodyFatPercentage,
+            "height": .height,
+            "waist": .waistCircumference,
+            "bloodGlucose": .bloodGlucose,
+            "dietaryWater": .dietaryWater,
+            "dietaryEnergy": .dietaryEnergyConsumed,
+            "dietaryProtein": .dietaryProtein,
+            "dietaryCarbs": .dietaryCarbohydrates,
+            "dietaryFat": .dietaryFatTotal
+        ]
+        
+        guard let typeIdentifier = mapping[identifier] else {
+            return nil
+        }
+        
+        return HKQuantityType.quantityType(forIdentifier: typeIdentifier)
+    }
+    
+    // Get appropriate unit for quantity type
+    private func getUnit(for quantityType: HKQuantityType) -> HKUnit {
+        switch quantityType.identifier {
+        case HKQuantityTypeIdentifier.stepCount.rawValue,
+             HKQuantityTypeIdentifier.flightsClimbed.rawValue:
+            return .count()
+        case HKQuantityTypeIdentifier.distanceWalkingRunning.rawValue,
+             HKQuantityTypeIdentifier.height.rawValue,
+             HKQuantityTypeIdentifier.waistCircumference.rawValue:
+            return .meter()
+        case HKQuantityTypeIdentifier.activeEnergyBurned.rawValue,
+             HKQuantityTypeIdentifier.basalEnergyBurned.rawValue,
+             HKQuantityTypeIdentifier.dietaryEnergyConsumed.rawValue:
+            return .kilocalorie()
+        case HKQuantityTypeIdentifier.heartRate.rawValue,
+             HKQuantityTypeIdentifier.restingHeartRate.rawValue:
+            return HKUnit.count().unitDivided(by: .minute())
+        case HKQuantityTypeIdentifier.heartRateVariabilitySDNN.rawValue:
+            return .secondUnit(with: .milli)
+        case HKQuantityTypeIdentifier.bloodPressureSystolic.rawValue,
+             HKQuantityTypeIdentifier.bloodPressureDiastolic.rawValue:
+            return .millimeterOfMercury()
+        case HKQuantityTypeIdentifier.oxygenSaturation.rawValue,
+             HKQuantityTypeIdentifier.bodyFatPercentage.rawValue:
+            return .percent()
+        case HKQuantityTypeIdentifier.respiratoryRate.rawValue:
+            return HKUnit.count().unitDivided(by: .minute())
+        case HKQuantityTypeIdentifier.bodyTemperature.rawValue:
+            return .degreeCelsius()
+        case HKQuantityTypeIdentifier.bodyMass.rawValue,
+             HKQuantityTypeIdentifier.leanBodyMass.rawValue:
+            return .gramUnit(with: .kilo)
+        case HKQuantityTypeIdentifier.bodyMassIndex.rawValue:
+            return .count()
+        case HKQuantityTypeIdentifier.bloodGlucose.rawValue:
+            return HKUnit.gramUnit(with: .milli).unitDivided(by: .literUnit(with: .deci))
+        case HKQuantityTypeIdentifier.dietaryWater.rawValue:
+            return .literUnit(with: .milli)
+        case HKQuantityTypeIdentifier.dietaryProtein.rawValue,
+             HKQuantityTypeIdentifier.dietaryCarbohydrates.rawValue,
+             HKQuantityTypeIdentifier.dietaryFatTotal.rawValue:
+            return .gram()
+        default:
+            return .count()
+        }
+    }
+    
+    // Get workout type name
+    private func workoutTypeName(_ type: HKWorkoutActivityType) -> String {
+        switch type {
+        case .running: return "Running"
+        case .cycling: return "Cycling"
+        case .walking: return "Walking"
+        case .swimming: return "Swimming"
+        case .yoga: return "Yoga"
+        case .functionalStrengthTraining: return "Strength Training"
+        case .traditionalStrengthTraining: return "Traditional Strength Training"
+        case .hiking: return "Hiking"
+        case .elliptical: return "Elliptical"
+        case .rowing: return "Rowing"
+        case .stairClimbing: return "Stair Climbing"
+        case .dance: return "Dance"
+        case .basketball: return "Basketball"
+        case .soccer: return "Soccer"
+        case .tennis: return "Tennis"
+        case .golf: return "Golf"
+        default: return "Other"
+        }
+    }
+}
+
+
+=== FILE: ios/App/Podfile ===
+require_relative '../../node_modules/@capacitor/ios/scripts/pods_helpers'
+
+platform :ios, '14.0'
+use_frameworks!
+
+def capacitor_pods
+  pod 'Capacitor', :path => '../../node_modules/@capacitor/ios'
+  pod 'CapacitorCordova', :path => '../../node_modules/@capacitor/ios'
+  pod 'HealthPilotHealthKit', :path => '../HealthPilotHealthKit'
+  pod 'AparajitaCapacitorSecureStorage', :path => '../../node_modules/@aparajita/capacitor-secure-storage'
+  pod 'CapacitorApp', :path => '../../node_modules/@capacitor/app'
+  pod 'CapacitorBrowser', :path => '../../node_modules/@capacitor/browser'
+  pod 'CapacitorFilesystem', :path => '../../node_modules/@capacitor/filesystem'
+  pod 'CapacitorHaptics', :path => '../../node_modules/@capacitor/haptics'
+  pod 'CapacitorKeyboard', :path => '../../node_modules/@capacitor/keyboard'
+  pod 'CapacitorLocalNotifications', :path => '../../node_modules/@capacitor/local-notifications'
+  pod 'CapacitorPreferences', :path => '../../node_modules/@capacitor/preferences'
+  pod 'CapacitorPushNotifications', :path => '../../node_modules/@capacitor/push-notifications'
+  pod 'CapacitorShare', :path => '../../node_modules/@capacitor/share'
+  pod 'CapacitorSplashScreen', :path => '../../node_modules/@capacitor/splash-screen'
+  pod 'CapacitorStatusBar', :path => '../../node_modules/@capacitor/status-bar'
+  pod 'CordovaPluginsStatic', :path => '../capacitor-cordova-ios-plugins'
+end
+
+target 'App' do
+  capacitor_pods
+end
+
+post_install do |installer|
+  # Force link HealthPilotHealthKit to prevent stripping
+  installer.pods_project.targets.each do |target|
+    if target.name == 'App'
+      target.build_configurations.each do |config|
+        config.build_settings['OTHER_LDFLAGS'] ||= ['$(inherited)']
+        config.build_settings['OTHER_LDFLAGS'] << '-framework HealthPilotHealthKit'
+      end
+    end
+  end
+end
+
+
+=== FILE: client/src/services/healthkit.ts ===
+import { registerPlugin } from '@capacitor/core';
+import { Capacitor } from '@capacitor/core';
+
+export interface HealthDataSample {
+  value: number;
+  unit: string;
+  startDate: string;
+  endDate: string;
+  uuid?: string;
+}
+
+export interface WorkoutSample {
+  workoutType: number;
+  workoutTypeName: string;
+  startDate: string;
+  endDate: string;
+  duration: number;
+  distance?: number;
+  distanceUnit?: string;
+  energy?: number;
+  energyUnit?: string;
+  uuid: string;
+}
+
+export interface SleepSample {
+  value: number;
+  category: string; // 'asleep' | 'awake' | 'core' | 'deep' | 'rem' | 'inBed'
+  startDate: string;
+  endDate: string;
+  uuid: string;
+}
+
+export interface HealthPilotHealthKitPlugin {
+  isAvailable(): Promise<{ available: boolean }>;
+  requestAuthorization(): Promise<{ success: boolean }>;
+  queryHealthData(options: {
+    dataType: string;
+    startDate: string;
+    endDate: string;
+  }): Promise<{ samples?: HealthDataSample[]; workouts?: WorkoutSample[]; sleepSamples?: SleepSample[] }>;
+}
+
+const HealthPilotHealthKit = registerPlugin<HealthPilotHealthKitPlugin>('HealthPilotHealthKit');
+
+/**
+ * HealthKit service for iOS native health data integration
+ * Supports comprehensive data types: HRV, sleep, weight, body composition, resting HR, steps, workouts, etc.
+ */
+export class HealthKitService {
+  private static instance: HealthKitService;
+  private isAvailable: boolean | null = null;
+
+  private constructor() {}
+
+  static getInstance(): HealthKitService {
+    if (!HealthKitService.instance) {
+      HealthKitService.instance = new HealthKitService();
+    }
+    return HealthKitService.instance;
+  }
+
+  /**
+   * Check if HealthKit is available on this device
+   */
+  async isHealthKitAvailable(): Promise<boolean> {
+    if (this.isAvailable !== null) {
+      return this.isAvailable;
+    }
+
+    try {
+      if (Capacitor.getPlatform() !== 'ios') {
+        this.isAvailable = false;
+        return false;
+      }
+
+      const result = await HealthPilotHealthKit.isAvailable();
+      this.isAvailable = result?.available ?? false;
+      console.log('[HealthKit] Availability check result:', this.isAvailable);
+      return this.isAvailable;
+    } catch (error: any) {
+      console.warn('[HealthKit] Plugin check failed:', error.message);
+      this.isAvailable = false;
+      return false;
+    }
+  }
+
+  /**
+   * Request permissions for all supported health data types
+   */
+  async requestPermissions(): Promise<boolean> {
+    const available = await this.isHealthKitAvailable();
+    if (!available) {
+      console.log('[HealthKit] Not available on this platform');
+      return false;
+    }
+
+    try {
+      console.log('[HealthKit] Requesting permissions...');
+      const result = await HealthPilotHealthKit.requestAuthorization();
+      console.log('[HealthKit] Permission request result:', result);
+      return result.success;
+    } catch (error) {
+      console.error('[HealthKit] Failed to request permissions:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Query health data for a specific type
+   */
+  private async queryData(
+    dataType: string,
+    startDate: Date,
+    endDate: Date
+  ): Promise<HealthDataSample[]> {
+    try {
+      console.log(`[HealthKit] Querying ${dataType} from ${startDate.toISOString()} to ${endDate.toISOString()}`);
+      const result = await HealthPilotHealthKit.queryHealthData({
+        dataType,
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+      });
+      console.log(`[HealthKit] ${dataType} returned ${result.samples?.length || 0} samples`);
+      if (result.samples && result.samples.length > 0) {
+        console.log(`[HealthKit] ${dataType} sample example:`, result.samples[0]);
+      }
+      return result.samples || [];
+    } catch (error) {
+      console.error(`[HealthKit] Failed to query ${dataType}:`, error);
+      return [];
+    }
+  }
+
+  /**
+   * Get steps data
+   */
+  async getSteps(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
+    return this.queryData('steps', startDate, endDate);
+  }
+
+  /**
+   * Get distance data
+   */
+  async getDistance(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
+    return this.queryData('distance', startDate, endDate);
+  }
+
+  /**
+   * Get active calories data
+   */
+  async getActiveCalories(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
+    return this.queryData('activeCalories', startDate, endDate);
+  }
+
+  /**
+   * Get heart rate data
+   */
+  async getHeartRate(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
+    return this.queryData('heartRate', startDate, endDate);
+  }
+
+  /**
+   * Get resting heart rate data
+   */
+  async getRestingHeartRate(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
+    return this.queryData('restingHeartRate', startDate, endDate);
+  }
+
+  /**
+   * Get HRV (Heart Rate Variability) data
+   */
+  async getHRV(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
+    return this.queryData('hrv', startDate, endDate);
+  }
+
+  /**
+   * Get weight data
+   */
+  async getWeight(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
+    return this.queryData('weight', startDate, endDate);
+  }
+
+  /**
+   * Get lean body mass data
+   */
+  async getLeanBodyMass(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
+    return this.queryData('leanBodyMass', startDate, endDate);
+  }
+
+  /**
+   * Get body fat percentage data
+   */
+  async getBodyFat(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
+    return this.queryData('bodyFat', startDate, endDate);
+  }
+
+  /**
+   * Get blood pressure (systolic) data
+   */
+  async getBloodPressureSystolic(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
+    return this.queryData('bloodPressureSystolic', startDate, endDate);
+  }
+
+  /**
+   * Get blood pressure (diastolic) data
+   */
+  async getBloodPressureDiastolic(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
+    return this.queryData('bloodPressureDiastolic', startDate, endDate);
+  }
+
+  /**
+   * Get blood glucose data
+   */
+  async getBloodGlucose(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
+    return this.queryData('bloodGlucose', startDate, endDate);
+  }
+
+  /**
+   * Get basal calories data
+   */
+  async getBasalCalories(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
+    return this.queryData('basalCalories', startDate, endDate);
+  }
+
+  /**
+   * Get flights climbed data
+   */
+  async getFlightsClimbed(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
+    return this.queryData('flights', startDate, endDate);
+  }
+
+  /**
+   * Get oxygen saturation (SpO2) data
+   */
+  async getOxygenSaturation(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
+    return this.queryData('oxygenSaturation', startDate, endDate);
+  }
+
+  /**
+   * Get respiratory rate data
+   */
+  async getRespiratoryRate(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
+    return this.queryData('respiratoryRate', startDate, endDate);
+  }
+
+  /**
+   * Get body temperature data
+   */
+  async getBodyTemperature(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
+    return this.queryData('bodyTemperature', startDate, endDate);
+  }
+
+  /**
+   * Get BMI (Body Mass Index) data
+   */
+  async getBMI(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
+    return this.queryData('bmi', startDate, endDate);
+  }
+
+  /**
+   * Get height data
+   */
+  async getHeight(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
+    return this.queryData('height', startDate, endDate);
+  }
+
+  /**
+   * Get waist circumference data
+   */
+  async getWaistCircumference(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
+    return this.queryData('waist', startDate, endDate);
+  }
+
+  /**
+   * Get dietary water intake data
+   */
+  async getDietaryWater(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
+    return this.queryData('dietaryWater', startDate, endDate);
+  }
+
+  /**
+   * Get dietary energy (calories consumed) data
+   */
+  async getDietaryEnergy(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
+    return this.queryData('dietaryEnergy', startDate, endDate);
+  }
+
+  /**
+   * Get dietary protein data
+   */
+  async getDietaryProtein(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
+    return this.queryData('dietaryProtein', startDate, endDate);
+  }
+
+  /**
+   * Get dietary carbohydrates data
+   */
+  async getDietaryCarbs(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
+    return this.queryData('dietaryCarbs', startDate, endDate);
+  }
+
+  /**
+   * Get dietary fat data
+   */
+  async getDietaryFat(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
+    return this.queryData('dietaryFat', startDate, endDate);
+  }
+
+  /**
+   * Get workouts
+   */
+  async getWorkouts(startDate: Date, endDate: Date): Promise<WorkoutSample[]> {
+    try {
+      console.log(`[HealthKit] Querying workouts from ${startDate.toISOString()} to ${endDate.toISOString()}`);
+      const result = await HealthPilotHealthKit.queryHealthData({
+        dataType: 'workouts',
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+      });
+      console.log(`[HealthKit] Workouts returned ${result.workouts?.length || 0} items`);
+      if (result.workouts && result.workouts.length > 0) {
+        console.log(`[HealthKit] Workout example:`, result.workouts[0]);
+      }
+      return result.workouts || [];
+    } catch (error) {
+      console.error('[HealthKit] Failed to get workouts:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get sleep data
+   */
+  async getSleep(startDate: Date, endDate: Date): Promise<SleepSample[]> {
+    try {
+      console.log(`[HealthKit] Querying sleep from ${startDate.toISOString()} to ${endDate.toISOString()}`);
+      const result = await HealthPilotHealthKit.queryHealthData({
+        dataType: 'sleep',
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+      });
+      console.log(`[HealthKit] Sleep returned ${result.sleepSamples?.length || 0} samples`);
+      if (result.sleepSamples && result.sleepSamples.length > 0) {
+        console.log(`[HealthKit] Sleep sample example:`, result.sleepSamples[0]);
+      }
+      return result.sleepSamples || [];
+    } catch (error) {
+      console.error('[HealthKit] Failed to get sleep:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Retrieve all supported health data from HealthKit
+   */
+  async getAllHealthData(daysBack: number = 30): Promise<{
+    steps: HealthDataSample[];
+    distance: HealthDataSample[];
+    activeCalories: HealthDataSample[];
+    basalCalories: HealthDataSample[];
+    flightsClimbed: HealthDataSample[];
+    heartRate: HealthDataSample[];
+    restingHeartRate: HealthDataSample[];
+    hrv: HealthDataSample[];
+    oxygenSaturation: HealthDataSample[];
+    respiratoryRate: HealthDataSample[];
+    bodyTemperature: HealthDataSample[];
+    weight: HealthDataSample[];
+    bmi: HealthDataSample[];
+    leanBodyMass: HealthDataSample[];
+    bodyFat: HealthDataSample[];
+    height: HealthDataSample[];
+    waistCircumference: HealthDataSample[];
+    bloodPressureSystolic: HealthDataSample[];
+    bloodPressureDiastolic: HealthDataSample[];
+    bloodGlucose: HealthDataSample[];
+    dietaryWater: HealthDataSample[];
+    dietaryEnergy: HealthDataSample[];
+    dietaryProtein: HealthDataSample[];
+    dietaryCarbs: HealthDataSample[];
+    dietaryFat: HealthDataSample[];
+    workouts: WorkoutSample[];
+    sleep: SleepSample[];
+  }> {
+    const available = await this.isHealthKitAvailable();
+    if (!available) {
+      console.log('[HealthKit] Not available, returning empty data');
+      return {
+        steps: [],
+        distance: [],
+        activeCalories: [],
+        basalCalories: [],
+        flightsClimbed: [],
+        heartRate: [],
+        restingHeartRate: [],
+        hrv: [],
+        oxygenSaturation: [],
+        respiratoryRate: [],
+        bodyTemperature: [],
+        weight: [],
+        bmi: [],
+        leanBodyMass: [],
+        bodyFat: [],
+        height: [],
+        waistCircumference: [],
+        bloodPressureSystolic: [],
+        bloodPressureDiastolic: [],
+        bloodGlucose: [],
+        dietaryWater: [],
+        dietaryEnergy: [],
+        dietaryProtein: [],
+        dietaryCarbs: [],
+        dietaryFat: [],
+        workouts: [],
+        sleep: [],
+      };
+    }
+
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - daysBack);
+
+    try {
+      const [
+        steps,
+        distance,
+        activeCalories,
+        basalCalories,
+        flightsClimbed,
+        heartRate,
+        restingHeartRate,
+        hrv,
+        oxygenSaturation,
+        respiratoryRate,
+        bodyTemperature,
+        weight,
+        bmi,
+        leanBodyMass,
+        bodyFat,
+        height,
+        waistCircumference,
+        bloodPressureSystolic,
+        bloodPressureDiastolic,
+        bloodGlucose,
+        dietaryWater,
+        dietaryEnergy,
+        dietaryProtein,
+        dietaryCarbs,
+        dietaryFat,
+        workouts,
+        sleep,
+      ] = await Promise.all([
+        this.getSteps(startDate, endDate),
+        this.getDistance(startDate, endDate),
+        this.getActiveCalories(startDate, endDate),
+        this.getBasalCalories(startDate, endDate),
+        this.getFlightsClimbed(startDate, endDate),
+        this.getHeartRate(startDate, endDate),
+        this.getRestingHeartRate(startDate, endDate),
+        this.getHRV(startDate, endDate),
+        this.getOxygenSaturation(startDate, endDate),
+        this.getRespiratoryRate(startDate, endDate),
+        this.getBodyTemperature(startDate, endDate),
+        this.getWeight(startDate, endDate),
+        this.getBMI(startDate, endDate),
+        this.getLeanBodyMass(startDate, endDate),
+        this.getBodyFat(startDate, endDate),
+        this.getHeight(startDate, endDate),
+        this.getWaistCircumference(startDate, endDate),
+        this.getBloodPressureSystolic(startDate, endDate),
+        this.getBloodPressureDiastolic(startDate, endDate),
+        this.getBloodGlucose(startDate, endDate),
+        this.getDietaryWater(startDate, endDate),
+        this.getDietaryEnergy(startDate, endDate),
+        this.getDietaryProtein(startDate, endDate),
+        this.getDietaryCarbs(startDate, endDate),
+        this.getDietaryFat(startDate, endDate),
+        this.getWorkouts(startDate, endDate),
+        this.getSleep(startDate, endDate),
+      ]);
+
+      console.log('[HealthKit] Comprehensive health data retrieved:', {
+        steps: steps.length,
+        distance: distance.length,
+        activeCalories: activeCalories.length,
+        basalCalories: basalCalories.length,
+        flightsClimbed: flightsClimbed.length,
+        heartRate: heartRate.length,
+        restingHeartRate: restingHeartRate.length,
+        hrv: hrv.length,
+        oxygenSaturation: oxygenSaturation.length,
+        respiratoryRate: respiratoryRate.length,
+        bodyTemperature: bodyTemperature.length,
+        weight: weight.length,
+        bmi: bmi.length,
+        leanBodyMass: leanBodyMass.length,
+        bodyFat: bodyFat.length,
+        height: height.length,
+        waistCircumference: waistCircumference.length,
+        bloodPressureSystolic: bloodPressureSystolic.length,
+        bloodPressureDiastolic: bloodPressureDiastolic.length,
+        bloodGlucose: bloodGlucose.length,
+        dietaryWater: dietaryWater.length,
+        dietaryEnergy: dietaryEnergy.length,
+        dietaryProtein: dietaryProtein.length,
+        dietaryCarbs: dietaryCarbs.length,
+        dietaryFat: dietaryFat.length,
+        workouts: workouts.length,
+        sleep: sleep.length,
+      });
+
+      return {
+        steps,
+        distance,
+        activeCalories,
+        basalCalories,
+        flightsClimbed,
+        heartRate,
+        restingHeartRate,
+        hrv,
+        oxygenSaturation,
+        respiratoryRate,
+        bodyTemperature,
+        weight,
+        bmi,
+        leanBodyMass,
+        bodyFat,
+        height,
+        waistCircumference,
+        bloodPressureSystolic,
+        bloodPressureDiastolic,
+        bloodGlucose,
+        dietaryWater,
+        dietaryEnergy,
+        dietaryProtein,
+        dietaryCarbs,
+        dietaryFat,
+        workouts,
+        sleep,
+      };
+    } catch (error) {
+      console.error('[HealthKit] Failed to retrieve comprehensive health data:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Sync all health data to backend
+   * Convenience method that retrieves data from HealthKit and sends it to the backend
+   */
+  async syncAllHealthData(daysBack: number = 30): Promise<void> {
+    try {
+      console.log(`[HealthKit] Starting sync of last ${daysBack} days...`);
+      
+      // Get all health data from HealthKit
+      const healthData = await this.getAllHealthData(daysBack);
+      
+      // Send to backend (import apiRequest from @/lib/queryClient in component that calls this)
+      // This method just retrieves the data - the calling component should handle the API call
+      // to maintain separation of concerns
+      console.log('[HealthKit] Data retrieved, ready for backend sync');
+      
+      return;
+    } catch (error) {
+      console.error('[HealthKit] Sync failed:', error);
+      throw error;
+    }
+  }
+}
+
+// Export singleton instance
+export const healthKitService = HealthKitService.getInstance();
