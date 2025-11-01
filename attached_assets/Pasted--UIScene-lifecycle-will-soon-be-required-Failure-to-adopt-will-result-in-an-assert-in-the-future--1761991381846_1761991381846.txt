@@ -1,0 +1,95 @@
+`UIScene` lifecycle will soon be required. Failure to adopt will result in an assert in the future.
+Could not create a sandbox extension for '/var/containers/Bundle/Application/AED98983-2A06-49CD-9800-4ED1A98630EB/App.app'
+KeyboardPlugin: resize mode - body
+⚡️  Loading app at https://0d420476-b7bb-4cc4-9f5a-da35f5e473e4-00-1n1tyyvrb5uvz.pike.replit.dev...
+WebContent[1363] Unable to hide query parameters from script (missing data)
+⚡️  [log] - onscript loading complete
+SplashScreen.hideSplash: SplashScreen was automatically hidden after default timeout. You should call `SplashScreen.hide()` as soon as your web app is loaded (or increase the timeout). Read more at https://capacitorjs.com/docs/apis/splash-screen#hiding-the-splash-screen
+⚡️  [debug] - [vite] connecting...
+⚡️  [log] - deviceready has not fired after 5 seconds.
+⚡️  [log] - Channel not fired: onDOMContentLoaded
+⚡️  WebView loaded
+⚡️  [log] - [MobileBootstrap] Initializing on ios...
+⚡️  To Native ->  StatusBar setStyle 15184459
+⚡️  TO JS {}
+⚡️  [log] - [MobileBootstrap] Status bar configured
+⚡️  To Native ->  SplashScreen hide 15184460
+⚡️  TO JS undefined
+⚡️  To Native ->  Keyboard addListener 15184461
+⚡️  To Native ->  Keyboard addListener 15184462
+⚡️  [log] - [MobileBootstrap] Splash screen hidden
+⚡️  To Native ->  App addListener 15184463
+⚡️  To Native ->  App getInfo 15184464
+⚡️  [log] - [MobileBootstrap] Keyboard listeners configured
+⚡️  [log] - [MobileBootstrap] Back button handler configured
+⚡️  TO JS {"id":"com.nuvitae.healthpilot","name":"HealthPilot","build":"1","version":"1.0"}
+⚡️  [log] - [MobileBootstrap] App Info: {"name":"HealthPilot","id":"com.nuvitae.healthpilot","version":"1.0","build":"1"}
+⚡️  [log] - [MobileBootstrap] ✅ Mobile initialization complete
+⚡️  [log] - [App] Setting up global deep link listener
+⚡️  [log] - [DeepLink] Initializing deep link handler...
+⚡️  To Native ->  App addListener 15184465
+⚡️  To Native ->  App addListener 15184466
+⚡️  [log] - [DeepLink] Deep link handler initialized successfully
+⚡️  To Native ->  SecureStorage internalGetItem 15184467
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  To Native ->  SecureStorage internalGetItem 15184468
+⚡️  To Native ->  SecureStorage internalGetItem 15184469
+⚡️  To Native ->  SecureStorage internalGetItem 15184470
+⚡️  To Native ->  SecureStorage internalGetItem 15184471
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  [log] - Clearing old dashboard preferences (version mismatch)
+⚡️  To Native ->  SecureStorage internalGetItem 15184472
+⚡️  To Native ->  SecureStorage internalGetItem 15184473
+⚡️  To Native ->  SecureStorage internalGetItem 15184474
+⚡️  To Native ->  SecureStorage internalGetItem 15184475
+⚡️  To Native ->  SecureStorage internalGetItem 15184476
+⚡️  To Native ->  SecureStorage internalGetItem 15184477
+⚡️  To Native ->  SecureStorage internalGetItem 15184478
+⚡️  To Native ->  SecureStorage internalGetItem 15184479
+⚡️  To Native ->  SecureStorage internalGetItem 15184480
+⚡️  To Native ->  SecureStorage internalGetItem 15184481
+⚡️  To Native ->  SecureStorage internalGetItem 15184482
+⚡️  To Native ->  SecureStorage internalGetItem 15184483
+⚡️  To Native ->  SecureStorage internalGetItem 15184484
+⚡️  To Native ->  SecureStorage internalGetItem 15184485
+⚡️  To Native ->  SecureStorage internalGetItem 15184486
+⚡️  To Native ->  SecureStorage internalGetItem 15184487
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  To Native ->  SecureStorage internalGetItem 15184488
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  To Native ->  SecureStorage internalGetItem 15184489
+⚡️  To Native ->  SecureStorage internalGetItem 15184490
+⚡️  To Native ->  SecureStorage internalGetItem 15184491
+⚡️  To Native ->  SecureStorage internalGetItem 15184492
+⚡️  To Native ->  SecureStorage internalGetItem 15184493
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  To Native ->  SecureStorage internalGetItem 15184494
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  To Native ->  SecureStorage internalGetItem 15184495
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
