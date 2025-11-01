@@ -10,6 +10,6 @@ Pod::Spec.new do |s|
   s.ios.deployment_target = '14.0'
   s.swift_version = '5.9'
   s.dependency 'Capacitor'
-  s.static_framework = false
+  s.static_framework = true
   s.frameworks = 'HealthKit'
 end
