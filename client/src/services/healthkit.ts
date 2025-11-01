@@ -1,5 +1,5 @@
-import { registerPlugin } from '@capacitor/core';
 import { Capacitor } from '@capacitor/core';
+import { Health } from '@capgo/capacitor-health';
 
 export interface HealthDataSample {
   value: number;
@@ -29,18 +29,6 @@ export interface SleepSample {
   endDate: string;
   uuid: string;
 }
-
-export interface HealthPilotHealthKitPlugin {
-  isAvailable(): Promise<{ available: boolean }>;
-  requestAuthorization(): Promise<{ success: boolean }>;
-  queryHealthData(options: {
-    dataType: string;
-    startDate: string;
-    endDate: string;
-  }): Promise<{ samples?: HealthDataSample[]; workouts?: WorkoutSample[]; sleepSamples?: SleepSample[] }>;
-}
-
-const HealthPilotHealthKit = registerPlugin<HealthPilotHealthKitPlugin>('HealthPilotHealthKit');
 
 /**
  * HealthKit service for iOS native health data integration
@@ -73,7 +61,7 @@ export class HealthKitService {
         return false;
       }
 
-      const result = await HealthPilotHealthKit.isAvailable();
+      const result = await Health.isAvailable();
       this.isAvailable = result?.available ?? false;
       console.log('[HealthKit] Availability check result:', this.isAvailable);
       return this.isAvailable;
@@ -95,10 +83,13 @@ export class HealthKitService {
     }
 
     try {
-      console.log('[HealthKit] Requesting permissions...');
-      const result = await HealthPilotHealthKit.requestAuthorization();
+      console.log('[HealthKit] Requesting permissions for steps, distance, calories, heartRate, weight...');
+      const result = await Health.requestAuthorization({
+        read: ['steps', 'distance', 'calories', 'heartRate', 'weight'],
+        write: []
+      });
       console.log('[HealthKit] Permission request result:', result);
-      return result.success;
+      return result.readAuthorized.length > 0;
     } catch (error) {
       console.error('[HealthKit] Failed to request permissions:', error);
       throw error;
@@ -109,16 +100,18 @@ export class HealthKitService {
    * Query health data for a specific type
    */
   private async queryData(
-    dataType: string,
+    dataType: 'steps' | 'distance' | 'calories' | 'heartRate' | 'weight',
     startDate: Date,
     endDate: Date
   ): Promise<HealthDataSample[]> {
     try {
       console.log(`[HealthKit] Querying ${dataType} from ${startDate.toISOString()} to ${endDate.toISOString()}`);
-      const result = await HealthPilotHealthKit.queryHealthData({
+      const result = await Health.readSamples({
         dataType,
         startDate: startDate.toISOString(),
         endDate: endDate.toISOString(),
+        limit: 1000,
+        ascending: false
       });
       console.log(`[HealthKit] ${dataType} returned ${result.samples?.length || 0} samples`);
       if (result.samples && result.samples.length > 0) {
@@ -149,7 +142,7 @@ export class HealthKitService {
    * Get active calories data
    */
   async getActiveCalories(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
-    return this.queryData('activeCalories', startDate, endDate);
+    return this.queryData('calories', startDate, endDate);
   }
 
   /**
@@ -163,14 +156,16 @@ export class HealthKitService {
    * Get resting heart rate data
    */
   async getRestingHeartRate(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
-    return this.queryData('restingHeartRate', startDate, endDate);
+    console.log('[HealthKit] Resting heart rate not yet supported by Capgo Health plugin');
+    return [];
   }
 
   /**
    * Get HRV (Heart Rate Variability) data
    */
   async getHRV(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
-    return this.queryData('hrv', startDate, endDate);
+    console.log('[HealthKit] HRV not yet supported by Capgo Health plugin');
+    return [];
   }
 
   /**
@@ -184,170 +179,160 @@ export class HealthKitService {
    * Get lean body mass data
    */
   async getLeanBodyMass(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
-    return this.queryData('leanBodyMass', startDate, endDate);
+    console.log('[HealthKit] Lean body mass not yet supported by Capgo Health plugin');
+    return [];
   }
 
   /**
    * Get body fat percentage data
    */
   async getBodyFat(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
-    return this.queryData('bodyFat', startDate, endDate);
+    console.log('[HealthKit] Body fat not yet supported by Capgo Health plugin');
+    return [];
   }
 
   /**
    * Get blood pressure (systolic) data
    */
   async getBloodPressureSystolic(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
-    return this.queryData('bloodPressureSystolic', startDate, endDate);
+    console.log('[HealthKit] Blood pressure not yet supported by Capgo Health plugin');
+    return [];
   }
 
   /**
    * Get blood pressure (diastolic) data
    */
   async getBloodPressureDiastolic(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
-    return this.queryData('bloodPressureDiastolic', startDate, endDate);
+    console.log('[HealthKit] Blood pressure not yet supported by Capgo Health plugin');
+    return [];
   }
 
   /**
    * Get blood glucose data
    */
   async getBloodGlucose(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
-    return this.queryData('bloodGlucose', startDate, endDate);
+    console.log('[HealthKit] Blood glucose not yet supported by Capgo Health plugin');
+    return [];
   }
 
   /**
    * Get basal calories data
    */
   async getBasalCalories(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
-    return this.queryData('basalCalories', startDate, endDate);
+    console.log('[HealthKit] Basal calories not yet supported by Capgo Health plugin');
+    return [];
   }
 
   /**
    * Get flights climbed data
    */
   async getFlightsClimbed(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
-    return this.queryData('flights', startDate, endDate);
+    console.log('[HealthKit] Flights climbed not yet supported by Capgo Health plugin');
+    return [];
   }
 
   /**
    * Get oxygen saturation (SpO2) data
    */
   async getOxygenSaturation(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
-    return this.queryData('oxygenSaturation', startDate, endDate);
+    console.log('[HealthKit] Oxygen saturation not yet supported by Capgo Health plugin');
+    return [];
   }
 
   /**
    * Get respiratory rate data
    */
   async getRespiratoryRate(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
-    return this.queryData('respiratoryRate', startDate, endDate);
+    console.log('[HealthKit] Respiratory rate not yet supported by Capgo Health plugin');
+    return [];
   }
 
   /**
    * Get body temperature data
    */
   async getBodyTemperature(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
-    return this.queryData('bodyTemperature', startDate, endDate);
+    console.log('[HealthKit] Body temperature not yet supported by Capgo Health plugin');
+    return [];
   }
 
   /**
    * Get BMI (Body Mass Index) data
    */
   async getBMI(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
-    return this.queryData('bmi', startDate, endDate);
+    console.log('[HealthKit] BMI not yet supported by Capgo Health plugin');
+    return [];
   }
 
   /**
    * Get height data
    */
   async getHeight(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
-    return this.queryData('height', startDate, endDate);
+    console.log('[HealthKit] Height not yet supported by Capgo Health plugin');
+    return [];
   }
 
   /**
    * Get waist circumference data
    */
   async getWaistCircumference(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
-    return this.queryData('waist', startDate, endDate);
+    console.log('[HealthKit] Waist circumference not yet supported by Capgo Health plugin');
+    return [];
   }
 
   /**
    * Get dietary water intake data
    */
   async getDietaryWater(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
-    return this.queryData('dietaryWater', startDate, endDate);
+    console.log('[HealthKit] Dietary water not yet supported by Capgo Health plugin');
+    return [];
   }
 
   /**
    * Get dietary energy (calories consumed) data
    */
   async getDietaryEnergy(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
-    return this.queryData('dietaryEnergy', startDate, endDate);
+    console.log('[HealthKit] Dietary energy not yet supported by Capgo Health plugin');
+    return [];
   }
 
   /**
    * Get dietary protein data
    */
   async getDietaryProtein(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
-    return this.queryData('dietaryProtein', startDate, endDate);
+    console.log('[HealthKit] Dietary protein not yet supported by Capgo Health plugin');
+    return [];
   }
 
   /**
    * Get dietary carbohydrates data
    */
   async getDietaryCarbs(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
-    return this.queryData('dietaryCarbs', startDate, endDate);
+    console.log('[HealthKit] Dietary carbs not yet supported by Capgo Health plugin');
+    return [];
   }
 
   /**
    * Get dietary fat data
    */
   async getDietaryFat(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
-    return this.queryData('dietaryFat', startDate, endDate);
+    console.log('[HealthKit] Dietary fat not yet supported by Capgo Health plugin');
+    return [];
   }
 
   /**
    * Get workouts
    */
   async getWorkouts(startDate: Date, endDate: Date): Promise<WorkoutSample[]> {
-    try {
-      console.log(`[HealthKit] Querying workouts from ${startDate.toISOString()} to ${endDate.toISOString()}`);
-      const result = await HealthPilotHealthKit.queryHealthData({
-        dataType: 'workouts',
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
-      });
-      console.log(`[HealthKit] Workouts returned ${result.workouts?.length || 0} items`);
-      if (result.workouts && result.workouts.length > 0) {
-        console.log(`[HealthKit] Workout example:`, result.workouts[0]);
-      }
-      return result.workouts || [];
-    } catch (error) {
-      console.error('[HealthKit] Failed to get workouts:', error);
-      return [];
-    }
+    console.log('[HealthKit] Workouts not yet supported by Capgo Health plugin');
+    return [];
   }
 
   /**
    * Get sleep data
    */
   async getSleep(startDate: Date, endDate: Date): Promise<SleepSample[]> {
-    try {
-      console.log(`[HealthKit] Querying sleep from ${startDate.toISOString()} to ${endDate.toISOString()}`);
-      const result = await HealthPilotHealthKit.queryHealthData({
-        dataType: 'sleep',
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
-      });
-      console.log(`[HealthKit] Sleep returned ${result.sleepSamples?.length || 0} samples`);
-      if (result.sleepSamples && result.sleepSamples.length > 0) {
-        console.log(`[HealthKit] Sleep sample example:`, result.sleepSamples[0]);
-      }
-      return result.sleepSamples || [];
-    } catch (error) {
-      console.error('[HealthKit] Failed to get sleep:', error);
-      return [];
-    }
+    console.log('[HealthKit] Sleep not yet supported by Capgo Health plugin');
+    return [];
   }
 
   /**
