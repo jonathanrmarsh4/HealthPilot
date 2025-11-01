@@ -10,7 +10,7 @@ I prefer simple language and clear explanations. I want iterative development wh
 **Frontend:** React 18, Vite 5.x, Wouter, shadcn/ui + Radix UI, Tailwind CSS, TanStack Query v5, React Hook Form + Zod, Lucide React + React Icons.
 **Backend:** Express.js, RESTful APIs with Zod validation, express-session, WebSocket (for Voice Chat), Multer.
 **Database:** PostgreSQL (Neon-backed), Drizzle ORM, Drizzle-Zod.
-**Mobile:** Capacitor 7 (iOS native app), custom HealthPilotHealthKit plugin.
+**Mobile:** Capacitor 7 (iOS native app), @capgo/capacitor-health plugin for HealthKit integration.
 
 **UI/UX Decisions:**
 - Dark mode, responsive design optimized for mobile/tablet, PWA support for iOS.
@@ -30,8 +30,7 @@ I prefer simple language and clear explanations. I want iterative development wh
 - **User Profiling & Onboarding:** Fitness profile personalization, contextual AI onboarding.
 - **Security & Authentication:** Replit Auth (OpenID Connect), role-based access control, IDOR protection, Zod validation, secure file uploads.
 - **Privacy & Compliance:** International privacy compliance (GDPR, HIPAA), granular consent, audit logging, account deletion, JSON data export, Privacy Dashboard.
-- **Native iOS App with Comprehensive HealthKit Integration v1.0:** Production-ready native iOS app deployed to physical iPhone devices with custom HealthPilotHealthKit Capacitor plugin supporting all HealthKit data types. Architecture uses local bundle loading from capacitor://localhost for instant UI with Replit backend API connectivity.
-- **HealthKit Plugin Hardening v1.1 (Oct 2025):** Comprehensive production readiness improvements including: (1) iOS entitlements file with HealthKit capability and background delivery, (2) TypeScript service expansion from 13 to 27 exposed data types (added basal calories, flights, SpO2, respiratory rate, body temperature, BMI, height, waist, all nutrition metrics), (3) HealthKit diagnostics testing page at /healthkit-diagnostics for manual validation of all 27 data types, (4) complete deployment documentation (HEALTHKIT_PLUGIN.md, XCODE_SETUP_GUIDE.md). Ready for TestFlight submission.
+- **Native iOS App with HealthKit Integration v2.0 (Nov 2025):** Production-ready native iOS app deployed to physical iPhone devices using @capgo/capacitor-health plugin (supports 5 core data types: steps, distance, calories, heartRate, weight). Architecture uses local bundle loading from capacitor://localhost for instant UI with Replit backend API connectivity. Future plan: extend to support additional HealthKit data types as needed.
 - **Progressive Overload Training System:** Double progression algorithm for training.
 - **HealthPilot Training Operating System v1.0 (AI Guardrails):** Evidence-based guardrail system for safety-first training prescription and AI recovery insights.
 - **AI Exercise Alternatives & Swap Feature:** AI-powered exercise alternative suggestions.
@@ -65,7 +64,7 @@ I prefer simple language and clear explanations. I want iterative development wh
 - **Database:** PostgreSQL
 - **AI:** OpenAI GPT-4o
 - **Authentication:** Replit Auth (OpenID Connect)
-- **Health Data Integration:** Apple Health (primary: native HealthKit via custom Capacitor plugin on iOS; fallback: Health Auto Export iOS app webhook for web users)
+- **Health Data Integration:** Apple Health (primary: native HealthKit via @capgo/capacitor-health plugin on iOS; fallback: Health Auto Export iOS app webhook for web users)
 - **Mobile Platform:** Capacitor 7
 - **Payment Processing:** Stripe (iOS native PaymentSheet + web Checkout Sessions)
 - **Push Notifications:** OneSignal (iOS/Android push notifications with deep linking)
