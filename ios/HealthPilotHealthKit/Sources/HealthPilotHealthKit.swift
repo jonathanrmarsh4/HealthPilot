@@ -19,53 +19,60 @@ public class HealthPilotHealthKit: CAPPlugin {
             return
         }
         
-        // Define all read types we need
-        let readTypes: Set<HKObjectType> = [
-            // Activity & Fitness
-            HKQuantityType.quantityType(forIdentifier: .stepCount)!,
-            HKQuantityType.quantityType(forIdentifier: .distanceWalkingRunning)!,
-            HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned)!,
-            HKQuantityType.quantityType(forIdentifier: .basalEnergyBurned)!,
-            HKQuantityType.quantityType(forIdentifier: .flightsClimbed)!,
-            
-            // Heart & Vitals
-            HKQuantityType.quantityType(forIdentifier: .heartRate)!,
-            HKQuantityType.quantityType(forIdentifier: .restingHeartRate)!,
-            HKQuantityType.quantityType(forIdentifier: .heartRateVariabilitySDNN)!,
-            HKQuantityType.quantityType(forIdentifier: .bloodPressureSystolic)!,
-            HKQuantityType.quantityType(forIdentifier: .bloodPressureDiastolic)!,
-            HKQuantityType.quantityType(forIdentifier: .oxygenSaturation)!,
-            HKQuantityType.quantityType(forIdentifier: .respiratoryRate)!,
-            HKQuantityType.quantityType(forIdentifier: .bodyTemperature)!,
-            
-            // Body Measurements
-            HKQuantityType.quantityType(forIdentifier: .bodyMass)!,
-            HKQuantityType.quantityType(forIdentifier: .bodyMassIndex)!,
-            HKQuantityType.quantityType(forIdentifier: .leanBodyMass)!,
-            HKQuantityType.quantityType(forIdentifier: .bodyFatPercentage)!,
-            HKQuantityType.quantityType(forIdentifier: .height)!,
-            HKQuantityType.quantityType(forIdentifier: .waistCircumference)!,
-            
-            // Lab Results & Blood
-            HKQuantityType.quantityType(forIdentifier: .bloodGlucose)!,
-            
-            // Workouts & Sleep
-            HKObjectType.workoutType(),
-            HKObjectType.categoryType(forIdentifier: .sleepAnalysis)!,
-            
-            // Nutrition
-            HKQuantityType.quantityType(forIdentifier: .dietaryWater)!,
-            HKQuantityType.quantityType(forIdentifier: .dietaryEnergyConsumed)!,
-            HKQuantityType.quantityType(forIdentifier: .dietaryProtein)!,
-            HKQuantityType.quantityType(forIdentifier: .dietaryCarbohydrates)!,
-            HKQuantityType.quantityType(forIdentifier: .dietaryFatTotal)!,
+        // Build read types safely without force-unwrapping
+        var readTypes = Set<HKObjectType>()
+        
+        // Activity & Fitness
+        let activityTypes: [HKQuantityTypeIdentifier] = [
+            .stepCount, .distanceWalkingRunning, .activeEnergyBurned,
+            .basalEnergyBurned, .flightsClimbed
         ]
         
-        healthStore.requestAuthorization(toShare: [], read: readTypes) { success, error in
-            if let error = error {
-                call.reject("Authorization failed: \(error.localizedDescription)")
-            } else {
-                call.resolve(["success": success])
+        // Heart & Vitals
+        let vitalTypes: [HKQuantityTypeIdentifier] = [
+            .heartRate, .restingHeartRate, .heartRateVariabilitySDNN,
+            .bloodPressureSystolic, .bloodPressureDiastolic, .oxygenSaturation,
+            .respiratoryRate, .bodyTemperature
+        ]
+        
+        // Body Measurements
+        let bodyTypes: [HKQuantityTypeIdentifier] = [
+            .bodyMass, .bodyMassIndex, .leanBodyMass, .bodyFatPercentage,
+            .height, .waistCircumference
+        ]
+        
+        // Lab Results
+        let labTypes: [HKQuantityTypeIdentifier] = [.bloodGlucose]
+        
+        // Nutrition
+        let nutritionTypes: [HKQuantityTypeIdentifier] = [
+            .dietaryWater, .dietaryEnergyConsumed, .dietaryProtein,
+            .dietaryCarbohydrates, .dietaryFatTotal
+        ]
+        
+        // Add all quantity types safely
+        for identifier in activityTypes + vitalTypes + bodyTypes + labTypes + nutritionTypes {
+            if let type = HKQuantityType.quantityType(forIdentifier: identifier) {
+                readTypes.insert(type)
+            }
+        }
+        
+        // Add workout type
+        readTypes.insert(HKObjectType.workoutType())
+        
+        // Add sleep analysis safely
+        if let sleepType = HKObjectType.categoryType(forIdentifier: .sleepAnalysis) {
+            readTypes.insert(sleepType)
+        }
+        
+        // Request authorization on main thread (required for UI)
+        DispatchQueue.main.async {
+            self.healthStore.requestAuthorization(toShare: [], read: readTypes) { success, error in
+                if let error = error {
+                    call.reject("Authorization failed: \(error.localizedDescription)")
+                } else {
+                    call.resolve(["success": success])
+                }
             }
         }
     }
@@ -114,8 +121,9 @@ public class HealthPilotHealthKit: CAPPlugin {
         }
         
         let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate, options: .strictStartDate)
+        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)
         
-        let query = HKSampleQuery(sampleType: quantityType, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: nil) { _, samples, error in
+        let query = HKSampleQuery(sampleType: quantityType, predicate: predicate, limit: 5000, sortDescriptors: [sortDescriptor]) { _, samples, error in
             if let error = error {
                 call.reject("Query failed: \(error.localizedDescription)")
                 return
@@ -146,8 +154,9 @@ public class HealthPilotHealthKit: CAPPlugin {
     // Query workouts
     private func queryWorkouts(call: CAPPluginCall, startDate: Date, endDate: Date) {
         let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate, options: .strictStartDate)
+        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)
         
-        let query = HKSampleQuery(sampleType: .workoutType(), predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: nil) { _, samples, error in
+        let query = HKSampleQuery(sampleType: .workoutType(), predicate: predicate, limit: 5000, sortDescriptors: [sortDescriptor]) { _, samples, error in
             if let error = error {
                 call.reject("Query failed: \(error.localizedDescription)")
                 return
@@ -189,10 +198,15 @@ public class HealthPilotHealthKit: CAPPlugin {
     
     // Query sleep data
     private func querySleep(call: CAPPluginCall, startDate: Date, endDate: Date) {
-        let sleepType = HKCategoryType.categoryType(forIdentifier: .sleepAnalysis)!
-        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate, options: .strictStartDate)
+        guard let sleepType = HKCategoryType.categoryType(forIdentifier: .sleepAnalysis) else {
+            call.reject("Sleep analysis not available on this device")
+            return
+        }
         
-        let query = HKSampleQuery(sampleType: sleepType, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: nil) { _, samples, error in
+        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate, options: .strictStartDate)
+        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)
+        
+        let query = HKSampleQuery(sampleType: sleepType, predicate: predicate, limit: 5000, sortDescriptors: [sortDescriptor]) { _, samples, error in
             if let error = error {
                 call.reject("Query failed: \(error.localizedDescription)")
                 return
@@ -311,7 +325,7 @@ public class HealthPilotHealthKit: CAPPlugin {
         case HKQuantityTypeIdentifier.bodyMassIndex.rawValue:
             return .count()
         case HKQuantityTypeIdentifier.bloodGlucose.rawValue:
-            return HKUnit.gramUnit(with: .milli).unitDivided(by: .literUnit(with: .deci))
+            return .milligramsPerDeciliter()
         case HKQuantityTypeIdentifier.dietaryWater.rawValue:
             return .literUnit(with: .milli)
         case HKQuantityTypeIdentifier.dietaryProtein.rawValue,
