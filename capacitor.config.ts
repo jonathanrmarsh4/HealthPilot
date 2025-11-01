@@ -4,12 +4,11 @@ const config: CapacitorConfig = {
   appId: 'com.nuvitae.healthpilot',
   appName: 'HealthPilot',
   webDir: 'dist/public',
-  // server: {
-  //   // DEVELOPMENT ONLY: Uncomment to load from Replit dev server
-  //   androidScheme: 'https',
-  //   hostname: '0d420476-b7bb-4cc4-9f5a-da35f5e473e4-00-1n1tyyvrb5uvz.pike.replit.dev',
-  //   iosScheme: 'https'
-  // },
+  server: {
+    // DEVELOPMENT: Load from Replit dev server for live reload
+    url: 'https://0d420476-b7bb-4cc4-9f5a-da35f5e473e4-00-1n1tyyvrb5uvz.pike.replit.dev',
+    cleartext: true
+  },
   ios: {
     contentInset: 'always',
     scheme: 'healthpilot'
