@@ -28,11 +28,20 @@ enum HealthManagerError: LocalizedError {
 }
 
 enum HealthDataType: String, CaseIterable {
+    // Original Capgo Health data types
     case steps
     case distance
     case calories
     case heartRate
     case weight
+    
+    // HealthPilot extended cardiovascular metrics (Batch 1)
+    case hrv                        // Heart Rate Variability
+    case restingHeartRate           // Resting Heart Rate
+    case bloodPressureSystolic      // Blood Pressure (Systolic)
+    case bloodPressureDiastolic     // Blood Pressure (Diastolic)
+    case oxygenSaturation           // SpO2
+    case respiratoryRate            // Respiratory Rate
 
     func sampleType() throws -> HKQuantityType {
         let identifier: HKQuantityTypeIdentifier
@@ -47,6 +56,18 @@ enum HealthDataType: String, CaseIterable {
             identifier = .heartRate
         case .weight:
             identifier = .bodyMass
+        case .hrv:
+            identifier = .heartRateVariabilitySDNN
+        case .restingHeartRate:
+            identifier = .restingHeartRate
+        case .bloodPressureSystolic:
+            identifier = .bloodPressureSystolic
+        case .bloodPressureDiastolic:
+            identifier = .bloodPressureDiastolic
+        case .oxygenSaturation:
+            identifier = .oxygenSaturation
+        case .respiratoryRate:
+            identifier = .respiratoryRate
         }
 
         guard let type = HKObjectType.quantityType(forIdentifier: identifier) else {
@@ -67,6 +88,18 @@ enum HealthDataType: String, CaseIterable {
             return HKUnit.count().unitDivided(by: HKUnit.minute())
         case .weight:
             return HKUnit.gramUnit(with: .kilo)
+        case .hrv:
+            return HKUnit.secondUnit(with: .milli)
+        case .restingHeartRate:
+            return HKUnit.count().unitDivided(by: HKUnit.minute())
+        case .bloodPressureSystolic:
+            return HKUnit.millimeterOfMercury()
+        case .bloodPressureDiastolic:
+            return HKUnit.millimeterOfMercury()
+        case .oxygenSaturation:
+            return HKUnit.percent()
+        case .respiratoryRate:
+            return HKUnit.count().unitDivided(by: HKUnit.minute())
         }
     }
 
@@ -82,6 +115,18 @@ enum HealthDataType: String, CaseIterable {
             return "bpm"
         case .weight:
             return "kilogram"
+        case .hrv:
+            return "ms"
+        case .restingHeartRate:
+            return "bpm"
+        case .bloodPressureSystolic:
+            return "mmHg"
+        case .bloodPressureDiastolic:
+            return "mmHg"
+        case .oxygenSaturation:
+            return "percent"
+        case .respiratoryRate:
+            return "breaths/min"
         }
     }
 
