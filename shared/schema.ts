@@ -130,7 +130,9 @@ export const biomarkers = pgTable("biomarkers", {
   recordedAt: timestamp("recorded_at").notNull().defaultNow(),
   source: text("source").notNull().default("manual"),
   recordId: varchar("record_id"),
-});
+}, (table) => [
+  uniqueIndex("biomarkers_dedup_idx").on(table.userId, table.type, table.recordedAt, table.source),
+]);
 
 // Universal HealthKit events warehouse - ALL incoming health data is stored here
 // This ensures no data is ever lost, even for unsupported/unknown metric types
