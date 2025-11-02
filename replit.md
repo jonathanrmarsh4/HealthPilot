@@ -18,6 +18,7 @@ I prefer simple language and clear explanations. I want iterative development wh
 - Redesigned Training Page with daily-focused UX and organized sidebar navigation.
 - Universal Tile Management System and swipe-based interface for meal feedback.
 - Glass-morphism modal UI for Voice Chat.
+- Swipe-to-Open Sidebar: Mobile gesture navigation allowing users to open the sidebar with a left-to-right swipe from the screen's left edge (50px threshold, 80px minimum distance, 30° maximum angle from horizontal).
 
 **Technical Implementations:**
 - **AI Intelligence Layer:** Provides daily personalized insights, context-aware chat, multi-metric recommendations, and alternative therapy suggestions with safeguards.
