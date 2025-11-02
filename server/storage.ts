@@ -1804,8 +1804,16 @@ export class DbStorage implements IStorage {
     const result = await db
       .select()
       .from(sleepSessions)
-      .where(eq(sleepSessions.userId, userId))
-      .orderBy(desc(sleepSessions.bedtime))
+      .where(
+        and(
+          eq(sleepSessions.userId, userId),
+          or(
+            eq(sleepSessions.episodeType, 'primary'),
+            isNull(sleepSessions.episodeType) // Include legacy sessions without episode_type
+          )
+        )
+      )
+      .orderBy(desc(sleepSessions.waketime)) // Use waketime to get most recently completed sleep
       .limit(1);
     return result[0];
   }
