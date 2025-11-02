@@ -1,0 +1,59 @@
+jonathanmarsh@Jonathans-MacBook-Air HealthPilot % find ios -name "*.swift" | grep -i health
+jonathanmarsh@Jonathans-MacBook-Air HealthPilot % 
+jonathanmarsh@Jonathans-MacBook-Air HealthPilot % grep -r "Health.swift" ios/App/App.xcodeproj/
+jonathanmarsh@Jonathans-MacBook-Air HealthPilot % 
+jonathanmarsh@Jonathans-MacBook-Air HealthPilot % 
+jonathanmarsh@Jonathans-MacBook-Air HealthPilot % ls -la ios/App/App/
+total 56
+drwxr-xr-x  11 jonathanmarsh  staff   352  2 Nov 10:33 .
+drwxr-xr-x   9 jonathanmarsh  staff   288  2 Nov 08:44 ..
+-rw-r--r--@  1 jonathanmarsh  staff  6148  2 Nov 07:46 .DS_Store
+-rw-r--r--@  1 jonathanmarsh  staff   531  1 Nov 18:56 App.entitlements
+-rw-r--r--@  1 jonathanmarsh  staff  3031  1 Nov 19:12 AppDelegate.swift
+drwxr-xr-x   5 jonathanmarsh  staff   160  1 Nov 18:30 Assets.xcassets
+drwxr-xr-x   4 jonathanmarsh  staff   128  1 Nov 18:30 Base.lproj
+-rw-r--r--   1 jonathanmarsh  staff  1136  2 Nov 10:33 capacitor.config.json
+-rw-r--r--   1 jonathanmarsh  staff   286  2 Nov 10:33 config.xml
+-rw-r--r--@  1 jonathanmarsh  staff  1926  1 Nov 19:01 Info.plist
+drwxr-xr-x  11 jonathanmarsh  staff   352  2 Nov 10:33 public
+jonathanmarsh@Jonathans-MacBook-Air HealthPilot % 
+jonathanmarsh@Jonathans-MacBook-Air HealthPilot % 
+jonathanmarsh@Jonathans-MacBook-Air HealthPilot % cat ios/App/Podfile
+require_relative '../../node_modules/@capacitor/ios/scripts/pods_helpers'
+
+platform :ios, '14.0'
+use_frameworks!
+
+# workaround to avoid Xcode caching of Pods that requires
+# Product -> Clean Build Folder after new Cordova plugins installed
+# Requires CocoaPods 1.6 or newer
+install! 'cocoapods', :disable_input_output_paths => true
+
+def capacitor_pods
+  pod 'Capacitor', :path => '../../node_modules/@capacitor/ios'
+  pod 'CapacitorCordova', :path => '../../node_modules/@capacitor/ios'
+  pod 'AparajitaCapacitorSecureStorage', :path => '../../node_modules/@aparajita/capacitor-secure-storage'
+  pod 'CapacitorApp', :path => '../../node_modules/@capacitor/app'
+  pod 'CapacitorBrowser', :path => '../../node_modules/@capacitor/browser'
+  pod 'CapacitorFilesystem', :path => '../../node_modules/@capacitor/filesystem'
+  pod 'CapacitorHaptics', :path => '../../node_modules/@capacitor/haptics'
+  pod 'CapacitorKeyboard', :path => '../../node_modules/@capacitor/keyboard'
+  pod 'CapacitorLocalNotifications', :path => '../../node_modules/@capacitor/local-notifications'
+  pod 'CapacitorPreferences', :path => '../../node_modules/@capacitor/preferences'
+  pod 'CapacitorPushNotifications', :path => '../../node_modules/@capacitor/push-notifications'
+  pod 'CapacitorShare', :path => '../../node_modules/@capacitor/share'
+  pod 'CapacitorSplashScreen', :path => '../../node_modules/@capacitor/splash-screen'
+  pod 'CapacitorStatusBar', :path => '../../node_modules/@capacitor/status-bar'
+  pod 'CapgoCapacitorHealth', :path => '../../node_modules/@capgo/capacitor-health'
+  pod 'CordovaPluginsStatic', :path => '../capacitor-cordova-ios-plugins'
+end
+
+target 'App' do
+  capacitor_pods   
+  # Add your Pods here
+end
+
+post_install do |installer|
+  assertDeploymentTarget(installer)
+end
+jonathanmarsh@Jonathans-MacBook-Air HealthPilot % 
