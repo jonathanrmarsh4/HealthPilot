@@ -11366,7 +11366,7 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
         
         // Convert HealthKit samples to raw segments format with stage normalization
         const rawSegments = sleep.map(sample => {
-          const normalized = normalizeSleepStage(sample.value || 'asleep_core');
+          const normalized = normalizeSleepStage(sample.category || 'asleep_core');
           return {
             startDate: sample.startDate,
             endDate: sample.endDate,
