@@ -100,7 +100,7 @@ const CONSTANTS = {
   MIN_AWAKENING_MINUTES: 2,         // Count awakenings >= 2 min
   
   // Validation
-  STAGE_SUM_TOLERANCE_MINUTES: 3,
+  STAGE_SUM_TOLERANCE_MINUTES: 15,  // Increased to handle HealthKit rounding variations
 };
 
 /**
