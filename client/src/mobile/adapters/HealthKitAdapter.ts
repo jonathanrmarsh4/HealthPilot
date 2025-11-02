@@ -15,6 +15,7 @@
 
 import { isNativePlatform, getPlatform } from '../MobileBootstrap';
 import { App, AppState } from '@capacitor/app';
+import HealthKitBackgroundSync from '../plugins/HealthKitBackgroundSyncPlugin';
 
 // Lazy load Health plugin only when needed (prevents bundling in web builds)
 let Health: any = null;
@@ -194,16 +195,15 @@ class NativeHealthKitAdapter implements HealthKitAdapter {
   
   // Background sync methods
   async enableBackgroundSync(): Promise<boolean> {
-    const plugin = getHealthPlugin();
-    if (!this.isAvailable() || !plugin) {
+    if (!this.isAvailable()) {
       console.warn('[HealthKit] Background sync not available');
       return false;
     }
     
     try {
-      await plugin.enableBackgroundSync();
+      const result = await HealthKitBackgroundSync.enableBackgroundSync();
       console.log('[HealthKit] Background sync enabled');
-      return true;
+      return result.success;
     } catch (error) {
       console.error('[HealthKit] Failed to enable background sync:', error);
       return false;
@@ -211,15 +211,14 @@ class NativeHealthKitAdapter implements HealthKitAdapter {
   }
   
   async disableBackgroundSync(): Promise<boolean> {
-    const plugin = getHealthPlugin();
-    if (!this.isAvailable() || !plugin) {
+    if (!this.isAvailable()) {
       return false;
     }
     
     try {
-      await plugin.disableBackgroundSync();
+      const result = await HealthKitBackgroundSync.disableBackgroundSync();
       console.log('[HealthKit] Background sync disabled');
-      return true;
+      return result.success;
     } catch (error) {
       console.error('[HealthKit] Failed to disable background sync:', error);
       return false;
@@ -227,14 +226,13 @@ class NativeHealthKitAdapter implements HealthKitAdapter {
   }
   
   async isBackgroundSyncEnabled(): Promise<boolean> {
-    const plugin = getHealthPlugin();
-    if (!this.isAvailable() || !plugin) {
+    if (!this.isAvailable()) {
       return false;
     }
     
     try {
-      const result = await plugin.isBackgroundSyncEnabled();
-      return result.enabled === true;
+      const result = await HealthKitBackgroundSync.isBackgroundSyncEnabled();
+      return result.enabled;
     } catch (error) {
       console.error('[HealthKit] Failed to check background sync status:', error);
       return false;
@@ -242,13 +240,12 @@ class NativeHealthKitAdapter implements HealthKitAdapter {
   }
   
   async drainBackgroundQueue(): Promise<BackgroundQueueData> {
-    const plugin = getHealthPlugin();
-    if (!this.isAvailable() || !plugin) {
+    if (!this.isAvailable()) {
       return {};
     }
     
     try {
-      const result = await plugin.drainBackgroundQueue();
+      const result = await HealthKitBackgroundSync.drainBackgroundQueue();
       const queueData = result.data || {};
       
       // Transform native format to HealthDataSample format
@@ -272,14 +269,13 @@ class NativeHealthKitAdapter implements HealthKitAdapter {
   }
   
   async getBackgroundQueueStats(): Promise<Record<string, number>> {
-    const plugin = getHealthPlugin();
-    if (!this.isAvailable() || !plugin) {
+    if (!this.isAvailable()) {
       return {};
     }
     
     try {
-      const result = await plugin.getBackgroundQueueStats();
-      return result.stats || {};
+      const result = await HealthKitBackgroundSync.getBackgroundQueueStats();
+      return result.stats;
     } catch (error) {
       console.error('[HealthKit] Failed to get queue stats:', error);
       return {};
