@@ -2,25 +2,16 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CheckCircle2, Heart, Loader2 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { healthKitService } from "@/services/healthkit";
 import { getPlatform } from "@/mobile/MobileBootstrap";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 export default function AppleHealthSetup() {
   const { toast } = useToast();
   const [isHealthKitSyncing, setIsHealthKitSyncing] = useState(false);
   const [healthKitStatus, setHealthKitStatus] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle');
-  const [currentPlatform, setCurrentPlatform] = useState<string>('');
-
-  useEffect(() => {
-    // Debug platform detection
-    const platform = getPlatform();
-    setCurrentPlatform(platform);
-    console.log('[AppleHealthSetup] Platform detected:', platform);
-    console.log('[AppleHealthSetup] Is iOS?', platform === 'ios');
-  }, []);
 
   const handleSetupHealthKit = async () => {
     setIsHealthKitSyncing(true);
@@ -94,23 +85,6 @@ export default function AppleHealthSetup() {
           Connect your Apple Health data to get personalized AI-powered insights
         </p>
       </div>
-
-      {/* Debug Platform Info - Remove after testing */}
-      <Card className="border-amber-500/50 bg-amber-50 dark:bg-amber-950/20">
-        <CardHeader>
-          <CardTitle className="text-amber-900 dark:text-amber-100">🔧 Platform Debug Info</CardTitle>
-          <CardDescription>
-            This shows what platform is detected (this card will be removed after debugging)
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2 text-sm">
-            <p><strong>Detected Platform:</strong> <code className="bg-muted px-2 py-1 rounded">{currentPlatform || 'Loading...'}</code></p>
-            <p><strong>Is iOS?</strong> {getPlatform() === 'ios' ? '✅ YES' : '❌ NO'}</p>
-            <p><strong>Native HealthKit Section Visible?</strong> {getPlatform() === 'ios' ? '✅ YES (should appear below)' : '❌ NO (running in browser or web)'}</p>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Native HealthKit Setup - Only show on iOS native app */}
       {getPlatform() === 'ios' && (
@@ -209,7 +183,7 @@ export default function AppleHealthSetup() {
                   "Heart Rate",
                   "Resting Heart Rate",
                   "Heart Rate Variability (HRV)",
-                  "Blood Pressure"
+                  "Blood Pressure (Systolic/Diastolic)"
                 ].map((metric) => (
                   <div key={metric} className="flex items-center gap-2 p-2 rounded-md bg-muted/50">
                     <CheckCircle2 className="h-4 w-4 text-chart-4 shrink-0" />
@@ -220,13 +194,15 @@ export default function AppleHealthSetup() {
             </div>
 
             <div>
-              <h3 className="text-sm font-semibold mb-3 text-muted-foreground">Activity & Energy</h3>
+              <h3 className="text-sm font-semibold mb-3 text-muted-foreground">Activity & Movement</h3>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {[
                   "Steps",
+                  "Distance Walked/Run",
+                  "Flights Climbed",
                   "Active Energy Burned",
                   "Basal Energy (BMR)",
-                  "Total Energy Expenditure"
+                  "Workout Sessions"
                 ].map((metric) => (
                   <div key={metric} className="flex items-center gap-2 p-2 rounded-md bg-muted/50">
                     <CheckCircle2 className="h-4 w-4 text-chart-4 shrink-0" />
@@ -237,13 +213,15 @@ export default function AppleHealthSetup() {
             </div>
 
             <div>
-              <h3 className="text-sm font-semibold mb-3 text-muted-foreground">Body Measurements</h3>
+              <h3 className="text-sm font-semibold mb-3 text-muted-foreground">Body Composition</h3>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {[
                   "Body Weight",
                   "Height",
+                  "BMI",
                   "Body Fat Percentage",
-                  "Lean Body Mass"
+                  "Lean Body Mass",
+                  "Waist Circumference"
                 ].map((metric) => (
                   <div key={metric} className="flex items-center gap-2 p-2 rounded-md bg-muted/50">
                     <CheckCircle2 className="h-4 w-4 text-chart-4 shrink-0" />
@@ -271,12 +249,29 @@ export default function AppleHealthSetup() {
             </div>
 
             <div>
+              <h3 className="text-sm font-semibold mb-3 text-muted-foreground">Nutrition</h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {[
+                  "Dietary Water",
+                  "Dietary Energy",
+                  "Dietary Protein",
+                  "Dietary Carbohydrates",
+                  "Dietary Fat"
+                ].map((metric) => (
+                  <div key={metric} className="flex items-center gap-2 p-2 rounded-md bg-muted/50">
+                    <CheckCircle2 className="h-4 w-4 text-chart-4 shrink-0" />
+                    <span className="text-sm">{metric}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div>
               <h3 className="text-sm font-semibold mb-3 text-muted-foreground">Sleep & Recovery</h3>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {[
                   "Sleep Analysis",
-                  "Sleep Duration",
-                  "Sleep Stages"
+                  "Sleep Stages (Awake/REM/Core/Deep)"
                 ].map((metric) => (
                   <div key={metric} className="flex items-center gap-2 p-2 rounded-md bg-muted/50">
                     <CheckCircle2 className="h-4 w-4 text-chart-4 shrink-0" />
