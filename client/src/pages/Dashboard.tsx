@@ -17,7 +17,7 @@ import { DailyRemindersWidget } from "@/components/DailyRemindersWidget";
 import { SymptomTile } from "@/components/SymptomTile";
 import { SmartFuelTile } from "@/components/SmartFuelTile";
 import { UpgradeBanner } from "@/components/UpgradeBanner";
-import { Heart, Activity, Scale, Droplet, TrendingUp, Zap, Apple, AlertCircle, Dumbbell, Settings2, Eye, EyeOff, ChevronUp, ChevronDown, Dna, TrendingDown, Upload, Shield } from "lucide-react";
+import { Heart, Activity, Scale, Droplet, TrendingUp, Zap, Apple, AlertCircle, Dumbbell, Settings2, Eye, EyeOff, GripVertical, Dna, TrendingDown, Upload, Shield } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,6 +32,23 @@ import { useState, useEffect } from "react";
 import { biomarkerDisplayConfig } from "@/lib/biomarkerConfig";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { 
+  DndContext, 
+  closestCenter, 
+  KeyboardSensor, 
+  PointerSensor, 
+  useSensor, 
+  useSensors,
+  DragEndEvent
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 interface DashboardStats {
   dailySteps: number;
@@ -110,6 +127,28 @@ const WIDGET_CONFIG: Record<string, { title: string; description: string }> = {
   "weight-chart": { title: "Weight Chart", description: "12-month weight tracking" },
   "biological-age": { title: "Biological Age", description: "PhenoAge longevity biomarker" }
 };
+
+// Sortable item component for drag and drop
+function SortableTileItem({ id, children }: { id: string; children: (props: { attributes: any; listeners: any }) => React.ReactNode }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+  } = useSortable({ id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      {children({ attributes, listeners })}
+    </div>
+  );
+}
 
 export default function Dashboard() {
   const { unitSystem } = useLocale();
@@ -283,28 +322,25 @@ export default function Dashboard() {
     }));
   };
 
-  const moveUp = (widget: string) => {
-    setPreferences(prev => {
-      const index = prev.order.indexOf(widget);
-      if (index <= 0) return prev;
-      
-      const newOrder = [...prev.order];
-      [newOrder[index - 1], newOrder[index]] = [newOrder[index], newOrder[index - 1]];
-      
-      return { ...prev, order: newOrder };
-    });
-  };
+  // Drag and drop sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
-  const moveDown = (widget: string) => {
-    setPreferences(prev => {
-      const index = prev.order.indexOf(widget);
-      if (index === -1 || index >= prev.order.length - 1) return prev;
-      
-      const newOrder = [...prev.order];
-      [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
-      
-      return { ...prev, order: newOrder };
-    });
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      setPreferences(prev => {
+        const oldIndex = prev.order.indexOf(active.id as string);
+        const newIndex = prev.order.indexOf(over.id as string);
+        const newOrder = arrayMove(prev.order, oldIndex, newIndex);
+        return { ...prev, order: newOrder };
+      });
+    }
   };
 
   const isVisible = (widget: string) => preferences.visible.includes(widget);
@@ -649,14 +685,14 @@ export default function Dashboard() {
             <SheetTrigger asChild>
               <Button variant="outline" size="icon" className="md:w-auto md:px-4" data-testid="button-manage-dashboard">
                 <Settings2 className="h-4 w-4" />
-                <span className="hidden md:inline md:ml-2">Manage Widgets</span>
+                <span className="hidden md:inline md:ml-2">Manage Tiles</span>
               </Button>
             </SheetTrigger>
             <SheetContent className="w-full sm:w-[400px] md:w-[540px]">
             <SheetHeader>
-              <SheetTitle>Manage Dashboard Widgets</SheetTitle>
+              <SheetTitle>Manage Dashboard Tiles</SheetTitle>
               <SheetDescription>
-                Show, hide, or reorder all dashboard widgets to customize your view.
+                Show, hide, or reorder tiles to customize your dashboard view. Drag to reorder.
               </SheetDescription>
             </SheetHeader>
             
@@ -682,71 +718,51 @@ export default function Dashboard() {
                 </Button>
               </div>
 
-              <div className="space-y-2 overflow-y-auto flex-1 pr-2">
-                {optionalWidgets
-                  .sort((a, b) => {
-                    const aVisible = isVisible(a);
-                    const bVisible = isVisible(b);
-                    if (aVisible === bVisible) return 0;
-                    return aVisible ? -1 : 1;
-                  })
-                  .map((widget, index, sortedArray) => {
-                  const config = allWidgetConfigs[widget];
-                  const visible = isVisible(widget);
-                  const originalIndex = optionalWidgets.indexOf(widget);
-                  const isFirst = originalIndex === 0;
-                  const isLast = originalIndex === optionalWidgets.length - 1;
-                  
-                  return (
-                    <div
-                      key={widget}
-                      className="flex items-center gap-2 p-3 rounded-md border"
-                      data-testid={`widget-item-${widget}`}
-                    >
-                      <div className="flex flex-col gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => moveUp(widget)}
-                          disabled={isFirst}
-                          data-testid={`button-move-up-${widget}`}
-                          className="h-6 w-6"
-                        >
-                          <ChevronUp className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => moveDown(widget)}
-                          disabled={isLast}
-                          data-testid={`button-move-down-${widget}`}
-                          className="h-6 w-6"
-                        >
-                          <ChevronDown className="h-3 w-3" />
-                        </Button>
-                      </div>
-                      <div className="flex flex-col gap-1 flex-1">
-                        <span className="font-medium">{config?.title || widget}</span>
-                        <span className="text-sm text-muted-foreground">
-                          {config?.description || "Health widget"}
-                        </span>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => toggleVisibility(widget)}
-                        data-testid={`button-toggle-${widget}`}
-                      >
-                        {visible ? (
-                          <EyeOff className="h-4 w-4" />
-                        ) : (
-                          <Eye className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </div>
-                  );
-                })}
-              </div>
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext items={preferences.order} strategy={verticalListSortingStrategy}>
+                  <div className="space-y-2 overflow-y-auto flex-1 pr-2">
+                    {optionalWidgets.map((widget) => {
+                      const config = allWidgetConfigs[widget];
+                      const visible = isVisible(widget);
+                      
+                      return (
+                        <SortableTileItem key={widget} id={widget}>
+                          {({ attributes, listeners }) => (
+                            <div
+                              className="flex items-center gap-3 p-3 rounded-lg border bg-card"
+                              data-testid={`widget-item-${widget}`}
+                            >
+                              <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing">
+                                <GripVertical className="h-5 w-5 text-muted-foreground" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-medium text-sm">{config?.title || widget}</h4>
+                                <p className="text-xs text-muted-foreground">{config?.description || "Health tile"}</p>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => toggleVisibility(widget)}
+                                data-testid={`button-toggle-${widget}`}
+                              >
+                                {visible ? (
+                                  <Eye className="h-4 w-4" />
+                                ) : (
+                                  <EyeOff className="h-4 w-4 text-muted-foreground" />
+                                )}
+                              </Button>
+                            </div>
+                          )}
+                        </SortableTileItem>
+                      );
+                    })}
+                  </div>
+                </SortableContext>
+              </DndContext>
             </div>
             </SheetContent>
           </Sheet>
