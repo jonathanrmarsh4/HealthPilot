@@ -4,11 +4,12 @@ const config: CapacitorConfig = {
   appId: 'com.nuvitae.healthpilot',
   appName: 'HealthPilot',
   webDir: 'dist/public',
-  // PRODUCTION: Disable live reload for native testing
-  // server: {
-  //   url: 'https://0d420476-b7bb-4cc4-9f5a-da35f5e473e4-00-1n1tyyvrb5uvz.pike.replit.dev',
-  //   cleartext: true
-  // },
+  // DEVELOPMENT: Live reload enabled - loads frontend from Replit dev server
+  // IMPORTANT: Disable this (comment out server block) before building for production/TestFlight
+  server: {
+    url: 'https://0d420476-b7bb-4cc4-9f5a-da35f5e473e4-00-1n1tyyvrb5uvz.pike.replit.dev',
+    cleartext: true
+  },
   ios: {
     contentInset: 'always',
     scheme: 'healthpilot'
