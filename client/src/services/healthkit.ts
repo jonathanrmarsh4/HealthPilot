@@ -102,7 +102,7 @@ export class HealthKitService {
           
           // Special types
           'sleepAnalysis'
-        ],
+        ] as any[],
         write: []
       });
       console.log('[HealthKit] Permission request result:', result);
@@ -132,7 +132,7 @@ export class HealthKitService {
     try {
       console.log(`[HealthKit] Querying ${dataType} from ${startDate.toISOString()} to ${endDate.toISOString()}`);
       const result = await Health.readSamples({
-        dataType,
+        dataType: dataType as any,
         startDate: startDate.toISOString(),
         endDate: endDate.toISOString(),
         limit: 1000,

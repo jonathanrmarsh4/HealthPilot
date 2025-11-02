@@ -1,0 +1,206 @@
+`UIScene` lifecycle will soon be required. Failure to adopt will result in an assert in the future.
+Could not create a sandbox extension for '/var/containers/Bundle/Application/A6D33AB2-A7BC-4833-B8FE-4EE046AD6F13/App.app'
+KeyboardPlugin: resize mode - body
+⚡️  Loading app at capacitor://localhost...
+WebContent[4510] Unable to hide query parameters from script (missing data)
+⚡️  [log] - onscript loading complete
+⚡️  [log] - [MobileBootstrap] Initializing on ios...
+⚡️  To Native ->  StatusBar setStyle 5595254
+⚡️  TO JS {}
+⚡️  To Native ->  SplashScreen hide 5595255
+⚡️  [log] - [MobileBootstrap] Status bar configured
+⚡️  TO JS undefined
+⚡️  [log] - [MobileBootstrap] Splash screen hidden
+⚡️  To Native ->  Keyboard addListener ⚡️  [log] - [MobileBootstrap] Keyboard listeners configured
+5595256
+⚡️  To Native ->  Keyboard addListener 5595257
+⚡️  To Native ->  App addListener 5595258
+⚡️  To Native ->  App getInfo 5595259
+⚡️  [log] - [MobileBootstrap] Back button handler configured
+⚡️  TO JS {"build":"1","version":"1.0","name":"HealthPilot","id":"com.nuvitae.healthpilot"}
+⚡️  [log] - [MobileBootstrap] App Info: {"name":"HealthPilot","id":"com.nuvitae.healthpilot","version":"1.0","build":"1"}
+⚡️  [log] - [MobileBootstrap] ✅ Mobile initialization complete
+⚡️  To Native ->  App addListener 5595260
+⚡️  To Native ->  App addListener 5595261
+⚡️  [log] - [App] Setting up global deep link listener
+⚡️  [log] - [DeepLink] Initializing deep link handler...
+⚡️  [log] - [DeepLink] Deep link handler initialized successfully
+⚡️  To Native ->  SecureStorage internalGetItem 5595262
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+Updated list with error: DownloadFailed
+Updated list with error: DownloadFailed
+⚡️  WebView loaded
+Updated list with error: DownloadFailed
+Updated list with error: DownloadFailed
+Updated list with error: DownloadFailed
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  To Native ->  SecureStorage internalGetItem 5595263
+⚡️  To Native ->  SecureStorage internalGetItem 5595264
+⚡️  To Native ->  SecureStorage internalGetItem 5595265
+⚡️  To Native ->  SecureStorage internalGetItem 5595266
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  [log] - Clearing old dashboard preferences (version mismatch)
+⚡️  To Native ->  SecureStorage internalGetItem 5595267
+⚡️  To Native ->  SecureStorage internalGetItem 5595268
+⚡️  To Native ->  SecureStorage internalGetItem 5595269
+⚡️  To Native ->  SecureStorage internalGetItem 5595270
+⚡️  To Native ->  SecureStorage internalGetItem 5595271
+⚡️  To Native ->  SecureStorage internalGetItem 5595272
+⚡️  To Native ->  SecureStorage internalGetItem 5595273
+⚡️  To Native ->  SecureStorage internalGetItem 5595274
+⚡️  To Native ->  SecureStorage internalGetItem 5595275
+⚡️  To Native ->  SecureStorage internalGetItem 5595276
+⚡️  To Native ->  SecureStorage internalGetItem 5595277
+⚡️  To Native ->  SecureStorage internalGetItem 5595278
+⚡️  To Native ->  SecureStorage internalGetItem 5595279
+⚡️  To Native ->  SecureStorage internalGetItem 5595280
+⚡️  To Native ->  SecureStorage internalGetItem 5595281
+⚡️  To Native ->  SecureStorage internalGetItem 5595282
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  To Native ->  SecureStorage internalGetItem 5595283
+⚡️  To Native ->  SecureStorage internalGetItem 5595284
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  To Native ->  SecureStorage internalGetItem 5595285
+⚡️  To Native ->  SecureStorage internalGetItem 5595286
+⚡️  To Native ->  SecureStorage internalGetItem 5595287
+⚡️  To Native ->  SecureStorage internalGetItem 5595288
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  To Native ->  SecureStorage internalGetItem 5595289
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  To Native ->  SecureStorage internalGetItem 5595290
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  [log] - [AppleHealthSetup] Platform detected: ios
+⚡️  [log] - [AppleHealthSetup] Is iOS? true
+⚡️  To Native ->  SecureStorage internalGetItem 5595291
+⚡️  To Native ->  SecureStorage internalGetItem 5595292
+⚡️  To Native ->  SecureStorage internalGetItem 5595293
+⚡️  To Native ->  SecureStorage internalGetItem 5595294
+⚡️  To Native ->  SecureStorage internalGetItem 5595295
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  To Native ->  Health isAvailable 5595296
+⚡️  TO JS {"platform":"ios","available":true}
+⚡️  [log] - [HealthKit] Availability check result: true
+⚡️  [log] - [HealthKit] Requesting permissions for ALL 26 health data types...
+⚡️  To Native ->  Health requestAuthorization 5595297
+(501) Invalidation handler invoked, clearing connection
+(501) personaAttributesForPersonaType for type:0 failed with error Error Domain=NSCocoaErrorDomain Code=4099 "The connection to service named com.apple.mobile.usermanagerd.xpc was invalidated from this process." UserInfo={NSDebugDescription=The connection to service named com.apple.mobile.usermanagerd.xpc was invalidated from this process.}
+Received port for identifier response: <(null)> with error:Error Domain=RBSServiceErrorDomain Code=1 "Client not entitled" UserInfo={RBSEntitlement=com.apple.runningboard.process-state, NSLocalizedFailureReason=Client not entitled, RBSPermanent=false}
+elapsedCPUTimeForFrontBoard couldn't generate a task port
+Received port for identifier response: <(null)> with error:Error Domain=RBSServiceErrorDomain Code=1 "Client not entitled" UserInfo={RBSEntitlement=com.apple.runningboard.process-state, NSLocalizedFailureReason=Client not entitled, RBSPermanent=false}
+elapsedCPUTimeForFrontBoard couldn't generate a task port
+Received port for identifier response: <(null)> with error:Error Domain=RBSServiceErrorDomain Code=1 "Client not entitled" UserInfo={RBSEntitlement=com.apple.runningboard.process-state, NSLocalizedFailureReason=Client not entitled, RBSPermanent=false}
+elapsedCPUTimeForFrontBoard couldn't generate a task port
+Received port for identifier response: <(null)> with error:Error Domain=RBSServiceErrorDomain Code=1 "Client not entitled" UserInfo={RBSEntitlement=com.apple.runningboard.process-state, NSLocalizedFailureReason=Client not entitled, RBSPermanent=false}
+elapsedCPUTimeForFrontBoard couldn't generate a task port
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  TO JS {"readAuthorized":["steps","distance","calories","heartRate","weight","hrv","restingHeartRate","bloodPressureSystolic","bloodPressureDiastolic","oxygenSaturation","respiratoryRate","height","bmi","bodyFat","leanBodyMass","basalCalories","flightsClimbed","b
+⚡️  [log] - [HealthKit] Permission request result: {"readAuthorized":["steps","distance","calories","heartRate","weight","hrv","restingHeartRate","bloodPressureSystolic","bloodPressureDiastolic","oxygenSaturation","respiratoryRate","height","bmi","bodyFat","leanBodyMass","basalCalories","flightsClimbed","bloodGlucose","bodyTemperature","vo2Max","walkingHeartRateAverage","waistCircumference","dietaryWater","exerciseTime","standTime","sleepAnalysis"],"readDenied":[],"writeAuthorized":[],"writeDenied":[]}
+⚡️  [log] - [HealthKit] Querying steps from 2025-08-04T04:51:44.799Z to 2025-11-02T04:51:44.799Z
+⚡️  [log] - [HealthKit] Querying distance from 2025-08-04T04:51:44.799Z to 2025-11-02T04:51:44.799Z
+⚡️  [log] - [HealthKit] Querying calories from 2025-08-04T04:51:44.799Z to 2025-11-02T04:51:44.799Z
+⚡️  [log] - [HealthKit] Basal calories not yet supported by Capgo Health plugin
+⚡️  [log] - [HealthKit] Flights climbed not yet supported by Capgo Health plugin
+⚡️  [log] - [HealthKit] Querying heartRate from 2025-08-04T04:51:44.799Z to 2025-11-02T04:51:44.799Z
+⚡️  [log] - [HealthKit] Querying restingHeartRate from 2025-08-04T04:51:44.799Z to 2025-11-02T04:51:44.799Z
+⚡️  [log] - [HealthKit] Querying hrv from 2025-08-04T04:51:44.799Z to 2025-11-02T04:51:44.799Z
+⚡️  [log] - [HealthKit] Querying oxygenSaturation from 2025-08-04T04:51:44.799Z to 2025-11-02T04:51:44.799Z
+⚡️  [log] - [HealthKit] Querying respiratoryRate from 2025-08-04T04:51:44.799Z to 2025-11-02T04:51:44.799Z
+⚡️  [log] - [HealthKit] Body temperature not yet supported by Capgo Health plugin
+⚡️  [log] - [HealthKit] Querying weight from 2025-08-04T04:51:44.799Z to 2025-11-02T04:51:44.799Z
+⚡️  [log] - [HealthKit] BMI not yet supported by Capgo Health plugin
+⚡️  [log] - [HealthKit] Lean body mass not yet supported by Capgo Health plugin
+⚡️  [log] - [HealthKit] Body fat not yet supported by Capgo Health plugin
+⚡️  [log] - [HealthKit] Height not yet supported by Capgo Health plugin
+⚡️  [log] - [HealthKit] Waist circumference not yet supported by Capgo Health plugin
+⚡️  [log] - [HealthKit] Querying bloodPressureSystolic from 2025-08-04T04:51:44.799Z to 2025-11-02T04:51:44.799Z
+⚡️  [log] - [HealthKit] Querying bloodPressureDiastolic from 2025-08-04T04:51:44.799Z to 2025-11-02T04:51:44.799Z
+⚡️  [log] - [HealthKit] Blood glucose not yet supported by Capgo Health plugin
+⚡️  [log] - [HealthKit] Dietary water not yet supported by Capgo Health plugin
+⚡️  [log] - [HealthKit] Dietary energy not yet supported by Capgo Health plugin
+⚡️  [log] - [HealthKit] Dietary protein not yet supported by Capgo Health plugin
+⚡️  [log] - [HealthKit] Dietary carbs not yet supported by Capgo Health plugin
+⚡️  [log] - [HealthKit] Dietary fat not yet supported by Capgo Health plugin
+⚡️  [log] - [HealthKit] Workouts not yet supported by Capgo Health plugin
+⚡️  [log] - [HealthKit] Sleep not yet supported by Capgo Health plugin
+⚡️  To Native ->  Health readSamples 5595298
+⚡️  To Native ->  Health readSamples 5595299
+⚡️  To Native ->  Health readSamples 5595300
+⚡️  To Native ->  Health readSamples 5595301
+⚡️  To Native ->  Health readSamples 5595302
+⚡️  To Native ->  Health readSamples 5595303
+⚡️  To Native ->  Health readSamples 5595304
+⚡️  To Native ->  Health readSamples 5595305
+⚡️  To Native ->  Health readSamples 5595306
+⚡️  To Native ->  Health readSamples 5595307
+⚡️  To Native ->  Health readSamples 5595308
+⚡️  TO JS {"samples":[{"unit":"kilocalorie","dataType":"calories","sourceId":"com.apple.health.FAF1019B-3E01-48BA-89F1-D835119A39E4","sourceName":"Jonathan’s Apple Watch","value":3.4250000000000003,"startDate":"2025-11-02T04:34:04.358Z","endDate":"2025-11-02T04:43:4
+⚡️  TO JS {"samples":[{"sourceName":"Jonathan’s Apple Watch","startDate":"2025-11-02T04:27:57.198Z","unit":"count","dataType":"steps","sourceId":"com.apple.health.FAF1019B-3E01-48BA-89F1-D835119A39E4","value":13,"endDate":"2025-11-02T04:28:12.604Z"},{"startDate":"20
+⚡️  [log] - [HealthKit] calories returned 1000 samples
+⚡️  [log] - [HealthKit] calories sample example: {"unit":"kilocalorie","dataType":"calories","sourceId":"com.apple.health.FAF1019B-3E01-48BA-89F1-D835119A39E4","sourceName":"Jonathan’s Apple Watch","value":3.4250000000000003,"startDate":"2025-11-02T04:34:04.358Z","endDate":"2025-11-02T04:43:49.758Z"}
+⚡️  TO JS {"samples":[{"dataType":"distance","unit":"meter","endDate":"2025-11-02T04:28:10.036Z","startDate":"2025-11-02T04:27:57.198Z","sourceName":"Jonathan’s Apple Watch","value":8.6108803983952384,"sourceId":"com.apple.health.FAF1019B-3E01-48BA-89F1-D835119A39E4
+⚡️  [log] - [HealthKit] steps returned 1000 samples
+⚡️  [log] - [HealthKit] steps sample example: {"sourceName":"Jonathan’s Apple Watch","startDate":"2025-11-02T04:27:57.198Z","unit":"count","dataType":"steps","sourceId":"com.apple.health.FAF1019B-3E01-48BA-89F1-D835119A39E4","value":13,"endDate":"2025-11-02T04:28:12.604Z"}
+⚡️  TO JS {"samples":[{"dataType":"restingHeartRate","endDate":"2025-11-02T02:26:57.118Z","sourceName":"Jonathan’s Apple Watch","startDate":"2025-11-01T16:01:31.766Z","value":79,"unit":"bpm","sourceId":"com.apple.health.FAF1019B-3E01-48BA-89F1-D835119A39E4"},{"sourc
+⚡️  [log] - [HealthKit] distance returned 1000 samples
+⚡️  [log] - [HealthKit] distance sample example: {"dataType":"distance","unit":"meter","endDate":"2025-11-02T04:28:10.036Z","startDate":"2025-11-02T04:27:57.198Z","sourceName":"Jonathan’s Apple Watch","value":8.610880398395238,"sourceId":"com.apple.health.FAF1019B-3E01-48BA-89F1-D835119A39E4"}
+⚡️  [log] - [HealthKit] restingHeartRate returned 90 samples
+⚡️  [log] - [HealthKit] restingHeartRate sample example: {"dataType":"restingHeartRate","endDate":"2025-11-02T02:26:57.118Z","sourceName":"Jonathan’s Apple Watch","startDate":"2025-11-01T16:01:31.766Z","value":79,"unit":"bpm","sourceId":"com.apple.health.FAF1019B-3E01-48BA-89F1-D835119A39E4"}
+⚡️  TO JS {"samples":[{"sourceId":"com.apple.health.FAF1019B-3E01-48BA-89F1-D835119A39E4","startDate":"2025-11-02T04:47:13.190Z","value":102,"sourceName":"Jonathan’s Apple Watch","unit":"bpm","dataType":"heartRate","endDate":"2025-11-02T04:47:13.190Z"},{"dataType":"
+⚡️  [log] - [HealthKit] heartRate returned 1000 samples
+⚡️  [log] - [HealthKit] heartRate sample example: {"sourceId":"com.apple.health.FAF1019B-3E01-48BA-89F1-D835119A39E4","startDate":"2025-11-02T04:47:13.190Z","value":102,"sourceName":"Jonathan’s Apple Watch","unit":"bpm","dataType":"heartRate","endDate":"2025-11-02T04:47:13.190Z"}
+⚡️  TO JS {"samples":[{"endDate":"2025-11-01T21:51:25.547Z","dataType":"respiratoryRate","value":19,"unit":"breaths\/min","sourceId":"com.apple.health.FAF1019B-3E01-48BA-89F1-D835119A39E4","sourceName":"Jonathan’s Apple Watch","startDate":"2025-11-01T21:51:25.547Z"}
+⚡️  TO JS {"samples":[{"unit":"kilogram","value":69.324005126953125,"startDate":"2025-10-31T22:56:07.000Z","sourceName":"Withings","dataType":"weight","sourceId":"com.withings.wiScaleNG","endDate":"2025-10-31T22:56:07.000Z"},{"sourceName":"Withings","value":69.18800
+⚡️  TO JS {"samples":[{"sourceName":"Jonathan’s Apple Watch","unit":"percent","dataType":"oxygenSaturation","sourceId":"com.apple.health.FAF1019B-3E01-48BA-89F1-D835119A39E4","startDate":"2025-11-02T00:25:31.317Z","value":0.97999999999999998,"endDate":"2025-11-02T00
+⚡️  TO JS {"samples":[{"sourceId":"com.withings.wiScaleNG","dataType":"bloodPressureSystolic","unit":"mmHg","endDate":"2025-10-28T01:03:05.000Z","sourceName":"Withings","value":131,"startDate":"2025-10-28T01:03:05.000Z"},{"sourceId":"com.withings.wiScaleNG","endDate
+⚡️  TO JS {"samples":[{"dataType":"bloodPressureDiastolic","unit":"mmHg","startDate":"2025-10-28T01:03:05.000Z","value":72,"sourceId":"com.withings.wiScaleNG","sourceName":"Withings","endDate":"2025-10-28T01:03:05.000Z"},{"startDate":"2025-10-26T08:00:56.000Z","valu
+⚡️  TO JS {"samples":[{"endDate":"2025-11-02T04:20:09.598Z","startDate":"2025-11-02T04:19:10.082Z","sourceName":"Jonathan’s Apple Watch","unit":"milliseconds","dataType":"hrv","value":13.190821186167693,"sourceId":"com.apple.health.FAF1019B-3E01-48BA-89F1-D835119A39
+⚡️  [log] - [HealthKit] respiratoryRate returned 1000 samples
+⚡️  [log] - [HealthKit] respiratoryRate sample example: {"endDate":"2025-11-01T21:51:25.547Z","dataType":"respiratoryRate","value":19,"unit":"breaths/min","sourceId":"com.apple.health.FAF1019B-3E01-48BA-89F1-D835119A39E4","sourceName":"Jonathan’s Apple Watch","startDate":"2025-11-01T21:51:25.547Z"}
+⚡️  [log] - [HealthKit] weight returned 46 samples
+⚡️  [log] - [HealthKit] weight sample example: {"unit":"kilogram","value":69.32400512695312,"startDate":"2025-10-31T22:56:07.000Z","sourceName":"Withings","dataType":"weight","sourceId":"com.withings.wiScaleNG","endDate":"2025-10-31T22:56:07.000Z"}
+⚡️  [log] - [HealthKit] oxygenSaturation returned 1000 samples
+⚡️  [log] - [HealthKit] oxygenSaturation sample example: {"sourceName":"Jonathan’s Apple Watch","unit":"percent","dataType":"oxygenSaturation","sourceId":"com.apple.health.FAF1019B-3E01-48BA-89F1-D835119A39E4","startDate":"2025-11-02T00:25:31.317Z","value":0.98,"endDate":"2025-11-02T00:25:31.317Z"}
+⚡️  [log] - [HealthKit] bloodPressureSystolic returned 18 samples
+⚡️  [log] - [HealthKit] bloodPressureSystolic sample example: {"sourceId":"com.withings.wiScaleNG","dataType":"bloodPressureSystolic","unit":"mmHg","endDate":"2025-10-28T01:03:05.000Z","sourceName":"Withings","value":131,"startDate":"2025-10-28T01:03:05.000Z"}
+⚡️  [log] - [HealthKit] bloodPressureDiastolic returned 18 samples
+⚡️  [log] - [HealthKit] bloodPressureDiastolic sample example: {"dataType":"bloodPressureDiastolic","unit":"mmHg","startDate":"2025-10-28T01:03:05.000Z","value":72,"sourceId":"com.withings.wiScaleNG","sourceName":"Withings","endDate":"2025-10-28T01:03:05.000Z"}
+⚡️  [log] - [HealthKit] hrv returned 1000 samples
+⚡️  To Native ->  SecureStorage internalGetItem 5595309
+⚡️  [log] - [HealthKit] hrv sample example: {"endDate":"2025-11-02T04:20:09.598Z","startDate":"2025-11-02T04:19:10.082Z","sourceName":"Jonathan’s Apple Watch","unit":"milliseconds","dataType":"hrv","value":13.190821186167693,"sourceId":"com.apple.health.FAF1019B-3E01-48BA-89F1-D835119A39E4"}
+⚡️  [log] - [HealthKit] Comprehensive health data retrieved: {"steps":1000,"distance":1000,"activeCalories":1000,"basalCalories":0,"flightsClimbed":0,"heartRate":1000,"restingHeartRate":90,"hrv":1000,"oxygenSaturation":1000,"respiratoryRate":1000,"bodyTemperature":0,"weight":46,"bmi":0,"leanBodyMass":0,"bodyFat":0,"height":0,"waistCircumference":0,"bloodPressureSystolic":18,"bloodPressureDiastolic":18,"bloodGlucose":0,"dietaryWater":0,"dietaryEnergy":0,"dietaryProtein":0,"dietaryCarbs":0,"dietaryFat":0,"workouts":0,"sleep":0}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  To Native ->  SecureStorage internalGetItem 5595310
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  To Native ->  SecureStorage internalGetItem 5595311
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
