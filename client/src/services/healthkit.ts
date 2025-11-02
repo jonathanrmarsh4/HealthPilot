@@ -74,7 +74,7 @@ export class HealthKitService {
 
   /**
    * Request permissions for all supported health data types
-   * Batch 1: Added cardiovascular metrics (HRV, resting HR, BP, SpO2, respiratory rate)
+   * Supports 26 comprehensive health metrics + workouts + sleep
    */
   async requestPermissions(): Promise<boolean> {
     const available = await this.isHealthKitAvailable();
@@ -84,14 +84,24 @@ export class HealthKitService {
     }
 
     try {
-      console.log('[HealthKit] Requesting permissions for ALL 11 health data types...');
+      console.log('[HealthKit] Requesting permissions for ALL 26 health data types...');
       const result = await Health.requestAuthorization({
         read: [
           // Original 5 data types
           'steps', 'distance', 'calories', 'heartRate', 'weight',
-          // 6 new cardiovascular metrics
+          
+          // Batch 1: 6 cardiovascular metrics
           'hrv', 'restingHeartRate', 'bloodPressureSystolic', 'bloodPressureDiastolic',
-          'oxygenSaturation', 'respiratoryRate'
+          'oxygenSaturation', 'respiratoryRate',
+          
+          // Batch 2: 14 additional comprehensive metrics
+          'height', 'bmi', 'bodyFat', 'leanBodyMass',
+          'basalCalories', 'flightsClimbed', 'bloodGlucose', 'bodyTemperature',
+          'vo2Max', 'walkingHeartRateAverage', 'waistCircumference',
+          'dietaryWater', 'exerciseTime', 'standTime',
+          
+          // Special types
+          'sleepAnalysis'
         ],
         write: []
       });
@@ -105,12 +115,17 @@ export class HealthKitService {
 
   /**
    * Query health data for a specific type
-   * Supports all 11 data types including 6 new cardiovascular metrics
+   * Supports all 26 comprehensive health data types
    */
   private async queryData(
     dataType: 'steps' | 'distance' | 'calories' | 'heartRate' | 'weight' | 
               'hrv' | 'restingHeartRate' | 'bloodPressureSystolic' | 'bloodPressureDiastolic' |
-              'oxygenSaturation' | 'respiratoryRate',
+              'oxygenSaturation' | 'respiratoryRate' |
+              'height' | 'bmi' | 'bodyFat' | 'leanBodyMass' |
+              'basalCalories' | 'flightsClimbed' | 'bloodGlucose' | 'bodyTemperature' |
+              'vo2Max' | 'walkingHeartRateAverage' | 'waistCircumference' |
+              'dietaryWater' | 'exerciseTime' | 'standTime' |
+              'sleepAnalysis',
     startDate: Date,
     endDate: Date
   ): Promise<HealthDataSample[]> {
