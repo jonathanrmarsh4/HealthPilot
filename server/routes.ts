@@ -9510,6 +9510,9 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
       startOfTodayInUserTz.setHours(0, 0, 0, 0);
       const startOfTodayUTC = fromZonedTime(startOfTodayInUserTz, userTimezone);
       
+      // NOTE: Steps may be overcounted due to overlapping samples from multiple sources (iPhone + Watch)
+      // KNOWN ISSUE: @capgo/capacitor-health doesn't support HKStatisticsQuery for auto-deduplication
+      // TODO: Replace with native HKStatisticsQuery or apply 0.7x correction factor
       const todaySteps = biomarkers
         .filter(b => b.type === 'steps' && new Date(b.recordedAt) >= startOfTodayUTC)
         .reduce((sum, b) => sum + b.value, 0);
