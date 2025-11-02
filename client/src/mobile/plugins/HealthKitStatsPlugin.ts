@@ -28,6 +28,31 @@ export interface HealthKitStatsPlugin {
    * @param options.dates Array of ISO 8601 date strings
    */
   getMultiDayStats(options: { dates: string[] }): Promise<MultiDayStatsResult>;
+  
+  /**
+   * Enable background HealthKit sync monitoring
+   */
+  enableBackgroundSync(): Promise<{ success: boolean }>;
+  
+  /**
+   * Disable background HealthKit sync monitoring
+   */
+  disableBackgroundSync(): Promise<{ success: boolean }>;
+  
+  /**
+   * Check if background sync is currently enabled
+   */
+  isBackgroundSyncEnabled(): Promise<{ enabled: boolean }>;
+  
+  /**
+   * Drain the background queue and return all queued data
+   */
+  drainBackgroundQueue(): Promise<{ data: Record<string, any[]> }>;
+  
+  /**
+   * Get statistics about the background queue
+   */
+  getBackgroundQueueStats(): Promise<{ stats: Record<string, number> }>;
 }
 
 const HealthKitStats = registerPlugin<HealthKitStatsPlugin>('HealthKitStatsPlugin', {
@@ -37,6 +62,21 @@ const HealthKitStats = registerPlugin<HealthKitStatsPlugin>('HealthKitStatsPlugi
     },
     async getMultiDayStats() {
       return { results: [] };
+    },
+    async enableBackgroundSync() {
+      return { success: false };
+    },
+    async disableBackgroundSync() {
+      return { success: false };
+    },
+    async isBackgroundSyncEnabled() {
+      return { enabled: false };
+    },
+    async drainBackgroundQueue() {
+      return { data: {} };
+    },
+    async getBackgroundQueueStats() {
+      return { stats: {} };
     },
   }),
 });

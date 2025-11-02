@@ -15,7 +15,7 @@
 
 import { isNativePlatform, getPlatform } from '../MobileBootstrap';
 import { App, AppState } from '@capacitor/app';
-import HealthKitBackgroundSync from '../plugins/HealthKitBackgroundSyncPlugin';
+import HealthKitStats from '../plugins/HealthKitStatsPlugin';
 
 // Lazy load Health plugin only when needed (prevents bundling in web builds)
 let Health: any = null;
@@ -201,7 +201,7 @@ class NativeHealthKitAdapter implements HealthKitAdapter {
     }
     
     try {
-      const result = await HealthKitBackgroundSync.enableBackgroundSync();
+      const result = await HealthKitStats.enableBackgroundSync();
       console.log('[HealthKit] Background sync enabled');
       return result.success;
     } catch (error) {
@@ -216,7 +216,7 @@ class NativeHealthKitAdapter implements HealthKitAdapter {
     }
     
     try {
-      const result = await HealthKitBackgroundSync.disableBackgroundSync();
+      const result = await HealthKitStats.disableBackgroundSync();
       console.log('[HealthKit] Background sync disabled');
       return result.success;
     } catch (error) {
@@ -231,7 +231,7 @@ class NativeHealthKitAdapter implements HealthKitAdapter {
     }
     
     try {
-      const result = await HealthKitBackgroundSync.isBackgroundSyncEnabled();
+      const result = await HealthKitStats.isBackgroundSyncEnabled();
       return result.enabled;
     } catch (error) {
       console.error('[HealthKit] Failed to check background sync status:', error);
@@ -245,7 +245,7 @@ class NativeHealthKitAdapter implements HealthKitAdapter {
     }
     
     try {
-      const result = await HealthKitBackgroundSync.drainBackgroundQueue();
+      const result = await HealthKitStats.drainBackgroundQueue();
       const queueData = result.data || {};
       
       // Transform native format to HealthDataSample format
@@ -274,7 +274,7 @@ class NativeHealthKitAdapter implements HealthKitAdapter {
     }
     
     try {
-      const result = await HealthKitBackgroundSync.getBackgroundQueueStats();
+      const result = await HealthKitStats.getBackgroundQueueStats();
       return result.stats;
     } catch (error) {
       console.error('[HealthKit] Failed to get queue stats:', error);
