@@ -211,18 +211,23 @@ export async function setupAuth(app: Express) {
   app.get("/api/login", async (req, res, next) => {
     const domain = getOAuthDomain(req.hostname);
     const userAgent = req.headers['user-agent'] || '';
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(userAgent);
+    
+    // Detect native Capacitor app by presence of deviceId parameter
+    // Web browsers (even on mobile) won't have this
+    const deviceId = req.query.deviceId as string | undefined;
+    const isNativeApp = !!deviceId;
     
     console.log("🔐 Login request:", {
       requestHostname: req.hostname,
       mappedDomain: domain,
       strategyName: `replitauth:${domain}`,
-      isMobile,
+      isNativeApp,
+      deviceId: deviceId ? 'present' : 'none',
       userAgent
     });
     
-    // For mobile, generate authorization URL manually with stateless PKCE
-    if (isMobile) {
+    // For native app, generate authorization URL manually with stateless PKCE
+    if (isNativeApp) {
       try {
         console.log("📱 Generating stateless mobile auth URL with PKCE");
         
@@ -232,12 +237,9 @@ export async function setupAuth(app: Express) {
         const codeVerifier = client.randomPKCECodeVerifier();
         const codeChallenge = await client.calculatePKCECodeChallenge(codeVerifier);
         
-        // Get device ID from query parameter
-        const deviceId = req.query.deviceId as string | undefined;
-        
         // Embed the code verifier and deviceId in the state parameter (base64 encoded)
         const stateData = {
-          mobile: true,
+          nativeApp: true,
           deviceId: deviceId,
           verifier: codeVerifier
         };
@@ -269,7 +271,18 @@ export async function setupAuth(app: Express) {
   app.get("/api/callback", async (req, res, next) => {
     const domain = getOAuthDomain(req.hostname);
     const userAgent = req.headers['user-agent'] || '';
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(userAgent);
+    
+    // Check if this is a native app callback by examining the state parameter
+    let isNativeApp = false;
+    if (req.query.state) {
+      try {
+        const stateJson = Buffer.from(req.query.state as string, 'base64url').toString('utf-8');
+        const stateData = JSON.parse(stateJson);
+        isNativeApp = stateData.nativeApp === true;
+      } catch (e) {
+        // Invalid state, will be handled by web flow
+      }
+    }
     
     console.log("🔄 OAuth callback:", {
       requestHostname: req.hostname,
@@ -277,7 +290,7 @@ export async function setupAuth(app: Express) {
       strategyName: `replitauth:${domain}`,
       hasCode: !!req.query.code,
       hasError: !!req.query.error,
-      isMobile,
+      isNativeApp,
       userAgent,
       hasSession: !!req.session,
       sessionID: req.sessionID,
@@ -293,16 +306,16 @@ export async function setupAuth(app: Express) {
       return res.redirect("/api/login");
     }
     
-    // For mobile flows, extract code verifier from state and handle OAuth
-    if (isMobile && req.query.code && req.query.state) {
+    // For native app flows, extract code verifier from state and handle OAuth
+    if (isNativeApp && req.query.code && req.query.state) {
       try {
-        console.log("📱 Handling mobile OAuth callback with stateless PKCE");
+        console.log("📱 Handling native app OAuth callback with stateless PKCE");
         
         // Extract code verifier from state parameter
         const stateJson = Buffer.from(req.query.state as string, 'base64url').toString('utf-8');
         const stateData = JSON.parse(stateJson);
         
-        if (!stateData.mobile || !stateData.verifier) {
+        if (!stateData.nativeApp || !stateData.verifier) {
           console.error("❌ Invalid state parameter");
           return res.redirect("/api/login");
         }
@@ -356,7 +369,7 @@ export async function setupAuth(app: Express) {
       }
     }
     
-    // For web, use standard Passport flow
+    // For web, use standard Passport flow (session-based)
     const authOptions = {};
     
     passport.authenticate(`replitauth:${domain}`, authOptions, (err: any, user: any) => {
@@ -370,19 +383,6 @@ export async function setupAuth(app: Express) {
         return res.redirect("/api/login");
       }
       
-      // For mobile, don't use session - just generate token and redirect
-      if (isMobile) {
-        const userId = user.claims?.sub;
-        if (userId) {
-          const token = generateMobileAuthToken(userId);
-          console.log("📱 Generated mobile auth token for user:", userId);
-          return res.redirect(`healthpilot://auth?token=${token}`);
-        } else {
-          console.error("❌ No user ID in claims for mobile auth");
-          return res.redirect("/api/login");
-        }
-      }
-      
       // For web, use session-based login
       req.login(user, (loginErr) => {
         if (loginErr) {
@@ -390,6 +390,7 @@ export async function setupAuth(app: Express) {
           return res.redirect("/api/login");
         }
         
+        console.log("🌐 Web login successful, redirecting to home");
         // Redirect to home
         res.redirect("/");
       });
