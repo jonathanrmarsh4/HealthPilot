@@ -34,8 +34,13 @@ export default function VoiceChat() {
   }, []);
 
   const connect = async () => {
+    console.log("🚀 [VoiceChat] Connect function called");
+    console.log("🚀 [VoiceChat] User data:", user);
+    console.log("🚀 [VoiceChat] isPremium:", isPremium);
+    
     // Double-check premium status before allowing connection
     if (!isPremium) {
+      console.log("❌ [VoiceChat] Premium check failed");
       toast({
         variant: "destructive",
         title: "Premium Required",
@@ -44,14 +49,38 @@ export default function VoiceChat() {
       return;
     }
 
+    console.log("✅ [VoiceChat] Premium check passed");
+
     try {
       // Check if mediaDevices is supported
+      console.log("🔍 [VoiceChat] Checking navigator.mediaDevices support...");
+      console.log("🔍 [VoiceChat] navigator.mediaDevices:", navigator.mediaDevices);
+      console.log("🔍 [VoiceChat] getUserMedia:", navigator.mediaDevices?.getUserMedia);
+      
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         throw new Error('Microphone access is not supported in this browser');
       }
 
+      console.log("✅ [VoiceChat] MediaDevices supported");
+
+      // Check current permission status (if supported)
+      if (navigator.permissions && navigator.permissions.query) {
+        try {
+          console.log("🔍 [VoiceChat] Checking microphone permission status...");
+          const permissionStatus = await navigator.permissions.query({ name: 'microphone' as PermissionName });
+          console.log("🔍 [VoiceChat] Permission status:", permissionStatus.state);
+          
+          if (permissionStatus.state === 'denied') {
+            throw new Error('Microphone permission was previously denied. Please enable it in your device settings.');
+          }
+        } catch (permError) {
+          console.log("⚠️ [VoiceChat] Permission query not supported or failed:", permError);
+          // Continue anyway - permission query might not be supported on iOS
+        }
+      }
+
       // Request microphone access with better error handling
-      console.log("🎤 Requesting microphone access...");
+      console.log("🎤 [VoiceChat] Requesting microphone access...");
       const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: {
           echoCancellation: true,
