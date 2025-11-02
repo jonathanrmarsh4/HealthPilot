@@ -116,16 +116,6 @@ const buildMenuSections = (): MenuSection[] => {
       items: yourPlanItems,
     },
     {
-      title: "AI Coach",
-      icon: Sparkles,
-      items: [
-        { title: "Chat", url: "/chat", icon: MessageSquare },
-        { title: "Voice Chat", url: "/voice-chat", icon: Mic },
-        { title: "Recommendations", url: "/insights", icon: Sparkles },
-        { title: "Trends", url: "/data-insights", icon: BarChart3 },
-      ],
-    },
-    {
       title: "Settings & Data",
       icon: Settings,
       items: settingsItems,
@@ -177,6 +167,18 @@ export function AppSidebar() {
                   <Link href="/notifications">
                     <Bell className="h-4 w-4" />
                     <span>Notifications</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={location === "/insights"}
+                  data-testid="link-insights-hub"
+                >
+                  <Link href="/insights">
+                    <Sparkles className="h-4 w-4" />
+                    <span>Insights Hub</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
