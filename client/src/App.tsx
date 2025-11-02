@@ -129,106 +129,30 @@ function Router() {
   );
 }
 
-function AppLayout() {
+// Component to handle swipe gestures inside SidebarProvider context
+function SidebarContentWrapper({ 
+  children, 
+  currentPage, 
+  location 
+}: { 
+  children: React.ReactNode; 
+  currentPage: string;
+  location: string;
+}) {
   const { isChatOpen, isVoiceChatOpen, setIsChatOpen, setIsVoiceChatOpen, chatContext } = useChat();
-  const [hasAutoOpened, setHasAutoOpened] = useState(false);
-  const [location] = useLocation();
-  const { shouldShowOnboarding, status: onboardingStatus, isLoading: onboardingLoading } = useOnboarding();
   const { user } = useAuth();
-  
-  // Show HealthKit onboarding ONLY for iOS users who haven't completed it
-  // (Android and web users skip this)
-  const shouldShowHealthKitOnboarding = getPlatform() === 'ios' && 
-    onboardingStatus && 
-    !onboardingStatus.healthKitSetupComplete;
-  
-  const style = {
-    "--sidebar-width": "16rem",
-    "--sidebar-width-icon": "3rem",
-  };
+  const { setOpenMobile } = useSidebar();
 
-  const pageNames: Record<string, string> = {
-    "/": "Dashboard",
-    "/records": "Health Records",
-    "/biomarkers": "Biomarkers",
-    "/sleep": "Sleep Dashboard",
-    "/meals": "Meal Plans",
-    "/meals/nutrition-profile": "Nutrition Profile",
-    "/smartfuel": "SmartFuel™",
-    "/training": "Training",
-    "/supplements": "Supplement Stack",
-    "/symptoms": "Symptoms Tracking",
-    "/insights": "Insights Hub",
-    "/daily-insights": "Insights Hub",
-    "/goals": "Health Goals",
-    "/biological-age": "Biological Age",
-    "/chat": "Health Coach",
-    "/voice-chat": "Voice Chat",
-    "/profile": "Profile",
-    "/apple-health": "Apple Health Setup",
-    "/settings": "Settings",
-    "/pricing": "Pricing",
-    "/privacy": "Privacy Policy",
-    "/privacy-dashboard": "Privacy & Data Control",
-    "/security": "Security & Privacy Whitepaper",
-    "/terms": "Terms of Service",
-    "/admin": "Admin Panel",
-    "/admin/meal-library": "Meal Library",
-    "/admin/promo-codes": "Promo Codes",
-    "/admin/ai-audit": "AI Audit Log"
-  };
-
-  const currentPage = pageNames[location] || "Unknown Page";
-  
-  // Invalidate all queries on navigation to ensure fresh data
-  useEffect(() => {
-    queryClient.invalidateQueries();
-  }, [location]);
-
-  // Auto-open floating chat once on first login if onboarding not completed
-  // Disabled: Users prefer to open chat manually via sparkle icon
-  // useEffect(() => {
-  //   if (!onboardingLoading && shouldShowOnboarding && location !== "/chat" && !hasAutoOpened) {
-  //     setIsChatOpen(true);
-  //     setHasAutoOpened(true);
-  //   }
-  // }, [onboardingLoading, shouldShowOnboarding, location, hasAutoOpened]);
-
-  // Reset auto-open flag when onboarding is completed
-  useEffect(() => {
-    if (!shouldShowOnboarding) {
-      setHasAutoOpened(false);
-    }
-  }, [shouldShowOnboarding]);
-  
-  // Wait for onboarding status to load before deciding what to show
-  // This prevents the dashboard from flashing before HealthKit onboarding
-  // IMPORTANT: This must come AFTER all hooks to avoid React Hooks violations
-  if (onboardingLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
-        <p className="text-sm text-muted-foreground">Loading...</p>
-      </div>
-    );
-  }
-  
-  // Show HealthKit onboarding screen if applicable (before main app)
-  if (shouldShowHealthKitOnboarding) {
-    return (
-      <HealthKitOnboarding 
-        onComplete={() => {
-          queryClient.invalidateQueries({ queryKey: ['/api/onboarding/status'] });
-        }}
-        onSkip={() => {
-          queryClient.invalidateQueries({ queryKey: ['/api/onboarding/status'] });
-        }}
-      />
-    );
-  }
+  // Add swipe-to-open functionality for mobile
+  useSwipeToOpenSidebar({
+    onSwipeRight: () => {
+      // Open the sidebar when user swipes from left edge
+      setOpenMobile(true);
+    },
+  });
 
   return (
-    <SidebarProvider style={style as React.CSSProperties}>
+    <>
       <div className="flex h-screen w-full overflow-x-hidden">
         <AppSidebar />
         <div className="flex flex-col flex-1 overflow-hidden">
@@ -280,7 +204,7 @@ function AppLayout() {
           </header>
           <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 lg:p-8">
             <ErrorBoundary>
-              <Router />
+              {children}
             </ErrorBoundary>
           </main>
         </div>
@@ -312,6 +236,102 @@ function AppLayout() {
         onClose={() => setIsVoiceChatOpen(false)}
         context={chatContext}
       />
+    </>
+  );
+}
+
+function AppLayout() {
+  const [hasAutoOpened, setHasAutoOpened] = useState(false);
+  const [location] = useLocation();
+  const { shouldShowOnboarding, status: onboardingStatus, isLoading: onboardingLoading } = useOnboarding();
+  
+  // Show HealthKit onboarding ONLY for iOS users who haven't completed it
+  // (Android and web users skip this)
+  const shouldShowHealthKitOnboarding = getPlatform() === 'ios' && 
+    onboardingStatus && 
+    !onboardingStatus.healthKitSetupComplete;
+  
+  const style = {
+    "--sidebar-width": "16rem",
+    "--sidebar-width-icon": "3rem",
+  };
+
+  const pageNames: Record<string, string> = {
+    "/": "Dashboard",
+    "/records": "Health Records",
+    "/biomarkers": "Biomarkers",
+    "/sleep": "Sleep Dashboard",
+    "/meals": "Meal Plans",
+    "/meals/nutrition-profile": "Nutrition Profile",
+    "/smartfuel": "SmartFuel™",
+    "/training": "Training",
+    "/supplements": "Supplement Stack",
+    "/symptoms": "Symptoms Tracking",
+    "/insights": "Insights Hub",
+    "/daily-insights": "Insights Hub",
+    "/goals": "Health Goals",
+    "/biological-age": "Biological Age",
+    "/chat": "Health Coach",
+    "/voice-chat": "Voice Chat",
+    "/profile": "Profile",
+    "/apple-health": "Apple Health Setup",
+    "/settings": "Settings",
+    "/pricing": "Pricing",
+    "/privacy": "Privacy Policy",
+    "/privacy-dashboard": "Privacy & Data Control",
+    "/security": "Security & Privacy Whitepaper",
+    "/terms": "Terms of Service",
+    "/admin": "Admin Panel",
+    "/admin/meal-library": "Meal Library",
+    "/admin/promo-codes": "Promo Codes",
+    "/admin/ai-audit": "AI Audit Log"
+  };
+
+  const currentPage = pageNames[location] || "Unknown Page";
+  
+  // Invalidate all queries on navigation to ensure fresh data
+  useEffect(() => {
+    queryClient.invalidateQueries();
+  }, [location]);
+
+  // Reset auto-open flag when onboarding is completed
+  useEffect(() => {
+    if (!shouldShowOnboarding) {
+      setHasAutoOpened(false);
+    }
+  }, [shouldShowOnboarding]);
+  
+  // Wait for onboarding status to load before deciding what to show
+  // This prevents the dashboard from flashing before HealthKit onboarding
+  // IMPORTANT: This must come AFTER all hooks to avoid React Hooks violations
+  if (onboardingLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+        <p className="text-sm text-muted-foreground">Loading...</p>
+      </div>
+    );
+  }
+  
+  // Show HealthKit onboarding screen if applicable (before main app)
+  if (shouldShowHealthKitOnboarding) {
+    return (
+      <HealthKitOnboarding 
+        onComplete={() => {
+          queryClient.invalidateQueries({ queryKey: ['/api/onboarding/status'] });
+        }}
+        onSkip={() => {
+          queryClient.invalidateQueries({ queryKey: ['/api/onboarding/status'] });
+        }}
+      />
+    );
+  }
+
+  return (
+    <SidebarProvider style={style as React.CSSProperties}>
+      <SidebarContentWrapper currentPage={currentPage} location={location}>
+        <Router />
+      </SidebarContentWrapper>
     </SidebarProvider>
   );
 }
