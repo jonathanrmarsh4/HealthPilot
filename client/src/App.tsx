@@ -142,18 +142,28 @@ function SidebarContentWrapper({
   const { isChatOpen, isVoiceChatOpen, setIsChatOpen, setIsVoiceChatOpen, chatContext } = useChat();
   const { user } = useAuth();
   const { setOpenMobile } = useSidebar();
+  const [, setLocation] = useLocation();
 
   // Add context-aware swipe-to-open functionality for mobile
   // Dashboard: swipe opens sidebar
   // Other pages: swipe acts as "back" navigation
   useSwipeToOpenSidebar({
     onSwipeRight: () => {
-      if (location === '/') {
-        // On dashboard, open the sidebar
+      // Extract path without query params (e.g., '/?utm=...' -> '/')
+      const path = location.split('?')[0];
+      
+      if (path === '/') {
+        // On dashboard (with or without query params), open the sidebar
         setOpenMobile(true);
       } else {
-        // On other pages, navigate back
-        window.history.back();
+        // On other pages, navigate back if there's history
+        // Otherwise go to dashboard (handles deep-linked detail pages)
+        if (window.history.length > 1) {
+          window.history.back();
+        } else {
+          // No history - navigate to dashboard
+          setLocation('/');
+        }
       }
     },
   });
