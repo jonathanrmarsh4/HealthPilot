@@ -708,6 +708,98 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Public read-only endpoint for Google Drive setting (non-admin users can check if enabled)
+  app.get("/api/settings/google-drive", async (req, res) => {
+    try {
+      const setting = await storage.getSystemSetting('google_drive_enabled');
+      res.json({ 
+        enabled: setting?.value === 'true', // Default to false
+      });
+    } catch (error: any) {
+      console.error("Error fetching Google Drive setting:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Public read-only endpoint for webhook integration setting (non-admin users can check if enabled)
+  app.get("/api/settings/webhook-integration", async (req, res) => {
+    try {
+      const setting = await storage.getSystemSetting('webhook_integration_enabled');
+      res.json({ 
+        enabled: setting?.value === 'true', // Default to false
+      });
+    } catch (error: any) {
+      console.error("Error fetching webhook integration setting:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Admin-only endpoint for Google Drive setting
+  app.get("/api/admin/settings/google-drive", isAdmin, async (req, res) => {
+    try {
+      const setting = await storage.getSystemSetting('google_drive_enabled');
+      res.json({ 
+        enabled: setting?.value === 'true', // Default to false
+        description: setting?.description || 'Show Google Drive integration in Health Records'
+      });
+    } catch (error: any) {
+      console.error("Error fetching Google Drive setting:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.patch("/api/admin/settings/google-drive", isAdmin, async (req, res) => {
+    try {
+      const { enabled } = req.body;
+      if (typeof enabled !== 'boolean') {
+        return res.status(400).json({ error: 'enabled must be a boolean' });
+      }
+      
+      await storage.updateSystemSetting('google_drive_enabled', enabled ? 'true' : 'false');
+      res.json({ 
+        success: true, 
+        enabled,
+        message: `Google Drive integration ${enabled ? 'enabled' : 'disabled'}`
+      });
+    } catch (error: any) {
+      console.error("Error updating Google Drive setting:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Webhook integration feature toggle
+  app.get("/api/admin/settings/webhook-integration", isAdmin, async (req, res) => {
+    try {
+      const setting = await storage.getSystemSetting('webhook_integration_enabled');
+      res.json({ 
+        enabled: setting?.value === 'true', // Default to false
+        description: setting?.description || 'Show webhook integration (Health Auto Export) in Apple Health setup'
+      });
+    } catch (error: any) {
+      console.error("Error fetching webhook integration setting:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.patch("/api/admin/settings/webhook-integration", isAdmin, async (req, res) => {
+    try {
+      const { enabled } = req.body;
+      if (typeof enabled !== 'boolean') {
+        return res.status(400).json({ error: 'enabled must be a boolean' });
+      }
+      
+      await storage.updateSystemSetting('webhook_integration_enabled', enabled ? 'true' : 'false');
+      res.json({ 
+        success: true, 
+        enabled,
+        message: `Webhook integration ${enabled ? 'enabled' : 'disabled'}`
+      });
+    } catch (error: any) {
+      console.error("Error updating webhook integration setting:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.post("/api/admin/cost/budgets", isAdmin, async (req, res) => {
     try {
       const { dailyCpuMsCap, dailyJobsCap, llmInputTokensCap, llmOutputTokensCap, applyScope } = req.body;

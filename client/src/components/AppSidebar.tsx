@@ -93,7 +93,6 @@ const buildMenuSections = (): MenuSection[] => {
 
   settingsItems.push(
     { title: "Integrations", url: "/apple-health", icon: Smartphone },
-    { title: "HealthKit Diagnostics", url: "/healthkit-diagnostics", icon: Stethoscope },
     { title: "Privacy Policy", url: "/privacy", icon: Lock },
     { title: "Privacy Dashboard", url: "/privacy-dashboard", icon: ShieldCheck }
   );

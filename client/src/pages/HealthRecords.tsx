@@ -15,6 +15,10 @@ import { useToast } from "@/hooks/use-toast";
 export default function HealthRecords() {
   const { toast } = useToast();
   
+  const { data: googleDriveSetting } = useQuery<{ enabled: boolean }>({
+    queryKey: ["/api/settings/google-drive"],
+  });
+  
   const { data: reports, isLoading } = useQuery<MedicalReport[]>({
     queryKey: ["/api/medical-reports"],
   });
@@ -207,7 +211,7 @@ export default function HealthRecords() {
         </CardContent>
       </Card>
 
-      <GoogleDriveFiles />
+      {googleDriveSetting?.enabled && <GoogleDriveFiles />}
     </div>
   );
 }

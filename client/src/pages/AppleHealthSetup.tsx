@@ -30,6 +30,10 @@ export default function AppleHealthSetup() {
     queryKey: ["/api/user/webhook-credentials"],
   });
 
+  const { data: webhookSetting } = useQuery<{ enabled: boolean }>({
+    queryKey: ["/api/settings/webhook-integration"],
+  });
+
   useEffect(() => {
     // Debug platform detection
     const platform = getPlatform();
@@ -230,6 +234,8 @@ export default function AppleHealthSetup() {
       )}
 
       {/* Webhook-based integration (fallback for web or manual preference) */}
+      {webhookSetting?.enabled && (
+      <>
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -561,6 +567,8 @@ export default function AppleHealthSetup() {
           </Alert>
         </CardContent>
       </Card>
+      </>
+      )}
 
       <Card>
         <CardHeader>

@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Shield, Users, TrendingUp, FileText, Activity, Search, Trash2, ChefHat, Tag, ArrowRight, Layout, DollarSign, Image, Dumbbell, Play, FlaskConical, Wrench, TestTube, Sparkles, Settings, Mic } from "lucide-react";
+import { Shield, Users, TrendingUp, FileText, Activity, Search, Trash2, ChefHat, Tag, ArrowRight, Layout, DollarSign, Image, Dumbbell, Play, FlaskConical, Wrench, TestTube, Sparkles, Settings, Mic, Sliders, Stethoscope } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { User } from "@shared/schema";
@@ -72,6 +72,56 @@ function AdminContent() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/settings/step-correction"] });
       toast({
         title: data.enabled ? "Step Correction Enabled" : "Step Correction Disabled",
+        description: data.message,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const { data: googleDriveSetting } = useQuery<{ enabled: boolean; description?: string }>({
+    queryKey: ["/api/admin/settings/google-drive"],
+  });
+
+  const toggleGoogleDriveMutation = useMutation({
+    mutationFn: async (enabled: boolean) => {
+      const res = await apiRequest("PATCH", "/api/admin/settings/google-drive", { enabled });
+      return await res.json();
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/settings/google-drive"] });
+      toast({
+        title: data.enabled ? "Google Drive Enabled" : "Google Drive Disabled",
+        description: data.message,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const { data: webhookSetting } = useQuery<{ enabled: boolean; description?: string }>({
+    queryKey: ["/api/admin/settings/webhook-integration"],
+  });
+
+  const toggleWebhookMutation = useMutation({
+    mutationFn: async (enabled: boolean) => {
+      const res = await apiRequest("PATCH", "/api/admin/settings/webhook-integration", { enabled });
+      return await res.json();
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/settings/webhook-integration"] });
+      toast({
+        title: data.enabled ? "Webhook Integration Enabled" : "Webhook Integration Disabled",
         description: data.message,
       });
     },
@@ -665,6 +715,57 @@ function AdminContent() {
               <p className="text-sm text-muted-foreground">
                 Track LLM API usage, job execution costs, user spending patterns, and configure budget caps
               </p>
+            </CardContent>
+          </Card>
+
+          <Card data-testid="card-feature-toggles">
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <Sliders className="w-6 h-6 text-primary" />
+                <div>
+                  <CardTitle data-testid="text-feature-toggles-title">Feature Toggles</CardTitle>
+                  <CardDescription data-testid="text-feature-toggles-description">
+                    Enable or disable features before launch
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <Label htmlFor="google-drive-toggle" className="text-sm font-medium">
+                    Google Drive Integration
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Show Google Drive tile in Health Records page
+                  </p>
+                </div>
+                <Switch
+                  id="google-drive-toggle"
+                  data-testid="switch-google-drive"
+                  checked={googleDriveSetting?.enabled ?? false}
+                  onCheckedChange={(checked) => toggleGoogleDriveMutation.mutate(checked)}
+                  disabled={toggleGoogleDriveMutation.isPending}
+                />
+              </div>
+
+              <div className="flex items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <Label htmlFor="webhook-toggle" className="text-sm font-medium">
+                    Webhook Integration
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Show webhook/Health Auto Export setup in Apple Health integration
+                  </p>
+                </div>
+                <Switch
+                  id="webhook-toggle"
+                  data-testid="switch-webhook"
+                  checked={webhookSetting?.enabled ?? false}
+                  onCheckedChange={(checked) => toggleWebhookMutation.mutate(checked)}
+                  disabled={toggleWebhookMutation.isPending}
+                />
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -1283,6 +1384,28 @@ function AdminContent() {
         <CardContent>
           <p className="text-sm text-muted-foreground">
             Step-by-step microphone test that shows exactly what's failing and how to fix it
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card data-testid="card-healthkit-diagnostics-link" className="hover-elevate cursor-pointer" onClick={() => setLocation("/healthkit-diagnostics")}>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Stethoscope className="w-6 h-6 text-primary" />
+              <div>
+                <CardTitle data-testid="text-healthkit-diagnostics-link-title">HealthKit Diagnostics</CardTitle>
+                <CardDescription data-testid="text-healthkit-diagnostics-link-description">
+                  Debug HealthKit integration and data sync
+                </CardDescription>
+              </div>
+            </div>
+            <ArrowRight className="w-5 h-5 text-muted-foreground" />
+          </div>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            View HealthKit permissions, sync status, and troubleshoot data import issues
           </p>
         </CardContent>
       </Card>
