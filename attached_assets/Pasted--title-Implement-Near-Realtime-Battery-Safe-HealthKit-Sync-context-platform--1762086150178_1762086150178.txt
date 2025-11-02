@@ -1,0 +1,191 @@
+{
+  "title": "Implement Near-Realtime, Battery-Safe HealthKit Sync",
+  "context": {
+    "platform": "iOS native + Capacitor bridge",
+    "app_modules": [
+      "HealthKitService (native Swift)",
+      "SyncManager (native Swift)",
+      "BackgroundTaskService (native Swift)",
+      "NetworkQueueService (native Swift, background URLSession)",
+      "CapacitorPlugin (bridge, event emitter)",
+      "TypeScript SDK (listener + controls in app)"
+    ],
+    "goals": [
+      "Near-realtime or hourly sync per data type with minimal battery impact",
+      "Delta-only syncing via HKAnchoredObjectQuery with persistent anchors",
+      "Robust background delivery with BGTaskScheduler and background URLSession",
+      "Network- and power-aware batching, retries, and backoff",
+      "Observable events to the JS layer for UI updates"
+    ]
+  },
+  "requirements": {
+    "healthkit_types": {
+      "fast": [
+        "heartRate",
+        "heartRateVariabilitySDNN",
+        "oxygenSaturation",
+        "respiratoryRate",
+        "bloodGlucose",
+        "activeEnergyBurned"
+      ],
+      "moderate": [
+        "stepCount",
+        "distanceWalkingRunning",
+        "restingHeartRate",
+        "flightsClimbed",
+        "dietaryWater",
+        "dietaryEnergyConsumed",
+        "dietaryProtein",
+        "dietaryCarbohydrates",
+        "dietaryFatTotal"
+      ],
+      "slow": [
+        "sleepAnalysis",
+        "bloodPressureSystolic",
+        "bloodPressureDiastolic",
+        "bodyMass",
+        "bodyMassIndex",
+        "bodyFatPercentage",
+        "leanBodyMass",
+        "waistCircumference",
+        "bodyTemperature",
+        "height",
+        "workoutType"
+      ],
+      "identifier_map": {
+        "heartRate": "HKQuantityTypeIdentifier.heartRate",
+        "heartRateVariabilitySDNN": "HKQuantityTypeIdentifier.heartRateVariabilitySDNN",
+        "oxygenSaturation": "HKQuantityTypeIdentifier.oxygenSaturation",
+        "respiratoryRate": "HKQuantityTypeIdentifier.respiratoryRate",
+        "bloodGlucose": "HKQuantityTypeIdentifier.bloodGlucose",
+        "activeEnergyBurned": "HKQuantityTypeIdentifier.activeEnergyBurned",
+        "stepCount": "HKQuantityTypeIdentifier.stepCount",
+        "distanceWalkingRunning": "HKQuantityTypeIdentifier.distanceWalkingRunning",
+        "restingHeartRate": "HKQuantityTypeIdentifier.restingHeartRate",
+        "flightsClimbed": "HKQuantityTypeIdentifier.flightsClimbed",
+        "dietaryWater": "HKQuantityTypeIdentifier.dietaryWater",
+        "dietaryEnergyConsumed": "HKQuantityTypeIdentifier.dietaryEnergyConsumed",
+        "dietaryProtein": "HKQuantityTypeIdentifier.dietaryProtein",
+        "dietaryCarbohydrates": "HKQuantityTypeIdentifier.dietaryCarbohydrates",
+        "dietaryFatTotal": "HKQuantityTypeIdentifier.dietaryFatTotal",
+        "sleepAnalysis": "HKCategoryTypeIdentifier.sleepAnalysis",
+        "bloodPressureSystolic": "HKQuantityTypeIdentifier.bloodPressureSystolic",
+        "bloodPressureDiastolic": "HKQuantityTypeIdentifier.bloodPressureDiastolic",
+        "bodyMass": "HKQuantityTypeIdentifier.bodyMass",
+        "bodyMassIndex": "HKQuantityTypeIdentifier.bodyMassIndex",
+        "bodyFatPercentage": "HKQuantityTypeIdentifier.bodyFatPercentage",
+        "leanBodyMass": "HKQuantityTypeIdentifier.leanBodyMass",
+        "waistCircumference": "HKQuantityTypeIdentifier.waistCircumference",
+        "bodyTemperature": "HKQuantityTypeIdentifier.bodyTemperature",
+        "height": "HKQuantityTypeIdentifier.height",
+        "workoutType": "HKObjectType.workoutType()"
+      }
+    },
+    "background_delivery": {
+      "enableBackgroundDelivery": [
+        { "type": "fast", "frequency": "immediate" },
+        { "type": "moderate", "frequency": "hourly" },
+        { "type": "slow", "frequency": "daily" }
+      ],
+      "observer_query": "Create HKObserverQuery per type; on signal, schedule anchored fetch with debounce"
+    },
+    "anchored_sync": {
+      "storage": "Per-type HKQueryAnchor persisted in UserDefaults (or Keychain if preferred)",
+      "query": "HKAnchoredObjectQuery with includeDeletedObjects=true, limit=500 per page, loop until no more",
+      "dedupe": "Optional per-type lastSyncedUUIDs ring buffer (size 1k)"
+    },
+    "throttling_and_coalescing": {
+      "debounce_window_ms": 45000,
+      "min_interval_per_type_ms": 30000,
+      "max_batch_samples": 500,
+      "max_payload_bytes": 200000
+    },
+    "network_and_power": {
+      "reachability": "NWPathMonitor; prefer Wi-Fi for bulk; cellular only if user allows",
+      "low_power_mode": "If enabled, sync only critical 'fast' types (heartRate, HRV, SpO2, respRate, glucose) and defer others",
+      "background_uploads": "background URLSession with retries and exponential backoff: 2s, 5s, 15s, 60s"
+    },
+    "background_tasks": {
+      "identifiers": {
+        "refresh": "com.healthpilot.sync.refresh",
+        "processing": "com.healthpilot.sync.processing"
+      },
+      "app_refresh": "Re-register observers, run lightweight anchor sweep, flush small queue",
+      "processing": "Run large backfills or when queue > 2000 samples; requireExternalPower=true"
+    },
+    "cap_bridge": {
+      "plugin_name": "HealthPilotHealthKit",
+      "events": ["healthkit:update", "healthkit:syncStatus", "healthkit:error"],
+      "methods": [
+        { "name": "requestAuthorization", "args": { "readTypes": [], "shareTypes": [] } },
+        { "name": "startObservers", "args": { "types": [] } },
+        { "name": "stopObservers", "args": { "types": [] } },
+        { "name": "forceSync", "args": { "types": [], "since": "iso8601|anchor" } },
+        { "name": "getSyncState", "args": {} },
+        { "name": "setSyncPolicy", "args": { "typePolicies": { "*": "inherit" } } }
+      ]
+    },
+    "serialization": {
+      "format": "JSON Lines (one sample per line) for streamable upload",
+      "content": "raw HKSample fields + metadata (uuid, startDate, endDate, value/unit where applicable, source, device, metadata, deleted flag)"
+    },
+    "server_api": {
+      "endpoints": [
+        { "path": "/v1/ingest/healthkit", "method": "POST", "auth": "token", "body": "ndjson", "response": "{ accepted, rejected, reasons[] }" }
+      ],
+      "idempotency": "Idempotency-Key header using a stable batch hash",
+      "compression": "Enable gzip"
+    },
+    "privacy_and_controls": {
+      "user_toggles": "Per-type policy (realtime/hourly/off), cellular upload allowed, only-on-WiFi, only-while-charging",
+      "status_ui": "Last sync time per type, queue length, last error"
+    },
+    "edge_cases": [
+      "Protected data unavailable at boot → listen for didBecomeAvailable, then re-register",
+      "App reinstall or logout → clear anchors and local queue after user confirmation",
+      "Large initial backfill → perform via BGProcessingTask with external power"
+    ]
+  },
+  "implementation_tasks": [
+    { "name": "HealthKitService", "details": "Swift; request auth, register HKObserverQuery per type, run HKAnchoredObjectQuery with paging; persist anchors per type; emit plugin events; includeDeletedObjects=true." },
+    { "name": "SyncManager", "details": "Swift; debounce/coalesce events; enforce per-type min interval; enqueue small batches to NetworkQueue; track queue size; backoff & retry policies." },
+    { "name": "BackgroundTaskService", "details": "Register BGAppRefreshTask and BGProcessingTask; schedule on app launch and after completion; re-register observers; execute periodic anchor sweep; guard timeouts." },
+    { "name": "NetworkQueueService", "details": "background URLSession; NDJSON streaming; gzip; Idempotency-Key; exponential backoff; NWPathMonitor gating." },
+    { "name": "CapacitorPlugin", "details": "Expose start/stop/forceSync/getSyncState/setSyncPolicy; emit 'healthkit:update' on new deltas and 'healthkit:syncStatus' on progress/errors." },
+    { "name": "TypeScript SDK", "details": "healthkit.on('healthkit:update'|'healthkit:syncStatus'); UI hooks; settings screen to control per-type policies; status component." }
+  ],
+  "testing": {
+    "unit": [
+      "Anchors persist/restore per type",
+      "Observer debounce & rate limit respected",
+      "Deleted objects propagate upstream",
+      "Low Power Mode → only critical fast types synced"
+    ],
+    "integration": [
+      "Kill app → background delivery resumes and delta sync runs",
+      "Airplane mode → enqueue; sync on connectivity restore",
+      "BGProcessingTask handles large backfill on power"
+    ],
+    "e2e": [
+      "Grant permissions → initial anchor baseline set without upload",
+      "Write test samples → observer fires once; deltas uploaded ≤60s",
+      "Reinstall app → no historical re-upload unless user opts in"
+    ],
+    "telemetry": [
+      "Per-type: lastSyncAt, samplesSent, retries, avgBatchKB, backgroundTimeUsed"
+    ],
+    "acceptance_criteria": [
+      "Median end-to-end delay for fast types ≤60s when app not killed",
+      "Background CPU ≤ 30s per hour on average",
+      "No duplicate uploads (idempotency verified)",
+      "User toggles respected across sessions"
+    ]
+  },
+  "deliverables": [
+    "Swift files for services + plugin",
+    "TypeScript SDK and example UI",
+    "BGTaskScheduler identifiers + config",
+    "Automated tests & manual test checklist",
+    "Docs: setup, privacy notes, troubleshooting"
+  ]
+}
