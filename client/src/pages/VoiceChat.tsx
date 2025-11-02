@@ -202,7 +202,11 @@ export default function VoiceChat() {
       startAudioCapture(stream, ws);
 
     } catch (error: any) {
-      console.error("❌ Failed to connect:", error);
+      console.error("❌ [VoiceChat] Failed to connect - Full error:", error);
+      console.error("❌ [VoiceChat] Error name:", error?.name);
+      console.error("❌ [VoiceChat] Error message:", error?.message);
+      console.error("❌ [VoiceChat] Error stack:", error?.stack);
+      console.error("❌ [VoiceChat] Error stringified:", JSON.stringify(error, Object.getOwnPropertyNames(error)));
       
       // Provide specific error message based on error type
       let errorTitle = "Microphone Access Required";
