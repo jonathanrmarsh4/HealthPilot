@@ -11208,12 +11208,29 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
       const { 
         steps, 
         hrv, 
-        restingHeartRate, 
+        restingHeartRate,
+        heartRate,
         sleep, 
         workouts, 
         weight, 
         bodyFat, 
-        leanBodyMass 
+        leanBodyMass,
+        bloodPressureSystolic,
+        bloodPressureDiastolic,
+        bloodGlucose,
+        oxygenSaturation,
+        respiratoryRate,
+        bodyTemperature,
+        distance,
+        flightsClimbed,
+        activeCalories,
+        basalCalories,
+        height,
+        bmi,
+        vo2Max,
+        walkingHeartRateAverage,
+        waistCircumference,
+        dietaryWater
       } = req.body;
       
       // Get user timezone for sleep processing
@@ -11336,6 +11353,278 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
         const count = await storage.batchUpsertBiomarkers(leanMassBiomarkers);
         insertedCount += count;
         console.log(`💪 Inserted/updated ${count} lean mass samples`);
+      }
+
+      // Process blood pressure systolic data (batch)
+      if (bloodPressureSystolic && bloodPressureSystolic.length > 0) {
+        console.log(`🩸 Processing ${bloodPressureSystolic.length} blood pressure (systolic) samples (batch)`);
+        const biomarkers = bloodPressureSystolic.map(sample => ({
+          userId,
+          type: "blood-pressure-systolic" as const,
+          value: sample.value,
+          unit: sample.unit || "mmHg",
+          source: "ios-healthkit" as const,
+          recordedAt: new Date(sample.startDate),
+        }));
+        const count = await storage.batchUpsertBiomarkers(biomarkers);
+        insertedCount += count;
+        console.log(`✅ Inserted/updated ${count} blood pressure (systolic) samples`);
+      }
+
+      // Process blood pressure diastolic data (batch)
+      if (bloodPressureDiastolic && bloodPressureDiastolic.length > 0) {
+        console.log(`🩸 Processing ${bloodPressureDiastolic.length} blood pressure (diastolic) samples (batch)`);
+        const biomarkers = bloodPressureDiastolic.map(sample => ({
+          userId,
+          type: "blood-pressure-diastolic" as const,
+          value: sample.value,
+          unit: sample.unit || "mmHg",
+          source: "ios-healthkit" as const,
+          recordedAt: new Date(sample.startDate),
+        }));
+        const count = await storage.batchUpsertBiomarkers(biomarkers);
+        insertedCount += count;
+        console.log(`✅ Inserted/updated ${count} blood pressure (diastolic) samples`);
+      }
+
+      // Process blood glucose data (batch)
+      if (bloodGlucose && bloodGlucose.length > 0) {
+        console.log(`🍬 Processing ${bloodGlucose.length} blood glucose samples (batch)`);
+        const biomarkers = bloodGlucose.map(sample => ({
+          userId,
+          type: "blood-glucose" as const,
+          value: sample.value,
+          unit: sample.unit || "mg/dL",
+          source: "ios-healthkit" as const,
+          recordedAt: new Date(sample.startDate),
+        }));
+        const count = await storage.batchUpsertBiomarkers(biomarkers);
+        insertedCount += count;
+        console.log(`✅ Inserted/updated ${count} blood glucose samples`);
+      }
+
+      // Process oxygen saturation data (batch)
+      if (oxygenSaturation && oxygenSaturation.length > 0) {
+        console.log(`🫁 Processing ${oxygenSaturation.length} oxygen saturation samples (batch)`);
+        const biomarkers = oxygenSaturation.map(sample => ({
+          userId,
+          type: "oxygen-saturation" as const,
+          value: sample.value,
+          unit: sample.unit || "%",
+          source: "ios-healthkit" as const,
+          recordedAt: new Date(sample.startDate),
+        }));
+        const count = await storage.batchUpsertBiomarkers(biomarkers);
+        insertedCount += count;
+        console.log(`✅ Inserted/updated ${count} oxygen saturation samples`);
+      }
+
+      // Process respiratory rate data (batch)
+      if (respiratoryRate && respiratoryRate.length > 0) {
+        console.log(`🫁 Processing ${respiratoryRate.length} respiratory rate samples (batch)`);
+        const biomarkers = respiratoryRate.map(sample => ({
+          userId,
+          type: "respiratory-rate" as const,
+          value: sample.value,
+          unit: sample.unit || "breaths/min",
+          source: "ios-healthkit" as const,
+          recordedAt: new Date(sample.startDate),
+        }));
+        const count = await storage.batchUpsertBiomarkers(biomarkers);
+        insertedCount += count;
+        console.log(`✅ Inserted/updated ${count} respiratory rate samples`);
+      }
+
+      // Process body temperature data (batch)
+      if (bodyTemperature && bodyTemperature.length > 0) {
+        console.log(`🌡️ Processing ${bodyTemperature.length} body temperature samples (batch)`);
+        const biomarkers = bodyTemperature.map(sample => ({
+          userId,
+          type: "body-temperature" as const,
+          value: sample.value,
+          unit: sample.unit || "°F",
+          source: "ios-healthkit" as const,
+          recordedAt: new Date(sample.startDate),
+        }));
+        const count = await storage.batchUpsertBiomarkers(biomarkers);
+        insertedCount += count;
+        console.log(`✅ Inserted/updated ${count} body temperature samples`);
+      }
+
+      // Process regular heart rate data (batch) - NOT resting
+      if (heartRate && heartRate.length > 0) {
+        console.log(`❤️ Processing ${heartRate.length} heart rate samples (batch)`);
+        const biomarkers = heartRate.map(sample => ({
+          userId,
+          type: "heart-rate" as const,
+          value: sample.value,
+          unit: sample.unit || "bpm",
+          source: "ios-healthkit" as const,
+          recordedAt: new Date(sample.startDate),
+        }));
+        const count = await storage.batchUpsertBiomarkers(biomarkers);
+        insertedCount += count;
+        console.log(`✅ Inserted/updated ${count} heart rate samples`);
+      }
+
+      // Process distance data (batch)
+      if (distance && distance.length > 0) {
+        console.log(`🚶 Processing ${distance.length} distance samples (batch)`);
+        const biomarkers = distance.map(sample => ({
+          userId,
+          type: "distance" as const,
+          value: sample.value,
+          unit: sample.unit || "m",
+          source: "ios-healthkit" as const,
+          recordedAt: new Date(sample.startDate),
+        }));
+        const count = await storage.batchUpsertBiomarkers(biomarkers);
+        insertedCount += count;
+        console.log(`✅ Inserted/updated ${count} distance samples`);
+      }
+
+      // Process flights climbed data (batch)
+      if (flightsClimbed && flightsClimbed.length > 0) {
+        console.log(`🪜 Processing ${flightsClimbed.length} flights climbed samples (batch)`);
+        const biomarkers = flightsClimbed.map(sample => ({
+          userId,
+          type: "flights-climbed" as const,
+          value: sample.value,
+          unit: sample.unit || "count",
+          source: "ios-healthkit" as const,
+          recordedAt: new Date(sample.startDate),
+        }));
+        const count = await storage.batchUpsertBiomarkers(biomarkers);
+        insertedCount += count;
+        console.log(`✅ Inserted/updated ${count} flights climbed samples`);
+      }
+
+      // Process active calories data (batch)
+      if (activeCalories && activeCalories.length > 0) {
+        console.log(`🔥 Processing ${activeCalories.length} active calories samples (batch)`);
+        const biomarkers = activeCalories.map(sample => ({
+          userId,
+          type: "active-calories" as const,
+          value: sample.value,
+          unit: sample.unit || "kcal",
+          source: "ios-healthkit" as const,
+          recordedAt: new Date(sample.startDate),
+        }));
+        const count = await storage.batchUpsertBiomarkers(biomarkers);
+        insertedCount += count;
+        console.log(`✅ Inserted/updated ${count} active calories samples`);
+      }
+
+      // Process basal calories data (batch)
+      if (basalCalories && basalCalories.length > 0) {
+        console.log(`🔥 Processing ${basalCalories.length} basal calories samples (batch)`);
+        const biomarkers = basalCalories.map(sample => ({
+          userId,
+          type: "basal-calories" as const,
+          value: sample.value,
+          unit: sample.unit || "kcal",
+          source: "ios-healthkit" as const,
+          recordedAt: new Date(sample.startDate),
+        }));
+        const count = await storage.batchUpsertBiomarkers(biomarkers);
+        insertedCount += count;
+        console.log(`✅ Inserted/updated ${count} basal calories samples`);
+      }
+
+      // Process height data (batch)
+      if (height && height.length > 0) {
+        console.log(`📏 Processing ${height.length} height samples (batch)`);
+        const biomarkers = height.map(sample => ({
+          userId,
+          type: "height" as const,
+          value: sample.value,
+          unit: sample.unit || "cm",
+          source: "ios-healthkit" as const,
+          recordedAt: new Date(sample.startDate),
+        }));
+        const count = await storage.batchUpsertBiomarkers(biomarkers);
+        insertedCount += count;
+        console.log(`✅ Inserted/updated ${count} height samples`);
+      }
+
+      // Process BMI data (batch)
+      if (bmi && bmi.length > 0) {
+        console.log(`📊 Processing ${bmi.length} BMI samples (batch)`);
+        const biomarkers = bmi.map(sample => ({
+          userId,
+          type: "bmi" as const,
+          value: sample.value,
+          unit: sample.unit || "count",
+          source: "ios-healthkit" as const,
+          recordedAt: new Date(sample.startDate),
+        }));
+        const count = await storage.batchUpsertBiomarkers(biomarkers);
+        insertedCount += count;
+        console.log(`✅ Inserted/updated ${count} BMI samples`);
+      }
+
+      // Process VO2Max data (batch)
+      if (vo2Max && vo2Max.length > 0) {
+        console.log(`🏃‍♂️ Processing ${vo2Max.length} VO2Max samples (batch)`);
+        const biomarkers = vo2Max.map(sample => ({
+          userId,
+          type: "vo2-max" as const,
+          value: sample.value,
+          unit: sample.unit || "mL/kg/min",
+          source: "ios-healthkit" as const,
+          recordedAt: new Date(sample.startDate),
+        }));
+        const count = await storage.batchUpsertBiomarkers(biomarkers);
+        insertedCount += count;
+        console.log(`✅ Inserted/updated ${count} VO2Max samples`);
+      }
+
+      // Process walking heart rate average data (batch)
+      if (walkingHeartRateAverage && walkingHeartRateAverage.length > 0) {
+        console.log(`🚶❤️ Processing ${walkingHeartRateAverage.length} walking heart rate samples (batch)`);
+        const biomarkers = walkingHeartRateAverage.map(sample => ({
+          userId,
+          type: "walking-heart-rate-average" as const,
+          value: sample.value,
+          unit: sample.unit || "bpm",
+          source: "ios-healthkit" as const,
+          recordedAt: new Date(sample.startDate),
+        }));
+        const count = await storage.batchUpsertBiomarkers(biomarkers);
+        insertedCount += count;
+        console.log(`✅ Inserted/updated ${count} walking heart rate samples`);
+      }
+
+      // Process waist circumference data (batch)
+      if (waistCircumference && waistCircumference.length > 0) {
+        console.log(`📐 Processing ${waistCircumference.length} waist circumference samples (batch)`);
+        const biomarkers = waistCircumference.map(sample => ({
+          userId,
+          type: "waist-circumference" as const,
+          value: sample.value,
+          unit: sample.unit || "cm",
+          source: "ios-healthkit" as const,
+          recordedAt: new Date(sample.startDate),
+        }));
+        const count = await storage.batchUpsertBiomarkers(biomarkers);
+        insertedCount += count;
+        console.log(`✅ Inserted/updated ${count} waist circumference samples`);
+      }
+
+      // Process dietary water data (batch)
+      if (dietaryWater && dietaryWater.length > 0) {
+        console.log(`💧 Processing ${dietaryWater.length} dietary water samples (batch)`);
+        const biomarkers = dietaryWater.map(sample => ({
+          userId,
+          type: "dietary-water" as const,
+          value: sample.value,
+          unit: sample.unit || "mL",
+          source: "ios-healthkit" as const,
+          recordedAt: new Date(sample.startDate),
+        }));
+        const count = await storage.batchUpsertBiomarkers(biomarkers);
+        insertedCount += count;
+        console.log(`✅ Inserted/updated ${count} dietary water samples`);
       }
 
       // Process sleep data using v2.0 algorithm
