@@ -40,6 +40,7 @@ import AppleHealthSetup from "@/pages/AppleHealthSetup";
 import Notifications from "@/pages/Notifications";
 import Chat from "@/pages/Chat";
 import VoiceChat from "@/pages/VoiceChat";
+import VoiceChatSimple from "@/pages/VoiceChatSimple";
 import Profile from "@/pages/Profile";
 import Settings from "@/pages/Settings";
 import Billing from "@/pages/Billing";
@@ -101,6 +102,7 @@ function Router() {
       <Route path="/notifications" component={Notifications} />
       <Route path="/chat" component={Chat} />
       <Route path="/voice-chat" component={VoiceChat} />
+      <Route path="/voice-chat-simple" component={VoiceChatSimple} />
       <Route path="/diagnostics" component={DiagnosticPage} />
       <Route path="/profile" component={Profile} />
       <Route path="/apple-health" component={AppleHealthSetup} />

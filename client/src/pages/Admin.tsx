@@ -13,7 +13,7 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Shield, Users, TrendingUp, FileText, Activity, Search, Trash2, ChefHat, Tag, ArrowRight, Layout, DollarSign, Image, Dumbbell, Play, FlaskConical, Wrench, TestTube, Sparkles, Settings } from "lucide-react";
+import { Shield, Users, TrendingUp, FileText, Activity, Search, Trash2, ChefHat, Tag, ArrowRight, Layout, DollarSign, Image, Dumbbell, Play, FlaskConical, Wrench, TestTube, Sparkles, Settings, Mic } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { User } from "@shared/schema";
@@ -584,6 +584,28 @@ export default function Admin() {
         <CardContent>
           <p className="text-sm text-muted-foreground">
             View Capacitor platform info, microphone permissions, and troubleshoot native iOS app issues
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card data-testid="card-voice-chat-test-link" className="hover-elevate cursor-pointer" onClick={() => setLocation("/voice-chat-simple")}>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Mic className="w-6 h-6 text-primary" />
+              <div>
+                <CardTitle data-testid="text-voice-chat-test-link-title">Voice Chat Microphone Test</CardTitle>
+                <CardDescription data-testid="text-voice-chat-test-link-description">
+                  Test microphone access with detailed error reporting
+                </CardDescription>
+              </div>
+            </div>
+            <ArrowRight className="w-5 h-5 text-muted-foreground" />
+          </div>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            Step-by-step microphone test that shows exactly what's failing and how to fix it
           </p>
         </CardContent>
       </Card>
