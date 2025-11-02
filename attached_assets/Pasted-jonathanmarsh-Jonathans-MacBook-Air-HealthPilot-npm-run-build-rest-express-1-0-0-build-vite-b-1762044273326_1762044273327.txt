@@ -1,0 +1,41 @@
+jonathanmarsh@Jonathans-MacBook-Air HealthPilot % npm run build
+
+> rest-express@1.0.0 build
+> vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+
+vite v5.4.20 building for production...
+transforming (3) src/main.tsxBrowserslist: browsers data (caniuse-lite) is 13 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+transforming (4) src/App.tsx
+A PostCSS plugin did not pass the `from` option to `postcss.parse`. This may cause imported assets to be incorrectly transformed. If you've recently added a PostCSS plugin that raised this warning, please contact the package author to fix the issue.
+✓ 4037 modules transformed.
+[plugin:vite:reporter] [plugin vite:reporter] 
+(!) /Users/jonathanmarsh/Developer/HealthPilot/node_modules/@capacitor/preferences/dist/esm/index.js is dynamically imported by /Users/jonathanmarsh/Developer/HealthPilot/client/src/mobile/features/diagnostics/NativeDiagnostics.tsx but also statically imported by /Users/jonathanmarsh/Developer/HealthPilot/client/src/App.tsx, /Users/jonathanmarsh/Developer/HealthPilot/client/src/mobile/adapters/SecureStorageAdapter.ts, /Users/jonathanmarsh/Developer/HealthPilot/client/src/pages/Login.tsx, dynamic import will not move module into another chunk.
+
+../dist/public/index.html                                              2.91 kB │ gzip:   1.12 kB
+../dist/public/assets/HealthPilot_Logo_1759904141260-vsk9EWYG.png  1,430.42 kB
+../dist/public/assets/IMG_0088_1760794249248-rzWpvWYO.png          2,071.89 kB
+../dist/public/assets/index-B-XyfEJE.css                             113.77 kB │ gzip:  18.28 kB
+../dist/public/assets/web-Hoftnk_g.js                                  0.12 kB │ gzip:   0.12 kB
+../dist/public/assets/web-kozEEZH3.js                                  0.36 kB │ gzip:   0.25 kB
+../dist/public/assets/web-iwl53iFn.js                                  0.38 kB │ gzip:   0.25 kB
+../dist/public/assets/web-VlUBejTo.js                                  0.71 kB │ gzip:   0.32 kB
+../dist/public/assets/native-DsyBrhMT.js                               0.75 kB │ gzip:   0.35 kB
+../dist/public/assets/web-lY_coK0u.js                                  0.76 kB │ gzip:   0.35 kB
+../dist/public/assets/web-DmZhJiRY.js                                  0.80 kB │ gzip:   0.41 kB
+../dist/public/assets/web-DdbS-n_8.js                                  0.94 kB │ gzip:   0.46 kB
+../dist/public/assets/web-CfO1IAq-.js                                  1.25 kB │ gzip:   0.58 kB
+../dist/public/assets/base-IpKFnxJg.js                                 2.52 kB │ gzip:   0.93 kB
+../dist/public/assets/index-C4v4ixgk.js                            2,951.99 kB │ gzip: 714.04 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 3.82s
+
+  dist/index.js  1.4mb ⚠️
+
+⚡ Done in 25ms
+jonathanmarsh@Jonathans-MacBook-Air HealthPilot % 
