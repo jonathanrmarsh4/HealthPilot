@@ -143,11 +143,18 @@ function SidebarContentWrapper({
   const { user } = useAuth();
   const { setOpenMobile } = useSidebar();
 
-  // Add swipe-to-open functionality for mobile
+  // Add context-aware swipe-to-open functionality for mobile
+  // Dashboard: swipe opens sidebar
+  // Other pages: swipe acts as "back" navigation
   useSwipeToOpenSidebar({
     onSwipeRight: () => {
-      // Open the sidebar when user swipes from left edge
-      setOpenMobile(true);
+      if (location === '/') {
+        // On dashboard, open the sidebar
+        setOpenMobile(true);
+      } else {
+        // On other pages, navigate back
+        window.history.back();
+      }
     },
   });
 
