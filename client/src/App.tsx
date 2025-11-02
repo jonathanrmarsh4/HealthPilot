@@ -62,6 +62,7 @@ import LandingPage from "@/pages/LandingPage";
 import NotFound from "@/pages/not-found";
 import { NativeDiagnostics } from "@/mobile/features/diagnostics/NativeDiagnostics";
 import HealthKitDiagnostics from "@/pages/HealthKitDiagnostics";
+import DiagnosticPage from "@/pages/DiagnosticPage";
 import { Loader2, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
@@ -100,6 +101,7 @@ function Router() {
       <Route path="/notifications" component={Notifications} />
       <Route path="/chat" component={Chat} />
       <Route path="/voice-chat" component={VoiceChat} />
+      <Route path="/diagnostics" component={DiagnosticPage} />
       <Route path="/profile" component={Profile} />
       <Route path="/apple-health" component={AppleHealthSetup} />
       <Route path="/settings" component={Settings} />
