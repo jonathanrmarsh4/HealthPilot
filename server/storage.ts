@@ -1213,26 +1213,32 @@ export class DbStorage implements IStorage {
   async batchUpsertBiomarkers(biomarkersToUpsert: InsertBiomarker[]): Promise<number> {
     if (biomarkersToUpsert.length === 0) return 0;
     
-    // Insert all biomarkers, skipping duplicates
+    // Insert all biomarkers, updating duplicates based on unique index (userId, type, recordedAt, source)
     // This is fast because it's a single bulk insert operation
     try {
       const inserted = await db
         .insert(biomarkers)
         .values(biomarkersToUpsert)
-        .onConflictDoNothing()
+        .onConflictDoUpdate({
+          target: [biomarkers.userId, biomarkers.type, biomarkers.recordedAt, biomarkers.source],
+          set: {
+            value: sql`EXCLUDED.value`,
+            unit: sql`EXCLUDED.unit`,
+          }
+        })
         .returning();
       
       return inserted.length;
     } catch (error) {
       console.error('[BatchUpsert] Error during batch insert:', error);
-      // Fallback: try inserting one at a time
+      // Fallback: try inserting one at a time using individual upsert
       let count = 0;
       for (const biomarker of biomarkersToUpsert) {
         try {
-          await db.insert(biomarkers).values(biomarker).onConflictDoNothing();
+          await this.upsertBiomarker(biomarker);
           count++;
         } catch (e) {
-          // Skip individual errors
+          console.error('[BatchUpsert] Failed individual insert:', e);
         }
       }
       return count;

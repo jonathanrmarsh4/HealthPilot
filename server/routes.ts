@@ -9498,8 +9498,15 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
       const steps = latestByType['steps'];
       const calories = latestByType['calories'];
       
+      // Calculate today's total steps by summing all step samples from today
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todaySteps = biomarkers
+        .filter(b => b.type === 'steps' && new Date(b.recordedAt) >= today)
+        .reduce((sum, b) => sum + b.value, 0);
+      
       res.json({
-        dailySteps: steps ? steps.value : 0,
+        dailySteps: todaySteps,
         restingHR: heartRate ? heartRate.value : 0,
         activeDays: 5,
         calories: calories ? calories.value : 0,

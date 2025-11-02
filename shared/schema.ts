@@ -250,7 +250,13 @@ export const workoutSessions = pgTable("workout_sessions", {
   notes: text("notes"),
   perceivedEffort: integer("perceived_effort"), // RPE scale 1-10
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (table) => [
+  index("workout_sessions_user_created_idx").on(table.userId, table.createdAt),
+  // Prevent duplicate syncs from external sources (only when sourceId is provided)
+  uniqueIndex("workout_sessions_source_dedup_idx")
+    .on(table.userId, table.sourceType, table.sourceId)
+    .where(sql`${table.sourceId} IS NOT NULL`),
+]);
 
 export const exerciseLogs = pgTable("exercise_logs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
