@@ -1,0 +1,89 @@
+       guard endDate >= startDate else {
+            throw HealthManagerError.invalidDateRange
+        }
+
+        let unit = unit(for: unitIdentifier, dataType: dataType)
+        let quantity = HKQuantity(unit: unit, doubleValue: value)
+
+        var metadataDictionary: [String: Any]?
+        if let metadata = metadata, !metadata.isEmpty {
+            metadataDictionary = metadata.reduce(into: [String: Any]()) { result, entry in
+                result[entry.key] = entry.value
+            }
+        }
+
+        let sample = HKQuantitySample(type: sampleType, quantity: quantity, start: startDate, end: endDate, metadata: metadataDictionary)
+
+        healthStore.save(sample) { success, error in
+            if let error = error {
+                completion(.failure(error))
+                return
+            }
+
+            if success {
+                completion(.success(()))
+            } else {
+                completion(.failure(HealthManagerError.operationFailed("Failed to save the sample.")))
+            }
+        }
+    }
+
+    private func evaluateAuthorizationStatus(readTypes: [HealthDataType], writeTypes: [HealthDataType], completion: @escaping (AuthorizationStatusPayload) -> Void) {
+        let writeStatus = writeAuthorizationStatus(for: writeTypes)
+
+        readAuthorizationStatus(for: readTypes) { readAuthorized, readDenied in
+            let payload = AuthorizationStatusPayload(
+                readAuthorized: readAuthorized,
+                readDenied: readDenied,
+                writeAuthorized: writeStatus.authorized,
+                writeDenied: writeStatus.denied
+            )
+            completion(payload)
+        }
+    }
+
+    private func writeAuthorizationStatus(for types: [HealthDataType]) -> (authorized: [HealthDataType], denied: [HealthDataType]) {
+        var authorized: [HealthDataType] = []
+        var denied: [HealthDataType] = []
+
+        for type in types {
+            guard let sampleType = try? type.sampleType() else {
+                denied.append(type)
+                continue
+            }
+
+            switch healthStore.authorizationStatus(for: sampleType) {
+            case .sharingAuthorized:
+                authorized.append(type)
+            case .sharingDenied, .notDetermined:
+                denied.append(type)
+            @unknown default:
+                denied.append(type)
+            }
+        }
+
+        return (authorized, denied)
+    }
+
+    private func readAuthorizationStatus(for types: [HealthDataType], completion: @escaping ([HealthDataType], [HealthDataType]) -> Void) {
+        guard !types.isEmpty else {
+            completion([], [])
+            return
+        }
+
+        if #available(iOS 12.0, *) {
+            let group = DispatchGroup()
+            let lock = NSLock()
+            var authorized: [HealthDataType] = []
+            var denied: [HealthDataType] = []
+
+            for type in types {
+                guard let objectType = try? type.sampleType() else {
+                    denied.append(type)
+                    continue
+                }
+
+                group.enter()
+                let readSet = Set<HKObjectType>([objectType])
+                healthStore.getRequestStatusForAuthorization(toShare: Set<HKSampleType>(), read: readSet) { status, error in
+
