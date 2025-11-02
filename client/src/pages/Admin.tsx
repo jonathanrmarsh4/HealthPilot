@@ -566,6 +566,28 @@ export default function Admin() {
         </CardContent>
       </Card>
 
+      <Card data-testid="card-diagnostics-link" className="hover-elevate cursor-pointer" onClick={() => setLocation("/diagnostics")}>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Wrench className="w-6 h-6 text-primary" />
+              <div>
+                <CardTitle data-testid="text-diagnostics-link-title">Platform Diagnostics</CardTitle>
+                <CardDescription data-testid="text-diagnostics-link-description">
+                  Debug native app platform detection and permissions
+                </CardDescription>
+              </div>
+            </div>
+            <ArrowRight className="w-5 h-5 text-muted-foreground" />
+          </div>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            View Capacitor platform info, microphone permissions, and troubleshoot native iOS app issues
+          </p>
+        </CardContent>
+      </Card>
+
       <Card data-testid="card-workout-planner-tools">
         <CardHeader>
           <div className="flex items-center gap-3">
