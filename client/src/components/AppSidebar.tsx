@@ -28,7 +28,6 @@ import {
   ShieldCheck,
   Globe,
   AlertCircle,
-  Bell,
   Stethoscope,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
@@ -141,7 +140,7 @@ export function AppSidebar() {
         </Link>
       </SidebarHeader>
       <SidebarContent>
-        {/* Dashboard - Always visible at top */}
+        {/* Top Level Menu Items - Always visible */}
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -160,18 +159,6 @@ export function AppSidebar() {
               <SidebarMenuItem>
                 <SidebarMenuButton
                   asChild
-                  isActive={location === "/notifications"}
-                  data-testid="link-notifications"
-                >
-                  <Link href="/notifications">
-                    <Bell className="h-4 w-4" />
-                    <span>Notifications</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
                   isActive={location === "/insights"}
                   data-testid="link-insights-hub"
                 >
@@ -181,20 +168,6 @@ export function AppSidebar() {
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-              {isAdmin && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={location.startsWith("/admin")}
-                    data-testid="link-admin-panel"
-                  >
-                    <Link href="/admin">
-                      <Shield className="h-4 w-4" />
-                      <span>Admin Panel</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -249,6 +222,28 @@ export function AppSidebar() {
             </Collapsible>
           );
         })}
+
+        {/* Admin Panel - Show at bottom of menu for admins */}
+        {isAdmin && (
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={location.startsWith("/admin")}
+                    data-testid="link-admin-panel"
+                  >
+                    <Link href="/admin">
+                      <Shield className="h-4 w-4" />
+                      <span>Admin Panel</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
 
         {/* Profile at bottom */}
         <SidebarGroup className="mt-auto">
