@@ -146,6 +146,8 @@ import {
   type InsertNotificationEvent,
   type ScheduledReminder,
   type InsertScheduledReminder,
+  type SystemSetting,
+  type InsertSystemSetting,
   users,
   healthRecords,
   biomarkers,
@@ -221,6 +223,7 @@ import {
   notifications,
   notificationEvents,
   scheduledReminders,
+  systemSettings,
 } from "@shared/schema";
 import { eq, desc, and, gte, lte, lt, sql, or, like, ilike, count, isNull, inArray, notInArray, not } from "drizzle-orm";
 
@@ -757,6 +760,10 @@ export interface IStorage {
   updateReminderLastSent(id: string, sentAt: Date): Promise<void>;
   deleteReminder(id: string, userId: string): Promise<void>;
   getUserReminders(userId: string, type?: string): Promise<ScheduledReminder[]>;
+
+  // System Settings
+  getSystemSetting(key: string): Promise<SystemSetting | undefined>;
+  updateSystemSetting(key: string, value: string): Promise<void>;
 }
 
 export class DbStorage implements IStorage {
@@ -6262,6 +6269,26 @@ export class DbStorage implements IStorage {
       .select()
       .from(scheduledReminders)
       .where(eq(scheduledReminders.userId, userId));
+  }
+
+  // System Settings
+  async getSystemSetting(key: string): Promise<SystemSetting | undefined> {
+    const [setting] = await db
+      .select()
+      .from(systemSettings)
+      .where(eq(systemSettings.key, key));
+    return setting;
+  }
+
+  async updateSystemSetting(key: string, value: string): Promise<void> {
+    // Upsert: Insert if not exists, update if exists
+    await db
+      .insert(systemSettings)
+      .values({ key, value, updatedAt: new Date() })
+      .onConflictDoUpdate({
+        target: systemSettings.key,
+        set: { value, updatedAt: new Date() }
+      });
   }
 }
 

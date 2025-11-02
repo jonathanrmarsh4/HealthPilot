@@ -2352,6 +2352,23 @@ export const scheduledReminders = pgTable("scheduled_reminders", {
   index("scheduled_reminders_enabled_idx").on(table.enabled),
 ]);
 
+// System Settings - Global configuration for admin-managed settings
+export const systemSettings = pgTable("system_settings", {
+  id: serial("id").primaryKey(),
+  key: varchar("key", { length: 255 }).notNull().unique(),
+  value: text("value").notNull(),
+  description: text("description"),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const insertSystemSettingSchema = createInsertSchema(systemSettings).omit({
+  id: true,
+  updatedAt: true,
+});
+
+export type SystemSetting = typeof systemSettings.$inferSelect;
+export type InsertSystemSetting = z.infer<typeof insertSystemSettingSchema>;
+
 // Zod insert schemas for Daily Insights tables
 export const insertDailyMetricSchema = createInsertSchema(dailyMetrics).omit({
   id: true,

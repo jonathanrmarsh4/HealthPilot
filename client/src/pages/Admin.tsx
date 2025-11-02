@@ -6,12 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Shield, Users, TrendingUp, FileText, Activity, Search, Trash2, ChefHat, Tag, ArrowRight, Layout, DollarSign, Image, Dumbbell, Play, FlaskConical, Wrench, TestTube, Sparkles } from "lucide-react";
+import { Shield, Users, TrendingUp, FileText, Activity, Search, Trash2, ChefHat, Tag, ArrowRight, Layout, DollarSign, Image, Dumbbell, Play, FlaskConical, Wrench, TestTube, Sparkles, Settings } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { User } from "@shared/schema";
@@ -55,6 +57,31 @@ export default function Admin() {
 
   const { data: stats, isLoading: statsLoading } = useQuery<AdminStats>({
     queryKey: ["/api/admin/stats"],
+  });
+
+  const { data: stepCorrectionSetting } = useQuery<{ enabled: boolean; description?: string }>({
+    queryKey: ["/api/admin/settings/step-correction"],
+  });
+
+  const toggleStepCorrectionMutation = useMutation({
+    mutationFn: async (enabled: boolean) => {
+      const res = await apiRequest("PATCH", "/api/admin/settings/step-correction", { enabled });
+      return await res.json();
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/settings/step-correction"] });
+      toast({
+        title: data.enabled ? "Step Correction Enabled" : "Step Correction Disabled",
+        description: data.message,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
   });
 
   const { data: usersData, isLoading: usersLoading } = useQuery<UsersResponse>({
@@ -395,6 +422,39 @@ export default function Admin() {
           </Card>
         </div>
       )}
+
+      <Card data-testid="card-system-settings">
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <Settings className="w-6 h-6 text-primary" />
+            <div>
+              <CardTitle data-testid="text-system-settings-title">System Settings</CardTitle>
+              <CardDescription data-testid="text-system-settings-description">
+                Configure global platform settings
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between gap-4">
+            <div className="space-y-1">
+              <Label htmlFor="step-correction-toggle" className="text-sm font-medium">
+                Step Count Correction
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                {stepCorrectionSetting?.description || 'Apply 0.7x correction factor to compensate for multi-source overcounting'}
+              </p>
+            </div>
+            <Switch
+              id="step-correction-toggle"
+              data-testid="switch-step-correction"
+              checked={stepCorrectionSetting?.enabled ?? true}
+              onCheckedChange={(checked) => toggleStepCorrectionMutation.mutate(checked)}
+              disabled={toggleStepCorrectionMutation.isPending}
+            />
+          </div>
+        </CardContent>
+      </Card>
 
       <Card data-testid="card-meal-library-link" className="hover-elevate cursor-pointer" onClick={() => setLocation("/admin/meal-library")}>
         <CardHeader>

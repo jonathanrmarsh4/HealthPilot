@@ -675,6 +675,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // System Settings endpoints
+  app.get("/api/admin/settings/step-correction", isAdmin, async (req, res) => {
+    try {
+      const setting = await storage.getSystemSetting('step_correction_enabled');
+      res.json({ 
+        enabled: setting?.value !== 'false', // Default to true if not set
+        description: setting?.description || 'Apply 0.7x correction factor to compensate for multi-source overcounting'
+      });
+    } catch (error: any) {
+      console.error("Error fetching step correction setting:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.patch("/api/admin/settings/step-correction", isAdmin, async (req, res) => {
+    try {
+      const { enabled } = req.body;
+      if (typeof enabled !== 'boolean') {
+        return res.status(400).json({ error: 'enabled must be a boolean' });
+      }
+      
+      await storage.updateSystemSetting('step_correction_enabled', enabled ? 'true' : 'false');
+      res.json({ 
+        success: true, 
+        enabled,
+        message: `Step correction ${enabled ? 'enabled' : 'disabled'}`
+      });
+    } catch (error: any) {
+      console.error("Error updating step correction setting:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.post("/api/admin/cost/budgets", isAdmin, async (req, res) => {
     try {
       const { dailyCpuMsCap, dailyJobsCap, llmInputTokensCap, llmOutputTokensCap, applyScope } = req.body;
@@ -9510,12 +9543,20 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
       startOfTodayInUserTz.setHours(0, 0, 0, 0);
       const startOfTodayUTC = fromZonedTime(startOfTodayInUserTz, userTimezone);
       
-      // NOTE: Steps may be overcounted due to overlapping samples from multiple sources (iPhone + Watch)
-      // KNOWN ISSUE: @capgo/capacitor-health doesn't support HKStatisticsQuery for auto-deduplication
-      // TODO: Replace with native HKStatisticsQuery or apply 0.7x correction factor
-      const todaySteps = biomarkers
+      // Check if step correction is enabled (default: true if setting doesn't exist)
+      const stepCorrectionSetting = await storage.getSystemSetting('step_correction_enabled');
+      const stepCorrectionEnabled = stepCorrectionSetting?.value !== 'false'; // Enabled by default
+      
+      const STEP_CORRECTION_FACTOR = 0.70; // Compensates for 43% overcount from multi-source duplication
+      
+      const rawSteps = biomarkers
         .filter(b => b.type === 'steps' && new Date(b.recordedAt) >= startOfTodayUTC)
         .reduce((sum, b) => sum + b.value, 0);
+      
+      // Apply correction factor if enabled
+      const todaySteps = stepCorrectionEnabled 
+        ? Math.round(rawSteps * STEP_CORRECTION_FACTOR)
+        : rawSteps;
       
       res.json({
         dailySteps: todaySteps,
