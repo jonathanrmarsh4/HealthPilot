@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -6,11 +6,13 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Upload, FileText, Loader2, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import type { MedicalReport } from "@shared/schema";
 
 export function MedicalReportUpload() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const { toast } = useToast();
 
   const { data: reports, isLoading: reportsLoading } = useQuery<MedicalReport[]>({
@@ -38,10 +40,14 @@ export function MedicalReportUpload() {
         description: `${report.fileName} uploaded successfully. Starting interpretation...`,
       });
       
+      // Move to 60% when upload complete, before interpretation starts
+      setUploadProgress(60);
+      
       // Automatically start interpretation
       interpretMutation.mutate(report.id);
     },
     onError: (error: Error) => {
+      setUploadProgress(0);
       toast({
         title: "Upload failed",
         description: error.message,
@@ -55,6 +61,9 @@ export function MedicalReportUpload() {
       return await apiRequest("POST", `/api/medical-reports/${reportId}/interpret`);
     },
     onSuccess: (data: MedicalReport) => {
+      // Complete progress
+      setUploadProgress(100);
+      
       queryClient.invalidateQueries({ queryKey: ["/api/medical-reports"] });
       
       if (data.status === 'completed') {
@@ -76,9 +85,14 @@ export function MedicalReportUpload() {
         });
       }
       
-      setSelectedFile(null);
+      // Reset after a delay so user can see 100%
+      setTimeout(() => {
+        setSelectedFile(null);
+        setUploadProgress(0);
+      }, 1000);
     },
     onError: (error: Error) => {
+      setUploadProgress(0);
       queryClient.invalidateQueries({ queryKey: ["/api/medical-reports"] });
       toast({
         title: "Interpretation failed",
@@ -134,9 +148,33 @@ export function MedicalReportUpload() {
 
   const handleUpload = () => {
     if (selectedFile) {
+      setUploadProgress(0);
       uploadMutation.mutate(selectedFile);
     }
   };
+
+  // Animate progress smoothly during upload and interpretation
+  useEffect(() => {
+    if (uploadMutation.isPending && uploadProgress < 50) {
+      const interval = setInterval(() => {
+        setUploadProgress(prev => {
+          if (prev >= 50) return prev;
+          return prev + 2;
+        });
+      }, 100);
+      return () => clearInterval(interval);
+    }
+    
+    if (interpretMutation.isPending && uploadProgress >= 60 && uploadProgress < 95) {
+      const interval = setInterval(() => {
+        setUploadProgress(prev => {
+          if (prev >= 95) return prev;
+          return prev + 1;
+        });
+      }, 150);
+      return () => clearInterval(interval);
+    }
+  }, [uploadMutation.isPending, interpretMutation.isPending, uploadProgress]);
 
   const getStatusBadge = (report: MedicalReport) => {
     switch (report.status) {
@@ -202,11 +240,17 @@ export function MedicalReportUpload() {
           data-testid="dropzone-medical-report"
         >
           {isUploading ? (
-            <div className="space-y-3">
+            <div className="space-y-4">
               <Loader2 className="h-12 w-12 mx-auto text-primary animate-spin" />
-              <p className="text-sm text-muted-foreground">
-                {uploadMutation.isPending ? 'Uploading...' : 'Interpreting medical report...'}
-              </p>
+              <div className="space-y-2">
+                <p className="text-sm font-medium">
+                  {uploadMutation.isPending ? 'Uploading file...' : 'Interpreting medical report...'}
+                </p>
+                <Progress value={uploadProgress} className="h-2" data-testid="progress-upload" />
+                <p className="text-xs text-muted-foreground">
+                  {uploadProgress}% complete
+                </p>
+              </div>
             </div>
           ) : selectedFile ? (
             <div className="space-y-3">
