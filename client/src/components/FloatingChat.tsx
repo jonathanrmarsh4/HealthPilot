@@ -35,8 +35,21 @@ export function VoiceChatModal({ isOpen, onClose, context }: VoiceChatModalProps
 
   const connect = async () => {
     try {
-      // Request microphone access
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Check if mediaDevices is supported
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Microphone access is not supported in this browser');
+      }
+
+      // Request microphone access with better error handling
+      console.log("🎤 Requesting microphone access...");
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        }
+      });
+      console.log("✅ Microphone access granted");
       mediaStreamRef.current = stream;
 
       // Create audio context
@@ -160,11 +173,36 @@ export function VoiceChatModal({ isOpen, onClose, context }: VoiceChatModalProps
       startAudioCapture(stream, ws);
 
     } catch (error: any) {
-      console.error("Failed to connect:", error);
+      console.error("❌ Failed to connect:", error);
+      
+      // Provide specific error message based on error type
+      let errorTitle = "Microphone Access Required";
+      let errorMessage = "Please allow microphone access to use voice chat";
+      
+      if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+        errorTitle = "Permission Denied";
+        // Detect if running on iOS
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        if (isIOS) {
+          errorMessage = "Please enable microphone access:\n\n1. Go to iOS Settings\n2. Scroll to HealthPilot\n3. Enable Microphone\n4. Return and try again";
+        } else {
+          errorMessage = "Microphone access was denied. Please allow microphone access in your browser settings and try again.";
+        }
+      } else if (error.name === 'NotFoundError') {
+        errorMessage = "No microphone found on this device. Please connect a microphone and try again.";
+      } else if (error.name === 'NotSupportedError') {
+        errorMessage = "Microphone access is not supported in this browser. Please use a supported browser like Safari or Chrome.";
+      } else if (error.name === 'SecurityError') {
+        errorMessage = "Microphone access is blocked due to security restrictions. Please ensure you're using HTTPS.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         variant: "destructive",
-        title: "Microphone Access Required",
-        description: "Please allow microphone access to use voice chat",
+        title: errorTitle,
+        description: errorMessage,
+        duration: 8000, // Show longer for iOS instructions
       });
     }
   };

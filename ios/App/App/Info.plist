@@ -49,5 +49,7 @@
         <string>HealthPilot needs access to your health data to provide personalized insights, track biomarkers, and optimize your training and nutrition recommendations.</string>
         <key>NSHealthUpdateUsageDescription</key>
         <string>HealthPilot can write workout and activity data back to Apple Health to keep your health records synchronized.</string>
+        <key>NSMicrophoneUsageDescription</key>
+        <string>HealthPilot needs access to your microphone for voice chat with your AI health coach.</string>
 </dict>
 </plist>
