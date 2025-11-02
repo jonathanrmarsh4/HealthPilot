@@ -681,7 +681,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const setting = await storage.getSystemSetting('step_correction_enabled');
       res.json({ 
         enabled: setting?.value !== 'false', // Default to true if not set
-        description: setting?.description || 'Apply 0.7x correction factor to compensate for multi-source overcounting'
+        description: setting?.description || 'Apply 0.385x correction factor to compensate for multi-source overcounting'
       });
     } catch (error: any) {
       console.error("Error fetching step correction setting:", error);
@@ -9547,7 +9547,7 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
       const stepCorrectionSetting = await storage.getSystemSetting('step_correction_enabled');
       const stepCorrectionEnabled = stepCorrectionSetting?.value !== 'false'; // Enabled by default
       
-      const STEP_CORRECTION_FACTOR = 0.70; // Compensates for 43% overcount from multi-source duplication
+      const STEP_CORRECTION_FACTOR = 0.385; // Compensates for multi-source overcounting (8,263 raw → 3,178 actual)
       
       const rawSteps = biomarkers
         .filter(b => b.type === 'steps' && new Date(b.recordedAt) >= startOfTodayUTC)
