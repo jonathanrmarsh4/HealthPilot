@@ -84,14 +84,14 @@ export class HealthKitService {
     }
 
     try {
-      console.log('[HealthKit] Requesting permissions for BASIC 5 data types (testing baseline)...');
+      console.log('[HealthKit] Requesting permissions for ALL 11 health data types...');
       const result = await Health.requestAuthorization({
         read: [
-          // Original 5 data types only (baseline test)
+          // Original 5 data types
           'steps', 'distance', 'calories', 'heartRate', 'weight',
-          // TODO: Add 6 cardiovascular metrics after baseline works
-          // 'hrv', 'restingHeartRate', 'bloodPressureSystolic', 'bloodPressureDiastolic',
-          // 'oxygenSaturation', 'respiratoryRate'
+          // 6 new cardiovascular metrics
+          'hrv', 'restingHeartRate', 'bloodPressureSystolic', 'bloodPressureDiastolic',
+          'oxygenSaturation', 'respiratoryRate'
         ],
         write: []
       });
@@ -105,11 +105,12 @@ export class HealthKitService {
 
   /**
    * Query health data for a specific type
-   * BASELINE TEST: Only using original 5 data types
+   * Supports all 11 data types including 6 new cardiovascular metrics
    */
   private async queryData(
-    dataType: 'steps' | 'distance' | 'calories' | 'heartRate' | 'weight',
-    // TODO: Add after baseline: | 'hrv' | 'restingHeartRate' | 'bloodPressureSystolic' | 'bloodPressureDiastolic' | 'oxygenSaturation' | 'respiratoryRate',
+    dataType: 'steps' | 'distance' | 'calories' | 'heartRate' | 'weight' | 
+              'hrv' | 'restingHeartRate' | 'bloodPressureSystolic' | 'bloodPressureDiastolic' |
+              'oxygenSaturation' | 'respiratoryRate',
     startDate: Date,
     endDate: Date
   ): Promise<HealthDataSample[]> {
@@ -163,20 +164,16 @@ export class HealthKitService {
 
   /**
    * Get resting heart rate data
-   * BASELINE TEST: Not yet supported, will add after baseline works
    */
   async getRestingHeartRate(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
-    console.log('[HealthKit] Resting heart rate - not yet enabled (baseline test)');
-    return [];
+    return this.queryData('restingHeartRate', startDate, endDate);
   }
 
   /**
    * Get HRV (Heart Rate Variability) data
-   * BASELINE TEST: Not yet supported, will add after baseline works
    */
   async getHRV(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
-    console.log('[HealthKit] HRV - not yet enabled (baseline test)');
-    return [];
+    return this.queryData('hrv', startDate, endDate);
   }
 
   /**
@@ -204,20 +201,16 @@ export class HealthKitService {
 
   /**
    * Get blood pressure (systolic) data
-   * BASELINE TEST: Not yet supported, will add after baseline works
    */
   async getBloodPressureSystolic(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
-    console.log('[HealthKit] Blood pressure systolic - not yet enabled (baseline test)');
-    return [];
+    return this.queryData('bloodPressureSystolic', startDate, endDate);
   }
 
   /**
    * Get blood pressure (diastolic) data
-   * BASELINE TEST: Not yet supported, will add after baseline works
    */
   async getBloodPressureDiastolic(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
-    console.log('[HealthKit] Blood pressure diastolic - not yet enabled (baseline test)');
-    return [];
+    return this.queryData('bloodPressureDiastolic', startDate, endDate);
   }
 
   /**
@@ -246,20 +239,16 @@ export class HealthKitService {
 
   /**
    * Get oxygen saturation (SpO2) data
-   * BASELINE TEST: Not yet supported, will add after baseline works
    */
   async getOxygenSaturation(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
-    console.log('[HealthKit] Oxygen saturation - not yet enabled (baseline test)');
-    return [];
+    return this.queryData('oxygenSaturation', startDate, endDate);
   }
 
   /**
    * Get respiratory rate data
-   * BASELINE TEST: Not yet supported, will add after baseline works
    */
   async getRespiratoryRate(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
-    console.log('[HealthKit] Respiratory rate - not yet enabled (baseline test)');
-    return [];
+    return this.queryData('respiratoryRate', startDate, endDate);
   }
 
   /**
