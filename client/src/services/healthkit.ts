@@ -1,5 +1,6 @@
 import { Capacitor } from '@capacitor/core';
 import { Health } from '@capgo/capacitor-health';
+import HealthKitStats from '@/mobile/plugins/HealthKitStatsPlugin';
 
 export interface HealthDataSample {
   value: number;
@@ -150,10 +151,41 @@ export class HealthKitService {
   }
 
   /**
-   * Get steps data
+   * Get steps data using timezone-aware HKStatisticsQuery for accurate deduplication
+   * Returns ONE sample per day with deduplicated totals from all sources
    */
   async getSteps(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
-    return this.queryData('steps', startDate, endDate);
+    try {
+      // Generate array of dates to query
+      const dates: string[] = [];
+      const currentDate = new Date(startDate);
+      
+      while (currentDate <= endDate) {
+        dates.push(currentDate.toISOString());
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+      
+      console.log(`[HealthKit] Querying deduplicated steps for ${dates.length} days using HKStatisticsQuery`);
+      
+      // Use our custom plugin that uses HKStatisticsQuery with .cumulativeSum
+      const result = await HealthKitStats.getMultiDayStats({ dates });
+      
+      // Transform to HealthDataSample format
+      const samples: HealthDataSample[] = result.results.map(dayResult => ({
+        value: dayResult.steps,
+        unit: 'count',
+        startDate: dayResult.date,
+        endDate: dayResult.date,
+        uuid: `steps-daily-${dayResult.date}`,
+      }));
+      
+      console.log(`[HealthKit] Retrieved ${samples.length} deduplicated daily step totals`);
+      return samples;
+    } catch (error) {
+      console.error('[HealthKit] Failed to get steps using statistics query, falling back to old method:', error);
+      // Fallback to old method if new plugin fails
+      return this.queryData('steps', startDate, endDate);
+    }
   }
 
   /**

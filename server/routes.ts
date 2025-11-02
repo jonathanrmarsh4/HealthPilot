@@ -9628,27 +9628,19 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
       const steps = latestByType['steps'];
       const calories = latestByType['calories'];
       
-      // Calculate today's total steps by summing all step samples from today (in user's timezone)
+      // Calculate today's total steps using timezone-aware daily totals
+      // Since iOS now sends deduplicated daily totals (via HKStatisticsQuery),
+      // we no longer need correction factors or summing of individual samples
       const now = new Date();
       const todayInUserTz = toZonedTime(now, userTimezone);
       const startOfTodayInUserTz = new Date(todayInUserTz);
       startOfTodayInUserTz.setHours(0, 0, 0, 0);
       const startOfTodayUTC = fromZonedTime(startOfTodayInUserTz, userTimezone);
       
-      // Check if step correction is enabled (default: true if setting doesn't exist)
-      const stepCorrectionSetting = await storage.getSystemSetting('step_correction_enabled');
-      const stepCorrectionEnabled = stepCorrectionSetting?.value !== 'false'; // Enabled by default
-      
-      const STEP_CORRECTION_FACTOR = 0.385; // Compensates for multi-source overcounting (8,263 raw → 3,178 actual)
-      
-      const rawSteps = biomarkers
+      // Get today's step total (already deduplicated by HealthKit)
+      const todaySteps = biomarkers
         .filter(b => b.type === 'steps' && new Date(b.recordedAt) >= startOfTodayUTC)
         .reduce((sum, b) => sum + b.value, 0);
-      
-      // Apply correction factor if enabled
-      const todaySteps = stepCorrectionEnabled 
-        ? Math.round(rawSteps * STEP_CORRECTION_FACTOR)
-        : rawSteps;
       
       res.json({
         dailySteps: todaySteps,
