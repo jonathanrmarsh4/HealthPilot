@@ -14,6 +14,7 @@ import { extractBiomarkersFromLabs } from "./services/medical-interpreter/biomar
 import { buildUserContext, generateDailySession } from "./services/trainingGenerator";
 import { assessWorkflow, type Input as WorkflowInput, type Biomarker as WorkflowBiomarker } from "./services/workflowAssessor";
 import { parseISO, isValid, subDays, format as formatDate } from "date-fns";
+import { toZonedTime, fromZonedTime } from "date-fns-tz";
 import { eq, and, gte, or, inArray, isNull, isNotNull, sql } from "drizzle-orm";
 import { isAuthenticated, isAdmin, webhookAuth } from "./replitAuth";
 import type { ConversationMessage, ExtractedContext } from "./goals/conversation-intelligence";
@@ -9460,6 +9461,10 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
       const records = await storage.getHealthRecords(userId);
       const recommendations = await storage.getRecommendations(userId);
       
+      // Get user's timezone for accurate daily calculations
+      const userSettings = await storage.getUserSettings(userId);
+      const userTimezone = userSettings?.timezone || 'UTC';
+      
       const latestByType: Record<string, any> = {};
       biomarkers.forEach(b => {
         if (!latestByType[b.type] || new Date(b.recordedAt) > new Date(latestByType[b.type].recordedAt)) {
@@ -9498,11 +9503,15 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
       const steps = latestByType['steps'];
       const calories = latestByType['calories'];
       
-      // Calculate today's total steps by summing all step samples from today
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      // Calculate today's total steps by summing all step samples from today (in user's timezone)
+      const now = new Date();
+      const todayInUserTz = toZonedTime(now, userTimezone);
+      const startOfTodayInUserTz = new Date(todayInUserTz);
+      startOfTodayInUserTz.setHours(0, 0, 0, 0);
+      const startOfTodayUTC = fromZonedTime(startOfTodayInUserTz, userTimezone);
+      
       const todaySteps = biomarkers
-        .filter(b => b.type === 'steps' && new Date(b.recordedAt) >= today)
+        .filter(b => b.type === 'steps' && new Date(b.recordedAt) >= startOfTodayUTC)
         .reduce((sum, b) => sum + b.value, 0);
       
       res.json({
