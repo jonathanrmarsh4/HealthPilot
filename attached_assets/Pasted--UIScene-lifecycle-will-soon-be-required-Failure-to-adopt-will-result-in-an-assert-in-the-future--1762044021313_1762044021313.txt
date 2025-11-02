@@ -1,0 +1,119 @@
+`UIScene` lifecycle will soon be required. Failure to adopt will result in an assert in the future.
+Could not create a sandbox extension for '/var/containers/Bundle/Application/43535D3B-FD39-48CF-85A9-07656FC4415D/App.app'
+KeyboardPlugin: resize mode - body
+⚡️  Loading app at capacitor://localhost...
+WebContent[3516] Unable to hide query parameters from script (missing data)
+⚡️  [log] - onscript loading complete
+⚡️  [log] - [MobileBootstrap] Initializing on ios...
+⚡️  To Native ->  StatusBar setStyle 56792490
+⚡️  TO JS {}
+⚡️  To Native ->  SplashScreen hide 56792491
+⚡️  [log] - [MobileBootstrap] Status bar configured
+⚡️  TO JS undefined
+⚡️  [log] - [MobileBootstrap] Splash screen hidden
+⚡️  To Native ->  Keyboard addListener 56792492
+⚡️  [log] - [MobileBootstrap] Keyboard listeners configured
+⚡️  To Native ->  Keyboard addListener 56792493
+⚡️  To Native ->  App addListener 56792494
+⚡️  [log] - [MobileBootstrap] Back button handler configured
+⚡️  To Native ->  App getInfo 56792495
+⚡️  TO JS {"name":"HealthPilot","build":"1","version":"1.0","id":"com.nuvitae.healthpilot"}
+⚡️  [log] - [MobileBootstrap] App Info: {"name":"HealthPilot","id":"com.nuvitae.healthpilot","version":"1.0","build":"1"}
+⚡️  [log] - [MobileBootstrap] ✅ Mobile initialization complete
+⚡️  To Native ->  App addListener 56792496
+⚡️  To Native ->  App addListener 56792497
+⚡️  [log] - [App] Setting up global deep link listener
+⚡️  [log] - [DeepLink] Initializing deep link handler...
+⚡️  [log] - [DeepLink] Deep link handler initialized successfully
+⚡️  To Native ->  SecureStorage internalGetItem 56792498
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  WebView loaded
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  To Native ->  SecureStorage internalGetItem 56792499
+⚡️  To Native ->  SecureStorage internalGetItem 56792500
+⚡️  To Native ->  SecureStorage internalGetItem 56792501
+⚡️  To Native ->  SecureStorage internalGetItem 56792502
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  [log] - Clearing old dashboard preferences (version mismatch)
+⚡️  To Native ->  SecureStorage internalGetItem 56792503
+⚡️  To Native ->  SecureStorage internalGetItem 56792504
+⚡️  To Native ->  SecureStorage internalGetItem 56792505
+⚡️  To Native ->  SecureStorage internalGetItem 56792506
+⚡️  To Native ->  SecureStorage internalGetItem 56792507
+⚡️  To Native ->  SecureStorage internalGetItem 56792508
+⚡️  To Native ->  SecureStorage internalGetItem 56792509
+⚡️  To Native ->  SecureStorage internalGetItem 56792510
+⚡️  To Native ->  SecureStorage internalGetItem 56792511
+⚡️  To Native ->  SecureStorage internalGetItem 56792512
+⚡️  To Native ->  SecureStorage internalGetItem 56792513
+⚡️  To Native ->  SecureStorage internalGetItem 56792514
+⚡️  To Native ->  SecureStorage internalGetItem 56792515
+⚡️  To Native ->  SecureStorage internalGetItem 56792516
+⚡️  To Native ->  SecureStorage internalGetItem 56792517
+⚡️  To Native ->  SecureStorage internalGetItem 56792518
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  To Native ->  SecureStorage internalGetItem 56792519
+⚡️  To Native ->  SecureStorage internalGetItem 56792520
+⚡️  To Native ->  SecureStorage internalGetItem 56792521
+⚡️  To Native ->  SecureStorage internalGetItem 56792522
+⚡️  To Native ->  SecureStorage internalGetItem 56792523
+⚡️  To Native ->  SecureStorage internalGetItem 56792524
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  To Native ->  SecureStorage internalGetItem 56792525
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  To Native ->  SecureStorage internalGetItem 56792526
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  To Native ->  SecureStorage internalGetItem 56792527
+⚡️  To Native ->  SecureStorage internalGetItem 56792528
+⚡️  To Native ->  SecureStorage internalGetItem 56792529
+⚡️  To Native ->  SecureStorage internalGetItem 56792530
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  TO JS {"data":"\"v1CYXFw0CqZ_JKH--81D0kTw9l_RZbhdJPb7HsZMhAU\""}
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  To Native ->  Health isAvailable 56792531
+⚡️  TO JS {"available":true,"platform":"ios"}
+⚡️  [log] - [HealthKit] Availability check result: true
+⚡️  [log] - [HealthKit] Requesting permissions for steps, distance, calories, heartRate, weight...
+⚡️  To Native ->  Health requestAuthorization 56792532
+(501) Invalidation handler invoked, clearing connection
+(501) personaAttributesForPersonaType for type:0 failed with error Error Domain=NSCocoaErrorDomain Code=4099 "The connection to service named com.apple.mobile.usermanagerd.xpc was invalidated from this process." UserInfo={NSDebugDescription=The connection to service named com.apple.mobile.usermanagerd.xpc was invalidated from this process.}
+Received port for identifier response: <(null)> with error:Error Domain=RBSServiceErrorDomain Code=1 "Client not entitled" UserInfo={RBSEntitlement=com.apple.runningboard.process-state, NSLocalizedFailureReason=Client not entitled, RBSPermanent=false}
+elapsedCPUTimeForFrontBoard couldn't generate a task port
+Received port for identifier response: <(null)> with error:Error Domain=RBSServiceErrorDomain Code=1 "Client not entitled" UserInfo={RBSEntitlement=com.apple.runningboard.process-state, NSLocalizedFailureReason=Client not entitled, RBSPermanent=false}
+elapsedCPUTimeForFrontBoard couldn't generate a task port
+Received port for identifier response: <(null)> with error:Error Domain=RBSServiceErrorDomain Code=1 "Client not entitled" UserInfo={RBSEntitlement=com.apple.runningboard.process-state, NSLocalizedFailureReason=Client not entitled, RBSPermanent=false}
+elapsedCPUTimeForFrontBoard couldn't generate a task port
+Received port for identifier response: <(null)> with error:Error Domain=RBSServiceErrorDomain Code=1 "Client not entitled" UserInfo={RBSEntitlement=com.apple.runningboard.process-state, NSLocalizedFailureReason=Client not entitled, RBSPermanent=false}
+elapsedCPUTimeForFrontBoard couldn't generate a task port
+⚡️  TO JS {"writeDenied":[],"readAuthorized":["steps","distance","calories","heartRate","weight"],"writeAuthorized":[],"readDenied":[]}
+⚡️  [log] - [HealthKit] Permission request result: {"writeDenied":[],"readAuthorized":["steps","distance","calories","heartRate","weight"],"writeAuthorized":[],"readDenied":[]}
