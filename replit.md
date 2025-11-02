@@ -32,6 +32,7 @@ I prefer simple language and clear explanations. I want iterative development wh
 - **Security & Authentication:** Replit Auth (OpenID Connect), role-based access control, IDOR protection, Zod validation, secure file uploads.
 - **Privacy & Compliance:** International privacy compliance (GDPR, HIPAA), granular consent, audit logging, account deletion, JSON data export, Privacy Dashboard.
 - **Native iOS App with HealthKit Integration v2.0 (Nov 2025):** Production-ready native iOS app deployed to physical iPhone devices using @capgo/capacitor-health plugin (supports 5 core data types: steps, distance, calories, heartRate, weight). Architecture uses local bundle loading from capacitor://localhost for instant UI with Replit backend API connectivity. Future plan: extend to support additional HealthKit data types as needed.
+- **HealthKit Background Sync v1.0 (Nov 2025):** Near-realtime battery-safe background sync using HKObserverQuery + local queue + auto-drain on app foreground. When enabled, automatically syncs HealthKit data via existing /api/apple-health/sync endpoint when app becomes active. Feature flag default: OFF. Maintains full backward compatibility with manual sync button.
 - **Progressive Overload Training System:** Double progression algorithm for training.
 - **HealthPilot Training Operating System v1.0 (AI Guardrails):** Evidence-based guardrail system for safety-first training prescription and AI recovery insights.
 - **AI Exercise Alternatives & Swap Feature:** AI-powered exercise alternative suggestions.
