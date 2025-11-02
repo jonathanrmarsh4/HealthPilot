@@ -31,7 +31,7 @@ I prefer simple language and clear explanations. I want iterative development wh
 - **User Profiling & Onboarding:** Fitness profile personalization, contextual AI onboarding.
 - **Security & Authentication:** Replit Auth (OpenID Connect), role-based access control, IDOR protection, Zod validation, secure file uploads.
 - **Privacy & Compliance:** International privacy compliance (GDPR, HIPAA), granular consent, audit logging, account deletion, JSON data export, Privacy Dashboard.
-- **Native iOS App with HealthKit Integration v2.0 (Nov 2025):** Production-ready native iOS app deployed to physical iPhone devices using @capgo/capacitor-health plugin (supports 5 core data types: steps, distance, calories, heartRate, weight). Architecture uses local bundle loading from capacitor://localhost for instant UI with Replit backend API connectivity. Future plan: extend to support additional HealthKit data types as needed.
+- **Native iOS App with HealthKit Integration v2.0 (Nov 2025):** Production-ready native iOS app deployed to physical iPhone devices using @capgo/capacitor-health plugin (supports 5 core data types: steps, distance, calories, heartRate, weight). **Development Mode:** Live reload enabled - iOS app loads frontend directly from Replit dev server (configured in capacitor.config.ts) for instant updates without rebuild cycles. **Production Mode:** Disable live reload before TestFlight/App Store builds by commenting out the server block in capacitor.config.ts. Architecture uses Replit backend API connectivity for all data operations. Future plan: extend to support additional HealthKit data types as needed.
 - **HealthKit Background Sync v1.0 (Nov 2025):** Near-realtime battery-safe background sync using HKObserverQuery + local queue + auto-drain on app foreground. When enabled, automatically syncs HealthKit data via existing /api/apple-health/sync endpoint when app becomes active. Feature flag default: OFF. Maintains full backward compatibility with manual sync button.
 - **Progressive Overload Training System:** Double progression algorithm for training.
 - **HealthPilot Training Operating System v1.0 (AI Guardrails):** Evidence-based guardrail system for safety-first training prescription and AI recovery insights.
@@ -61,6 +61,21 @@ I prefer simple language and clear explanations. I want iterative development wh
 - **AI-Powered Training Plan Generation System v2.0:** Replaces hardcoded training templates with comprehensive GPT-4o-generated phased plans that work for any goal type.
 - **Native Apple Pay + Stripe Integration v1.0:** Production-ready dual-platform payment system supporting iOS native Apple Pay via Stripe iOS SDK and web Stripe Checkout Sessions.
 - **Comprehensive Notifications Layer v1.0:** Event-driven notification system featuring OneSignal push notifications, local scheduled reminders, in-app notification center, and deep linking (healthpilot:// custom scheme + links.healthpilot.pro universal links). Integrates with AI insights, biomarker alerts, and scheduled reminders via EventBus architecture. Supports timezone-aware quiet hours, per-channel preferences, and multi-time daily reminders.
+
+## iOS Development Workflow
+**Live Reload Setup (Current):**
+- Frontend changes appear instantly in iOS app without rebuilding
+- Server URL configured in `capacitor.config.ts` points to Replit dev server
+- One-time setup: Run `npx cap sync ios` and rebuild in Xcode after enabling live reload
+
+**Build Pipeline:**
+1. Development: Live reload enabled → instant frontend updates
+2. Production/TestFlight: Comment out `server` block in `capacitor.config.ts` → `npx cap sync ios` → rebuild in Xcode
+
+**Important Notes:**
+- Live reload requires network access from iOS device to Replit
+- Backend API calls always go to Replit (not affected by live reload setting)
+- Disable live reload before App Store submissions
 
 ## External Dependencies
 - **Database:** PostgreSQL
