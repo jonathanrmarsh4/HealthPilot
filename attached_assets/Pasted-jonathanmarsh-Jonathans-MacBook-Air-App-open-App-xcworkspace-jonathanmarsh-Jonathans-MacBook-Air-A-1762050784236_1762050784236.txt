@@ -1,0 +1,25 @@
+jonathanmarsh@Jonathans-MacBook-Air App % open App.xcworkspace
+jonathanmarsh@Jonathans-MacBook-Air App % grep -n "func objectTypes" node_modules/@capgo/capacitor-health/ios/Sources/HealthPlugin/Health.swift
+grep: node_modules/@capgo/capacitor-health/ios/Sources/HealthPlugin/Health.swift: No such file or directory
+jonathanmarsh@Jonathans-MacBook-Air App % grep -n "func sampleTypes" node_modules/@capgo/capacitor-health/ios/Sources/HealthPlugin/Health.swift
+grep: node_modules/@capgo/capacitor-health/ios/Sources/HealthPlugin/Health.swift: No such file or directory
+jonathanmarsh@Jonathans-MacBook-Air App % cd ~/Developer/HealthPilot
+jonathanmarsh@Jonathans-MacBook-Air HealthPilot % 
+jonathanmarsh@Jonathans-MacBook-Air HealthPilot % 
+jonathanmarsh@Jonathans-MacBook-Air HealthPilot % 
+jonathanmarsh@Jonathans-MacBook-Air HealthPilot % 
+jonathanmarsh@Jonathans-MacBook-Air HealthPilot % 
+jonathanmarsh@Jonathans-MacBook-Air HealthPilot % grep -n "func objectTypes" node_modules/@capgo/capacitor-health/ios/Sources/HealthPlugin/Health.swift
+670:    private func objectTypes(for dataTypes: [HealthDataType]) throws -> Set<HKObjectType> {
+jonathanmarsh@Jonathans-MacBook-Air HealthPilot % 
+jonathanmarsh@Jonathans-MacBook-Air HealthPilot % 
+jonathanmarsh@Jonathans-MacBook-Air HealthPilot % 
+jonathanmarsh@Jonathans-MacBook-Air HealthPilot % grep -n "func sampleTypes" node_modules/@capgo/capacitor-health/ios/Sources/HealthPlugin/Health.swift
+679:    private func sampleTypes(for dataTypes: [HealthDataType]) throws -> Set<HKSampleType> {
+jonathanmarsh@Jonathans-MacBook-Air HealthPilot % 
+jonathanmarsh@Jonathans-MacBook-Air HealthPilot % 
+jonathanmarsh@Jonathans-MacBook-Air HealthPilot % 
+jonathanmarsh@Jonathans-MacBook-Air HealthPilot % wc -l node_modules/@capgo/capacitor-health/ios/Sources/HealthPlugin/Health.swift
+     688 node_modules/@capgo/capacitor-health/ios/Sources/HealthPlugin/Health.swift
+jonathanmarsh@Jonathans-MacBook-Air HealthPilot % 
+jonathanmarsh@Jonathans-MacBook-Air HealthPilot % 
