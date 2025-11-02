@@ -350,8 +350,49 @@ export class HealthKitService {
    * Get sleep data
    */
   async getSleep(startDate: Date, endDate: Date): Promise<SleepSample[]> {
-    console.log('[HealthKit] Sleep not yet supported by Capgo Health plugin');
-    return [];
+    try {
+      console.log('[HealthKit] Fetching sleep analysis data...');
+      
+      // Call the new readCategorySamples method we added to the plugin
+      const result = await (Health as any).readCategorySamples({
+        dataType: 'sleepAnalysis',
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+        limit: 10000,
+        ascending: false
+      });
+
+      console.log('[HealthKit] Sleep raw result:', result);
+
+      if (!result?.samples || result.samples.length === 0) {
+        console.log('[HealthKit] No sleep samples found');
+        return [];
+      }
+
+      // Map sleep category values to readable names
+      const sleepCategoryMap: { [key: number]: string } = {
+        0: 'inBed',
+        1: 'asleep',
+        2: 'awake',
+        3: 'core',    // iOS 16+
+        4: 'deep',    // iOS 16+
+        5: 'rem'      // iOS 16+
+      };
+
+      const samples: SleepSample[] = result.samples.map((sample: any) => ({
+        value: sample.value,
+        category: sleepCategoryMap[sample.value] || 'unknown',
+        startDate: sample.startDate,
+        endDate: sample.endDate,
+        uuid: sample.uuid || `${sample.startDate}-${sample.value}`
+      }));
+
+      console.log('[HealthKit] Parsed sleep samples:', samples.length);
+      return samples;
+    } catch (error) {
+      console.error('[HealthKit] Failed to fetch sleep data:', error);
+      return [];
+    }
   }
 
   /**
