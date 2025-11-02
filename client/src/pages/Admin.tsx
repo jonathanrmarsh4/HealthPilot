@@ -328,6 +328,11 @@ export default function Admin() {
         </div>
       </div>
 
+      <div className="bg-primary/10 border-2 border-primary rounded-lg p-6 mb-6">
+        <h2 className="text-2xl font-bold text-primary">🔄 BUILD VERSION: Nov 2, 2025 - 9:50 AM UTC</h2>
+        <p className="text-lg mt-2">If you see this banner, the NEW code is loading! ✅</p>
+      </div>
+
       {statsLoading ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {[...Array(6)].map((_, i) => (
