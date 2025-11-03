@@ -13,16 +13,10 @@ public class HealthPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "readSamples", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "readCategorySamples", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "saveSample", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "getPluginVersion", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "enableBackgroundSync", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "disableBackgroundSync", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "isBackgroundSyncEnabled", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "drainBackgroundQueue", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "getBackgroundQueueStats", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "getPluginVersion", returnType: CAPPluginReturnPromise)
     ]
 
     private let implementation = Health()
-    private lazy var backgroundSyncManager = BackgroundSyncManager(healthStore: implementation.getHealthStore())
 
     @objc func isAvailable(_ call: CAPPluginCall) {
         call.resolve(implementation.availabilityPayload())
@@ -170,35 +164,6 @@ public class HealthPlugin: CAPPlugin, CAPBridgedPlugin {
 
     @objc func getPluginVersion(_ call: CAPPluginCall) {
         call.resolve(["version": self.pluginVersion])
-    }
-    
-    // MARK: - Background Sync Methods
-    
-    @objc func enableBackgroundSync(_ call: CAPPluginCall) {
-        backgroundSyncManager.setEnabled(true)
-        backgroundSyncManager.registerObservers()
-        call.resolve(["enabled": true])
-    }
-    
-    @objc func disableBackgroundSync(_ call: CAPPluginCall) {
-        backgroundSyncManager.setEnabled(false)
-        backgroundSyncManager.stopObservers()
-        call.resolve(["enabled": false])
-    }
-    
-    @objc func isBackgroundSyncEnabled(_ call: CAPPluginCall) {
-        let enabled = backgroundSyncManager.isEnabled()
-        call.resolve(["enabled": enabled])
-    }
-    
-    @objc func drainBackgroundQueue(_ call: CAPPluginCall) {
-        let queuedData = backgroundSyncManager.drainQueue()
-        call.resolve(["data": queuedData])
-    }
-    
-    @objc func getBackgroundQueueStats(_ call: CAPPluginCall) {
-        let stats = backgroundSyncManager.getQueueStats()
-        call.resolve(["stats": stats])
     }
 
 }
