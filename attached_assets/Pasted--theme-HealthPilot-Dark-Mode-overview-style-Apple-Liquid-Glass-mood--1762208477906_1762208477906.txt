@@ -1,0 +1,156 @@
+{
+  "theme": "HealthPilot Dark Mode",
+  "overview": {
+    "style": "Apple Liquid Glass",
+    "mood": "Futuristic, calm, data-driven, high contrast",
+    "primaryGradient": {
+      "angle": 180,
+      "stops": [
+        { "color": "#FF7C77", "position": "0%" },
+        { "color": "#E58AC9", "position": "45%" },
+        { "color": "#00CFCF", "position": "100%" }
+      ]
+    },
+    "baseBackground": "#0A0F14",
+    "glassEffect": {
+      "background": "rgba(16, 23, 36, 0.55)",
+      "border": "rgba(255, 255, 255, 0.12)",
+      "innerSheen": "rgba(255, 255, 255, 0.08)",
+      "blur": "16px",
+      "shadow": "0px 8px 28px rgba(0, 0, 0, 0.35)",
+      "highlightGlow": "0 0 24px rgba(0, 207, 207, 0.22)"
+    },
+    "typography": {
+      "fontFamily": ["SF Pro Display", "Inter", "system-ui"],
+      "colorPrimary": "#FFFFFF",
+      "colorSecondary": "#C6D0DE",
+      "weights": {
+        "regular": 400,
+        "medium": 500,
+        "semibold": 600,
+        "bold": 700
+      }
+    }
+  },
+  "colors": {
+    "backgrounds": {
+      "app": "#0A0F14",
+      "card": "rgba(16, 23, 36, 0.55)",
+      "tile": "rgba(16, 23, 36, 0.65)",
+      "chartArea": "rgba(8, 12, 18, 0.8)"
+    },
+    "borders": {
+      "cardBorder": "rgba(255, 255, 255, 0.12)",
+      "divider": "rgba(255, 255, 255, 0.06)"
+    },
+    "text": {
+      "primary": "#FFFFFF",
+      "secondary": "#C6D0DE",
+      "muted": "rgba(255, 255, 255, 0.55)",
+      "inverse": "#0A0F14"
+    },
+    "buttons": {
+      "primary": {
+        "gradient": {
+          "angle": 90,
+          "stops": [
+            { "color": "#FF7C77", "position": "0%" },
+            { "color": "#E58AC9", "position": "50%" },
+            { "color": "#00CFCF", "position": "100%" }
+          ]
+        },
+        "textColor": "#FFFFFF",
+        "hoverGlow": "0 0 10px rgba(0, 207, 207, 0.3)"
+      },
+      "secondary": {
+        "background": "rgba(255, 255, 255, 0.06)",
+        "border": "rgba(255, 255, 255, 0.1)",
+        "textColor": "#FFFFFF"
+      }
+    },
+    "cards": {
+      "metricCard": {
+        "background": "rgba(16, 23, 36, 0.55)",
+        "border": "rgba(255, 255, 255, 0.12)",
+        "textPrimary": "#FFFFFF",
+        "textSecondary": "#C6D0DE",
+        "glow": "0 0 16px rgba(0, 207, 207, 0.18)"
+      },
+      "insightCard": {
+        "background": "rgba(16, 23, 36, 0.65)",
+        "border": "rgba(255, 255, 255, 0.1)",
+        "accentBorder": "linear-gradient(90deg, #FF7C77, #00CFCF)",
+        "textPrimary": "#FFFFFF",
+        "textHighlight": "#00CFCF"
+      }
+    },
+    "charts": {
+      "gridLine": "rgba(255, 255, 255, 0.06)",
+      "axes": "rgba(255, 255, 255, 0.4)",
+      "series": {
+        "primary": "#00CFCF",
+        "secondary": "#FF7C77",
+        "tertiary": "#E58AC9"
+      },
+      "dot": {
+        "fill": "#00CFCF",
+        "stroke": "#FFFFFF"
+      },
+      "shadow": "0 0 8px rgba(0, 207, 207, 0.35)"
+    },
+    "icons": {
+      "default": "#FFFFFF",
+      "inactive": "#9BA3AF",
+      "accent": "#00CFCF",
+      "alert": "#FF7C77"
+    },
+    "forms": {
+      "inputBg": "rgba(16, 23, 36, 0.55)",
+      "inputBorder": "rgba(255, 255, 255, 0.12)",
+      "inputPlaceholder": "rgba(255, 255, 255, 0.55)",
+      "inputText": "#FFFFFF",
+      "focusOutline": "rgba(0, 207, 207, 0.45)"
+    }
+  },
+  "gradients": {
+    "cta": {
+      "angle": 90,
+      "stops": [
+        { "color": "#FF7C77", "position": "0%" },
+        { "color": "#E58AC9", "position": "45%" },
+        { "color": "#00CFCF", "position": "100%" }
+      ]
+    },
+    "backgroundOverlay": {
+      "angle": 180,
+      "stops": [
+        { "color": "rgba(10,15,20,0.9)", "position": "0%" },
+        { "color": "rgba(10,15,20,0.6)", "position": "100%" }
+      ]
+    }
+  },
+  "statusColors": {
+    "success": "#4AE3C6",
+    "warning": "#FF9B8E",
+    "info": "#93C5FD",
+    "danger": "#FF7C77"
+  },
+  "effects": {
+    "shadowLow": "0px 4px 8px rgba(0, 0, 0, 0.25)",
+    "shadowHigh": "0px 12px 32px rgba(0, 0, 0, 0.45)",
+    "blur": "backdrop-filter: blur(16px) saturate(120%)",
+    "glow": "0 0 24px rgba(0, 207, 207, 0.22)"
+  },
+  "layout": {
+    "radius": {
+      "sm": 12,
+      "md": 16,
+      "lg": 24
+    },
+    "padding": {
+      "card": 16,
+      "screenEdge": 24,
+      "metricTile": 12
+    }
+  }
+}

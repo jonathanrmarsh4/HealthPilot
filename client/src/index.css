@@ -263,26 +263,36 @@
 }
 
 .premium-theme.dark {
-  /* DARK mode colors - muted gradient with dark base */
-  --hp-coral: #CC7A76;     /* muted dark coral */
-  --hp-pink:  #B87FA7;     /* muted dark pink */
-  --hp-teal:  #5BA3A3;     /* muted dark teal */
+  /* DARK mode colors - ORIGINAL saturated gradient per spec */
+  --hp-coral: #FF7C77;     /* vibrant coral */
+  --hp-pink:  #E58AC9;     /* vibrant pink */
+  --hp-teal:  #00CFCF;     /* vibrant teal */
 
-  --hp-bg: #0F1419;        /* dark blue-gray base */
-  --hp-surface: rgba(20,25,35,0.85);  /* increased opacity for content visibility */
-  --hp-text: #E2E8F0;      /* lighter text for dark mode */
-  --hp-text-dim: #94A3B8;  /* slate-400 */
+  --hp-bg: #0A0F14;        /* very dark blue-black per spec */
+  --hp-surface: rgba(16,23,36,0.55);  /* glass effect background per spec */
+  --hp-text: #FFFFFF;      /* pure white primary text */
+  --hp-text-dim: #C6D0DE;  /* secondary text color per spec */
 
-  --hp-glass-stroke: rgba(255,255,255,0.08);
-  --hp-glass-inner: rgba(255,255,255,0.04);
-  --hp-glow: rgba(91,163,163,0.15);  /* subtle teal glow */
+  --hp-glass-stroke: rgba(255,255,255,0.12);  /* card border per spec */
+  --hp-glass-inner: rgba(255,255,255,0.08);   /* inner sheen per spec */
+  --hp-glow: rgba(0,207,207,0.22);  /* teal glow per spec */
 
-  --hp-shadow-1: 0 8px 24px rgba(0,0,0,0.4);
-  --hp-shadow-2: 0 12px 36px rgba(0,0,0,0.5);
+  --hp-shadow-1: 0 8px 28px rgba(0,0,0,0.35);  /* shadow per spec */
+  --hp-shadow-2: 0 12px 32px rgba(0,0,0,0.45);
 
-  /* Gradients - VERY SUBTLE for dark mode (20% opacity) */
-  --hp-grad: linear-gradient(180deg, rgba(204,122,118,0.2) 0%, rgba(184,127,167,0.2) 40%, rgba(91,163,163,0.2) 100%);
-  --hp-grad-h: linear-gradient(90deg, rgba(204,122,118,0.2) 0%, rgba(184,127,167,0.2) 40%, rgba(91,163,163,0.2) 100%);
+  /* Gradients - ORIGINAL saturated colors for dramatic effect */
+  --hp-grad: linear-gradient(180deg, rgba(255,124,119,0.25) 0%, rgba(229,138,201,0.25) 45%, rgba(0,207,207,0.25) 100%);
+  --hp-grad-h: linear-gradient(90deg, rgba(255,124,119,1) 0%, rgba(229,138,201,1) 50%, rgba(0,207,207,1) 100%);
+  
+  /* Chart colors - vibrant */
+  --hp-chart-1: #00CFCF;   /* primary teal */
+  --hp-chart-2: #FF7C77;   /* secondary coral */
+  --hp-chart-3: #E58AC9;   /* tertiary pink */
+  
+  /* Status colors per spec */
+  --hp-positive: #4AE3C6;  /* success */
+  --hp-alert:    #FF9B8E;  /* warning */
+  --hp-info:     #93C5FD;  /* info */
 }
 
 /* ===== LIQUID GLASS THEME - BASE & BACKGROUND ===== */
@@ -295,12 +305,12 @@
   --popover: rgba(255,255,255,0.92);
 }
 
-/* Dark mode: Mostly dark with very subtle gradient overlay */
+/* Dark mode: Very dark base with glass morphic surfaces per spec */
 .premium-theme.dark {
-  --background: rgba(15,20,25,0.6);     /* semi-transparent dark to allow gradient hints */
-  --card: rgba(15,20,25,0.88);          /* 88% opaque cards for content visibility */
-  --sidebar: rgba(15,20,25,0.9);        /* slightly more opaque sidebar */
-  --popover: rgba(15,20,25,0.92);
+  --background: rgba(16,23,36,0.4);     /* semi-transparent to show gradient */
+  --card: rgba(16,23,36,0.55);          /* glass effect background per spec */
+  --sidebar: rgba(16,23,36,0.65);       /* slightly more opaque sidebar */
+  --popover: rgba(16,23,36,0.8);        /* more opaque for popovers */
 }
 
 /* Light mode background: white base with subtle gradient overlay */
@@ -313,10 +323,10 @@ body.premium-theme {
   font-family: var(--hp-font-ui);
 }
 
-/* Dark mode background: dark base with subtle gradient overlay */
+/* Dark mode background: very dark blue-black base with vibrant gradient overlay */
 html.premium-theme.dark,
 body.premium-theme.dark {
-  background: #0F1419;
+  background: #0A0F14;  /* per spec: darker than before */
   background-image: var(--hp-grad);
   color: var(--hp-text);
 }
