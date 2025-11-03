@@ -63,27 +63,30 @@ I prefer simple language and clear explanations. I want iterative development wh
 - **Comprehensive Notifications Layer v1.0:** Event-driven notification system featuring OneSignal push notifications, local scheduled reminders, in-app notification center, and deep linking (healthpilot:// custom scheme + links.healthpilot.pro universal links). Integrates with AI insights, biomarker alerts, and scheduled reminders via EventBus architecture. Supports timezone-aware quiet hours, per-channel preferences, and multi-time daily reminders.
 
 ## iOS Development Workflow
-**Live Reload Setup (Current):**
-- Frontend changes appear instantly in iOS app without rebuilding
-- Server URL configured in `capacitor.config.ts` points to Replit dev server
-- One-time setup: Run `npx cap sync ios` and rebuild in Xcode after enabling live reload
 
-**Live Reload Cache Fix (Nov 2025):**
-- **Problem:** WKWebView aggressively caches responses, preventing live reload from working even after server restarts
-- **Solution:** Cache-control headers (`no-store, no-cache`) are automatically set in development mode
-- **Implementation:** Headers are set BEFORE all routes in `server/index.ts` when `NODE_ENV=development` or `CAPACITOR_LIVE_RELOAD=true`
-- **Verification:** Log message `🚫 Cache headers disabled for live reload development` confirms headers are active
-- **Result:** iOS app always loads fresh code from Vite dev server, no more stale UI after changes
+**IMPORTANT: Xcode builds use bundled files, NOT live reload** (Nov 2025)
+- When building from Xcode Play button, app loads from `capacitor://localhost` (bundled files)
+- The `server.url` config in `capacitor.config.ts` is ignored by direct Xcode builds
+- Live reload only works when using Capacitor CLI (`npx cap run ios`)
+
+**iOS Build Workflow (Required for Frontend Changes):**
+1. **On Replit:** `npm run build && npx cap sync ios`
+2. **In Xcode:** Delete app from device → Clean Build (`⇧⌘K`) → Build and Run (`⌘R`)
+3. This bundles fresh frontend code and syncs it to `ios/App/App/public`
+
+**Recommended Development Strategy:**
+- **Frontend development:** Use web browser (live reload works perfectly, API calls identical to iOS)
+- **iOS-specific testing:** Build and sync when testing HealthKit, native plugins, or iOS-specific features
+- **Quick iterations:** Web browser >> iOS rebuilds
 
 **Build Pipeline:**
-1. Development: Live reload enabled → instant frontend updates (cache disabled)
-2. Production/TestFlight: Comment out `server` block in `capacitor.config.ts` → `npx cap sync ios` → rebuild in Xcode
+1. Development: Bundle and sync workflow (see above)
+2. Production/TestFlight: Same workflow, ensure `server` block is commented out in `capacitor.config.ts`
 
 **Important Notes:**
-- Live reload requires network access from iOS device to Replit
-- Backend API calls always go to Replit (not affected by live reload setting)
-- Disable live reload before App Store submissions
-- If changes don't appear: Check logs for `🚫 Cache headers disabled` and `🔥 Vite dev server enabled` messages
+- Backend API calls always go to Replit (works from both web and iOS)
+- Bundled files must be rebuilt after any frontend changes to appear on iOS
+- Web browser is faster for iterating on UI/UX changes
 
 ## External Dependencies
 - **Database:** PostgreSQL
