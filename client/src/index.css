@@ -300,7 +300,7 @@
 
 /* Light mode: Light gray-blue base with white glass surfaces per spec */
 .premium-theme {
-  --background: rgba(255,255,255,0.3);  /* semi-transparent to show gradient */
+  --background: 200 23% 97%;            /* #F7F9FA in HSL format for Tailwind */
   --card: rgba(255,255,255,0.60);       /* glass effect background per spec */
   --sidebar: rgba(255,255,255,0.75);    /* tile opacity per spec */
   --popover: rgba(255,255,255,0.80);    /* input bg per spec */
@@ -308,7 +308,7 @@
 
 /* Dark mode: Very dark base with glass morphic surfaces per spec */
 .premium-theme.dark {
-  --background: rgba(16,23,36,0.4);     /* semi-transparent to show gradient */
+  --background: 210 33% 6%;             /* #0A0F14 in HSL format for Tailwind */
   --card: rgba(16,23,36,0.55);          /* glass effect background per spec */
   --sidebar: rgba(16,23,36,0.65);       /* slightly more opaque sidebar */
   --popover: rgba(16,23,36,0.8);        /* more opaque for popovers */
