@@ -38,11 +38,25 @@ public class HealthKitStatsPluginV3: CAPPlugin {
             return
         }
         
-        // Get user's current timezone
+        // Get target date from parameter (or default to today)
         let calendar = Calendar.current
         let timezone = calendar.timeZone
-        let now = Date()
-        let startOfDay = calendar.startOfDay(for: now)
+        let targetDate: Date
+        
+        if let dateString = call.getString("date") {
+            // Parse the provided date string
+            if let parsed = parseISO8601Date(dateString) {
+                targetDate = parsed
+            } else {
+                call.reject("Invalid date format. Expected ISO 8601 format.")
+                return
+            }
+        } else {
+            // No date provided, use today
+            targetDate = Date()
+        }
+        
+        let startOfDay = calendar.startOfDay(for: targetDate)
         let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
         
         let predicate = HKQuery.predicateForSamples(
@@ -68,7 +82,7 @@ public class HealthKitStatsPluginV3: CAPPlugin {
             
             call.resolve([
                 "steps": Int(steps),
-                "date": self.dateString(for: now, timezone: timezone),
+                "date": self.dateString(for: targetDate, timezone: timezone),
                 "timezone": timezone.identifier,
                 "startOfDay": dateFormatter.string(from: startOfDay),
                 "endOfDay": dateFormatter.string(from: endOfDay)
@@ -289,11 +303,17 @@ public class HealthKitStatsPluginV3: CAPPlugin {
     @objc public func resetAnchors(_ call: CAPPluginCall) {
         NSLog("🔵🔵🔵 [HK V3] resetAnchors called")
         
-        // Clear all persisted anchors for observer queries
-        // (In a real implementation, you'd store and clear anchor objects)
+        // Clear all persisted anchors for all data types
+        let dataTypes = ["steps", "heartRate", "distance", "calories", "sleepAnalysis"]
+        for dataType in dataTypes {
+            clearAnchor(for: dataType)
+        }
+        
+        // Also clear the background queue
         backgroundQueue = [:]
         UserDefaults.standard.removeObject(forKey: queueKey)
         
+        NSLog("[HK V3] Cleared anchors for \(dataTypes.count) data types and background queue")
         call.resolve(["success": true])
     }
     
@@ -462,5 +482,41 @@ public class HealthKitStatsPluginV3: CAPPlugin {
         formatter.dateFormat = "yyyy-MM-dd"
         formatter.timeZone = TimeZone(identifier: "UTC")
         return formatter.date(from: dateString)
+    }
+    
+    private func parseISO8601Date(_ dateString: String) -> Date? {
+        let formatter = ISO8601DateFormatter()
+        return formatter.date(from: dateString)
+    }
+    
+    // MARK: - Anchor Persistence
+    
+    private func saveAnchor(_ anchor: HKQueryAnchor, for dataTypeKey: String) {
+        do {
+            let data = try NSKeyedArchiver.archivedData(withRootObject: anchor, requiringSecureCoding: true)
+            UserDefaults.standard.set(data, forKey: "anchor_\(dataTypeKey)")
+        } catch {
+            NSLog("[HK V3] Failed to save anchor for \(dataTypeKey): \(error.localizedDescription)")
+        }
+    }
+    
+    private func loadAnchor(for dataTypeKey: String) -> HKQueryAnchor? {
+        guard let data = UserDefaults.standard.data(forKey: "anchor_\(dataTypeKey)") else {
+            return nil
+        }
+        
+        do {
+            if let anchor = try NSKeyedUnarchiver.unarchivedObject(ofClass: HKQueryAnchor.self, from: data) {
+                return anchor
+            }
+        } catch {
+            NSLog("[HK V3] Failed to load anchor for \(dataTypeKey): \(error.localizedDescription)")
+        }
+        
+        return nil
+    }
+    
+    private func clearAnchor(for dataTypeKey: String) {
+        UserDefaults.standard.removeObject(forKey: "anchor_\(dataTypeKey)")
     }
 }
