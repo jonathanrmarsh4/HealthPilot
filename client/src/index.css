@@ -278,10 +278,25 @@
 
 /* ===== LIQUID GLASS THEME - BASE & BACKGROUND ===== */
 
+/* Override CSS variables to make backgrounds transparent and show gradient */
+.premium-theme {
+  --background: transparent;
+  --card: transparent;
+  --sidebar: transparent;
+  --popover: rgba(255,255,255,0.05);
+}
+
+.premium-theme.dark {
+  --background: transparent;
+  --card: transparent;
+  --sidebar: transparent;
+  --popover: rgba(0,0,0,0.3);
+}
+
 /* Full gradient background on html/body */
 html.premium-theme,
 body.premium-theme {
-  background: var(--hp-grad);
+  background: var(--hp-grad) !important;
   min-height: 100%;
   color: var(--hp-text);
   font-family: var(--hp-font-ui);
