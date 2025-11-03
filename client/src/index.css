@@ -218,27 +218,28 @@
 
 /* ===== PREMIUM THEME - LIQUID GLASS DESIGN SYSTEM ===== */
 .premium-theme {
-  /* Brand gradient stops - DESATURATED for subtlety (50% less vibrant) */
-  --hp-coral: #FFB4AF;     /* was #FF7C77 - now soft peachy coral */
-  --hp-pink:  #F0BFDC;     /* was #E58AC9 - now soft lavender pink */
-  --hp-teal:  #80E5E5;     /* was #00CFCF - now soft mint teal */
+  /* LIGHT mode colors - ORIGINAL saturated gradient per spec */
+  --hp-coral: #FF7C77;     /* vibrant coral */
+  --hp-pink:  #E58AC9;     /* vibrant pink */
+  --hp-teal:  #00CFCF;     /* vibrant teal */
 
-  /* Base - LIGHT mode: white background with subtle gradient hints */
-  --hp-bg: #FFFFFF;
-  --hp-surface: rgba(255,255,255,0.9);  /* increased from 0.6 to 0.9 for content visibility */
-  --hp-text: #0F172A;       /* slate-900 */
-  --hp-text-dim: #475569;   /* slate-600 - slightly lighter for readability */
+  /* Base - LIGHT mode: light gray-blue background per spec */
+  --hp-bg: #F7F9FA;        /* light gray-blue base per spec */
+  --hp-surface: rgba(255,255,255,0.60);  /* glass effect background per spec */
+  --hp-text: #0F172A;      /* dark slate primary text per spec */
+  --hp-text-dim: #334155;  /* medium slate secondary text per spec */
 
   /* Accents */
   --hp-white: #FFFFFF;
-  --hp-glass-stroke: rgba(255,255,255,0.4);    /* slightly more visible */
-  --hp-glass-inner: rgba(255,255,255,0.5);     /* slightly more visible */
-  --hp-glow: rgba(240,191,220,0.2);            /* very subtle pink glow */
+  --hp-glass-stroke: rgba(15,23,42,0.08);  /* card border per spec */
+  --hp-glass-inner: rgba(255,255,255,0.35);  /* inner sheen per spec */
+  --hp-glow: rgba(229,138,201,0.22);  /* pink glow per spec */
 
-  /* Data states - also desaturated */
-  --hp-positive: #7DE8D5;  /* softer teal-green */
-  --hp-alert:    #FFBDB5;  /* softer coral-pink */
-  --hp-info:     #B8D4FB;  /* softer blue */
+  /* Status colors per spec */
+  --hp-positive: #14B8A6;  /* success - teal */
+  --hp-alert:    #F59E0B;  /* warning - amber */
+  --hp-info:     #3B82F6;  /* info - blue */
+  --hp-danger:   #EF4444;  /* danger - red */
 
   /* Elevation + blur */
   --hp-radius-xs: 12px;
@@ -246,20 +247,20 @@
   --hp-radius-md: 20px;
   --hp-radius-lg: 24px;
   --hp-blur: 16px;
-  --hp-shadow-1: 0 4px 16px rgba(2,6,23,0.06);   /* lighter shadows for light mode */
-  --hp-shadow-2: 0 8px 24px rgba(2,6,23,0.10);
+  --hp-shadow-1: 0 8px 24px rgba(2,6,23,0.12);   /* shadow per spec */
+  --hp-shadow-2: 0 12px 28px rgba(2,6,23,0.16);  /* high shadow per spec */
 
   /* Typography */
   --hp-font-ui: "SF Pro Display","SF Pro Text", Inter, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, sans-serif;
 
-  /* Gradients - SUBTLE overlay (15% opacity) */
-  --hp-grad: linear-gradient(180deg, rgba(255,180,175,0.15) 0%, rgba(240,191,220,0.15) 40%, rgba(128,229,229,0.15) 100%);
-  --hp-grad-h: linear-gradient(90deg, rgba(255,180,175,0.15) 0%, rgba(240,191,220,0.15) 40%, rgba(128,229,229,0.15) 100%);
+  /* Gradients - ORIGINAL saturated colors (same as dark mode) */
+  --hp-grad: linear-gradient(180deg, rgba(255,124,119,0.25) 0%, rgba(229,138,201,0.25) 45%, rgba(0,207,207,0.25) 100%);
+  --hp-grad-h: linear-gradient(90deg, rgba(255,124,119,1) 0%, rgba(229,138,201,1) 50%, rgba(0,207,207,1) 100%);
 
-  /* Chart palette - desaturated */
-  --hp-chart-1: #FFB4AF;   /* soft coral */
-  --hp-chart-2: #80E5E5;   /* soft teal */
-  --hp-chart-3: #F0BFDC;   /* soft pink */
+  /* Chart palette - vibrant */
+  --hp-chart-1: #FF7C77;   /* primary coral */
+  --hp-chart-2: #00CFCF;   /* secondary teal */
+  --hp-chart-3: #E58AC9;   /* tertiary pink */
 }
 
 .premium-theme.dark {
@@ -297,12 +298,12 @@
 
 /* ===== LIQUID GLASS THEME - BASE & BACKGROUND ===== */
 
-/* Light mode: Mostly white with subtle gradient overlay */
+/* Light mode: Light gray-blue base with white glass surfaces per spec */
 .premium-theme {
-  --background: rgba(255,255,255,0.5);  /* semi-transparent white to allow gradient hints */
-  --card: rgba(255,255,255,0.85);       /* 85% opaque cards for content visibility */
-  --sidebar: rgba(255,255,255,0.88);    /* slightly more opaque sidebar */
-  --popover: rgba(255,255,255,0.92);
+  --background: rgba(255,255,255,0.3);  /* semi-transparent to show gradient */
+  --card: rgba(255,255,255,0.60);       /* glass effect background per spec */
+  --sidebar: rgba(255,255,255,0.75);    /* tile opacity per spec */
+  --popover: rgba(255,255,255,0.80);    /* input bg per spec */
 }
 
 /* Dark mode: Very dark base with glass morphic surfaces per spec */
@@ -313,10 +314,10 @@
   --popover: rgba(16,23,36,0.8);        /* more opaque for popovers */
 }
 
-/* Light mode background: white base with subtle gradient overlay */
+/* Light mode background: light gray-blue base with vibrant gradient overlay per spec */
 html.premium-theme,
 body.premium-theme {
-  background: #FFFFFF;
+  background: #F7F9FA;  /* light gray-blue base per spec */
   background-image: var(--hp-grad);
   min-height: 100%;
   color: var(--hp-text);
