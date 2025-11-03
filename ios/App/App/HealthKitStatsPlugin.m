@@ -1,7 +1,7 @@
 #import <Foundation/Foundation.h>
 #import <Capacitor/Capacitor.h>
 
-CAP_PLUGIN(HealthKitStatsPlugin, "HealthKitStatsPlugin",
+CAP_PLUGIN(HealthKitStatsPluginV2, "HealthKitStatsPlugin",
     CAP_PLUGIN_METHOD(getDailySteps, CAPPluginReturnPromise);
     CAP_PLUGIN_METHOD(getMultiDayStats, CAPPluginReturnPromise);
     CAP_PLUGIN_METHOD(enableBackgroundSync, CAPPluginReturnPromise);

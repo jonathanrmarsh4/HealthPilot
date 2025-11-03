@@ -2,8 +2,8 @@ import Foundation
 import Capacitor
 import HealthKit
 
-@objc(HealthKitStatsPlugin)
-public class HealthKitStatsPlugin: CAPPlugin {
+@objc(HealthKitStatsPluginV2)
+public class HealthKitStatsPluginV2: CAPPlugin {
     private let healthStore = HKHealthStore()
     private var observers: [HKObserverQuery] = []
     private var backgroundQueue: [String: [[String: Any]]] = [:]
