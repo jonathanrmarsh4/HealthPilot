@@ -1225,16 +1225,14 @@ function ThemeSection({
   content: LandingPageContent | undefined;
   onSave: (data: Partial<LandingPageContent>) => void;
 }) {
-  const [premiumThemeEnabled, setPremiumThemeEnabled] = useState(content?.premiumThemeEnabled === 1);
   const { toast } = useToast();
-
-  useEffect(() => {
-    setPremiumThemeEnabled(content?.premiumThemeEnabled === 1);
-  }, [content]);
+  
+  const { data: themeData } = useQuery<{ enabled: boolean }>({
+    queryKey: ["/api/theme/premium-enabled"]
+  });
 
   const handleToggle = async (checked: boolean) => {
     try {
-      setPremiumThemeEnabled(checked);
       await apiRequest("PUT", "/api/admin/theme/premium-enabled", { enabled: checked });
       
       queryClient.invalidateQueries({ queryKey: ["/api/theme/premium-enabled"] });
@@ -1247,7 +1245,6 @@ function ThemeSection({
           : "The standard theme is now active"
       });
     } catch (error: any) {
-      setPremiumThemeEnabled(!checked); // Revert on error
       toast({
         title: "Error updating theme",
         description: error.message,
@@ -1255,6 +1252,8 @@ function ThemeSection({
       });
     }
   };
+
+  const premiumThemeEnabled = themeData?.enabled ?? false;
 
   return (
     <Card>
