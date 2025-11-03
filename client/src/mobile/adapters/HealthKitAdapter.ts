@@ -201,7 +201,7 @@ class NativeHealthKitAdapter implements HealthKitAdapter {
     }
     
     try {
-      const result = await HealthKitStats.enableBackgroundSync();
+      const result = await HealthKitStats.enableBackgroundDelivery();
       console.log('[HealthKit] Background sync enabled');
       return result.success;
     } catch (error) {
@@ -216,7 +216,7 @@ class NativeHealthKitAdapter implements HealthKitAdapter {
     }
     
     try {
-      const result = await HealthKitStats.disableBackgroundSync();
+      const result = await HealthKitStats.disableBackgroundDelivery();
       console.log('[HealthKit] Background sync disabled');
       return result.success;
     } catch (error) {
@@ -231,7 +231,7 @@ class NativeHealthKitAdapter implements HealthKitAdapter {
     }
     
     try {
-      const result = await HealthKitStats.isBackgroundSyncEnabled();
+      const result = await HealthKitStats.getSyncStatus();
       return result.enabled;
     } catch (error) {
       console.error('[HealthKit] Failed to check background sync status:', error);

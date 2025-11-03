@@ -30,19 +30,24 @@ export interface HealthKitStatsPlugin {
   getMultiDayStats(options: { dates: string[] }): Promise<MultiDayStatsResult>;
   
   /**
-   * Enable background HealthKit sync monitoring
+   * Enable background HealthKit delivery monitoring
    */
-  enableBackgroundSync(): Promise<{ success: boolean }>;
+  enableBackgroundDelivery(): Promise<{ success: boolean; deliveryTypesEnabled?: number }>;
   
   /**
-   * Disable background HealthKit sync monitoring
+   * Disable background HealthKit delivery monitoring
    */
-  disableBackgroundSync(): Promise<{ success: boolean }>;
+  disableBackgroundDelivery(): Promise<{ success: boolean }>;
   
   /**
-   * Check if background sync is currently enabled
+   * Get current sync status and queue statistics
    */
-  isBackgroundSyncEnabled(): Promise<{ enabled: boolean }>;
+  getSyncStatus(): Promise<{ enabled: boolean; queuedSamples: number; observersActive: number }>;
+  
+  /**
+   * Trigger a foreground sync now (for testing without background delivery)
+   */
+  triggerBackgroundSyncNow(): Promise<{ success: boolean; dataTypesFetched: number; totalQueuedSamples: number }>;
   
   /**
    * Drain the background queue and return all queued data
@@ -53,9 +58,14 @@ export interface HealthKitStatsPlugin {
    * Get statistics about the background queue
    */
   getBackgroundQueueStats(): Promise<{ stats: Record<string, number> }>;
+  
+  /**
+   * Reset all stored anchors (for debugging)
+   */
+  resetAnchors(): Promise<{ success: boolean }>;
 }
 
-const HealthKitStats = registerPlugin<HealthKitStatsPlugin>('HealthKitStatsPluginV2', {
+const HealthKitStats = registerPlugin<HealthKitStatsPlugin>('HealthPilotHKV3', {
   web: () => ({
     async getDailySteps() {
       return { steps: 0, date: '', timezone: 'UTC', startOfDay: '', endOfDay: '' };
@@ -63,20 +73,26 @@ const HealthKitStats = registerPlugin<HealthKitStatsPlugin>('HealthKitStatsPlugi
     async getMultiDayStats() {
       return { results: [] };
     },
-    async enableBackgroundSync() {
+    async enableBackgroundDelivery() {
       return { success: false };
     },
-    async disableBackgroundSync() {
+    async disableBackgroundDelivery() {
       return { success: false };
     },
-    async isBackgroundSyncEnabled() {
-      return { enabled: false };
+    async getSyncStatus() {
+      return { enabled: false, queuedSamples: 0, observersActive: 0 };
+    },
+    async triggerBackgroundSyncNow() {
+      return { success: false, dataTypesFetched: 0, totalQueuedSamples: 0 };
     },
     async drainBackgroundQueue() {
       return { data: {} };
     },
     async getBackgroundQueueStats() {
       return { stats: {} };
+    },
+    async resetAnchors() {
+      return { success: false };
     },
   }),
 });
