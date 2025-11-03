@@ -211,53 +211,64 @@
 
 }
 
-/* ===== PREMIUM THEME ===== */
+/* ===== PREMIUM THEME - LIQUID GLASS DESIGN SYSTEM ===== */
 .premium-theme {
-  /* Premium Gradient Colors (Coral to Turquoise) */
-  --premium-gradient-start: 3 68% 73%; /* #FF7C77 */
-  --premium-gradient-middle: 318 72% 76%; /* #E58AC9 */
-  --premium-gradient-end: 180 100% 41%; /* #00CFCF */
-  
-  /* Premium Background & Text */
-  --premium-bg: 200 20% 98%; /* Soft white-blue */
-  --premium-text: 0 0% 100%; /* Pure white */
-  --premium-text-secondary: 0 0% 88%; /* Light gray */
-  
-  /* Data Visualization */
-  --premium-data-positive: 166 75% 59%; /* #4AE3C6 */
-  --premium-data-alert: 5 100% 77%; /* #FF9B8E */
-  
-  /* Glassmorphism Effects */
-  --glass-bg: rgba(255, 255, 255, 0.1);
-  --glass-border: rgba(255, 255, 255, 0.18);
-  --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.12);
-  --glass-backdrop-blur: blur(10px);
-  
-  /* Glow Effects */
-  --glow-coral: 0 0 20px rgba(255, 124, 119, 0.4);
-  --glow-turquoise: 0 0 20px rgba(0, 207, 207, 0.4);
-  --glow-gradient: 0 0 30px rgba(229, 138, 201, 0.3);
-  
-  /* Override primary colors with gradient */
-  --primary: 318 72% 76%; /* Pink middle for primary */
-  --accent: 3 68% 73%; /* Coral start */
-  
-  /* Override background with subtle gradient tint */
-  --background: 200 20% 98%;
-  --card: 0 0% 100%;
-  --card-foreground: 222.2 84% 4.9%;
+  /* Brand gradient stops */
+  --hp-coral: #FF7C77;
+  --hp-pink:  #E58AC9; /* soft mid glow */
+  --hp-teal:  #00CFCF;
+
+  /* Base */
+  --hp-bg: #F7F9FA;
+  --hp-surface: rgba(255,255,255,0.6);
+  --hp-text: #0F172A;       /* slate-900 */
+  --hp-text-dim: #334155;   /* slate-700 */
+
+  /* Accents */
+  --hp-white: #FFFFFF;
+  --hp-glass-stroke: rgba(255,255,255,0.28);
+  --hp-glass-inner: rgba(255,255,255,0.35);
+  --hp-glow: rgba(229,138,201,0.35); /* pink glow */
+
+  /* Data states */
+  --hp-positive: #4AE3C6;
+  --hp-alert:    #FF9B8E;
+  --hp-info:     #93C5FD;
+
+  /* Elevation + blur */
+  --hp-radius-xs: 12px;
+  --hp-radius-sm: 16px;
+  --hp-radius-md: 20px;
+  --hp-radius-lg: 24px;
+  --hp-blur: 16px;         /* liquid glass feel */
+  --hp-shadow-1: 0 8px 24px rgba(2,6,23,0.12);
+  --hp-shadow-2: 0 12px 40px rgba(2,6,23,0.18);
+
+  /* Typography */
+  --hp-font-ui: "SF Pro Display","SF Pro Text", Inter, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, sans-serif;
+
+  /* Gradients */
+  --hp-grad: linear-gradient(180deg, var(--hp-coral) 0%, var(--hp-pink) 40%, var(--hp-teal) 100%);
+  --hp-grad-h: linear-gradient(90deg, var(--hp-coral) 0%, var(--hp-pink) 40%, var(--hp-teal) 100%);
+
+  /* Chart palette */
+  --hp-chart-1: #FF7C77;   /* coral line */
+  --hp-chart-2: #00CFCF;   /* teal line */
+  --hp-chart-3: #E58AC9;   /* pink line */
 }
 
 .premium-theme.dark {
-  /* Dark mode premium theme adjustments */
-  --premium-bg: 230 15% 8%;
-  --glass-bg: rgba(0, 0, 0, 0.2);
-  --glass-border: rgba(255, 255, 255, 0.1);
-  
-  /* Dark mode with rich purple-blue tint (NOT BROWN!) */
-  --background: 252 25% 10%; /* Deep purple-blue */
-  --card: 252 22% 14%; /* Richer purple */
-  --foreground: 0 0% 98%; /* Bright white text */
+  --hp-bg: #0A0F14;      /* near-black blue */
+  --hp-surface: rgba(16,23,36,0.55);
+  --hp-text: #F8FAFC;    /* white-ish */
+  --hp-text-dim: #C6D0DE;
+
+  --hp-glass-stroke: rgba(255,255,255,0.12);
+  --hp-glass-inner: rgba(255,255,255,0.08);
+  --hp-glow: rgba(0,207,207,0.22);
+
+  --hp-shadow-1: 0 8px 28px rgba(0,0,0,0.35);
+  --hp-shadow-2: 0 16px 56px rgba(0,0,0,0.45);
 }
 
 /* ===== LIQUID GLASS THEME - Apple-Inspired ===== */
