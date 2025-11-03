@@ -19,6 +19,19 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: false, limit: '10mb' }));
 
+// Disable caching for iOS live reload to prevent WKWebView from serving stale assets
+// This must come BEFORE all routes to ensure headers apply to all responses
+const useViteDevServer = process.env.CAPACITOR_LIVE_RELOAD === "true" || process.env.NODE_ENV === "development";
+if (useViteDevServer) {
+  app.use((req, res, next) => {
+    res.set("Cache-Control", "no-store, no-cache, must-revalidate, private");
+    res.set("Pragma", "no-cache");
+    res.set("Expires", "0");
+    next();
+  });
+  log('🚫 Cache headers disabled for live reload development');
+}
+
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -86,20 +99,9 @@ app.use((req, res, next) => {
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes
-  // Use explicit CAPACITOR_LIVE_RELOAD flag for iOS development
-  const useViteDevServer = process.env.CAPACITOR_LIVE_RELOAD === "true" || app.get("env") === "development";
-  
   if (useViteDevServer) {
-    // Add cache-busting headers to prevent WKWebView from caching stale responses
-    app.use((req, res, next) => {
-      res.set("Cache-Control", "no-store, no-cache, must-revalidate, private");
-      res.set("Pragma", "no-cache");
-      res.set("Expires", "0");
-      next();
-    });
-    
     await setupVite(app, server);
-    log('🔥 Vite dev server enabled with live reload (cache disabled for iOS)');
+    log('🔥 Vite dev server enabled with live reload');
   } else {
     serveStatic(app);
     log('📦 Serving static production build');
