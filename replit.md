@@ -68,14 +68,22 @@ I prefer simple language and clear explanations. I want iterative development wh
 - Server URL configured in `capacitor.config.ts` points to Replit dev server
 - One-time setup: Run `npx cap sync ios` and rebuild in Xcode after enabling live reload
 
+**Live Reload Cache Fix (Nov 2025):**
+- **Problem:** WKWebView aggressively caches responses, preventing live reload from working even after server restarts
+- **Solution:** Cache-control headers (`no-store, no-cache`) are automatically set in development mode
+- **Implementation:** Headers are set BEFORE all routes in `server/index.ts` when `NODE_ENV=development` or `CAPACITOR_LIVE_RELOAD=true`
+- **Verification:** Log message `🚫 Cache headers disabled for live reload development` confirms headers are active
+- **Result:** iOS app always loads fresh code from Vite dev server, no more stale UI after changes
+
 **Build Pipeline:**
-1. Development: Live reload enabled → instant frontend updates
+1. Development: Live reload enabled → instant frontend updates (cache disabled)
 2. Production/TestFlight: Comment out `server` block in `capacitor.config.ts` → `npx cap sync ios` → rebuild in Xcode
 
 **Important Notes:**
 - Live reload requires network access from iOS device to Replit
 - Backend API calls always go to Replit (not affected by live reload setting)
 - Disable live reload before App Store submissions
+- If changes don't appear: Check logs for `🚫 Cache headers disabled` and `🔥 Vite dev server enabled` messages
 
 ## External Dependencies
 - **Database:** PostgreSQL
