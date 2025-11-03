@@ -86,10 +86,23 @@ app.use((req, res, next) => {
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
+  // Use explicit CAPACITOR_LIVE_RELOAD flag for iOS development
+  const useViteDevServer = process.env.CAPACITOR_LIVE_RELOAD === "true" || app.get("env") === "development";
+  
+  if (useViteDevServer) {
+    // Add cache-busting headers to prevent WKWebView from caching stale responses
+    app.use((req, res, next) => {
+      res.set("Cache-Control", "no-store, no-cache, must-revalidate, private");
+      res.set("Pragma", "no-cache");
+      res.set("Expires", "0");
+      next();
+    });
+    
     await setupVite(app, server);
+    log('🔥 Vite dev server enabled with live reload (cache disabled for iOS)');
   } else {
     serveStatic(app);
+    log('📦 Serving static production build');
   }
 
   // ALWAYS serve the app on the port specified in the environment variable PORT
