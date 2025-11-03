@@ -96,10 +96,10 @@ export class HealthKitService {
           'oxygenSaturation', 'respiratoryRate',
           
           // Batch 2: 14 additional comprehensive metrics
-          'height', 'bmi', 'bodyFat', 'leanBodyMass',
-          'basalCalories', 'flightsClimbed', 'bloodGlucose', 'bodyTemperature',
+          'height', 'bmi', 'bodyFatPercentage', 'leanBodyMass',
+          'basalEnergyBurned', 'flightsClimbed', 'bloodGlucose', 'bodyTemperature',
           'vo2Max', 'walkingHeartRateAverage', 'waistCircumference',
-          'dietaryWater', 'exerciseTime', 'standTime',
+          'dietaryWater', 'appleExerciseTime', 'appleStandTime',
           
           // Special types
           'sleepAnalysis'
@@ -122,10 +122,10 @@ export class HealthKitService {
     dataType: 'steps' | 'distance' | 'calories' | 'heartRate' | 'weight' | 
               'heartRateVariability' | 'restingHeartRate' | 'bloodPressureSystolic' | 'bloodPressureDiastolic' |
               'oxygenSaturation' | 'respiratoryRate' |
-              'height' | 'bmi' | 'bodyFat' | 'leanBodyMass' |
-              'basalCalories' | 'flightsClimbed' | 'bloodGlucose' | 'bodyTemperature' |
+              'height' | 'bmi' | 'bodyFatPercentage' | 'leanBodyMass' |
+              'basalEnergyBurned' | 'flightsClimbed' | 'bloodGlucose' | 'bodyTemperature' |
               'vo2Max' | 'walkingHeartRateAverage' | 'waistCircumference' |
-              'dietaryWater' | 'exerciseTime' | 'standTime' |
+              'dietaryWater' | 'appleExerciseTime' | 'appleStandTime' |
               'sleepAnalysis',
     startDate: Date,
     endDate: Date
@@ -234,16 +234,14 @@ export class HealthKitService {
    * Get lean body mass data
    */
   async getLeanBodyMass(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
-    console.log('[HealthKit] Lean body mass not yet supported by Capgo Health plugin');
-    return [];
+    return this.queryData('leanBodyMass', startDate, endDate);
   }
 
   /**
    * Get body fat percentage data
    */
   async getBodyFat(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
-    console.log('[HealthKit] Body fat not yet supported by Capgo Health plugin');
-    return [];
+    return this.queryData('bodyFatPercentage', startDate, endDate);
   }
 
   /**
@@ -264,24 +262,21 @@ export class HealthKitService {
    * Get blood glucose data
    */
   async getBloodGlucose(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
-    console.log('[HealthKit] Blood glucose not yet supported by Capgo Health plugin');
-    return [];
+    return this.queryData('bloodGlucose', startDate, endDate);
   }
 
   /**
    * Get basal calories data
    */
   async getBasalCalories(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
-    console.log('[HealthKit] Basal calories not yet supported by Capgo Health plugin');
-    return [];
+    return this.queryData('basalEnergyBurned', startDate, endDate);
   }
 
   /**
    * Get flights climbed data
    */
   async getFlightsClimbed(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
-    console.log('[HealthKit] Flights climbed not yet supported by Capgo Health plugin');
-    return [];
+    return this.queryData('flightsClimbed', startDate, endDate);
   }
 
   /**
@@ -302,40 +297,35 @@ export class HealthKitService {
    * Get body temperature data
    */
   async getBodyTemperature(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
-    console.log('[HealthKit] Body temperature not yet supported by Capgo Health plugin');
-    return [];
+    return this.queryData('bodyTemperature', startDate, endDate);
   }
 
   /**
    * Get BMI (Body Mass Index) data
    */
   async getBMI(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
-    console.log('[HealthKit] BMI not yet supported by Capgo Health plugin');
-    return [];
+    return this.queryData('bmi', startDate, endDate);
   }
 
   /**
    * Get height data
    */
   async getHeight(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
-    console.log('[HealthKit] Height not yet supported by Capgo Health plugin');
-    return [];
+    return this.queryData('height', startDate, endDate);
   }
 
   /**
    * Get waist circumference data
    */
   async getWaistCircumference(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
-    console.log('[HealthKit] Waist circumference not yet supported by Capgo Health plugin');
-    return [];
+    return this.queryData('waistCircumference', startDate, endDate);
   }
 
   /**
    * Get dietary water intake data
    */
   async getDietaryWater(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
-    console.log('[HealthKit] Dietary water not yet supported by Capgo Health plugin');
-    return [];
+    return this.queryData('dietaryWater', startDate, endDate);
   }
 
   /**
