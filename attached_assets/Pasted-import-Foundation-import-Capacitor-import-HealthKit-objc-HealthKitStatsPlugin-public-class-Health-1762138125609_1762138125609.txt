@@ -178,27 +178,6 @@ public class HealthKitStatsPlugin: CAPPlugin {
             HKCategoryType.categoryType(forIdentifier: .sleepAnalysis)!,
         ]
         
-        // Request authorization for these data types first
-        let typesToRead = Set(dataTypes as [HKObjectType])
-        healthStore.requestAuthorization(toShare: nil, read: typesToRead) { [weak self] success, error in
-            guard let self = self else { return }
-            
-            if let error = error {
-                call.reject("Failed to request authorization: \(error.localizedDescription)")
-                return
-            }
-            
-            if !success {
-                call.reject("HealthKit authorization denied")
-                return
-            }
-            
-            // Now enable background observers
-            self.setupBackgroundObservers(for: dataTypes, call: call)
-        }
-    }
-    
-    private func setupBackgroundObservers(for dataTypes: [HKSampleType], call: CAPPluginCall) {
         // Create observer queries for each data type
         for dataType in dataTypes {
             let query = HKObserverQuery(sampleType: dataType, predicate: nil) { [weak self] (query, completionHandler, error) in
