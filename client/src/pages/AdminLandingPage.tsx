@@ -1235,10 +1235,7 @@ function ThemeSection({
   const handleToggle = async (checked: boolean) => {
     try {
       setPremiumThemeEnabled(checked);
-      await apiRequest("/api/admin/theme/premium-enabled", {
-        method: "PUT",
-        body: JSON.stringify({ enabled: checked }),
-      });
+      await apiRequest("PUT", "/api/admin/theme/premium-enabled", { enabled: checked });
       
       queryClient.invalidateQueries({ queryKey: ["/api/theme/premium-enabled"] });
       
