@@ -48,7 +48,7 @@ import {
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useAuth } from "@/hooks/useAuth";
 import { showSmartFuel, showRecipeFeatures } from "@shared/config/flags";
-import logoPath from "@assets/HealthPilot_Logo_1759904141260.png";
+import logoPath from "@assets/HealthPilot_1762212417881.png";
 import { usePremiumTheme } from "@/components/PremiumThemeProvider";
 
 interface MenuItem {
