@@ -8,6 +8,7 @@ initializeMobile({
   statusBarStyle: 'dark',
   enableBackButtonHandler: true,
   enableKeyboardHandling: true,
+  enableAutoSync: true,
 }).then(() => {
   createRoot(document.getElementById("root")!).render(<App />);
 }).catch((error) => {
