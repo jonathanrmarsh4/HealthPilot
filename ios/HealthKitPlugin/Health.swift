@@ -453,6 +453,10 @@ final class Health {
 
         let dataType = try parseDataType(identifier: dataTypeIdentifier)
         let sampleType = try dataType.sampleType()
+        
+        guard let quantityType = sampleType as? HKQuantityType else {
+            throw HealthManagerError.invalidDataType("Data type is not a quantity type")
+        }
 
         let startDate = try parseDate(startDateString, defaultValue: Date())
         let endDate = try parseDate(endDateString, defaultValue: startDate)
@@ -471,7 +475,7 @@ final class Health {
             }
         }
 
-        let sample = HKQuantitySample(type: sampleType, quantity: quantity, start: startDate, end: endDate, metadata: metadataDictionary)
+        let sample = HKQuantitySample(type: quantityType, quantity: quantity, start: startDate, end: endDate, metadata: metadataDictionary)
 
         healthStore.save(sample) { success, error in
             if let error = error {
