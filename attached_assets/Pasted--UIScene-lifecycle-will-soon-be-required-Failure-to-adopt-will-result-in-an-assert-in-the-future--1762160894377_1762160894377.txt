@@ -1,0 +1,91 @@
+`UIScene` lifecycle will soon be required. Failure to adopt will result in an assert in the future.
+Could not create a sandbox extension for '/var/containers/Bundle/Application/98898BCB-E2E8-45DB-B514-DFC89E88E0CE/App.app'
+KeyboardPlugin: resize mode - body
+⚡️  Loading app at capacitor://localhost...
+WebContent[12694] Unable to hide query parameters from script (missing data)
+⚡️  [log] - onscript loading complete
+⚡️  [log] - [MobileBootstrap] Initializing on ios...
+⚡️  To Native ->  StatusBar setStyle 120120222
+⚡️  TO JS {}
+⚡️  To Native ->  SplashScreen hide 120120223
+⚡️  [log] - [MobileBootstrap] Status bar configured
+⚡️  TO JS undefined
+⚡️  To Native ->  Keyboard addListener 120120224
+⚡️  [log] - [MobileBootstrap] Splash screen hidden
+⚡️  To Native ->  Keyboard addListener 120120225
+⚡️  To Native ->  App addListener 120120226
+⚡️  To Native ->  App getInfo 120120227
+⚡️  [log] - [MobileBootstrap] Keyboard listeners configured
+⚡️  [log] - [MobileBootstrap] Back button handler configured
+⚡️  TO JS {"name":"HealthPilot","version":"1.0","id":"com.nuvitae.healthpilot","build":"1"}
+⚡️  [log] - [MobileBootstrap] App Info: {"name":"HealthPilot","id":"com.nuvitae.healthpilot","version":"1.0","build":"1"}
+⚡️  [log] - [MobileBootstrap] ✅ Mobile initialization complete
+⚡️  To Native ->  App addListener 120120228
+⚡️  To Native ->  App addListener 120120229
+⚡️  [log] - [App] Setting up global deep link listener
+⚡️  [log] - [DeepLink] Initializing deep link handler...
+⚡️  [log] - [DeepLink] Deep link handler initialized successfully
+⚡️  To Native ->  SecureStorage internalGetItem 120120230
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  WebView loaded
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  To Native ->  SecureStorage internalGetItem 120120231
+⚡️  To Native ->  SecureStorage internalGetItem 120120232
+⚡️  To Native ->  SecureStorage internalGetItem 120120233
+⚡️  To Native ->  SecureStorage internalGetItem 120120234
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  [log] - Clearing old dashboard preferences (version mismatch)
+⚡️  To Native ->  SecureStorage internalGetItem 120120235
+⚡️  To Native ->  SecureStorage internalGetItem 120120236
+⚡️  To Native ->  SecureStorage internalGetItem 120120237
+⚡️  To Native ->  SecureStorage internalGetItem 120120238
+⚡️  To Native ->  SecureStorage internalGetItem 120120239
+⚡️  To Native ->  SecureStorage internalGetItem 120120240
+⚡️  To Native ->  SecureStorage internalGetItem 120120241
+⚡️  To Native ->  SecureStorage internalGetItem 120120242
+⚡️  To Native ->  SecureStorage internalGetItem 120120243
+⚡️  To Native ->  SecureStorage internalGetItem 120120244
+⚡️  To Native ->  SecureStorage internalGetItem 120120245
+⚡️  To Native ->  SecureStorage internalGetItem 120120246
+⚡️  To Native ->  SecureStorage internalGetItem 120120247
+⚡️  To Native ->  SecureStorage internalGetItem 120120248
+⚡️  To Native ->  SecureStorage internalGetItem 120120249
+⚡️  To Native ->  SecureStorage internalGetItem 120120250
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  To Native ->  SecureStorage internalGetItem 120120251
+⚡️  To Native ->  SecureStorage internalGetItem 120120252
+⚡️  To Native ->  SecureStorage internalGetItem 120120253
+⚡️  To Native ->  SecureStorage internalGetItem 120120254
+⚡️  To Native ->  SecureStorage internalGetItem 120120255
+⚡️  To Native ->  SecureStorage internalGetItem 120120256
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  To Native ->  SecureStorage internalGetItem 120120257
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  To Native ->  SecureStorage internalGetItem 120120258
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
