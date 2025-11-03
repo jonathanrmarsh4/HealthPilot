@@ -55,12 +55,9 @@ export interface SleepScoreResult {
   actualSleepMinutes: number;
   sleepHours: number;
   breakdown: {
-    durationComponent: number;      // 0-25 points
-    efficiencyComponent: number;    // 0-20 points
-    deepComponent: number;          // 0-10 points
-    remComponent: number;           // 0-10 points
-    fragmentationComponent: number; // -10 to +10 points
-    regularityComponent: number;    // 0-5 points
+    durationComponent: number;      // 0-50 points (Apple Health style)
+    bedtimeComponent: number;       // 0-30 points (Apple Health style)
+    interruptionsComponent: number; // 0-20 points (Apple Health style)
   };
   percentages: {
     deep: number;
@@ -321,12 +318,13 @@ export function selectPrimaryEpisode(episodes: SleepEpisode[], userTimezone: str
 }
 
 /**
- * Calculate sleep score for primary episode using v2.0 algorithm
+ * Calculate sleep score for primary episode using Apple Health-style algorithm
+ * Components: Duration (50pts), Bedtime Consistency (30pts), Interruptions (20pts)
  */
 export function calculateSleepScore(
   episode: SleepEpisode,
-  previousMidpoints?: Date[],  // For regularity component
-  userTimezone?: string  // User's timezone for regularity calculation
+  previousMidpoints?: Date[],  // For bedtime consistency component
+  userTimezone?: string  // User's timezone for bedtime calculation
 ): SleepScoreResult {
   const {
     actualSleepMinutes,
@@ -342,85 +340,52 @@ export function calculateSleepScore(
   const sleepHours = actualSleepMinutes / 60;
   
   const breakdown = {
-    durationComponent: 0,
-    efficiencyComponent: 0,
-    deepComponent: 0,
-    remComponent: 0,
-    fragmentationComponent: 0,
-    regularityComponent: 0,
+    durationComponent: 0,      // 0-50 points
+    bedtimeComponent: 0,       // 0-30 points
+    interruptionsComponent: 0, // 0-20 points
   };
   
-  // 1. Duration Component (0-25 points)
+  // 1. Duration Component (0-50 points) - Apple Health style
+  // Optimal range: 7-9 hours = 50 points
+  // Gradual decline as you move away from optimal
   if (sleepHours >= 7 && sleepHours <= 9) {
-    breakdown.durationComponent = 25;
-  } else if ((sleepHours >= 6.5 && sleepHours < 7) || (sleepHours > 9 && sleepHours <= 9.5)) {
+    // Perfect range
+    breakdown.durationComponent = 50;
+  } else if (sleepHours >= 6.5 && sleepHours < 7) {
+    // Slightly under optimal
+    const hoursUnder = 7 - sleepHours;
+    breakdown.durationComponent = Math.round(50 - (hoursUnder * 26)); // -13 pts per 0.5 hr
+  } else if (sleepHours > 9 && sleepHours <= 9.5) {
+    // Slightly over optimal
+    const hoursOver = sleepHours - 9;
+    breakdown.durationComponent = Math.round(50 - (hoursOver * 26)); // -13 pts per 0.5 hr
+  } else if (sleepHours >= 6 && sleepHours < 6.5) {
+    // Moderately under optimal
+    breakdown.durationComponent = 37;
+  } else if (sleepHours > 9.5 && sleepHours <= 10) {
+    // Moderately over optimal
+    breakdown.durationComponent = 37;
+  } else if (sleepHours >= 5.5 && sleepHours < 6) {
+    // Significantly under
+    breakdown.durationComponent = 28;
+  } else if (sleepHours > 10 && sleepHours <= 10.5) {
+    // Significantly over
+    breakdown.durationComponent = 28;
+  } else if (sleepHours >= 5 && sleepHours < 5.5) {
     breakdown.durationComponent = 18;
-  } else if ((sleepHours >= 6 && sleepHours < 6.5) || (sleepHours > 9.5 && sleepHours <= 10)) {
-    breakdown.durationComponent = 10;
-  } else if ((sleepHours >= 5 && sleepHours < 6) || (sleepHours > 10 && sleepHours <= 11)) {
-    breakdown.durationComponent = 2;
+  } else if (sleepHours > 10.5 && sleepHours <= 11) {
+    breakdown.durationComponent = 18;
+  } else if (sleepHours >= 4 && sleepHours < 5) {
+    breakdown.durationComponent = 8;
   } else {
+    // < 4 hours or > 11 hours
     breakdown.durationComponent = 0;
   }
   
-  // 2. Efficiency Component (0-20 points)
-  if (sleepEfficiency >= 0.95) {
-    breakdown.efficiencyComponent = 20;
-  } else if (sleepEfficiency >= 0.90) {
-    breakdown.efficiencyComponent = 16;
-  } else if (sleepEfficiency >= 0.85) {
-    breakdown.efficiencyComponent = 10;
-  } else if (sleepEfficiency >= 0.80) {
-    breakdown.efficiencyComponent = 4;
-  } else {
-    breakdown.efficiencyComponent = 0;
-  }
-  
-  // 3. Deep Sleep Component (0-10 points)
-  const deepPercentage = actualSleepMinutes > 0 ? deepMinutes / actualSleepMinutes : 0;
-  if (deepPercentage >= 0.15 && deepPercentage <= 0.25) {
-    breakdown.deepComponent = 10;
-  } else if ((deepPercentage >= 0.10 && deepPercentage < 0.15) || (deepPercentage > 0.25 && deepPercentage <= 0.30)) {
-    breakdown.deepComponent = 6;
-  } else if (deepPercentage < 0.10) {
-    breakdown.deepComponent = 2;
-  } else {
-    breakdown.deepComponent = 0;
-  }
-  
-  // 4. REM Sleep Component (0-10 points)
-  const remPercentage = actualSleepMinutes > 0 ? remMinutes / actualSleepMinutes : 0;
-  if (remPercentage >= 0.18 && remPercentage <= 0.28) {
-    breakdown.remComponent = 10;
-  } else if ((remPercentage >= 0.15 && remPercentage < 0.18) || (remPercentage > 0.28 && remPercentage <= 0.32)) {
-    breakdown.remComponent = 6;
-  } else if (remPercentage < 0.15) {
-    breakdown.remComponent = 2;
-  } else {
-    breakdown.remComponent = 0;
-  }
-  
-  // 5. Fragmentation Component (-10 to +10 points)
-  breakdown.fragmentationComponent = 10; // Start at max
-  
-  if (awakeningsCount >= 5) {
-    breakdown.fragmentationComponent -= 6;
-  } else if (awakeningsCount >= 3) {
-    breakdown.fragmentationComponent -= 3;
-  }
-  
-  if (longestAwakeBoutMinutes >= 30) {
-    breakdown.fragmentationComponent -= 6;
-  } else if (longestAwakeBoutMinutes >= 15) {
-    breakdown.fragmentationComponent -= 3;
-  }
-  
-  breakdown.fragmentationComponent = Math.max(-10, breakdown.fragmentationComponent);
-  
-  // 6. Regularity Component (0-5 points)
+  // 2. Bedtime Consistency Component (0-30 points) - Apple Health style
+  // Measures regularity of sleep schedule
   if (previousMidpoints && previousMidpoints.length > 0 && userTimezone) {
     // Convert all midpoints to minutes-from-midnight in user's timezone
-    // This allows us to compare wall-clock times regardless of day offset
     const toMinutesFromMidnight = (date: Date): number => {
       const hour = Number(formatInTimeZone(date, userTimezone, 'H'));
       const minute = Number(formatInTimeZone(date, userTimezone, 'm'));
@@ -430,7 +395,7 @@ export function calculateSleepScore(
     const currentMinutes = toMinutesFromMidnight(episode.sleepMidpointLocal);
     const previousMinutes = previousMidpoints.map(mp => toMinutesFromMidnight(mp));
     
-    // Calculate average of previous midpoints (in minutes from midnight)
+    // Calculate average of previous midpoints
     const avgPreviousMinutes = previousMinutes.reduce((sum, m) => sum + m, 0) / previousMinutes.length;
     
     // Calculate variance (handle wrap-around at midnight)
@@ -441,28 +406,78 @@ export function calculateSleepScore(
       variance = 24 * 60 - variance;
     }
     
-    if (variance <= 30) {
-      breakdown.regularityComponent = 5;
+    // Score based on consistency (minutes of variance)
+    if (variance <= 15) {
+      // Within 15 minutes = perfect consistency
+      breakdown.bedtimeComponent = 30;
+    } else if (variance <= 30) {
+      // Within 30 minutes = excellent
+      breakdown.bedtimeComponent = 27;
+    } else if (variance <= 45) {
+      // Within 45 minutes = good
+      breakdown.bedtimeComponent = 23;
     } else if (variance <= 60) {
-      breakdown.regularityComponent = 3;
+      // Within 1 hour = moderate
+      breakdown.bedtimeComponent = 19;
+    } else if (variance <= 90) {
+      // Within 1.5 hours = fair
+      breakdown.bedtimeComponent = 14;
     } else if (variance <= 120) {
-      breakdown.regularityComponent = 1;
+      // Within 2 hours = poor
+      breakdown.bedtimeComponent = 9;
+    } else if (variance <= 180) {
+      // Within 3 hours = very poor
+      breakdown.bedtimeComponent = 4;
     } else {
-      breakdown.regularityComponent = 0;
+      // > 3 hours variance = minimal points
+      breakdown.bedtimeComponent = 0;
     }
   } else {
-    // No history available, award mid-range points
-    breakdown.regularityComponent = 3;
+    // No history available, award neutral mid-range points
+    breakdown.bedtimeComponent = 20;
   }
+  
+  // 3. Interruptions Component (0-20 points) - Apple Health style
+  // Combines sleep efficiency and fragmentation
+  let interruptionsScore = 20; // Start at max
+  
+  // Efficiency penalty (0-10 points deduction)
+  if (sleepEfficiency < 0.95) {
+    const efficiencyDeficit = 0.95 - sleepEfficiency;
+    // Deduct up to 10 points based on efficiency deficit
+    const efficiencyPenalty = Math.min(10, Math.round(efficiencyDeficit * 50));
+    interruptionsScore -= efficiencyPenalty;
+  }
+  
+  // Awakening count penalty (0-6 points deduction)
+  if (awakeningsCount >= 5) {
+    interruptionsScore -= 6;
+  } else if (awakeningsCount >= 4) {
+    interruptionsScore -= 4;
+  } else if (awakeningsCount >= 3) {
+    interruptionsScore -= 3;
+  } else if (awakeningsCount >= 2) {
+    interruptionsScore -= 1;
+  }
+  
+  // Long awakening penalty (0-4 points deduction)
+  if (longestAwakeBoutMinutes >= 45) {
+    interruptionsScore -= 4;
+  } else if (longestAwakeBoutMinutes >= 30) {
+    interruptionsScore -= 3;
+  } else if (longestAwakeBoutMinutes >= 20) {
+    interruptionsScore -= 2;
+  } else if (longestAwakeBoutMinutes >= 10) {
+    interruptionsScore -= 1;
+  }
+  
+  breakdown.interruptionsComponent = Math.max(0, interruptionsScore);
   
   // Calculate final score
   const score = Math.max(0, Math.min(100, Math.round(
     breakdown.durationComponent +
-    breakdown.efficiencyComponent +
-    breakdown.deepComponent +
-    breakdown.remComponent +
-    breakdown.fragmentationComponent +
-    breakdown.regularityComponent
+    breakdown.bedtimeComponent +
+    breakdown.interruptionsComponent
   )));
   
   // Determine quality
@@ -477,6 +492,8 @@ export function calculateSleepScore(
     quality = "poor";
   }
   
+  const deepPercentage = actualSleepMinutes > 0 ? deepMinutes / actualSleepMinutes : 0;
+  const remPercentage = actualSleepMinutes > 0 ? remMinutes / actualSleepMinutes : 0;
   const lightPercentage = actualSleepMinutes > 0 ? lightMinutes / actualSleepMinutes : 0;
   
   return {
