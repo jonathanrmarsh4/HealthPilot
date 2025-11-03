@@ -301,17 +301,27 @@
 /* Light mode: Light gray-blue base with white glass surfaces per spec */
 .premium-theme {
   --background: 200 23% 97%;            /* #F7F9FA in HSL format for Tailwind */
+  --foreground: 222 47% 11%;            /* #0F172A dark slate for high contrast */
   --card: rgba(255,255,255,0.60);       /* glass effect background per spec */
-  --sidebar: rgba(255,255,255,0.75);    /* tile opacity per spec */
+  --card-foreground: 222 47% 11%;       /* dark slate text on cards */
+  --sidebar: rgba(255,255,255,0.85);    /* increased opacity for better text visibility */
+  --sidebar-foreground: 222 47% 11%;    /* dark slate text for visibility */
   --popover: rgba(255,255,255,0.80);    /* input bg per spec */
+  --popover-foreground: 222 47% 11%;    /* dark text on popovers */
+  --muted-foreground: 215 25% 27%;      /* #334155 for secondary text */
 }
 
 /* Dark mode: Very dark base with glass morphic surfaces per spec */
 .premium-theme.dark {
   --background: 210 33% 6%;             /* #0A0F14 in HSL format for Tailwind */
+  --foreground: 0 0% 100%;              /* #FFFFFF pure white */
   --card: rgba(16,23,36,0.55);          /* glass effect background per spec */
-  --sidebar: rgba(16,23,36,0.65);       /* slightly more opaque sidebar */
+  --card-foreground: 0 0% 100%;         /* white text on cards */
+  --sidebar: rgba(16,23,36,0.70);       /* increased opacity for better readability */
+  --sidebar-foreground: 0 0% 100%;      /* white text on sidebar */
   --popover: rgba(16,23,36,0.8);        /* more opaque for popovers */
+  --popover-foreground: 0 0% 100%;      /* white text on popovers */
+  --muted-foreground: 215 27% 82%;      /* #C6D0DE for secondary text */
 }
 
 /* Light mode background: light gray-blue base with vibrant gradient overlay per spec */
