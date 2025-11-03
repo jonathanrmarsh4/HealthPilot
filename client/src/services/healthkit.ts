@@ -92,7 +92,7 @@ export class HealthKitService {
           'steps', 'distance', 'calories', 'heartRate', 'weight',
           
           // Batch 1: 6 cardiovascular metrics
-          'hrv', 'restingHeartRate', 'bloodPressureSystolic', 'bloodPressureDiastolic',
+          'heartRateVariability', 'restingHeartRate', 'bloodPressureSystolic', 'bloodPressureDiastolic',
           'oxygenSaturation', 'respiratoryRate',
           
           // Batch 2: 14 additional comprehensive metrics
@@ -120,7 +120,7 @@ export class HealthKitService {
    */
   private async queryData(
     dataType: 'steps' | 'distance' | 'calories' | 'heartRate' | 'weight' | 
-              'hrv' | 'restingHeartRate' | 'bloodPressureSystolic' | 'bloodPressureDiastolic' |
+              'heartRateVariability' | 'restingHeartRate' | 'bloodPressureSystolic' | 'bloodPressureDiastolic' |
               'oxygenSaturation' | 'respiratoryRate' |
               'height' | 'bmi' | 'bodyFat' | 'leanBodyMass' |
               'basalCalories' | 'flightsClimbed' | 'bloodGlucose' | 'bodyTemperature' |
@@ -220,7 +220,7 @@ export class HealthKitService {
    * Get HRV (Heart Rate Variability) data
    */
   async getHRV(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
-    return this.queryData('hrv', startDate, endDate);
+    return this.queryData('heartRateVariability', startDate, endDate);
   }
 
   /**
