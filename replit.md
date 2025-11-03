@@ -4,7 +4,74 @@ OK# HealthPilot - AI-Powered Health Dashboard
 HealthPilot is an AI-powered health and wellness platform designed to optimize user well-being. It analyzes health records, tracks biomarkers, and provides personalized health recommendations, including AI-generated meal plans, training schedules, and alternative therapy suggestions. The platform aims to deliver data-driven insights and actionable advice, capitalizing on the growing market for personalized health solutions and enhancing user health through data.
 
 ## User Preferences
-I prefer simple language and clear explanations. I want iterative development where I can provide feedback at each stage. Ask before making major changes to the project structure or core functionalities. Do not make changes to the `replit.nix` file. I primarily use iPad and iPhone for my work. All features must be fully functional and properly responsive on mobile/tablet devices.
+I prefer simple language and clear explanations. I want iterative development where I can provide feedback at each stage. Ask before making major changes to the #!/bin/bash
+# HealthPilot iOS File Sync Script with Fresh Build
+
+# Your Replit SSH connection
+REPLIT_SSH="0d420476-b7bb-4cc4-9f5a-da35f5e473e4@0d420476-b7bb-4cc4-9f5a-da35f5e473e4-00-1n1tyyvrb5uvz.pike.replit.dev"
+
+# Your local HealthPilot path
+LOCAL_PATH="$HOME/developer/HealthPilot"
+
+echo "🏗️  Building fresh frontend assets on Replit..."
+echo ""
+
+# Run build on Replit
+ssh -i ~/.ssh/replit -p 22 $REPLIT_SSH "cd /home/runner/workspace && npm run build"
+
+if [ $? -ne 0 ]; then
+  echo ""
+  echo "❌ Build failed. Please check Replit server."
+  exit 1
+fi
+
+echo ""
+echo "✅ Build complete!"
+echo ""
+echo "🔄 Syncing iOS files and built assets from Replit to local Mac..."
+echo "📍 From: $REPLIT_SSH"
+echo "📍 To: $LOCAL_PATH/"
+echo ""
+
+# Create directories if they don't exist
+mkdir -p "$LOCAL_PATH/ios"
+mkdir -p "$LOCAL_PATH/dist"
+
+# Sync iOS native files
+echo "📦 Syncing iOS native files..."
+scp -i ~/.ssh/replit -P 22 -r \
+  $REPLIT_SSH:/home/runner/workspace/ios/* \
+  "$LOCAL_PATH/ios/"
+
+if [ $? -ne 0 ]; then
+  echo ""
+  echo "❌ iOS sync failed."
+  exit 1
+fi
+
+# Sync built frontend assets
+echo "📦 Syncing built frontend assets..."
+scp -i ~/.ssh/replit -P 22 -r \
+  $REPLIT_SSH:/home/runner/workspace/dist/public \
+  "$LOCAL_PATH/dist/"
+
+if [ $? -eq 0 ]; then
+  echo ""
+  echo "✅ Sync complete!"
+  echo "📱 Running: npx cap sync ios"
+  
+  cd "$LOCAL_PATH"
+  npx cap sync ios
+  
+  echo ""
+  echo "🎉 Done! Fresh frontend assets and iOS files synced."
+  echo "💡 Now rebuild in Xcode to see all your latest changes."
+  echo "💡 Run: open ios/App/App.xcworkspace"
+else
+  echo ""
+  echo "❌ Asset sync failed."
+  exit 1
+fiproject structure or core functionalities. Do not make changes to the `replit.nix` file. I primarily use iPad and iPhone for my work. All features must be fully functional and properly responsive on mobile/tablet devices.
 
 ## System Architecture
 **Frontend:** React 18, Vite 5.x, Wouter, shadcn/ui + Radix UI, Tailwind CSS, TanStack Query v5, React Hook Form + Zod, Lucide React + React Icons.
