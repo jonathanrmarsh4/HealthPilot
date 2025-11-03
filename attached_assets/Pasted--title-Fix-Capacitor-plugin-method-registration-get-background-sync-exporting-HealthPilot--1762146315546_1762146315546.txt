@@ -1,0 +1,154 @@
+{
+  "title": "Fix Capacitor plugin method registration & get background sync exporting (HealthPilot iOS, Capacitor 7)",
+  "context": {
+    "summary": "UNIMPLEMENTED errors on new HealthKit background sync methods; only original two methods are callable. Swift never logs, so native selector is never reached. Root cause is almost always plugin registration mismatch (duplicate CAP_PLUGIN, wrong pluginId, macro not linked) rather than a hidden cache.",
+    "platform": {
+      "capacitor_version": "7.x",
+      "xcode_target": "App (single target; no CapacitorPlugins target)",
+      "language": "Swift + Objective-C bridge"
+    }
+  },
+  "objectives": [
+    "Ensure the plugin CAP_PLUGIN macro actually exports all new methods at runtime.",
+    "Eliminate duplicate/overriding CAP_PLUGIN registrations and ID mismatches.",
+    "Verify selector names match CAP_PLUGIN_METHOD declarations.",
+    "Set linker flags so the CAP_PLUGIN block is not stripped.",
+    "Provide a clean rebuild sequence that truly changes bits on device.",
+    "Add diagnostics to print the exported methods and verify from JS.",
+    "Only after export works, expose a foreground trigger to validate HK sync logic."
+  ],
+  "deliverables": [
+    "Working plugin with unique class & pluginId that exports all methods.",
+    "Diagnostic logs showing exported method names at app launch.",
+    "Proof from JS console that all methods are visible on window.Capacitor.Plugins.<id>.",
+    "Documented grep output confirming no duplicate CAP_PLUGIN for the old ID remains.",
+    "Rebuild output with -ObjC set and app version bumped.",
+    "Foreground test method to exercise background sync logic before scheduling background delivery."
+  ],
+  "repo_paths": {
+    "ios_plugin_swift": "ios/App/HealthKitStatsPluginV3.swift",
+    "ios_plugin_objc": "ios/App/HealthKitStatsPluginV3.m",
+    "ios_entitlements": "ios/App/App/App.entitlements",
+    "ios_project": "ios/App/App.xcodeproj / ios/App/App.xcworkspace",
+    "js_usage_example": "src/debug/hk-v3-check.ts"
+  },
+  "actions": [
+    {
+      "name": "Create a collision-proof plugin ID and class (V3) and export ALL methods",
+      "edit_files": [
+        {
+          "path": "ios/App/HealthKitStatsPluginV3.m",
+          "content": "#import <Capacitor/Capacitor.h>\n\n// Unique class + pluginId to avoid collisions with any old CAP_PLUGIN blocks\nCAP_PLUGIN(HealthKitStatsPluginV3, \"HealthPilotHKV3\",\n  CAP_PLUGIN_METHOD(getDailySteps, CAPPluginReturnPromise);\n  CAP_PLUGIN_METHOD(getMultiDayStats, CAPPluginReturnPromise);\n  CAP_PLUGIN_METHOD(backgroundSync, CAPPluginReturnPromise);\n  CAP_PLUGIN_METHOD(triggerBackgroundSyncNow, CAPPluginReturnPromise);\n  CAP_PLUGIN_METHOD(enableBackgroundDelivery, CAPPluginReturnPromise);\n  CAP_PLUGIN_METHOD(disableBackgroundDelivery, CAPPluginReturnPromise);\n  CAP_PLUGIN_METHOD(getSyncStatus, CAPPluginReturnPromise);\n  CAP_PLUGIN_METHOD(resetAnchors, CAPPluginReturnPromise);\n)\n"
+        },
+        {
+          "path": "ios/App/HealthKitStatsPluginV3.swift",
+          "content": "import Foundation\nimport Capacitor\nimport HealthKit\n\n@objc(HealthKitStatsPluginV3)\npublic class HealthKitStatsPluginV3: CAPPlugin {\n  private let hkStore = HKHealthStore()\n\n  public override func load() {\n    super.load()\n    NSLog(\"[HK V3] Loaded plugin: \\(String(describing: type(of: self)))\")\n  }\n\n  // --- Minimal stubs with logging to prove selector binding ---\n  @objc public func getDailySteps(_ call: CAPPluginCall) {\n    NSLog(\"[HK V3] getDailySteps called\")\n    call.resolve([\"ok\": true])\n  }\n\n  @objc public func getMultiDayStats(_ call: CAPPluginCall) {\n    NSLog(\"[HK V3] getMultiDayStats called\")\n    call.resolve([\"ok\": true])\n  }\n\n  @objc public func backgroundSync(_ call: CAPPluginCall) {\n    NSLog(\"[HK V3] backgroundSync called (placeholder)\")\n    call.resolve([\"started\": true])\n  }\n\n  @objc public func triggerBackgroundSyncNow(_ call: CAPPluginCall) {\n    NSLog(\"[HK V3] triggerBackgroundSyncNow called (foreground test)\")\n    // TODO: call same logic as backgroundSync, but synchronously for debug\n    call.resolve([\"triggered\": true])\n  }\n\n  @objc public func enableBackgroundDelivery(_ call: CAPPluginCall) {\n    NSLog(\"[HK V3] enableBackgroundDelivery called (placeholder)\")\n    // TODO: hkStore.enableBackgroundDelivery for required types\n    call.resolve([\"enabled\": true])\n  }\n\n  @objc public func disableBackgroundDelivery(_ call: CAPPluginCall) {\n    NSLog(\"[HK V3] disableBackgroundDelivery called (placeholder)\")\n    call.resolve([\"disabled\": true])\n  }\n\n  @objc public func getSyncStatus(_ call: CAPPluginCall) {\n    NSLog(\"[HK V3] getSyncStatus called\")\n    call.resolve([\"status\": \"ok\"]) \n  }\n\n  @objc public func resetAnchors(_ call: CAPPluginCall) {\n    NSLog(\"[HK V3] resetAnchors called\")\n    call.resolve([\"reset\": true])\n  }\n}\n"
+        }
+      ],
+      "notes": [
+        "All new Swift methods use @objc and a single unlabeled CAPPluginCall parameter, matching CAP_PLUGIN_METHOD names exactly.",
+        "Every CAP_PLUGIN_METHOD must be *inside* the CAP_PLUGIN(...) block."
+      ]
+    },
+    {
+      "name": "Add JS-side diagnostics to print exported plugin ID and methods",
+      "create_or_edit": [
+        {
+          "path": "src/debug/hk-v3-check.ts",
+          "content": "import { Capacitor } from '@capacitor/core';\n\nexport async function printHKV3Exports() {\n  const plugins = (window as any).Capacitor?.Plugins || {};\n  console.log('[HK V3] Available plugins:', Object.keys(plugins));\n  console.log('[HK V3] HealthPilotHKV3 methods:', plugins.HealthPilotHKV3);\n  try {\n    const res = await (plugins.HealthPilotHKV3?.getSyncStatus?.());\n    console.log('[HK V3] getSyncStatus result:', res);\n  } catch (e) {\n    console.error('[HK V3] getSyncStatus error:', e);\n  }\n}\n"
+        }
+      ],
+      "acceptance": "Console shows HealthPilotHKV3 present with all new method names; getSyncStatus resolves."
+    },
+    {
+      "name": "Hunt and remove duplicate/overriding CAP_PLUGIN definitions",
+      "run_commands": [
+        "grep -R \"CAP_PLUGIN(\" -n ios | sort",
+        "grep -R \"HealthKitStatsPlugin\" -n ios | sort",
+        "grep -R \"HealthPilotHealthKit\" -n ios | sort",
+        "grep -R \"HealthPilotHKV3\" -n ios | sort",
+        "grep -R \"CAP_PLUGIN(\" -n ios/Pods | sort || true"
+      ],
+      "resolution": [
+        "If any file defines a CAP_PLUGIN with the old pluginId you used previously (e.g., \"HealthPilotHealthKit\"), delete it from the target OR rename it so it cannot register.",
+        "Ensure only ONE CAP_PLUGIN exists for the ID you will call from JS (now: \"HealthPilotHKV3\").",
+        "Confirm the removed files are no longer in Build Phases → Compile Sources."
+      ],
+      "evidence_required": "Paste the grep results before and after; after-cleanup shows only HealthPilotHKV3 single definition."
+    },
+    {
+      "name": "Make the linker keep the registration symbols",
+      "xcode_settings": [
+        "Set Other Linker Flags for the App target (Debug & Release) to include: -ObjC",
+        "Verify Dead Code Stripping can stay enabled (it’s fine with -ObjC)."
+      ],
+      "notes": [
+        "Without -ObjC, Obj-C categories and +load registrations in the CAP_PLUGIN object can be stripped, preventing method export."
+      ]
+    },
+    {
+      "name": "Enable HealthKit capabilities & background delivery entitlements (prep for later)",
+      "xcode_capabilities": [
+        "Enable HealthKit capability.",
+        "In App.entitlements, ensure key: com.apple.developer.healthkit and com.apple.developer.healthkit.background-delivery exist and are true if required by your provisioning."
+      ],
+      "notes": [
+        "This does not affect registration, but prevents the next-stage background delivery from silently failing."
+      ]
+    },
+    {
+      "name": "No-collateral clean rebuild (actually changes bits on device)",
+      "run_commands": [
+        "bash -lc \"pushd ios && rm -rf build && popd\"",
+        "bash -lc \"rm -rf ~/Library/Developer/Xcode/DerivedData/*\"",
+        "bash -lc \"pushd ios && pod deintegrate && pod cache clean --all && rm -rf Pods Podfile.lock && popd\"",
+        "bash -lc \"npx cap sync ios\"",
+        "bash -lc \"pushd ios && pod install && popd\""
+      ],
+      "xcode_steps": [
+        "Open ios/App/App.xcworkspace (not .xcodeproj).",
+        "Increase CFBundleShortVersionString or CFBundleVersion so iOS treats it as a new build.",
+        "Product → Clean Build Folder.",
+        "Delete the app from the device/simulator.",
+        "Run a fresh install."
+      ],
+      "acceptance": "Build succeeds; app launches; plugin logs “[HK V3] Loaded plugin …”."
+    },
+    {
+      "name": "Runtime verification (prove export, then prove callability)",
+      "js_runtime_steps": [
+        "Call printHKV3Exports() during app startup.",
+        "Check console: HealthPilotHKV3 exists with all methods listed.",
+        "Call window.Capacitor.Plugins.HealthPilotHKV3.triggerBackgroundSyncNow() and confirm native log fires."
+      ],
+      "native_logs_expected": [
+        "[HK V3] triggerBackgroundSyncNow called (foreground test)"
+      ],
+      "acceptance": "All 8+ methods callable without UNIMPLEMENTED; Swift logs appear for each."
+    },
+    {
+      "name": "Only after export works: wire real background sync logic",
+      "implementation_notes": [
+        "Move real HKAnchoredObjectQuery / observer query logic into shared private functions used by both backgroundSync and triggerBackgroundSyncNow.",
+        "Enable background delivery per HKSampleType via enableBackgroundDelivery (interval .immediate where supported).",
+        "Add defensive logging around authorization state, anchor persistence, and last-delivery timestamps."
+      ]
+    }
+  ],
+  "acceptance_tests": [
+    "Grep shows exactly one CAP_PLUGIN block for HealthPilotHKV3 and none for the old ID/class.",
+    "JS console prints a method list that includes: getDailySteps, getMultiDayStats, backgroundSync, triggerBackgroundSyncNow, enableBackgroundDelivery, disableBackgroundDelivery, getSyncStatus, resetAnchors.",
+    "Invoking each method resolves (no UNIMPLEMENTED) and produces the expected native NSLog lines.",
+    "Xcode target Other Linker Flags contains -ObjC in both Debug and Release.",
+    "App entitlements include HealthKit and (if needed) background-delivery.",
+    "App version bumped; device has fresh install from .xcworkspace build."
+  ],
+  "rollback_plan": [
+    "If V3 exports but old ID still intercepts calls elsewhere, globally replace all JS references to the old pluginId with \"HealthPilotHKV3\" and remove the legacy CAP_PLUGIN files permanently.",
+    "If export fails even with V3: re-check -ObjC, ensure both .m and .swift are in Compile Sources, and confirm the CAP_PLUGIN_METHOD names match Swift @objc selectors exactly."
+  ],
+  "notes_for_devs": [
+    "UNIMPLEMENTED with no Swift logs nearly always means the bridge exported a different method table than you expect. Duplicates or mismatched pluginId are the usual culprits, not an opaque cache.",
+    "Keep the foreground trigger method permanently—it’s invaluable for regression checks without waiting on background schedulers."
+  ]
+}
