@@ -13351,6 +13351,35 @@ DATA AVAILABILITY:
     }
   });
   
+  // Get premium theme preference (public)
+  app.get("/api/theme/premium-enabled", async (req, res) => {
+    try {
+      const content = await storage.getLandingPageContent();
+      res.json({ enabled: content?.premiumThemeEnabled === 1 });
+    } catch (error: any) {
+      console.error("Error getting premium theme setting:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Admin - toggle premium theme
+  app.put("/api/admin/theme/premium-enabled", isAdmin, async (req, res) => {
+    try {
+      const { enabled } = req.body;
+      if (typeof enabled !== 'boolean') {
+        return res.status(400).json({ error: "enabled must be a boolean" });
+      }
+      
+      const updated = await storage.upsertLandingPageContent({ 
+        premiumThemeEnabled: enabled ? 1 : 0 
+      });
+      res.json({ enabled: updated.premiumThemeEnabled === 1 });
+    } catch (error: any) {
+      console.error("Error updating premium theme setting:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
   // Admin - features
   app.post("/api/admin/landing-page/features", isAdmin, async (req, res) => {
     try {

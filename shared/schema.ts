@@ -1829,6 +1829,9 @@ export const landingPageContent = pgTable("landing_page_content", {
   googleTagManagerId: text("google_tag_manager_id"),
   metaPixelId: text("meta_pixel_id"),
   
+  // Theme Settings
+  premiumThemeEnabled: integer("premium_theme_enabled").notNull().default(0),
+  
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 

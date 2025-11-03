@@ -62,13 +62,14 @@ export default function AdminLandingPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="hero" data-testid="tab-hero">Hero</TabsTrigger>
           <TabsTrigger value="features" data-testid="tab-features">Features</TabsTrigger>
           <TabsTrigger value="testimonials" data-testid="tab-testimonials">Testimonials</TabsTrigger>
           <TabsTrigger value="pricing" data-testid="tab-pricing">Pricing</TabsTrigger>
           <TabsTrigger value="social" data-testid="tab-social">Social</TabsTrigger>
           <TabsTrigger value="seo" data-testid="tab-seo">SEO</TabsTrigger>
+          <TabsTrigger value="theme" data-testid="tab-theme">Theme</TabsTrigger>
         </TabsList>
 
         <TabsContent value="hero" className="mt-6">
@@ -105,6 +106,10 @@ export default function AdminLandingPage() {
 
         <TabsContent value="seo" className="mt-6">
           <SEOSection content={content} onSave={updateContentMutation.mutate} />
+        </TabsContent>
+
+        <TabsContent value="theme" className="mt-6">
+          <ThemeSection content={content} onSave={updateContentMutation.mutate} />
         </TabsContent>
       </Tabs>
     </div>
@@ -1208,6 +1213,87 @@ function SEOSection({
             Save SEO Settings
           </Button>
         </form>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ThemeSection({
+  content,
+  onSave
+}: {
+  content: LandingPageContent | undefined;
+  onSave: (data: Partial<LandingPageContent>) => void;
+}) {
+  const [premiumThemeEnabled, setPremiumThemeEnabled] = useState(content?.premiumThemeEnabled === 1);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    setPremiumThemeEnabled(content?.premiumThemeEnabled === 1);
+  }, [content]);
+
+  const handleToggle = async (checked: boolean) => {
+    try {
+      setPremiumThemeEnabled(checked);
+      await apiRequest("/api/admin/theme/premium-enabled", {
+        method: "PUT",
+        body: JSON.stringify({ enabled: checked }),
+      });
+      
+      queryClient.invalidateQueries({ queryKey: ["/api/theme/premium-enabled"] });
+      
+      toast({
+        title: checked ? "Premium theme enabled" : "Premium theme disabled",
+        description: checked 
+          ? "The coral-to-turquoise gradient theme is now active across the app"
+          : "The standard theme is now active"
+      });
+    } catch (error: any) {
+      setPremiumThemeEnabled(!checked); // Revert on error
+      toast({
+        title: "Error updating theme",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Theme Settings</CardTitle>
+        <CardDescription>
+          Control the visual theme across the entire application
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div className="flex items-center justify-between p-4 border rounded-lg">
+          <div className="space-y-0.5">
+            <Label htmlFor="premium-theme-toggle" className="text-base font-medium">
+              Premium Theme
+            </Label>
+            <p className="text-sm text-muted-foreground">
+              Enable the beautiful coral-to-turquoise gradient theme with glassmorphism effects,
+              glowing elements, and premium visual treatments
+            </p>
+          </div>
+          <Switch
+            id="premium-theme-toggle"
+            data-testid="switch-premium-theme"
+            checked={premiumThemeEnabled}
+            onCheckedChange={handleToggle}
+          />
+        </div>
+
+        {premiumThemeEnabled && (
+          <div className="p-4 border rounded-lg bg-gradient-to-r from-[#FF7C77] via-[#E58AC9] to-[#00CFCF] text-white">
+            <h4 className="font-semibold mb-2">Premium Theme Preview</h4>
+            <p className="text-sm opacity-90">
+              This is what the premium gradient looks like. The theme features glassmorphism cards,
+              gradient buttons, glowing data points in charts, and pill-shaped tabs with gradient indicators.
+            </p>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

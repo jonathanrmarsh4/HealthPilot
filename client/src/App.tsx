@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider, SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { PremiumThemeProvider } from "@/components/PremiumThemeProvider";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LocaleProvider } from "@/contexts/LocaleContext";
 import { LocaleSelector } from "@/components/LocaleSelector";
@@ -561,7 +562,9 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <ThemeProvider>
-          <AppContent />
+          <PremiumThemeProvider>
+            <AppContent />
+          </PremiumThemeProvider>
         </ThemeProvider>
       </TooltipProvider>
     </QueryClientProvider>
