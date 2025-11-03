@@ -37,6 +37,19 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     func applicationDidBecomeActive(_ application: UIApplication) {
         // Restart any tasks that were paused (or not yet started) while the application was inactive. If the application was previously in the background, optionally refresh the user interface.
+        
+        // DIAGNOSTIC: Log what URL Capacitor is actually using
+        #if DEBUG
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+            if let bridge = (self.window?.rootViewController as? CAPBridgeViewController) {
+                print("🔍 DIAGNOSTIC - Capacitor Bridge Info:")
+                print("   Server URL: \(bridge.getServerUrl() ?? "nil")")
+                if let webView = bridge.webView {
+                    print("   WebView URL: \(webView.url?.absoluteString ?? "nil")")
+                }
+            }
+        }
+        #endif
     }
 
     func applicationWillTerminate(_ application: UIApplication) {
