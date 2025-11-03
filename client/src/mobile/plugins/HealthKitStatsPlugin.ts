@@ -55,7 +55,7 @@ export interface HealthKitStatsPlugin {
   getBackgroundQueueStats(): Promise<{ stats: Record<string, number> }>;
 }
 
-const HealthKitStats = registerPlugin<HealthKitStatsPlugin>('HealthKitStatsPlugin', {
+const HealthKitStats = registerPlugin<HealthKitStatsPlugin>('HealthKitStatsPluginV2', {
   web: () => ({
     async getDailySteps() {
       return { steps: 0, date: '', timezone: 'UTC', startOfDay: '', endOfDay: '' };
