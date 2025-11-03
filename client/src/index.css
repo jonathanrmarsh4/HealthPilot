@@ -254,14 +254,15 @@
   --glass-bg: rgba(0, 0, 0, 0.2);
   --glass-border: rgba(255, 255, 255, 0.1);
   
-  /* Dark mode with gradient tint */
-  --background: 222 20% 8%;
-  --card: 222 20% 12%;
+  /* Dark mode with rich purple-blue tint (NOT BROWN!) */
+  --background: 252 25% 10%; /* Deep purple-blue */
+  --card: 252 22% 14%; /* Richer purple */
+  --foreground: 0 0% 98%; /* Bright white text */
 }
 
 /* ===== LIQUID GLASS THEME - Apple-Inspired ===== */
 
-/* Vibrant Animated Gradient Background */
+/* Vibrant Animated Gradient Background - MUCH MORE VISIBLE */
 .premium-theme body::before {
   content: '';
   position: fixed;
@@ -277,12 +278,20 @@
     #7BB9E8 75%,
     #00CFCF 100%
   );
-  opacity: 0.08;
+  opacity: 0.18; /* INCREASED from 0.08 for more drama */
   animation: gradientShift 15s ease infinite;
+  background-size: 200% 200%;
 }
 
 .premium-theme.dark body::before {
-  opacity: 0.12;
+  opacity: 0.25; /* INCREASED from 0.12 for vibrant dark mode */
+  background: linear-gradient(135deg, 
+    #FF6B66 0%,      /* Brighter coral */
+    #E578BD 25%,     /* More saturated pink */
+    #A88FDB 50%,     /* Richer purple */
+    #5CAAE8 75%,     /* Brighter blue */
+    #00E6E6 100%     /* More vibrant turquoise */
+  );
 }
 
 @keyframes gradientShift {
@@ -468,14 +477,14 @@
   .premium-theme [data-testid*="card"],
   .premium-theme [class*="Card"],
   .premium-theme .card {
-    background: rgba(255, 255, 255, 0.7) !important;
-    backdrop-filter: blur(20px) saturate(180%) !important;
-    -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
-    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+    background: rgba(255, 255, 255, 0.6) !important; /* Less opaque to show more gradient */
+    backdrop-filter: blur(20px) saturate(200%) !important; /* More saturation */
+    -webkit-backdrop-filter: blur(20px) saturate(200%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.4) !important; /* More visible border */
     box-shadow: 
-      0 8px 32px rgba(229, 138, 201, 0.1),
+      0 8px 32px rgba(229, 138, 201, 0.2), /* Stronger shadow */
       0 1px 2px rgba(0, 0, 0, 0.05),
-      inset 0 1px 0 rgba(255, 255, 255, 0.5) !important;
+      inset 0 1px 0 rgba(255, 255, 255, 0.6) !important;
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     overflow: hidden;
@@ -485,37 +494,38 @@
   .premium-theme [data-testid*="card"]:hover,
   .premium-theme [class*="Card"]:hover,
   .premium-theme .card:hover {
-    background: rgba(255, 255, 255, 0.8) !important;
+    background: rgba(255, 255, 255, 0.75) !important;
     box-shadow: 
-      0 16px 48px rgba(229, 138, 201, 0.2),
+      0 16px 48px rgba(229, 138, 201, 0.3),
       0 4px 8px rgba(0, 0, 0, 0.08),
-      inset 0 1px 0 rgba(255, 255, 255, 0.6) !important;
-    border-color: rgba(255, 255, 255, 0.4) !important;
+      inset 0 1px 0 rgba(255, 255, 255, 0.7) !important;
+    border-color: rgba(255, 255, 255, 0.5) !important;
     transform: translateY(-4px) scale(1.01);
   }
   
-  /* Dark Mode Glass Cards */
+  /* Dark Mode Glass Cards - VIBRANT, NOT BROWN! */
   .premium-theme.dark [data-testid*="card"],
   .premium-theme.dark [class*="Card"],
   .premium-theme.dark .card {
-    background: rgba(20, 20, 30, 0.6) !important;
-    backdrop-filter: blur(20px) saturate(180%) !important;
-    -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    background: rgba(30, 25, 45, 0.5) !important; /* Purple-tinted, not brown */
+    backdrop-filter: blur(20px) saturate(200%) brightness(1.1) !important; /* Brighter & more saturated */
+    -webkit-backdrop-filter: blur(20px) saturate(200%) brightness(1.1) !important;
+    border: 1px solid rgba(229, 138, 201, 0.3) !important; /* Pink tinted border */
     box-shadow: 
-      0 8px 32px rgba(229, 138, 201, 0.15),
+      0 8px 32px rgba(229, 138, 201, 0.25), /* Stronger pink glow */
       0 1px 2px rgba(0, 0, 0, 0.3),
-      inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
+      inset 0 1px 0 rgba(255, 138, 201, 0.15) !important; /* Pink highlight */
   }
   
   .premium-theme.dark [data-testid*="card"]:hover,
   .premium-theme.dark [class*="Card"]:hover,
   .premium-theme.dark .card:hover {
-    background: rgba(30, 30, 40, 0.7) !important;
+    background: rgba(40, 30, 55, 0.6) !important; /* Richer purple */
     box-shadow: 
-      0 16px 48px rgba(229, 138, 201, 0.25),
+      0 16px 48px rgba(229, 138, 201, 0.4), /* Strong pink glow */
       0 4px 8px rgba(0, 0, 0, 0.4),
-      inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+      inset 0 1px 0 rgba(255, 138, 201, 0.2) !important;
+    border-color: rgba(229, 138, 201, 0.5) !important;
   }
   
   /* ===== LIQUID GLASS BUTTONS - Apple Style ===== */
@@ -570,47 +580,59 @@
   
   /* ===== LIQUID GLASS SIDEBAR ===== */
   .premium-theme [data-sidebar] {
-    background: rgba(255, 255, 255, 0.5) !important;
-    backdrop-filter: blur(20px) saturate(180%) !important;
-    -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
-    border-right: 1px solid rgba(229, 138, 201, 0.2) !important;
+    background: rgba(255, 255, 255, 0.45) !important; /* More transparent */
+    backdrop-filter: blur(20px) saturate(200%) !important; /* More saturated */
+    -webkit-backdrop-filter: blur(20px) saturate(200%) !important;
+    border-right: 1px solid rgba(229, 138, 201, 0.3) !important;
     box-shadow: 
-      2px 0 16px rgba(229, 138, 201, 0.08),
-      inset -1px 0 0 rgba(255, 255, 255, 0.3) !important;
+      2px 0 20px rgba(229, 138, 201, 0.15), /* Stronger glow */
+      inset -1px 0 0 rgba(255, 255, 255, 0.4) !important;
   }
   
   .premium-theme.dark [data-sidebar] {
-    background: rgba(20, 20, 30, 0.5) !important;
-    border-right: 1px solid rgba(229, 138, 201, 0.15) !important;
+    background: rgba(25, 20, 40, 0.5) !important; /* Purple-tinted, not brown */
+    backdrop-filter: blur(20px) saturate(200%) brightness(1.1) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(200%) brightness(1.1) !important;
+    border-right: 1px solid rgba(229, 138, 201, 0.3) !important;
     box-shadow: 
-      2px 0 16px rgba(229, 138, 201, 0.12),
-      inset -1px 0 0 rgba(255, 255, 255, 0.05) !important;
+      2px 0 20px rgba(229, 138, 201, 0.2), /* Pink glow */
+      inset -1px 0 0 rgba(229, 138, 201, 0.1) !important; /* Pink highlight */
   }
   
   /* ===== LIQUID GLASS INPUTS & FORM ELEMENTS ===== */
   .premium-theme input:not([type="checkbox"]):not([type="radio"]),
   .premium-theme textarea,
   .premium-theme select {
-    background: rgba(255, 255, 255, 0.6) !important;
-    backdrop-filter: blur(10px) !important;
-    -webkit-backdrop-filter: blur(10px) !important;
-    border: 1px solid rgba(229, 138, 201, 0.2) !important;
+    background: rgba(255, 255, 255, 0.5) !important; /* More transparent */
+    backdrop-filter: blur(10px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(10px) saturate(180%) !important;
+    border: 1px solid rgba(229, 138, 201, 0.3) !important;
     transition: all 0.3s ease;
   }
   
   .premium-theme input:not([type="checkbox"]):not([type="radio"]):focus,
   .premium-theme textarea:focus,
   .premium-theme select:focus {
-    background: rgba(255, 255, 255, 0.8) !important;
-    border-color: rgba(229, 138, 201, 0.4) !important;
-    box-shadow: 0 0 0 3px rgba(229, 138, 201, 0.1) !important;
+    background: rgba(255, 255, 255, 0.7) !important;
+    border-color: rgba(229, 138, 201, 0.5) !important;
+    box-shadow: 0 0 0 3px rgba(229, 138, 201, 0.15) !important;
   }
   
   .premium-theme.dark input:not([type="checkbox"]):not([type="radio"]),
   .premium-theme.dark textarea,
   .premium-theme.dark select {
-    background: rgba(30, 30, 40, 0.6) !important;
-    border: 1px solid rgba(229, 138, 201, 0.15) !important;
+    background: rgba(35, 30, 50, 0.5) !important; /* Purple-tinted */
+    backdrop-filter: blur(10px) saturate(180%) brightness(1.1) !important;
+    -webkit-backdrop-filter: blur(10px) saturate(180%) brightness(1.1) !important;
+    border: 1px solid rgba(229, 138, 201, 0.25) !important;
+  }
+  
+  .premium-theme.dark input:not([type="checkbox"]):not([type="radio"]):focus,
+  .premium-theme.dark textarea:focus,
+  .premium-theme.dark select:focus {
+    background: rgba(45, 35, 60, 0.6) !important;
+    border-color: rgba(229, 138, 201, 0.5) !important;
+    box-shadow: 0 0 0 3px rgba(229, 138, 201, 0.2) !important;
   }
   
   /* ===== LIQUID GLASS ALERTS & BANNERS ===== */
