@@ -1,0 +1,249 @@
+`UIScene` lifecycle will soon be required. Failure to adopt will result in an assert in the future.
+Could not create a sandbox extension for '/var/containers/Bundle/Application/C5222829-1CDF-4C52-AD62-F74FCCD0DB41/App.app'
+KeyboardPlugin: resize mode - body
+⚡️  Loading app at https://0d420476-b7bb-4cc4-9f5a-da35f5e473e4-00-1n1tyyvrb5uvz.pike.replit.dev...
+🧹 WKWebView cache cleared for live reload
+WebContent[13636] Unable to hide query parameters from script (missing data)
+⚡️  [log] - onscript loading complete
+SplashScreen.hideSplash: SplashScreen was automatically hidden after default timeout. You should call `SplashScreen.hide()` as soon as your web app is loaded (or increase the timeout). Read more at https://capacitorjs.com/docs/apis/splash-screen#hiding-the-splash-screen
+⚡️  [error] - {"line":1,"sourceURL":"https://0d420476-b7bb-4cc4-9f5a-da35f5e473e4-00-1n1tyyvrb5uvz.pike.replit.dev/capacitor.js"}
+
+⚡️  ------ STARTUP JS ERROR ------
+
+⚡️  SyntaxError: Unexpected token '<'
+⚡️  URL: https://0d420476-b7bb-4cc4-9f5a-da35f5e473e4-00-1n1tyyvrb5uvz.pike.replit.dev/capacitor.js
+⚡️  capacitor.js:1:0
+
+⚡️  See above for help with debugging blank-screen issues
+⚡️  [debug] - [vite] connecting...
+⚡️  [log] - deviceready has not fired after 5 seconds.
+⚡️  [log] - Channel not fired: onDOMContentLoaded
+⚡️  [log] - [MobileBootstrap] Initializing on ios...
+⚡️  To Native ->  StatusBar setStyle 114894702
+⚡️  TO JS {}
+⚡️  WebView loaded
+⚡️  To Native ->  SplashScreen hide 114894703
+⚡️  [log] - [MobileBootstrap] Status bar configured
+⚡️  TO JS undefined
+⚡️  [log] - [MobileBootstrap] Splash screen hidden
+⚡️  [log] - [MobileBootstrap] Keyboard listeners configured
+⚡️  To Native ->  Keyboard addListener 114894704
+⚡️  To Native ->  Keyboard addListener 114894705
+⚡️  [log] - [MobileBootstrap] Back button handler configured
+⚡️  [log] - [MobileBootstrap] Triggering auto-sync (launch)...
+⚡️  To Native ->  App addListener 114894706
+⚡️  [log] - [MobileBootstrap] Auto-sync configured (5-minute cooldown)
+⚡️  To Native ->  App addListener 114894707
+⚡️  To Native ->  App getInfo 114894708
+⚡️  TO JS {"build":"1","version":"1.0","name":"HealthPilot","id":"com.nuvitae.healthpilot"}
+⚡️  [log] - [MobileBootstrap] App Info: {"name":"HealthPilot","id":"com.nuvitae.healthpilot","version":"1.0","build":"1"}
+⚡️  [log] - [MobileBootstrap] ✅ Mobile initialization complete
+⚡️  [log] - [App] Setting up global deep link listener
+⚡️  [log] - [DeepLink] Initializing deep link handler...
+⚡️  To Native ->  App addListener 114894709
+⚡️  To Native ->  App addListener 114894710
+⚡️  [log] - [DeepLink] Deep link handler initialized successfully
+⚡️  To Native ->  SecureStorage internalGetItem 114894711
+⚡️  To Native ->  SecureStorage internalGetItem 114894712
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  To Native ->  SecureStorage internalGetItem 114894713
+⚡️  To Native ->  SecureStorage internalGetItem 114894714
+⚡️  To Native ->  SecureStorage internalGetItem 114894715
+⚡️  To Native ->  SecureStorage internalGetItem 114894716
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  [log] - [MobileBootstrap] Auto-sync completed: {"success":true,"message":"Synced 0 health data points","insertedCount":0}
+⚡️  [log] - Clearing old dashboard preferences (version mismatch)
+⚡️  To Native ->  SecureStorage internalGetItem 114894717
+⚡️  To Native ->  SecureStorage internalGetItem 114894718
+⚡️  To Native ->  SecureStorage internalGetItem 114894719
+⚡️  To Native ->  SecureStorage internalGetItem 114894720
+⚡️  To Native ->  SecureStorage internalGetItem 114894721
+⚡️  To Native ->  SecureStorage internalGetItem 114894722
+⚡️  To Native ->  SecureStorage internalGetItem 114894723
+⚡️  To Native ->  SecureStorage internalGetItem 114894724
+⚡️  To Native ->  SecureStorage internalGetItem 114894725
+⚡️  To Native ->  SecureStorage internalGetItem 114894726
+⚡️  To Native ->  SecureStorage internalGetItem 114894727
+⚡️  To Native ->  SecureStorage internalGetItem 114894728
+⚡️  To Native ->  SecureStorage internalGetItem 114894729
+⚡️  To Native ->  SecureStorage internalGetItem 114894730
+⚡️  To Native ->  SecureStorage internalGetItem 114894731
+⚡️  To Native ->  SecureStorage internalGetItem 114894732
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  To Native ->  SecureStorage internalGetItem 114894733
+⚡️  To Native ->  SecureStorage internalGetItem 114894734
+⚡️  To Native ->  SecureStorage internalGetItem 114894735
+⚡️  To Native ->  SecureStorage internalGetItem 114894736
+⚡️  To Native ->  SecureStorage internalGetItem 114894737
+⚡️  To Native ->  SecureStorage internalGetItem 114894738
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  To Native ->  SecureStorage internalGetItem 114894739
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  To Native ->  SecureStorage internalGetItem 114894740
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+WebContent[13636] imagePNG_error_break:384: *** ERROR: imagePNG_error_break
+⚡️  [log] - [TileManager] Rendering. Total tiles: 3, Visible IDs in prefs: data-input, healthkit-sync, biomarker-trends, Rendering: data-input, healthkit-sync, biomarker-trends
+⚡️  To Native ->  SecureStorage internalGetItem 114894741
+⚡️  To Native ->  SecureStorage internalGetItem 114894742
+⚡️  To Native ->  SecureStorage internalGetItem 114894743
+⚡️  To Native ->  SecureStorage internalGetItem 114894744
+⚡️  To Native ->  SecureStorage internalGetItem 114894745
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  [log] - [TileManager] Rendering. Total tiles: 3, Visible IDs in prefs: data-input, healthkit-sync, biomarker-trends, Rendering: data-input, healthkit-sync, biomarker-trends
+⚡️  To Native ->  Health isAvailable 114894746
+⚡️  To Native ->  SecureStorage internalGetItem 114894747
+⚡️  TO JS ⚡️  To Native ->  {"available":true,"platform":"ios"}
+SecureStorage internalGetItem 114894748
+⚡️  To Native ->  SecureStorage internalGetItem 114894749
+⚡️  To Native ->  SecureStorage internalGetItem 114894750
+⚡️  To Native ->  SecureStorage internalGetItem 114894751
+⚡️  To Native ->  SecureStorage internalGetItem 114894752
+⚡️  To Native ->  SecureStorage internalGetItem 114894753
+⚡️  To Native ->  SecureStorage internalGetItem 114894754
+⚡️  To Native ->  SecureStorage internalGetItem 114894755
+⚡️  To Native ->  SecureStorage internalGetItem 114894756
+⚡️  To Native ->  SecureStorage internalGetItem 114894757
+⚡️  To Native ->  SecureStorage internalGetItem 114894758
+⚡️  To Native ->  SecureStorage internalGetItem 114894759
+⚡️  To Native ->  SecureStorage internalGetItem 114894760
+⚡️  To Native ->  SecureStorage internalGetItem 114894761
+⚡️  To Native ->  SecureStorage internalGetItem 114894762
+⚡️  To Native ->  SecureStorage internalGetItem 114894763
+⚡️  To Native ->  SecureStorage internalGetItem 114894764
+⚡️  To Native ->  SecureStorage internalGetItem 114894765
+⚡️  To Native ->  SecureStorage internalGetItem 114894766
+⚡️  To Native ->  SecureStorage internalGetItem 114894767
+⚡️  To Native ->  SecureStorage internalGetItem 114894768
+⚡️  To Native ->  SecureStorage internalGetItem 114894769
+⚡️  To Native ->  SecureStorage internalGetItem 114894770
+⚡️  To Native ->  SecureStorage internalGetItem 114894771
+⚡️  To Native ->  SecureStorage internalGetItem 114894772
+⚡️  To Native ->  SecureStorage internalGetItem 114894773
+⚡️  To Native ->  SecureStorage internalGetItem 114894774
+⚡️  To Native ->  SecureStorage internalGetItem 114894775
+⚡️  To Native ->  SecureStorage internalGetItem 114894776
+⚡️  To Native ->  SecureStorage internalGetItem 114894777
+⚡️  To Native ->  SecureStorage internalGetItem 114894778
+⚡️  To Native ->  SecureStorage internalGetItem 114894779
+⚡️  To Native ->  SecureStorage internalGetItem 114894780
+⚡️  To Native ->  SecureStorage internalGetItem 114894781
+⚡️  To Native ->  SecureStorage internalGetItem 114894782
+⚡️  To Native ->  SecureStorage internalGetItem 114894783
+⚡️  To Native ->  SecureStorage internalGetItem 114894784
+⚡️  To Native ->  SecureStorage internalGetItem 114894785
+⚡️  To Native ->  SecureStorage internalGetItem 114894786
+⚡️  To Native ->  SecureStorage internalGetItem 114894787
+⚡️  To Native ->  SecureStorage internalGetItem 114894788
+⚡️  To Native ->  SecureStorage internalGetItem 114894789
+⚡️  To Native ->  SecureStorage internalGetItem 114894790
+⚡️  To Native ->  SecureStorage internalGetItem 114894791
+⚡️  To Native ->  SecureStorage internalGetItem 114894792
+⚡️  To Native ->  SecureStorage internalGetItem 114894793
+⚡️  To Native ->  SecureStorage internalGetItem 114894794
+⚡️  To Native ->  SecureStorage internalGetItem 114894795
+⚡️  To Native ->  SecureStorage internalGetItem 114894796
+⚡️  To Native ->  SecureStorage internalGetItem 114894797
+⚡️  To Native ->  SecureStorage internalGetItem 114894798
+⚡️  To Native ->  SecureStorage internalGetItem 114894799
+⚡️  To Native ->  SecureStorage internalGetItem 114894800
+⚡️  To Native ->  SecureStorage internalGetItem 114894801
+⚡️  To Native ->  SecureStorage internalGetItem 114894802
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  [log] - [HealthKit] Availability check result: true
+⚡️  [log] - [TileManager] Rendering. Total tiles: 3, Visible IDs in prefs: data-input, healthkit-sync, biomarker-trends, Rendering: data-input, healthkit-sync, biomarker-trends
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  [log] - [HealthKit] Requesting permissions for ALL 26 health data types...
+⚡️  To Native ->  Health requestAuthorization 114894803
+ERROR MESSAGE:  {"errorMessage":"Unsupported health data type: heartRateVariability.","message":"Unsupported health data type: heartRateVariability."}
+⚡️  [error] - {"errorMessage":"Unsupported health data type: heartRateVariability.","message":"Unsupported health data type: heartRateVariability."}
+⚡️  [error] - [HealthKit] Failed to request permissions: {"errorMessage":"Unsupported health data type: heartRateVariability."}
+⚡️  [error] - HealthKit sync failed: {"errorMessage":"Unsupported health data type: heartRateVariability."}
+⚡️  [log] - [TileManager] Rendering. Total tiles: 3, Visible IDs in prefs: data-input, healthkit-sync, biomarker-trends, Rendering: data-input, healthkit-sync, biomarker-trends
+⚡️  [log] - [TileManager] Rendering. Total tiles: 3, Visible IDs in prefs: data-input, healthkit-sync, biomarker-trends, Rendering: data-input, healthkit-sync, biomarker-trends
