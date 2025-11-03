@@ -9,7 +9,7 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
-async function getAuthHeaders(): Promise<HeadersInit> {
+export async function getAuthHeaders(): Promise<HeadersInit> {
   const headers: HeadersInit = {};
   
   // For mobile, include the session token in Authorization header

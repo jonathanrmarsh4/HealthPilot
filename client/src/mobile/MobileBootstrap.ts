@@ -12,6 +12,7 @@ import { StatusBar, Style } from '@capacitor/status-bar';
 import { SplashScreen } from '@capacitor/splash-screen';
 import { Keyboard } from '@capacitor/keyboard';
 import { App as CapApp } from '@capacitor/app';
+import { getAuthHeaders } from '@/lib/queryClient';
 
 export interface MobileBootstrapOptions {
   statusBarStyle?: 'light' | 'dark';
@@ -223,12 +224,16 @@ async function triggerAutoSync(trigger: 'launch' | 'resume'): Promise<void> {
     
     console.log(`[MobileBootstrap] Triggering auto-sync (${trigger})...`);
     
+    // Get authentication headers for mobile
+    const authHeaders = await getAuthHeaders();
+    
     // Call the existing sync endpoint
     const response = await fetch('/api/apple-health/sync', {
       method: 'POST',
       credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
+        ...authHeaders,
       },
     });
     
