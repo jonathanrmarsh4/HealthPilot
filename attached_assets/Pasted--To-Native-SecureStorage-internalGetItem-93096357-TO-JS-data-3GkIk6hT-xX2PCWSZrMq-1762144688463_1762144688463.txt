@@ -1,0 +1,160 @@
+⚡️  To Native ->  SecureStorage internalGetItem 93096357
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  [log] - [TileManager] Rendering. Total tiles: 3, Visible IDs in prefs: data-input, healthkit-sync, biomarker-trends, Rendering: data-input, healthkit-sync, biomarker-trends
+⚡️  To Native ->  SecureStorage internalGetItem 93096358
+⚡️  To Native ->  SecureStorage internalGetItem 93096359
+⚡️  To Native ->  SecureStorage internalGetItem 93096360
+⚡️  To Native ->  SecureStorage internalGetItem 93096361
+⚡️  To Native ->  SecureStorage internalGetItem 93096362
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  [log] - [TileManager] Rendering. Total tiles: 3, Visible IDs in prefs: data-input, healthkit-sync, biomarker-trends, Rendering: data-input, healthkit-sync, biomarker-trends
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  [log] - [TileManager] Rendering. Total tiles: 3, Visible IDs in prefs: data-input, healthkit-sync, biomarker-trends, Rendering: data-input, healthkit-sync, biomarker-trends
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  [log] - [TileManager] Rendering. Total tiles: 3, Visible IDs in prefs: data-input, healthkit-sync, biomarker-trends, Rendering: data-input, healthkit-sync, biomarker-trends
+⚡️  To Native ->  Health isAvailable 93096363
+⚡️  TO JS {"platform":"ios","available":true}
+⚡️  [log] - [HealthKit] Availability check result: true
+⚡️  [log] - [HealthKit] Using Native adapter
+⚡️  [error] - [HealthKit] Failed to check background sync status: {"code":"UNIMPLEMENTED"}
+⚡️  [log] - [TileManager] Rendering. Total tiles: 3, Visible IDs in prefs: data-input, healthkit-sync, biomarker-trends, Rendering: data-input, healthkit-sync, biomarker-trends
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  [log] - [TileManager] Rendering. Total tiles: 3, Visible IDs in prefs: data-input, healthkit-sync, biomarker-trends, Rendering: data-input, healthkit-sync, biomarker-trends
+⚡️  To Native ->  SecureStorage internalGetItem 93096364
+⚡️  To Native ->  SecureStorage internalGetItem 93096365
+⚡️  To Native ->  SecureStorage internalGetItem 93096366
+⚡️  To Native ->  SecureStorage internalGetItem 93096367
+⚡️  To Native ->  SecureStorage internalGetItem 93096368
+⚡️  To Native ->  SecureStorage internalGetItem 93096369
+⚡️  To Native ->  SecureStorage internalGetItem 93096370
+⚡️  To Native ->  SecureStorage internalGetItem 93096371
+⚡️  To Native ->  SecureStorage internalGetItem 93096372
+⚡️  To Native ->  SecureStorage internalGetItem 93096373
+⚡️  To Native ->  SecureStorage internalGetItem 93096374
+⚡️  To Native ->  SecureStorage internalGetItem 93096375
+⚡️  To Native ->  SecureStorage internalGetItem 93096376
+⚡️  To Native ->  SecureStorage internalGetItem 93096377
+⚡️  To Native ->  SecureStorage internalGetItem 93096378
+⚡️  To Native ->  SecureStorage internalGetItem 93096379
+⚡️  To Native ->  SecureStorage internalGetItem 93096380
+⚡️  To Native ->  SecureStorage internalGetItem 93096381
+⚡️  To Native ->  SecureStorage internalGetItem 93096382
+⚡️  To Native ->  SecureStorage internalGetItem 93096383
+⚡️  To Native ->  SecureStorage internalGetItem 93096384
+⚡️  To Native ->  SecureStorage internalGetItem 93096385
+⚡️  To Native ->  SecureStorage internalGetItem 93096386
+⚡️  To Native ->  SecureStorage internalGetItem 93096387
+⚡️  To Native ->  SecureStorage internalGetItem 93096388
+⚡️  To Native ->  SecureStorage internalGetItem 93096389
+⚡️  To Native ->  SecureStorage internalGetItem 93096390
+⚡️  To Native ->  SecureStorage internalGetItem 93096391
+⚡️  To Native ->  SecureStorage internalGetItem 93096392
+⚡️  To Native ->  SecureStorage internalGetItem 93096393
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  To Native ->  SecureStorage internalGetItem 93096394
+⚡️  To Native ->  SecureStorage internalGetItem 93096395
+⚡️  To Native ->  SecureStorage internalGetItem 93096396
+⚡️  To Native ->  SecureStorage internalGetItem 93096397
+⚡️  To Native ->  SecureStorage internalGetItem 93096398
+⚡️  To Native ->  SecureStorage internalGetItem 93096399
+⚡️  To Native ->  SecureStorage internalGetItem 93096400
+⚡️  To Native ->  SecureStorage internalGetItem 93096401
+⚡️  To Native ->  SecureStorage internalGetItem 93096402
+⚡️  To Native ->  SecureStorage internalGetItem 93096403
+⚡️  To Native ->  SecureStorage internalGetItem 93096404
+⚡️  To Native ->  SecureStorage internalGetItem 93096405
+⚡️  To Native ->  SecureStorage internalGetItem 93096406
+⚡️  To Native ->  SecureStorage internalGetItem 93096407
+⚡️  To Native ->  SecureStorage internalGetItem 93096408
+⚡️  To Native ->  SecureStorage internalGetItem 93096409
+⚡️  To Native ->  SecureStorage internalGetItem 93096410
+⚡️  To Native ->  SecureStorage internalGetItem 93096411
+⚡️  To Native ->  SecureStorage internalGetItem 93096412
+⚡️  To Native ->  SecureStorage internalGetItem 93096413
+⚡️  To Native ->  SecureStorage internalGetItem 93096414
+⚡️  To Native ->  SecureStorage internalGetItem 93096415
+⚡️  To Native ->  SecureStorage internalGetItem 93096416
+⚡️  To Native ->  SecureStorage internalGetItem 93096417
+⚡️  To Native ->  SecureStorage internalGetItem 93096418
+⚡️  To Native ->  SecureStorage internalGetItem 93096419
+⚡️  TO JS ⚡️  To Native ->  SecureStorage internalGetItem 93096420
+{"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  To Native ->  Health requestAuthorization 93096421
+⚡️  [log] - [HealthKit] Requesting permissions for ALL 26 health data types...
+(501) Invalidation handler invoked, clearing connection
+(501) personaAttributesForPersonaType for type:0 failed with error Error Domain=NSCocoaErrorDomain Code=4099 "The connection to service named com.apple.mobile.usermanagerd.xpc was invalidated from this process." UserInfo={NSDebugDescription=The connection to service named com.apple.mobile.usermanagerd.xpc was invalidated from this process.}
+Received port for identifier response: <(null)> with error:Error Domain=RBSServiceErrorDomain Code=1 "Client not entitled" UserInfo={RBSEntitlement=com.apple.runningboard.process-state, NSLocalizedFailureReason=Client not entitled, RBSPermanent=false}
+elapsedCPUTimeForFrontBoard couldn't generate a task port
+Received port for identifier response: <(null)> with error:Error Domain=RBSServiceErrorDomain Code=1 "Client not entitled" UserInfo={RBSEntitlement=com.apple.runningboard.process-state, NSLocalizedFailureReason=Client not entitled, RBSPermanent=false}
+elapsedCPUTimeForFrontBoard couldn't generate a task port
+Received port for identifier response: <(null)> with error:Error Domain=RBSServiceErrorDomain Code=1 "Client not entitled" UserInfo={RBSEntitlement=com.apple.runningboard.process-state, NSLocalizedFailureReason=Client not entitled, RBSPermanent=false}
+elapsedCPUTimeForFrontBoard couldn't generate a task port
+Received port for identifier response: <(null)> with error:Error Domain=RBSServiceErrorDomain Code=1 "Client not entitled" UserInfo={RBSEntitlement=com.apple.runningboard.process-state, NSLocalizedFailureReason=Client not entitled, RBSPermanent=false}
+elapsedCPUTimeForFrontBoard couldn't generate a task port
+⚡️  TO JS {"writeAuthorized":[],"readAuthorized":["steps","distance","calories","heartRate","weight","hrv","restingHeartRate","bloodPressureSystolic","bloodPressureDiastolic","oxygenSaturation","respiratoryRate","height","bmi","bodyFat","leanBodyMass","basalCalories
+⚡️  [log] - [HealthKit] Permission request result: {"writeAuthorized":[],"readAuthorized":["steps","distance","calories","heartRate","weight","hrv","restingHeartRate","bloodPressureSystolic","bloodPressureDiastolic","oxygenSaturation","respiratoryRate","height","bmi","bodyFat","leanBodyMass","basalCalories","flightsClimbed","bloodGlucose","bodyTemperature","vo2Max","walkingHeartRateAverage","waistCircumference","dietaryWater","exerciseTime","standTime","sleepAnalysis"],"writeDenied":[],"readDenied":[]}
+⚡️  [error] - [HealthKit] Failed to enable background sync: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to toggle background sync: {}
+⚡️  [log] - [TileManager] Rendering. Total tiles: 3, Visible IDs in prefs: data-input, healthkit-sync, biomarker-trends, Rendering: data-input, healthkit-sync, biomarker-trends
+<0x1081fe580> Touch: System gesture gate timed out.
+<0x1081fe440> Gesture: System gesture gate timed out.
+⚡️  [log] - [TileManager] Rendering. Total tiles: 3, Visible IDs in prefs: data-input, healthkit-sync, biomarker-trends, Rendering: data-input, healthkit-sync, biomarker-trends
