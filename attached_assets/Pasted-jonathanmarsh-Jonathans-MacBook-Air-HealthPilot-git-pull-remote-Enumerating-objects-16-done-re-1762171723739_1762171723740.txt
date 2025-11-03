@@ -1,0 +1,35 @@
+jonathanmarsh@Jonathans-MacBook-Air HealthPilot % git pull
+remote: Enumerating objects: 16, done.
+remote: Counting objects: 100% (16/16), done.
+remote: Compressing objects: 100% (8/8), done.
+remote: Total 13 (delta 5), reused 13 (delta 5), pack-reused 0 (from 0)
+Unpacking objects: 100% (13/13), 12.14 KiB | 248.00 KiB/s, done.
+From https://github.com/jonathanrmarsh4/healthpilot
+   d744267..603646c  main       -> origin/main
+Updating d744267..603646c
+Fast-forward
+ ...-will-result-in-an-assert-in-the-future--1762170036147_1762170036148.txt | 111 +++++++
+ ios/HealthKitPlugin/BackgroundSyncManager.swift                             | 283 ++++++++++++++++
+ ios/HealthKitPlugin/Health.swift                                            | 631 ++++++++++++++++++++++++++++++++++++
+ ios/HealthKitPlugin/HealthPlugin.swift                                      | 204 ++++++++++++
+ ios/HealthKitPlugin/Health_CLEAN.swift                                      | 627 +++++++++++++++++++++++++++++++++++
+ 5 files changed, 1856 insertions(+)
+ create mode 100644 attached_assets/Pasted--UIScene-lifecycle-will-soon-be-required-Failure-to-adopt-will-result-in-an-assert-in-the-future--1762170036147_1762170036148.txt
+ create mode 100644 ios/HealthKitPlugin/BackgroundSyncManager.swift
+ create mode 100644 ios/HealthKitPlugin/Health.swift
+ create mode 100644 ios/HealthKitPlugin/HealthPlugin.swift
+ create mode 100644 ios/HealthKitPlugin/Health_CLEAN.swift
+jonathanmarsh@Jonathans-MacBook-Air HealthPilot % cp -r ios/HealthKitPlugin/* node_modules/@capgo/capacitor-health/ios/Sources/HealthPlugin/
+jonathanmarsh@Jonathans-MacBook-Air HealthPilot % grep -n "heartRateVariability" node_modules/@capgo/capacitor-health/ios/Sources/HealthPlugin/Health.swift
+36:    case heartRateVariability
+78:            case .heartRateVariability:
+79:                identifier = .heartRateVariabilitySDNN
+141:        case .heartRateVariability:
+182:        case .heartRateVariability:
+jonathanmarsh@Jonathans-MacBook-Air HealthPilot % cd ios/App && pod install && cd ../..
+Analyzing dependencies
+Downloading dependencies
+Generating Pods project
+Integrating client project
+Pod installation complete! There are 16 dependencies from the Podfile and 19 total pods installed.
+jonathanmarsh@Jonathans-MacBook-Air HealthPilot % 
