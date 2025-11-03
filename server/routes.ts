@@ -9715,7 +9715,7 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
     try {
       // Support timezone-aware local date queries
       const localDate = req.query.localDate as string | undefined;
-      const timezone = (req.query.timezone as string) || userTimezone || 'UTC';
+      const timezone = (req.query.timezone as string) || 'UTC';
       
       let startDate: Date;
       let endDate: Date;
