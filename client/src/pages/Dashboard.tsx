@@ -31,6 +31,7 @@ import { unitConfigs, convertValue, formatValue } from "@/lib/unitConversions";
 import { useState, useEffect } from "react";
 import { biomarkerDisplayConfig } from "@/lib/biomarkerConfig";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { usePremiumTheme } from "@/components/PremiumThemeProvider";
 import { useToast } from "@/hooks/use-toast";
 import { 
   DndContext, 
@@ -154,6 +155,7 @@ export default function Dashboard() {
   const { unitSystem } = useLocale();
   const { toast } = useToast();
   const searchString = useSearch();
+  const { isPremiumTheme } = usePremiumTheme();
   
   // Handle checkout success/cancel redirects
   useEffect(() => {
@@ -665,7 +667,9 @@ export default function Dashboard() {
     <div className="space-y-8">
       <div className="flex items-start justify-between gap-2 md:gap-4">
         <div className="min-w-0 flex-1">
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight">Dashboard</h1>
+          <h1 className={`text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight ${isPremiumTheme ? 'gradient-text' : ''}`}>
+            Dashboard
+          </h1>
           <p className="text-muted-foreground mt-1 md:mt-2 text-sm md:text-base">
             Your personalized health insights and metrics
           </p>

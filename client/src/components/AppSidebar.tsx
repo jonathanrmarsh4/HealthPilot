@@ -49,6 +49,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { useAuth } from "@/hooks/useAuth";
 import { showSmartFuel, showRecipeFeatures } from "@shared/config/flags";
 import logoPath from "@assets/HealthPilot_Logo_1759904141260.png";
+import { usePremiumTheme } from "@/components/PremiumThemeProvider";
 
 interface MenuItem {
   title: string;
@@ -126,6 +127,7 @@ const menuSections = buildMenuSections();
 export function AppSidebar() {
   const [location] = useLocation();
   const { isAdmin } = useAuth();
+  const { isPremiumTheme } = usePremiumTheme();
 
   return (
     <Sidebar>
@@ -136,7 +138,9 @@ export function AppSidebar() {
             alt="HealthPilot" 
             className="h-10 w-10 object-contain"
           />
-          <span className="text-lg font-semibold">HealthPilot</span>
+          <span className={`text-lg font-semibold ${isPremiumTheme ? 'gradient-text' : ''}`}>
+            HealthPilot
+          </span>
         </Link>
       </SidebarHeader>
       <SidebarContent>

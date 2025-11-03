@@ -386,6 +386,43 @@
 
   /* ===== PREMIUM THEME UTILITIES ===== */
   
+  /* Automatic Page Title Gradient (h1 elements) */
+  .premium-theme h1 {
+    background: linear-gradient(135deg, 
+      hsl(var(--premium-gradient-start)), 
+      hsl(var(--premium-gradient-middle)), 
+      hsl(var(--premium-gradient-end))
+    );
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  /* Automatic Card Accent (subtle gradient border) */
+  .premium-theme [class*="card"] {
+    border-image: linear-gradient(135deg, 
+      hsl(var(--premium-gradient-start) / 0.3), 
+      hsl(var(--premium-gradient-end) / 0.3)
+    ) 1;
+  }
+  
+  /* Automatic Primary Button Gradient */
+  .premium-theme button[class*="default"]:not([class*="outline"]):not([class*="ghost"]):not([class*="secondary"]) {
+    background: linear-gradient(135deg, 
+      hsl(var(--premium-gradient-start)), 
+      hsl(var(--premium-gradient-middle)), 
+      hsl(var(--premium-gradient-end))
+    );
+    color: white;
+    border: none;
+    transition: all 0.3s ease;
+  }
+  
+  .premium-theme button[class*="default"]:not([class*="outline"]):not([class*="ghost"]):not([class*="secondary"]):hover {
+    box-shadow: var(--glow-gradient);
+    transform: translateY(-1px);
+  }
+  
   /* Glassmorphism Card Effect */
   .premium-theme .glass-card {
     background: var(--glass-bg);
