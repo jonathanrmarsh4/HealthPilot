@@ -1238,6 +1238,7 @@ function ThemeSection({
       await apiRequest("PUT", "/api/admin/theme/premium-enabled", { enabled: checked });
       
       queryClient.invalidateQueries({ queryKey: ["/api/theme/premium-enabled"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/landing-page"] });
       
       toast({
         title: checked ? "Premium theme enabled" : "Premium theme disabled",
