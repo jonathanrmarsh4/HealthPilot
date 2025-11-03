@@ -2,21 +2,15 @@ import { useState, useEffect } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { healthKitService } from '@/services/healthkit';
 import { apiRequest } from '@/lib/queryClient';
-import { backgroundSyncService } from '@/services/backgroundSync';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
-import { Smartphone, Download, CheckCircle2, XCircle, Info, Loader2, RefreshCw } from 'lucide-react';
+import { Smartphone, Download, CheckCircle2, XCircle, Info, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export function HealthKitSync() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [isHealthKitAvailable, setIsHealthKitAvailable] = useState<boolean | null>(null);
-  const [backgroundSyncEnabled, setBackgroundSyncEnabled] = useState(false);
-  const [isTogglingBgSync, setIsTogglingBgSync] = useState(false);
   const [lastSyncResult, setLastSyncResult] = useState<{
     success: boolean;
     message: string;
@@ -31,17 +25,6 @@ export function HealthKitSync() {
     const checkAvailability = async () => {
       const available = await healthKitService.isHealthKitAvailable();
       setIsHealthKitAvailable(available);
-      
-      // Check background sync status if available
-      if (available) {
-        const bgSyncEnabled = await backgroundSyncService.isEnabled();
-        setBackgroundSyncEnabled(bgSyncEnabled);
-        
-        // Start monitoring if enabled
-        if (bgSyncEnabled) {
-          await backgroundSyncService.start();
-        }
-      }
     };
     checkAvailability();
   }, []);
@@ -99,57 +82,6 @@ export function HealthKitSync() {
       });
     } finally {
       setIsSyncing(false);
-    }
-  };
-
-  const handleBackgroundSyncToggle = async (enabled: boolean) => {
-    if (!isHealthKitAvailable) return;
-
-    setIsTogglingBgSync(true);
-
-    try {
-      if (enabled) {
-        // Request permissions first
-        const permissionsGranted = await healthKitService.requestPermissions();
-        if (!permissionsGranted) {
-          throw new Error('HealthKit permissions required for background sync');
-        }
-
-        // Enable background sync
-        const success = await backgroundSyncService.enable();
-        
-        if (success) {
-          setBackgroundSyncEnabled(true);
-          toast({
-            title: 'Background Sync Enabled',
-            description: 'Health data will sync automatically when you open the app',
-          });
-        } else {
-          throw new Error('Failed to enable background sync');
-        }
-      } else {
-        // Disable background sync
-        const success = await backgroundSyncService.disable();
-        
-        if (success) {
-          setBackgroundSyncEnabled(false);
-          toast({
-            title: 'Background Sync Disabled',
-            description: 'Use manual sync to update your health data',
-          });
-        } else {
-          throw new Error('Failed to disable background sync');
-        }
-      }
-    } catch (error: any) {
-      console.error('Failed to toggle background sync:', error);
-      toast({
-        title: 'Toggle Failed',
-        description: error.message || 'Failed to toggle background sync',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsTogglingBgSync(false);
     }
   };
 
@@ -220,34 +152,13 @@ export function HealthKitSync() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Background Sync Toggle */}
-        <div className="flex items-center justify-between space-x-2 rounded-lg border p-3" data-testid="container-background-sync-toggle">
-          <div className="flex-1 space-y-0.5">
-            <Label htmlFor="background-sync" className="text-sm font-medium cursor-pointer">
-              <div className="flex items-center gap-2">
-                <RefreshCw className="h-4 w-4" />
-                Background Sync
-              </div>
-            </Label>
-            <p className="text-xs text-muted-foreground">
-              Automatically sync when you open the app
-            </p>
-          </div>
-          <Switch
-            id="background-sync"
-            checked={backgroundSyncEnabled}
-            onCheckedChange={handleBackgroundSyncToggle}
-            disabled={isTogglingBgSync}
-            data-testid="switch-background-sync"
-          />
-        </div>
-
-        <Separator />
-
         {/* Manual Sync */}
         <div className="flex flex-col gap-3">
           <p className="text-sm text-muted-foreground">
             Sync data from the last 30 days including steps, HRV, sleep, workouts, and biomarkers.
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Auto-sync is enabled by default when you open or resume the app.
           </p>
 
           <Button
