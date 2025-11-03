@@ -1,0 +1,44 @@
+{
+  "task": "Create a complete UI/UX theme for the HealthPilot app and website",
+  "prompt": "Develop a modern, cohesive, and premium user interface theme for HealthPilot, reflecting the brand’s coral-to-turquoise gradient color palette from the app icon. The visual identity should embody intelligence, vitality, and precision health, blending a sense of calm and optimism with a data-driven edge. Apply this theme consistently across all app screens, dashboards, and the website.",
+  "color_palette": {
+    "primary_gradient": {
+      "start": "#FF7C77",
+      "middle": "#E58AC9",
+      "end": "#00CFCF"
+    },
+    "accent": "#FFFFFF",
+    "background": "#F7F9FA",
+    "text_primary": "#FFFFFF",
+    "text_secondary": "#E0E0E0",
+    "data_positive": "#4AE3C6",
+    "data_alert": "#FF9B8E"
+  },
+  "style_guide": {
+    "design_language": "Apple-style minimalism meets futuristic health intelligence",
+    "typography": {
+      "primary_font": "SF Pro Display",
+      "secondary_font": "Inter",
+      "weights": ["Regular", "Medium", "Semibold"],
+      "letter_spacing": "balanced for readability on mobile and desktop"
+    },
+    "ui_elements": {
+      "cards": "soft glassmorphism with semi-transparent backgrounds, frosted blur, and subtle inner glow edges",
+      "buttons": "rounded 2xl corners, gradient fills (coral to turquoise), light drop shadows, hover glow effect on web",
+      "charts": "smooth bezier curves, glowing data points, use turquoise and coral for contrasting datasets",
+      "tabs": "pill-shaped with subtle gradient overlay and glowing active indicator"
+    },
+    "layouts": {
+      "mobile": "centered, vertically modular design with sticky gradient headers and floating metric cards",
+      "desktop": "responsive with hero sections, metric tiles, and minimalist white content containers with gradient accents"
+    }
+  },
+  "core_screens": [
+    "Login & Signup",
+    "Home Dashboard (HRV, Sleep, Stress, Energy, Readiness)",
+    "Insights Feed",
+    "Profile & Settings",
+    "Website Landing Page with tagline 'Your Body. Decoded.' and CTA buttons"
+  ],
+  "output": "Provide Figma or code-based component library structure with reusable color tokens, gradient definitions, font hierarchy, and visual examples of both light and dark modes. Ensure full accessibility contrast compliance (WCAG AA+)."
+}
