@@ -6,10 +6,11 @@ const config: CapacitorConfig = {
   webDir: 'dist/public',
   // DEVELOPMENT: Live reload enabled - loads frontend from Replit dev server
   // IMPORTANT: Disable this (comment out server block) before building for production/TestFlight
-  server: {
-    url: 'https://0d420476-b7bb-4cc4-9f5a-da35f5e473e4-00-1n1tyyvrb5uvz.pike.replit.dev',
-    cleartext: true
-  },
+  // CURRENTLY DISABLED to test production bundles
+  // server: {
+  //   url: 'https://0d420476-b7bb-4cc4-9f5a-da35f5e473e4-00-1n1tyyvrb5uvz.pike.replit.dev',
+  //   cleartext: true
+  // },
   ios: {
     contentInset: 'always',
     scheme: 'healthpilot'
