@@ -2374,46 +2374,11 @@ export class DbStorage implements IStorage {
       throw new Error("Generated workout not found");
     }
 
-    // If already accepted, check if session already exists and return it (idempotent)
-    if (workout.status === 'accepted' && workout.acceptedSnapshot) {
-      // Try to find existing session
-      const existingSessions = await db
-        .select()
-        .from(workoutSessions)
-        .where(
-          and(
-            eq(workoutSessions.userId, userId),
-            eq(workoutSessions.sourceType, "ai_generated")
-          )
-        )
-        .orderBy(desc(workoutSessions.startTime))
-        .limit(10);
-      
-      // Find session that matches this workout date
-      const workoutDate = new Date(workout.date);
-      for (const session of existingSessions) {
-        const sessionDate = new Date(session.startTime);
-        if (
-          sessionDate.getFullYear() === workoutDate.getFullYear() &&
-          sessionDate.getMonth() === workoutDate.getMonth() &&
-          sessionDate.getDate() === workoutDate.getDate()
-        ) {
-          console.log(`💪 Found existing session for accepted workout: ${session.id}`);
-          // Find the workout instance for this session
-          const instances = await db
-            .select()
-            .from(workoutInstances)
-            .where(eq(workoutInstances.workoutSessionId, session.id))
-            .limit(1);
-          
-          if (instances.length > 0) {
-            console.log(`💪 Found existing instance: ${instances[0].id}`);
-            return { sessionId: session.id, instanceId: instances[0].id };
-          } else {
-            console.warn(`💪 No instance found for session ${session.id}, will create new session`);
-          }
-        }
-      }
+    // If already accepted with stored sessionId/instanceId, return them directly (idempotent)
+    // This prevents exercise duplication bug when "Start Workout" button is clicked
+    if (workout.status === 'accepted' && workout.sessionId && workout.instanceId) {
+      console.log(`💪 Workout already accepted - returning existing session: ${workout.sessionId}, instance: ${workout.instanceId}`);
+      return { sessionId: workout.sessionId, instanceId: workout.instanceId };
     }
 
     const workoutData = workout.workoutData;
@@ -2613,24 +2578,6 @@ export class DbStorage implements IStorage {
 
     console.log(`💪 Created accepted snapshot with ${acceptedSnapshot.exercises.length} exercises (matched to library):`, JSON.stringify(acceptedSnapshot.exercises.map(e => ({ id: e.id, name: e.name, sets: e.sets })), null, 2));
     
-    // ⬇️ CRITICAL: Write snapshot to database FIRST to ensure atomicity
-    console.log(`💪 Updating workout status to accepted with snapshot - ID: ${id}, UserId: ${userId}`);
-    console.log(`💪 Snapshot being saved:`, { exerciseCount: acceptedSnapshot.exercises.length, snapshotSize: JSON.stringify(acceptedSnapshot).length });
-    
-    const updateResult = await db
-      .update(generatedWorkouts)
-      .set({ 
-        status: 'accepted', 
-        acceptedAt: new Date(),
-        acceptedSnapshot: acceptedSnapshot as any
-      })
-      .where(and(eq(generatedWorkouts.id, id), eq(generatedWorkouts.userId, userId)))
-      .returning();
-      
-    console.log(`💪 Update result:`, updateResult.length > 0 
-      ? `✅ Success - status: ${updateResult[0].status}, snapshot saved: ${updateResult[0].acceptedSnapshot !== null}, exercises in snapshot: ${acceptedSnapshot.exercises.length}` 
-      : '❌ No rows updated!');
-    
     // Create a new workout session
     const session = await this.createWorkoutSession({
       userId,
@@ -2655,6 +2602,26 @@ export class DbStorage implements IStorage {
     });
     
     console.log(`💪 Created workout instance: ${instance.id} with ${acceptedSnapshot.exercises.length} exercises in snapshot`);
+    
+    // ⬇️ CRITICAL: Update workout with session/instance IDs + snapshot to prevent duplicate creation
+    console.log(`💪 Updating workout status to accepted with snapshot, sessionId, and instanceId - ID: ${id}, UserId: ${userId}`);
+    console.log(`💪 Snapshot being saved:`, { exerciseCount: acceptedSnapshot.exercises.length, snapshotSize: JSON.stringify(acceptedSnapshot).length });
+    
+    const updateResult = await db
+      .update(generatedWorkouts)
+      .set({ 
+        status: 'accepted', 
+        acceptedAt: new Date(),
+        acceptedSnapshot: acceptedSnapshot as any,
+        sessionId: session.id,
+        instanceId: instance.id
+      })
+      .where(and(eq(generatedWorkouts.id, id), eq(generatedWorkouts.userId, userId)))
+      .returning();
+      
+    console.log(`💪 Update result:`, updateResult.length > 0 
+      ? `✅ Success - status: ${updateResult[0].status}, snapshot saved: ${updateResult[0].acceptedSnapshot !== null}, sessionId: ${updateResult[0].sessionId}, instanceId: ${updateResult[0].instanceId}, exercises in snapshot: ${acceptedSnapshot.exercises.length}` 
+      : '❌ No rows updated!');
     
     // Create sets for each exercise in the snapshot (only for matched library exercises)
     console.log(`💪 [MUSCLE GROUP DEBUG] Creating sets for ${acceptedSnapshot.exercises.length} exercises with completed=0`);

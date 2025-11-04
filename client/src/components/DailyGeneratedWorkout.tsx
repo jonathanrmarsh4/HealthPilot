@@ -351,21 +351,19 @@ export function DailyGeneratedWorkout() {
                 <div className="flex gap-2">
                   <Button
                     className="flex-1"
-                    onClick={() => acceptMutation.mutate(workout.id)}
-                    disabled={acceptMutation.isPending}
+                    onClick={() => {
+                      // Navigate directly to existing session - do NOT call accept again!
+                      if (workout.sessionId && workout.instanceId) {
+                        setLocation(`/workout/${workout.sessionId}?instanceId=${workout.instanceId}`);
+                      } else {
+                        // Fallback: if sessionId/instanceId not stored, call accept (backwards compat)
+                        acceptMutation.mutate(workout.id);
+                      }
+                    }}
                     data-testid="button-start-workout"
                   >
-                    {acceptMutation.isPending ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Starting Workout...
-                      </>
-                    ) : (
-                      <>
-                        <Dumbbell className="mr-2 h-4 w-4" />
-                        Start Workout
-                      </>
-                    )}
+                    <Dumbbell className="mr-2 h-4 w-4" />
+                    Start Workout
                   </Button>
                   <Button
                     variant="outline"
