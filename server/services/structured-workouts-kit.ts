@@ -220,8 +220,11 @@ Generate the workout now (JSON only):`;
             display_name: displayName
           });
         } else {
-          // Non-lift blocks (endurance, recovery, mobility) don't need template mapping
-          mappedBlocks.push(block);
+          // CRITICAL: Only lift_block is supported. Filter out invalid block types.
+          // This prevents "unknown" exercises from appearing when AI generates invalid types
+          warnings.push(`⚠️ Skipping invalid block type "${block.type}" - only lift_block is allowed`);
+          console.warn(`[StructuredWorkoutsKit] Skipping invalid block type: ${block.type}. Only lift_block is supported.`);
+          continue;
         }
       }
 
