@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
 import multer from "multer";
-import { insertBiomarkerSchema, insertHealthRecordSchema, insertScheduledExerciseRecommendationSchema, insertFitnessProfileSchema, insertExerciseSetSchema, biomarkers, sleepSessions, healthRecords, mealPlans, mealLibrary, trainingSchedules, recommendations, readinessScores, exerciseSets, exercises, users, referrals, insertLandingPageContentSchema, insertLandingPageFeatureSchema, insertLandingPageTestimonialSchema, insertLandingPagePricingPlanSchema, insertLandingPageSocialLinkSchema, insertNotificationChannelSchema, insertNotificationSchema, insertScheduledReminderSchema } from "@shared/schema";
+import { insertBiomarkerSchema, insertHealthRecordSchema, insertScheduledExerciseRecommendationSchema, insertFitnessProfileSchema, insertExerciseSetSchema, biomarkers, sleepSessions, healthRecords, mealPlans, mealLibrary, trainingSchedules, recommendations, readinessScores, exerciseSets, exercises, users, referrals, insertLandingPageContentSchema, insertLandingPageFeatureSchema, insertLandingPageTestimonialSchema, insertLandingPagePricingPlanSchema, insertLandingPageSocialLinkSchema, insertNotificationChannelSchema, insertNotificationSchema, insertScheduledReminderSchema, insertScheduledProtocolPatternSchema } from "@shared/schema";
 import { listHealthDocuments, downloadFile, getFileMetadata } from "./services/googleDrive";
 import { analyzeHealthDocument, generateMealPlan, generateTrainingSchedule, generateHealthRecommendations, chatWithHealthCoach, generateDailyInsights, generateRecoveryInsights, generateTrendPredictions, generatePeriodComparison, generateDailyTrainingRecommendation, generateMacroRecommendations } from "./services/ai";
 import { buildGuardrailsSystemPrompt } from "./config/guardrails";
@@ -4580,6 +4580,85 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/recovery/schedule-pattern", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    try {
+      // Validate request body using Zod schema
+      const validation = insertScheduledProtocolPatternSchema.safeParse({
+        ...req.body,
+        userId,
+        active: 1, // Always default to active when creating
+      });
+      
+      if (!validation.success) {
+        return res.status(422).json({ 
+          error: "Invalid schedule pattern data", 
+          details: validation.error.errors.map(err => ({
+            field: err.path.join('.'),
+            message: err.message,
+          }))
+        });
+      }
+      
+      const data = validation.data;
+      
+      // Additional business logic validation
+      if (!['daily', 'weekly'].includes(data.frequency)) {
+        return res.status(422).json({ 
+          error: 'Invalid frequency',
+          details: [{ field: 'frequency', message: 'Must be daily or weekly' }]
+        });
+      }
+      
+      // Validate weekDays for weekly frequency
+      if (data.frequency === 'weekly' && (!data.weekDays || data.weekDays.length === 0)) {
+        return res.status(422).json({ 
+          error: 'Week days required for weekly frequency',
+          details: [{ field: 'weekDays', message: 'At least one day must be selected for weekly schedules' }]
+        });
+      }
+      
+      // Ensure weekDays is empty for daily frequency
+      if (data.frequency === 'daily') {
+        data.weekDays = [];
+      }
+      
+      const pattern = await storage.createScheduledProtocolPattern(data);
+      
+      res.json(pattern);
+    } catch (error: any) {
+      console.error("Error creating scheduled protocol pattern:", error);
+      res.status(500).json({ 
+        error: "Failed to create schedule pattern",
+        details: [{ 
+          field: null, 
+          message: error.message || "An unexpected error occurred during schedule creation" 
+        }]
+      });
+    }
+  });
+
+  app.get("/api/recovery/schedule-patterns", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    try {
+      const patterns = await storage.getScheduledProtocolPatterns(userId, true);
+      res.json(patterns);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/recovery/schedule-pattern/:id", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { id } = req.params;
+    try {
+      await storage.deleteScheduledProtocolPattern(id, userId);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.get("/api/training/readiness", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
     
@@ -4896,9 +4975,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Get all available protocols
         const allProtocols = await storage.getRecoveryProtocols();
         
-        // Filter out downvoted protocols
+        // Get scheduled protocol patterns to filter them out
+        const scheduledPatterns = await storage.getScheduledProtocolPatterns(userId, true);
+        const scheduledProtocolIds = scheduledPatterns.map(p => p.protocolId);
+        
+        // Filter out downvoted protocols and already scheduled protocols
         const availableProtocols = allProtocols.filter(
-          p => !context.protocolHistory.downvotedProtocols.includes(p.id)
+          p => !context.protocolHistory.downvotedProtocols.includes(p.id) && 
+               !scheduledProtocolIds.includes(p.id)
         );
         
         // Generate AI recommendations
@@ -4939,6 +5023,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         const downvotedProtocols = await storage.getDownvotedProtocols(userId);
         
+        // Get scheduled protocol patterns to filter them out
+        const scheduledPatterns = await storage.getScheduledProtocolPatterns(userId, true);
+        const scheduledProtocolIds = scheduledPatterns.map(p => p.protocolId);
+        
         // Determine which factors are low
         const lowFactors: string[] = [];
         if (readinessScore.factors.sleep.score < 60) lowFactors.push('sleep');
@@ -4955,7 +5043,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Filter and deduplicate
         const filteredRecommendations = allRecommendations.filter(
-          p => !downvotedProtocols.includes(p.id)
+          p => !downvotedProtocols.includes(p.id) && !scheduledProtocolIds.includes(p.id)
         );
         const uniqueRecommendations = Array.from(
           new Map(filteredRecommendations.map(p => [p.id, p])).values()

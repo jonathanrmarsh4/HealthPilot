@@ -62,6 +62,8 @@ import {
   type InsertUserProtocolPreference,
   type UserProtocolCompletion,
   type InsertUserProtocolCompletion,
+  type ScheduledProtocolPattern,
+  type InsertScheduledProtocolPattern,
   type Supplement,
   type InsertSupplement,
   type DailyReminder,
@@ -185,6 +187,7 @@ import {
   recoveryProtocols,
   userProtocolPreferences,
   userProtocolCompletions,
+  scheduledProtocolPatterns,
   supplements,
   dailyReminders,
   reminderCompletions,
@@ -531,6 +534,14 @@ export interface IStorage {
   markProtocolComplete(completion: InsertUserProtocolCompletion): Promise<UserProtocolCompletion>;
   getProtocolCompletions(userId: string, date?: string): Promise<UserProtocolCompletion[]>;
   getProtocolCompletionsForProtocol(userId: string, protocolId: string): Promise<UserProtocolCompletion[]>;
+  
+  // Scheduled Protocol Pattern methods
+  createScheduledProtocolPattern(pattern: InsertScheduledProtocolPattern): Promise<ScheduledProtocolPattern>;
+  getScheduledProtocolPatterns(userId: string, activeOnly?: boolean): Promise<ScheduledProtocolPattern[]>;
+  getScheduledProtocolPattern(id: string, userId: string): Promise<ScheduledProtocolPattern | undefined>;
+  updateScheduledProtocolPattern(id: string, userId: string, data: Partial<ScheduledProtocolPattern>): Promise<ScheduledProtocolPattern | undefined>;
+  deleteScheduledProtocolPattern(id: string, userId: string): Promise<void>;
+  getScheduledProtocolIds(userId: string): Promise<string[]>; // Returns protocol IDs that have active schedules
   
   // Supplement methods
   createSupplement(supplement: InsertSupplement): Promise<Supplement>;
@@ -4242,6 +4253,84 @@ export class DbStorage implements IStorage {
         )
       )
       .orderBy(desc(userProtocolCompletions.completedAt));
+  }
+
+  // Scheduled Protocol Pattern methods
+  async createScheduledProtocolPattern(pattern: InsertScheduledProtocolPattern): Promise<ScheduledProtocolPattern> {
+    const result = await db.insert(scheduledProtocolPatterns).values(pattern).returning();
+    return result[0];
+  }
+
+  async getScheduledProtocolPatterns(userId: string, activeOnly: boolean = true): Promise<ScheduledProtocolPattern[]> {
+    if (activeOnly) {
+      return await db
+        .select()
+        .from(scheduledProtocolPatterns)
+        .where(
+          and(
+            eq(scheduledProtocolPatterns.userId, userId),
+            eq(scheduledProtocolPatterns.active, 1)
+          )
+        )
+        .orderBy(scheduledProtocolPatterns.createdAt);
+    }
+    return await db
+      .select()
+      .from(scheduledProtocolPatterns)
+      .where(eq(scheduledProtocolPatterns.userId, userId))
+      .orderBy(scheduledProtocolPatterns.createdAt);
+  }
+
+  async getScheduledProtocolPattern(id: string, userId: string): Promise<ScheduledProtocolPattern | undefined> {
+    const result = await db
+      .select()
+      .from(scheduledProtocolPatterns)
+      .where(
+        and(
+          eq(scheduledProtocolPatterns.id, id),
+          eq(scheduledProtocolPatterns.userId, userId)
+        )
+      );
+    return result[0];
+  }
+
+  async updateScheduledProtocolPattern(id: string, userId: string, data: Partial<ScheduledProtocolPattern>): Promise<ScheduledProtocolPattern | undefined> {
+    const result = await db
+      .update(scheduledProtocolPatterns)
+      .set({ ...data, updatedAt: new Date() })
+      .where(
+        and(
+          eq(scheduledProtocolPatterns.id, id),
+          eq(scheduledProtocolPatterns.userId, userId)
+        )
+      )
+      .returning();
+    return result[0];
+  }
+
+  async deleteScheduledProtocolPattern(id: string, userId: string): Promise<void> {
+    await db
+      .update(scheduledProtocolPatterns)
+      .set({ active: 0 })
+      .where(
+        and(
+          eq(scheduledProtocolPatterns.id, id),
+          eq(scheduledProtocolPatterns.userId, userId)
+        )
+      );
+  }
+
+  async getScheduledProtocolIds(userId: string): Promise<string[]> {
+    const result = await db
+      .select({ protocolId: scheduledProtocolPatterns.protocolId })
+      .from(scheduledProtocolPatterns)
+      .where(
+        and(
+          eq(scheduledProtocolPatterns.userId, userId),
+          eq(scheduledProtocolPatterns.active, 1)
+        )
+      );
+    return result.map(r => r.protocolId);
   }
 
   // Supplement methods
