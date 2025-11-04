@@ -2502,6 +2502,9 @@ export class DbStorage implements IStorage {
     // Build accepted snapshot with FULL exercise objects from library
     const snapshotExercises = [];
     
+    console.log(`💪 Building snapshot from ${exercisesToProcess.length} exercises`);
+    console.log(`💪 Sample exercise data:`, JSON.stringify(exercisesToProcess[0], null, 2));
+    
     for (const ex of exercisesToProcess) {
       // CRITICAL FIX: Use the exercise_id from template mapping if available
       // The workout generator already resolved template_id → exercise_id
@@ -2509,19 +2512,32 @@ export class DbStorage implements IStorage {
       
       if (ex.exercise_id) {
         // First try: Use the pre-resolved exercise_id from template mapping
-        console.log(`💪 Using pre-mapped exercise_id: ${ex.exercise_id} for ${ex.exercise}`);
+        console.log(`💪 [SNAPSHOT] Using pre-saved exercise_id: ${ex.exercise_id} for "${ex.exercise}"`);
         const result = await db
           .select()
           .from(exercises)
           .where(eq(exercises.id, ex.exercise_id))
           .limit(1);
         matched = result[0];
+        
+        if (!matched) {
+          console.error(`💪 ❌ CRITICAL: Pre-saved exercise_id ${ex.exercise_id} not found in database! This should never happen.`);
+        } else {
+          console.log(`💪 ✅ Found exercise: ${matched.name} (ID: ${matched.id})`);
+        }
       }
       
-      // Fallback: Try fuzzy matching by name (for legacy workouts)
-      if (!matched) {
-        console.log(`💪 Falling back to fuzzy matching for: ${ex.exercise}`);
+      // Fallback: Try fuzzy matching by name (for legacy workouts WITHOUT exercise_id)
+      if (!matched && !ex.exercise_id) {
+        console.log(`💪 [SNAPSHOT] No exercise_id found, using fuzzy matching for: ${ex.exercise}`);
         matched = await matchExerciseByName(ex.exercise);
+        if (matched) {
+          console.log(`💪 [SNAPSHOT] Fuzzy match found: ${matched.name} (ID: ${matched.id})`);
+        }
+      } else if (!matched && ex.exercise_id) {
+        // If exercise_id was set but not found, DON'T fall back to fuzzy matching
+        // This prevents exercise substitution bugs
+        console.error(`💪 ❌ Skipping fuzzy matching fallback because exercise_id was explicitly set but not found`);
       }
       
       if (matched) {
