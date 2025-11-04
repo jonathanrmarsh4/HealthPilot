@@ -171,7 +171,7 @@ function SidebarContentWrapper({
 
   return (
     <>
-      <div className="flex h-screen w-full overflow-x-hidden">
+      <div className="flex h-screen w-full overflow-x-hidden bg-background">
         <AppSidebar />
         <div className="flex flex-col flex-1 overflow-hidden">
           <header className="flex items-center justify-between p-4 border-b border-border shrink-0">
