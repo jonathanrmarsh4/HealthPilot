@@ -397,23 +397,32 @@ export async function enrichWorkoutBlocks(
   console.log(`💾 Template-to-Exercise mapping complete: ${templateIdToExerciseId.size} mappings`);
 
   // Step 4: Enrich blocks with exercise_ids AND override display_name with canonical exercise name
-  const enrichedBlocks = blocks.map((block: any) => {
-    if (block.template_id) {
-      const exercise_id = templateIdToExerciseId.get(block.template_id);
-      const canonical_name = templateIdToExerciseName.get(block.template_id);
-      
-      console.log(`💾 Enriching block: ${block.display_name} → ${canonical_name || block.display_name} (template: ${block.template_id} → exercise: ${exercise_id})`);
-      
-      return {
-        ...block,
-        exercise_id,
-        display_name: canonical_name || block.display_name // Override with canonical name
-      };
-    }
-    return block;
-  });
+  const enrichedBlocks = blocks
+    .map((block: any) => {
+      if (block.template_id) {
+        const exercise_id = templateIdToExerciseId.get(block.template_id);
+        const canonical_name = templateIdToExerciseName.get(block.template_id);
+        
+        console.log(`💾 Enriching block: ${block.display_name} → ${canonical_name || block.display_name} (template: ${block.template_id} → exercise: ${exercise_id})`);
+        
+        return {
+          ...block,
+          exercise_id,
+          display_name: canonical_name || block.display_name // Override with canonical name
+        };
+      }
+      return block;
+    })
+    // CRITICAL: Filter out blocks without exercise_id to prevent "unknown" exercises
+    .filter((block: any) => {
+      if (!block.exercise_id) {
+        console.warn(`⚠️ POST-ENRICHMENT FILTER: Removing block without exercise_id: ${JSON.stringify(block)}`);
+        return false;
+      }
+      return true;
+    });
 
-  console.log(`💾 Enriched ${enrichedBlocks.filter((b: any) => b.exercise_id).length} blocks with exercise_ids`);
+  console.log(`💾 Enriched ${enrichedBlocks.length} blocks with exercise_ids (filtered ${blocks.length - enrichedBlocks.length} invalid blocks)`);
 
   return {
     enrichedBlocks,
