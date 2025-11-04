@@ -2657,6 +2657,7 @@ export class DbStorage implements IStorage {
     console.log(`💪 Created workout instance: ${instance.id} with ${acceptedSnapshot.exercises.length} exercises in snapshot`);
     
     // Create sets for each exercise in the snapshot (only for matched library exercises)
+    console.log(`💪 [MUSCLE GROUP DEBUG] Creating sets for ${acceptedSnapshot.exercises.length} exercises with completed=0`);
     for (const exercise of acceptedSnapshot.exercises) {
       // Only create sets if this is a real library exercise (not a placeholder)
       if (!exercise.id.startsWith('unmatched-')) {
@@ -2675,12 +2676,15 @@ export class DbStorage implements IStorage {
         console.log(`💪 Creating ${exercise.sets} sets for exercise: ${exercise.name} (ID: ${exercise.id})`);
         // Create sets for this exercise using its ID from the snapshot
         for (let i = 0; i < exercise.sets; i++) {
-          await this.addExerciseSet(session.id, exercise.id, userId);
+          const newSet = await this.addExerciseSet(session.id, exercise.id, userId);
+          console.log(`💪 [MUSCLE GROUP DEBUG] Created set ${i+1}/${exercise.sets} - completed status: ${newSet.completed}`);
         }
       } else {
         console.warn(`💪 Skipping set creation for unmatched exercise: ${exercise.name} (placeholder in snapshot only)`);
       }
     }
+    console.log(`💪 [MUSCLE GROUP DEBUG] Finished creating sets. All should have completed=0`);
+    
     
     // Return both sessionId and instanceId so tracker can load from snapshot
     return { sessionId: session.id, instanceId: instance.id };

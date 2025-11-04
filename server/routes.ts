@@ -6124,6 +6124,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const userId = (req.user as any).claims.sub;
     const { id } = req.params;
     
+    console.log(`🏁 FINISH ENDPOINT CALLED - SessionID: ${id}, UserID: ${userId}`);
+    console.log(`🏁 Call stack trace:`, new Error().stack);
+    
     try {
       // Get the workout session to ensure it exists
       const session = await storage.getWorkoutSession(id, userId);
@@ -6131,9 +6134,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Workout session not found" });
       }
       
+      console.log(`🏁 Session found - Type: ${session.workoutType}, SourceType: ${session.sourceType}`);
+      
       // Import muscle group tracking utility
       const { recordWorkoutMuscleGroupEngagements } = await import("./utils/muscleGroupTracking");
       
+      console.log(`🏁 About to record muscle group engagements...`);
       // Record muscle group engagements based on completed exercises
       await recordWorkoutMuscleGroupEngagements(storage, userId, id);
       
