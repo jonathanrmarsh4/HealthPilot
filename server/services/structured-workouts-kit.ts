@@ -170,6 +170,7 @@ Generate the workout now (JSON only):`;
     plan?: WorkoutPlan;
     mappedBlocks?: Array<AnyBlock & { template_id?: string; display_name?: string }>;
     errors?: string[];
+    warnings?: string[];
   } {
     try {
       const parsed = JSON.parse(llmJson);
