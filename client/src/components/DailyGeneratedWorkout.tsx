@@ -26,6 +26,7 @@ export function DailyGeneratedWorkout() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
   const today = format(new Date(), "yyyy-MM-dd");
   
   // Fetch today's generated workout
@@ -352,17 +353,24 @@ export function DailyGeneratedWorkout() {
                   <Button
                     className="flex-1"
                     onClick={() => {
+                      setIsNavigating(true);
                       // Navigate directly to existing session - do NOT call accept again!
                       if (workout.sessionId && workout.instanceId) {
                         setLocation(`/workout/${workout.sessionId}?instanceId=${workout.instanceId}`);
                       } else {
                         // Fallback: if sessionId/instanceId not stored, call accept (backwards compat)
+                        setIsNavigating(false);
                         acceptMutation.mutate(workout.id);
                       }
                     }}
+                    disabled={isNavigating || acceptMutation.isPending}
                     data-testid="button-start-workout"
                   >
-                    <Dumbbell className="mr-2 h-4 w-4" />
+                    {(isNavigating || acceptMutation.isPending) ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Dumbbell className="mr-2 h-4 w-4" />
+                    )}
                     Start Workout
                   </Button>
                   <Button
