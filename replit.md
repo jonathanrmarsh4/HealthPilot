@@ -20,6 +20,7 @@ I prefer simple language and clear explanations. I want iterative development wh
 - Glass-morphism modal UI for Voice Chat.
 - Swipe-to-Open Sidebar for mobile gesture navigation.
 - Premium Theme System v2.0 - Dual-Personality Liquid Glass Design with distinct light/dark mode aesthetics, controlled via Admin Panel CMS Theme tab.
+- **Dual Schedule System:** Separate schedules on Training page (training workouts, recommendations, insights) and Recovery page (recovery sessions) - maintained for user testing and will iterate based on feedback.
 
 **Technical Implementations:**
 - **AI Intelligence Layer:** Provides daily personalized insights, context-aware chat, multi-metric recommendations, and alternative therapy suggestions.
