@@ -26,21 +26,22 @@ const config: CapacitorConfig = {
       customURLScheme: 'healthpilot',
     },
     SplashScreen: {
-      launchShowDuration: 2000,
+      launchShowDuration: 2500,
       launchAutoHide: true,
-      backgroundColor: '#000000',
+      backgroundColor: '#E58AC9',
       androidSplashResourceName: 'splash',
       androidScaleType: 'CENTER_CROP',
       showSpinner: false,
       androidSpinnerStyle: 'large',
       iosSpinnerStyle: 'small',
-      spinnerColor: '#999999',
+      spinnerColor: '#FFFFFF',
       splashFullScreen: true,
       splashImmersive: true
     },
     StatusBar: {
-      style: 'dark',
-      backgroundColor: '#000000'
+      style: 'light',
+      backgroundColor: '#E58AC9',
+      overlay: true
     },
     Keyboard: {
       resize: 'body',
