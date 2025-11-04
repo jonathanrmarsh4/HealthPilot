@@ -19,6 +19,8 @@ import { TileManager, type TileConfig } from "@/components/TileManager";
 import { MuscleGroupHeatmap } from "@/components/MuscleGroupHeatmap";
 import { DailyGeneratedWorkout } from "@/components/DailyGeneratedWorkout";
 import { AITrainingPlanTile } from "@/components/AITrainingPlanTile";
+import { MuscleRecoveryGrid } from "@/components/MuscleRecoveryGrid";
+import type { RecoveryState } from "@/types/recovery";
 
 interface TrainingSchedule {
   id: string;
@@ -154,6 +156,10 @@ export default function Training() {
 
   const { data: readinessSettings } = useQuery<ReadinessSettings>({
     queryKey: ["/api/training/readiness/settings"],
+  });
+
+  const { data: recoveryState, isLoading: recoveryLoading } = useQuery<RecoveryState>({
+    queryKey: ["/api/recovery/state"],
   });
 
   const { data: dailyRec, isLoading: recLoading, error: recError, refetch: refetchRec } = useQuery<DailyRecommendation>({
@@ -610,6 +616,23 @@ export default function Training() {
                         </div>
                       </div>
                     </div>
+                  )}
+                </div>
+
+                {/* Muscle Group Recovery */}
+                <div className="pt-6 border-t">
+                  <h3 className="text-sm font-semibold mb-4" data-testid="title-muscle-recovery">
+                    Muscle Group Recovery
+                  </h3>
+                  {recoveryState ? (
+                    <MuscleRecoveryGrid 
+                      muscleGroups={recoveryState.muscleGroups} 
+                      isLoading={recoveryLoading}
+                    />
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-4" data-testid="text-muscle-recovery-unavailable">
+                      Muscle recovery data unavailable
+                    </p>
                   )}
                 </div>
               </div>

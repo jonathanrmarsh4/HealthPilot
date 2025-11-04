@@ -57,7 +57,7 @@ export default function Recovery() {
     queryKey: ["/api/recovery/state"],
   });
 
-  const { data: recoveryTimeline = [], isLoading: isLoadingTimeline } = useQuery<TimelineEvent[]>({
+  const { data: recoveryTimelineData, isLoading: isLoadingTimeline } = useQuery<{ events: TimelineEvent[], currentState: any }>({
     queryKey: ["/api/recovery/timeline"],
     queryFn: async () => {
       const response = await fetch("/api/recovery/timeline?days=7");
@@ -65,6 +65,8 @@ export default function Recovery() {
       return response.json();
     },
   });
+  
+  const recoveryTimeline = recoveryTimelineData?.events || [];
 
   const rescheduleSessionMutation = useMutation({
     mutationFn: async ({ sessionId, newDate }: { sessionId: string | number; newDate: Date }) => {

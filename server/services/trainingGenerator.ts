@@ -17,6 +17,7 @@ import { format, subDays } from "date-fns";
 import { StructuredWorkoutsKit, type WorkoutPlan, type LiftBlock, type AnyBlock, type Modality } from "./structured-workouts-kit";
 import { RULES, PATTERN_TO_MUSCLES, getMusclesForPattern } from "./rules";
 import { getOrCreateExerciseForTemplate, type TemplateData } from "./templateExerciseBridge";
+import { getCurrentRecoveryState } from "./fatigue";
 
 // ──────────────────────────────────────────────
 // Lazy OpenAI client initialization
@@ -161,6 +162,25 @@ export async function buildUserContext(storage: IStorage, userId: string, target
     muscleBalanceSnapshot[mg.muscleGroup] = mg.totalSets;
   }
 
+  // Fetch muscle recovery state for recovery-aware exercise selection
+  let muscleRecovery: Record<string, number> = {
+    chest: 70,
+    back: 70,
+    legs: 70,
+    shoulders: 70,
+    arms: 70,
+    core: 70,
+  };
+
+  try {
+    const recoveryState = await getCurrentRecoveryState(userId);
+    muscleRecovery = recoveryState.muscleGroups as Record<string, number>;
+    console.log(`💪 Muscle recovery state for user ${userId}:`, muscleRecovery);
+  } catch (error) {
+    console.warn("Error fetching muscle recovery state, using defaults:", error);
+    // Defaults already set above
+  }
+
   // Generate muscle balance hint for AI
   const sortedMuscles = Object.entries(muscleBalanceSnapshot)
     .sort(([, a], [, b]) => a - b); // Sort by sets ascending
@@ -185,8 +205,90 @@ export async function buildUserContext(storage: IStorage, userId: string, target
     recentTraining,
     sleepScore,
     recoveryState,
-    muscleBalanceSnapshot
+    muscleBalanceSnapshot,
+    muscleRecovery
   };
+}
+
+// ──────────────────────────────────────────────
+// Recovery-aware scoring helper
+// ──────────────────────────────────────────────
+import type { Pattern } from "./structured-workouts-kit";
+
+/**
+ * Normalize muscle name for consistent matching
+ * Converts underscores to spaces and lowercases
+ */
+function normalizeMuscle(muscle: string): string {
+  return muscle.toLowerCase().replace(/_/g, ' ').trim();
+}
+
+/**
+ * Calculate recovery penalty/boost for a given pattern based on muscle recovery scores
+ * 
+ * @param pattern - The exercise pattern (e.g., knee_dominant, horizontal_press)
+ * @param muscleRecovery - Record mapping muscle groups (chest, back, legs, etc.) to recovery scores (0-100)
+ * @returns Object with penalty factor and details for logging
+ */
+function getRecoveryPenalty(
+  pattern: Pattern, 
+  muscleRecovery: Record<string, number>
+): { penalty: number; avgRecovery: number; affectedMuscles: string[] } {
+  // Map our 6 muscle groups to pattern muscle names
+  const muscleGroupMapping: Record<string, string[]> = {
+    chest: ['chest', 'pectorals', 'front delts', 'pecs'],
+    back: ['back', 'lats', 'traps', 'rear delts', 'rhomboids', 'lower back'],
+    legs: ['legs', 'quads', 'quadriceps', 'hamstrings', 'glutes', 'calves', 'hip flexors'],
+    shoulders: ['shoulders', 'delts', 'deltoids', 'front delts', 'side delts', 'rear delts'],
+    arms: ['arms', 'biceps', 'triceps', 'forearms'],
+    core: ['core', 'abs', 'abdominals', 'obliques']
+  };
+
+  // Get muscles targeted by this pattern
+  const patternMuscles = PATTERN_TO_MUSCLES[pattern] || [];
+  if (patternMuscles.length === 0) {
+    return { penalty: 0, avgRecovery: 70, affectedMuscles: [] };
+  }
+
+  // Find recovery scores for affected muscle groups
+  const recoveryScores: number[] = [];
+  const affectedMuscles: string[] = [];
+  
+  for (const [muscleGroup, score] of Object.entries(muscleRecovery)) {
+    const muscleAliases = muscleGroupMapping[muscleGroup] || [muscleGroup];
+    
+    // Check if any pattern muscle matches this muscle group
+    for (const patternMuscle of patternMuscles) {
+      const normalized = normalizeMuscle(patternMuscle);
+      
+      // Check if normalized pattern muscle matches any alias
+      if (muscleAliases.some(alias => {
+        const normalizedAlias = normalizeMuscle(alias);
+        return normalized.includes(normalizedAlias) || normalizedAlias.includes(normalized);
+      })) {
+        recoveryScores.push(score);
+        affectedMuscles.push(muscleGroup);
+        break;
+      }
+    }
+  }
+
+  // If no matches found, return neutral
+  if (recoveryScores.length === 0) {
+    return { penalty: 0, avgRecovery: 70, affectedMuscles: [] };
+  }
+
+  // Calculate average recovery score
+  const avgRecovery = recoveryScores.reduce((sum, score) => sum + score, 0) / recoveryScores.length;
+
+  // Apply thresholds
+  let penalty: number;
+  if (avgRecovery < 40) penalty = -0.5;  // Strongly discourage
+  else if (avgRecovery < 60) penalty = -0.2;  // Slightly discourage
+  else if (avgRecovery < 80) penalty = 0;     // Neutral
+  else penalty = 0.3;                          // Encourage (>= 80%)
+
+  return { penalty, avgRecovery, affectedMuscles };
 }
 
 // ──────────────────────────────────────────────
@@ -212,6 +314,42 @@ export async function generateDailySession(context: any, regenerationCount: numb
     readinessScore: context.readinessScore
   });
 
+  // Identify fatigued muscle groups for recovery-aware programming
+  const muscleRecovery = context.muscleRecovery || {};
+  const fatiguedGroups: string[] = [];
+  const recoveringGroups: string[] = [];
+  const freshGroups: string[] = [];
+
+  for (const [group, score] of Object.entries(muscleRecovery)) {
+    if (score < 40) fatiguedGroups.push(group);
+    else if (score < 60) recoveringGroups.push(group);
+    else if (score >= 80) freshGroups.push(group);
+  }
+
+  // Build excluded and preferred patterns based on recovery penalties
+  const excludedPatterns: Pattern[] = [];
+  const preferredPatterns: Pattern[] = [];
+  
+  console.log(`\n🧠 ═══ PRE-GENERATION RECOVERY ANALYSIS ═══`);
+  console.log(`💪 Muscle recovery scores:`, muscleRecovery);
+  
+  for (const [pattern, rules] of Object.entries(RULES)) {
+    const { penalty, avgRecovery, affectedMuscles } = getRecoveryPenalty(pattern as Pattern, muscleRecovery);
+    
+    if (penalty <= -0.5) {
+      excludedPatterns.push(pattern as Pattern);
+      console.log(`🚫 EXCLUDING pattern: ${pattern.padEnd(20)} (${avgRecovery.toFixed(0)}% recovery, muscles: ${affectedMuscles.join(", ")})`);
+    } else if (penalty >= 0.3) {
+      preferredPatterns.push(pattern as Pattern);
+      console.log(`🎯 PREFERRING pattern: ${pattern.padEnd(20)} (${avgRecovery.toFixed(0)}% recovery, muscles: ${affectedMuscles.join(", ")})`);
+    }
+  }
+  
+  console.log(`\n📊 Pattern Selection Summary:`);
+  console.log(`   - Excluded patterns (< 40% recovery): ${excludedPatterns.length}`);
+  console.log(`   - Preferred patterns (>= 80% recovery): ${preferredPatterns.length}`);
+  console.log(`═══════════════════════════════════════\n`);
+
   // Enhance prompt with recovery context and regeneration instructions
   let enhancedPrompt = basePrompt;
   
@@ -219,6 +357,26 @@ export async function generateDailySession(context: any, regenerationCount: numb
     enhancedPrompt += `\n\nRECOVERY ALERT: User is in RED recovery state (readiness: ${context.readinessScore}/100). Reduce volume by 30%, prefer machine variations, lower intensity.`;
   } else if (context.recoveryState === "yellow") {
     enhancedPrompt += `\n\nRECOVERY CAUTION: User is in YELLOW recovery state (readiness: ${context.readinessScore}/100). Reduce volume by 15%, prefer stable variations.`;
+  }
+
+  // Add MANDATORY recovery-based pattern constraints
+  if (excludedPatterns.length > 0) {
+    enhancedPrompt += `\n\n🚫 CRITICAL RECOVERY CONSTRAINTS - MANDATORY EXCLUSIONS:
+DO NOT include these patterns (severely fatigued muscles < 40% recovery): ${excludedPatterns.join(", ")}
+These patterns are FORBIDDEN due to muscle fatigue. Violation will result in workout rejection.`;
+  }
+  
+  if (preferredPatterns.length > 0) {
+    enhancedPrompt += `\n\n🎯 RECOVERY OPTIMIZATION - MANDATORY PREFERENCES:
+PRIORITIZE these patterns (well-recovered muscles >= 80% recovery): ${preferredPatterns.join(", ")}
+These patterns are STRONGLY ENCOURAGED for optimal training stimulus.`;
+  }
+  
+  // Add muscle-specific recovery guidance for additional context
+  if (fatiguedGroups.length > 0) {
+    enhancedPrompt += `\n\nMUSCLE RECOVERY ALERT: Fatigued muscle groups (< 40% recovery): ${fatiguedGroups.join(", ")}. Prioritize patterns for well-recovered muscles: ${freshGroups.length > 0 ? freshGroups.join(", ") : "upper body or core"}.`;
+  } else if (freshGroups.length > 0) {
+    enhancedPrompt += `\n\nMUSCLE RECOVERY: Well-recovered muscle groups (> 80%): ${freshGroups.join(", ")}. Prioritize these for optimal training stimulus.`;
   }
 
   if (regenerationCount > 0) {
@@ -257,6 +415,141 @@ export async function generateDailySession(context: any, regenerationCount: numb
 
   console.log(`✅ Workout generated successfully: ${mapped.mappedBlocks.length} blocks mapped`);
 
+  // Step 3.5: Filter out severely penalized patterns
+  const initialBlockCount = mapped.mappedBlocks.length;
+  const filteredBlocks: typeof mapped.mappedBlocks = [];
+  const removedBlocks: Array<{ pattern: Pattern; displayName: string; reason: string }> = [];
+  
+  console.log(`\n🏋️ ═══ POST-GENERATION RECOVERY FILTERING ═══`);
+  console.log(`💪 Current muscle recovery scores:`, muscleRecovery);
+  
+  for (const block of mapped.mappedBlocks) {
+    if (block.type === "lift_block") {
+      const liftBlock = block as LiftBlock;
+      const recoveryInfo = getRecoveryPenalty(liftBlock.pattern, muscleRecovery);
+      
+      if (recoveryInfo.penalty <= -0.5) {
+        // REMOVE severely penalized patterns
+        const displayName = block.display_name || liftBlock.pattern;
+        const muscleList = recoveryInfo.affectedMuscles.join(", ");
+        const reason = `Muscles ${muscleList} at ${recoveryInfo.avgRecovery.toFixed(0)}% recovery (< 40% threshold)`;
+        
+        removedBlocks.push({
+          pattern: liftBlock.pattern,
+          displayName,
+          reason
+        });
+        
+        console.log(`🚫 REMOVED severely fatigued pattern: ${displayName} (${liftBlock.pattern}) - ${reason}`);
+        continue; // Skip this block
+      }
+    }
+    
+    // Keep this block
+    filteredBlocks.push(block);
+  }
+  
+  const removedCount = initialBlockCount - filteredBlocks.length;
+  const removalPercentage = initialBlockCount > 0 ? (removedCount / initialBlockCount) * 100 : 0;
+  
+  console.log(`\n📊 Filtering Summary:`);
+  console.log(`   - Initial blocks: ${initialBlockCount}`);
+  console.log(`   - Removed blocks: ${removedCount} (${removalPercentage.toFixed(1)}%)`);
+  console.log(`   - Remaining blocks: ${filteredBlocks.length}`);
+  
+  if (removedCount > 0) {
+    console.log(`\n🚫 Removed Exercises:`);
+    removedBlocks.forEach(({ displayName, reason }) => {
+      console.log(`   - ${displayName}: ${reason}`);
+    });
+  }
+  
+  // Check if too many patterns were removed
+  if (removalPercentage > 50) {
+    console.warn(`⚠️ WARNING: Removed ${removalPercentage.toFixed(1)}% of workout due to fatigue!`);
+    console.warn(`   This may indicate the user needs a rest day or deload week.`);
+    console.warn(`   Consider regenerating with more conservative volume targets.`);
+  }
+  
+  // Update mapped blocks with filtered list
+  mapped.mappedBlocks = filteredBlocks;
+  
+  console.log(`═══════════════════════════════════════\n`);
+
+  // Step 3.6: Log detailed recovery analysis for remaining patterns
+  console.log(`\n🏋️ ═══ RECOVERY PENALTY ANALYSIS (Remaining Patterns) ═══`);
+  console.log(`💪 Current muscle recovery scores:`, muscleRecovery);
+  
+  const patternRecoveryAnalysis: Array<{
+    pattern: Pattern;
+    blockIndex: number;
+    displayName: string;
+    penalty: number;
+    avgRecovery: number;
+    affectedMuscles: string[];
+    recommendation: string;
+  }> = [];
+
+  const severelyPenalizedBlocks: number[] = [];
+  
+  for (let i = 0; i < mapped.mappedBlocks.length; i++) {
+    const block = mapped.mappedBlocks[i];
+    
+    if (block.type === "lift_block") {
+      const liftBlock = block as LiftBlock;
+      const recoveryInfo = getRecoveryPenalty(liftBlock.pattern, muscleRecovery);
+      
+      // Determine recommendation based on penalty
+      let recommendation = "✅ Good to go";
+      if (recoveryInfo.penalty <= -0.5) {
+        recommendation = "🚫 STRONGLY DISCOURAGED - muscles severely fatigued";
+        severelyPenalizedBlocks.push(i);
+      } else if (recoveryInfo.penalty <= -0.2) {
+        recommendation = "⚠️ CAUTION - muscles partially fatigued";
+      } else if (recoveryInfo.penalty >= 0.3) {
+        recommendation = "🎯 ENCOURAGED - muscles well-recovered";
+      }
+      
+      patternRecoveryAnalysis.push({
+        pattern: liftBlock.pattern,
+        blockIndex: i,
+        displayName: block.display_name || liftBlock.pattern,
+        penalty: recoveryInfo.penalty,
+        avgRecovery: recoveryInfo.avgRecovery,
+        affectedMuscles: recoveryInfo.affectedMuscles,
+        recommendation
+      });
+      
+      // Log each pattern's recovery status
+      const muscleList = recoveryInfo.affectedMuscles.length > 0 
+        ? recoveryInfo.affectedMuscles.join(", ")
+        : "none detected";
+      
+      console.log(`🏋️ Pattern: ${liftBlock.pattern.padEnd(20)} | Recovery: ${recoveryInfo.avgRecovery.toFixed(0)}% | Penalty: ${recoveryInfo.penalty.toFixed(2)} | Muscles: ${muscleList} | ${recommendation}`);
+    }
+  }
+  
+  // Log summary of recovery-aware decisions
+  const discouraged = patternRecoveryAnalysis.filter(p => p.penalty < 0);
+  const encouraged = patternRecoveryAnalysis.filter(p => p.penalty > 0);
+  
+  console.log(`\n📊 Recovery Analysis Summary:`);
+  console.log(`   - Total patterns analyzed: ${patternRecoveryAnalysis.length}`);
+  console.log(`   - Encouraged patterns (>80% recovery): ${encouraged.length}`);
+  console.log(`   - Discouraged patterns (<60% recovery): ${discouraged.length}`);
+  console.log(`   - Severely penalized (<40% recovery): ${severelyPenalizedBlocks.length}`);
+  
+  if (severelyPenalizedBlocks.length > 0) {
+    console.warn(`⚠️ WARNING: ${severelyPenalizedBlocks.length} patterns target severely fatigued muscle groups!`);
+    console.warn(`   Consider regenerating workout or reducing volume for these exercises.`);
+    const severePatterns = severelyPenalizedBlocks.map(idx => 
+      patternRecoveryAnalysis.find(p => p.blockIndex === idx)?.displayName
+    ).filter(Boolean);
+    console.warn(`   Affected exercises: ${severePatterns.join(", ")}`);
+  }
+  
+  console.log(`═══════════════════════════════════════\n`);
+
   // Step 4: Validate time budget
   const plan = mapped.plan!;
   const timeBudget = plan.total_time_estimate_min || context.availableTime;
@@ -273,7 +566,18 @@ export async function generateDailySession(context: any, regenerationCount: numb
     console.warn(`⚠️ Weekly volume warnings for: ${volumeCheck.weeklyOverage.join(", ")}`);
   }
 
-  // Step 6: Return structured workout
+  // Step 6: Generate recovery-based reasoning
+  let recoveryReasoning = "";
+  if (fatiguedGroups.length > 0) {
+    const prioritizedGroups = freshGroups.length > 0 ? freshGroups.join(", ") : "upper body";
+    recoveryReasoning = `Prioritized ${prioritizedGroups} exercises due to ${fatiguedGroups.join(", ")} muscle fatigue (< 40% recovery).`;
+  } else if (freshGroups.length > 0) {
+    recoveryReasoning = `Focused on well-recovered muscle groups (${freshGroups.join(", ")}) for optimal training stimulus.`;
+  } else if (recoveringGroups.length > 0) {
+    recoveryReasoning = `Modified intensity for recovering muscle groups: ${recoveringGroups.join(", ")}.`;
+  }
+
+  // Step 7: Return structured workout
   return {
     success: true,
     plan,
@@ -289,6 +593,30 @@ export async function generateDailySession(context: any, regenerationCount: numb
       muscleBalance: {
         snapshot: context.muscleBalanceSnapshot,
         todayCoverage: volumeCheck.todayByMuscle
+      },
+      recovery: {
+        muscleRecovery: context.muscleRecovery || {},
+        fatiguedGroups,
+        recoveringGroups,
+        freshGroups,
+        reasoning: recoveryReasoning,
+        patternAnalysis: patternRecoveryAnalysis,
+        severelyPenalizedCount: severelyPenalizedBlocks.length,
+        encouragedCount: encouraged.length,
+        discouragedCount: discouraged.length,
+        // New filtering information
+        preGenerationExclusions: {
+          excludedPatterns,
+          preferredPatterns
+        },
+        postGenerationFiltering: {
+          initialBlockCount,
+          removedCount,
+          removedBlocks,
+          removalPercentage,
+          remainingBlocks: filteredBlocks.length,
+          needsRegeneration: removalPercentage > 50
+        }
       }
     }
   };
