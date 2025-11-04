@@ -4865,54 +4865,112 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/recovery-protocols/recommendations", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
     try {
-      // Get today's readiness score
+      const { collectRecoveryContext, generateAIRecoveryRecommendations } = await import("./services/aiRecovery");
+      
+      // Get today's readiness score for quick check
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      
       const readinessScore = await calculateReadinessScore(userId, storage, today);
       
-      // Get downvoted protocols to exclude
-      const downvotedProtocols = await storage.getDownvotedProtocols(userId);
-      
-      // Determine which factors are low and need attention
-      const lowFactors: string[] = [];
-      if (readinessScore.factors.sleep.score < 60) lowFactors.push('sleep');
-      if (readinessScore.factors.hrv.score < 60) lowFactors.push('hrv');
-      if (readinessScore.factors.restingHR.score < 60) lowFactors.push('resting_hr');
-      if (readinessScore.factors.workloadRecovery.score < 60) lowFactors.push('workload');
-      
-      // Get protocols that target the low factors
-      const allRecommendations: any[] = [];
-      
-      for (const factor of lowFactors) {
-        const protocols = await storage.getProtocolsByTargetFactor(factor);
-        allRecommendations.push(...protocols);
+      // If readiness is excellent (>=80), skip AI recommendations
+      if (readinessScore.score >= 80) {
+        return res.json({
+          readinessScore: readinessScore.score,
+          lowFactors: [],
+          recommendations: [],
+          overallStrategy: "Your readiness is excellent! No specific recovery protocols needed.",
+          keyInsights: ["Keep up your current recovery routine", "Maintain consistency in sleep and nutrition"],
+          aiPowered: false,
+        });
       }
       
-      // Filter out downvoted protocols
-      const filteredRecommendations = allRecommendations.filter(
-        p => !downvotedProtocols.includes(p.id)
-      );
-      
-      // Remove duplicates and limit to top 3
-      const uniqueRecommendations = Array.from(
-        new Map(filteredRecommendations.map(p => [p.id, p])).values()
-      ).slice(0, 3);
-      
-      // Get user preferences for these protocols
-      const preferences = await storage.getUserProtocolPreferences(userId);
-      const preferencesMap = new Map(preferences.map(p => [p.protocolId, p.preference]));
-      
-      const response = {
-        readinessScore: readinessScore.score,
-        lowFactors,
-        recommendations: uniqueRecommendations.map(p => ({
-          ...p,
-          userPreference: preferencesMap.get(p.id) || 'neutral'
-        }))
-      };
-      
-      res.json(response);
+      try {
+        // Collect comprehensive context
+        const context = await collectRecoveryContext(userId, storage);
+        
+        // Get all available protocols
+        const allProtocols = await storage.getRecoveryProtocols();
+        
+        // Filter out downvoted protocols
+        const availableProtocols = allProtocols.filter(
+          p => !context.protocolHistory.downvotedProtocols.includes(p.id)
+        );
+        
+        // Generate AI recommendations
+        const aiRecommendations = await generateAIRecoveryRecommendations(context, availableProtocols);
+        
+        // Get user preferences for the recommended protocols
+        const preferences = await storage.getUserProtocolPreferences(userId);
+        const preferencesMap = new Map(preferences.map(p => [p.protocolId, p.preference]));
+        
+        // Map AI recommendations to full protocol data
+        const enrichedRecommendations = aiRecommendations.recommendations.map(aiRec => {
+          const protocol = availableProtocols.find(p => p.id === aiRec.protocolId);
+          if (!protocol) return null;
+          
+          return {
+            ...protocol,
+            userPreference: preferencesMap.get(protocol.id) || 'neutral',
+            aiReasoning: aiRec.reasoning,
+            suggestedTiming: aiRec.suggestedTiming,
+            confidence: aiRec.confidence,
+            priority: aiRec.priority,
+          };
+        }).filter(Boolean);
+        
+        const response = {
+          readinessScore: readinessScore.score,
+          lowFactors: context.readiness.lowFactors,
+          recommendations: enrichedRecommendations,
+          overallStrategy: aiRecommendations.overallStrategy,
+          keyInsights: aiRecommendations.keyInsights,
+          aiPowered: true,
+        };
+        
+        res.json(response);
+      } catch (aiError) {
+        // Fallback to rule-based recommendations if AI fails
+        console.error("AI recommendations failed, falling back to rule-based:", aiError);
+        
+        const downvotedProtocols = await storage.getDownvotedProtocols(userId);
+        
+        // Determine which factors are low
+        const lowFactors: string[] = [];
+        if (readinessScore.factors.sleep.score < 60) lowFactors.push('sleep');
+        if (readinessScore.factors.hrv.score < 60) lowFactors.push('hrv');
+        if (readinessScore.factors.restingHR.score < 60) lowFactors.push('resting_hr');
+        if (readinessScore.factors.workloadRecovery.score < 60) lowFactors.push('workload');
+        
+        // Get protocols that target the low factors
+        const allRecommendations: any[] = [];
+        for (const factor of lowFactors) {
+          const protocols = await storage.getProtocolsByTargetFactor(factor);
+          allRecommendations.push(...protocols);
+        }
+        
+        // Filter and deduplicate
+        const filteredRecommendations = allRecommendations.filter(
+          p => !downvotedProtocols.includes(p.id)
+        );
+        const uniqueRecommendations = Array.from(
+          new Map(filteredRecommendations.map(p => [p.id, p])).values()
+        ).slice(0, 3);
+        
+        const preferences = await storage.getUserProtocolPreferences(userId);
+        const preferencesMap = new Map(preferences.map(p => [p.protocolId, p.preference]));
+        
+        const response = {
+          readinessScore: readinessScore.score,
+          lowFactors,
+          recommendations: uniqueRecommendations.map(p => ({
+            ...p,
+            userPreference: preferencesMap.get(p.id) || 'neutral'
+          })),
+          aiPowered: false,
+        };
+        
+        res.json(response);
+      }
     } catch (error: any) {
       console.error("Error generating recovery recommendations:", error);
       res.status(500).json({ error: error.message });

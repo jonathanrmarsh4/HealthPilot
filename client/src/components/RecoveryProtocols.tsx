@@ -20,6 +20,10 @@ interface RecoveryProtocol {
   targetFactors: string[];
   tags: string[];
   userPreference?: 'upvote' | 'downvote' | 'neutral';
+  aiReasoning?: string;
+  suggestedTiming?: string;
+  confidence?: number;
+  priority?: number;
 }
 
 interface ProtocolCompletion {
@@ -35,6 +39,9 @@ interface RecoveryRecommendationsResponse {
   readinessScore: number;
   lowFactors: string[];
   recommendations: RecoveryProtocol[];
+  overallStrategy?: string;
+  keyInsights?: string[];
+  aiPowered?: boolean;
 }
 
 export function RecoveryProtocols() {
@@ -185,16 +192,49 @@ export function RecoveryProtocols() {
         <CardTitle className="flex items-center gap-2">
           <Sparkles className="h-5 w-5 text-primary" />
           Recovery Protocols
+          {recommendations.aiPowered && (
+            <Badge variant="secondary" className="ml-2 bg-primary/10 text-primary">
+              AI-Powered
+            </Badge>
+          )}
         </CardTitle>
         <CardDescription>
-          AI-recommended protocols to improve your readiness factors
+          {recommendations.aiPowered 
+            ? 'AI-recommended protocols based on your unique recovery needs'
+            : 'Recommended protocols to improve your readiness factors'}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Overall Strategy */}
+        {recommendations.overallStrategy && (
+          <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
+            <h4 className="font-medium text-sm mb-2 flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-primary" />
+              Recovery Strategy
+            </h4>
+            <p className="text-sm text-muted-foreground">{recommendations.overallStrategy}</p>
+          </div>
+        )}
+
+        {/* Key Insights */}
+        {recommendations.keyInsights && recommendations.keyInsights.length > 0 && (
+          <div className="space-y-2">
+            <h4 className="font-medium text-sm">Key Insights:</h4>
+            <ul className="space-y-1">
+              {recommendations.keyInsights.map((insight, idx) => (
+                <li key={idx} className="text-sm text-muted-foreground flex items-start gap-2">
+                  <span className="text-primary mt-0.5">•</span>
+                  <span>{insight}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         {recommendations.lowFactors.length > 0 && (
           <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
             <Target className="h-4 w-4" />
-            <span>Targeting: {recommendations.lowFactors.join(', ').replace('_', ' ')}</span>
+            <span>Targeting: {recommendations.lowFactors.join(', ').replace(/_/g, ' ')}</span>
           </div>
         )}
 
@@ -236,6 +276,20 @@ export function RecoveryProtocols() {
 
                   {expandedProtocol === protocol.id && (
                     <div className="mt-4 space-y-3 text-sm">
+                      {protocol.aiReasoning && (
+                        <div className="p-3 rounded bg-primary/5 border border-primary/20">
+                          <h4 className="font-medium mb-1 flex items-center gap-2">
+                            <Sparkles className="h-3 w-3 text-primary" />
+                            AI Recommendation
+                          </h4>
+                          <p className="text-muted-foreground">{protocol.aiReasoning}</p>
+                          {protocol.suggestedTiming && (
+                            <p className="text-xs text-muted-foreground mt-2">
+                              <span className="font-medium">Best time:</span> {protocol.suggestedTiming}
+                            </p>
+                          )}
+                        </div>
+                      )}
                       <div>
                         <h4 className="font-medium mb-1">Instructions:</h4>
                         <p className="text-muted-foreground">{protocol.instructions}</p>
