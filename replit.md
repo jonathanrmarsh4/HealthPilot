@@ -63,6 +63,7 @@ I prefer simple language and clear explanations. I want iterative development wh
 - **AI-Powered Training Plan Generation System v2.0:** Replaces hardcoded training templates with comprehensive GPT-4o-generated phased plans.
 - **Native Apple Pay + Stripe Integration v1.0:** Production-ready dual-platform payment system supporting iOS native Apple Pay via Stripe iOS SDK and web Stripe Checkout Sessions.
 - **Comprehensive Notifications Layer v1.0:** Event-driven notification system featuring OneSignal push notifications, local scheduled reminders, in-app notification center, and deep linking.
+- **Advanced Recovery Scheduling System v1.0:** Comprehensive recovery protocol scheduling with frequency patterns (one-time, daily, weekly), AI-powered timing recommendations, and automatic filtering of scheduled protocols from recommendations. Features schema-backed validation, field-level error handling, and persistent schedule patterns.
 
 ## External Dependencies
 - **Database:** PostgreSQL
