@@ -329,7 +329,10 @@ html.premium-theme,
 body.premium-theme {
   background: #F7F9FA;  /* light gray-blue base per spec */
   background-image: var(--hp-grad);
-  min-height: 100%;
+  background-attachment: fixed;  /* Keep background fixed during scroll */
+  min-height: 100vh;
+  min-height: 100dvh;  /* Use dynamic viewport height for mobile */
+  overscroll-behavior: none;  /* Prevent iOS rubber band scrolling */
   color: var(--hp-text);
   font-family: var(--hp-font-ui);
 }
@@ -339,6 +342,8 @@ html.premium-theme.dark,
 body.premium-theme.dark {
   background: #0A0F14;  /* per spec: darker than before */
   background-image: var(--hp-grad);
+  background-attachment: fixed;  /* Keep background fixed during scroll */
+  overscroll-behavior: none;  /* Prevent iOS rubber band scrolling */
   color: var(--hp-text);
 }
 
@@ -347,8 +352,18 @@ body.premium-theme.dark {
     @apply border-border;
   }
 
+  html {
+    overscroll-behavior: none;  /* Prevent iOS rubber band scrolling globally */
+    background-attachment: fixed;
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
   body {
     @apply font-sans antialiased bg-background text-foreground;
+    overscroll-behavior: none;  /* Prevent iOS rubber band scrolling */
+    min-height: 100vh;
+    min-height: 100dvh;
   }
 }
 
