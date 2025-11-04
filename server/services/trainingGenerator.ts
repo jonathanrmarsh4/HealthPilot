@@ -370,6 +370,8 @@ export async function enrichWorkoutBlocks(
 
   // Step 3: Map templates to exercises (create if needed)
   const templateIdToExerciseId = new Map<string, string>();
+  const templateIdToExerciseName = new Map<string, string>();
+  
   for (const [templateId, template] of templateDataMap.entries()) {
     const templateData: TemplateData = {
       id: template.id,
@@ -381,19 +383,31 @@ export async function enrichWorkoutBlocks(
     
     const exerciseId = await getOrCreateExerciseForTemplate(storage, templateData);
     templateIdToExerciseId.set(templateId, exerciseId);
-    console.log(`💾 Mapped template ${templateId} → exercise ${exerciseId} (${template.displayName})`);
+    
+    // Fetch the canonical exercise name from the database
+    const exercise = await storage.getExerciseById(exerciseId);
+    if (exercise) {
+      templateIdToExerciseName.set(templateId, exercise.name);
+      console.log(`💾 Mapped template ${templateId} → exercise ${exerciseId} (${exercise.name})`);
+    } else {
+      console.log(`💾 Mapped template ${templateId} → exercise ${exerciseId} (${template.displayName})`);
+    }
   }
 
   console.log(`💾 Template-to-Exercise mapping complete: ${templateIdToExerciseId.size} mappings`);
 
-  // Step 4: Enrich blocks with exercise_ids
+  // Step 4: Enrich blocks with exercise_ids AND override display_name with canonical exercise name
   const enrichedBlocks = blocks.map((block: any) => {
     if (block.template_id) {
       const exercise_id = templateIdToExerciseId.get(block.template_id);
-      console.log(`💾 Enriching block: ${block.display_name} (template: ${block.template_id} → exercise: ${exercise_id})`);
+      const canonical_name = templateIdToExerciseName.get(block.template_id);
+      
+      console.log(`💾 Enriching block: ${block.display_name} → ${canonical_name || block.display_name} (template: ${block.template_id} → exercise: ${exercise_id})`);
+      
       return {
         ...block,
-        exercise_id
+        exercise_id,
+        display_name: canonical_name || block.display_name // Override with canonical name
       };
     }
     return block;
