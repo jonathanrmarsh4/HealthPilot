@@ -49,8 +49,9 @@ import {
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useAuth } from "@/hooks/useAuth";
 import { showSmartFuel, showRecipeFeatures } from "@shared/config/flags";
-import logoPath from "@assets/HealthPilot_1762212417881.png";
+import logoPath from "@assets/healthpilot-logo-white.png";
 import { usePremiumTheme } from "@/components/PremiumThemeProvider";
+import { useTheme } from "@/components/ThemeProvider";
 
 interface MenuItem {
   title: string;
@@ -130,6 +131,7 @@ export function AppSidebar() {
   const [location] = useLocation();
   const { isAdmin } = useAuth();
   const { isPremiumTheme } = usePremiumTheme();
+  const { theme } = useTheme();
 
   return (
     <Sidebar>
@@ -138,7 +140,7 @@ export function AppSidebar() {
           <img 
             src={logoPath} 
             alt="HealthPilot" 
-            className="h-10 w-10 object-contain"
+            className={`h-10 w-10 object-contain ${theme === 'light' ? 'invert brightness-0' : ''}`}
           />
           <span className={`text-lg font-semibold ${isPremiumTheme ? 'gradient-text' : ''}`}>
             HealthPilot
