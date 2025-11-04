@@ -150,6 +150,10 @@ import {
   type InsertScheduledReminder,
   type SystemSetting,
   type InsertSystemSetting,
+  type MuscleGroupRecovery,
+  type InsertMuscleGroupRecovery,
+  type RecoveryTimelineEvent,
+  type InsertRecoveryTimelineEvent,
   users,
   healthRecords,
   biomarkers,
@@ -227,6 +231,8 @@ import {
   notificationEvents,
   scheduledReminders,
   systemSettings,
+  muscleGroupRecovery,
+  recoveryTimelineEvents,
 } from "@shared/schema";
 import { eq, desc, and, gte, lte, lt, sql, or, like, ilike, count, isNull, inArray, notInArray, not } from "drizzle-orm";
 
@@ -542,6 +548,13 @@ export interface IStorage {
   updateScheduledProtocolPattern(id: string, userId: string, data: Partial<ScheduledProtocolPattern>): Promise<ScheduledProtocolPattern | undefined>;
   deleteScheduledProtocolPattern(id: string, userId: string): Promise<void>;
   getScheduledProtocolIds(userId: string): Promise<string[]>; // Returns protocol IDs that have active schedules
+  
+  // Multi-Dimensional Recovery System methods
+  getMuscleGroupRecovery(userId: string): Promise<MuscleGroupRecovery[]>;
+  getMuscleGroupRecoveryByGroup(userId: string, muscleGroup: string): Promise<MuscleGroupRecovery | undefined>;
+  updateMuscleGroupRecovery(userId: string, muscleGroup: string, data: Partial<InsertMuscleGroupRecovery>): Promise<void>;
+  createRecoveryTimelineEvent(event: InsertRecoveryTimelineEvent): Promise<RecoveryTimelineEvent>;
+  getRecoveryTimelineEvents(userId: string, startDate: Date, endDate: Date): Promise<RecoveryTimelineEvent[]>;
   
   // Supplement methods
   createSupplement(supplement: InsertSupplement): Promise<Supplement>;
@@ -4331,6 +4344,78 @@ export class DbStorage implements IStorage {
         )
       );
     return result.map(r => r.protocolId);
+  }
+
+  // Multi-Dimensional Recovery System methods
+  async getMuscleGroupRecovery(userId: string): Promise<MuscleGroupRecovery[]> {
+    return await db
+      .select()
+      .from(muscleGroupRecovery)
+      .where(eq(muscleGroupRecovery.userId, userId))
+      .orderBy(muscleGroupRecovery.muscleGroup);
+  }
+
+  async getMuscleGroupRecoveryByGroup(userId: string, muscleGroup: string): Promise<MuscleGroupRecovery | undefined> {
+    const result = await db
+      .select()
+      .from(muscleGroupRecovery)
+      .where(
+        and(
+          eq(muscleGroupRecovery.userId, userId),
+          eq(muscleGroupRecovery.muscleGroup, muscleGroup)
+        )
+      )
+      .limit(1);
+    return result[0];
+  }
+
+  async updateMuscleGroupRecovery(userId: string, muscleGroup: string, data: Partial<InsertMuscleGroupRecovery>): Promise<void> {
+    // First, try to find existing record
+    const existing = await this.getMuscleGroupRecoveryByGroup(userId, muscleGroup);
+    
+    if (existing) {
+      // Update existing record
+      await db
+        .update(muscleGroupRecovery)
+        .set({
+          ...data,
+          lastUpdatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(muscleGroupRecovery.userId, userId),
+            eq(muscleGroupRecovery.muscleGroup, muscleGroup)
+          )
+        );
+    } else {
+      // Insert new record
+      await db.insert(muscleGroupRecovery).values({
+        userId,
+        muscleGroup,
+        recoveryScore: 100,
+        fatigueDamage: 0,
+        ...data,
+      });
+    }
+  }
+
+  async createRecoveryTimelineEvent(event: InsertRecoveryTimelineEvent): Promise<RecoveryTimelineEvent> {
+    const result = await db.insert(recoveryTimelineEvents).values(event).returning();
+    return result[0];
+  }
+
+  async getRecoveryTimelineEvents(userId: string, startDate: Date, endDate: Date): Promise<RecoveryTimelineEvent[]> {
+    return await db
+      .select()
+      .from(recoveryTimelineEvents)
+      .where(
+        and(
+          eq(recoveryTimelineEvents.userId, userId),
+          gte(recoveryTimelineEvents.timestamp, startDate),
+          lte(recoveryTimelineEvents.timestamp, endDate)
+        )
+      )
+      .orderBy(recoveryTimelineEvents.timestamp);
   }
 
   // Supplement methods

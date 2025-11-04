@@ -5139,6 +5139,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
       });
       
+      // Get protocol details for recovery timeline
+      const protocol = await storage.getRecoveryProtocol(protocolId);
+      
+      // Apply recovery boost and create timeline event
+      if (protocol) {
+        const { recordProtocolCompletion } = await import("./services/recoveryTimeline");
+        await recordProtocolCompletion(userId, protocolId, protocol.name, new Date());
+      }
+      
       res.json(completion);
     } catch (error: any) {
       console.error("Error marking protocol complete:", error);
@@ -5155,6 +5164,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(completions);
     } catch (error: any) {
       console.error("Error fetching protocol completions:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Multi-Dimensional Recovery System Endpoints
+  
+  // Get current recovery state for all muscle groups
+  app.get("/api/recovery/state", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    try {
+      const { getCurrentRecoveryState } = await import("./services/fatigue");
+      const state = await getCurrentRecoveryState(userId);
+      res.json(state);
+    } catch (error: any) {
+      console.error("Error fetching recovery state:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get recovery timeline (last N days)
+  app.get("/api/recovery/timeline", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const days = parseInt(req.query.days as string) || 7;
+    try {
+      const { getRecoveryTimeline } = await import("./services/recoveryTimeline");
+      const timeline = await getRecoveryTimeline(userId, days);
+      res.json(timeline);
+    } catch (error: any) {
+      console.error("Error fetching recovery timeline:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Record workout completion and apply fatigue
+  app.post("/api/recovery/workout-complete", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { workoutSessionId } = req.body;
+    
+    if (!workoutSessionId) {
+      return res.status(400).json({ error: "workoutSessionId is required" });
+    }
+    
+    try {
+      const { recordWorkoutCompletion } = await import("./services/recoveryTimeline");
+      await recordWorkoutCompletion(userId, workoutSessionId, new Date());
+      res.json({ ok: true });
+    } catch (error: any) {
+      console.error("Error recording workout completion:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Initialize muscle group recovery for new users
+  app.post("/api/recovery/initialize", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    try {
+      const { initializeMuscleGroupRecovery } = await import("./services/recoveryTimeline");
+      await initializeMuscleGroupRecovery(userId);
+      res.json({ ok: true });
+    } catch (error: any) {
+      console.error("Error initializing recovery:", error);
       res.status(500).json({ error: error.message });
     }
   });
