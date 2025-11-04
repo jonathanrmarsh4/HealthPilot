@@ -2477,3 +2477,63 @@ export type InsertNotificationEvent = z.infer<typeof insertNotificationEventSche
 
 export type ScheduledReminder = typeof scheduledReminders.$inferSelect;
 export type InsertScheduledReminder = z.infer<typeof insertScheduledReminderSchema>;
+
+// Multi-Dimensional Recovery System - Muscle group recovery tracking
+export const muscleGroupRecovery = pgTable("muscle_group_recovery", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  muscleGroup: varchar("muscle_group").notNull(), // 'chest', 'back', 'legs', 'shoulders', 'arms', 'core'
+  recoveryScore: integer("recovery_score").notNull().default(100), // 0-100, higher is better
+  fatigueDamage: real("fatigue_damage").notNull().default(0), // Raw fatigue points that decay over time
+  lastWorkoutAt: timestamp("last_workout_at"), // When this group was last trained
+  lastUpdatedAt: timestamp("last_updated_at").notNull().defaultNow(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => [
+  index("muscle_group_recovery_user_idx").on(table.userId),
+  uniqueIndex("muscle_group_recovery_user_group_idx").on(table.userId, table.muscleGroup),
+]);
+
+// Recovery Timeline Events - Track recovery changes over time
+export const recoveryTimelineEvents = pgTable("recovery_timeline_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  timestamp: timestamp("timestamp", { withTimezone: true }).notNull().defaultNow(),
+  eventType: varchar("event_type").notNull(), // 'baseline', 'workout_completed', 'protocol_completed'
+  systemicScore: integer("systemic_score").notNull(), // Overall recovery score (0-100)
+  muscleScores: jsonb("muscle_scores").notNull(), // { chest: 95, back: 80, legs: 40, shoulders: 90, arms: 85, core: 75 }
+  eventMetadata: jsonb("event_metadata"), // Details about workout/protocol that caused this event
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => [
+  index("recovery_timeline_user_timestamp_idx").on(table.userId, table.timestamp),
+]);
+
+// Insert schemas for recovery tables
+export const insertMuscleGroupRecoverySchema = createInsertSchema(muscleGroupRecovery).omit({
+  id: true,
+  createdAt: true,
+  lastUpdatedAt: true,
+});
+
+export const insertRecoveryTimelineEventSchema = createInsertSchema(recoveryTimelineEvents).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  timestamp: z.string().datetime().optional(),
+  systemicScore: z.number().min(0).max(100),
+  muscleScores: z.object({
+    chest: z.number().min(0).max(100),
+    back: z.number().min(0).max(100),
+    legs: z.number().min(0).max(100),
+    shoulders: z.number().min(0).max(100),
+    arms: z.number().min(0).max(100),
+    core: z.number().min(0).max(100),
+  }),
+  eventMetadata: z.any().optional(),
+});
+
+// Types for recovery tables
+export type MuscleGroupRecovery = typeof muscleGroupRecovery.$inferSelect;
+export type InsertMuscleGroupRecovery = z.infer<typeof insertMuscleGroupRecoverySchema>;
+
+export type RecoveryTimelineEvent = typeof recoveryTimelineEvents.$inferSelect;
+export type InsertRecoveryTimelineEvent = z.infer<typeof insertRecoveryTimelineEventSchema>;
