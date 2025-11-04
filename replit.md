@@ -89,6 +89,20 @@ I prefer simple language and clear explanations. I want iterative development wh
 - Bundled files must be rebuilt after any frontend changes to appear on iOS
 - Web browser is faster for iterating on UI/UX changes
 
+## Testing & QA Infrastructure
+
+**E2E Testing (Playwright):**
+- ✅ Automated E2E testing via Playwright fully functional
+- Testing covers authentication flows, dashboard rendering, and core user journeys
+- Known intermittent issue: Vite HMR WebSocket errors (`"The string did not match the expected pattern"`) occasionally occur in Replit's testing environment but do not prevent test execution or app functionality
+- Issue is platform-related (browser security settings + Replit sandboxing), not a code configuration problem
+- Tests run reliably despite occasional WebSocket warnings in console
+
+**Testing Strategy:**
+- Use `run_test` tool for comprehensive E2E verification of UI/UX features
+- All major features require E2E test validation before completion
+- Intermittent WebSocket warnings can be safely ignored if app renders successfully
+
 ## External Dependencies
 - **Database:** PostgreSQL
 - **AI:** OpenAI GPT-4o
