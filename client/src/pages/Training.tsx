@@ -11,7 +11,6 @@ import { useState, useMemo } from "react";
 import { format, isToday, startOfDay, endOfDay, subDays } from "date-fns";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import { useLocation } from "wouter";
-import { RecoveryProtocols } from "@/components/RecoveryProtocols";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { RecommendationCalendar } from "@/components/RecommendationCalendar";
 import { ScheduledRecommendationsCard } from "@/components/ScheduledRecommendationsCard";
@@ -624,12 +623,6 @@ export default function Training() {
       )
     },
     {
-      id: "recovery-protocols",
-      title: "Recovery Protocols",
-      description: "Personalized recovery suggestions",
-      renderTile: () => <RecoveryProtocols />
-    },
-    {
       id: "scheduled-calendar",
       title: "Training Calendar",
       description: "View and reschedule recommendations",
@@ -908,7 +901,6 @@ export default function Training() {
           "daily-recommendation",
           "daily-generated-workout",
           "muscle-group-balance",
-          "recovery-protocols",
           "scheduled-calendar",
           "today-scheduled",
           "scheduled-insights",

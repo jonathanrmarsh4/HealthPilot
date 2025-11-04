@@ -29,6 +29,7 @@ import {
   Globe,
   AlertCircle,
   Stethoscope,
+  HeartPulse,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import {
@@ -68,6 +69,7 @@ interface MenuSection {
 const buildMenuSections = (): MenuSection[] => {
   const yourPlanItems: MenuItem[] = [
     { title: "Training", url: "/training", icon: Dumbbell },
+    { title: "Recovery", url: "/recovery", icon: HeartPulse },
   ];
 
   // Add SmartFuel or legacy Nutrition based on feature flags

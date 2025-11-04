@@ -30,6 +30,7 @@ import MealPlans from "@/pages/MealPlans";
 import NutritionProfile from "@/pages/NutritionProfile";
 import SmartFuel from "@/pages/SmartFuel";
 import Training from "@/pages/Training";
+import Recovery from "@/pages/Recovery";
 import ReadinessSettings from "@/pages/ReadinessSettings";
 import FitnessProfile from "@/pages/FitnessProfile";
 import WorkoutSession from "@/pages/WorkoutSession";
@@ -88,6 +89,7 @@ function Router() {
       <Route path="/meals/nutrition-profile" component={NutritionProfile} />
       <Route path="/smartfuel" component={SmartFuel} />
       <Route path="/training" component={Training} />
+      <Route path="/recovery" component={Recovery} />
       <Route path="/training/readiness-settings" component={ReadinessSettings} />
       <Route path="/training/fitness-profile" component={FitnessProfile} />
       <Route path="/workout/:id" component={WorkoutSession} />
@@ -283,6 +285,7 @@ function AppLayout() {
     "/meals/nutrition-profile": "Nutrition Profile",
     "/smartfuel": "SmartFuel™",
     "/training": "Training",
+    "/recovery": "Recovery",
     "/supplements": "Supplement Stack",
     "/symptoms": "Symptoms Tracking",
     "/insights": "Insights Hub",
