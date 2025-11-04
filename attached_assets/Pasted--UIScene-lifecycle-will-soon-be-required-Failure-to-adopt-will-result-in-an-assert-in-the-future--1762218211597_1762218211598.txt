@@ -1,0 +1,112 @@
+`UIScene` lifecycle will soon be required. Failure to adopt will result in an assert in the future.
+Could not create a sandbox extension for '/var/containers/Bundle/Application/A913FC71-4361-4D27-9FED-AED4687D8CFB/App.app'
+KeyboardPlugin: resize mode - body
+⚡️  Loading app at https://0d420476-b7bb-4cc4-9f5a-da35f5e473e4-00-1n1tyyvrb5uvz.pike.replit.dev...
+🧹 WKWebView cache cleared for live reload
+WebContent[17192] Unable to hide query parameters from script (missing data)
+⚡️  [log] - onscript loading complete
+⚡️  [error] - {"line":1,"sourceURL":"https://0d420476-b7bb-4cc4-9f5a-da35f5e473e4-00-1n1tyyvrb5uvz.pike.replit.dev/capacitor.js"}
+
+⚡️  ------ STARTUP JS ERROR ------
+
+⚡️  SyntaxError: Unexpected token '<'
+⚡️  URL: https://0d420476-b7bb-4cc4-9f5a-da35f5e473e4-00-1n1tyyvrb5uvz.pike.replit.dev/capacitor.js
+⚡️  capacitor.js:1:0
+
+⚡️  See above for help with debugging blank-screen issues
+⚡️  [debug] - [vite] connecting...
+SplashScreen.hideSplash: SplashScreen was automatically hidden after default timeout. You should call `SplashScreen.hide()` as soon as your web app is loaded (or increase the timeout). Read more at https://capacitorjs.com/docs/apis/splash-screen#hiding-the-splash-screen
+⚡️  [log] - deviceready has not fired after 5 seconds.
+⚡️  [log] - Channel not fired: onDOMContentLoaded
+⚡️  WebView loaded
+⚡️  [log] - [MobileBootstrap] Initializing on ios...
+⚡️  To Native ->  StatusBar setStyle 73290409
+⚡️  TO JS {}
+⚡️  To Native ->  SplashScreen hide 73290410
+⚡️  [log] - [MobileBootstrap] Status bar configured
+⚡️  TO JS undefined
+⚡️  [log] - [MobileBootstrap] Splash screen hidden
+⚡️  [log] - [MobileBootstrap] Keyboard listeners configured
+⚡️  To Native ->  Keyboard addListener 73290411
+⚡️  To Native ->  Keyboard addListener 73290412
+⚡️  [log] - [MobileBootstrap] Back button handler configured
+⚡️  [log] - [MobileBootstrap] Triggering auto-sync (launch)...
+⚡️  To Native ->  App addListener 73290413
+⚡️  To Native ->  App ⚡️  [log] - [MobileBootstrap] Auto-sync configured (5-minute cooldown)
+addListener 73290414
+⚡️  To Native ->  App getInfo 73290415
+⚡️  TO JS {"name":"HealthPilot","build":"1","id":"com.nuvitae.healthpilot","version":"1.0"}
+⚡️  [log] - [MobileBootstrap] App Info: {"name":"HealthPilot","id":"com.nuvitae.healthpilot","version":"1.0","build":"1"}
+⚡️  [log] - [MobileBootstrap] ✅ Mobile initialization complete
+⚡️  [log] - [App] Setting up global deep link listener
+⚡️  [log] - [DeepLink] Initializing deep link handler...
+⚡️  To Native ->  App addListener 73290416
+⚡️  To Native ->  App addListener 73290417
+⚡️  [log] - [DeepLink] Deep link handler initialized successfully
+⚡️  To Native ->  SecureStorage internalGetItem 73290418
+⚡️  To Native ->  SecureStorage internalGetItem 73290419
+⚡️  To Native ->  SecureStorage internalGetItem 73290420
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  To Native ->  SecureStorage internalGetItem 73290421
+⚡️  To Native ->  SecureStorage internalGetItem 73290422
+⚡️  To Native ->  SecureStorage internalGetItem 73290423
+⚡️  To Native ->  SecureStorage internalGetItem 73290424
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  [log] - [MobileBootstrap] Auto-sync completed: {"success":true,"message":"Synced 0 health data points","insertedCount":0}
+⚡️  To Native ->  SecureStorage internalGetItem 73290425
+⚡️  To Native ->  SecureStorage internalGetItem 73290426
+⚡️  To Native ->  SecureStorage internalGetItem 73290427
+⚡️  To Native ->  SecureStorage internalGetItem 73290428
+⚡️  To Native ->  SecureStorage internalGetItem 73290429
+⚡️  To Native ->  SecureStorage internalGetItem 73290430
+⚡️  To Native ->  SecureStorage internalGetItem 73290431
+⚡️  To Native ->  SecureStorage internalGetItem 73290432
+⚡️  To Native ->  SecureStorage internalGetItem 73290433
+⚡️  To Native ->  SecureStorage internalGetItem 73290434
+⚡️  To Native ->  SecureStorage internalGetItem 73290435
+⚡️  To Native ->  SecureStorage internalGetItem 73290436
+⚡️  To Native ->  SecureStorage internalGetItem 73290437
+⚡️  To Native ->  SecureStorage internalGetItem 73290438
+⚡️  To Native ->  SecureStorage internalGetItem 73290439
+⚡️  To Native ->  SecureStorage internalGetItem 73290440
+⚡️  To Native ->  SecureStorage internalGetItem 73290441
+⚡️  To Native ->  SecureStorage internalGetItem 73290442
+⚡️  To Native ->  SecureStorage internalGetItem 73290443
+⚡️  To Native ->  SecureStorage internalGetItem 73290444
+⚡️  To Native ->  SecureStorage internalGetItem 73290445
+⚡️  To Native ->  SecureStorage internalGetItem 73290446
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  To Native ->  SecureStorage internalGetItem 73290447
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
+⚡️  To Native ->  SecureStorage internalGetItem 73290448
+⚡️  TO JS {"data":"\"3GkIk6hT__xX2PCWSZrMq2MvqBl9Ou7n-KUgJIoAQU4\""}
