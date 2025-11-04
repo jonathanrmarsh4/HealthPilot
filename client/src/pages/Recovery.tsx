@@ -2,10 +2,14 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RecoveryProtocols } from "@/components/RecoveryProtocols";
-import { useQuery } from "@tanstack/react-query";
-import { Sparkles, HeartPulse, Activity, TrendingUp } from "lucide-react";
+import { RecommendationCalendar } from "@/components/RecommendationCalendar";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { Sparkles, HeartPulse, Activity, TrendingUp, Calendar } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Link } from "wouter";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
 
 interface ReadinessScore {
   overall: number;
@@ -17,10 +21,68 @@ interface ReadinessScore {
   };
 }
 
+interface RecoverySession {
+  id: string;
+  userId: string;
+  day: string;
+  workoutType: string;
+  sessionType: string;
+  duration: number;
+  intensity: string;
+  description?: string;
+  exercises: any[];
+  isOptional: number;
+  coreProgram: number;
+  scheduledFor: string;
+  completed: number;
+  completedAt?: string;
+  createdAt: string;
+}
+
 export default function Recovery() {
+  const { toast } = useToast();
+  
   const { data: readinessScore, isLoading } = useQuery<ReadinessScore>({
     queryKey: ["/api/readiness/score"],
   });
+
+  const { data: scheduledSessions = [], isLoading: isLoadingSessions } = useQuery<RecoverySession[]>({
+    queryKey: ["/api/recovery/scheduled"],
+  });
+
+  const rescheduleSessionMutation = useMutation({
+    mutationFn: async ({ sessionId, newDate }: { sessionId: string | number; newDate: Date }) => {
+      return await apiRequest('PATCH', `/api/training-schedules/${sessionId}/schedule`, {
+        scheduledFor: newDate.toISOString(),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/recovery/scheduled'] });
+      toast({
+        title: "Session rescheduled",
+        description: "Your recovery session has been moved to the new date.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to reschedule session",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleCompleteSession = async (id: string | number) => {
+    await apiRequest('PATCH', `/api/training-schedules/${id}/complete`, { completed: true });
+    queryClient.invalidateQueries({ queryKey: ['/api/recovery/scheduled'] });
+  };
+
+  const handleDeleteSession = async (id: string | number) => {
+    // Mark session as completed, which removes it from the scheduled view
+    // The API filters out completed sessions when fetching scheduled recovery
+    await apiRequest('PATCH', `/api/training-schedules/${id}/complete`, { completed: true });
+    queryClient.invalidateQueries({ queryKey: ['/api/recovery/scheduled'] });
+  };
 
   const recoveryScore = readinessScore?.factors.workloadRecovery.score ?? 0;
   const overallReadiness = readinessScore?.overall ?? 0;
@@ -133,6 +195,26 @@ export default function Recovery() {
 
       {/* Recovery Protocols */}
       <RecoveryProtocols />
+
+      {/* Recovery Calendar */}
+      <div className="mt-6">
+        <RecommendationCalendar
+          recommendations={scheduledSessions.map(session => ({
+            id: session.id,
+            title: session.workoutType,
+            scheduledAt: session.scheduledFor,
+            type: 'recommendation' as const,
+            description: session.description,
+            category: session.sessionType,
+            duration: session.duration,
+          }))}
+          onReschedule={(sessionId, newDate) => {
+            rescheduleSessionMutation.mutate({ sessionId, newDate });
+          }}
+          onComplete={handleCompleteSession}
+          onDelete={handleDeleteSession}
+        />
+      </div>
 
       {/* Quick Tips */}
       <Card data-testid="card-recovery-tips">

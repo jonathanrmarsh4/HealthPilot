@@ -4534,6 +4534,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Recovery-specific endpoints
+  app.get("/api/recovery/scheduled", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    try {
+      const schedules = await storage.getTrainingSchedules(userId);
+      // Filter for recovery sessions (non-workout sessionTypes) that are scheduled and not completed
+      const recoverySchedules = schedules.filter(s => 
+        s.sessionType !== 'workout' && s.scheduledFor && s.completed === 0
+      );
+      res.json(recoverySchedules);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/recovery/schedule", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    try {
+      const { sessionType, duration, scheduledFor, description } = req.body;
+      
+      // Validate session type
+      if (!['sauna', 'cold_plunge', 'massage', 'stretching', 'foam_rolling'].includes(sessionType)) {
+        return res.status(400).json({ error: 'Invalid session type' });
+      }
+      
+      const newSession = await storage.createTrainingSchedule({
+        userId,
+        day: new Date(scheduledFor).toLocaleDateString('en-US', { weekday: 'long' }),
+        workoutType: sessionType.charAt(0).toUpperCase() + sessionType.slice(1).replace('_', ' '),
+        sessionType,
+        duration: duration || 30,
+        intensity: 'recovery',
+        description: description || `Scheduled ${sessionType.replace('_', ' ')} session`,
+        exercises: [],
+        isOptional: 1,
+        coreProgram: 0,
+        scheduledFor: new Date(scheduledFor),
+        completed: 0,
+      });
+      
+      res.json(newSession);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.get("/api/training/readiness", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
     

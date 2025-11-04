@@ -40,9 +40,20 @@ interface RecommendationCalendarProps {
   insights?: ScheduledInsight[];
   onDateClick?: (date: Date) => void;
   onReschedule?: (recommendationId: string | number, newDate: Date) => void;
+  onComplete?: (id: string | number) => Promise<void>;
+  onDelete?: (id: string | number) => Promise<void>;
+  hideActions?: boolean; // Hide complete/delete buttons entirely
 }
 
-export function RecommendationCalendar({ recommendations, insights = [], onDateClick, onReschedule }: RecommendationCalendarProps) {
+export function RecommendationCalendar({ 
+  recommendations, 
+  insights = [], 
+  onDateClick, 
+  onReschedule,
+  onComplete,
+  onDelete,
+  hideActions = false
+}: RecommendationCalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState<"month" | "week">("week");
   const [selectedActivity, setSelectedActivity] = useState<ScheduledActivity | null>(null);
@@ -126,14 +137,54 @@ export function RecommendationCalendar({ recommendations, insights = [], onDateC
     },
   });
 
-  const handleComplete = () => {
-    if (viewingActivity && viewingActivity.type === 'recommendation') {
+  const handleComplete = async () => {
+    if (!viewingActivity) return;
+    
+    if (onComplete) {
+      // Use custom completion handler if provided
+      try {
+        await onComplete(viewingActivity.id);
+        toast({
+          title: "Session completed",
+          description: "Great job! The session has been marked as complete.",
+        });
+        setDetailsDialogOpen(false);
+        setViewingActivity(null);
+      } catch (error: any) {
+        toast({
+          title: "Error",
+          description: error.message || "Failed to complete session",
+          variant: "destructive",
+        });
+      }
+    } else if (viewingActivity.type === 'recommendation') {
+      // Use default handler for scheduled exercises
       completeExerciseMutation.mutate(viewingActivity.id);
     }
   };
 
-  const handleDelete = () => {
-    if (viewingActivity) {
+  const handleDelete = async () => {
+    if (!viewingActivity) return;
+    
+    if (onDelete) {
+      // Use custom deletion handler if provided
+      try {
+        await onDelete(viewingActivity.id);
+        toast({
+          title: "Session removed",
+          description: "The session has been removed from your schedule.",
+        });
+        setDetailsDialogOpen(false);
+        setViewingActivity(null);
+      } catch (error: any) {
+        toast({
+          title: "Error",
+          description: error.message || "Failed to delete session",
+          variant: "destructive",
+        });
+      }
+    } else {
+      // Use default handlers
       if (viewingActivity.type === 'recommendation') {
         deleteExerciseMutation.mutate(viewingActivity.id);
       } else {
@@ -566,28 +617,32 @@ export function RecommendationCalendar({ recommendations, insights = [], onDateC
             </div>
           </div>
           <DialogFooter className="flex-col sm:flex-row gap-2">
-            {viewingActivity?.type === 'recommendation' && (
-              <Button 
-                variant="default" 
-                onClick={handleComplete}
-                disabled={completeExerciseMutation.isPending}
-                data-testid="button-complete-exercise"
-                className="w-full sm:w-auto"
-              >
-                <Check className="w-4 h-4 mr-2" />
-                {completeExerciseMutation.isPending ? "Completing..." : "Complete"}
-              </Button>
+            {!hideActions && (
+              <>
+                {viewingActivity?.type === 'recommendation' && (
+                  <Button 
+                    variant="default" 
+                    onClick={handleComplete}
+                    disabled={completeExerciseMutation.isPending}
+                    data-testid="button-complete-exercise"
+                    className="w-full sm:w-auto"
+                  >
+                    <Check className="w-4 h-4 mr-2" />
+                    {completeExerciseMutation.isPending ? "Completing..." : "Complete"}
+                  </Button>
+                )}
+                <Button 
+                  variant="destructive" 
+                  onClick={handleDelete}
+                  disabled={deleteExerciseMutation.isPending || deleteInsightMutation.isPending}
+                  data-testid="button-delete-activity"
+                  className="w-full sm:w-auto"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  {(deleteExerciseMutation.isPending || deleteInsightMutation.isPending) ? "Deleting..." : "Delete"}
+                </Button>
+              </>
             )}
-            <Button 
-              variant="destructive" 
-              onClick={handleDelete}
-              disabled={deleteExerciseMutation.isPending || deleteInsightMutation.isPending}
-              data-testid="button-delete-activity"
-              className="w-full sm:w-auto"
-            >
-              <Trash2 className="w-4 h-4 mr-2" />
-              {(deleteExerciseMutation.isPending || deleteInsightMutation.isPending) ? "Deleting..." : "Delete"}
-            </Button>
             <Button 
               variant="outline" 
               onClick={() => setDetailsDialogOpen(false)}
