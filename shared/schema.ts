@@ -1033,6 +1033,8 @@ export const recoveryProtocols = pgTable("recovery_protocols", {
   benefits: text("benefits").array(), // List of benefits
   instructions: text("instructions"), // How to do it
   targetFactors: text("target_factors").array(), // Which readiness factors this helps: 'sleep', 'hrv', 'resting_hr', 'workload'
+  recommendedFrequency: text("recommended_frequency"), // e.g., 'daily', '2-3x per week', 'after workouts', 'as needed'
+  recommendedTimeOfDay: text("recommended_time_of_day"), // e.g., 'morning', 'evening', 'before bed', 'any time'
   tags: text("tags").array(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
@@ -1071,6 +1073,30 @@ export const userProtocolCompletions = pgTable("user_protocol_completions", {
 export const insertUserProtocolCompletionSchema = createInsertSchema(userProtocolCompletions).omit({
   id: true,
   completedAt: true,
+});
+
+// Scheduled protocol patterns - tracks recurring recovery protocol schedules
+export const scheduledProtocolPatterns = pgTable("scheduled_protocol_patterns", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  protocolId: varchar("protocol_id").notNull(),
+  protocolName: text("protocol_name").notNull(), // Denormalized for quick access
+  frequency: text("frequency").notNull(), // 'once', 'daily', 'weekly'
+  weekDays: text("week_days").array(), // ['monday', 'wednesday', 'friday'] for weekly patterns
+  timeOfDay: text("time_of_day").notNull(), // HH:MM format, e.g., '10:00'
+  duration: integer("duration").notNull(), // in minutes
+  active: integer("active").notNull().default(1), // 1 if active, 0 if cancelled/paused
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => [
+  index("scheduled_protocol_patterns_user_id_idx").on(table.userId),
+  index("scheduled_protocol_patterns_protocol_id_idx").on(table.protocolId),
+]);
+
+export const insertScheduledProtocolPatternSchema = createInsertSchema(scheduledProtocolPatterns).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
 });
 
 // Supplements table - user's current supplement stack

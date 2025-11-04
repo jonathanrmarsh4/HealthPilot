@@ -22,6 +22,8 @@ interface RecoveryProtocol {
   userPreference?: 'upvote' | 'downvote' | 'neutral';
   aiReasoning?: string;
   suggestedTiming?: string;
+  suggestedFrequency?: string;
+  suggestedTimeOfDay?: string;
   confidence?: number;
   priority?: number;
 }
@@ -48,6 +50,11 @@ export function RecoveryProtocols() {
   const { toast } = useToast();
   const [expandedProtocol, setExpandedProtocol] = useState<string | null>(null);
   const [schedulingProtocol, setSchedulingProtocol] = useState<RecoveryProtocol | null>(null);
+  
+  // Advanced scheduling state
+  const [scheduleFrequency, setScheduleFrequency] = useState<'once' | 'daily' | 'weekly'>('once');
+  const [scheduleTime, setScheduleTime] = useState<string>('10:00');
+  const [selectedWeekDays, setSelectedWeekDays] = useState<string[]>([]);
 
   const { data: recommendations, isLoading } = useQuery<RecoveryRecommendationsResponse>({
     queryKey: ["/api/recovery-protocols/recommendations"],
@@ -116,31 +123,67 @@ export function RecoveryProtocols() {
   };
 
   const scheduleSessionMutation = useMutation({
-    mutationFn: async ({ protocolName, duration, scheduledFor }: { protocolName: string; duration: number; scheduledFor: Date }) => {
-      // Map protocol category to session type
-      const sessionTypeMap: Record<string, string> = {
-        'heat_therapy': 'sauna',
-        'cold_therapy': 'cold_plunge',
-        'mobility': 'stretching',
-      };
-      
-      // Default to 'stretching' if not mapped
-      const sessionType = sessionTypeMap[schedulingProtocol?.category || ''] || 'stretching';
-      
-      return await apiRequest('POST', '/api/recovery/schedule', {
-        sessionType,
-        duration,
-        scheduledFor: scheduledFor.toISOString(),
-        description: `${protocolName} session`,
-      });
+    mutationFn: async ({ 
+      protocolId, 
+      protocolName, 
+      duration, 
+      frequency, 
+      weekDays, 
+      timeOfDay, 
+      scheduledFor 
+    }: { 
+      protocolId: string;
+      protocolName: string; 
+      duration: number; 
+      frequency: 'once' | 'daily' | 'weekly';
+      weekDays?: string[];
+      timeOfDay: string;
+      scheduledFor: Date;
+    }) => {
+      // For recurring patterns, create a pattern entry
+      if (frequency !== 'once') {
+        return await apiRequest('POST', '/api/recovery/schedule-pattern', {
+          protocolId,
+          protocolName,
+          frequency,
+          weekDays: weekDays || [],
+          timeOfDay,
+          duration,
+        });
+      } else {
+        // For one-time schedules, create a single session
+        const sessionTypeMap: Record<string, string> = {
+          'heat_therapy': 'sauna',
+          'cold_therapy': 'cold_plunge',
+          'mobility': 'stretching',
+          'breathing': 'stretching',
+          'mindfulness': 'stretching',
+        };
+        
+        const sessionType = sessionTypeMap[schedulingProtocol?.category || ''] || 'stretching';
+        
+        return await apiRequest('POST', '/api/recovery/schedule', {
+          sessionType,
+          duration,
+          scheduledFor: scheduledFor.toISOString(),
+          description: `${protocolName} session`,
+        });
+      }
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['/api/recovery/scheduled'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/recovery-protocols/recommendations'] });
+      const message = variables.frequency === 'once' 
+        ? "Recovery session added to your calendar."
+        : `Recurring ${variables.frequency} pattern created!`;
       toast({
         title: "Session scheduled!",
-        description: "Recovery session added to your calendar.",
+        description: message,
       });
       setSchedulingProtocol(null);
+      setScheduleFrequency('once');
+      setSelectedWeekDays([]);
+      setScheduleTime('10:00');
     },
     onError: (error: Error) => {
       toast({
@@ -407,54 +450,149 @@ export function RecoveryProtocols() {
         </CardContent>
       </Card>
       
-      {/* Scheduling Dialog */}
+      {/* Advanced Scheduling Dialog */}
       {schedulingProtocol && (
         <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <Card className="w-full max-w-md">
+          <Card className="w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <CardHeader>
               <CardTitle>Schedule Recovery Session</CardTitle>
               <CardDescription>
-                Schedule "{schedulingProtocol.name}" to your calendar
+                Set up "{schedulingProtocol.name}" in your calendar
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6">
+              {/* AI Suggestions */}
+              {schedulingProtocol.suggestedFrequency && (
+                <div className="p-3 rounded bg-primary/5 border border-primary/20">
+                  <h4 className="font-medium mb-2 text-sm flex items-center gap-2">
+                    <Sparkles className="h-3 w-3 text-primary" />
+                    AI Recommendation
+                  </h4>
+                  <div className="space-y-1 text-sm text-muted-foreground">
+                    <p><span className="font-medium">Frequency:</span> {schedulingProtocol.suggestedFrequency}</p>
+                    {schedulingProtocol.suggestedTimeOfDay && (
+                      <p><span className="font-medium">Best time:</span> {schedulingProtocol.suggestedTimeOfDay}</p>
+                    )}
+                    {schedulingProtocol.aiReasoning && (
+                      <p className="mt-2">{schedulingProtocol.aiReasoning}</p>
+                    )}
+                  </div>
+                </div>
+              )}
+              
+              {/* Frequency Selector */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Frequency</label>
+                <div className="flex gap-2 flex-wrap">
+                  {(['once', 'daily', 'weekly'] as const).map((freq) => (
+                    <Button
+                      key={freq}
+                      variant={scheduleFrequency === freq ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setScheduleFrequency(freq)}
+                      data-testid={`button-frequency-${freq}`}
+                    >
+                      {freq === 'once' ? 'One-time' : freq.charAt(0).toUpperCase() + freq.slice(1)}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+              
+              {/* Week Day Selector (only for weekly) */}
+              {scheduleFrequency === 'weekly' && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Which days?</label>
+                  <div className="flex gap-2 flex-wrap">
+                    {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day) => (
+                      <Button
+                        key={day}
+                        variant={selectedWeekDays.includes(day) ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => {
+                          setSelectedWeekDays(prev =>
+                            prev.includes(day)
+                              ? prev.filter(d => d !== day)
+                              : [...prev, day]
+                          );
+                        }}
+                        data-testid={`button-day-${day.toLowerCase()}`}
+                      >
+                        {day.substring(0, 3)}
+                      </Button>
+                    ))}
+                  </div>
+                  {selectedWeekDays.length === 0 && (
+                    <p className="text-sm text-muted-foreground">Select at least one day</p>
+                  )}
+                </div>
+              )}
+              
+              {/* Time Picker */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Time</label>
+                <input
+                  type="time"
+                  value={scheduleTime}
+                  onChange={(e) => setScheduleTime(e.target.value)}
+                  className="w-full px-3 py-2 border rounded-md bg-background"
+                  data-testid="input-schedule-time"
+                />
+              </div>
+              
+              {/* Duration */}
               <div>
                 <label className="text-sm font-medium">Duration</label>
                 <p className="text-sm text-muted-foreground">{schedulingProtocol.duration} minutes</p>
               </div>
-              {schedulingProtocol.aiReasoning && (
-                <div className="p-3 rounded bg-primary/5 border border-primary/20">
-                  <h4 className="font-medium mb-1 text-sm flex items-center gap-2">
-                    <Sparkles className="h-3 w-3 text-primary" />
-                    Why This Helps
-                  </h4>
-                  <p className="text-sm text-muted-foreground">{schedulingProtocol.aiReasoning}</p>
-                </div>
-              )}
+              
+              {/* Action Buttons */}
               <div className="flex gap-2 justify-end">
                 <Button
                   variant="outline"
-                  onClick={() => setSchedulingProtocol(null)}
+                  onClick={() => {
+                    setSchedulingProtocol(null);
+                    setScheduleFrequency('once');
+                    setSelectedWeekDays([]);
+                    setScheduleTime('10:00');
+                  }}
                   data-testid="button-cancel-schedule"
                 >
                   Cancel
                 </Button>
                 <Button
                   onClick={() => {
-                    // Schedule for tomorrow at 10am
-                    const tomorrow = new Date();
-                    tomorrow.setDate(tomorrow.getDate() + 1);
-                    tomorrow.setHours(10, 0, 0, 0);
+                    // Validation
+                    if (scheduleFrequency === 'weekly' && selectedWeekDays.length === 0) {
+                      toast({
+                        title: "Select days",
+                        description: "Please select at least one day for weekly schedule",
+                        variant: "destructive",
+                      });
+                      return;
+                    }
+                    
+                    // Create schedule
+                    const [hours, minutes] = scheduleTime.split(':').map(Number);
+                    const scheduledDate = new Date();
+                    if (scheduleFrequency === 'once') {
+                      scheduledDate.setDate(scheduledDate.getDate() + 1); // Tomorrow
+                    }
+                    scheduledDate.setHours(hours, minutes, 0, 0);
+                    
                     scheduleSessionMutation.mutate({
+                      protocolId: schedulingProtocol.id,
                       protocolName: schedulingProtocol.name,
                       duration: schedulingProtocol.duration,
-                      scheduledFor: tomorrow,
+                      frequency: scheduleFrequency,
+                      weekDays: scheduleFrequency === 'weekly' ? selectedWeekDays : undefined,
+                      timeOfDay: scheduleTime,
+                      scheduledFor: scheduledDate,
                     });
                   }}
                   disabled={scheduleSessionMutation.isPending}
                   data-testid="button-confirm-schedule"
                 >
-                  Schedule for Tomorrow
+                  {scheduleSessionMutation.isPending ? 'Scheduling...' : 'Schedule'}
                 </Button>
               </div>
             </CardContent>

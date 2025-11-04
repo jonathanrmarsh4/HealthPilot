@@ -56,6 +56,8 @@ interface AIRecoveryRecommendation {
   category: string;
   reasoning: string;
   suggestedTiming: string;
+  suggestedFrequency: string;
+  suggestedTimeOfDay: string;
   confidence: number;
   priority: number;
 }
@@ -276,7 +278,7 @@ Guidelines:
 - Account for recent and upcoming training load
 - Respect user preferences (avoid downvoted protocols, favor upvoted categories)
 - Provide evidence-based reasoning for each recommendation
-- Suggest optimal timing for each protocol
+- Suggest optimal timing AND frequency for each protocol
 - Consider the user's experience level and goals
 
 IMPORTANT: You must respond with ONLY valid JSON, no preamble or explanation. Response format:
@@ -288,6 +290,8 @@ IMPORTANT: You must respond with ONLY valid JSON, no preamble or explanation. Re
       "category": "category",
       "reasoning": "Clear explanation of why this protocol is recommended",
       "suggestedTiming": "When to do this (e.g., 'after workouts', 'before bed', 'on rest days')",
+      "suggestedFrequency": "How often to do this (e.g., 'daily', '2-3x per week', 'after every workout', 'as needed')",
+      "suggestedTimeOfDay": "Best time of day (e.g., 'morning', 'evening', 'before bed', 'any time')",
       "confidence": 0-100,
       "priority": 1-3 (1=highest)
     }
@@ -428,6 +432,8 @@ Provide exactly 3 protocol recommendations, ranked by priority. Focus on protoco
         if (!rec.category || typeof rec.category !== 'string') return false;
         if (!rec.reasoning || typeof rec.reasoning !== 'string') return false;
         if (!rec.suggestedTiming || typeof rec.suggestedTiming !== 'string') return false;
+        if (!rec.suggestedFrequency || typeof rec.suggestedFrequency !== 'string') return false;
+        if (!rec.suggestedTimeOfDay || typeof rec.suggestedTimeOfDay !== 'string') return false;
         if (typeof rec.confidence !== 'number' || rec.confidence < 0 || rec.confidence > 100) return false;
         if (typeof rec.priority !== 'number' || rec.priority < 1 || rec.priority > 3) return false;
         
