@@ -1,0 +1,97 @@
+{
+  "codebase_cleanup": {
+    "objectives": [
+      "Eliminate legacy or conflicting implementations so only the new Pillars → Engines → Surfaces architecture remains.",
+      "Remove dead features and routes; convert anything worth keeping behind flags into clearly named modules."
+    ],
+    "scope": {
+      "delete_or_replace": [
+        "Legacy meal-recipe UIs and services (unless `smartfuel_recipes=true` feature flag is ON).",
+        "Duplicated training logic inside workout logger (keep logger execution-only).",
+        "Old daily summary tables/slices; consolidate into `daily_records`.",
+        "Deprecated HealthKit mappers or parsers that don’t support the 25 datapoints.",
+        "Abandoned experiments: old scoring algorithms (sleep/HRV/readiness) if replaced by Recovery Index."
+      ],
+      "codemods_and_greps": [
+        "Replace all imports of old `training*` utils in workout components with `@/engines/training`.",
+        "GREP project-wide for: TODO:, FIXME:, DEPRECATED:, LEGACY:, HACK:, console.log(",
+        "Flag any component not referenced by a route or another component (dead code)."
+      ],
+      "feature_flags": {
+        "flags": [
+          { "name": "smartfuel_recipes", "default": false, "remove_code_when_false": true }
+        ],
+        "policy": "All code in false-flagged branches must be tree-shakeable and excluded from production bundle."
+      }
+    },
+    "static_analysis": {
+      "tsconfig": { "noUnusedLocals": true, "noUnusedParameters": true, "noImplicitReturns": true },
+      "eslint_rules": [
+        "no-restricted-imports: block old utils paths",
+        "no-console: error (allow warn/error in server only)",
+        "import/no-deprecated: error"
+      ],
+      "bundle_checks": [
+        "Fail build if dead code > 2% of bundle by analyzer.",
+        "Fail build if any deprecated path is imported."
+      ]
+    },
+    "ci_quality_gates": [
+      "Block merge if grep finds TODO|FIXME|DEPRECATED in app/ or server/ (tests excluded).",
+      "Required coverage: engines and jobs ≥ 80%.",
+      "Run route-linter: report 404 dead-ends; fail on unlinked pages."
+    ]
+  },
+  "deprecation_plan": {
+    "policy": "Two-week deprecation window in dev; immediate removal for code paths causing runtime errors.",
+    "mapping": [
+      { "old": "Workout-driven planning", "new": "Training Engine → Plan; Workouts = execution logger" },
+      { "old": "Legacy sleep/readiness scoring", "new": "Recovery Index (HRV, RHR, sleep quality, training load, soreness)" },
+      { "old": "Recipe-centric SmartFuel", "new": "Guidance-first SmartFuel (prioritize/avoid/timing)" }
+    ],
+    "migration_playbook": [
+      "Create shim exports that forward old names to new engines (compile-time warnings).",
+      "Log one-time telemetry when an old API is hit; fail tests after migration done."
+    ]
+  },
+  "documentation": {
+    "must_update": [
+      { "file": "README.md", "contents": ["High-level architecture", "Install/run", "Feature flags"] },
+      { "file": "ARCHITECTURE.md", "contents": ["Pillars → Engines → Surfaces diagram", "Data flow", "Background jobs"] },
+      { "file": "DATA_DICTIONARY.md", "contents": ["daily_records schema", "pillar metrics", "engine IO contracts"] },
+      { "file": "API.md", "contents": ["All /api/events/*", "/api/engines/run", "/api/daily-record/:date"] },
+      { "file": "ENGINES_GUIDE.md", "contents": ["training", "smartfuel", "supplement", "symptom", "longevity", "insight"] },
+      { "file": "HEALTHKIT_MAPPER.md", "contents": ["Supported 25 datapoints", "permissions", "sync strategy"] },
+      { "file": "CONTRIBUTING.md", "contents": ["branching", "CI gates", "testing standards"] },
+      { "file": "CHANGELOG.md", "contents": ["Deprecations removed", "Breaking changes", "Migration notes"] }
+    ],
+    "diagrams": [
+      { "type": "mermaid", "target": "ARCHITECTURE.md", "source": "canvas: HealthPilot – End-to-End Workflow Map (v1)" }
+    ],
+    "definition_of_done": [
+      "All docs above updated and linked from README.",
+      "Commands in docs reproduce a clean build from zero."
+    ]
+  },
+  "test_hardening": {
+    "dead_end_detection": [
+      "E2E crawl all routes; fail if any navigation results in 404 or page with zero actionable CTAs.",
+      "Check that each Dashboard tile deep-links to a functioning surface."
+    ],
+    "regression_suites": [
+      "Legacy endpoints return 410 GONE with migration hint after removal.",
+      "Engines idempotency with missing HK data."
+    ]
+  },
+  "acceptance_criteria_additions": [
+    "No imports remain from deprecated modules; CI enforces via eslint and grep.",
+    "No TODO/FIXME/DEPRECATED strings in app/server (tests excluded).",
+    "Bundle analyzer shows ≤ 2% dead code; route crawl has zero dead ends.",
+    "Docs updated and pass link-checker; onboarding from README yields a running app."
+  ],
+  "release_tasks": [
+    "Tag release as `realignment-v1` with full CHANGELOG and MIGRATION section.",
+    "Attach architecture diagram and data dictionary to release assets.",
+    "Create rollback note with previous tag reference."
+  ]
+}
