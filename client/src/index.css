@@ -304,8 +304,8 @@
   --foreground: 222 47% 11%;            /* #0F172A dark slate for high contrast */
   --card: rgba(255,255,255,0.60);       /* glass effect background per spec */
   --card-foreground: 222 47% 11%;       /* dark slate text on cards */
-  --sidebar: rgba(255,255,255,0.85);    /* increased opacity for better text visibility */
-  --sidebar-foreground: 222 47% 11%;    /* dark slate text for visibility */
+  --sidebar: rgba(255,255,255,0.98);    /* high opacity for excellent text visibility on mobile */
+  --sidebar-foreground: 222 47% 8%;     /* very dark slate text for maximum contrast */
   --popover: rgba(255,255,255,0.80);    /* input bg per spec */
   --popover-foreground: 222 47% 11%;    /* dark text on popovers */
   --muted-foreground: 215 25% 27%;      /* #334155 for secondary text */
