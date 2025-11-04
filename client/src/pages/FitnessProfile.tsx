@@ -47,8 +47,9 @@ const SPECIAL_FACILITIES = [
 ];
 
 const RECOVERY_EQUIPMENT = [
-  "Sauna", "Cold Plunge", "Ice Bath", "Massage Gun", "Foam Roller",
-  "Compression Boots", "Infrared Sauna", "Steam Room"
+  "Sauna", "Cold Plunge", "Ice Bath", "Steam Room", "Infrared Sauna",
+  "Massage Therapist", "Foam Roller", "Massage Gun", "Compression Boots",
+  "Contrast Therapy", "Cryotherapy Chamber", "Stretching Studio"
 ];
 
 const WORKOUT_TYPES = [
