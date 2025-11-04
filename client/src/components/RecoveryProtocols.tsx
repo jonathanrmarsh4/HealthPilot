@@ -5,7 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { ThumbsUp, ThumbsDown, Clock, Target, Sparkles, CheckCircle2 } from "lucide-react";
+import { ThumbsUp, ThumbsDown, Clock, Target, Sparkles, CheckCircle2, CalendarPlus } from "lucide-react";
 import { useState } from "react";
 
 interface RecoveryProtocol {
@@ -47,6 +47,7 @@ interface RecoveryRecommendationsResponse {
 export function RecoveryProtocols() {
   const { toast } = useToast();
   const [expandedProtocol, setExpandedProtocol] = useState<string | null>(null);
+  const [schedulingProtocol, setSchedulingProtocol] = useState<RecoveryProtocol | null>(null);
 
   const { data: recommendations, isLoading } = useQuery<RecoveryRecommendationsResponse>({
     queryKey: ["/api/recovery-protocols/recommendations"],
@@ -113,6 +114,42 @@ export function RecoveryProtocols() {
   const handleComplete = (protocolId: string) => {
     completeMutation.mutate(protocolId);
   };
+
+  const scheduleSessionMutation = useMutation({
+    mutationFn: async ({ protocolName, duration, scheduledFor }: { protocolName: string; duration: number; scheduledFor: Date }) => {
+      // Map protocol category to session type
+      const sessionTypeMap: Record<string, string> = {
+        'heat_therapy': 'sauna',
+        'cold_therapy': 'cold_plunge',
+        'mobility': 'stretching',
+      };
+      
+      // Default to 'stretching' if not mapped
+      const sessionType = sessionTypeMap[schedulingProtocol?.category || ''] || 'stretching';
+      
+      return await apiRequest('POST', '/api/recovery/schedule', {
+        sessionType,
+        duration,
+        scheduledFor: scheduledFor.toISOString(),
+        description: `${protocolName} session`,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/recovery/scheduled'] });
+      toast({
+        title: "Session scheduled!",
+        description: "Recovery session added to your calendar.",
+      });
+      setSchedulingProtocol(null);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to schedule session",
+        variant: "destructive",
+      });
+    },
+  });
 
   const isCompletedToday = (protocolId: string): boolean => {
     return !!completions?.some(c => c.protocolId === protocolId);
@@ -187,175 +224,243 @@ export function RecoveryProtocols() {
   }
 
   return (
-    <Card data-testid="card-recovery-protocols">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Sparkles className="h-5 w-5 text-primary" />
-          Recovery Protocols
-          {recommendations.aiPowered && (
-            <Badge variant="secondary" className="ml-2 bg-primary/10 text-primary">
-              AI-Powered
-            </Badge>
+    <>
+      <Card data-testid="card-recovery-protocols">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-primary" />
+            Recovery Protocols
+            {recommendations.aiPowered && (
+              <Badge variant="secondary" className="ml-2 bg-primary/10 text-primary">
+                AI-Powered
+              </Badge>
+            )}
+          </CardTitle>
+          <CardDescription>
+            {recommendations.aiPowered 
+              ? 'AI-recommended protocols based on your unique recovery needs. Complete or schedule them to your calendar.'
+              : 'Recommended protocols to improve your readiness factors. Complete or schedule them to your calendar.'}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Overall Strategy */}
+          {recommendations.overallStrategy && (
+            <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
+              <h4 className="font-medium text-sm mb-2 flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-primary" />
+                Recovery Strategy
+              </h4>
+              <p className="text-sm text-muted-foreground">{recommendations.overallStrategy}</p>
+            </div>
           )}
-        </CardTitle>
-        <CardDescription>
-          {recommendations.aiPowered 
-            ? 'AI-recommended protocols based on your unique recovery needs'
-            : 'Recommended protocols to improve your readiness factors'}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Overall Strategy */}
-        {recommendations.overallStrategy && (
-          <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
-            <h4 className="font-medium text-sm mb-2 flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-primary" />
-              Recovery Strategy
-            </h4>
-            <p className="text-sm text-muted-foreground">{recommendations.overallStrategy}</p>
-          </div>
-        )}
 
-        {/* Key Insights */}
-        {recommendations.keyInsights && recommendations.keyInsights.length > 0 && (
-          <div className="space-y-2">
-            <h4 className="font-medium text-sm">Key Insights:</h4>
-            <ul className="space-y-1">
-              {recommendations.keyInsights.map((insight, idx) => (
-                <li key={idx} className="text-sm text-muted-foreground flex items-start gap-2">
-                  <span className="text-primary mt-0.5">•</span>
-                  <span>{insight}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
+          {/* Key Insights */}
+          {recommendations.keyInsights && recommendations.keyInsights.length > 0 && (
+            <div className="space-y-2">
+              <h4 className="font-medium text-sm">Key Insights:</h4>
+              <ul className="space-y-1">
+                {recommendations.keyInsights.map((insight, idx) => (
+                  <li key={idx} className="text-sm text-muted-foreground flex items-start gap-2">
+                    <span className="text-primary mt-0.5">•</span>
+                    <span>{insight}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
-        {recommendations.lowFactors.length > 0 && (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
-            <Target className="h-4 w-4" />
-            <span>Targeting: {recommendations.lowFactors.join(', ').replace(/_/g, ' ')}</span>
-          </div>
-        )}
+          {recommendations.lowFactors.length > 0 && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
+              <Target className="h-4 w-4" />
+              <span>Targeting: {recommendations.lowFactors.join(', ').replace(/_/g, ' ')}</span>
+            </div>
+          )}
 
-        <div className="space-y-4">
-          {recommendations.recommendations.map((protocol) => (
-            <div
-              key={protocol.id}
-              className="border rounded-lg p-4 space-y-3 hover-elevate"
-              data-testid={`protocol-${protocol.id}`}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex-1 space-y-2">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="font-semibold" data-testid={`protocol-name-${protocol.id}`}>
-                      {protocol.name}
-                    </h3>
-                    <Badge variant="secondary" className={getCategoryColor(protocol.category)}>
-                      {protocol.category.replace('_', ' ')}
-                    </Badge>
-                    <Badge variant="outline" className={getDifficultyColor(protocol.difficulty)}>
-                      {protocol.difficulty}
-                    </Badge>
-                    {isCompletedToday(protocol.id) && (
-                      <Badge variant="default" className="bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20">
-                        <CheckCircle2 className="h-3 w-3 mr-1" />
-                        Completed today
+          <div className="space-y-4">
+            {recommendations.recommendations.map((protocol) => (
+              <div
+                key={protocol.id}
+                className="border rounded-lg p-4 space-y-3 hover-elevate"
+                data-testid={`protocol-${protocol.id}`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 space-y-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="font-semibold" data-testid={`protocol-name-${protocol.id}`}>
+                        {protocol.name}
+                      </h3>
+                      <Badge variant="secondary" className={getCategoryColor(protocol.category)}>
+                        {protocol.category.replace('_', ' ')}
                       </Badge>
-                    )}
-                  </div>
-
-                  <p className="text-sm text-muted-foreground">{protocol.description}</p>
-
-                  {protocol.duration && (
-                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                      <Clock className="h-3 w-3" />
-                      <span>{protocol.duration} min</span>
-                    </div>
-                  )}
-
-                  {expandedProtocol === protocol.id && (
-                    <div className="mt-4 space-y-3 text-sm">
-                      {protocol.aiReasoning && (
-                        <div className="p-3 rounded bg-primary/5 border border-primary/20">
-                          <h4 className="font-medium mb-1 flex items-center gap-2">
-                            <Sparkles className="h-3 w-3 text-primary" />
-                            AI Recommendation
-                          </h4>
-                          <p className="text-muted-foreground">{protocol.aiReasoning}</p>
-                          {protocol.suggestedTiming && (
-                            <p className="text-xs text-muted-foreground mt-2">
-                              <span className="font-medium">Best time:</span> {protocol.suggestedTiming}
-                            </p>
-                          )}
-                        </div>
+                      <Badge variant="outline" className={getDifficultyColor(protocol.difficulty)}>
+                        {protocol.difficulty}
+                      </Badge>
+                      {isCompletedToday(protocol.id) && (
+                        <Badge variant="default" className="bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20">
+                          <CheckCircle2 className="h-3 w-3 mr-1" />
+                          Completed today
+                        </Badge>
                       )}
-                      <div>
-                        <h4 className="font-medium mb-1">Instructions:</h4>
-                        <p className="text-muted-foreground">{protocol.instructions}</p>
-                      </div>
-                      <div>
-                        <h4 className="font-medium mb-1">Benefits:</h4>
-                        <ul className="list-disc list-inside text-muted-foreground space-y-1">
-                          {protocol.benefits.map((benefit, idx) => (
-                            <li key={idx}>{benefit}</li>
-                          ))}
-                        </ul>
-                      </div>
                     </div>
-                  )}
 
-                  <div className="flex gap-2 items-center flex-wrap">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setExpandedProtocol(expandedProtocol === protocol.id ? null : protocol.id)}
-                      data-testid={`button-expand-${protocol.id}`}
-                    >
-                      {expandedProtocol === protocol.id ? 'Show Less' : 'Show More'}
-                    </Button>
-                    {!isCompletedToday(protocol.id) && (
-                      <Button
-                        variant="default"
-                        size="sm"
-                        onClick={() => handleComplete(protocol.id)}
-                        disabled={completeMutation.isPending}
-                        data-testid={`button-complete-${protocol.id}`}
-                      >
-                        <CheckCircle2 className="h-4 w-4 mr-1" />
-                        Complete
-                      </Button>
+                    <p className="text-sm text-muted-foreground">{protocol.description}</p>
+
+                    {protocol.duration && (
+                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                        <Clock className="h-3 w-3" />
+                        <span>{protocol.duration} min</span>
+                      </div>
                     )}
-                  </div>
-                </div>
 
-                <div className="flex flex-col gap-2">
-                  <Button
-                    size="icon"
-                    variant={protocol.userPreference === 'upvote' ? 'default' : 'outline'}
-                    onClick={() => handleVote(protocol.id, 'upvote', protocol.userPreference)}
-                    disabled={voteMutation.isPending}
-                    data-testid={`button-upvote-${protocol.id}`}
-                    title={protocol.userPreference === 'upvote' ? 'Click again to reset' : 'Upvote this protocol'}
-                  >
-                    <ThumbsUp className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    size="icon"
-                    variant={protocol.userPreference === 'downvote' ? 'destructive' : 'outline'}
-                    onClick={() => handleVote(protocol.id, 'downvote', protocol.userPreference)}
-                    disabled={voteMutation.isPending}
-                    data-testid={`button-downvote-${protocol.id}`}
-                    title={protocol.userPreference === 'downvote' ? 'Click again to reset' : 'Downvote this protocol'}
-                  >
-                    <ThumbsDown className="h-4 w-4" />
-                  </Button>
+                    {expandedProtocol === protocol.id && (
+                      <div className="mt-4 space-y-3 text-sm">
+                        {protocol.aiReasoning && (
+                          <div className="p-3 rounded bg-primary/5 border border-primary/20">
+                            <h4 className="font-medium mb-1 flex items-center gap-2">
+                              <Sparkles className="h-3 w-3 text-primary" />
+                              AI Recommendation
+                            </h4>
+                            <p className="text-muted-foreground">{protocol.aiReasoning}</p>
+                            {protocol.suggestedTiming && (
+                              <p className="text-xs text-muted-foreground mt-2">
+                                <span className="font-medium">Best time:</span> {protocol.suggestedTiming}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                        <div>
+                          <h4 className="font-medium mb-1">Instructions:</h4>
+                          <p className="text-muted-foreground">{protocol.instructions}</p>
+                        </div>
+                        <div>
+                          <h4 className="font-medium mb-1">Benefits:</h4>
+                          <ul className="list-disc list-inside text-muted-foreground space-y-1">
+                            {protocol.benefits.map((benefit, idx) => (
+                              <li key={idx}>{benefit}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex gap-2 items-center flex-wrap">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setExpandedProtocol(expandedProtocol === protocol.id ? null : protocol.id)}
+                        data-testid={`button-expand-${protocol.id}`}
+                      >
+                        {expandedProtocol === protocol.id ? 'Show Less' : 'Show More'}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSchedulingProtocol(protocol)}
+                        data-testid={`button-schedule-${protocol.id}`}
+                      >
+                        <CalendarPlus className="h-4 w-4 mr-1" />
+                        Schedule
+                      </Button>
+                      {!isCompletedToday(protocol.id) && (
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={() => handleComplete(protocol.id)}
+                          disabled={completeMutation.isPending}
+                          data-testid={`button-complete-${protocol.id}`}
+                        >
+                          <CheckCircle2 className="h-4 w-4 mr-1" />
+                          Complete Now
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <Button
+                      size="icon"
+                      variant={protocol.userPreference === 'upvote' ? 'default' : 'outline'}
+                      onClick={() => handleVote(protocol.id, 'upvote', protocol.userPreference)}
+                      disabled={voteMutation.isPending}
+                      data-testid={`button-upvote-${protocol.id}`}
+                      title={protocol.userPreference === 'upvote' ? 'Remove upvote' : 'This helps improve recommendations'}
+                      className={protocol.userPreference === 'upvote' ? 'bg-primary/20 border-primary' : ''}
+                    >
+                      <ThumbsUp className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant={protocol.userPreference === 'downvote' ? 'destructive' : 'outline'}
+                      onClick={() => handleVote(protocol.id, 'downvote', protocol.userPreference)}
+                      disabled={voteMutation.isPending}
+                      data-testid={`button-downvote-${protocol.id}`}
+                      title={protocol.userPreference === 'downvote' ? 'Remove downvote' : 'Hide this type of recommendation'}
+                      className={protocol.userPreference === 'downvote' ? 'bg-destructive/20 border-destructive' : ''}
+                    >
+                      <ThumbsDown className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+      
+      {/* Scheduling Dialog */}
+      {schedulingProtocol && (
+        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle>Schedule Recovery Session</CardTitle>
+              <CardDescription>
+                Schedule "{schedulingProtocol.name}" to your calendar
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <label className="text-sm font-medium">Duration</label>
+                <p className="text-sm text-muted-foreground">{schedulingProtocol.duration} minutes</p>
+              </div>
+              {schedulingProtocol.aiReasoning && (
+                <div className="p-3 rounded bg-primary/5 border border-primary/20">
+                  <h4 className="font-medium mb-1 text-sm flex items-center gap-2">
+                    <Sparkles className="h-3 w-3 text-primary" />
+                    Why This Helps
+                  </h4>
+                  <p className="text-sm text-muted-foreground">{schedulingProtocol.aiReasoning}</p>
+                </div>
+              )}
+              <div className="flex gap-2 justify-end">
+                <Button
+                  variant="outline"
+                  onClick={() => setSchedulingProtocol(null)}
+                  data-testid="button-cancel-schedule"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => {
+                    // Schedule for tomorrow at 10am
+                    const tomorrow = new Date();
+                    tomorrow.setDate(tomorrow.getDate() + 1);
+                    tomorrow.setHours(10, 0, 0, 0);
+                    scheduleSessionMutation.mutate({
+                      protocolName: schedulingProtocol.name,
+                      duration: schedulingProtocol.duration,
+                      scheduledFor: tomorrow,
+                    });
+                  }}
+                  disabled={scheduleSessionMutation.isPending}
+                  data-testid="button-confirm-schedule"
+                >
+                  Schedule for Tomorrow
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
-      </CardContent>
-    </Card>
+      )}
+    </>
   );
 }

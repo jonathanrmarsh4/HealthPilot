@@ -4593,6 +4593,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (existingScore) {
         // Return cached score from today
         return res.json({
+          overall: existingScore.score,
           score: existingScore.score,
           quality: existingScore.quality,
           recommendation: existingScore.recommendation,
@@ -4641,7 +4642,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         workloadScore: readinessScore.factors.workloadRecovery.score,
       });
       
-      res.json(readinessScore);
+      // Add 'overall' field for frontend compatibility
+      res.json({
+        ...readinessScore,
+        overall: readinessScore.score
+      });
     } catch (error: any) {
       console.error("Error calculating readiness score:", error);
       res.status(500).json({ error: error.message });

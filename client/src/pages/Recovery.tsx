@@ -43,7 +43,7 @@ export default function Recovery() {
   const { toast } = useToast();
   
   const { data: readinessScore, isLoading } = useQuery<ReadinessScore>({
-    queryKey: ["/api/readiness/score"],
+    queryKey: ["/api/training/readiness"],
   });
 
   const { data: scheduledSessions = [], isLoading: isLoadingSessions } = useQuery<RecoverySession[]>({
