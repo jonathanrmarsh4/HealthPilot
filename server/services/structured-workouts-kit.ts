@@ -120,6 +120,7 @@ INSTRUCTIONS:
 2. Select appropriate modality based on available equipment
 3. Fill the ${availableTime}-minute time budget efficiently
 4. Return ONLY valid JSON matching the schema - NO prose, explanations, or markdown
+5. CRITICAL: ALL blocks MUST have type="lift_block" - NO other block types are allowed
 
 AVAILABLE PATTERNS:
 Legs: knee_dominant, hip_hinge, lunge_split, calf
@@ -128,7 +129,7 @@ Pull: horizontal_pull, vertical_pull
 Arms: biceps, triceps, shoulder_iso
 Core: core_anti_ext, core_anti_rot
 
-SCHEMA:
+SCHEMA (ALL blocks use type="lift_block"):
 {
   "blocks": [
     {
@@ -139,6 +140,15 @@ SCHEMA:
       "reps": 8,
       "rest_s": 120,
       "intensity": { "scheme": "rir", "target": 2 }
+    },
+    {
+      "type": "lift_block",
+      "pattern": "core_anti_ext",
+      "preferred_modality": "bodyweight",
+      "sets": 3,
+      "reps": 12,
+      "rest_s": 60,
+      "intensity": { "scheme": "rir", "target": 3 }
     }
   ],
   "total_time_estimate_min": ${availableTime},
