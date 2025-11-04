@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RecoveryProtocols } from "@/components/RecoveryProtocols";
 import { RecommendationCalendar } from "@/components/RecommendationCalendar";
+import { MuscleRecoveryGrid } from "@/components/MuscleRecoveryGrid";
+import { RecoveryTimelineChart } from "@/components/RecoveryTimelineChart";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Sparkles, HeartPulse, Activity, TrendingUp, Calendar } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
@@ -10,6 +12,7 @@ import { Link } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import { RecoveryState, TimelineEvent } from "@/types/recovery";
 
 interface ReadinessScore {
   overall: number;
@@ -48,6 +51,19 @@ export default function Recovery() {
 
   const { data: scheduledSessions = [], isLoading: isLoadingSessions } = useQuery<RecoverySession[]>({
     queryKey: ["/api/recovery/scheduled"],
+  });
+
+  const { data: recoveryState, isLoading: isLoadingRecoveryState } = useQuery<RecoveryState>({
+    queryKey: ["/api/recovery/state"],
+  });
+
+  const { data: recoveryTimeline = [], isLoading: isLoadingTimeline } = useQuery<TimelineEvent[]>({
+    queryKey: ["/api/recovery/timeline"],
+    queryFn: async () => {
+      const response = await fetch("/api/recovery/timeline?days=7");
+      if (!response.ok) throw new Error("Failed to fetch recovery timeline");
+      return response.json();
+    },
   });
 
   const rescheduleSessionMutation = useMutation({
@@ -192,6 +208,51 @@ export default function Recovery() {
           </Card>
         </div>
       )}
+
+      {/* Muscle Group Recovery */}
+      <Card data-testid="card-muscle-group-recovery">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Activity className="h-5 w-5 text-primary" />
+            Muscle Group Recovery
+          </CardTitle>
+          <CardDescription>
+            Track recovery status for each major muscle group
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <MuscleRecoveryGrid 
+            muscleGroups={recoveryState?.muscleGroups || {
+              chest: 0,
+              back: 0,
+              legs: 0,
+              shoulders: 0,
+              arms: 0,
+              core: 0,
+            }}
+            isLoading={isLoadingRecoveryState}
+          />
+        </CardContent>
+      </Card>
+
+      {/* Recovery Timeline */}
+      <Card data-testid="card-recovery-timeline">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <TrendingUp className="h-5 w-5 text-primary" />
+            Recovery Timeline (7 Days)
+          </CardTitle>
+          <CardDescription>
+            Your systemic recovery trend over the past week
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <RecoveryTimelineChart 
+            timeline={recoveryTimeline}
+            isLoading={isLoadingTimeline}
+          />
+        </CardContent>
+      </Card>
 
       {/* Recovery Protocols */}
       <RecoveryProtocols />
