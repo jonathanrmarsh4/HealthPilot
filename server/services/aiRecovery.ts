@@ -141,11 +141,18 @@ export async function collectRecoveryContext(
     return completedDate >= sevenDaysAgo;
   });
   const completedProtocols = recentCompletions.map(c => c.protocolId);
+  // Get upvoted categories (not protocol IDs)
+  const upvotedProtocolIds = protocolPreferences
+    .filter(p => p.preference === 'upvote')
+    .map(p => p.protocolId);
+  
+  // Map protocol IDs to their categories
+  const allProtocols = await storage.getRecoveryProtocols();
   const upvotedCategories = Array.from(
     new Set(
-      protocolPreferences
-        .filter(p => p.preference === 'upvote')
-        .map(p => p.protocolId)
+      upvotedProtocolIds
+        .map(id => allProtocols.find(p => p.id === id)?.category)
+        .filter(Boolean) as string[]
     )
   );
   const downvotedProtocols = protocolPreferences
@@ -272,7 +279,7 @@ Guidelines:
 - Suggest optimal timing for each protocol
 - Consider the user's experience level and goals
 
-Response format: JSON with the following structure:
+IMPORTANT: You must respond with ONLY valid JSON, no preamble or explanation. Response format:
 {
   "recommendations": [
     {
@@ -314,6 +321,7 @@ ${context.trainingLoad.upcomingWorkouts.length > 0 ? `- Upcoming Workouts: ${con
 
 PROTOCOL HISTORY:
 - Recently Completed: ${context.protocolHistory.completedProtocols.length} protocols
+- Preferred Categories: ${context.protocolHistory.upvotedCategories.join(', ') || 'None'}
 - Downvoted Protocols: ${context.protocolHistory.downvotedProtocols.join(', ') || 'None'}
 
 ACTIVE GOALS:
@@ -347,13 +355,104 @@ Provide exactly 3 protocol recommendations, ranked by priority. Focus on protoco
       throw new Error("Unexpected response type from Claude");
     }
 
-    // Parse AI response
-    const aiResponse = JSON.parse(content.text);
+    // Extract JSON from response, handling preamble text and code fences
+    let jsonText = content.text.trim();
+    
+    // Find JSON object starting with expected structure
+    const jsonStartMatch = jsonText.match(/\{\s*"recommendations"\s*:/);
+    
+    if (jsonStartMatch) {
+      // Found the start of our expected JSON structure
+      const startIndex = jsonStartMatch.index!;
+      const substring = jsonText.substring(startIndex);
+      
+      // Find the matching closing brace, respecting quoted strings
+      let braceCount = 0;
+      let inString = false;
+      let escapeNext = false;
+      let endIndex = -1;
+      
+      for (let i = 0; i < substring.length; i++) {
+        const char = substring[i];
+        
+        if (escapeNext) {
+          escapeNext = false;
+          continue;
+        }
+        
+        if (char === '\\') {
+          escapeNext = true;
+          continue;
+        }
+        
+        if (char === '"') {
+          inString = !inString;
+          continue;
+        }
+        
+        // Only count braces outside of quoted strings
+        if (!inString) {
+          if (char === '{') braceCount++;
+          if (char === '}') {
+            braceCount--;
+            if (braceCount === 0) {
+              endIndex = i + 1;
+              break;
+            }
+          }
+        }
+      }
+      
+      if (endIndex > 0) {
+        jsonText = substring.substring(0, endIndex);
+      }
+    }
+
+    // Parse and validate AI response
+    const aiResponse = JSON.parse(jsonText);
+    
+    // Validate required fields
+    if (!aiResponse.recommendations || !Array.isArray(aiResponse.recommendations)) {
+      throw new Error("AI response missing recommendations array");
+    }
+    
+    // Create protocol ID lookup for validation
+    const protocolIdSet = new Set(availableProtocols.map(p => p.id));
+    
+    // Validate each recommendation strictly
+    const validatedRecommendations = aiResponse.recommendations
+      .filter((rec: any) => {
+        // Check all required fields exist and have correct types
+        if (!rec.protocolId || typeof rec.protocolId !== 'string') return false;
+        if (!rec.protocolName || typeof rec.protocolName !== 'string') return false;
+        if (!rec.category || typeof rec.category !== 'string') return false;
+        if (!rec.reasoning || typeof rec.reasoning !== 'string') return false;
+        if (!rec.suggestedTiming || typeof rec.suggestedTiming !== 'string') return false;
+        if (typeof rec.confidence !== 'number' || rec.confidence < 0 || rec.confidence > 100) return false;
+        if (typeof rec.priority !== 'number' || rec.priority < 1 || rec.priority > 3) return false;
+        
+        // Verify protocol ID exists in available protocols
+        if (!protocolIdSet.has(rec.protocolId)) {
+          console.warn(`AI recommended invalid protocol ID: ${rec.protocolId}`);
+          return false;
+        }
+        
+        return true;
+      })
+      .slice(0, 3); // Max 3 recommendations
+    
+    if (validatedRecommendations.length === 0) {
+      throw new Error("No valid recommendations in AI response after validation");
+    }
     
     return {
-      recommendations: aiResponse.recommendations,
-      overallStrategy: aiResponse.overallStrategy,
-      keyInsights: aiResponse.keyInsights || [],
+      recommendations: validatedRecommendations,
+      overallStrategy: typeof aiResponse.overallStrategy === 'string' 
+        ? aiResponse.overallStrategy 
+        : "Personalized recovery approach based on your current state",
+      keyInsights: Array.isArray(aiResponse.keyInsights) 
+        ? aiResponse.keyInsights.filter((insight: any) => typeof insight === 'string')
+        : [],
     };
   } catch (error) {
     console.error("Error generating AI recovery recommendations:", error);
