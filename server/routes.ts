@@ -8842,6 +8842,7 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
       cleanResponse = cleanResponse.replace(/<<<SAVE_MEAL_PLAN>>>[\s\S]*?<<<END_SAVE_MEAL_PLAN>>>/g, '');
       cleanResponse = cleanResponse.replace(/<<<SAVE_GOAL>>>[\s\S]*?<<<END_SAVE_GOAL>>>/g, '');
       cleanResponse = cleanResponse.replace(/<<<SAVE_SUPPLEMENT>>>[\s\S]*?<<<END_SAVE_SUPPLEMENT>>>/g, '');
+      cleanResponse = cleanResponse.replace(/<<<SAVE_SYMPTOM>>>[\s\S]*?<<<END_SAVE_SYMPTOM>>>/g, '');
       cleanResponse = cleanResponse.replace(/<<<SAVE_EXERCISE>>>[\s\S]*?<<<END_SAVE_EXERCISE>>>/g, '');
       cleanResponse = cleanResponse.replace(/<<<SAVE_RECOVERY_PROTOCOL>>>[\s\S]*?<<<END_SAVE_RECOVERY_PROTOCOL>>>/g, '');
       cleanResponse = cleanResponse.replace(/<<<UPDATE_USER_PROFILE>>>[\s\S]*?<<<END_UPDATE_USER_PROFILE>>>/g, '');
@@ -9123,6 +9124,48 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
         }
       } else {
         console.log("ℹ️ No supplement markers found in AI response");
+      }
+
+      // Check if AI response contains symptom tracking to save
+      let symptomSaved = false;
+      const symptomMatches = [...aiResponse.matchAll(/<<<SAVE_SYMPTOM>>>([\s\S]*?)<<<END_SAVE_SYMPTOM>>>/g)];
+      
+      if (symptomMatches.length > 0) {
+        console.log(`🩺 Symptom markers found! Found ${symptomMatches.length} symptom(s) to track...`);
+        
+        for (const symptomMatch of symptomMatches) {
+          try {
+            const symptomJson = symptomMatch[1].trim();
+            console.log("📋 Symptom JSON:", symptomJson);
+            const symptom = JSON.parse(symptomJson);
+            
+            console.log("💾 Tracking symptom:", symptom.name);
+            
+            // Use today's date for symptom event
+            const today = new Date().toISOString().split('T')[0];
+            
+            await storage.createSymptomEvent({
+              userId,
+              name: symptom.name,
+              severity: symptom.severity || 5, // Default to moderate if not specified
+              context: symptom.context || [],
+              notes: symptom.notes || null,
+              date: today,
+            });
+            
+            symptomSaved = true;
+            console.log("✅ Symptom tracked successfully!");
+          } catch (e) {
+            console.error("❌ Failed to parse and save symptom:", e);
+            console.error("Raw JSON that failed:", symptomMatch[1].trim());
+          }
+        }
+        
+        if (symptomSaved) {
+          console.log("✨ All symptoms tracked successfully!");
+        }
+      } else {
+        console.log("ℹ️ No symptom markers found in AI response");
       }
 
       // Check if AI response contains exercise recommendations to save
@@ -9651,6 +9694,7 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
         mealPlanSaved,
         goalSaved,
         supplementSaved,
+        symptomSaved,
         exerciseSaved,
         fitnessProfileUpdated,
         userProfileUpdated,
