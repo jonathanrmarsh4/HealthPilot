@@ -1,7 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Activity, Heart, Dumbbell, Sparkles, Shield, Brain, TrendingUp, Apple, Lock, Check, Loader2, Trash2 } from "lucide-react";
+import { Loader2, Trash2 } from "lucide-react";
 import logo from "@assets/HealthPilot_Logo_1759904141260.png";
 import { isNativePlatform } from "@/mobile/MobileBootstrap";
 import { Browser } from '@capacitor/browser';
@@ -11,12 +9,14 @@ import { SecureStorage } from '@aparajita/capacitor-secure-storage';
 import { apiRequest, queryClient, getApiBaseUrl } from "@/lib/queryClient";
 import { useState, useEffect, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useTheme } from "@/components/ThemeProvider";
 
 export default function Login() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [showDevTools, setShowDevTools] = useState(false);
   const pollIntervalRef = useRef<number | null>(null);
   const { toast } = useToast();
+  const { theme } = useTheme();
 
   // Poll server for auth token using device ID
   const checkForPendingAuth = async () => {
@@ -186,357 +186,105 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0A0F1F]">
-      {/* Hero Section */}
-      <div className="container mx-auto px-4 py-12">
-        <div className="max-w-7xl mx-auto">
-          {/* Header */}
-          <div className="flex items-center justify-center gap-3 mb-8">
-            <img src={logo} alt="HealthPilot" className="h-16 w-16" />
-            <h1 className="text-5xl font-bold text-white">HealthPilot</h1>
-          </div>
+    <div className={`premium-theme ${theme === 'dark' ? 'dark' : ''} min-h-screen flex flex-col items-center justify-between p-6 relative overflow-hidden`}>
+      {/* Premium gradient background */}
+      <div 
+        className="absolute inset-0 -z-10"
+        style={{
+          background: 'linear-gradient(180deg, rgba(255,124,119,1) 0%, rgba(229,138,201,0.9) 40%, rgba(0,207,207,1) 100%)'
+        }}
+      />
 
-          {/* Main Headline */}
-          <div className="text-center mb-12 space-y-4">
-            <h2 className="text-4xl lg:text-5xl font-bold text-white max-w-4xl mx-auto leading-tight">
-              Evidence-Based AI Health Optimization Aligned with Medical Standards
-            </h2>
-            <p className="text-xl text-gray-400 max-w-3xl mx-auto">
-              Your personal health intelligence system that transforms biomarkers, wearable data, and health records into actionable insights—powered by AI trained on ACSM, NSCA, and WHO guidelines.
-            </p>
-            
-            {/* Trust Badges */}
-            <div className="flex flex-wrap items-center justify-center gap-2 pt-4">
-              <Badge variant="outline" className="text-xs border-[#00E0C6]/30 bg-[#00E0C6]/5 text-[#00E0C6]">
-                <Shield className="h-3 w-3 mr-1" />
-                ACSM Aligned
-              </Badge>
-              <Badge variant="outline" className="text-xs border-[#00E0C6]/30 bg-[#00E0C6]/5 text-[#00E0C6]">
-                <Shield className="h-3 w-3 mr-1" />
-                NSCA Standards
-              </Badge>
-              <Badge variant="outline" className="text-xs border-[#00E0C6]/30 bg-[#00E0C6]/5 text-[#00E0C6]">
-                <Shield className="h-3 w-3 mr-1" />
-                WHO Guidelines
-              </Badge>
-              <Badge variant="outline" className="text-xs border-[#00E0C6]/30 bg-[#00E0C6]/5 text-[#00E0C6]">
-                <Lock className="h-3 w-3 mr-1" />
-                HIPAA Compliant
-              </Badge>
-            </div>
-          </div>
+      {/* Top spacer */}
+      <div className="flex-1" />
 
-          {/* Login Card - Centered */}
-          <Card className="w-full max-w-md mx-auto mb-16 bg-white/5 backdrop-blur-xl border-white/10">
-            <CardHeader className="text-center">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex-1" />
-                <CardTitle className="text-2xl text-white flex-1">Start Your Health Journey</CardTitle>
-                {isNativePlatform() && (
-                  <button
-                    onClick={() => setShowDevTools(!showDevTools)}
-                    className="text-xs text-gray-500 hover:text-gray-300 px-2"
-                  >
-                    {showDevTools ? 'Hide' : 'Dev'}
-                  </button>
-                )}
-              </div>
-              <CardDescription className="text-gray-400">
-                Join thousands optimizing their health with AI-powered insights
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Button
-                onClick={handleLogin}
-                className="w-full bg-[#00E0C6] text-[#0A0F1F] hover:bg-[#00E0C6]/90 shadow-[0_0_24px_rgba(0,224,198,0.35)] hover:shadow-[0_0_36px_rgba(0,224,198,0.55)]"
-                size="lg"
-                data-testid="button-login"
-                disabled={isProcessing}
-              >
-                {isProcessing ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Completing Login...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="h-4 w-4 mr-2" />
-                    Sign In with Replit
-                  </>
-                )}
-              </Button>
+      {/* Main content - centered */}
+      <div className="flex flex-col items-center justify-center space-y-8 w-full max-w-md">
+        {/* Logo */}
+        <img 
+          src={logo} 
+          alt="HealthPilot" 
+          className="h-32 w-32 drop-shadow-lg"
+        />
 
-              {isNativePlatform() && showDevTools && (
-                <div className="space-y-2 pt-2 border-t border-white/10">
-                  <p className="text-xs text-gray-400">
-                    🔧 Dev Tools (iOS only)
-                  </p>
-                  <Button
-                    onClick={handleForceLogout}
-                    variant="destructive"
-                    size="sm"
-                    className="w-full"
-                    data-testid="button-force-logout"
-                  >
-                    <Trash2 className="h-3 w-3 mr-2" />
-                    Clear Keychain & Force Logout
-                  </Button>
-                  <p className="text-xs text-gray-500 text-center">
-                    Use this if you're stuck in auto-login loop
-                  </p>
-                </div>
-              )}
-              
-              <p className="text-xs text-center text-gray-500">
-                By signing in, you agree to our{" "}
-                <a href="/privacy" className="text-[#00E0C6] hover:underline">Privacy Policy</a>
-                {" "}and{" "}
-                <a href="/terms" className="text-[#00E0C6] hover:underline">Terms of Service</a>
-              </p>
-            </CardContent>
-          </Card>
+        {/* Brand name */}
+        <h1 className="text-5xl font-bold text-white tracking-tight drop-shadow-md">
+          HealthPilot
+        </h1>
 
-          {/* Core Features Grid */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
-            <Card className="bg-white/5 backdrop-blur-xl border-white/10 hover:bg-white/10 transition-colors">
-              <CardHeader>
-                <div className="p-3 rounded-lg bg-[#00E0C6]/10 w-fit mb-2">
-                  <Brain className="h-6 w-6 text-[#00E0C6]" />
-                </div>
-                <CardTitle className="text-lg text-white">AI-Powered Analysis</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-gray-400">
-                  Advanced AI analyzes your biomarkers, sleep, HRV, and workout data to deliver personalized daily recommendations with transparent evidence citations.
-                </p>
-              </CardContent>
-            </Card>
+        {/* Tagline */}
+        <p className="text-2xl text-white/95 font-light">
+          Your Body, Decoded.
+        </p>
 
-            <Card className="bg-white/5 backdrop-blur-xl border-white/10 hover:bg-white/10 transition-colors">
-              <CardHeader>
-                <div className="p-3 rounded-lg bg-[#00E0C6]/10 w-fit mb-2">
-                  <Dumbbell className="h-6 w-6 text-[#00E0C6]" />
-                </div>
-                <CardTitle className="text-lg text-white">Evidence-Based Training</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-gray-400">
-                  Training prescriptions aligned with ACSM and NSCA standards. Progressive overload, auto-regulation, and safety-first guardrails built in.
-                </p>
-              </CardContent>
-            </Card>
+        {/* Sign In Button */}
+        <Button
+          onClick={handleLogin}
+          className="w-full max-w-sm bg-white text-gray-800 hover:bg-white/90 rounded-full py-7 text-xl font-medium shadow-lg"
+          size="lg"
+          data-testid="button-login"
+          disabled={isProcessing}
+        >
+          {isProcessing ? (
+            <>
+              <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+              Completing Login...
+            </>
+          ) : (
+            "Sign In"
+          )}
+        </Button>
 
-            <Card className="bg-white/5 backdrop-blur-xl border-white/10 hover:bg-white/10 transition-colors">
-              <CardHeader>
-                <div className="p-3 rounded-lg bg-[#00E0C6]/10 w-fit mb-2">
-                  <Heart className="h-6 w-6 text-[#00E0C6]" />
-                </div>
-                <CardTitle className="text-lg text-white">Personalized Nutrition</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-gray-400">
-                  AI-generated meal plans based on ADA and AND guidelines. Macros calculated from your biomarkers, activity level, and health goals.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-white/5 backdrop-blur-xl border-white/10 hover:bg-white/10 transition-colors">
-              <CardHeader>
-                <div className="p-3 rounded-lg bg-[#00E0C6]/10 w-fit mb-2">
-                  <Activity className="h-6 w-6 text-[#00E0C6]" />
-                </div>
-                <CardTitle className="text-lg text-white">Biomarker Tracking</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-gray-400">
-                  Track blood work, vitals, and health metrics over time. AI identifies patterns and alerts you to concerning trends before they become problems.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-white/5 backdrop-blur-xl border-white/10 hover:bg-white/10 transition-colors">
-              <CardHeader>
-                <div className="p-3 rounded-lg bg-[#00E0C6]/10 w-fit mb-2">
-                  <Apple className="h-6 w-6 text-[#00E0C6]" />
-                </div>
-                <CardTitle className="text-lg text-white">Apple Health Integration</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-gray-400">
-                  Seamlessly sync sleep, HRV, workouts, and activity data. Native iOS app with direct HealthKit integration for real-time insights.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-white/5 backdrop-blur-xl border-white/10 hover:bg-white/10 transition-colors">
-              <CardHeader>
-                <div className="p-3 rounded-lg bg-[#00E0C6]/10 w-fit mb-2">
-                  <TrendingUp className="h-6 w-6 text-[#00E0C6]" />
-                </div>
-                <CardTitle className="text-lg text-white">Readiness Score System</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-gray-400">
-                  Multi-factor readiness assessment using sleep quality, HRV, resting heart rate, and workout load to optimize training and recovery.
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* How It Works Section */}
-          <div className="mb-16">
-            <h3 className="text-3xl font-bold text-center mb-8 text-white">How HealthPilot Works</h3>
-            <div className="grid md:grid-cols-3 gap-8">
-              <div className="text-center space-y-3">
-                <div className="w-12 h-12 rounded-full bg-[#00E0C6]/10 flex items-center justify-center mx-auto">
-                  <span className="text-2xl font-bold text-[#00E0C6]">1</span>
-                </div>
-                <h4 className="font-semibold text-lg text-white">Connect Your Data</h4>
-                <p className="text-sm text-gray-400">
-                  Sync Apple Health, upload blood work, or manually track biomarkers. All data encrypted and HIPAA-compliant.
-                </p>
-              </div>
-
-              <div className="text-center space-y-3">
-                <div className="w-12 h-12 rounded-full bg-[#00E0C6]/10 flex items-center justify-center mx-auto">
-                  <span className="text-2xl font-bold text-[#00E0C6]">2</span>
-                </div>
-                <h4 className="font-semibold text-lg text-white">AI Analyzes & Learns</h4>
-                <p className="text-sm text-gray-400">
-                  Our AI processes your data against medical guidelines, identifies patterns, and learns your unique physiology.
-                </p>
-              </div>
-
-              <div className="text-center space-y-3">
-                <div className="w-12 h-12 rounded-full bg-[#00E0C6]/10 flex items-center justify-center mx-auto">
-                  <span className="text-2xl font-bold text-[#00E0C6]">3</span>
-                </div>
-                <h4 className="font-semibold text-lg text-white">Get Personalized Plans</h4>
-                <p className="text-sm text-gray-400">
-                  Receive daily training prescriptions, meal plans, and health insights tailored to your current state and goals.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Health Standards Section */}
-          <Card className="mb-16 bg-white/5 backdrop-blur-xl border-white/10">
-            <CardHeader className="text-center">
-              <CardTitle className="text-2xl text-white">Built on Medical & Scientific Standards</CardTitle>
-              <CardDescription className="text-gray-400">
-                Every recommendation is grounded in peer-reviewed research and clinical guidelines
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="flex items-start gap-3">
-                  <Check className="h-5 w-5 text-[#00E0C6] mt-0.5 flex-shrink-0" />
-                  <div>
-                    <p className="font-semibold text-white">ACSM (American College of Sports Medicine)</p>
-                    <p className="text-sm text-gray-400">Exercise prescription, HR max caps, screening guidelines</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3">
-                  <Check className="h-5 w-5 text-[#00E0C6] mt-0.5 flex-shrink-0" />
-                  <div>
-                    <p className="font-semibold text-white">NSCA (National Strength & Conditioning)</p>
-                    <p className="text-sm text-gray-400">Progressive overload, periodization, volume/intensity limits</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3">
-                  <Check className="h-5 w-5 text-[#00E0C6] mt-0.5 flex-shrink-0" />
-                  <div>
-                    <p className="font-semibold text-white">WHO (World Health Organization)</p>
-                    <p className="text-sm text-gray-400">Physical activity guidelines, minimum rest days</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3">
-                  <Check className="h-5 w-5 text-[#00E0C6] mt-0.5 flex-shrink-0" />
-                  <div>
-                    <p className="font-semibold text-white">ADA & AND (Nutrition Standards)</p>
-                    <p className="text-sm text-gray-400">Dietary guidelines, macro recommendations</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3">
-                  <Check className="h-5 w-5 text-[#00E0C6] mt-0.5 flex-shrink-0" />
-                  <div>
-                    <p className="font-semibold text-white">AHA (American Heart Association)</p>
-                    <p className="text-sm text-gray-400">Cardiovascular health, blood pressure thresholds</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3">
-                  <Check className="h-5 w-5 text-[#00E0C6] mt-0.5 flex-shrink-0" />
-                  <div>
-                    <p className="font-semibold text-white">Evidence Citations</p>
-                    <p className="text-sm text-gray-400">Transparent references for all AI recommendations</p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* CTA Section */}
-          <div className="text-center mb-12">
-            <h3 className="text-3xl font-bold mb-4 text-white">Ready to Optimize Your Health?</h3>
-            <p className="text-gray-400 mb-6">
-              Join the future of personalized health intelligence
-            </p>
+        {/* Dev Tools - hidden by default, show on triple tap */}
+        {isNativePlatform() && showDevTools && (
+          <div className="w-full max-w-sm space-y-2 pt-4">
             <Button
-              onClick={handleLogin}
-              size="lg"
-              className="text-lg px-8 bg-[#00E0C6] text-[#0A0F1F] hover:bg-[#00E0C6]/90 shadow-[0_0_24px_rgba(0,224,198,0.35)] hover:shadow-[0_0_36px_rgba(0,224,198,0.55)]"
-              data-testid="button-login-cta"
+              onClick={handleForceLogout}
+              variant="destructive"
+              size="sm"
+              className="w-full"
+              data-testid="button-force-logout"
             >
-              <Sparkles className="h-5 w-5 mr-2" />
-              Get Started Free
+              <Trash2 className="h-3 w-3 mr-2" />
+              Clear Keychain & Force Logout
             </Button>
+            <p className="text-xs text-white/70 text-center">
+              Dev tool: Use if stuck in auto-login loop
+            </p>
           </div>
+        )}
+      </div>
 
-          {/* Privacy & Compliance Footer */}
-          <div className="border-t border-white/10 pt-8">
-            <div className="text-center space-y-4">
-              <div className="flex items-center justify-center gap-2 flex-wrap">
-                <Badge variant="outline" className="text-xs border-white/20 text-gray-300 bg-white/5">
-                  <Lock className="h-3 w-3 mr-1" />
-                  HIPAA Compliant
-                </Badge>
-                <Badge variant="outline" className="text-xs border-white/20 text-gray-300 bg-white/5">
-                  <Lock className="h-3 w-3 mr-1" />
-                  GDPR Compliant
-                </Badge>
-                <Badge variant="outline" className="text-xs border-white/20 text-gray-300 bg-white/5">
-                  <Lock className="h-3 w-3 mr-1" />
-                  PIPEDA Compliant
-                </Badge>
-                <Badge variant="outline" className="text-xs border-white/20 text-gray-300 bg-white/5">
-                  <Lock className="h-3 w-3 mr-1" />
-                  Australia Privacy Act
-                </Badge>
-              </div>
-              
-              <p className="text-xs text-gray-400 max-w-4xl mx-auto leading-relaxed">
-                <strong className="text-white">Privacy & Data Protection:</strong> HealthPilot complies with HIPAA (US), GDPR (EU), PIPEDA (Canada), and Australia Privacy Act standards. 
-                All health data is encrypted at rest and in transit. We provide granular consent management, comprehensive audit logging, 
-                30-day account deletion grace period, and full data export capabilities. Your health data is never sold to third parties. 
-                You maintain complete control over your data through our{" "}
-                <a href="/privacy-dashboard" className="text-[#00E0C6] hover:underline">Privacy Dashboard</a>.
-              </p>
-              
-              <p className="text-xs text-gray-500">
-                <a href="/privacy" className="text-[#00E0C6] hover:underline">Privacy Policy</a>
-                {" · "}
-                <a href="/terms" className="text-[#00E0C6] hover:underline">Terms of Service</a>
-                {" · "}
-                <a href="/privacy-dashboard" className="text-[#00E0C6] hover:underline">Privacy Dashboard</a>
-              </p>
-            </div>
-          </div>
-        </div>
+      {/* Bottom section */}
+      <div className="flex flex-col items-center space-y-4 w-full max-w-md pb-8">
+        {/* SignUp link */}
+        <button
+          onClick={handleLogin}
+          className="text-white text-lg font-light hover:underline"
+          data-testid="button-signup"
+        >
+          SignUp
+        </button>
+
+        {/* Privacy & Terms - minimal */}
+        <p className="text-xs text-center text-white/80">
+          By signing in, you agree to our{" "}
+          <a href="/privacy" className="underline">Privacy Policy</a>
+          {" "}and{" "}
+          <a href="/terms" className="underline">Terms of Service</a>
+        </p>
+
+        {/* Hidden dev trigger - triple tap to show dev tools */}
+        {isNativePlatform() && (
+          <div
+            onClick={(e) => {
+              if (e.detail === 3) {
+                setShowDevTools(!showDevTools);
+              }
+            }}
+            className="h-8 w-full"
+          />
+        )}
       </div>
     </div>
   );
