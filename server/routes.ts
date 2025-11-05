@@ -26,6 +26,8 @@ import { WebSocketServer } from "ws";
 import type { IncomingMessage } from "http";
 import { initNotificationOrchestrator } from "./services/notifications";
 import { isNotificationsLayerEnabled } from "@shared/config/flags";
+import { BIOMARKER_THRESHOLDS } from "./config/biomarkerThresholds";
+import { eventBus } from "./lib/eventBus";
 
 // Zod schema for admin user updates
 const adminUserUpdateSchema = z.object({
@@ -107,6 +109,71 @@ function estimateIntensity(avgHeartRate?: number | null, perceivedEffort?: numbe
   
   // Default to moderate if no data
   return "Moderate";
+}
+
+// Helper function to check biomarker alerts for out-of-range values
+async function checkBiomarkerAlert(userId: string, biomarker: any): Promise<void> {
+  if (!isNotificationsLayerEnabled()) {
+    return; // Skip if notifications are disabled
+  }
+
+  const threshold = BIOMARKER_THRESHOLDS[biomarker.type];
+  if (!threshold || !threshold.referenceRange) {
+    return; // No threshold defined for this biomarker type
+  }
+
+  const { low, high } = threshold.referenceRange;
+  const value = biomarker.value;
+  
+  // Calculate deviation percentage from reference range
+  const percentDeviation = value < low 
+    ? ((low - value) / low) * 100
+    : value > high
+      ? ((value - high) / high) * 100
+      : 0;
+  
+  // Check if value is outside safe range, respecting directional thresholds
+  let status: 'low' | 'high' | 'critical' | null = null;
+  let message = '';
+  
+  // Respect the direction field - only alert on clinically meaningful deviations
+  if (value < low && (threshold.direction === 'both' || threshold.direction === 'decrease')) {
+    // Low values matter for: HDL, eGFR, hemoglobin, etc.
+    // Use criticalPercentageDeviation from config to determine severity
+    status = percentDeviation >= threshold.criticalPercentageDeviation ? 'critical' : 'low';
+    message = `Your ${threshold.displayName} is ${status === 'critical' ? 'critically ' : ''}low at ${value} ${threshold.unit} (normal: ${low}-${high} ${threshold.unit})`;
+  } else if (value > high && (threshold.direction === 'both' || threshold.direction === 'increase')) {
+    // High values matter for: LDL, glucose, blood pressure, etc.
+    // Use criticalPercentageDeviation from config to determine severity
+    status = percentDeviation >= threshold.criticalPercentageDeviation ? 'critical' : 'high';
+    message = `Your ${threshold.displayName} is ${status === 'critical' ? 'critically ' : ''}high at ${value} ${threshold.unit} (normal: ${low}-${high} ${threshold.unit})`;
+  }
+  
+  // Emit alert if outside range AND clinically relevant
+  if (status) {
+    try {
+      // Use recordedAt if available, otherwise use current date
+      const timestamp = biomarker.recordedAt instanceof Date 
+        ? biomarker.recordedAt.toISOString()
+        : (biomarker.recordedAt || new Date().toISOString());
+        
+      eventBus.emit('biomarker:alert', {
+        userId,
+        biomarkerName: threshold.displayName,
+        biomarkerType: biomarker.type,
+        value,
+        unit: threshold.unit,
+        referenceRange: { low, high },
+        status,
+        message,
+        deepLink: `healthpilot://biomarkers/${biomarker.type}`,
+        recordedAt: timestamp,
+      });
+      console.log(`[BiomarkerAlert] Emitted ${status} alert for ${threshold.displayName}: ${value} ${threshold.unit}`);
+    } catch (error: any) {
+      console.error(`[BiomarkerAlert] Error emitting alert:`, error);
+    }
+  }
 }
 
 // Helper functions for symptom assessment workflow
@@ -3045,6 +3112,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (onboardingStatus && !onboardingStatus.biomarkersSetupComplete) {
         await storage.updateOnboardingFlag(userId, 'biomarkersSetupComplete', true);
       }
+      
+      // Check for biomarker alerts (out of range values)
+      await checkBiomarkerAlert(userId, biomarker);
       
       res.json(biomarker);
     } catch (error: any) {
