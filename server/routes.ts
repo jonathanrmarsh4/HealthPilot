@@ -6655,6 +6655,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "At least one field must be provided for update" });
       }
       
+      // Get the existing set to check if completion status will change
+      const existingSetResult = await db
+        .select()
+        .from(exerciseSets)
+        .where(and(eq(exerciseSets.id, id), eq(exerciseSets.userId, userId)))
+        .limit(1);
+      
+      if (existingSetResult.length === 0) {
+        return res.status(404).json({ error: "Exercise set not found" });
+      }
+      
+      const existingSet = existingSetResult[0];
+      
       // Convert restStartedAt string to Date if present
       const dataToUpdate = {
         ...validatedData,
@@ -6665,6 +6678,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!updatedSet) {
         return res.status(404).json({ error: "Exercise set not found" });
       }
+      
+      // If completion state changed (comparing actual stored values), update recovery status in real-time
+      if (existingSet.completed !== updatedSet.completed && updatedSet.workoutSessionId) {
+        try {
+          // Recalculate fatigue from only completed sets in this workout
+          // This ensures fatigue resets to zero if no sets are completed,
+          // or accurately reflects remaining completed sets
+          await applyWorkoutFatigue(userId, updatedSet.workoutSessionId, new Date(), true);
+        } catch (error) {
+          console.error("Error updating recovery status:", error);
+          // Don't fail the request if recovery update fails
+        }
+      }
+      
       res.json(updatedSet);
     } catch (error: any) {
       if (error.name === 'ZodError') {

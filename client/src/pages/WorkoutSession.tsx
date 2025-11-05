@@ -253,17 +253,17 @@ function SortableExerciseCard({
         <div className="flex items-start gap-2">
           {/* Drag Handle - Hold to reorder */}
           <button
-            className="mt-1 cursor-move touch-none p-2 hover-elevate rounded"
+            className="cursor-move touch-none p-3 hover-elevate rounded flex items-center justify-center"
             {...attributes}
             {...listeners}
             data-testid={`button-drag-${exerciseIndex}`}
           >
-            <GripVertical className="h-5 w-5 text-muted-foreground" />
+            <GripVertical className="h-6 w-6 text-muted-foreground" />
           </button>
 
           {/* Expand/Collapse Button - Separate from drag handle */}
           <button
-            className="mt-1 cursor-pointer p-2 hover-elevate rounded"
+            className="p-3 cursor-pointer hover-elevate rounded flex items-center justify-center"
             onClick={(e) => {
               e.stopPropagation();
               onToggleExpand();
@@ -271,9 +271,9 @@ function SortableExerciseCard({
             data-testid={`button-expand-${exerciseIndex}`}
           >
             {isExpanded ? (
-              <ChevronUp className="h-4 w-4 text-muted-foreground" />
+              <ChevronUp className="h-5 w-5 text-muted-foreground" />
             ) : (
-              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              <ChevronDown className="h-5 w-5 text-muted-foreground" />
             )}
           </button>
 
@@ -734,7 +734,7 @@ export default function WorkoutSession() {
       setRestTimerInterval(interval);
 
       return () => {
-        if (interval) clearInterval(interval);
+        clearInterval(interval);
       };
     } else if (restTimer === 0) {
       toast({
@@ -744,23 +744,28 @@ export default function WorkoutSession() {
       setRestTimer(null);
       if (restTimerInterval) clearInterval(restTimerInterval);
     }
-  }, [restTimer, toast, restTimerInterval]);
+  }, [restTimer, toast]);
 
   // Update set mutation
   const updateSetMutation = useMutation({
     mutationFn: async ({ setId, data, startRest }: { setId: string; data: Partial<ExerciseSet>; startRest?: { duration: number } }) => {
       const result = await apiRequest("PATCH", `/api/exercise-sets/${setId}`, data);
-      return { result, startRest };
+      return { result, startRest, data };
     },
-    onSuccess: (data) => {
+    onSuccess: (responseData) => {
       // Start rest timer BEFORE invalidating queries to prevent race condition
-      if (data.startRest) {
-        setRestTimer(data.startRest.duration);
+      if (responseData.startRest) {
+        setRestTimer(responseData.startRest.duration);
       }
       
       // Invalidate queries after a small delay to let state update
       setTimeout(() => {
         queryClient.invalidateQueries({ queryKey: ["/api/workout-sessions", sessionId, "sets"] });
+        
+        // Always invalidate recovery queries - backend detects actual completion state changes
+        // and updates recovery status accordingly
+        queryClient.invalidateQueries({ queryKey: ["/api/recovery/state"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/recovery/timeline"] });
       }, 100);
     },
     onError: (error: Error) => {

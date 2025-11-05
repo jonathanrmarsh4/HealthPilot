@@ -121,10 +121,12 @@ function calculateExerciseFatigue(
 
 /**
  * Calculate total muscle group fatigue from a completed workout
+ * @param onlyCompleted - If true, only count completed sets (for real-time updates)
  */
 export async function calculateWorkoutFatigue(
   userId: string,
-  workoutSessionId: string
+  workoutSessionId: string,
+  onlyCompleted: boolean = false
 ): Promise<Map<MuscleGroup, number>> {
   const totalFatigue = new Map<MuscleGroup, number>();
   
@@ -132,7 +134,17 @@ export async function calculateWorkoutFatigue(
   MUSCLE_GROUPS.forEach(g => totalFatigue.set(g, 0));
   
   // Get all exercise sets from this workout
-  const exerciseSets = await storage.getExerciseSets(userId, workoutSessionId);
+  const allSets = await storage.getExerciseSets(userId, workoutSessionId);
+  
+  // Filter to only completed sets if requested
+  const exerciseSets = onlyCompleted 
+    ? allSets.filter(set => set.completed === 1)
+    : allSets;
+  
+  // If no completed sets yet, return zero fatigue
+  if (exerciseSets.length === 0) {
+    return totalFatigue;
+  }
   
   // Get exercise library data for muscle mapping
   const exercises = await storage.getExercises();
@@ -479,14 +491,16 @@ async function getBiometricFactors(userId: string): Promise<{
 
 /**
  * Apply fatigue damage from a workout to muscle group recovery states
+ * @param onlyCompleted - If true, only count completed sets (for real-time updates)
  */
 export async function applyWorkoutFatigue(
   userId: string,
   workoutSessionId: string,
-  completedAt: Date
+  completedAt: Date,
+  onlyCompleted: boolean = false
 ): Promise<void> {
   // Calculate fatigue from this workout
-  const fatigue = await calculateWorkoutFatigue(userId, workoutSessionId);
+  const fatigue = await calculateWorkoutFatigue(userId, workoutSessionId, onlyCompleted);
   
   // Update each affected muscle group
   for (const [muscleGroup, damage] of fatigue) {
