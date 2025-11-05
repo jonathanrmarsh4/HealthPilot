@@ -258,21 +258,34 @@ export async function getCurrentRecoveryState(userId: string): Promise<{
   // Get biometric factors (sleep, HRV, resting HR)
   const biometrics = await getBiometricFactors(userId);
   
-  // Systemic score = weighted average of biometrics
+  // Calculate muscle group average
+  const muscleScoreValues = Object.values(muscleScores);
+  const muscleAverage = muscleScoreValues.length > 0
+    ? muscleScoreValues.reduce((sum, score) => sum + score, 0) / muscleScoreValues.length
+    : 100;
+  
+  // Hybrid systemic score: 60% biometric + 40% muscle fatigue
+  // Biometric breakdown: sleep 30%, HRV 20%, RHR 10% (total 60%)
+  const biometricScore = 
+    biometrics.sleep * 0.30 +
+    biometrics.hrv * 0.20 +
+    biometrics.restingHR * 0.10;
+  
   const systemic = Math.round(
-    biometrics.sleep * 0.50 +
-    biometrics.hrv * 0.30 +
-    biometrics.restingHR * 0.20
+    biometricScore + (muscleAverage * 0.40)
   );
   
   // Debug logging
   console.log('🔍 Recovery Score Calculation:', {
     userId,
     biometrics,
+    muscleAverage: Math.round(muscleAverage),
     calculation: {
-      sleep: `${biometrics.sleep} * 0.50 = ${biometrics.sleep * 0.50}`,
-      hrv: `${biometrics.hrv} * 0.30 = ${biometrics.hrv * 0.30}`,
-      restingHR: `${biometrics.restingHR} * 0.20 = ${biometrics.restingHR * 0.20}`,
+      sleep: `${biometrics.sleep} * 0.30 = ${biometrics.sleep * 0.30}`,
+      hrv: `${biometrics.hrv} * 0.20 = ${biometrics.hrv * 0.20}`,
+      restingHR: `${biometrics.restingHR} * 0.10 = ${biometrics.restingHR * 0.10}`,
+      biometricScore: `${biometricScore.toFixed(1)} (60%)`,
+      muscleScore: `${muscleAverage.toFixed(1)} * 0.40 = ${(muscleAverage * 0.40).toFixed(1)} (40%)`,
       total: systemic
     },
     muscleScores

@@ -185,71 +185,33 @@ export async function calculateReadinessScore(
     }
   }
 
-  // 4. Workload Recovery Score (0-100) - Based on recent training load
-  const workoutSessions = await storage.getWorkoutSessions(userId);
-  const last7Days = workoutSessions.filter(w => {
-    const workoutDate = new Date(w.startTime);
-    return workoutDate >= subDays(targetDate, 7) && workoutDate < targetDate;
-  });
-
-  const last24Hours = workoutSessions.filter(w => {
-    const workoutDate = new Date(w.startTime);
-    return workoutDate >= subDays(targetDate, 1) && workoutDate < targetDate;
-  });
-
-  // Calculate intensity from available data (heart rate, workout type, duration)
-  const estimateIntensity = (workout: typeof workoutSessions[0]): number => {
-    // Recovery sessions are always low intensity
-    if (workout.sessionType === 'sauna' || workout.sessionType === 'cold_plunge') {
-      return 1;
-    }
-
-    // If we have heart rate data, use that
-    if (workout.avgHeartRate) {
-      if (workout.avgHeartRate < 120) return 1; // low
-      if (workout.avgHeartRate < 150) return 2; // moderate
-      if (workout.avgHeartRate < 170) return 3; // high
-      return 4; // very high
-    }
-
-    // Otherwise estimate from workout type
-    const highIntensityTypes = ['hiit', 'crossfit', 'running', 'cycling'];
-    const moderateTypes = ['strength', 'cardio', 'swimming'];
+  // 4. Workload Recovery Score (0-100) - Based on muscle group fatigue recovery
+  // Use muscle group recovery average to reflect actual physical fatigue state
+  const muscleRecovery = await storage.getMuscleGroupRecovery(userId);
+  
+  if (muscleRecovery.length > 0) {
+    // Calculate recovery score for each muscle group using exponential decay
+    const HALF_LIFE_HOURS = 48;
+    const now = targetDate;
     
-    if (highIntensityTypes.includes(workout.workoutType.toLowerCase())) {
-      return 3;
-    } else if (moderateTypes.includes(workout.workoutType.toLowerCase())) {
-      return 2;
+    let totalScore = 0;
+    for (const group of muscleRecovery) {
+      if (group.lastWorkoutAt && group.fatigueDamage > 0) {
+        const hoursSinceWorkout = (now.getTime() - new Date(group.lastWorkoutAt).getTime()) / (1000 * 60 * 60);
+        const decayFactor = Math.exp(-hoursSinceWorkout / HALF_LIFE_HOURS);
+        const currentFatigue = group.fatigueDamage * decayFactor;
+        const score = Math.max(0, Math.min(100, 100 - currentFatigue));
+        totalScore += score;
+      } else {
+        // Not yet trained or no fatigue - fully recovered
+        totalScore += 100;
+      }
     }
     
-    return 2; // default moderate
-  };
-
-  let weeklyLoad = 0;
-  for (const workout of last7Days) {
-    const intensity = estimateIntensity(workout);
-    weeklyLoad += intensity * (workout.duration / 60); // hours
-  }
-
-  let dailyLoad = 0;
-  for (const workout of last24Hours) {
-    const intensity = estimateIntensity(workout);
-    dailyLoad += intensity * (workout.duration / 60);
-  }
-
-  // Workload scoring: Consider both acute (24h) and chronic (7d) load
-  // Heavy workout in last 24h = needs more recovery
-  if (dailyLoad > 2) {
-    // Hard workout yesterday - reduce score significantly
-    factors.workloadRecovery.score = Math.max(20, 60 - (dailyLoad * 10));
-  } else if (weeklyLoad > 12) {
-    // High weekly load - moderate recovery needed
-    factors.workloadRecovery.score = Math.max(40, 70 - ((weeklyLoad - 12) * 3));
-  } else if (weeklyLoad > 8) {
-    // Moderate weekly load - slight recovery consideration
-    factors.workloadRecovery.score = 80;
+    // Average muscle group recovery score
+    factors.workloadRecovery.score = Math.round(totalScore / muscleRecovery.length);
   } else {
-    // Low training load - fully recovered
+    // No muscle recovery data yet - assume fully recovered
     factors.workloadRecovery.score = 100;
   }
 
