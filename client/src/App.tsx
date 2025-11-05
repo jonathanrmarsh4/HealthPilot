@@ -77,6 +77,7 @@ import { Preferences } from '@capacitor/preferences';
 import { isNativePlatform } from "@/mobile/MobileBootstrap";
 import SafariData from "@/lib/safariData";
 import { initializeDeepLinkHandling } from "@/lib/notifications/deeplink";
+import { oneSignalClient } from "@/lib/notifications/onesignal";
 
 function Router() {
   return (
@@ -358,7 +359,7 @@ function AppLayout() {
 }
 
 function AuthenticatedApp() {
-  const { data: user } = useQuery<{ eulaAcceptedAt: string | null }>({
+  const { data: user } = useQuery<{ id?: number; eulaAcceptedAt: string | null }>({
     queryKey: ["/api/profile"],
   });
 
@@ -381,6 +382,40 @@ function AuthenticatedApp() {
       console.error("EULA mutation error:", error);
     },
   });
+
+  // Initialize OneSignal when user is authenticated (iOS only)
+  useEffect(() => {
+    const initOneSignal = async () => {
+      if (!user?.id || !Capacitor.isNativePlatform()) {
+        return;
+      }
+
+      const appId = import.meta.env.VITE_ONESIGNAL_APP_ID;
+      if (!appId) {
+        console.warn('[App] VITE_ONESIGNAL_APP_ID not configured');
+        return;
+      }
+
+      try {
+        // Initialize OneSignal
+        await oneSignalClient.init(appId);
+        
+        // Set external user ID for targeted notifications
+        await oneSignalClient.setExternalUserId(user.id.toString());
+      } catch (error) {
+        console.error('[App] OneSignal initialization failed:', error);
+      }
+    };
+
+    initOneSignal();
+
+    // Cleanup on logout
+    return () => {
+      if (Capacitor.isNativePlatform()) {
+        oneSignalClient.removeExternalUserId().catch(console.error);
+      }
+    };
+  }, [user?.id]);
 
   // Development mode: EULA completely disabled during development
   const showEulaDialog = false; // Disabled for development - set to: user && !user.eulaAcceptedAt for production
@@ -463,11 +498,14 @@ function AppContent() {
     };
 
     console.log('[App] Setting up global deep link listener');
-    const listener = CapacitorApp.addListener('appUrlOpen', handleAppUrlOpen);
+    CapacitorApp.addListener('appUrlOpen', handleAppUrlOpen).then(listener => {
+      // Store listener for cleanup
+      return listener;
+    });
 
     return () => {
       console.log('[App] Removing global deep link listener');
-      listener.remove();
+      CapacitorApp.removeAllListeners();
     };
   }, []);
 

@@ -14380,6 +14380,31 @@ DATA AVAILABILITY:
     }
   });
 
+  // POST /api/notifications/test - Create test notification (for E2E testing)
+  app.post("/api/notifications/test", isAuthenticated, async (req, res) => {
+    try {
+      if (!isNotificationsLayerEnabled()) {
+        return res.status(503).json({ error: "Notifications feature is disabled" });
+      }
+
+      const userId = (req.user as any).claims.sub;
+      const { type = 'daily_insight', title = 'Test Notification', message = 'This is a test notification', data = {} } = req.body;
+      
+      const notification = await storage.createNotification({
+        userId,
+        type,
+        title,
+        message,
+        data,
+      });
+      
+      res.json(notification);
+    } catch (error: any) {
+      console.error("Error creating test notification:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Scheduled Reminders Routes
   // GET /api/reminders - Get user's reminders
   app.get("/api/reminders", isAuthenticated, async (req, res) => {

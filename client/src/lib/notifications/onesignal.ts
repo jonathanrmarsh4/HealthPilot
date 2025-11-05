@@ -7,43 +7,63 @@ export class OneSignalClient {
   
   async init(appId: string) {
     if (this.initialized || !Capacitor.isNativePlatform()) {
+      console.log('[OneSignal] Skipping initialization:', { initialized: this.initialized, isNative: Capacitor.isNativePlatform() });
       return;
     }
 
-    // Initialize OneSignal
-    OneSignal.setAppId(appId);
-    
-    // Request notification permission
-    OneSignal.promptForPushNotificationsWithUserResponse((accepted) => {
-      console.log('[OneSignal] Permission', accepted ? 'granted' : 'denied');
-    });
+    try {
+      console.log('[OneSignal] Initializing with app ID:', appId);
+      
+      // Initialize OneSignal (v5+ API)
+      OneSignal.initialize(appId);
+      
+      // Request notification permission
+      OneSignal.Notifications.requestPermission(true);
+      console.log('[OneSignal] Permission requested');
+      
+      // Handle notification clicks (when user taps a notification)
+      OneSignal.Notifications.addEventListener('click', (event: any) => {
+        console.log('[OneSignal] Notification clicked:', event);
+        const data = event?.notification?.additionalData || {};
+        if (data?.deepLink) {
+          handleDeepLink(data.deepLink);
+        }
+      });
+      
+      // Handle foreground notifications (app is open)
+      OneSignal.Notifications.addEventListener('foregroundWillDisplay', (event: any) => {
+        console.log('[OneSignal] Notification received in foreground:', event);
+        // Show the notification even when app is in foreground
+        event.notification.display();
+      });
 
-    // Handle notification clicks (when user taps a notification)
-    OneSignal.setNotificationOpenedHandler((openedEvent) => {
-      const data = openedEvent.notification.additionalData;
-      if (data?.deepLink) {
-        handleDeepLink(data.deepLink);
-      }
-    });
-
-    // Handle foreground notifications (app is open)
-    OneSignal.setNotificationWillShowInForegroundHandler((notificationReceivedEvent) => {
-      const notification = notificationReceivedEvent.getNotification();
-      // Show the notification even when app is in foreground
-      notificationReceivedEvent.complete(notification);
-    });
-
-    this.initialized = true;
+      this.initialized = true;
+      console.log('[OneSignal] Initialization complete');
+    } catch (error) {
+      console.error('[OneSignal] Initialization error:', error);
+    }
   }
 
   async setExternalUserId(userId: string) {
     if (!Capacitor.isNativePlatform()) return;
-    OneSignal.setExternalUserId(userId);
+    try {
+      console.log('[OneSignal] Setting external user ID:', userId);
+      await OneSignal.login(userId);
+      console.log('[OneSignal] User logged in successfully');
+    } catch (error) {
+      console.error('[OneSignal] Error setting user ID:', error);
+    }
   }
 
   async removeExternalUserId() {
     if (!Capacitor.isNativePlatform()) return;
-    OneSignal.removeExternalUserId();
+    try {
+      console.log('[OneSignal] Removing external user ID');
+      await OneSignal.logout();
+      console.log('[OneSignal] User logged out successfully');
+    } catch (error) {
+      console.error('[OneSignal] Error removing user ID:', error);
+    }
   }
 }
 
