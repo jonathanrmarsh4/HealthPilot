@@ -529,7 +529,6 @@ function SortableExerciseCard({
           target: exercise.target || exercise.muscles[0] || "unknown",
           bodyPart: exercise.bodyPart || exercise.muscles[0] || "unknown",
           equipment: exercise.equipment,
-          externalId: exercise.exercisedbId,
           instructions: exercise.instructions 
             ? (() => {
                 // Try to parse as JSON array first
@@ -544,13 +543,13 @@ function SortableExerciseCard({
                 if (text.includes('\n') || text.includes('\\n')) {
                   // Replace escaped newlines with actual newlines first
                   const normalized = text.replace(/\\n/g, '\n');
-                  return normalized.split('\n').map(s => s.trim()).filter(Boolean);
+                  return normalized.split('\n').map((s: string) => s.trim()).filter(Boolean);
                 }
                 
                 // Split by periods but keep the period
                 const sentences = text.match(/[^.!?]+[.!?]+/g);
                 if (sentences && sentences.length > 1) {
-                  return sentences.map(s => s.trim()).filter(Boolean);
+                  return sentences.map((s: string) => s.trim()).filter(Boolean);
                 }
                 
                 // Single instruction
@@ -591,7 +590,10 @@ export default function WorkoutSession() {
   });
 
   // Fetch workout instance if instanceId is provided
-  const { data: workoutInstance, isLoading: instanceLoading } = useQuery({
+  const { data: workoutInstance, isLoading: instanceLoading } = useQuery<{
+    id: string;
+    snapshotData: { exercises: Exercise[] };
+  }>({
     queryKey: ["/api/workout-instances", instanceId],
     enabled: !!instanceId,
   });
@@ -638,14 +640,14 @@ export default function WorkoutSession() {
   useEffect(() => {
     if (exercises.length > 0) {
       setExerciseOrder(prevOrder => {
-        const currentIds = exercises.map(e => e.id);
+        const currentIds = exercises.map((e: Exercise) => e.id);
         const needsUpdate = prevOrder.length !== currentIds.length || 
-                           currentIds.some(id => !prevOrder.includes(id));
+                           currentIds.some((id: string) => !prevOrder.includes(id));
         
         if (!needsUpdate) return prevOrder;
         
-        const removedIds = prevOrder.filter(id => !currentIds.includes(id));
-        const newIds = currentIds.filter(id => !prevOrder.includes(id));
+        const removedIds = prevOrder.filter((id: string) => !currentIds.includes(id));
+        const newIds = currentIds.filter((id: string) => !prevOrder.includes(id));
         
         // Handle swaps: if one removed and one added, replace at same position
         if (removedIds.length === 1 && newIds.length === 1) {
@@ -655,7 +657,7 @@ export default function WorkoutSession() {
           return newOrder;
         } else {
           // Otherwise preserve existing order and append new IDs
-          const preserved = prevOrder.filter(id => currentIds.includes(id));
+          const preserved = prevOrder.filter((id: string) => currentIds.includes(id));
           return [...preserved, ...newIds];
         }
       });
@@ -673,7 +675,7 @@ export default function WorkoutSession() {
     const fetchSuggestions = async () => {
       const suggestions = new Map<string, ProgressiveOverloadSuggestion>();
       
-      const fetchPromises = exercises.map(async (exercise) => {
+      const fetchPromises = exercises.map(async (exercise: Exercise) => {
         try {
           const response = await fetch(`/api/exercises/${exercise.id}/progressive-overload`, {
             credentials: 'include',
@@ -690,7 +692,7 @@ export default function WorkoutSession() {
       
       const results = await Promise.all(fetchPromises);
       
-      results.forEach((result) => {
+      results.forEach((result: { exerciseId: string; suggestion: ProgressiveOverloadSuggestion } | null) => {
         if (result) {
           suggestions.set(result.exerciseId, result.suggestion);
         }
@@ -981,7 +983,7 @@ export default function WorkoutSession() {
   const orderedExercises = useMemo(() => {
     if (exerciseOrder.length === 0) return exercises;
     return exerciseOrder
-      .map(id => exercises.find(e => e.id === id))
+      .map((id: string) => exercises.find((e: Exercise) => e.id === id))
       .filter(Boolean) as Exercise[];
   }, [exercises, exerciseOrder]);
 
@@ -1107,7 +1109,7 @@ export default function WorkoutSession() {
             items={exerciseOrder}
             strategy={verticalListSortingStrategy}
           >
-            {orderedExercises.map((exercise, exerciseIndex) => {
+            {orderedExercises.map((exercise: Exercise, exerciseIndex: number) => {
               const exerciseSets = (setsByExercise.get(exercise.id) || []).sort((a, b) => a.setIndex - b.setIndex);
               const completedSets = exerciseSets.filter((s) => s.completed === 1).length;
               const progressiveSuggestion = progressiveSuggestions.get(exercise.id);
@@ -1124,7 +1126,7 @@ export default function WorkoutSession() {
                   addSetMutation={addSetMutation}
                   handleCompleteSet={handleCompleteSet}
                   handleShowAlternatives={handleShowAlternatives}
-                  handleAddSet={(exerciseId) => addSetMutation.mutate({ exerciseId })}
+                  handleAddSet={(exerciseId: string) => addSetMutation.mutate({ exerciseId })}
                   isExpanded={expandedExercises.has(exercise.id)}
                   onToggleExpand={() => toggleExpandExercise(exercise.id)}
                   wasDragging={false}
@@ -1283,10 +1285,10 @@ export default function WorkoutSession() {
       {/* Workout Feedback Modal */}
       <WorkoutFeedbackModal
         open={showFeedbackModal}
-        onOpenChange={(open) => {
+        onOpenChange={(open: boolean) => {
           if (!open) handleSkipFeedback();
         }}
-        exercises={exercises.map(e => e.name)}
+        exercises={exercises.map((e: Exercise) => e.name)}
         onSubmit={handleSubmitFeedback}
       />
     </div>
