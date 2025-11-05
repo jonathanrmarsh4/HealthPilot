@@ -14388,14 +14388,22 @@ DATA AVAILABILITY:
       }
 
       const userId = (req.user as any).claims.sub;
-      const { type = 'daily_insight', title = 'Test Notification', message = 'This is a test notification', data = {} } = req.body;
+      const { 
+        channel = 'insight', 
+        title = 'Test Notification', 
+        body = 'This is a test notification', 
+        payload = {} 
+      } = req.body;
       
+      // Create notification with status='sent' so it appears immediately in inbox
       const notification = await storage.createNotification({
         userId,
-        type,
+        channel,
         title,
-        message,
-        data,
+        body,
+        payload,
+        status: 'sent', // Mark as sent for immediate visibility
+        sentAt: new Date(), // Set sent timestamp
       });
       
       res.json(notification);
