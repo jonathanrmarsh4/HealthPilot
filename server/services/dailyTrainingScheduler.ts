@@ -9,6 +9,8 @@ import { toZonedTime } from 'date-fns-tz';
 import { storage } from '../storage';
 import { buildUserContext, generateDailySession } from './trainingGenerator';
 import { canUseDailyAITrainingGenerator } from '../../shared/config/flags';
+import { eventBus } from '../lib/eventBus';
+import { isNotificationsLayerEnabled } from '../../shared/config/flags';
 
 /**
  * Process users whose local time matches the target hour (4am)
@@ -71,6 +73,22 @@ async function processUsersAtLocalTime(targetHour: number) {
         
         generatedCount++;
         console.log(`[DailyTraining] ✅ Generated workout for user ${user.id} on ${userLocalDate}`);
+        
+        // Emit workout notification event
+        if (isNotificationsLayerEnabled()) {
+          try {
+            eventBus.emit('workout:scheduled', {
+              userId: user.id,
+              workoutId: userLocalDate, // Use date as ID since saveWorkout returns void
+              workoutType: workoutResult.type || 'Training',
+              date: userLocalDate,
+              scheduledTime: null, // Generated for today, no specific time
+            });
+            console.log(`[DailyTraining] 📧 Emitted workout notification for user ${user.id}`);
+          } catch (notifError: any) {
+            console.error(`[DailyTraining] Error emitting workout notification:`, notifError);
+          }
+        }
         
       } catch (userError: any) {
         errorCount++;

@@ -91,16 +91,17 @@ class ReminderScheduler {
           userId: reminder.userId,
           supplementId: reminder.metadata?.supplementId,
           supplementName: reminder.title,
-          dosage: reminder.metadata?.dosage,
-          timing: reminder.metadata?.timing,
+          time: reminder.schedule, // Required: scheduled time(s) like "09:00" or "09:00,14:00,20:00"
+          deepLink: `healthpilot://supplements`,
         });
         break;
 
       case 'workout':
         eventBus.emit('workout:scheduled', {
           userId: reminder.userId,
-          workoutId: reminder.metadata?.workoutId,
-          workoutName: reminder.title,
+          workoutId: reminder.metadata?.workoutId || new Date().toISOString().split('T')[0],
+          workoutType: reminder.title,
+          date: new Date().toISOString().split('T')[0],
           scheduledTime: reminder.schedule,
         });
         break;
@@ -108,9 +109,9 @@ class ReminderScheduler {
       case 'recovery':
         eventBus.emit('recovery:alert', {
           userId: reminder.userId,
-          activityType: reminder.metadata?.activityType,
+          alertType: (reminder.metadata?.alertType as any) || 'rest_needed', // Default to rest_needed
           message: reminder.body,
-          priority: 'medium',
+          deepLink: `healthpilot://recovery`,
         });
         break;
 
