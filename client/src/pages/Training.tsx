@@ -585,7 +585,7 @@ export default function Training() {
                   <div className="flex items-center justify-between text-sm">
                     <span className="flex items-center gap-2">
                       <Zap className="h-4 w-4 text-purple-500" />
-                      Recovery
+                      Workout Load Recovery
                     </span>
                     <span className="font-medium">{Math.round(readinessScore.factors.workloadRecovery.score)}/100</span>
                   </div>
