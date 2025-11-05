@@ -235,16 +235,20 @@ export async function getCurrentRecoveryState(userId: string): Promise<{
   // Get muscle group recovery states
   const muscleRecovery = await storage.getMuscleGroupRecovery(userId);
   
+  console.log('📊 Raw muscle recovery from DB:', muscleRecovery);
+  
   // Calculate scores with decay applied
   const muscleScores: Record<string, number> = {};
   for (const group of MUSCLE_GROUPS) {
     const state = muscleRecovery.find(m => m.muscleGroup === group);
     if (state) {
-      muscleScores[group] = calculateRecoveryScore(
+      const score = calculateRecoveryScore(
         state.fatigueDamage,
         state.lastWorkoutAt,
         now
       );
+      console.log(`💪 ${group}: fatigue=${state.fatigueDamage}, lastWorkout=${state.lastWorkoutAt}, score=${score}`);
+      muscleScores[group] = score;
     } else {
       // Not yet worked - fully recovered
       muscleScores[group] = 100;
@@ -270,14 +274,19 @@ export async function getCurrentRecoveryState(userId: string): Promise<{
       hrv: `${biometrics.hrv} * 0.30 = ${biometrics.hrv * 0.30}`,
       restingHR: `${biometrics.restingHR} * 0.20 = ${biometrics.restingHR * 0.20}`,
       total: systemic
-    }
+    },
+    muscleScores
   });
   
-  return {
+  const result = {
     systemic,
     muscleGroups: muscleScores as Record<MuscleGroup, number>,
     biometricFactors: biometrics,
   };
+  
+  console.log('🏋️ Muscle Group Recovery State:', result);
+  
+  return result;
 }
 
 /**

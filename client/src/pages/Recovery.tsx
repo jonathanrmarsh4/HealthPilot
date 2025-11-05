@@ -56,6 +56,9 @@ export default function Recovery() {
   const { data: recoveryState, isLoading: isLoadingRecoveryState } = useQuery<RecoveryState>({
     queryKey: ["/api/recovery/state"],
   });
+  
+  // Debug logging
+  console.log('🏋️ Recovery State from API:', recoveryState);
 
   const { data: recoveryTimelineData, isLoading: isLoadingTimeline } = useQuery<{ events: TimelineEvent[], currentState: any }>({
     queryKey: ["/api/recovery/timeline"],
