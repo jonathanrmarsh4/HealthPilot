@@ -1,0 +1,60 @@
+import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { Card, CardContent } from "@/components/ui/card";
+import { Heart, Pause, Play, SkipForward, Check, Droplets } from 'lucide-react';
+
+export default function LockScreenWorkoutWidget() {
+  const [restTime, setRestTime] = useState(60);
+  const [isPaused, setIsPaused] = useState(false);
+  const [heartRate, setHeartRate] = useState(118);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (!isPaused && restTime > 0) {
+      interval = setInterval(() => setRestTime(prev => prev - 1), 1000);
+    }
+    return () => clearInterval(interval);
+  }, [isPaused, restTime]);
+
+  return (
+    <Card className="relative backdrop-blur-2xl bg-gradient-to-b from-gray-900/70 via-gray-800/60 to-gray-900/70 text-white p-4 rounded-2xl shadow-2xl w-[360px] mx-auto mt-4 border border-white/10">
+      <div className="absolute inset-0 rounded-2xl bg-gradient-to-b from-blue-900/30 via-gray-800/50 to-gray-900/60 pointer-events-none" />
+      <CardContent className="space-y-3 relative z-10">
+        <div className="text-center">
+          <p className="text-sm text-gray-200 font-medium">🏋️ BENCH PRESS (Set 2 of 4)</p>
+          <p className="text-xs text-gray-400">Next: Incline DB Press — 3x10 @ 22.5kg</p>
+        </div>
+
+        <div className="flex items-center justify-between text-lg">
+          <Button variant="ghost" size="sm" className="text-gray-300 hover:text-white" onClick={() => setRestTime(Math.max(restTime - 15, 0))}>-15s</Button>
+          <div className="flex flex-col items-center">
+            <span className="text-4xl font-bold drop-shadow-md text-white">{String(restTime).padStart(2, '0')}s</span>
+            <Progress value={(restTime / 60) * 100} className="w-48 h-1 mt-2 bg-gray-700/50" />
+          </div>
+          <Button variant="ghost" size="sm" className="text-gray-300 hover:text-white" onClick={() => setRestTime(restTime + 15)}>+15s</Button>
+        </div>
+
+        <div className="flex justify-between text-sm text-gray-300">
+          <div className="flex items-center gap-1"><Heart className="w-4 h-4 text-red-500" /> {heartRate} bpm (Z3)</div>
+          <div>🕒 12:14 elapsed</div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-3">
+          <Button onClick={() => setIsPaused(!isPaused)} variant="secondary" className="bg-gray-700/60 hover:bg-gray-700/80 text-white backdrop-blur-md">
+            {isPaused ? <Play className="w-5 h-5" /> : <Pause className="w-5 h-5" />}
+          </Button>
+          <Button variant="secondary" className="bg-green-600/70 hover:bg-green-600/90 text-white backdrop-blur-md"><Check className="w-5 h-5" /></Button>
+          <Button variant="secondary" className="bg-gray-700/60 hover:bg-gray-700/80 text-white backdrop-blur-md"><SkipForward className="w-5 h-5" /></Button>
+        </div>
+
+        <div className="text-center text-xs text-gray-400">Long-press to end workout</div>
+
+        <div className="flex justify-center items-center gap-2 text-blue-300 text-xs mt-1">
+          <Droplets className="w-4 h-4" /> Hydrate after next set
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
