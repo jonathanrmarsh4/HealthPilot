@@ -52,6 +52,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { WorkoutFeedbackModal, WorkoutFeedback } from "@/components/WorkoutFeedbackModal";
 import { ExerciseDetailsModal } from "@/components/ExerciseDetailsModal";
+import { liveActivityManager } from "@/lib/liveActivity";
 
 interface Exercise {
   id: string;
@@ -725,6 +726,37 @@ export default function WorkoutSession() {
     return () => clearInterval(interval);
   }, [sessionStartTime]);
 
+  // Start Live Activity when workout begins
+  useEffect(() => {
+    if (!sessionId || !session || !exercises.length) return;
+
+    const startLiveActivity = async () => {
+      const firstExercise = exercises[0];
+      const nextExercise = exercises.length > 1 ? exercises[1].name : 'Rest';
+      
+      const started = await liveActivityManager.start(
+        sessionId,
+        session.workoutType || 'Workout',
+        firstExercise.name,
+        nextExercise
+      );
+      
+      if (started) {
+        console.log('✅ Live Activity started for workout');
+      }
+    };
+
+    startLiveActivity();
+
+    // Cleanup: end Live Activity when component unmounts
+    return () => {
+      if (liveActivityManager.isActive()) {
+        const elapsed = formatElapsedTime(elapsedTime);
+        liveActivityManager.end(elapsed);
+      }
+    };
+  }, [sessionId, session, exercises, elapsedTime]);
+
   // Rest timer countdown
   useEffect(() => {
     if (restTimer !== null && restTimer > 0) {
@@ -756,6 +788,30 @@ export default function WorkoutSession() {
       // Start rest timer BEFORE invalidating queries to prevent race condition
       if (responseData.startRest) {
         setRestTimer(responseData.startRest.duration);
+      }
+      
+      // Update Live Activity when set is completed
+      if (responseData.data.completed === 1 && liveActivityManager.isActive()) {
+        const completedSetsCount = sets.filter(s => s.completed === 1).length + 1;
+        const currentExerciseIndex = exercises.findIndex(e => 
+          sets.some(s => s.exerciseId === e.id && s.id === responseData.result.id)
+        );
+        const currentExercise = exercises[currentExerciseIndex];
+        const nextExercise = exercises[currentExerciseIndex + 1];
+        
+        if (currentExercise) {
+          liveActivityManager.update({
+            currentExercise: currentExercise.name,
+            currentSet: completedSetsCount,
+            totalSets: sets.length,
+            nextExercise: nextExercise ? nextExercise.name : 'Workout Complete',
+            restTimeRemaining: responseData.startRest?.duration || 0,
+            elapsedTime: formatElapsedTime(elapsedTime),
+            heartRate: 0, // TODO: Get from HealthKit if available
+            heartRateZone: 'Z1',
+            isPaused: false,
+          });
+        }
       }
       
       // Invalidate queries after a small delay to let state update
@@ -812,6 +868,11 @@ export default function WorkoutSession() {
       return await apiRequest("POST", url, {});
     },
     onSuccess: async () => {
+      // End Live Activity
+      if (liveActivityManager.isActive()) {
+        await liveActivityManager.end(formatElapsedTime(elapsedTime));
+      }
+      
       // Invalidate and refetch all relevant data to ensure fresh state on Training page
       await queryClient.invalidateQueries({ queryKey: ["/api/analytics/muscle-group-frequency"] });
       await queryClient.refetchQueries({ queryKey: ["/api/analytics/muscle-group-frequency"] });

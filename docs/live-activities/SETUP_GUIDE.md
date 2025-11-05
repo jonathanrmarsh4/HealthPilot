@@ -96,6 +96,23 @@ Now paste this code into `WorkoutLiveActivity.swift`:
 <string>$(PRODUCT_MODULE_NAME).WorkoutWidgetBundle</string>
 ```
 
+### Step 7: Add LiveActivityPlugin to Main App
+
+1. In Project Navigator, find the **App** folder (not WorkoutWidgetExtension)
+2. Locate `LiveActivityPlugin.swift` file (should already exist from previous setup)
+3. If it doesn't exist, create it:
+   - Right-click **App** folder → **New File**
+   - Choose **Swift File** → **Next**
+   - Name it: `LiveActivityPlugin.swift`
+   - Make sure Target Membership is **App** (checked)
+   - Copy the code from `docs/live-activities/LiveActivityPlugin.swift`
+
+### Step 8: Register Plugin in Capacitor
+
+1. Open `AppDelegate.swift` in the **App** folder
+2. Find the `applicationDidFinishLaunching` method (or add it if missing)
+3. No changes needed - Capacitor auto-discovers plugins!
+
 ## Part 2: Backend Integration
 
 The backend code has been automatically created for you in:
