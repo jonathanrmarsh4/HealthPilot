@@ -72,11 +72,17 @@ export function RecoveryProtocols() {
       const res = await apiRequest("POST", `/api/recovery-protocols/${protocolId}/vote`, { preference });
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
+      // Immediately refetch recommendations to remove the protocol from the list
       queryClient.invalidateQueries({ queryKey: ["/api/recovery-protocols/recommendations"] });
+      
+      const action = variables.preference === 'upvote' ? 'positive feedback recorded' : 
+                     variables.preference === 'downvote' ? 'will suggest less often' :
+                     'preference removed';
+      
       toast({
-        title: "Preference saved",
-        description: "Your recovery protocol preferences have been updated.",
+        title: "Feedback received",
+        description: `Your ${action}. This protocol has been removed from today's suggestions.`,
       });
     },
     onError: (error: Error) => {
@@ -88,38 +94,10 @@ export function RecoveryProtocols() {
     },
   });
 
-  const completeMutation = useMutation({
-    mutationFn: async (protocolId: string) => {
-      const res = await apiRequest("POST", `/api/recovery-protocols/${protocolId}/complete`, {});
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/recovery-protocols/completions"] });
-      toast({
-        title: "Protocol completed! ✓",
-        description: "Great work on your recovery!",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to mark protocol as complete",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const handleVote = (protocolId: string, preference: 'upvote' | 'downvote', currentPreference?: string) => {
-    // If clicking the same preference again, reset to neutral
-    if (currentPreference === preference) {
-      voteMutation.mutate({ protocolId, preference: 'neutral' });
-    } else {
-      voteMutation.mutate({ protocolId, preference });
-    }
-  };
-
-  const handleComplete = (protocolId: string) => {
-    completeMutation.mutate(protocolId);
+  const handleVote = (protocolId: string, preference: 'upvote' | 'downvote') => {
+    // Always set the preference (upvote or downvote)
+    // This will remove the protocol from recommendations list
+    voteMutation.mutate({ protocolId, preference });
   };
 
   const scheduleSessionMutation = useMutation({
@@ -404,41 +382,27 @@ export function RecoveryProtocols() {
                         <CalendarPlus className="h-4 w-4 mr-1" />
                         Schedule
                       </Button>
-                      {!isCompletedToday(protocol.id) && (
-                        <Button
-                          variant="default"
-                          size="sm"
-                          onClick={() => handleComplete(protocol.id)}
-                          disabled={completeMutation.isPending}
-                          data-testid={`button-complete-${protocol.id}`}
-                        >
-                          <CheckCircle2 className="h-4 w-4 mr-1" />
-                          Complete Now
-                        </Button>
-                      )}
                     </div>
                   </div>
 
                   <div className="flex flex-col gap-2">
                     <Button
                       size="icon"
-                      variant={protocol.userPreference === 'upvote' ? 'default' : 'outline'}
-                      onClick={() => handleVote(protocol.id, 'upvote', protocol.userPreference)}
+                      variant="outline"
+                      onClick={() => handleVote(protocol.id, 'upvote')}
                       disabled={voteMutation.isPending}
                       data-testid={`button-upvote-${protocol.id}`}
-                      title={protocol.userPreference === 'upvote' ? 'Remove upvote' : 'This helps improve recommendations'}
-                      className={protocol.userPreference === 'upvote' ? 'bg-primary/20 border-primary' : ''}
+                      title="Good suggestion - won't schedule now"
                     >
                       <ThumbsUp className="h-4 w-4" />
                     </Button>
                     <Button
                       size="icon"
-                      variant={protocol.userPreference === 'downvote' ? 'destructive' : 'outline'}
-                      onClick={() => handleVote(protocol.id, 'downvote', protocol.userPreference)}
+                      variant="outline"
+                      onClick={() => handleVote(protocol.id, 'downvote')}
                       disabled={voteMutation.isPending}
                       data-testid={`button-downvote-${protocol.id}`}
-                      title={protocol.userPreference === 'downvote' ? 'Remove downvote' : 'Hide this type of recommendation'}
-                      className={protocol.userPreference === 'downvote' ? 'bg-destructive/20 border-destructive' : ''}
+                      title="Don't suggest this again"
                     >
                       <ThumbsDown className="h-4 w-4" />
                     </Button>

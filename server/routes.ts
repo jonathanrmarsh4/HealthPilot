@@ -4979,10 +4979,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const scheduledPatterns = await storage.getScheduledProtocolPatterns(userId, true);
         const scheduledProtocolIds = scheduledPatterns.map(p => p.protocolId);
         
-        // Filter out downvoted protocols and already scheduled protocols
+        // Get user preferences to filter out upvoted protocols (they've already given feedback)
+        const preferences = await storage.getUserProtocolPreferences(userId);
+        const upvotedProtocolIds = preferences.filter(p => p.preference === 'upvote').map(p => p.protocolId);
+        
+        // Filter out downvoted, upvoted, and already scheduled protocols
         const availableProtocols = allProtocols.filter(
           p => !context.protocolHistory.downvotedProtocols.includes(p.id) && 
-               !scheduledProtocolIds.includes(p.id)
+               !scheduledProtocolIds.includes(p.id) &&
+               !upvotedProtocolIds.includes(p.id)
         );
         
         // Generate AI recommendations
@@ -5027,6 +5032,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const scheduledPatterns = await storage.getScheduledProtocolPatterns(userId, true);
         const scheduledProtocolIds = scheduledPatterns.map(p => p.protocolId);
         
+        // Get user preferences to filter out upvoted protocols
+        const preferences = await storage.getUserProtocolPreferences(userId);
+        const upvotedProtocolIds = preferences.filter(p => p.preference === 'upvote').map(p => p.protocolId);
+        
         // Determine which factors are low
         const lowFactors: string[] = [];
         if (readinessScore.factors.sleep.score < 60) lowFactors.push('sleep');
@@ -5041,9 +5050,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           allRecommendations.push(...protocols);
         }
         
-        // Filter and deduplicate
+        // Filter out downvoted, upvoted, and scheduled protocols, then deduplicate
         const filteredRecommendations = allRecommendations.filter(
-          p => !downvotedProtocols.includes(p.id) && !scheduledProtocolIds.includes(p.id)
+          p => !downvotedProtocols.includes(p.id) && 
+               !scheduledProtocolIds.includes(p.id) &&
+               !upvotedProtocolIds.includes(p.id)
         );
         const uniqueRecommendations = Array.from(
           new Map(filteredRecommendations.map(p => [p.id, p])).values()
