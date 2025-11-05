@@ -76,14 +76,26 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
     
     private func syncHealthKitData() async -> Bool {
-        // Trigger HealthKit sync via Capacitor plugin
-        // This will be called from the native side
-        return await withCheckedContinuation { continuation in
-            NotificationCenter.default.post(
-                name: NSNotification.Name("triggerHealthKitSync"),
-                object: nil,
-                userInfo: ["completion": continuation]
-            )
+        // Call backend API to trigger HealthKit sync
+        // The mobile client will have already synced data on app lifecycle hooks
+        // For background fetch, we just ensure the backend has the latest data
+        guard let url = getBackendURL(path: "/api/healthkit/sync") else { return false }
+        
+        do {
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request = await addAuthHeaders(to: request)
+            
+            let (_, response) = try await URLSession.shared.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse,
+                  (200...299).contains(httpResponse.statusCode) else {
+                return false
+            }
+            return true
+        } catch {
+            print("❌ Failed to sync HealthKit: \(error)")
+            return false
         }
     }
     
@@ -151,35 +163,20 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
     
     private func getBackendURL(path: String) -> URL? {
-        // Get backend URL from environment or use default
-        if let baseURL = ProcessInfo.processInfo.environment["VITE_BACKEND_URL"] ?? ProcessInfo.processInfo.environment["BACKEND_URL"] {
-            return URL(string: baseURL + path)
-        }
-        // Fallback to production URL
+        // Use production URL for background fetch
+        // Environment variables aren't reliable in background mode
         return URL(string: "https://healthpilot.pro" + path)
     }
     
     private func addAuthHeaders(to request: URLRequest) async -> URLRequest {
         var mutableRequest = request
         
-        // Get auth token from secure storage
-        if let token = await getAuthToken() {
-            mutableRequest.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        // Get auth token from UserDefaults (stored during login)
+        if let token = UserDefaults.standard.string(forKey: "mobileAuthToken") {
+            mutableRequest.setValue(token, forHTTPHeaderField: "X-Mobile-Auth-Token")
         }
         
         return mutableRequest
-    }
-    
-    private func getAuthToken() async -> String? {
-        // This should retrieve the token from Capacitor's secure storage
-        // For now, post notification to get token from JS side
-        return await withCheckedContinuation { continuation in
-            NotificationCenter.default.post(
-                name: NSNotification.Name("getAuthToken"),
-                object: nil,
-                userInfo: ["completion": continuation]
-            )
-        }
     }
 
     func applicationWillResignActive(_ application: UIApplication) {
