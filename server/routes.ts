@@ -4980,8 +4980,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const scheduledProtocolIds = scheduledPatterns.map(p => p.protocolId);
         
         // Get user preferences to filter out upvoted protocols (they've already given feedback)
-        const preferences = await storage.getUserProtocolPreferences(userId);
-        const upvotedProtocolIds = preferences.filter(p => p.preference === 'upvote').map(p => p.protocolId);
+        const allPreferences = await storage.getUserProtocolPreferences(userId);
+        const upvotedProtocolIds = allPreferences.filter(p => p.preference === 'upvote').map(p => p.protocolId);
         
         // Filter out downvoted, upvoted, and already scheduled protocols
         const availableProtocols = allProtocols.filter(
@@ -4993,9 +4993,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Generate AI recommendations
         const aiRecommendations = await generateAIRecoveryRecommendations(context, availableProtocols);
         
-        // Get user preferences for the recommended protocols
-        const preferences = await storage.getUserProtocolPreferences(userId);
-        const preferencesMap = new Map(preferences.map(p => [p.protocolId, p.preference]));
+        // Create preferences map from already-fetched preferences
+        const preferencesMap = new Map(allPreferences.map(p => [p.protocolId, p.preference]));
         
         // Map AI recommendations to full protocol data
         const enrichedRecommendations = aiRecommendations.recommendations.map(aiRec => {
@@ -5060,15 +5059,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           new Map(filteredRecommendations.map(p => [p.id, p])).values()
         ).slice(0, 3);
         
-        const preferences = await storage.getUserProtocolPreferences(userId);
-        const preferencesMap = new Map(preferences.map(p => [p.protocolId, p.preference]));
+        // Create preferences map from already-fetched preferences
+        const fallbackPreferencesMap = new Map(preferences.map(p => [p.protocolId, p.preference]));
         
         const response = {
           readinessScore: readinessScore.score,
           lowFactors,
           recommendations: uniqueRecommendations.map(p => ({
             ...p,
-            userPreference: preferencesMap.get(p.id) || 'neutral'
+            userPreference: fallbackPreferencesMap.get(p.id) || 'neutral'
           })),
           aiPowered: false,
         };
@@ -5200,11 +5199,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const days = parseInt(req.query.days as string) || 7;
     try {
       const { getRecoveryTimeline } = await import("./services/recoveryTimeline");
+      const { format } = await import("date-fns");
       const timeline = await getRecoveryTimeline(userId, days);
-      res.json(timeline);
+      
+      // Transform timeline data to match frontend TimelineEvent interface
+      const transformedEvents = timeline.events.map(event => ({
+        date: format(event.timestamp, "yyyy-MM-dd"),
+        systemicScore: event.systemicScore,
+        muscleScores: event.muscleScores,
+        events: event.eventType ? [{
+          type: event.eventType === 'workout_completed' ? 'workout' as const : 
+                event.eventType === 'protocol_completed' ? 'protocol' as const : 
+                'baseline' as const,
+          name: event.eventMetadata?.workoutType || 
+                event.eventMetadata?.protocolName || 
+                'Daily baseline',
+          time: event.eventMetadata?.duration ? `${event.eventMetadata.duration} min` : undefined,
+        }] : undefined,
+      }));
+      
+      res.json({
+        events: transformedEvents,
+        currentState: timeline.currentState,
+      });
     } catch (error: any) {
       console.error("Error fetching recovery timeline:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: error.message, events: [], currentState: { systemic: 0, muscleGroups: {} } });
     }
   });
 

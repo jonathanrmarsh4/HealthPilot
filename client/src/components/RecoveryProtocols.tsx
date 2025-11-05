@@ -108,7 +108,8 @@ export function RecoveryProtocols() {
       frequency, 
       weekDays, 
       timeOfDay, 
-      scheduledFor 
+      scheduledFor,
+      category
     }: { 
       protocolId: string;
       protocolName: string; 
@@ -117,10 +118,11 @@ export function RecoveryProtocols() {
       weekDays?: string[];
       timeOfDay: string;
       scheduledFor: Date;
+      category: string;
     }) => {
       // For recurring patterns, create a pattern entry
       if (frequency !== 'once') {
-        return await apiRequest('POST', '/api/recovery/schedule-pattern', {
+        const response = await apiRequest('POST', '/api/recovery/schedule-pattern', {
           protocolId,
           protocolName,
           frequency,
@@ -128,24 +130,31 @@ export function RecoveryProtocols() {
           timeOfDay,
           duration,
         });
+        return response.json();
       } else {
         // For one-time schedules, create a single session
         const sessionTypeMap: Record<string, string> = {
           'heat_therapy': 'sauna',
           'cold_therapy': 'cold_plunge',
+          'cold_therapy_ice_bath': 'cold_plunge',
           'mobility': 'stretching',
           'breathing': 'stretching',
           'mindfulness': 'stretching',
+          'nutrition': 'stretching',
+          'sleep_hygiene': 'stretching',
+          'massage': 'massage',
+          'foam_rolling': 'foam_rolling',
         };
         
-        const sessionType = sessionTypeMap[schedulingProtocol?.category || ''] || 'stretching';
+        const sessionType = sessionTypeMap[category] || 'stretching';
         
-        return await apiRequest('POST', '/api/recovery/schedule', {
+        const response = await apiRequest('POST', '/api/recovery/schedule', {
           sessionType,
           duration,
           scheduledFor: scheduledFor.toISOString(),
           description: `${protocolName} session`,
         });
+        return response.json();
       }
     },
     onSuccess: (_data, variables) => {
@@ -551,6 +560,7 @@ export function RecoveryProtocols() {
                       weekDays: scheduleFrequency === 'weekly' ? selectedWeekDays : undefined,
                       timeOfDay: scheduleTime,
                       scheduledFor: scheduledDate,
+                      category: schedulingProtocol.category,
                     });
                   }}
                   disabled={scheduleSessionMutation.isPending}
