@@ -17,8 +17,169 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         })
         #endif
         
+        // Register for background fetch
+        UIApplication.shared.setMinimumBackgroundFetchInterval(UIApplication.backgroundFetchIntervalMinimum)
+        print("✅ Background fetch registered")
+        
         // Override point for customization after application launch.
         return true
+    }
+    
+    // MARK: - Background Fetch
+    func application(_ application: UIApplication, performFetchWithCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
+        print("🔄 Background fetch triggered")
+        
+        // Post notification to Capacitor bridge to trigger background sync
+        NotificationCenter.default.post(name: NSNotification.Name("backgroundFetch"), object: nil)
+        
+        // Perform background tasks
+        Task {
+            do {
+                let success = await performBackgroundSync()
+                completionHandler(success ? .newData : .noData)
+            } catch {
+                print("❌ Background fetch error: \(error.localizedDescription)")
+                completionHandler(.failed)
+            }
+        }
+    }
+    
+    private func performBackgroundSync() async -> Bool {
+        print("📊 Performing background sync...")
+        var hasNewData = false
+        
+        // 1. Sync HealthKit data
+        if await syncHealthKitData() {
+            hasNewData = true
+            print("✅ HealthKit data synced")
+        }
+        
+        // 2. Generate AI insights
+        if await generateInsights() {
+            hasNewData = true
+            print("✅ AI insights generated")
+        }
+        
+        // 3. Generate daily workout
+        if await generateDailyWorkout() {
+            hasNewData = true
+            print("✅ Daily workout generated")
+        }
+        
+        // 4. Update notifications
+        if await updateNotifications() {
+            hasNewData = true
+            print("✅ Notifications updated")
+        }
+        
+        return hasNewData
+    }
+    
+    private func syncHealthKitData() async -> Bool {
+        // Trigger HealthKit sync via Capacitor plugin
+        // This will be called from the native side
+        return await withCheckedContinuation { continuation in
+            NotificationCenter.default.post(
+                name: NSNotification.Name("triggerHealthKitSync"),
+                object: nil,
+                userInfo: ["completion": continuation]
+            )
+        }
+    }
+    
+    private func generateInsights() async -> Bool {
+        // Call backend API to generate insights
+        guard let url = getBackendURL(path: "/api/insights/generate") else { return false }
+        
+        do {
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request = await addAuthHeaders(to: request)
+            
+            let (_, response) = try await URLSession.shared.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse,
+                  (200...299).contains(httpResponse.statusCode) else {
+                return false
+            }
+            return true
+        } catch {
+            print("❌ Failed to generate insights: \(error)")
+            return false
+        }
+    }
+    
+    private func generateDailyWorkout() async -> Bool {
+        // Call backend API to generate workout
+        guard let url = getBackendURL(path: "/api/training/generate-daily-session") else { return false }
+        
+        do {
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request = await addAuthHeaders(to: request)
+            
+            let (_, response) = try await URLSession.shared.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse,
+                  (200...299).contains(httpResponse.statusCode) else {
+                return false
+            }
+            return true
+        } catch {
+            print("❌ Failed to generate workout: \(error)")
+            return false
+        }
+    }
+    
+    private func updateNotifications() async -> Bool {
+        // Fetch latest notifications
+        guard let url = getBackendURL(path: "/api/notifications") else { return false }
+        
+        do {
+            var request = URLRequest(url: url)
+            request = await addAuthHeaders(to: request)
+            
+            let (_, response) = try await URLSession.shared.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse,
+                  (200...299).contains(httpResponse.statusCode) else {
+                return false
+            }
+            return true
+        } catch {
+            print("❌ Failed to fetch notifications: \(error)")
+            return false
+        }
+    }
+    
+    private func getBackendURL(path: String) -> URL? {
+        // Get backend URL from environment or use default
+        if let baseURL = ProcessInfo.processInfo.environment["VITE_BACKEND_URL"] ?? ProcessInfo.processInfo.environment["BACKEND_URL"] {
+            return URL(string: baseURL + path)
+        }
+        // Fallback to production URL
+        return URL(string: "https://healthpilot.pro" + path)
+    }
+    
+    private func addAuthHeaders(to request: URLRequest) async -> URLRequest {
+        var mutableRequest = request
+        
+        // Get auth token from secure storage
+        if let token = await getAuthToken() {
+            mutableRequest.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        
+        return mutableRequest
+    }
+    
+    private func getAuthToken() async -> String? {
+        // This should retrieve the token from Capacitor's secure storage
+        // For now, post notification to get token from JS side
+        return await withCheckedContinuation { continuation in
+            NotificationCenter.default.post(
+                name: NSNotification.Name("getAuthToken"),
+                object: nil,
+                userInfo: ["completion": continuation]
+            )
+        }
     }
 
     func applicationWillResignActive(_ application: UIApplication) {
