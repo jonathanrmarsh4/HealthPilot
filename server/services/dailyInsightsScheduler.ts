@@ -13,6 +13,7 @@ import {
 } from './symptomCorrelation';
 import { generateSymptomInsight, GeneratedSymptomInsight } from './symptomInsightGeneration';
 import { ilog, logInsightsGenerationSummary } from '../lib/insightsDebug';
+import { eventBus } from '../lib/eventBus';
 
 /**
  * Daily Insights Scheduler
@@ -353,6 +354,36 @@ export async function generateDailyInsightsForUser(userId: string, forceRegenera
   
   // Log comprehensive summary
   logInsightsGenerationSummary(userId, todayStr, result);
+  
+  // Emit notification event for top insight (if any were generated)
+  // Only send notifications for notable+ severity to avoid low-value alerts
+  if (topInsights.length > 0 && result.insightsGenerated > 0) {
+    const topInsight = topInsights[0]; // Send notification for the highest priority insight
+    const isSymptomInsight = topInsight.metricName.startsWith('symptoms_');
+    
+    // Filter out "normal" severity insights to reduce notification noise
+    if (topInsight.severity !== 'normal') {
+      try {
+        eventBus.emit('insight:generated', {
+          userId,
+          title: topInsight.title,
+          summary: topInsight.description,
+          category: topInsight.category,
+          severity: topInsight.severity,
+          deepLink: `healthpilot://insights/${todayStr}`,
+          priority: topInsight.severity === 'critical' ? 'critical' : topInsight.severity === 'significant' ? 'high' : 'medium',
+          date: todayStr,
+          insightType: isSymptomInsight ? 'symptom' : 'metric',
+        });
+        console.log(`[DailyInsights] 📧 Emitted notification event for insight: "${topInsight.title}" (severity: ${topInsight.severity})`);
+      } catch (error: any) {
+        console.error(`[DailyInsights] Error emitting notification event:`, error);
+        result.errors.push(`Notification: ${error.message}`);
+      }
+    } else {
+      console.log(`[DailyInsights] Skipping notification for "normal" severity insight to reduce noise`);
+    }
+  }
   
   return result;
 }
