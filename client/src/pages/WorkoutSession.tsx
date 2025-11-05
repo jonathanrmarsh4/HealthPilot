@@ -226,6 +226,22 @@ function SortableExerciseCard({
     });
   };
 
+  const toggleBodyweight = (setId: string, currentWeight: number | null) => {
+    // Calculate the new weight value
+    const newWeight = currentWeight === null 
+      ? (progressiveSuggestion?.suggestedWeight ?? 20) 
+      : null;
+    
+    // Update local state first for immediate UI feedback
+    setLocalValue(setId, 'weight', newWeight === null ? '' : newWeight.toString());
+    
+    // Then update the database
+    updateSetMutation.mutate({
+      setId,
+      data: { weight: newWeight },
+    });
+  };
+
   return (
     <Card 
       ref={setNodeRef} 
@@ -378,12 +394,7 @@ function SortableExerciseCard({
                       <Button
                         size="sm"
                         variant={set.weight === null ? "default" : "outline"}
-                        onClick={() =>
-                          updateSetMutation.mutate({
-                            setId: set.id,
-                            data: { weight: set.weight === null ? (progressiveSuggestion?.suggestedWeight ?? 20) : null },
-                          })
-                        }
+                        onClick={() => toggleBodyweight(set.id, set.weight)}
                         disabled={set.completed === 1}
                         className="h-10 px-3 text-xs"
                         data-testid={`button-bodyweight-${exerciseIndex}-${setIndex}`}
