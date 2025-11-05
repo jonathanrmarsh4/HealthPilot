@@ -2,23 +2,7 @@ import ActivityKit
 import WidgetKit
 import SwiftUI
 
-struct WorkoutAttributes: ActivityAttributes {
-    public struct ContentState: Codable, Hashable {
-        var currentExercise: String
-        var currentSet: Int
-        var totalSets: Int
-        var nextExercise: String
-        var restTimeRemaining: Int
-        var elapsedTime: String
-        var heartRate: Int
-        var heartRateZone: String
-        var isPaused: Bool
-    }
-    
-    var workoutSessionId: String
-    var workoutType: String
-}
-
+@available(iOS 16.1, *)
 struct WorkoutLiveActivityView: View {
     let context: ActivityViewContext<WorkoutAttributes>
     
@@ -196,6 +180,7 @@ struct WorkoutLiveActivityView: View {
     }
 }
 
+@available(iOS 16.1, *)
 struct TogglePauseIntent: LiveActivityIntent {
     static var title: LocalizedStringResource = "Toggle Pause"
     
@@ -209,6 +194,7 @@ struct TogglePauseIntent: LiveActivityIntent {
     }
 }
 
+@available(iOS 16.1, *)
 struct CompleteSetIntent: LiveActivityIntent {
     static var title: LocalizedStringResource = "Complete Set"
     
@@ -222,6 +208,7 @@ struct CompleteSetIntent: LiveActivityIntent {
     }
 }
 
+@available(iOS 16.1, *)
 struct SkipExerciseIntent: LiveActivityIntent {
     static var title: LocalizedStringResource = "Skip Exercise"
     
@@ -235,6 +222,7 @@ struct SkipExerciseIntent: LiveActivityIntent {
     }
 }
 
+@available(iOS 16.1, *)
 struct WorkoutLiveActivity: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: WorkoutAttributes.self) { context in
