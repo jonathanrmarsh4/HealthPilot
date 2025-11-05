@@ -15,6 +15,7 @@ import { buildUserContext, generateDailySession } from "./services/trainingGener
 import { assessWorkflow, type Input as WorkflowInput, type Biomarker as WorkflowBiomarker } from "./services/workflowAssessor";
 import { parseISO, isValid, subDays, format as formatDate } from "date-fns";
 import { toZonedTime, fromZonedTime } from "date-fns-tz";
+import { getLocalDateString, localDayToUtcRange } from "./utils/sleepTimezone";
 import { eq, and, gte, or, inArray, isNull, isNotNull, sql } from "drizzle-orm";
 import { isAuthenticated, isAdmin, webhookAuth } from "./replitAuth";
 import type { ConversationMessage, ExtractedContext } from "./goals/conversation-intelligence";
@@ -5664,8 +5665,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/training/daily-recommendation", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
     try {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      // Get user's timezone settings
+      const userSettings = await storage.getUserSettings(userId);
+      const userTimezone = userSettings.timezone || 'UTC';
+      
+      // Get current date in user's timezone (not UTC!)
+      const nowInUserTz = new Date();
+      const todayDateString = getLocalDateString(nowInUserTz, userTimezone); // e.g., "2025-11-06"
+      
+      // Convert to UTC range for database queries
+      const { startUtc: today, endUtc: todayEnd } = localDayToUtcRange(todayDateString, userTimezone);
       
       // 1. Get readiness score (use cached if available)
       let readinessData = await storage.getReadinessScoreForDate(userId, today);
@@ -5694,8 +5703,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // 2. Check if user has already completed a workout today
       const allWorkoutSessions = await storage.getWorkoutSessions(userId);
-      const todayEnd = new Date(today);
-      todayEnd.setHours(23, 59, 59, 999);
       
       const completedTodayWorkouts = allWorkoutSessions.filter(w => {
         if (w.completed !== 1 || !w.completedAt) return false;
@@ -6527,6 +6534,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/training/generate-daily-session", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
     
+    // Get target date from request body (defaults to today) - declare before try block so it's accessible in catch
+    const targetDate = req.body.date || formatDate(new Date(), "yyyy-MM-dd");
+    
     try {
       // Check feature flag
       const { canUseDailyAITrainingGenerator } = await import("../shared/config/flags");
@@ -6536,9 +6546,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: "Daily AI Training Generator is not enabled"
         });
       }
-      
-      // Get target date from request body (defaults to today)
-      const targetDate = req.body.date || formatDate(new Date(), "yyyy-MM-dd");
       
       // Check if workout already exists for this date
       const existing = await storage.getGeneratedWorkout(userId, targetDate);
@@ -6627,7 +6634,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get generated workout for a specific date
   app.get("/api/training/generated-workout/:date", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
-    const { date } = req.params;
+    const { date } = req.params; // Should be in YYYY-MM-DD format in user's timezone
     
     try {
       const workout = await storage.getGeneratedWorkout(userId, date);

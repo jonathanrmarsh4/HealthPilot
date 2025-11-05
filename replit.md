@@ -8,9 +8,10 @@ I prefer simple language and clear explanations. I want iterative development wh
 
 ## System Architecture
 **Frontend:** React 18, Vite 5.x, Wouter, shadcn/ui + Radix UI, Tailwind CSS, TanStack Query v5, React Hook Form + Zod, Lucide React + React Icons.
-**Backend:** Express.js, RESTful APIs with Zod validation, express-session, WebSocket (for Voice Chat), Multer.
+**Backend:** Express.js, RESTful APIs with Zod validation, express-session, WebSocket (for Voice Chat), Multer, date-fns-tz for timezone-aware date handling.
 **Database:** PostgreSQL (Neon-backed), Drizzle ORM, Drizzle-Zod.
 **Mobile:** Capacitor 7 (iOS native app), @capgo/capacitor-health plugin for HealthKit integration.
+**Timezone Support:** All date-based features (workout generation, scheduling, insights) are fully timezone-aware using user's stored timezone preference (IANA format, e.g., "Australia/Perth").
 
 **UI/UX Decisions:**
 - Dark mode, responsive design optimized for mobile/tablet, PWA support for iOS.
@@ -55,7 +56,7 @@ I prefer simple language and clear explanations. I want iterative development wh
 - **Symptoms Tracking System:** Comprehensive symptom monitoring system with episode-based grouping, severity scoring, trend analysis, and contextual tags.
 - **AI Symptom Correlation Engine v2.0:** Intelligent analysis system combining active symptoms with comprehensive biomarkers to identify root causes and patterns.
 - **Dynamic Insights Engine v1.0:** Modular insights generation architecture that discovers and analyzes all available metrics without hardcoding.
-- **Automatic Timezone Synchronization:** Intelligent timezone detection system ensuring accurate scheduling and time-based features.
+- **Automatic Timezone Synchronization v2.0:** Intelligent timezone detection system ensuring accurate scheduling and time-based features. Workout generation, daily insights, and all date-based queries now use user's local timezone (Nov 2025 update: fixed workout generation to respect user timezone via `localDayToUtcRange()` utility).
 - **Exercise Template Auto-Seeding System:** Automatic database seeding system ensuring all exercise templates referenced in rules exist.
 - **Template-to-Exercise Enrichment System v1.1:** Ensures workout generation properly resolves template_ids to exercise_ids during save and overrides AI-generated display_name with canonical exercise library names.
 - **Cost Rollup Scheduler & Telemetry System:** Automated daily cost aggregation system for `telemetry_llm_events`.
