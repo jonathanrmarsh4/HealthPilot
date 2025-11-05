@@ -189,12 +189,19 @@ export async function calculateReadinessScore(
   // Use muscle group recovery average to reflect actual physical fatigue state
   const muscleRecovery = await storage.getMuscleGroupRecovery(userId);
   
+  console.log(`[Readiness] Raw muscle recovery from DB:`, muscleRecovery.map(m => ({ 
+    muscle: m.muscleGroup, 
+    fatigue: m.fatigueDamage, 
+    lastWorkout: m.lastWorkoutAt 
+  })));
+  
   if (muscleRecovery.length > 0) {
     // Calculate recovery score for each muscle group using exponential decay
     const HALF_LIFE_HOURS = 48;
     const now = targetDate;
     
     let totalScore = 0;
+    const muscleScores: any[] = [];
     for (const group of muscleRecovery) {
       if (group.lastWorkoutAt && group.fatigueDamage > 0) {
         const hoursSinceWorkout = (now.getTime() - new Date(group.lastWorkoutAt).getTime()) / (1000 * 60 * 60);
@@ -202,17 +209,22 @@ export async function calculateReadinessScore(
         const currentFatigue = group.fatigueDamage * decayFactor;
         const score = Math.max(0, Math.min(100, 100 - currentFatigue));
         totalScore += score;
+        muscleScores.push({ muscle: group.muscleGroup, score: Math.round(score), hours: Math.round(hoursSinceWorkout), fatigue: Math.round(currentFatigue) });
       } else {
         // Not yet trained or no fatigue - fully recovered
         totalScore += 100;
+        muscleScores.push({ muscle: group.muscleGroup, score: 100, note: 'no fatigue' });
       }
     }
     
     // Average muscle group recovery score
     factors.workloadRecovery.score = Math.round(totalScore / muscleRecovery.length);
+    console.log(`[Readiness] Muscle scores:`, muscleScores);
+    console.log(`[Readiness] Workout Load Recovery calculated as: ${factors.workloadRecovery.score}/100 (avg of ${muscleRecovery.length} muscles)`);
   } else {
     // No muscle recovery data yet - assume fully recovered
     factors.workloadRecovery.score = 100;
+    console.log(`[Readiness] No muscle recovery data - defaulting to 100`);
   }
 
   // Calculate weighted total score
