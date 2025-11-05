@@ -873,14 +873,6 @@ export default function WorkoutSession() {
         await liveActivityManager.end(formatElapsedTime(elapsedTime));
       }
       
-      // Apply workout fatigue to muscle group recovery
-      try {
-        await apiRequest("POST", "/api/recovery/workout-complete", { workoutSessionId: sessionId });
-      } catch (error) {
-        console.error("Error updating recovery state:", error);
-        // Don't fail the workout completion if recovery update fails
-      }
-      
       // Invalidate and refetch all relevant data to ensure fresh state on Training page
       await queryClient.invalidateQueries({ queryKey: ["/api/analytics/muscle-group-frequency"] });
       await queryClient.refetchQueries({ queryKey: ["/api/analytics/muscle-group-frequency"] });

@@ -6410,6 +6410,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Record muscle group engagements based on completed exercises
       await recordWorkoutMuscleGroupEngagements(storage, userId, id);
       
+      // Apply workout fatigue to muscle group recovery
+      console.log(`🏁 Applying workout fatigue to recovery system...`);
+      try {
+        const { recordWorkoutCompletion } = await import("./services/recoveryTimeline");
+        await recordWorkoutCompletion(userId, id, new Date());
+        console.log(`✅ Recovery fatigue applied for workout ${id}`);
+      } catch (recoveryError: any) {
+        // Log but don't fail the workout completion if recovery update fails
+        console.error(`⚠️ Error applying recovery fatigue (non-critical):`, recoveryError);
+      }
+      
       // If this was from a generated workout, mark it as completed
       // Check if there's a workout instance with this session
       const instanceId = req.query.instanceId as string | undefined;
