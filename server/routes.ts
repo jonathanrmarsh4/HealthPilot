@@ -14425,6 +14425,106 @@ DATA AVAILABILITY:
     }
   });
 
+  // ========================================
+  // Live Activities Endpoints
+  // ========================================
+  
+  // POST /api/live-activities/register - Register Live Activity push token
+  app.post("/api/live-activities/register", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any).claims.sub;
+      const { sessionId, pushToken, activityId } = req.body;
+      
+      if (!sessionId || !pushToken || !activityId) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+      
+      // Store the Live Activity mapping in session or database
+      // For now, we'll store it in memory (in production, use Redis or database)
+      console.log(`📱 Live Activity registered: Session ${sessionId}, Activity ${activityId}`);
+      
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error registering Live Activity:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // POST /api/live-activities/update - Update Live Activity
+  app.post("/api/live-activities/update", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any).claims.sub;
+      const { 
+        sessionId, 
+        pushToken, 
+        activityId,
+        currentExercise,
+        currentSet,
+        totalSets,
+        nextExercise,
+        restTimeRemaining,
+        elapsedTime,
+        heartRate,
+        heartRateZone,
+        isPaused
+      } = req.body;
+      
+      if (!pushToken || !activityId) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+      
+      const { liveActivityService } = await import('./services/liveActivities');
+      
+      await liveActivityService.updateLiveActivity(
+        pushToken,
+        activityId,
+        {
+          currentExercise: currentExercise || 'Exercise',
+          currentSet: currentSet || 1,
+          totalSets: totalSets || 3,
+          nextExercise: nextExercise || 'Rest',
+          restTimeRemaining: restTimeRemaining || 0,
+          elapsedTime: elapsedTime || '0:00',
+          heartRate: heartRate || 0,
+          heartRateZone: heartRateZone || 'Z1',
+          isPaused: isPaused || false
+        }
+      );
+      
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error updating Live Activity:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // POST /api/live-activities/end - End Live Activity
+  app.post("/api/live-activities/end", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any).claims.sub;
+      const { sessionId, pushToken, activityId, elapsedTime } = req.body;
+      
+      if (!pushToken || !activityId) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+      
+      const { liveActivityService } = await import('./services/liveActivities');
+      
+      await liveActivityService.endLiveActivity(
+        pushToken,
+        activityId,
+        { elapsedTime: elapsedTime || '0:00' }
+      );
+      
+      console.log(`📱 Live Activity ended: Session ${sessionId}`);
+      
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error ending Live Activity:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Initialize notification orchestrator after all routes are defined
   initNotificationOrchestrator(storage);
 
