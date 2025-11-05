@@ -249,6 +249,18 @@ export async function getCurrentRecoveryState(userId: string): Promise<{
     biometrics.restingHR * 0.20
   );
   
+  // Debug logging
+  console.log('🔍 Recovery Score Calculation:', {
+    userId,
+    biometrics,
+    calculation: {
+      sleep: `${biometrics.sleep} * 0.50 = ${biometrics.sleep * 0.50}`,
+      hrv: `${biometrics.hrv} * 0.30 = ${biometrics.hrv * 0.30}`,
+      restingHR: `${biometrics.restingHR} * 0.20 = ${biometrics.restingHR * 0.20}`,
+      total: systemic
+    }
+  });
+  
   return {
     systemic,
     muscleGroups: muscleScores as Record<MuscleGroup, number>,
@@ -348,6 +360,16 @@ async function getBiometricFactors(userId: string): Promise<{
     }
   }
   
+  // Debug logging
+  console.log('🔍 getBiometricFactors - Settings:', {
+    userId,
+    usePersonalBaselines,
+    personalBaselines,
+    userAge,
+    ageAdjustedHRV: userAge ? getAgeAdjustedHRVBaseline(userAge) : undefined,
+    ageAdjustedRHR: userAge ? getAgeAdjustedRHRBaseline(userAge) : undefined
+  });
+  
   // Sleep score
   let sleepScore = 70; // default if no data
   const sleepSessions = await storage.getSleepSessions(userId);
@@ -388,10 +410,12 @@ async function getBiometricFactors(userId: string): Promise<{
     // Use personal baseline if enabled and available
     if (usePersonalBaselines && personalBaselines.hrv) {
       hrvScore = calculateBaselineScore(hrvValue, personalBaselines.hrv, true);
+      console.log('🔍 HRV Score - Personal Baseline:', { hrvValue, baseline: personalBaselines.hrv, score: hrvScore });
     } else if (userAge) {
       // Use age-adjusted baseline
       const ageBaseline = getAgeAdjustedHRVBaseline(userAge);
       hrvScore = calculateBaselineScore(hrvValue, ageBaseline, true);
+      console.log('🔍 HRV Score - Age-Adjusted:', { hrvValue, age: userAge, baseline: ageBaseline, score: hrvScore });
     } else {
       // Standard HRV scoring (for users without age or baselines)
       if (hrvValue < 40) {
@@ -403,6 +427,7 @@ async function getBiometricFactors(userId: string): Promise<{
       } else {
         hrvScore = Math.min(100, 90 + ((hrvValue - 80) / 40) * 10);
       }
+      console.log('🔍 HRV Score - Standard:', { hrvValue, score: hrvScore });
     }
   }
   
@@ -422,10 +447,12 @@ async function getBiometricFactors(userId: string): Promise<{
     // Use personal baseline if enabled and available
     if (usePersonalBaselines && personalBaselines.restingHR) {
       rhrScore = calculateBaselineScore(rhr, personalBaselines.restingHR, false);
+      console.log('🔍 RHR Score - Personal Baseline:', { rhr, baseline: personalBaselines.restingHR, score: rhrScore });
     } else if (userAge) {
       // Use age-adjusted baseline
       const ageBaseline = getAgeAdjustedRHRBaseline(userAge);
       rhrScore = calculateBaselineScore(rhr, ageBaseline, false);
+      console.log('🔍 RHR Score - Age-Adjusted:', { rhr, age: userAge, baseline: ageBaseline, score: rhrScore });
     } else {
       // Standard RHR scoring (lower is better)
       if (rhr < 50) {
@@ -439,6 +466,7 @@ async function getBiometricFactors(userId: string): Promise<{
       } else {
         rhrScore = Math.max(0, 30 - ((rhr - 80) / 10) * 10);
       }
+      console.log('🔍 RHR Score - Standard:', { rhr, score: rhrScore });
     }
   }
   
