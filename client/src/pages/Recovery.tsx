@@ -102,7 +102,7 @@ export default function Recovery() {
     queryClient.invalidateQueries({ queryKey: ['/api/recovery/scheduled'] });
   };
 
-  const recoveryScore = recoveryState?.recoveryScore ?? 0;
+  const recoveryScore = recoveryState?.systemic ?? 0;
   const overallReadiness = readinessScore?.overall ?? 0;
 
   const getRecoveryStatus = (score: number) => {
