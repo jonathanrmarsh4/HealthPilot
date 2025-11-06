@@ -30,8 +30,8 @@ target 'App' do
   capacitor_pods
   # Add your Pods here
   
-  # Custom HealthKit Plugin with 26 data types (inline pod)
-  pod 'HealthKitPlugin', :podspec => '../HealthKitPlugin/HealthKitPlugin.podspec'
+  # Custom HealthKit Plugin with 26 data types (local development pod)
+  pod 'HealthKitPlugin', :path => '../HealthKitPlugin'
 end
 
 post_install do |installer|
