@@ -1,13 +1,30 @@
 {
-  "name": "healthkit-plugin-extended",
+  "name": "@healthpilot/healthkit",
   "version": "1.0.0",
-  "description": "Extended HealthKit plugin with 26 data types",
-  "main": "dist/plugin.cjs.js",
-  "module": "dist/esm/index.js",
-  "types": "dist/esm/index.d.ts",
+  "description": "Extended HealthKit plugin with 26 data types for HealthPilot",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
   "capacitor": {
     "ios": {
       "src": "ios"
     }
+  },
+  "files": [
+    "ios/",
+    "src/",
+    "HealthKitPlugin.podspec"
+  ],
+  "keywords": [
+    "capacitor",
+    "plugin",
+    "healthkit",
+    "ios"
+  ],
+  "scripts": {},
+  "peerDependencies": {
+    "@capacitor/core": "^7.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/core": "^7.0.0"
   }
 }
