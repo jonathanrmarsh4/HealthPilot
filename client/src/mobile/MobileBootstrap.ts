@@ -55,12 +55,21 @@ export async function initializeMobile(
 ): Promise<void> {
   const config = { ...defaultOptions, ...options };
 
-  if (!isNativePlatform()) {
+  // DIAGNOSTIC: Log platform detection details
+  const platform = getPlatform();
+  const isNative = isNativePlatform();
+  console.log('[MobileBootstrap] Platform Detection:', {
+    platform,
+    isNative,
+    capacitorVersion: Capacitor.getPlatform(),
+  });
+
+  if (!isNative) {
     console.log('[MobileBootstrap] Running on web, skipping native initialization');
     return;
   }
 
-  console.log(`[MobileBootstrap] Initializing on ${getPlatform()}...`);
+  console.log(`[MobileBootstrap] Initializing on ${platform}...`);
 
   try {
     // Configure Status Bar
