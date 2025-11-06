@@ -1,0 +1,50 @@
+jonathanmarsh@Jonathans-MacBook-Air App % git add -A
+git commit -m "Fix HealthKitPlugin podspec and remove duplicate Swift files"
+git push $GIT_URL main
+[main 3bf3eec] Fix HealthKitPlugin podspec and remove duplicate Swift files
+ Committer: Jonathan Marsh <jonathanmarsh@Jonathans-MacBook-Air.local>
+Your name and email address were configured automatically based
+on your username and hostname. Please check that they are accurate.
+You can suppress this message by setting them explicitly. Run the
+following command and follow the instructions in your editor to edit
+your configuration file:
+
+    git config --global --edit
+
+After doing this, you may fix the identity used for this commit with:
+
+    git commit --amend --reset-author
+
+ 31 files changed, 7040 insertions(+), 56 deletions(-)
+ create mode 100644 client/src/pages/WorkoutSession.tsx.backup
+ create mode 100644 ios/App/App.xcworkspace/contents.xcworkspacedata
+ delete mode 100644 ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png
+ create mode 100644 ios/App/App/Assets.xcassets/AppIcon.appiconset/Icon.png
+ create mode 100644 ios/App/App/Assets.xcassets/Splash.imageset/HealthPilot 1.png
+ create mode 100644 ios/App/App/Assets.xcassets/Splash.imageset/HealthPilot 2.png
+ create mode 100644 ios/App/App/Assets.xcassets/Splash.imageset/HealthPilot.png
+ delete mode 100644 ios/App/App/Assets.xcassets/Splash.imageset/splash-2732x2732-1.png
+ delete mode 100644 ios/App/App/Assets.xcassets/Splash.imageset/splash-2732x2732-2.png
+ delete mode 100644 ios/App/App/Assets.xcassets/Splash.imageset/splash-2732x2732.png
+ create mode 100644 ios/App/App/BackgroundSyncManager 2.swift
+ create mode 100644 ios/App/App/BackgroundSyncManager 3.swift
+ create mode 100644 ios/App/App/BackgroundSyncManager 4.swift
+ create mode 100644 ios/App/App/BackgroundSyncManager 5.swift
+ create mode 100644 ios/App/App/BackgroundSyncManager.swift
+ create mode 100644 ios/App/App/Health 2.swift
+ create mode 100644 ios/App/App/Health 3.swift
+ create mode 100644 ios/App/App/Health 4.swift
+ create mode 100644 ios/App/App/Health.swift
+ create mode 100644 ios/App/App/HealthPlugin 2.swift
+ create mode 100644 ios/App/App/HealthPlugin 3.swift
+ create mode 100644 ios/App/App/HealthPlugin 4.swift
+ create mode 100644 ios/App/App/HealthPlugin 5.swift
+ create mode 100644 ios/App/App/HealthPlugin.swift
+ create mode 100644 ios/App/App/Health_CLEAN.swift
+ create mode 100644 ios/App/Podfile.lock
+fatal: 'main' does not appear to be a git repository
+fatal: Could not read from remote repository.
+
+Please make sure you have the correct access rights
+and the repository exists.
+jonathanmarsh@Jonathans-MacBook-Air App % 
