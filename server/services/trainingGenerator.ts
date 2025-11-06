@@ -764,7 +764,8 @@ export async function enrichWorkoutBlocks(
 export async function saveWorkout(
   storage: IStorage,
   userId: string,
-  result: any
+  result: any,
+  targetDate: string
 ) {
   const { plan, blocks, validation } = result;
 
@@ -773,10 +774,10 @@ export async function saveWorkout(
 
   console.log(`💾 Sample enriched block:`, JSON.stringify(enrichedBlocks[0], null, 2));
 
-  // Store in generatedWorkouts table
+  // Store in generatedWorkouts table with user's timezone-aware date
   await storage.createGeneratedWorkout({
     userId,
-    date: plan.date || format(new Date(), "yyyy-MM-dd"),
+    date: targetDate, // Use targetDate from user's timezone instead of server UTC
     workoutData: {
       plan,
       blocks: enrichedBlocks,
@@ -788,7 +789,7 @@ export async function saveWorkout(
     status: "pending"
   });
 
-  console.log(`💾 Workout saved for user ${userId} with ${enrichedBlocks.length} blocks, ${Object.keys(templateToExerciseMapping).length} template mappings`);
+  console.log(`💾 Workout saved for user ${userId} on ${targetDate} with ${enrichedBlocks.length} blocks, ${Object.keys(templateToExerciseMapping).length} template mappings`);
 }
 
 // ──────────────────────────────────────────────
@@ -807,8 +808,8 @@ export async function generateAndSaveWorkout(
     // Generate workout
     const result = await generateDailySession(context, regenerationCount);
 
-    // Save to database
-    await saveWorkout(storage, userId, result);
+    // Save to database with user's timezone-aware date
+    await saveWorkout(storage, userId, result, targetDate);
 
     return result;
   } catch (error) {

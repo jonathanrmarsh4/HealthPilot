@@ -6671,7 +6671,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Use saveWorkout to properly enrich blocks with exercise_ids
       const { saveWorkout } = await import('./services/trainingGenerator');
-      await saveWorkout(storage, userId, workoutResult);
+      await saveWorkout(storage, userId, workoutResult, targetDate);
       
       // Fetch the saved workout to return to client
       const savedWorkout = await storage.getGeneratedWorkout(userId, targetDate);
