@@ -1,0 +1,13 @@
+{
+  "name": "healthkit-plugin-extended",
+  "version": "1.0.0",
+  "description": "Extended HealthKit plugin with 26 data types",
+  "main": "dist/plugin.cjs.js",
+  "module": "dist/esm/index.js",
+  "types": "dist/esm/index.d.ts",
+  "capacitor": {
+    "ios": {
+      "src": "ios"
+    }
+  }
+}
