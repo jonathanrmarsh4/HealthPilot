@@ -290,26 +290,51 @@ export default function Settings() {
               <div className="space-y-4">
                 <h4 className="text-sm font-semibold">Notification Types</h4>
                 
-                {/* Recovery Insights */}
+                {/* AI Insights */}
+                {(() => {
+                  const channel = notificationChannels.find(c => c.channel === 'insight');
+                  return (
+                    <div className="flex items-center justify-between py-3 border-b">
+                      <div className="space-y-1">
+                        <Label htmlFor="ai-insights" className="text-sm font-medium cursor-pointer">
+                          AI Insights
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                          Daily AI-powered health insights and recommendations
+                        </p>
+                      </div>
+                      <Switch
+                        id="ai-insights"
+                        checked={channel?.enabled ?? true}
+                        onCheckedChange={(enabled) => 
+                          updateChannelMutation.mutate({ channel: 'insight', enabled })
+                        }
+                        data-testid="switch-ai-insights"
+                      />
+                    </div>
+                  );
+                })()}
+
+                {/* Recovery Alerts */}
                 {(() => {
                   const channel = notificationChannels.find(c => c.channel === 'recovery_alert');
                   return (
                     <div className="flex items-center justify-between py-3 border-b">
                       <div className="space-y-1">
-                        <Label htmlFor="recovery-insights" className="text-sm font-medium cursor-pointer">
-                          Recovery Insights
+                        <Label htmlFor="recovery-alerts" className="text-sm font-medium cursor-pointer">
+                          Recovery Alerts
                         </Label>
                         <p className="text-xs text-muted-foreground">
-                          AI-powered insights about your recovery metrics
+                          Notifications about recovery status and rest needs
                         </p>
                       </div>
                       <Switch
-                        id="recovery-insights"
+                        id="recovery-alerts"
                         checked={channel?.enabled ?? true}
                         onCheckedChange={(enabled) => 
                           updateChannelMutation.mutate({ channel: 'recovery_alert', enabled })
                         }
-                        data-testid="switch-recovery-insights"
+                        data-testid="switch-recovery-alerts"
                       />
                     </div>
                   );
@@ -410,7 +435,7 @@ export default function Settings() {
                       onChange={(e) => setQuietHoursStart(e.target.value)}
                       onBlur={() => {
                         const newQuietHours = `${quietHoursStart}-${quietHoursEnd}`;
-                        ['recovery_alert', 'health_alert', 'supplement_reminder', 'workout_reminder'].forEach(channel => {
+                        ['insight', 'recovery_alert', 'health_alert', 'supplement_reminder', 'workout_reminder'].forEach(channel => {
                           updateQuietHoursMutation.mutate({ channel, quietHours: newQuietHours });
                         });
                       }}
@@ -426,7 +451,7 @@ export default function Settings() {
                       onChange={(e) => setQuietHoursEnd(e.target.value)}
                       onBlur={() => {
                         const newQuietHours = `${quietHoursStart}-${quietHoursEnd}`;
-                        ['recovery_alert', 'health_alert', 'supplement_reminder', 'workout_reminder'].forEach(channel => {
+                        ['insight', 'recovery_alert', 'health_alert', 'supplement_reminder', 'workout_reminder'].forEach(channel => {
                           updateQuietHoursMutation.mutate({ channel, quietHours: newQuietHours });
                         });
                       }}
