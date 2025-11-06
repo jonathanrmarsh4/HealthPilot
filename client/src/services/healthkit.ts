@@ -1,6 +1,10 @@
 import { Capacitor } from '@capacitor/core';
-import { Health } from '@capgo/capacitor-health';
+import { registerPlugin } from '@capacitor/core';
 import HealthKitStats from '@/mobile/plugins/HealthKitStatsPlugin';
+
+// Custom HealthPlugin with extended data type support (26 types vs standard 5)
+// Located at ios/HealthKitPlugin/HealthPlugin.swift
+const Health = registerPlugin<any>('Health');
 
 export interface HealthDataSample {
   value: number;
