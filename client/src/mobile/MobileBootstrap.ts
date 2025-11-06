@@ -12,25 +12,18 @@ import { StatusBar, Style } from '@capacitor/status-bar';
 import { SplashScreen } from '@capacitor/splash-screen';
 import { Keyboard } from '@capacitor/keyboard';
 import { App as CapApp } from '@capacitor/app';
-import { getAuthHeaders } from '@/lib/queryClient';
 
 export interface MobileBootstrapOptions {
   statusBarStyle?: 'light' | 'dark';
   enableBackButtonHandler?: boolean;
   enableKeyboardHandling?: boolean;
-  enableAutoSync?: boolean; // Enable automatic HealthKit sync on app lifecycle events
 }
 
 const defaultOptions: MobileBootstrapOptions = {
   statusBarStyle: 'dark',
   enableBackButtonHandler: true,
   enableKeyboardHandling: true,
-  enableAutoSync: true,
 };
-
-// Auto-sync state
-const AUTO_SYNC_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
-const LAST_SYNC_KEY = 'healthkit_last_auto_sync';
 
 /**
  * Determines if the app is running on a native platform (iOS or Android)
@@ -86,11 +79,6 @@ export async function initializeMobile(
     // Configure Back Button
     if (config.enableBackButtonHandler) {
       configureBackButton();
-    }
-
-    // Configure Auto-Sync
-    if (config.enableAutoSync && getPlatform() === 'ios') {
-      configureAutoSync();
     }
 
     // Log app info
@@ -186,76 +174,6 @@ function configureBackButton(): void {
   }
 }
 
-/**
- * Configure automatic HealthKit sync on app lifecycle events
- */
-function configureAutoSync(): void {
-  try {
-    // Trigger sync on app launch (after cooldown check)
-    triggerAutoSync('launch');
-    
-    // Listen for app state changes
-    CapApp.addListener('appStateChange', (state) => {
-      if (state.isActive) {
-        // App came to foreground
-        triggerAutoSync('resume');
-      }
-    });
-    
-    console.log('[MobileBootstrap] Auto-sync configured (5-minute cooldown)');
-  } catch (error) {
-    console.warn('[MobileBootstrap] Auto-sync configuration failed:', error);
-  }
-}
-
-/**
- * Trigger automatic HealthKit sync with smart cooldown
- */
-async function triggerAutoSync(trigger: 'launch' | 'resume'): Promise<void> {
-  try {
-    // Check cooldown
-    const lastSyncStr = localStorage.getItem(LAST_SYNC_KEY);
-    const now = Date.now();
-    
-    if (lastSyncStr) {
-      const lastSync = parseInt(lastSyncStr, 10);
-      const elapsed = now - lastSync;
-      
-      if (elapsed < AUTO_SYNC_COOLDOWN_MS) {
-        const remainingMin = Math.ceil((AUTO_SYNC_COOLDOWN_MS - elapsed) / 60000);
-        console.log(`[MobileBootstrap] Auto-sync skipped (cooldown: ${remainingMin}m remaining)`);
-        return;
-      }
-    }
-    
-    // Update last sync timestamp
-    localStorage.setItem(LAST_SYNC_KEY, now.toString());
-    
-    console.log(`[MobileBootstrap] Triggering auto-sync (${trigger})...`);
-    
-    // Get authentication headers for mobile
-    const authHeaders = await getAuthHeaders();
-    
-    // Call the existing sync endpoint
-    const response = await fetch('/api/apple-health/sync', {
-      method: 'POST',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-        ...authHeaders,
-      },
-    });
-    
-    if (response.ok) {
-      const result = await response.json();
-      console.log('[MobileBootstrap] Auto-sync completed:', result);
-    } else {
-      console.warn('[MobileBootstrap] Auto-sync failed:', response.status);
-    }
-  } catch (error) {
-    console.error('[MobileBootstrap] Auto-sync error:', error);
-  }
-}
 
 /**
  * Log app information for debugging
