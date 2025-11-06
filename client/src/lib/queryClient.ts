@@ -31,8 +31,10 @@ export async function getAuthHeaders(): Promise<HeadersInit> {
 // Get the API base URL - handles mobile vs web
 export function getApiBaseUrl(): string {
   if (isNativePlatform()) {
-    // On mobile, use the Capacitor config hostname with https
-    return 'https://0d420476-b7bb-4cc4-9f5a-da35f5e473e4-00-1n1tyyvrb5uvz.pike.replit.dev';
+    // On mobile, use environment variable or fallback to production domain
+    // VITE_API_URL should be set to your deployed backend URL (e.g., https://healthpilot.pro)
+    const apiUrl = import.meta.env.VITE_API_URL || 'https://healthpilot.pro';
+    return apiUrl;
   } else {
     // On web, use window.location.origin
     return window.location.origin;
@@ -42,8 +44,9 @@ export function getApiBaseUrl(): string {
 // Get the WebSocket base URL - handles mobile vs web
 export function getWebSocketBaseUrl(): string {
   if (isNativePlatform()) {
-    // On mobile, use the Capacitor config hostname
-    return '0d420476-b7bb-4cc4-9f5a-da35f5e473e4-00-1n1tyyvrb5uvz.pike.replit.dev';
+    // On mobile, extract hostname from API URL
+    const apiUrl = import.meta.env.VITE_API_URL || 'https://healthpilot.pro';
+    return apiUrl.replace(/^https?:\/\//, '');
   } else {
     // On web, use window.location.host
     return window.location.host;
