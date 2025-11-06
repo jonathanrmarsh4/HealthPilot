@@ -1,0 +1,90 @@
+nothing to commit, working tree clean
+~/workspace$ git push
+remote: Repository not found.
+fatal: repository 'https://github.com/jonathanrmarsh4/HealthPilot/' not found
+~/workspace$ git push $GIT_URL main
+Everything up-to-date
+~/workspace$ cd ~/workspace
+~/workspace$ git pull origin main
+remote: Repository not found.
+fatal: repository 'https://github.com/jonathanrmarsh4/HealthPilot/' not found
+~/workspace$ npm run build
+
+> rest-express@1.0.0 build
+> vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+
+vite v5.4.20 building for production...
+transforming (1) index.htmlBrowserslist: browsers data (caniuse-lite) is 13 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+transforming (5) src/App.tsx
+A PostCSS plugin did not pass the `from` option to `postcss.parse`. This may cause imported assets to be incorrectly transformed. If you've recently added a PostCSS plugin that raised this warning, please contact the package author to fix the issue.
+✓ 4081 modules transformed.
+[plugin:vite:reporter] [plugin vite:reporter] 
+(!) /home/runner/workspace/node_modules/@capacitor/preferences/dist/esm/index.js is dynamically imported by /home/runner/workspace/client/src/mobile/features/diagnostics/NativeDiagnostics.tsx but also statically imported by /home/runner/workspace/client/src/App.tsx, /home/runner/workspace/client/src/mobile/adapters/SecureStorageAdapter.ts, /home/runner/workspace/client/src/pages/Login.tsx, dynamic import will not move module into another chunk.
+
+../dist/public/index.html                                              3.14 kB │ gzip:   1.23 kB
+../dist/public/assets/healthpilot-logo-white-BKKXPbOZ.png          1,403.91 kB
+../dist/public/assets/HealthPilot_Logo_1759904141260-vsk9EWYG.png  1,430.42 kB
+../dist/public/assets/IMG_0088_1760794249248-rzWpvWYO.png          2,071.89 kB
+../dist/public/assets/index-Cbtrwt8Y.css                             116.59 kB │ gzip:  19.15 kB
+../dist/public/assets/web-OGvWMJTl.js                                  0.12 kB │ gzip:   0.12 kB
+../dist/public/assets/web-HmshpG_Z.js                                  0.36 kB │ gzip:   0.25 kB
+../dist/public/assets/web-B3EBbSe7.js                                  0.38 kB │ gzip:   0.25 kB
+../dist/public/assets/HealthKitStatsPlugin.web--M2j3il2.js             0.42 kB │ gzip:   0.25 kB
+../dist/public/assets/web-DU0etTfI.js                                  0.71 kB │ gzip:   0.32 kB
+../dist/public/assets/native-THSSvqEk.js                               0.75 kB │ gzip:   0.35 kB
+../dist/public/assets/web-Byr1rVkK.js                                  0.76 kB │ gzip:   0.35 kB
+../dist/public/assets/web-CxGnacis.js                                  0.80 kB │ gzip:   0.41 kB
+../dist/public/assets/web-BrhbBs7k.js                                  0.94 kB │ gzip:   0.46 kB
+../dist/public/assets/web-BpWHMxhG.js                                  1.25 kB │ gzip:   0.58 kB
+../dist/public/assets/base-DoSiuTzb.js                                 2.52 kB │ gzip:   0.93 kB
+../dist/public/assets/index-D7_Xttat.js                            2,987.75 kB │ gzip: 721.78 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 16.80s
+
+  dist/index.js  1.5mb ⚠️
+
+⚡ Done in 75ms
+~/workspace$ npx cap sync ios
+✔ Copying web assets from public to ios/App/App/public in 133.99ms
+✔ Creating capacitor.config.json in ios/App/App in 1.86ms
+[info] Found 1 Cordova plugin for ios:
+       onesignal-cordova-plugin@5.2.15
+✔ copy ios in 414.84ms
+✔ Updating iOS plugins in 29.96ms
+[info] Found 1 Cordova plugin for ios:
+       onesignal-cordova-plugin@5.2.15
+⠹ update ios [warn] Skipping pod install because CocoaPods is not installed
+[warn] Unable to find "xcodebuild". Skipping xcodebuild clean step...
+✔ Updating iOS native dependencies with pod install in 19.56ms
+[warn] Configuration might be missing for onesignal-cordova-plugin.
+       Add the following to the existing UIBackgroundModes entry of Info.plist:
+       
+       <string>remote-notification</string>
+       
+[info] Found 13 Capacitor plugins for ios:
+       @aparajita/capacitor-secure-storage@7.1.6
+       @capacitor/app@7.1.0
+       @capacitor/browser@7.0.2
+       @capacitor/filesystem@7.1.4
+       @capacitor/haptics@7.0.2
+       @capacitor/keyboard@7.0.3
+       @capacitor/local-notifications@7.0.3
+       @capacitor/preferences@7.0.2
+       @capacitor/push-notifications@7.0.3
+       @capacitor/share@7.0.2
+       @capacitor/splash-screen@7.0.3
+       @capacitor/status-bar@7.0.3
+       @capgo/capacitor-health@7.2.8
+✔ update ios in 202.60ms
+[info] Sync finished in 0.785s
+
+Thank you for helping improve Capacitor by sharing anonymous usage data! 💖
+Information about the data we collect is available on our website: https://capacitorjs.com/docs/next/cli/telemetry
+~/workspace$ cd ios/App
+~/.../ios/App$ 
