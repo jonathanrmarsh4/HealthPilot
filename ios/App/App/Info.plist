@@ -51,5 +51,11 @@
         <string>HealthPilot can write workout and activity data back to Apple Health to keep your health records synchronized.</string>
         <key>NSMicrophoneUsageDescription</key>
         <string>HealthPilot needs access to your microphone for voice chat with your AI health coach.</string>
+        <key>UIBackgroundModes</key>
+        <array>
+                <string>fetch</string>
+                <string>processing</string>
+                <string>remote-notification</string>
+        </array>
 </dict>
 </plist>
