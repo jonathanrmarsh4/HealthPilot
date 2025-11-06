@@ -10,7 +10,7 @@ I prefer simple language and clear explanations. I want iterative development wh
 **Frontend:** React 18, Vite 5.x, Wouter, shadcn/ui + Radix UI, Tailwind CSS, TanStack Query v5, React Hook Form + Zod, Lucide React + React Icons.
 **Backend:** Express.js, RESTful APIs with Zod validation, express-session, WebSocket (for Voice Chat), Multer, date-fns-tz for timezone-aware date handling.
 **Database:** PostgreSQL (Neon-backed), Drizzle ORM, Drizzle-Zod.
-**Mobile:** Capacitor 7 (iOS native app), @capgo/capacitor-health plugin for HealthKit integration.
+**Mobile:** Capacitor 7 (iOS native app), custom @healthpilot/healthkit plugin for comprehensive HealthKit integration (26 data types vs standard 5).
 **Timezone Support:** All date-based features (workout generation, scheduling, insights) are fully timezone-aware using user's stored timezone preference (IANA format, e.g., "Australia/Perth").
 
 **UI/UX Decisions:**
@@ -73,7 +73,10 @@ I prefer simple language and clear explanations. I want iterative development wh
 - **Database:** PostgreSQL
 - **AI:** OpenAI GPT-4o
 - **Authentication:** Replit Auth (OpenID Connect)
-- **Health Data Integration:** Apple Health (native HealthKit via @capgo/capacitor-health plugin on iOS; fallback: Health Auto Export iOS app webhook for web users)
+- **Health Data Integration:** Apple Health (native HealthKit via custom @healthpilot/healthkit Capacitor plugin supporting 26 comprehensive health data types on iOS; fallback: Health Auto Export iOS app webhook for web users)
 - **Mobile Platform:** Capacitor 7
 - **Payment Processing:** Stripe (iOS native PaymentSheet + web Checkout Sessions)
 - **Push Notifications:** OneSignal
+
+## Important Troubleshooting Guides
+- **Capacitor Plugin Not Detected on iOS:** See `docs/troubleshooting/capacitor-plugin-not-detected.md` - comprehensive guide for fixing platform detection issues, plugin registration failures, and the critical importance of `<script src="capacitor.js"></script>` in index.html. Reference this if custom plugins show "not implemented" errors or platform detection shows "web" instead of "ios".
