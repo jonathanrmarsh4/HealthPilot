@@ -974,15 +974,27 @@ export default function WorkoutSession() {
     setAlternativesError(null);
     
     try {
-      const response = await apiRequest("GET", `/api/exercises/${exercise.id}/alternatives?limit=10&_=${Date.now()}`);
+      const url = `/api/exercises/${exercise.id}/alternatives?limit=10&_=${Date.now()}`;
+      console.log('[SwapExercise] Requesting alternatives:', { exerciseId: exercise.id, url });
+      
+      const response = await apiRequest("GET", url);
+      console.log('[SwapExercise] Response received:', { status: response.status });
+      
       const alternativeExercises = await response.json();
+      console.log('[SwapExercise] Alternatives loaded:', alternativeExercises.length);
       setAlternatives(alternativeExercises);
     } catch (error: any) {
       console.error("Failed to fetch alternatives:", error);
+      console.error("Error details:", { 
+        message: error.message, 
+        stack: error.stack,
+        name: error.name,
+        toString: error.toString()
+      });
       setAlternativesError(error.message || "Failed to load exercise alternatives");
       toast({
         title: "Error",
-        description: "Failed to load exercise alternatives",
+        description: error.message || "Failed to load exercise alternatives",
         variant: "destructive",
       });
     } finally {
