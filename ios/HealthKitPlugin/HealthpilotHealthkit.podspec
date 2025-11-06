@@ -1,5 +1,5 @@
 Pod::Spec.new do |s|
-  s.name = 'HealthKitPlugin'
+  s.name = 'HealthpilotHealthkit'
   s.version = '1.0.0'
   s.summary = 'Extended HealthKit plugin with 26 data types'
   s.license = 'MIT'

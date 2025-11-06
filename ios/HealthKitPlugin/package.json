@@ -12,7 +12,7 @@
   "files": [
     "ios/",
     "src/",
-    "HealthKitPlugin.podspec"
+    "HealthpilotHealthkit.podspec"
   ],
   "keywords": [
     "capacitor",
