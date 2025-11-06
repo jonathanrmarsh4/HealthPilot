@@ -1,0 +1,119 @@
+`UIScene` lifecycle will soon be required. Failure to adopt will result in an assert in the future.
+Could not create a sandbox extension for '/var/containers/Bundle/Application/6980DDEB-1758-4CB4-A2E2-5A0A23141BCC/App.app'
+✅ Background fetch registered
+KeyboardPlugin: resize mode - body
+⚡️  Loading app at capacitor://localhost...
+Updated list with error: DownloadFailed
+Updated list with error: DownloadFailed
+Updated list with error: DownloadFailed
+Networking process (0x112040190) took 5.172640 seconds to launch
+GPU process (0x1121081e0) took 1.582740 seconds to launch
+WebContent process (0x1120d4100) took 1.591657 seconds to launch
+SplashScreen.hideSplash: SplashScreen was automatically hidden after default timeout. You should call `SplashScreen.hide()` as soon as your web app is loaded (or increase the timeout). Read more at https://capacitorjs.com/docs/apis/splash-screen#hiding-the-splash-screen
+🧹 WKWebView cache cleared for live reload
+0x1120d4100 - [PID=31288] WebProcessProxy::didBecomeUnresponsive:
+0x106b74e18 - [pageProxyID=7, webPageID=8, PID=31288] WebPageProxy::processDidBecomeUnresponsive:
+Updated list with error: DownloadFailed
+WebContent[31288] Unable to hide query parameters from script (missing data)
+⚡️  [log] - onscript loading complete
+⚡️  [log] - [MobileBootstrap] Platform Detection: {"platform":"ios","isNative":true,"capacitorVersion":"ios"}
+⚡️  [log] - [MobileBootstrap] Initializing on ios...
+⚡️  To Native ->  StatusBar setStyle 129253134
+⚡️  TO JS {}
+⚡️  [log] - [MobileBootstrap] Status bar configured
+⚡️  To Native ->  SplashScreen hide 129253135
+⚡️  TO JS undefined
+⚡️  [log] - [MobileBootstrap] Splash screen hidden
+⚡️  To Native ->  Keyboard addListener 129253136
+⚡️  [log] - [MobileBootstrap] Keyboard listeners configured
+⚡️  To Native ->  Keyboard addListener 129253137
+⚡️  [log] - [MobileBootstrap] Back button handler configured
+⚡️  [log] - [MobileBootstrap] Triggering auto-sync (launch)...
+⚡️  To Native ->  App addListener 129253138
+⚡️  [log] - [MobileBootstrap] Auto-sync configured (5-minute cooldown)
+⚡️  To Native ->  App addListener 129253139
+⚡️  To Native ->  App getInfo 129253140
+⚡️  TO JS {"build":"1","name":"HealthPilot","version":"1.0","id":"com.nuvitae.healthpilot"}
+⚡️  To Native ->  SecureStorage internalGetItem 129253141
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  [log] - [MobileBootstrap] App Info: {"name":"HealthPilot","id":"com.nuvitae.healthpilot","version":"1.0","build":"1"}
+⚡️  [log] - [MobileBootstrap] ✅ Mobile initialization complete
+⚡️  [log] - [App] Setting up global deep link listener
+⚡️  [log] - [DeepLink] Initializing deep link handler...
+⚡️  To Native ->  App addListener 129253142
+⚡️  To Native ->  App addListener 129253143
+⚡️  To Native ->  SecureStorage internalGetItem 129253144
+⚡️  To Native ->  SecureStorage internalGetItem 129253145
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  [log] - [DeepLink] Deep link handler initialized successfully
+⚡️  [error] - [MobileBootstrap] Auto-sync error: {}
+⚡️  WebView loaded
+Updated list with error: DownloadFailed
+Updated list with error: DownloadFailed
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  To Native ->  SecureStorage internalGetItem 129253146
+⚡️  To Native ->  SecureStorage internalGetItem 129253147
+⚡️  To Native ->  SecureStorage internalGetItem 129253148
+⚡️  To Native ->  SecureStorage internalGetItem 129253149
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  [log] - [OneSignal] Removing external user ID
+To Native Cordova ->  OneSignalPush logout OneSignalPush1460726351 ["options": []]
+WARNING: Your application has called logout before app ID has been set. Please call `initialize:appId withLaunchOptions:launchOptions` in order to set the app ID
+⚡️  [warn] - [App] VITE_ONESIGNAL_APP_ID not configured
+⚡️  [log] - [OneSignal] User logged out successfully
+⚡️  [log] - Clearing old dashboard preferences (version mismatch)
+⚡️  To Native ->  SecureStorage internalGetItem 129253150
+⚡️  To Native ->  SecureStorage internalGetItem 129253151
+⚡️  To Native ->  SecureStorage internalGetItem 129253152
+⚡️  To Native ->  SecureStorage internalGetItem 129253153
+⚡️  To Native ->  SecureStorage internalGetItem 129253154
+⚡️  To Native ->  SecureStorage internalGetItem 129253155
+⚡️  To Native ->  SecureStorage internalGetItem 129253156
+⚡️  To Native ->  SecureStorage internalGetItem 129253157
+⚡️  To Native ->  SecureStorage internalGetItem 129253158
+⚡️  To Native ->  SecureStorage internalGetItem 129253159
+⚡️  To Native ->  SecureStorage internalGetItem 129253160
+⚡️  To Native ->  SecureStorage internalGetItem 129253161
+⚡️  To Native ->  SecureStorage internalGetItem 129253162
+⚡️  To Native ->  SecureStorage internalGetItem 129253163
+⚡️  To Native ->  SecureStorage internalGetItem 129253164
+⚡️  To Native ->  SecureStorage internalGetItem 129253165
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  To Native ->  SecureStorage internalGetItem 129253166
+⚡️  To Native ->  SecureStorage internalGetItem 129253167
+⚡️  To Native ->  SecureStorage internalGetItem 129253168
+⚡️  To Native ->  SecureStorage internalGetItem 129253169
+⚡️  To Native ->  SecureStorage internalGetItem 129253170
+⚡️  To Native ->  SecureStorage internalGetItem 129253171
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  To Native ->  SecureStorage internalGetItem 129253172
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  To Native ->  SecureStorage internalGetItem 129253173
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
