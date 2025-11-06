@@ -23,13 +23,15 @@ def capacitor_pods
   pod 'CapacitorShare', :path => '../../node_modules/@capacitor/share'
   pod 'CapacitorSplashScreen', :path => '../../node_modules/@capacitor/splash-screen'
   pod 'CapacitorStatusBar', :path => '../../node_modules/@capacitor/status-bar'
-  pod 'HealthKitPlugin', :path => '../HealthKitPlugin'
   pod 'CordovaPluginsStatic', :path => '../capacitor-cordova-ios-plugins'
 end
 
 target 'App' do
   capacitor_pods
   # Add your Pods here
+  
+  # Custom HealthKit Plugin with 26 data types (inline pod)
+  pod 'HealthKitPlugin', :podspec => '../HealthKitPlugin/HealthKitPlugin.podspec'
 end
 
 post_install do |installer|
