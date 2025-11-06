@@ -62,7 +62,7 @@ class BackgroundSyncManager {
                 }
                 
                 // Create observer query
-                let query = HKObserverQuery(sampleType: sampleType, predicate: nil) { [weak self] query, completion Handler, error in
+                let query = HKObserverQuery(sampleType: sampleType, predicate: nil) { [weak self] query, completionHandler, error in
                     if let error = error {
                         print("[BackgroundSync] Observer error for \(dataType.rawValue): \(error.localizedDescription)")
                         completionHandler()
