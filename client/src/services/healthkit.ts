@@ -62,16 +62,21 @@ export class HealthKitService {
 
     try {
       if (Capacitor.getPlatform() !== 'ios') {
+        console.log('[HealthKit] Not on iOS platform');
         this.isAvailable = false;
         return false;
       }
 
+      console.log('[HealthKit] Checking plugin availability...');
+      console.log('[HealthKit] Health plugin object:', Health);
+      
       const result = await Health.isAvailable();
       this.isAvailable = result?.available ?? false;
-      console.log('[HealthKit] Availability check result:', this.isAvailable);
+      console.log('[HealthKit] Availability check result:', result, this.isAvailable);
       return this.isAvailable;
     } catch (error: any) {
-      console.warn('[HealthKit] Plugin check failed:', error.message);
+      console.error('[HealthKit] Plugin check failed:', error);
+      console.error('[HealthKit] Error details:', JSON.stringify(error));
       this.isAvailable = false;
       return false;
     }
