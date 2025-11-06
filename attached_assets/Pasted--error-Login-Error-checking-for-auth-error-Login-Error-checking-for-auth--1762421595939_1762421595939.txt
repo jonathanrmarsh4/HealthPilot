@@ -1,0 +1,41 @@
+
+⚡️  [error] - [Login] Error checking for auth: {}
+⚡️  [error] - [Login] Error checking for auth: {}
+⚡️  To Native ->  Preferences get 49080975
+⚡️  TO JS {"value":"1762421490704-nzioed"}
+⚡️  [log] - [Login] Polling server with device ID...
+⚡️  [error] - [Login] Error checking for auth: {}
+⚡️  To Native ->  Preferences get 49080976
+⚡️  TO JS {"value":"1762421490704-nzioed"}
+⚡️  [log] - [Login] Polling server with device ID...
+⚡️  [error] - [Login] Error checking for auth: {}
+⚡️  To Native ->  Preferences get 49080977
+⚡️  TO JS {"value":"1762421490704-nzioed"}
+⚡️  [log] - [Login] Polling server with device ID...
+⚡️  [error] - [Login] Error checking for auth: {}
+⚡️  To Native ->  Preferences get 49080978
+⚡️  TO JS {"value":"1762421490704-nzioed"}
+⚡️  [log] - [Login] Opening browser for OAuth: https://0d420476-b7bb-4cc4-9f5a-da35f5e473e4-00-1n1tyyvrb5uvz.pike.replit.dev/api/login?deviceId=1762421490704-nzioed
+⚡️  To Native ->  Browser open 49080979
+⚡️  To Native ->  Preferences get 49080980
+⚡️  TO JS {"value":"1762421490704-nzioed"}
+⚡️  [log] - [Login] Polling server with device ID...
+⚡️  TO JS undefined
+⚡️  [log] - [Login] Browser opened successfully
+⚡️  [error] - [Login] Error checking for auth: {}
+⚡️  To Native ->  Preferences get 49080981
+⚡️  TO JS {"value":"1762421490704-nzioed"}
+⚡️  [log] - [Login] Polling server with device ID...
+⚡️  [error] - [Login] Error checking for auth: {}
+⚡️  To Native ->  Preferences get 49080982
+⚡️  TO JS {"value":"1762421490704-nzioed"}
+⚡️  [log] - [Login] Polling server with device ID...
+⚡️  [error] - [Login] Error checking for auth: {}
+⚡️  To Native ->  Preferences get 49080983
+⚡️  TO JS {"value":"1762421490704-nzioed"}
+⚡️  [log] - [Login] Polling server with device ID...
+⚡️  [error] - [Login] Error checking for auth: {}
+⚡️  To Native ->  Preferences get 49080984
+⚡️  TO JS {"value":"1762421490704-nzioed"}
+⚡️  [log] - [Login] Polling server with device ID...
+⚡️  [error] - [Login] Error checking for auth: {}
