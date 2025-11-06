@@ -1,0 +1,510 @@
+`UIScene` lifecycle will soon be required. Failure to adopt will result in an assert in the future.
+Could not create a sandbox extension for '/var/containers/Bundle/Application/87C0E9B4-D3AD-43FE-A01D-DAB6EE053225/App.app'
+✅ Background fetch registered
+nw_connection_copy_protocol_metadata_internal_block_invoke [C3] Client called nw_connection_copy_protocol_metadata_internal on unconnected nw_connection
+nw_connection_copy_protocol_metadata_internal_block_invoke [C3] Client called nw_connection_copy_protocol_metadata_internal on unconnected nw_connection
+nw_connection_copy_connected_local_endpoint_block_invoke [C3] Client called nw_connection_copy_connected_local_endpoint on unconnected nw_connection
+nw_connection_copy_connected_remote_endpoint_block_invoke [C3] Client called nw_connection_copy_connected_remote_endpoint on unconnected nw_connection
+KeyboardPlugin: resize mode - body
+⚡️  Loading app at capacitor://localhost...
+Updated list with error: DownloadFailed
+Updated list with error: DownloadFailed
+Updated list with error: DownloadFailed
+ERROR: ERROR! 'Push Notifications' capability missing! Add the capability in Xcode under 'Target' -> '<MyAppName(MainTarget)>' -> 'Signing & Capabilities' then click the '+ Capability' button.
+WebContent process (0x1160d0100) took 2.990696 seconds to launch
+Networking process (0x116048190) took 7.851194 seconds to launch
+GPU process (0x1161041e0) took 7.837931 seconds to launch
+SplashScreen.hideSplash: SplashScreen was automatically hidden after default timeout. You should call `SplashScreen.hide()` as soon as your web app is loaded (or increase the timeout). Read more at https://capacitorjs.com/docs/apis/splash-screen#hiding-the-splash-screen
+XPC connection interrupted
+🧹 WKWebView cache cleared for live reload
+0x1160d0100 - [PID=31164] WebProcessProxy::didBecomeUnresponsive:
+0x106370e18 - [pageProxyID=7, webPageID=8, PID=31164] WebPageProxy::processDidBecomeUnresponsive:
+WebContent[31164] 0x200000102d919e8 - [webPageID=8] WebPage::runJavaScriptInFrameInScriptWorld: Request to run JavaScript failed with error <private>
+WebContent[31164] Unable to hide query parameters from script (missing data)
+⚡️  [log] - onscript loading complete
+⚡️  [log] - [MobileBootstrap] Platform Detection: {"platform":"ios","isNative":true,"capacitorVersion":"ios"}
+⚡️  [log] - [MobileBootstrap] Initializing on ios...
+⚡️  To Native ->  StatusBar setStyle 93394383
+⚡️  TO JS {}
+⚡️  [log] - [MobileBootstrap] Status bar configured
+⚡️  To Native ->  SplashScreen hide 93394384
+⚡️  TO JS undefined
+⚡️  [log] - [MobileBootstrap] Splash screen hidden
+⚡️  To Native ->  Keyboard addListener 93394385
+⚡️  To Native ->  Keyboard addListener 93394386
+⚡️  [log] - [MobileBootstrap] Keyboard listeners configured
+⚡️  [log] - [MobileBootstrap] Back button handler configured
+⚡️  [log] - [MobileBootstrap] Auto-sync skipped (cooldown: 3m remaining)
+⚡️  To Native ->  App addListener 93394387
+⚡️  To Native ->  App addListener 93394388
+⚡️  [log] - [MobileBootstrap] Auto-sync configured (5-minute cooldown)
+⚡️  To Native ->  App getInfo 93394389
+⚡️  TO JS {"version":"1.0","build":"1","id":"com.nuvitae.healthpilot","name":"HealthPilot"}
+⚡️  [log] - [MobileBootstrap] App Info: {"name":"HealthPilot","id":"com.nuvitae.healthpilot","version":"1.0","build":"1"}
+⚡️  [log] - [MobileBootstrap] ✅ Mobile initialization complete
+⚡️  To Native ->  App addListener 93394390
+⚡️  To Native ->  App addListener 93394391
+⚡️  [log] - [App] Setting up global deep link listener
+⚡️  [log] - [DeepLink] Initializing deep link handler...
+⚡️  [log] - [DeepLink] Deep link handler initialized successfully
+⚡️  To Native ->  SecureStorage internalGetItem 93394392
+⚡️  To Native ->  SecureStorage internalGetItem 93394393
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+tcp_input [C4.1.2.1:3] flags=[R] seq=1696958590, ack=0, win=0 state=FIN_WAIT_1 rcv_nxt=1696958590, snd_una=628096664
+Updated list with error: DownloadFailed
+Updated list with error: DownloadFailed
+Updated list with error: DownloadFailed
+⚡️  WebView loaded
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  To Native ->  SecureStorage internalGetItem 93394394
+⚡️  To Native ->  SecureStorage internalGetItem 93394395
+⚡️  To Native ->  SecureStorage internalGetItem 93394396
+⚡️  To Native ->  SecureStorage internalGetItem 93394397
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  To Native ->  SecureStorage internalGetItem 93394398
+⚡️  To Native ->  SecureStorage internalGetItem 93394399
+⚡️  To Native ->  SecureStorage internalGetItem 93394400
+⚡️  To Native ->  SecureStorage internalGetItem 93394401
+⚡️  To Native ->  SecureStorage internalGetItem 93394402
+⚡️  To Native ->  SecureStorage internalGetItem 93394403
+⚡️  To Native ->  SecureStorage internalGetItem 93394404
+⚡️  To Native ->  SecureStorage internalGetItem 93394405
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  To Native ->  SecureStorage internalGetItem 93394406
+⚡️  To Native ->  SecureStorage internalGetItem 93394407
+⚡️  To Native ->  SecureStorage internalGetItem 93394408
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  [log] - [OneSignal] Removing external user ID
+To Native Cordova ->  OneSignalPush logout OneSignalPush1361968127 ["options": []]
+⚡️  [warn] - [App] VITE_ONESIGNAL_APP_ID not configured
+⚡️  [log] - [OneSignal] User logged out successfully
+⚡️  To Native ->  SecureStorage internalGetItem 93394409
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"isActive":true}
+⚡️  [log] - [MobileBootstrap] Auto-sync skipped (cooldown: 3m remaining)
+⚡️  To Native ->  SecureStorage internalGetItem 93394410
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  [log] - [TileManager] Rendering. Total tiles: 8, Visible IDs in prefs: readiness-score, daily-recommendation, daily-generated-workout, muscle-group-balance, scheduled-calendar, today-scheduled, scheduled-insights, workout-history, Rendering: readiness-score, scheduled-calendar, today-scheduled, scheduled-insights, daily-generated-workout, muscle-group-balance, workout-history
+⚡️  To Native ->  SecureStorage internalGetItem 93394411
+⚡️  To Native ->  SecureStorage internalGetItem 93394412
+⚡️  To Native ->  SecureStorage internalGetItem 93394413
+⚡️  To Native ->  SecureStorage internalGetItem 93394414
+⚡️  To Native ->  SecureStorage internalGetItem 93394415
+⚡️  To Native ->  SecureStorage internalGetItem 93394416
+⚡️  To Native ->  SecureStorage internalGetItem 93394417
+⚡️  To Native ->  SecureStorage internalGetItem 93394418
+⚡️  To Native ->  SecureStorage internalGetItem 93394419
+⚡️  To Native ->  SecureStorage internalGetItem 93394420
+⚡️  To Native ->  SecureStorage internalGetItem 93394421
+⚡️  To Native ->  SecureStorage internalGetItem 93394422
+⚡️  To Native ->  SecureStorage internalGetItem 93394423
+⚡️  To Native ->  SecureStorage internalGetItem 93394424
+⚡️  To Native ->  SecureStorage internalGetItem 93394425
+⚡️  To Native ->  SecureStorage internalGetItem 93394426
+⚡️  To Native ->  SecureStorage internalGetItem 93394427
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  [log] - [TileManager] Rendering. Total tiles: 8, Visible IDs in prefs: readiness-score, daily-recommendation, daily-generated-workout, muscle-group-balance, scheduled-calendar, today-scheduled, scheduled-insights, workout-history, Rendering: readiness-score, scheduled-calendar, today-scheduled, scheduled-insights, daily-generated-workout, muscle-group-balance, workout-history
+⚡️  To Native ->  SecureStorage internalGetItem 93394428
+⚡️  To Native ->  SecureStorage internalGetItem 93394429
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  [log] - [TileManager] Rendering. Total tiles: 8, Visible IDs in prefs: readiness-score, daily-recommendation, daily-generated-workout, muscle-group-balance, scheduled-calendar, today-scheduled, scheduled-insights, workout-history, Rendering: readiness-score, scheduled-calendar, today-scheduled, scheduled-insights, daily-generated-workout, muscle-group-balance, workout-history
+⚡️  [log] - [TileManager] Rendering. Total tiles: 8, Visible IDs in prefs: readiness-score, daily-recommendation, daily-generated-workout, muscle-group-balance, scheduled-calendar, today-scheduled, scheduled-insights, workout-history, Rendering: readiness-score, scheduled-calendar, today-scheduled, scheduled-insights, daily-generated-workout, muscle-group-balance, workout-history
+⚡️  [log] - [TileManager] Rendering. Total tiles: 8, Visible IDs in prefs: readiness-score, daily-recommendation, daily-generated-workout, muscle-group-balance, scheduled-calendar, today-scheduled, scheduled-insights, workout-history, Rendering: readiness-score, scheduled-calendar, today-scheduled, scheduled-insights, daily-generated-workout, muscle-group-balance, workout-history
+⚡️  [log] - [TileManager] Rendering. Total tiles: 8, Visible IDs in prefs: readiness-score, daily-recommendation, daily-generated-workout, muscle-group-balance, scheduled-calendar, today-scheduled, scheduled-insights, workout-history, Rendering: readiness-score, scheduled-calendar, today-scheduled, scheduled-insights, daily-generated-workout, muscle-group-balance, workout-history
+⚡️  [log] - [TileManager] Rendering. Total tiles: 8, Visible IDs in prefs: readiness-score, daily-recommendation, daily-generated-workout, muscle-group-balance, scheduled-calendar, today-scheduled, scheduled-insights, workout-history, Rendering: readiness-score, scheduled-calendar, today-scheduled, scheduled-insights, daily-generated-workout, muscle-group-balance, workout-history
+⚡️  To Native ->  SecureStorage internalGetItem 93394430
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  [log] - [TileManager] Rendering. Total tiles: 8, Visible IDs in prefs: readiness-score, daily-recommendation, daily-generated-workout, muscle-group-balance, scheduled-calendar, today-scheduled, scheduled-insights, workout-history, Rendering: readiness-score, scheduled-calendar, today-scheduled, scheduled-insights, daily-generated-workout, muscle-group-balance, workout-history
+⚡️  [log] - [TileManager] Rendering. Total tiles: 8, Visible IDs in prefs: readiness-score, daily-recommendation, daily-generated-workout, muscle-group-balance, scheduled-calendar, today-scheduled, scheduled-insights, workout-history, Rendering: readiness-score, scheduled-calendar, today-scheduled, scheduled-insights, daily-generated-workout, muscle-group-balance, workout-history
+⚡️  [log] - [TileManager] Rendering. Total tiles: 8, Visible IDs in prefs: readiness-score, daily-recommendation, daily-generated-workout, muscle-group-balance, scheduled-calendar, today-scheduled, scheduled-insights, workout-history, Rendering: readiness-score, scheduled-calendar, today-scheduled, scheduled-insights, daily-generated-workout, muscle-group-balance, workout-history
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  [log] - [TileManager] Rendering. Total tiles: 8, Visible IDs in prefs: readiness-score, daily-recommendation, daily-generated-workout, muscle-group-balance, scheduled-calendar, today-scheduled, scheduled-insights, workout-history, Rendering: readiness-score, scheduled-calendar, today-scheduled, scheduled-insights, daily-generated-workout, muscle-group-balance, workout-history
+⚡️  To Native ->  SecureStorage internalGetItem 93394431
+⚡️  To Native ->  SecureStorage internalGetItem 93394432
+⚡️  To Native ->  SecureStorage internalGetItem 93394433
+⚡️  To Native ->  SecureStorage internalGetItem 93394434
+⚡️  To Native ->  SecureStorage internalGetItem 93394435
+⚡️  To Native ->  SecureStorage internalGetItem 93394436
+⚡️  To Native ->  SecureStorage internalGetItem 93394437
+⚡️  To Native ->  SecureStorage internalGetItem 93394438
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  [error] - Failed to fetch suggestion for Pallof Press: {"line":7892,"column":1680,"sourceURL":"capacitor://localhost/assets/index-CKSfavUQ.js"}
+⚡️  [error] - Failed to fetch suggestion for Machine Chest Press: {"line":7892,"column":1680,"sourceURL":"capacitor://localhost/assets/index-CKSfavUQ.js"}
+⚡️  [error] - Failed to fetch suggestion for Barbell Overhead Press: {"line":7892,"column":1680,"sourceURL":"capacitor://localhost/assets/index-CKSfavUQ.js"}
+⚡️  [error] - Failed to fetch suggestion for Dumbbell Curl: {"line":7892,"column":1680,"sourceURL":"capacitor://localhost/assets/index-CKSfavUQ.js"}
+⚡️  [error] - Failed to fetch suggestion for Cable Triceps Pushdown: {"line":7892,"column":1680,"sourceURL":"capacitor://localhost/assets/index-CKSfavUQ.js"}
+⚡️  [error] - Failed to fetch suggestion for Ab Wheel Rollout: {"line":7892,"column":1680,"sourceURL":"capacitor://localhost/assets/index-CKSfavUQ.js"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to fetch alternatives: {"line":7892,"column":5844,"sourceURL":"capacitor://localhost/assets/index-CKSfavUQ.js"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to fetch alternatives: {"line":7892,"column":5844,"sourceURL":"capacitor://localhost/assets/index-CKSfavUQ.js"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to fetch alternatives: {"line":7892,"column":5844,"sourceURL":"capacitor://localhost/assets/index-CKSfavUQ.js"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [log] - [TileManager] Rendering. Total tiles: 3, Visible IDs in prefs: sleep-score, sleep-stages, sleep-trends, Rendering: sleep-score, sleep-stages, sleep-trends
+⚡️  To Native ->  SecureStorage internalGetItem 93394439
+⚡️  To Native ->  SecureStorage internalGetItem 93394440
+⚡️  To Native ->  SecureStorage internalGetItem 93394441
+⚡️  To Native ->  SecureStorage internalGetItem 93394442
+⚡️  To Native ->  SecureStorage internalGetItem 93394443
+⚡️  To Native ->  SecureStorage internalGetItem 93394444
+⚡️  To Native ->  SecureStorage internalGetItem 93394445
+⚡️  To Native ->  SecureStorage internalGetItem 93394446
+⚡️  To Native ->  SecureStorage internalGetItem 93394447
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  [log] - [TileManager] Rendering. Total tiles: 3, Visible IDs in prefs: sleep-score, sleep-stages, sleep-trends, Rendering: sleep-score, sleep-stages, sleep-trends
+⚡️  [log] - [TileManager] Rendering. Total tiles: 3, Visible IDs in prefs: sleep-score, sleep-stages, sleep-trends, Rendering: sleep-score, sleep-stages, sleep-trends
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  [log] - [TileManager] Rendering. Total tiles: 3, Visible IDs in prefs: sleep-score, sleep-stages, sleep-trends, Rendering: sleep-score, sleep-stages, sleep-trends
+⚡️  [log] - [TileManager] Rendering. Total tiles: 8, Visible IDs in prefs: readiness-score, daily-recommendation, daily-generated-workout, muscle-group-balance, scheduled-calendar, today-scheduled, scheduled-insights, workout-history, Rendering: readiness-score, scheduled-calendar, today-scheduled, scheduled-insights, daily-generated-workout, muscle-group-balance, workout-history
+⚡️  To Native ->  SecureStorage internalGetItem 93394448
+⚡️  To Native ->  SecureStorage internalGetItem 93394449
+⚡️  To Native ->  SecureStorage internalGetItem 93394450
+⚡️  To Native ->  SecureStorage internalGetItem 93394451
+⚡️  To Native ->  SecureStorage internalGetItem 93394452
+⚡️  To Native ->  SecureStorage internalGetItem 93394453
+⚡️  To Native ->  SecureStorage internalGetItem 93394454
+⚡️  To Native ->  SecureStorage internalGetItem 93394455
+⚡️  To Native ->  SecureStorage internalGetItem 93394456
+⚡️  To Native ->  SecureStorage internalGetItem 93394457
+⚡️  To Native ->  SecureStorage internalGetItem 93394458
+⚡️  To Native ->  SecureStorage internalGetItem 93394459
+⚡️  To Native ->  SecureStorage internalGetItem 93394460
+⚡️  To Native ->  SecureStorage internalGetItem 93394461
+⚡️  To Native ->  SecureStorage internalGetItem 93394462
+⚡️  To Native ->  SecureStorage internalGetItem 93394463
+⚡️  To Native ->  SecureStorage internalGetItem 93394464
+⚡️  To Native ->  SecureStorage internalGetItem 93394465
+⚡️  To Native ->  SecureStorage internalGetItem 93394466
+⚡️  To Native ->  SecureStorage internalGetItem 93394467
+⚡️  To Native ->  SecureStorage internalGetItem 93394468
+⚡️  To Native ->  SecureStorage internalGetItem 93394469
+⚡️  To Native ->  SecureStorage internalGetItem 93394470
+⚡️  To Native ->  SecureStorage internalGetItem 93394471
+⚡️  To Native ->  SecureStorage internalGetItem 93394472
+⚡️  To Native ->  SecureStorage internalGetItem 93394473
+⚡️  To Native ->  SecureStorage internalGetItem 93394474
+⚡️  To Native ->  SecureStorage internalGetItem 93394475
+⚡️  To Native ->  SecureStorage internalGetItem 93394476
+⚡️  To Native ->  SecureStorage internalGetItem 93394477
+⚡️  To Native ->  SecureStorage internalGetItem 93394478
+⚡️  To Native ->  SecureStorage internalGetItem 93394479
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  [log] - [TileManager] Rendering. Total tiles: 8, Visible IDs in prefs: readiness-score, daily-recommendation, daily-generated-workout, muscle-group-balance, recovery-protocols, today-scheduled, scheduled-insights, workout-history, scheduled-calendar, Rendering: readiness-score, daily-generated-workout, scheduled-calendar, today-scheduled, scheduled-insights, muscle-group-balance, workout-history
+⚡️  To Native ->  SecureStorage internalGetItem 93394480
+⚡️  To Native ->  SecureStorage internalGetItem 93394481
+⚡️  To Native ->  SecureStorage internalGetItem 93394482
+⚡️  To Native ->  SecureStorage internalGetItem 93394483
+⚡️  To Native ->  SecureStorage internalGetItem 93394484
+⚡️  To Native ->  SecureStorage internalGetItem 93394485
+⚡️  To Native ->  SecureStorage internalGetItem 93394486
+⚡️  To Native ->  SecureStorage internalGetItem 93394487
+⚡️  To Native ->  SecureStorage internalGetItem 93394488
+⚡️  To Native ->  SecureStorage internalGetItem 93394489
+⚡️  To Native ->  SecureStorage internalGetItem 93394490
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  [error] - Failed to fetch suggestion for Pallof Press: {"line":7892,"column":1680,"sourceURL":"capacitor://localhost/assets/index-CKSfavUQ.js"}
+⚡️  [error] - Failed to fetch suggestion for Machine Chest Press: {"line":7892,"column":1680,"sourceURL":"capacitor://localhost/assets/index-CKSfavUQ.js"}
+⚡️  [error] - Failed to fetch suggestion for Barbell Overhead Press: {"line":7892,"column":1680,"sourceURL":"capacitor://localhost/assets/index-CKSfavUQ.js"}
+⚡️  [error] - Failed to fetch suggestion for Dumbbell Curl: {"line":7892,"column":1680,"sourceURL":"capacitor://localhost/assets/index-CKSfavUQ.js"}
+⚡️  [error] - Failed to fetch suggestion for Cable Triceps Pushdown: {"line":7892,"column":1680,"sourceURL":"capacitor://localhost/assets/index-CKSfavUQ.js"}
+⚡️  [error] - Failed to fetch suggestion for Ab Wheel Rollout: {"line":7892,"column":1680,"sourceURL":"capacitor://localhost/assets/index-CKSfavUQ.js"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+nw_read_request_report [C1] Receive failed with error "Operation timed out"
+nw_read_request_report [C1] Receive failed with error "Operation timed out"
+nw_read_request_report [C1] Receive failed with error "Operation timed out"
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to fetch alternatives: {"line":7892,"column":5844,"sourceURL":"capacitor://localhost/assets/index-CKSfavUQ.js"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  TO JS {"isActive":false}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  TO JS {"isActive":true}
+⚡️  To Native ->  SecureStorage internalGetItem 93394491
+⚡️  [log] - [MobileBootstrap] Triggering auto-sync (resume)...
+⚡️  TO JS {"data":"\"H9lFHZeYKFoxjZuyqhIuOOzD6rJdGZcYu2tDFe_RinU\""}
+⚡️  [error] - [MobileBootstrap] Auto-sync error: {}
+⚡️  TO JS {"isActive":false}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  TO JS {"isActive":true}
+⚡️  [log] - [MobileBootstrap] Auto-sync skipped (cooldown: 5m remaining)
+⚡️  TO JS {"isActive":false}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [log] - EULA Dialog state: {"hasScrolledToBottom":false,"hasAgreed":false,"canAccept":false}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  TO JS {"keyboardHeight":318}
+⚡️  [log] - [MobileBootstrap] Keyboard will show 318
+⚡️  TO JS {"keyboardHeight":318}
+⚡️  [log] - [MobileBootstrap] Keyboard will show 318
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  TO JS {"keyboardHeight":318}
+⚡️  [log] - [MobileBootstrap] Keyboard will show 318
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  TO JS {"keyboardHeight":318}
+⚡️  [log] - [MobileBootstrap] Keyboard will show 318
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  TO JS undefined
+⚡️  [log] - [MobileBootstrap] Keyboard will hide
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  TO JS {"isActive":true}
+⚡️  [log] - [MobileBootstrap] Auto-sync skipped (cooldown: 4m remaining)
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  TO JS {"isActive":false}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}
+⚡️  TO JS {"isActive":true}
+⚡️  [log] - [MobileBootstrap] Auto-sync skipped (cooldown: 4m remaining)
+⚡️  TO JS {"isActive":false}
+⚡️  [error] - Failed to start Live Activity: {"code":"UNIMPLEMENTED"}

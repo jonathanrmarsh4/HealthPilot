@@ -395,7 +395,7 @@ function SortableExerciseCard({
                       <Button
                         size="sm"
                         variant={set.weight === null ? "default" : "outline"}
-                        onClick={() => toggleBodyweight(set.id, set.weight)}
+                        onClick={() => toggleBodyweight(set.id, set.weight ?? null)}
                         disabled={set.completed === 1}
                         className="h-10 px-3 text-xs"
                         data-testid={`button-bodyweight-${exerciseIndex}-${setIndex}`}
@@ -974,15 +974,7 @@ export default function WorkoutSession() {
     setAlternativesError(null);
     
     try {
-      const response = await fetch(`/api/exercises/${exercise.id}/alternatives?limit=10&_=${Date.now()}`, {
-        credentials: 'include',
-        cache: 'no-cache',
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Failed to load alternatives: ${response.statusText}`);
-      }
-      
+      const response = await apiRequest("GET", `/api/exercises/${exercise.id}/alternatives?limit=10&_=${Date.now()}`);
       const alternativeExercises = await response.json();
       setAlternatives(alternativeExercises);
     } catch (error: any) {
