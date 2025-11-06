@@ -7,6 +7,7 @@ import { insertBiomarkerSchema, insertHealthRecordSchema, insertScheduledExercis
 import { listHealthDocuments, downloadFile, getFileMetadata } from "./services/googleDrive";
 import { analyzeHealthDocument, generateMealPlan, generateTrainingSchedule, generateHealthRecommendations, chatWithHealthCoach, generateDailyInsights, generateRecoveryInsights, generateTrendPredictions, generatePeriodComparison, generateDailyTrainingRecommendation, generateMacroRecommendations } from "./services/ai";
 import { buildGuardrailsSystemPrompt } from "./config/guardrails";
+import { applyWorkoutFatigue } from "./services/fatigue";
 import { calculatePhenoAge, getBiomarkerDisplayName, getBiomarkerUnit, getBiomarkerSource } from "./services/phenoAge";
 import { calculateReadinessScore } from "./services/readiness";
 import { runInterpretationPipeline } from "./services/medical-interpreter/pipeline";
