@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Moon } from "lucide-react";
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend } from "recharts";
+import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 
 interface SleepStats {
   hasData: boolean;
@@ -94,10 +94,6 @@ export function SleepScoreDonutWidget() {
 
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
-
-  // const renderCustomLabel = (entry: any) => {
-    return `${entry.name}: ${entry.percentage}%`;
-  };
 
   return (
     <Card data-testid="card-sleep-score">
