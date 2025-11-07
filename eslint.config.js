@@ -17,7 +17,8 @@ export default [
         ecmaFeatures: {
           jsx: true,
         },
-        project: './tsconfig.json',
+        // Note: Removed 'project' to avoid slow type-aware linting
+        // Use 'tsc --noEmit' for type checking instead
       },
       globals: {
         window: 'readonly',
