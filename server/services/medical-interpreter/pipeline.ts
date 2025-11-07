@@ -15,7 +15,7 @@ import type {
   ObservationLabsData,
   InterpretedData,
 } from './types';
-import { THRESHOLDS, USER_FEEDBACK_TEMPLATES } from './config';
+import { THRESHOLDS, USER_FEEDBACK_TEMPLATES, AGGREGATION, GREY_ZONE } from './config';
 
 /**
  * Run the complete interpretation pipeline
@@ -29,6 +29,9 @@ export async function runInterpretationPipeline(
 ): Promise<InterpretationResult> {
   const ingestedAt = new Date();
   const reportId = `report_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  
+  // PHASE 1: Epsilon for floating-point safe comparisons
+  const EPS = AGGREGATION.epsilon;
 
   try {
     // Step 1: OCR or Parse
@@ -58,7 +61,8 @@ export async function runInterpretationPipeline(
     console.log('Step 2: Classifying report type');
     const typeDetection = await classifyReportType(ocrOutput);
 
-    if (typeDetection.confidence < THRESHOLDS.type_detection) {
+    // PHASE 1: Use epsilon tolerance for threshold comparison
+    if (typeDetection.confidence + EPS < THRESHOLDS.type_detection) {
       console.log(`❌ DISCARD: Unrecognized type (confidence: ${typeDetection.confidence.toFixed(2)} < ${THRESHOLDS.type_detection}, label: ${typeDetection.label})`);
       return createDiscardedResult(
         reportId,
@@ -113,7 +117,8 @@ export async function runInterpretationPipeline(
 
     const extraction = await extractLabObservations(ocrOutput);
     
-    if (extraction.confidence < THRESHOLDS.extraction_min) {
+    // PHASE 1: Use epsilon tolerance for threshold comparison
+    if (extraction.confidence + EPS < THRESHOLDS.extraction_min) {
       console.log(`❌ DISCARD: Low extraction confidence (${extraction.confidence.toFixed(2)} < ${THRESHOLDS.extraction_min})`);
       return createDiscardedResult(
         reportId,
@@ -136,7 +141,8 @@ export async function runInterpretationPipeline(
     console.log('Step 4: Normalizing units to SI');
     const normalization = normalizeLabData(extraction.data as ObservationLabsData);
 
-    if (normalization.confidence < THRESHOLDS.normalization_min) {
+    // PHASE 1: Use epsilon tolerance for threshold comparison
+    if (normalization.confidence + EPS < THRESHOLDS.normalization_min) {
       console.log(`❌ DISCARD: Low normalization confidence (${normalization.confidence.toFixed(2)} < ${THRESHOLDS.normalization_min}) - missing or invalid units`);
       return createDiscardedResult(
         reportId,
@@ -186,15 +192,37 @@ export async function runInterpretationPipeline(
     const interpretation = interpretLabData(normalization.normalizedData, null);
 
     // Step 7: Finalizer - Calculate overall confidence and accept/discard
-    const overallConfidence = Math.min(
-      typeDetection.confidence,
-      extraction.confidence,
-      normalization.confidence
-    );
+    // PHASE 1: Use weighted average instead of harsh MIN()
+    const weightedConfidence = AGGREGATION.use_weighted_average
+      ? (typeDetection.confidence * AGGREGATION.weights.type) +
+        (extraction.confidence * AGGREGATION.weights.extraction) +
+        (normalization.confidence * AGGREGATION.weights.normalization)
+      : Math.min(typeDetection.confidence, extraction.confidence, normalization.confidence);
 
-    if (overallConfidence < THRESHOLDS.overall_accept_min) {
+    const overallConfidence = weightedConfidence;
+
+    // PHASE 1: Check if extraction is in grey zone (0.40-0.50)
+    const inGreyZone = GREY_ZONE.emit_partial_instead_of_discard &&
+      extraction.confidence >= GREY_ZONE.extraction_lower &&
+      extraction.confidence < GREY_ZONE.extraction_upper;
+
+    // Enhanced logging with confidence breakdown
+    console.log('📊 Confidence breakdown:');
+    console.log(`   Type: ${typeDetection.confidence.toFixed(2)} (weight: ${AGGREGATION.weights.type})`);
+    console.log(`   Extraction: ${extraction.confidence.toFixed(2)} (weight: ${AGGREGATION.weights.extraction})${inGreyZone ? ' [GREY ZONE]' : ''}`);
+    console.log(`   Normalization: ${normalization.confidence.toFixed(2)} (weight: ${AGGREGATION.weights.normalization})`);
+    if (AGGREGATION.use_weighted_average) {
+      console.log(`   Weighted: ${typeDetection.confidence.toFixed(2)}×${AGGREGATION.weights.type} + ${extraction.confidence.toFixed(2)}×${AGGREGATION.weights.extraction} + ${normalization.confidence.toFixed(2)}×${AGGREGATION.weights.normalization} = ${overallConfidence.toFixed(2)}`);
+    } else {
+      console.log(`   MIN: ${overallConfidence.toFixed(2)}`);
+    }
+    console.log(`   Threshold: ${THRESHOLDS.overall_accept_min} (with epsilon: ${(THRESHOLDS.overall_accept_min - EPS).toFixed(6)})`);
+
+    // PHASE 1: Use epsilon tolerance for floating-point safety (0.50 >= 0.50 edge case)
+    const passesThreshold = overallConfidence + EPS >= THRESHOLDS.overall_accept_min;
+
+    if (!passesThreshold) {
       console.log(`❌ DISCARD: Overall confidence too low (${overallConfidence.toFixed(2)} < ${THRESHOLDS.overall_accept_min})`);
-      console.log(`  Type: ${typeDetection.confidence.toFixed(2)}, Extraction: ${extraction.confidence.toFixed(2)}, Normalization: ${normalization.confidence.toFixed(2)}`);
       return createDiscardedResult(
         reportId,
         ingestedAt,
@@ -212,7 +240,44 @@ export async function runInterpretationPipeline(
       );
     }
 
+    // PHASE 1: Grey zone handling - return partial result instead of full acceptance
+    if (inGreyZone) {
+      console.log(`⚠️  PARTIAL ACCEPTANCE: Extraction in grey zone (${extraction.confidence.toFixed(2)} in [${GREY_ZONE.extraction_lower}, ${GREY_ZONE.extraction_upper}))`);
+      console.log('   User can review and accept partial extraction results');
+      return {
+        report_id: reportId,
+        report_type: typeDetection.label,
+        source_format: (input.source_format_hint as any) || 'PDF_OCR',
+        ingested_at: ingestedAt.toISOString(),
+        patient: {
+          pseudo_id: userId,
+          dob: null,
+          sex_at_birth: null,
+        },
+        data: normalization.normalizedData as InterpretedData,
+        interpretation: interpretation.interpretation,
+        audit: {
+          type_classifier: typeDetection,
+          extraction_confidence: extraction.confidence,
+          normalization_confidence: normalization.confidence,
+          overall_confidence: overallConfidence,
+          rules_triggered: interpretation.rulesTriggered,
+          unit_conversions: normalization.conversions,
+          validation_findings: validationResults.map(v => v.message || ''),
+        },
+        references: [
+          'Evidence-based clinical interpretation guidelines',
+          'ACSM clinical standards for lipid management',
+          'ADA guidelines for glycemic control',
+        ],
+        status: 'partial',
+        is_partial: true,
+        user_feedback: 'Some data was extracted with moderate confidence. Please review the results before accepting.',
+      };
+    }
+
     // SUCCESS - Return accepted result
+    console.log(`✅ ACCEPTED: Weighted confidence ${overallConfidence.toFixed(2)} >= ${THRESHOLDS.overall_accept_min}`);
     console.log('Pipeline complete - data accepted');
     return {
       report_id: reportId,
