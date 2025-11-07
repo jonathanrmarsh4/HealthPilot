@@ -124,7 +124,6 @@ export default function MobileNav({
         }, prefersReducedMotion ? 0 : 300);
         return () => clearTimeout(timer);
       }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open]);
 
     const handleHeaderTouchStart = (e: React.TouchEvent) => {

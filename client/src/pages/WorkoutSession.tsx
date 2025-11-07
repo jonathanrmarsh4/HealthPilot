@@ -617,9 +617,12 @@ export default function WorkoutSession() {
   });
 
   // Use exercises from instance snapshot if available, otherwise from database
-  const exercises = instanceId && workoutInstance
-    ? (workoutInstance.snapshotData?.exercises || [])
-    : dbExercises;
+  // Memoized to provide stable reference for dependent hooks
+  const exercises = useMemo(() => {
+    return instanceId && workoutInstance
+      ? (workoutInstance.snapshotData?.exercises || [])
+      : dbExercises;
+  }, [instanceId, workoutInstance, dbExercises]);
   
   const exercisesLoading = instanceId ? instanceLoading : dbExercisesLoading;
 
