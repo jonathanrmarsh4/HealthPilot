@@ -201,7 +201,7 @@ export async function runInterpretationPipeline(
 
     const overallConfidence = weightedConfidence;
 
-    // PHASE 1: Check if extraction is in grey zone (0.40-0.50)
+    // PHASE 1: Check if extraction is in grey zone (0.40-0.50) - BEFORE overall threshold check
     const inGreyZone = GREY_ZONE.emit_partial_instead_of_discard &&
       extraction.confidence >= GREY_ZONE.extraction_lower &&
       extraction.confidence < GREY_ZONE.extraction_upper;
@@ -218,32 +218,11 @@ export async function runInterpretationPipeline(
     }
     console.log(`   Threshold: ${THRESHOLDS.overall_accept_min} (with epsilon: ${(THRESHOLDS.overall_accept_min - EPS).toFixed(6)})`);
 
-    // PHASE 1: Use epsilon tolerance for floating-point safety (0.50 >= 0.50 edge case)
-    const passesThreshold = overallConfidence + EPS >= THRESHOLDS.overall_accept_min;
-
-    if (!passesThreshold) {
-      console.log(`❌ DISCARD: Overall confidence too low (${overallConfidence.toFixed(2)} < ${THRESHOLDS.overall_accept_min})`);
-      return createDiscardedResult(
-        reportId,
-        ingestedAt,
-        userId,
-        'partial_parse',
-        {
-          type_classifier: typeDetection,
-          extraction_confidence: extraction.confidence,
-          normalization_confidence: normalization.confidence,
-          overall_confidence: overallConfidence,
-          rules_triggered: interpretation.rulesTriggered,
-          unit_conversions: normalization.conversions,
-          validation_findings: validationResults.map(v => v.message || ''),
-        }
-      );
-    }
-
-    // PHASE 1: Grey zone handling - return partial result instead of full acceptance
+    // PHASE 1: Grey zone handling - return partial result REGARDLESS of overall confidence
+    // This ensures all grey-zone extractions return partial instead of discard
     if (inGreyZone) {
       console.log(`⚠️  PARTIAL ACCEPTANCE: Extraction in grey zone (${extraction.confidence.toFixed(2)} in [${GREY_ZONE.extraction_lower}, ${GREY_ZONE.extraction_upper}))`);
-      console.log('   User can review and accept partial extraction results');
+      console.log('   User can review and accept partial extraction results (grey zone bypass)');
       return {
         report_id: reportId,
         report_type: typeDetection.label,
@@ -274,6 +253,28 @@ export async function runInterpretationPipeline(
         is_partial: true,
         user_feedback: 'Some data was extracted with moderate confidence. Please review the results before accepting.',
       };
+    }
+
+    // PHASE 1: Use epsilon tolerance for floating-point safety (0.50 >= 0.50 edge case)
+    const passesThreshold = overallConfidence + EPS >= THRESHOLDS.overall_accept_min;
+
+    if (!passesThreshold) {
+      console.log(`❌ DISCARD: Overall confidence too low (${overallConfidence.toFixed(2)} < ${THRESHOLDS.overall_accept_min})`);
+      return createDiscardedResult(
+        reportId,
+        ingestedAt,
+        userId,
+        'partial_parse',
+        {
+          type_classifier: typeDetection,
+          extraction_confidence: extraction.confidence,
+          normalization_confidence: normalization.confidence,
+          overall_confidence: overallConfidence,
+          rules_triggered: interpretation.rulesTriggered,
+          unit_conversions: normalization.conversions,
+          validation_findings: validationResults.map(v => v.message || ''),
+        }
+      );
     }
 
     // SUCCESS - Return accepted result
@@ -342,9 +343,13 @@ async function processImagingReport(
 ): Promise<InterpretationResult> {
   console.log('📊 Processing imaging report (simplified pipeline)');
   
+  // PHASE 1: Epsilon for floating-point safe comparisons
+  const EPS = AGGREGATION.epsilon;
+  
   const extraction = await extractImagingObservations(ocrOutput);
   
-  if (extraction.confidence < THRESHOLDS.extraction_min) {
+  // PHASE 1: Use epsilon tolerance for threshold comparison (fixes floating-point edge case)
+  if (extraction.confidence + EPS < THRESHOLDS.extraction_min) {
     console.log(`❌ DISCARD: Low extraction confidence (${extraction.confidence.toFixed(2)} < ${THRESHOLDS.extraction_min})`);
     return createDiscardedResult(
       reportId,
