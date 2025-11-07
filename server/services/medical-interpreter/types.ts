@@ -33,7 +33,7 @@ export type SourceFormat =
 export type InterpretationCategory = 'Normal' | 'Borderline' | 'Abnormal' | 'Indeterminate';
 
 // Status Enum
-export type InterpretationStatus = 'accepted' | 'discarded';
+export type InterpretationStatus = 'accepted' | 'discarded' | 'partial';
 
 // Sex at Birth Enum
 export type SexAtBirth = 'M' | 'F' | 'Intersex' | 'Unknown';
@@ -265,7 +265,8 @@ export interface InterpretationResult {
   audit: AuditTrail;
   references: string[];
   status: InterpretationStatus;
-  user_feedback?: string; // Present when status is 'discarded'
+  user_feedback?: string; // Present when status is 'discarded' or 'partial'
+  is_partial?: boolean; // True when extraction confidence in grey zone (0.40-0.50)
 }
 
 // Pipeline Input
@@ -321,6 +322,24 @@ export interface Thresholds {
   extraction_min: number;
   normalization_min: number;
   overall_accept_min: number;
+}
+
+// Aggregation Configuration (Phase 1: Weighted Average)
+export interface AggregationConfig {
+  use_weighted_average: boolean;
+  weights: {
+    type: number;
+    extraction: number;
+    normalization: number;
+  };
+  epsilon: number; // Floating-point tolerance for threshold comparisons
+}
+
+// Grey Zone Configuration (Phase 1: Partial Results)
+export interface GreyZoneConfig {
+  extraction_lower: number;
+  extraction_upper: number;
+  emit_partial_instead_of_discard: boolean;
 }
 
 // User Feedback Templates
