@@ -69,7 +69,7 @@ async function processUsersAtLocalTime(targetHour: number) {
         
         // Use saveWorkout to properly enrich blocks with exercise_ids
         const { saveWorkout } = await import('./trainingGenerator');
-        await saveWorkout(storage, user.id, workoutResult);
+        await saveWorkout(storage, user.id, workoutResult, userLocalDate);
         
         generatedCount++;
         console.log(`[DailyTraining] ✅ Generated workout for user ${user.id} on ${userLocalDate}`);
