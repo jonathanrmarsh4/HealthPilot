@@ -6682,18 +6682,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         data: savedWorkout
       });
     } catch (error: any) {
-      console.error("Workout generation error:", error);
-      
-      // If duplicate key error, return existing workout instead of failing
-      if (error.code === '23505' && error.constraint === 'generated_workouts_user_date_unique_idx') {
-        console.log(`⚠️ Workout already exists for ${userId} on ${targetDate}, returning existing workout`);
-        const existingWorkout = await storage.getGeneratedWorkout(userId, targetDate);
-        return res.json({
-          status: "success",
-          data: existingWorkout,
-          cached: true
-        });
-      }
+      console.error("❌ Workout generation error:", error);
       
       res.status(500).json({
         status: "error",

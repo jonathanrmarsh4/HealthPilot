@@ -2336,7 +2336,17 @@ export class DbStorage implements IStorage {
 
   // Generated workout methods
   async createGeneratedWorkout(workout: InsertGeneratedWorkout): Promise<GeneratedWorkout> {
-    const result = await db.insert(generatedWorkouts).values(workout).returning();
+    // Use UPSERT to allow regeneration to replace existing workouts for the same user/date
+    // Explicitly exclude immutable fields (userId, date, createdAt) from update set
+    const { userId, date, createdAt, id, ...mutableFields } = workout as any;
+    
+    const result = await db.insert(generatedWorkouts)
+      .values(workout)
+      .onConflictDoUpdate({
+        target: [generatedWorkouts.userId, generatedWorkouts.date],
+        set: mutableFields, // Only update truly mutable fields, preserve createdAt
+      })
+      .returning();
     return result[0];
   }
 
