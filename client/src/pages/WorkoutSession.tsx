@@ -1252,8 +1252,8 @@ export default function WorkoutSession() {
         </div>
       )}
 
-      {/* Sticky Footer */}
-      <div className="sticky bottom-0 z-20 bg-background border-t p-4">
+      {/* Sticky Footer - positioned above MobileNav (h-24 = 96px) */}
+      <div className="sticky bottom-24 z-20 bg-background border-t p-4">
         <div className="flex gap-3">
           <Button
             variant="outline"

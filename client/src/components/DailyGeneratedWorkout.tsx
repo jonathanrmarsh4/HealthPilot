@@ -14,7 +14,6 @@ import {
   AlertTriangle,
   RefreshCw,
   CheckCircle2,
-  XCircle,
   Loader2
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -83,26 +82,6 @@ export function DailyGeneratedWorkout() {
     },
   });
 
-  // Reject workout mutation
-  const rejectMutation = useMutation({
-    mutationFn: async (id: string) => {
-      return apiRequest("POST", `/api/training/generated-workout/${id}/reject`, {});
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/training/generated-workout", today] });
-      toast({
-        title: "Workout Rejected",
-        description: "You can generate a new one",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
 
   const workoutData = workout?.workoutData;
   const isGenerating = generateMutation.isPending;
@@ -331,15 +310,6 @@ export function DailyGeneratedWorkout() {
                     <RefreshCw className="mr-2 h-4 w-4" />
                   )}
                   Regenerate
-                </Button>
-                <Button
-                  variant="ghost"
-                  onClick={() => rejectMutation.mutate(workout.id)}
-                  disabled={rejectMutation.isPending}
-                  data-testid="button-reject-workout"
-                >
-                  <XCircle className="mr-2 h-4 w-4" />
-                  Reject
                 </Button>
               </div>
             )}

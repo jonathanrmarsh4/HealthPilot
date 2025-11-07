@@ -22,6 +22,7 @@ I prefer simple language and clear explanations. I want iterative development wh
 - Swipe-to-Open Sidebar for mobile gesture navigation.
 - Premium Theme System v2.0 - Dual-Personality Liquid Glass Design with distinct light/dark mode aesthetics, controlled via Admin Panel CMS Theme tab.
 - **Dual Schedule System:** Separate schedules on Training page (training workouts, recommendations, insights) and Recovery page (recovery sessions) - maintained for user testing and will iterate based on feedback.
+- **Mobile-Optimized Workout UI (Nov 2025):** Streamlined workout generation interface showing only "Accept" and "Regenerate" buttons (removed off-screen Reject button). Active workout sessions use sticky footer positioned 96px above MobileNav bottom toolbar to prevent overlap with "Finish" button, ensuring all controls remain fully accessible during workouts.
 
 **Technical Implementations:**
 - **AI Intelligence Layer:** Provides daily personalized insights, context-aware chat, multi-metric recommendations, and alternative therapy suggestions.
