@@ -19,13 +19,7 @@ import { isBaselineMode } from "@shared/config/flags";
 type ViewMode = "calendar" | "swipe";
 
 export default function MealPlans() {
-  // Check if baseline mode is enabled
-  const baselineEnabled = isBaselineMode();
-  
-  // In baseline mode, show catalog browser instead of AI meal plans
-  if (baselineEnabled) {
-    return <MealCatalogBrowser />;
-  }
+  // All hooks must be called before any conditional returns
   const { toast } = useToast();
   const [selectedMeal, setSelectedMeal] = useState<MealPlan | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -39,6 +33,14 @@ export default function MealPlans() {
   const { data: user } = useQuery<{ subscriptionTier: string; role?: string }>({
     queryKey: ["/api/auth/user"],
   });
+
+  // Check if baseline mode is enabled (after all hooks)
+  const baselineEnabled = isBaselineMode();
+  
+  // In baseline mode, show catalog browser instead of AI meal plans
+  if (baselineEnabled) {
+    return <MealCatalogBrowser />;
+  }
 
   // Calculate date range for scheduled meals
   const scheduledMeals = meals?.filter(m => m.scheduledDate) || [];

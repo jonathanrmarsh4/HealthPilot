@@ -84,6 +84,14 @@ import SafariData from "@/lib/safariData";
 import { initializeDeepLinkHandling } from "@/lib/notifications/deeplink";
 import { oneSignalClient } from "@/lib/notifications/onesignal";
 
+function DailyInsightsRedirect() {
+  const [, setLocation] = useLocation();
+  useEffect(() => {
+    setLocation('/insights?tab=daily');
+  }, [setLocation]);
+  return null;
+}
+
 function Router() {
   return (
     <Switch>
@@ -104,11 +112,7 @@ function Router() {
       <Route path="/symptoms" component={Symptoms} />
       <Route path="/symptoms/new" component={NewSymptom} />
       <Route path="/insights" component={InsightsHub} />
-      <Route path="/daily-insights" component={() => {
-        const [, setLocation] = useLocation();
-        setLocation('/insights?tab=daily');
-        return null;
-      }} />
+      <Route path="/daily-insights" component={DailyInsightsRedirect} />
       <Route path="/goals" component={Goals} />
       <Route path="/biological-age" component={BiologicalAge} />
       <Route path="/notifications" component={Notifications} />
