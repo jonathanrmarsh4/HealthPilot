@@ -102,7 +102,7 @@ export default function AppleHealthSetup() {
             <Alert>
               <Heart className="h-4 w-4" />
               <AlertDescription>
-                <strong>You're using the native iOS app!</strong> Connect directly to Apple Health for automatic, real-time data sync.
+                <strong>You&apos;re using the native iOS app!</strong> Connect directly to Apple Health for automatic, real-time data sync.
               </AlertDescription>
             </Alert>
 
@@ -163,7 +163,7 @@ export default function AppleHealthSetup() {
             </Button>
 
             <p className="text-xs text-muted-foreground text-center">
-              You'll be asked to grant permission to read your health data from the Health app
+              You&apos;ll be asked to grant permission to read your health data from the Health app
             </p>
           </CardContent>
         </Card>
@@ -292,7 +292,7 @@ export default function AppleHealthSetup() {
           <div>
             <h4 className="font-medium mb-1">Data not syncing?</h4>
             <ul className="text-sm text-muted-foreground space-y-1 ml-4 list-disc">
-              <li>Make sure you've tapped the "Connect Apple Health Now" button and granted permissions</li>
+              <li>Make sure you&apos;ve tapped the &quot;Connect Apple Health Now&quot; button and granted permissions</li>
               <li>Verify your iPhone has internet connection</li>
               <li>Check that HealthPilot has permission in Settings → Privacy → Health</li>
               <li>Try syncing again by revisiting this page</li>
@@ -302,7 +302,7 @@ export default function AppleHealthSetup() {
             <h4 className="font-medium mb-1">Missing metrics?</h4>
             <ul className="text-sm text-muted-foreground space-y-1 ml-4 list-disc">
               <li>Some metrics require specific Apple devices (e.g., Blood Oxygen requires Apple Watch Series 6+)</li>
-              <li>Check that you've granted permission for specific metrics in Settings → Privacy → Health → HealthPilot</li>
+              <li>Check that you&apos;ve granted permission for specific metrics in Settings → Privacy → Health → HealthPilot</li>
               <li>Ensure data exists in your Apple Health app for the metrics you want to sync</li>
             </ul>
           </div>

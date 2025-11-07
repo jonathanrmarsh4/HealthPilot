@@ -955,7 +955,7 @@ function AdminContent() {
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            Step-by-step microphone test that shows exactly what's failing and how to fix it
+            Step-by-step microphone test that shows exactly what&apos;s failing and how to fix it
           </p>
         </CardContent>
       </Card>
@@ -1383,7 +1383,7 @@ function AdminContent() {
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            Step-by-step microphone test that shows exactly what's failing and how to fix it
+            Step-by-step microphone test that shows exactly what&apos;s failing and how to fix it
           </p>
         </CardContent>
       </Card>
@@ -1430,7 +1430,7 @@ function AdminContent() {
               </ul>
               <div className="mt-4 space-y-2">
                 <p className="font-semibold">
-                  To confirm, please type the user's email address:
+                  To confirm, please type the user&apos;s email address:
                 </p>
                 <p className="text-sm font-mono bg-muted px-2 py-1 rounded">
                   {userToDelete?.email}

@@ -556,7 +556,7 @@ export function RecommendationCalendar({
           <DialogHeader>
             <DialogTitle>Reschedule Activity</DialogTitle>
             <DialogDescription>
-              Move "{selectedActivity?.title}" to {targetDate && format(targetDate, "MMMM d, yyyy")}?
+              Move &quot;{selectedActivity?.title}&quot; to {targetDate && format(targetDate, "MMMM d, yyyy")}?
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

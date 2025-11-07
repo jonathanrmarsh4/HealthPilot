@@ -63,7 +63,7 @@ export function SleepScoreCard({
               <Moon className="h-5 w-5" />
               Sleep Score
             </CardTitle>
-            <CardDescription>Last night's sleep quality</CardDescription>
+            <CardDescription>Last night&apos;s sleep quality</CardDescription>
           </div>
           <Badge className={scoreColor.bg} data-testid="badge-sleep-quality">
             {scoreColor.label}

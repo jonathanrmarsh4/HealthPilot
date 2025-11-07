@@ -440,7 +440,7 @@ export default function Symptoms() {
             <DialogHeader>
               <DialogTitle>Track a Symptom</DialogTitle>
               <DialogDescription>
-                Record a new symptom or health concern you're experiencing.
+                Record a new symptom or health concern you&apos;re experiencing.
               </DialogDescription>
             </DialogHeader>
             
@@ -659,7 +659,7 @@ export default function Symptoms() {
               <AlertCircle className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
               <p className="text-muted-foreground">No active symptoms</p>
               <p className="text-sm text-muted-foreground mt-1">
-                Click "Add Symptom" to start tracking
+                Click &quot;Add Symptom&quot; to start tracking
               </p>
             </CardContent>
           </Card>
@@ -760,7 +760,7 @@ export default function Symptoms() {
                   No insights generated yet
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Click "Get Assessment" to analyze your symptoms
+                  Click &quot;Get Assessment&quot; to analyze your symptoms
                 </p>
               </div>
             )}

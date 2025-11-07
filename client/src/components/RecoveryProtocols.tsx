@@ -430,7 +430,7 @@ export function RecoveryProtocols() {
             <CardHeader>
               <CardTitle>Schedule Recovery Session</CardTitle>
               <CardDescription>
-                Set up "{schedulingProtocol.name}" in your calendar
+                Set up &quot;{schedulingProtocol.name}&quot; in your calendar
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">

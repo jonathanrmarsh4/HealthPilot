@@ -91,7 +91,7 @@ export default function NewSymptom() {
       <div className="text-center space-y-2">
         <h1 className="text-3xl font-bold">Log New Symptom</h1>
         <p className="text-muted-foreground">
-          Track how you're feeling to identify patterns
+          Track how you&apos;re feeling to identify patterns
         </p>
       </div>
 

@@ -468,7 +468,7 @@ export function VoiceChatModal({ isOpen, onClose, context }: VoiceChatModalProps
                 )}
 
                 {!isListening && !isSpeaking && (
-                  <p className="text-sm text-muted-foreground">Speak naturally - I'm listening!</p>
+                  <p className="text-sm text-muted-foreground">Speak naturally - I&apos;m listening!</p>
                 )}
               </div>
             </div>

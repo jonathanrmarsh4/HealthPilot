@@ -368,7 +368,7 @@ export default function AIInsights() {
         ) : (
           <Card>
             <CardContent className="p-12 text-center text-muted-foreground">
-              No active recommendations. Click "Generate Insights" to get AI-powered health recommendations.
+              No active recommendations. Click &quot;Generate Insights&quot; to get AI-powered health recommendations.
             </CardContent>
           </Card>
         )}

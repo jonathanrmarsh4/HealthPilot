@@ -71,15 +71,15 @@ export function EulaDialog({ open, onAccept, isAccepting = false }: EulaDialogPr
               <p className="font-semibold mb-2">
                 Last Updated: 1/08/2025<br />
                 Effective Date: 1/08/2025<br />
-                Owner: Nuvitae Labs ("we," "us," "our")<br />
-                Product: HealthPilot – AI-Driven Health, Fitness and Longevity Application ("the App")
+                Owner: Nuvitae Labs (&quot;we,&quot; &quot;us,&quot; &quot;our&quot;)<br />
+                Product: HealthPilot – AI-Driven Health, Fitness and Longevity Application (&quot;the App&quot;)
               </p>
             </div>
 
             <div>
               <h3 className="font-semibold mb-2">1. Acceptance of Terms</h3>
               <p>
-                By downloading, accessing, or using the App, you ("the User") agree to be bound by this End User Licence Agreement ("Agreement"). If you do not agree, do not use the App. We may update or amend this Agreement at any time. Continued use after such changes constitutes acceptance of the revised terms.
+                By downloading, accessing, or using the App, you (&quot;the User&quot;) agree to be bound by this End User Licence Agreement (&quot;Agreement&quot;). If you do not agree, do not use the App. We may update or amend this Agreement at any time. Continued use after such changes constitutes acceptance of the revised terms.
               </p>
             </div>
 
@@ -166,7 +166,7 @@ export function EulaDialog({ open, onAccept, isAccepting = false }: EulaDialogPr
               <h3 className="font-semibold mb-2">9. Disclaimers</h3>
               <p className="mb-2">To the maximum extent permitted by law:</p>
               <ul className="list-disc pl-6 space-y-1">
-                <li>The App is provided "as is" and "as available."</li>
+                <li>The App is provided &quot;as is&quot; and &quot;as available.&quot;</li>
                 <li>We make no warranties that the App will be error-free, uninterrupted, or that results will be accurate or reliable.</li>
                 <li>Any reliance on AI-generated recommendations is at your own risk.</li>
                 <li>The App is intended for informational and educational purposes only and not a substitute for professional medical advice, diagnosis, or treatment.</li>

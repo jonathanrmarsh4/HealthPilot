@@ -470,7 +470,7 @@ export default function VoiceChat() {
               <ul className="space-y-2 text-sm">
                 <li className="flex items-start gap-2">
                   <span className="text-primary">1.</span>
-                  <span>Click "Start Voice Chat" and allow microphone access</span>
+                  <span>Click &quot;Start Voice Chat&quot; and allow microphone access</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-primary">2.</span>
@@ -478,7 +478,7 @@ export default function VoiceChat() {
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-primary">3.</span>
-                  <span>Listen to the AI's response - it has access to all your health data</span>
+                  <span>Listen to the AI&apos;s response - it has access to all your health data</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-primary">4.</span>

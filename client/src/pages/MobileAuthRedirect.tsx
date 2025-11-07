@@ -36,7 +36,7 @@ export default function MobileAuthRedirect() {
             Redirecting you back to the app...
           </p>
           <p className="text-sm text-gray-500">
-            If prompted, tap "Open" to continue to HealthPilot
+            If prompted, tap &quot;Open&quot; to continue to HealthPilot
           </p>
         </CardContent>
       </Card>

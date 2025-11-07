@@ -302,7 +302,7 @@ export default function Billing() {
             {!usage?.hasUnlimited && (usage?.messagesUsed || 0) >= (usage?.limit || 50) * 0.8 && (
               <div className="p-3 bg-orange-50 dark:bg-orange-900/20 rounded-md">
                 <p className="text-sm text-orange-700 dark:text-orange-400">
-                  You're approaching your monthly limit. Upgrade for unlimited messages.
+                  You&apos;re approaching your monthly limit. Upgrade for unlimited messages.
                 </p>
               </div>
             )}

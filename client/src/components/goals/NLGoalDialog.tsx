@@ -181,7 +181,7 @@ export function NLGoalDialog({ onSuccess }: NLGoalDialogProps) {
               disabled={parseMutation.isPending || createMutation.isPending}
             />
             <p className="text-sm text-muted-foreground">
-              Examples: "Lose 10kg in 6 months", "Run a marathon under 4 hours", "Lower my cholesterol to 180 mg/dL"
+              Examples: &quot;Lose 10kg in 6 months&quot;, &quot;Run a marathon under 4 hours&quot;, &quot;Lower my cholesterol to 180 mg/dL&quot;
             </p>
           </div>
 

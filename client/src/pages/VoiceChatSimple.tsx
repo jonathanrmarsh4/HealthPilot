@@ -174,9 +174,9 @@ Error: ${error.message || error.name}
           <CardTitle>Instructions</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
-          <p>1. <strong>Click "Test Microphone"</strong> button above</p>
+          <p>1. <strong>Click &quot;Test Microphone&quot;</strong> button above</p>
           <p>2. <strong>Grant permission</strong> when iOS prompts you</p>
-          <p>3. <strong>Check the status</strong> - it should show "✅ Microphone works!"</p>
+          <p>3. <strong>Check the status</strong> - it should show &quot;✅ Microphone works!&quot;</p>
           <p className="pt-4 text-muted-foreground">
             If you see an error, the error details will show you exactly what went wrong and how to fix it.
           </p>

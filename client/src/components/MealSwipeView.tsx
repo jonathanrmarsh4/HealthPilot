@@ -121,7 +121,7 @@ export function MealSwipeView({ meals, onMealTap, onBackToCalendar }: MealSwipeV
           <Sparkles className="h-16 w-16 mx-auto text-primary" />
           <h3 className="text-2xl font-semibold" data-testid="text-all-done-title">All done!</h3>
           <p className="text-muted-foreground max-w-md" data-testid="text-all-done-message">
-            You've reviewed all available meals. We'll use your feedback to suggest better meals next time!
+            You&apos;ve reviewed all available meals. We&apos;ll use your feedback to suggest better meals next time!
           </p>
         </div>
         <div className="flex gap-3">

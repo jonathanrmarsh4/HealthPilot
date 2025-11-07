@@ -605,7 +605,7 @@ function TestimonialsSection({
                         ))}
                       </div>
                     </div>
-                    <p className="text-sm italic">"{testimonial.quote}"</p>
+                    <p className="text-sm italic">&quot;{testimonial.quote}&quot;</p>
                     {testimonial.photoUrl && (
                       <p className="text-xs text-muted-foreground mt-1">Photo: {testimonial.photoUrl}</p>
                     )}

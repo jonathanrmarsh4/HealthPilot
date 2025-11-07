@@ -177,9 +177,9 @@ export function GoalConversationDialog({ onSuccess }: GoalConversationDialogProp
               <div className="p-4 rounded-full bg-primary/10">
                 <MessageCircle className="h-12 w-12 text-primary" />
               </div>
-              <h3 className="text-lg font-semibold">Let's create your goal together</h3>
+              <h3 className="text-lg font-semibold">Let&apos;s create your goal together</h3>
               <p className="text-sm text-muted-foreground max-w-md">
-                I'll ask you a few questions to understand your goal, current ability level, 
+                I&apos;ll ask you a few questions to understand your goal, current ability level, 
                 and time availability. This helps me create a realistic, personalized plan.
               </p>
               <Button 

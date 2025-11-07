@@ -131,7 +131,7 @@ export default function BiologicalAge() {
                     Your biological age is {phenoAge} years, matching your chronological age
                   </p>
                   <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
-                    You're aging at a normal rate. Optimize your health to reduce biological age.
+                    You&apos;re aging at a normal rate. Optimize your health to reduce biological age.
                   </p>
                 </div>
               )}

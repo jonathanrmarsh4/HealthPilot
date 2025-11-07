@@ -203,7 +203,7 @@ export default function NutritionProfile() {
                 Food Allergies
               </CardTitle>
               <CardDescription>
-                Select any foods you're allergic to. These will be completely excluded from meal recommendations.
+                Select any foods you&apos;re allergic to. These will be completely excluded from meal recommendations.
               </CardDescription>
             </CardHeader>
             <CardContent>

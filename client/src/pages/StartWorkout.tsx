@@ -55,7 +55,7 @@ export default function StartWorkout() {
       <div className="text-center space-y-2">
         <h1 className="text-3xl font-bold">Quick Workout Start</h1>
         <p className="text-muted-foreground">
-          Jump straight into today's training session
+          Jump straight into today&apos;s training session
         </p>
       </div>
 
@@ -64,7 +64,7 @@ export default function StartWorkout() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Dumbbell className="h-5 w-5" />
-              Today's Workout Ready
+              Today&apos;s Workout Ready
             </CardTitle>
             <CardDescription>
               {workout.workoutData?.sessionType || "Training Session"} • {" "}
@@ -99,7 +99,7 @@ export default function StartWorkout() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Sparkles className="h-5 w-5" />
-              Generate Today's Workout
+              Generate Today&apos;s Workout
             </CardTitle>
             <CardDescription>
               No workout generated yet for today

@@ -448,7 +448,7 @@ export default function ReadinessSettings() {
                       data-testid="input-hrv-baseline"
                     />
                     <p className="text-xs text-muted-foreground">
-                      Your HRV when well-rested (even if "low" by population standards)
+                      Your HRV when well-rested (even if &quot;low&quot; by population standards)
                     </p>
                   </div>
 
@@ -463,7 +463,7 @@ export default function ReadinessSettings() {
                       data-testid="input-resting-hr-baseline"
                     />
                     <p className="text-xs text-muted-foreground">
-                      Your resting HR when well-rested (even if "high" by population standards)
+                      Your resting HR when well-rested (even if &quot;high&quot; by population standards)
                     </p>
                   </div>
 
@@ -487,7 +487,7 @@ export default function ReadinessSettings() {
                 <Alert>
                   <Info className="h-4 w-4" />
                   <AlertDescription>
-                    When enabled, you'll score 100% when at YOUR baseline. Below baseline = lower score. Above baseline (for HRV) = bonus!
+                    When enabled, you&apos;ll score 100% when at YOUR baseline. Below baseline = lower score. Above baseline (for HRV) = bonus!
                   </AlertDescription>
                 </Alert>
               </div>

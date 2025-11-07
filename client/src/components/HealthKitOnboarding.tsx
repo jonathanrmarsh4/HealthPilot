@@ -182,7 +182,7 @@ export function HealthKitOnboarding({ onComplete, onSkip }: HealthKitOnboardingP
             </div>
             <CardTitle className="text-3xl">Connection Issue</CardTitle>
             <CardDescription className="text-base mt-2">
-              We couldn't connect to Apple Health. This might be due to a temporary issue.
+              We couldn&apos;t connect to Apple Health. This might be due to a temporary issue.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">

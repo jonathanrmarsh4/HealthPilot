@@ -198,7 +198,7 @@ export function HealthKitSync() {
         )}
 
         <div className="text-xs text-muted-foreground">
-          <p>First time? You'll be asked to grant permissions to access your Health data.</p>
+          <p>First time? You&apos;ll be asked to grant permissions to access your Health data.</p>
         </div>
       </CardContent>
     </Card>

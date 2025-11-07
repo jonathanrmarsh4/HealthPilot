@@ -421,7 +421,7 @@ export default function Settings() {
                 <div>
                   <h4 className="text-sm font-semibold mb-1">Quiet Hours</h4>
                   <p className="text-xs text-muted-foreground">
-                    Set a time range when you don't want to receive notifications (critical alerts will still come through)
+                    Set a time range when you don&apos;t want to receive notifications (critical alerts will still come through)
                   </p>
                 </div>
                 
@@ -550,7 +550,7 @@ export default function Settings() {
               </Button>
 
               <p className="text-xs text-muted-foreground text-center">
-                You'll be asked to grant permission to read your health data from the Health app
+                You&apos;ll be asked to grant permission to read your health data from the Health app
               </p>
             </div>
           </CardContent>

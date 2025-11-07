@@ -145,7 +145,7 @@ export function HealthRecordUpload() {
             {uploadMutation.isPending && (
               <div className="text-xs text-muted-foreground bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-md p-3">
                 <p className="font-medium mb-1">Processing your health record...</p>
-                <p>Large files may take 2-3 minutes to analyze. Please don't close this page.</p>
+                <p>Large files may take 2-3 minutes to analyze. Please don&apos;t close this page.</p>
               </div>
             )}
           </div>

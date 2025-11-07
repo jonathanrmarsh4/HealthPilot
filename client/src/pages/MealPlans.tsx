@@ -34,25 +34,6 @@ export default function MealPlans() {
     queryKey: ["/api/auth/user"],
   });
 
-  // Check if baseline mode is enabled (after all hooks)
-  const baselineEnabled = isBaselineMode();
-  
-  // In baseline mode, show catalog browser instead of AI meal plans
-  if (baselineEnabled) {
-    return <MealCatalogBrowser />;
-  }
-
-  // Calculate date range for scheduled meals
-  const scheduledMeals = meals?.filter(m => m.scheduledDate) || [];
-  const dateRange = scheduledMeals.length > 0 ? (() => {
-    const dates = scheduledMeals.map(m => 
-      typeof m.scheduledDate === 'string' ? parseISO(m.scheduledDate) : new Date(m.scheduledDate!)
-    );
-    const minDate = min(dates);
-    const maxDate = max(dates);
-    return `${format(minDate, 'MMM d')} - ${format(maxDate, 'MMM d, yyyy')}`;
-  })() : null;
-
   const generateMutation = useMutation({
     mutationFn: async () => {
       const res = await apiRequest("POST", "/api/meal-plans/generate");
@@ -87,6 +68,25 @@ export default function MealPlans() {
       });
     },
   });
+
+  // Check if baseline mode is enabled (after all hooks)
+  const baselineEnabled = isBaselineMode();
+  
+  // In baseline mode, show catalog browser instead of AI meal plans
+  if (baselineEnabled) {
+    return <MealCatalogBrowser />;
+  }
+
+  // Calculate date range for scheduled meals
+  const scheduledMeals = meals?.filter(m => m.scheduledDate) || [];
+  const dateRange = scheduledMeals.length > 0 ? (() => {
+    const dates = scheduledMeals.map(m => 
+      typeof m.scheduledDate === 'string' ? parseISO(m.scheduledDate) : new Date(m.scheduledDate!)
+    );
+    const minDate = min(dates);
+    const maxDate = max(dates);
+    return `${format(minDate, 'MMM d')} - ${format(maxDate, 'MMM d, yyyy')}`;
+  })() : null;
 
   const isPremium = user?.subscriptionTier === "premium" || user?.subscriptionTier === "enterprise" || user?.role === "admin";
 
@@ -190,7 +190,7 @@ export default function MealPlans() {
       ) : (
         <Card>
           <CardContent className="p-12 text-center text-muted-foreground">
-            No meal plans available. Click "Generate" to create AI-powered meal suggestions.
+            No meal plans available. Click &quot;Generate&quot; to create AI-powered meal suggestions.
           </CardContent>
         </Card>
       )}

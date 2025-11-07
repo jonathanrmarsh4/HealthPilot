@@ -109,7 +109,7 @@ export function DailyGeneratedWorkout() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
-            <CardTitle>Today's Recommended Workout</CardTitle>
+            <CardTitle>Today&apos;s Recommended Workout</CardTitle>
           </div>
           {workout && (
             <Badge 
@@ -152,7 +152,7 @@ export function DailyGeneratedWorkout() {
               ) : (
                 <>
                   <Sparkles className="mr-2 h-4 w-4" />
-                  Generate Today's Workout
+                  Generate Today&apos;s Workout
                 </>
               )}
             </Button>
@@ -182,7 +182,7 @@ export function DailyGeneratedWorkout() {
 
             {/* Workout Focus */}
             <div data-testid="workout-focus">
-              <h3 className="font-semibold text-sm mb-2">Today's Focus</h3>
+              <h3 className="font-semibold text-sm mb-2">Today&apos;s Focus</h3>
               <p className="text-sm text-muted-foreground">{workoutData.plan?.focus || workoutData.focus || 'Strength Training'}</p>
             </div>
 
@@ -365,7 +365,7 @@ export function DailyGeneratedWorkout() {
                   <CheckCircle2 className="h-12 w-12 text-green-600 dark:text-green-400 mx-auto mb-3" />
                   <p className="font-semibold text-lg text-green-700 dark:text-green-400">Workout Completed!</p>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Great job on completing today's training session
+                    Great job on completing today&apos;s training session
                   </p>
                   <div className="mt-3 pt-3 border-t border-green-500/20">
                     <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">

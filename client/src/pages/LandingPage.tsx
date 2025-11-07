@@ -83,7 +83,7 @@ export default function LandingPage() {
             <Shield className="h-12 w-12 text-red-500 mx-auto mb-4" />
             <h2 className="text-xl font-semibold text-hp-text mb-2">Unable to Load Page</h2>
             <p className="text-hp-text-dim mb-6">
-              We're having trouble loading the landing page content. Please try again.
+              We&apos;re having trouble loading the landing page content. Please try again.
             </p>
             {error && (
               <p className="text-xs text-hp-text-dim/60 mb-6">
@@ -471,7 +471,7 @@ export default function LandingPage() {
               }}>Our Priority</span>
             </h2>
             <p className="text-hp-text-dim mt-3 max-w-2xl mx-auto">
-              Full international compliance with the world's strictest health data protection standards.
+              Full international compliance with the world&apos;s strictest health data protection standards.
             </p>
           </div>
 
@@ -640,7 +640,7 @@ export default function LandingPage() {
                       )}
                     </div>
                     <p className="text-sm text-hp-text-dim" data-testid={`text-testimonial-quote-${i}`}>
-                      "{testimonial.quote}"
+                      &quot;{testimonial.quote}&quot;
                     </p>
                   </CardContent>
                 </Card>
