@@ -5,8 +5,6 @@ import logo from "@assets/HealthPilot_Logo_1759904141260.png";
 
 export default function MobileAuthRedirect() {
   useEffect(() => {
-    console.log('[MobileAuthRedirect] OAuth complete, showing success message');
-    
     // Show success message immediately
     window.document.body.innerHTML = `
       <div style="display: flex; align-items: center; justify-content: center; height: 100vh; background: #0A0F1F; color: white; text-align: center; font-family: system-ui;">

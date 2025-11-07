@@ -41,14 +41,13 @@ const LiveActivity = registerPlugin<LiveActivityPlugin>('LiveActivity', {
   web: () => ({
     // Web fallback (no-op)
     async startActivity() {
-      console.log('Live Activities not supported on web');
       return { activityId: '', pushToken: '' };
     },
     async updateActivity() {
-      console.log('Live Activities not supported on web');
+      // No-op
     },
     async endActivity() {
-      console.log('Live Activities not supported on web');
+      // No-op
     },
   }),
 });
@@ -101,7 +100,6 @@ export class LiveActivityManager {
           activityId: this.activityId,
         });
         
-        console.log('✅ Live Activity started:', this.activityId);
         return true;
       }
       
@@ -141,8 +139,6 @@ export class LiveActivityManager {
         heartRateZone: data.heartRateZone || 'Z1',
         isPaused: data.isPaused || false,
       });
-      
-      console.log('📱 Live Activity updated');
     } catch (error) {
       console.error('Failed to update Live Activity:', error);
     }
@@ -204,8 +200,6 @@ export class LiveActivityManager {
         activityId: this.activityId,
         elapsedTime,
       });
-      
-      console.log('✅ Live Activity ended');
       
       // Reset state
       this.activityId = null;

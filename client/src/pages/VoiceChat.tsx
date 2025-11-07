@@ -34,13 +34,8 @@ export default function VoiceChat() {
   }, []);
 
   const connect = async () => {
-    console.log("🚀 [VoiceChat] Connect function called");
-    console.log("🚀 [VoiceChat] User data:", user);
-    console.log("🚀 [VoiceChat] isPremium:", isPremium);
-    
     // Double-check premium status before allowing connection
     if (!isPremium) {
-      console.log("❌ [VoiceChat] Premium check failed");
       toast({
         variant: "destructive",
         title: "Premium Required",
@@ -49,38 +44,26 @@ export default function VoiceChat() {
       return;
     }
 
-    console.log("✅ [VoiceChat] Premium check passed");
-
     try {
       // Check if mediaDevices is supported
-      console.log("🔍 [VoiceChat] Checking navigator.mediaDevices support...");
-      console.log("🔍 [VoiceChat] navigator.mediaDevices:", navigator.mediaDevices);
-      console.log("🔍 [VoiceChat] getUserMedia:", navigator.mediaDevices?.getUserMedia);
-      
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         throw new Error('Microphone access is not supported in this browser');
       }
 
-      console.log("✅ [VoiceChat] MediaDevices supported");
-
       // Check current permission status (if supported)
       if (navigator.permissions && navigator.permissions.query) {
         try {
-          console.log("🔍 [VoiceChat] Checking microphone permission status...");
           const permissionStatus = await navigator.permissions.query({ name: 'microphone' as PermissionName });
-          console.log("🔍 [VoiceChat] Permission status:", permissionStatus.state);
           
           if (permissionStatus.state === 'denied') {
             throw new Error('Microphone permission was previously denied. Please enable it in your device settings.');
           }
         } catch (permError) {
-          console.log("⚠️ [VoiceChat] Permission query not supported or failed:", permError);
           // Continue anyway - permission query might not be supported on iOS
         }
       }
 
       // Request microphone access with better error handling
-      console.log("🎤 [VoiceChat] Requesting microphone access...");
       const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: {
           echoCancellation: true,
@@ -88,29 +71,24 @@ export default function VoiceChat() {
           autoGainControl: true
         }
       });
-      console.log("✅ Microphone access granted");
       mediaStreamRef.current = stream;
 
       // Create audio context
       audioContextRef.current = new AudioContext({ sampleRate: 24000 });
 
       // Get authentication token from backend
-      console.log("🔑 Requesting authentication token...");
       const tokenResponse = await apiRequest('/api/voice-chat/token', { method: 'POST' });
       const { token } = await tokenResponse.json();
-      console.log("✅ Got token, connecting to WebSocket...");
 
       // Connect to WebSocket with token (mobile-aware URL construction)
       const protocol = getWebSocketProtocol();
       const host = getWebSocketBaseUrl();
       const wsUrl = `${protocol}//${host}/api/voice-chat?token=${token}`;
       
-      console.log(`🔌 Connecting to: ${wsUrl}`);
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
       ws.onopen = () => {
-        console.log("✅ Voice chat connected");
         setIsConnected(true);
         toast({
           title: "Voice Chat Connected",
@@ -123,7 +101,7 @@ export default function VoiceChat() {
         
         // Handle different event types
         if (data.type === 'session.created' || data.type === 'session.updated') {
-          console.log("Session configured:", data);
+          // Session configured
         } else if (data.type === 'input_audio_buffer.speech_started') {
           setIsListening(true);
         } else if (data.type === 'input_audio_buffer.speech_stopped') {
@@ -177,7 +155,6 @@ export default function VoiceChat() {
       };
 
       ws.onclose = (event) => {
-        console.log("WebSocket closed:", event.code, event.reason);
         setIsConnected(false);
         setIsListening(false);
         setIsSpeaking(false);

@@ -17,25 +17,14 @@ export default function VoiceChatSimple() {
     setErrorDetails("");
 
     try {
-      console.log("🎤 Step 1: Checking if mediaDevices exists...");
-      console.log("navigator.mediaDevices:", navigator.mediaDevices);
-      
       if (!navigator.mediaDevices) {
         throw new Error("navigator.mediaDevices is not available. This browser/app doesn't support microphone access.");
       }
 
-      console.log("✅ Step 1 passed: mediaDevices exists");
-
-      console.log("🎤 Step 2: Checking if getUserMedia exists...");
-      console.log("navigator.mediaDevices.getUserMedia:", navigator.mediaDevices.getUserMedia);
-      
       if (!navigator.mediaDevices.getUserMedia) {
         throw new Error("getUserMedia is not available. This browser/app doesn't support microphone access.");
       }
 
-      console.log("✅ Step 2 passed: getUserMedia exists");
-
-      console.log("🎤 Step 3: Requesting microphone permission...");
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: true,
@@ -43,10 +32,6 @@ export default function VoiceChatSimple() {
           autoGainControl: true
         }
       });
-
-      console.log("✅ Step 3 passed: Microphone access granted!");
-      console.log("Stream:", stream);
-      console.log("Audio tracks:", stream.getAudioTracks());
 
       // Stop the stream immediately
       stream.getTracks().forEach(track => track.stop());

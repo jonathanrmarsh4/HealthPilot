@@ -57,8 +57,6 @@ export default function Settings() {
     // Debug platform detection
     const platform = getPlatform();
     setCurrentPlatform(platform);
-    console.log('[Settings] Platform detected:', platform);
-    console.log('[Settings] Is iOS?', platform === 'ios');
   }, []);
 
   const { isLoading } = useQuery({
@@ -169,9 +167,7 @@ export default function Settings() {
       const healthData = await healthKitService.syncAllHealthData(90);
       
       // Send to backend
-      console.log('[Settings] Sending health data to backend...');
       await apiRequest('POST', '/api/apple-health/sync', healthData);
-      console.log('[Settings] Data sent to backend successfully');
       
       setHealthKitStatus('success');
       

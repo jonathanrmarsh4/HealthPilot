@@ -207,20 +207,16 @@ function SidebarContentWrapper({
                   if (isNativePlatform()) {
                     // Mobile logout: Clear local session, Safari cookies, AND Replit OAuth session
                     try {
-                      console.log('[Logout] Clearing mobile session...');
-                      
                       // Clear SFSafariViewController cookies (iOS 16+ only)
                       try {
-                        const result = await SafariData.clearData();
-                        console.log('[Logout] Safari data clear result:', result);
+                        await SafariData.clearData();
                       } catch (error) {
-                        console.log('[Logout] Could not clear Safari data (iOS 16+ required):', error);
+                        // iOS 16+ required
                       }
                       
                       // Clear local session tokens
                       await SecureStorage.remove('sessionToken');
                       await Preferences.remove({ key: 'deviceId' });
-                      console.log('[Logout] Mobile session cleared');
                       
                       // Clear Replit OAuth session by calling server logout endpoint
                       // This ensures the account picker appears on next login
@@ -394,13 +390,10 @@ function AuthenticatedApp() {
 
   const acceptEulaMutation = useMutation({
     mutationFn: async () => {
-      console.log("EULA mutation starting...");
       const result = await apiRequest("POST", "/api/user/accept-eula");
-      console.log("EULA mutation completed", result);
       return result;
     },
     onSuccess: () => {
-      console.log("EULA mutation onSuccess - updating cache");
       // Immediately update the cache to close the dialog
       queryClient.setQueryData(["/api/profile"], (oldData: any) => ({
         ...oldData,
@@ -459,7 +452,6 @@ function AuthenticatedApp() {
             <EulaDialog
               open={showEulaDialog || false}
               onAccept={() => {
-                console.log("EULA onAccept called");
                 acceptEulaMutation.mutate();
               }}
               isAccepting={acceptEulaMutation.isPending}
@@ -483,8 +475,6 @@ function AppContent() {
     if (!isNativePlatform()) return;
 
     const handleAppUrlOpen = async (event: { url: string }) => {
-      console.log('[App] Deep link received:', event.url);
-      
       // Check if this is an auth callback
       if (event.url.startsWith('healthpilot://auth')) {
         try {
@@ -495,8 +485,6 @@ function AppContent() {
             console.error('[App] No token in deep link');
             return;
           }
-          
-          console.log('[App] Exchanging token for session...');
           
           // Exchange the one-time token for a long-lived session token
           const response = await apiRequest('/api/mobile-auth', {
@@ -510,7 +498,6 @@ function AppContent() {
           }
           
           const data = await response.json();
-          console.log('[App] Session created successfully');
           
           // Store the session token securely
           await SecureStorage.set('sessionToken', data.sessionToken);
@@ -526,14 +513,12 @@ function AppContent() {
       }
     };
 
-    console.log('[App] Setting up global deep link listener');
     CapacitorApp.addListener('appUrlOpen', handleAppUrlOpen).then(listener => {
       // Store listener for cleanup
       return listener;
     });
 
     return () => {
-      console.log('[App] Removing global deep link listener');
       CapacitorApp.removeAllListeners();
     };
   }, []);

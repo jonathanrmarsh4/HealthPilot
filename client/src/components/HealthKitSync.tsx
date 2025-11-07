@@ -54,9 +54,7 @@ export function HealthKitSync() {
       const healthData = await healthKitService.syncAllHealthData(30); // Last 30 days
       
       // Send to backend
-      console.log('[HealthKitSync] Sending health data to backend...');
       await apiRequest('POST', '/api/apple-health/sync', healthData);
-      console.log('[HealthKitSync] Data sent to backend successfully');
       
       setLastSyncResult({
         success: true,

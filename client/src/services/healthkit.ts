@@ -62,17 +62,12 @@ export class HealthKitService {
 
     try {
       if (Capacitor.getPlatform() !== 'ios') {
-        console.log('[HealthKit] Not on iOS platform');
         this.isAvailable = false;
         return false;
       }
 
-      console.log('[HealthKit] Checking plugin availability...');
-      console.log('[HealthKit] Health plugin object:', Health);
-      
       const result = await Health.isAvailable();
       this.isAvailable = result?.available ?? false;
-      console.log('[HealthKit] Availability check result:', result, this.isAvailable);
       return this.isAvailable;
     } catch (error: any) {
       console.error('[HealthKit] Plugin check failed:', error);
@@ -89,12 +84,10 @@ export class HealthKitService {
   async requestPermissions(): Promise<boolean> {
     const available = await this.isHealthKitAvailable();
     if (!available) {
-      console.log('[HealthKit] Not available on this platform');
       return false;
     }
 
     try {
-      console.log('[HealthKit] Requesting permissions for ALL 26 health data types...');
       const result = await Health.requestAuthorization({
         read: [
           // Original 5 data types
@@ -115,7 +108,6 @@ export class HealthKitService {
         ] as any[],
         write: []
       });
-      console.log('[HealthKit] Permission request result:', result);
       return result.readAuthorized.length > 0;
     } catch (error) {
       console.error('[HealthKit] Failed to request permissions:', error);
@@ -140,7 +132,6 @@ export class HealthKitService {
     endDate: Date
   ): Promise<HealthDataSample[]> {
     try {
-      console.log(`[HealthKit] Querying ${dataType} from ${startDate.toISOString()} to ${endDate.toISOString()}`);
       const result = await Health.readSamples({
         dataType: dataType as any,
         startDate: startDate.toISOString(),
@@ -148,10 +139,6 @@ export class HealthKitService {
         limit: 1000,
         ascending: false
       });
-      console.log(`[HealthKit] ${dataType} returned ${result.samples?.length || 0} samples`);
-      if (result.samples && result.samples.length > 0) {
-        console.log(`[HealthKit] ${dataType} sample example:`, result.samples[0]);
-      }
       return result.samples || [];
     } catch (error) {
       console.error(`[HealthKit] Failed to query ${dataType}:`, error);
@@ -174,8 +161,6 @@ export class HealthKitService {
         currentDate.setDate(currentDate.getDate() + 1);
       }
       
-      console.log(`[HealthKit] Querying deduplicated steps for ${dates.length} days using HKStatisticsQuery`);
-      
       // Use our custom plugin that uses HKStatisticsQuery with .cumulativeSum
       const result = await HealthKitStats.getMultiDayStats({ dates });
       
@@ -188,7 +173,6 @@ export class HealthKitService {
         uuid: `steps-daily-${dayResult.date}`,
       }));
       
-      console.log(`[HealthKit] Retrieved ${samples.length} deduplicated daily step totals`);
       return samples;
     } catch (error) {
       console.error('[HealthKit] Failed to get steps using statistics query, falling back to old method:', error);
@@ -341,7 +325,6 @@ export class HealthKitService {
    * Get dietary energy (calories consumed) data
    */
   async getDietaryEnergy(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
-    console.log('[HealthKit] Dietary energy not yet supported by Capgo Health plugin');
     return [];
   }
 
@@ -349,7 +332,6 @@ export class HealthKitService {
    * Get dietary protein data
    */
   async getDietaryProtein(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
-    console.log('[HealthKit] Dietary protein not yet supported by Capgo Health plugin');
     return [];
   }
 
@@ -357,7 +339,6 @@ export class HealthKitService {
    * Get dietary carbohydrates data
    */
   async getDietaryCarbs(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
-    console.log('[HealthKit] Dietary carbs not yet supported by Capgo Health plugin');
     return [];
   }
 
@@ -365,7 +346,6 @@ export class HealthKitService {
    * Get dietary fat data
    */
   async getDietaryFat(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
-    console.log('[HealthKit] Dietary fat not yet supported by Capgo Health plugin');
     return [];
   }
 
@@ -373,7 +353,6 @@ export class HealthKitService {
    * Get workouts
    */
   async getWorkouts(startDate: Date, endDate: Date): Promise<WorkoutSample[]> {
-    console.log('[HealthKit] Workouts not yet supported by Capgo Health plugin');
     return [];
   }
 
@@ -382,8 +361,6 @@ export class HealthKitService {
    */
   async getSleep(startDate: Date, endDate: Date): Promise<SleepSample[]> {
     try {
-      console.log('[HealthKit] Fetching sleep analysis data...');
-      
       // Call the new readCategorySamples method we added to the plugin
       const result = await (Health as any).readCategorySamples({
         dataType: 'sleepAnalysis',
@@ -393,10 +370,7 @@ export class HealthKitService {
         ascending: false
       });
 
-      console.log('[HealthKit] Sleep raw result:', result);
-
       if (!result?.samples || result.samples.length === 0) {
-        console.log('[HealthKit] No sleep samples found');
         return [];
       }
 
@@ -418,7 +392,6 @@ export class HealthKitService {
         uuid: sample.uuid || `${sample.startDate}-${sample.value}`
       }));
 
-      console.log('[HealthKit] Parsed sleep samples:', samples.length);
       return samples;
     } catch (error) {
       console.error('[HealthKit] Failed to fetch sleep data:', error);
@@ -460,7 +433,6 @@ export class HealthKitService {
   }> {
     const available = await this.isHealthKitAvailable();
     if (!available) {
-      console.log('[HealthKit] Not available, returning empty data');
       return {
         steps: [],
         distance: [],
@@ -555,36 +527,6 @@ export class HealthKitService {
         this.getSleep(startDate, endDate),
       ]);
 
-      console.log('[HealthKit] Comprehensive health data retrieved:', {
-        steps: steps.length,
-        distance: distance.length,
-        activeCalories: activeCalories.length,
-        basalCalories: basalCalories.length,
-        flightsClimbed: flightsClimbed.length,
-        heartRate: heartRate.length,
-        restingHeartRate: restingHeartRate.length,
-        hrv: hrv.length,
-        oxygenSaturation: oxygenSaturation.length,
-        respiratoryRate: respiratoryRate.length,
-        bodyTemperature: bodyTemperature.length,
-        weight: weight.length,
-        bmi: bmi.length,
-        leanBodyMass: leanBodyMass.length,
-        bodyFat: bodyFat.length,
-        height: height.length,
-        waistCircumference: waistCircumference.length,
-        bloodPressureSystolic: bloodPressureSystolic.length,
-        bloodPressureDiastolic: bloodPressureDiastolic.length,
-        bloodGlucose: bloodGlucose.length,
-        dietaryWater: dietaryWater.length,
-        dietaryEnergy: dietaryEnergy.length,
-        dietaryProtein: dietaryProtein.length,
-        dietaryCarbs: dietaryCarbs.length,
-        dietaryFat: dietaryFat.length,
-        workouts: workouts.length,
-        sleep: sleep.length,
-      });
-
       return {
         steps,
         distance,
@@ -626,12 +568,8 @@ export class HealthKitService {
    */
   async syncAllHealthData(daysBack: number = 30) {
     try {
-      console.log(`[HealthKit] Starting sync of last ${daysBack} days...`);
-      
       // Get all health data from HealthKit
       const healthData = await this.getAllHealthData(daysBack);
-      
-      console.log('[HealthKit] Data retrieved, ready for backend sync');
       
       // Return the data so calling component can send it to backend
       return healthData;

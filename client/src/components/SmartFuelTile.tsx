@@ -29,13 +29,10 @@ export function SmartFuelTile() {
 
   const generateGuidanceMutation = useMutation({
     mutationFn: async () => {
-      console.log('[SmartFuel] Calling API /api/smartfuel/guidance/generate');
       const result = await apiRequest("POST", "/api/smartfuel/guidance/generate");
-      console.log('[SmartFuel] API call succeeded', result);
       return result;
     },
     onSuccess: (data) => {
-      console.log('[SmartFuel] Mutation onSuccess', data);
       queryClient.invalidateQueries({ queryKey: ["/api/smartfuel/guidance/current"] });
       setIsGenerating(false);
     },
@@ -46,7 +43,6 @@ export function SmartFuelTile() {
   });
 
   const handleGenerate = () => {
-    console.log('[SmartFuel] Generate button clicked');
     setIsGenerating(true);
     generateGuidanceMutation.mutate();
   };

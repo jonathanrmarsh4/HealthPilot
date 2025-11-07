@@ -29,19 +29,16 @@ export function HealthKitOnboarding({ onComplete, onSkip }: HealthKitOnboardingP
 
   const checkAvailability = async () => {
     if (!isNativePlatform()) {
-      console.log('[HealthKitOnboarding] Not on native platform, skipping');
       setIsHealthKitAvailable(false);
       setIsChecking(false);
       return;
     }
 
-    console.log('[HealthKitOnboarding] Checking HealthKit availability...');
     setIsChecking(true);
     setCheckFailed(false);
     
     try {
       const available = await healthKitService.isHealthKitAvailable();
-      console.log('[HealthKitOnboarding] HealthKit available:', available);
       setIsHealthKitAvailable(available);
       setIsChecking(false);
       
@@ -73,28 +70,17 @@ export function HealthKitOnboarding({ onComplete, onSkip }: HealthKitOnboardingP
 
     try {
       // Request permissions first
-      console.log('[HealthKitOnboarding] Requesting permissions...');
       const permissionsGranted = await healthKitService.requestPermissions();
       
       if (!permissionsGranted) {
         throw new Error('HealthKit permissions were not granted. You can enable them later in Settings.');
       }
-      console.log('[HealthKitOnboarding] Permissions granted');
 
       // Get health data from HealthKit (last 90 days for initial sync)
-      console.log('[HealthKitOnboarding] Fetching health data from HealthKit...');
       const healthData = await healthKitService.getAllHealthData(90);
-      console.log('[HealthKitOnboarding] Health data retrieved:', {
-        steps: healthData.steps.length,
-        hrv: healthData.hrv.length,
-        sleep: healthData.sleep.length,
-        workouts: healthData.workouts.length,
-      });
       
       // Send data to backend
-      console.log('[HealthKitOnboarding] Sending data to backend...');
       await apiRequest('POST', '/api/apple-health/sync', healthData);
-      console.log('[HealthKitOnboarding] Data sent successfully');
       
       setSyncStatus('success');
       
@@ -152,7 +138,6 @@ export function HealthKitOnboarding({ onComplete, onSkip }: HealthKitOnboardingP
     if (!isChecking && !isHealthKitAvailable && !checkFailed && !hasAutoSkipped.current) {
       hasAutoSkipped.current = true;
       setIsAutoSkipping(true);
-      console.log('[HealthKitOnboarding] Auto-skipping (not on iOS or plugin unavailable)');
       handleSkip();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

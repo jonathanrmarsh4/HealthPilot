@@ -95,14 +95,9 @@ export function useDeepLinkRoutes() {
 
 // Initialize deep link handling for Capacitor
 export async function initializeDeepLinkHandling() {
-  console.log('[DeepLink] Initializing deep link handler...');
-  
   const listener = await CapacitorApp.addListener('appUrlOpen', (event) => {
-    console.log('[DeepLink] URL received:', event.url);
-    
     // Skip auth URLs (handled separately in App.tsx for OAuth flow)
     if (event.url.startsWith('healthpilot://auth')) {
-      console.log('[DeepLink] Skipping auth URL (handled by OAuth handler)');
       return;
     }
     
@@ -110,11 +105,8 @@ export async function initializeDeepLinkHandling() {
     handleDeepLink(event.url);
   });
   
-  console.log('[DeepLink] Deep link handler initialized successfully');
-  
   // Return cleanup function
   return () => {
     listener.remove();
-    console.log('[DeepLink] Deep link handler removed');
   };
 }

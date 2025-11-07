@@ -737,16 +737,12 @@ export default function WorkoutSession() {
       const firstExercise = exercises[0];
       const nextExercise = exercises.length > 1 ? exercises[1].name : 'Rest';
       
-      const started = await liveActivityManager.start(
+      await liveActivityManager.start(
         sessionId,
         session.workoutType || 'Workout',
         firstExercise.name,
         nextExercise
       );
-      
-      if (started) {
-        console.log('✅ Live Activity started for workout');
-      }
     };
 
     startLiveActivity();
@@ -979,13 +975,10 @@ export default function WorkoutSession() {
     
     try {
       const url = `/api/exercises/${exercise.id}/alternatives?limit=10&_=${Date.now()}`;
-      console.log('[SwapExercise] Requesting alternatives:', { exerciseId: exercise.id, url });
       
       const response = await apiRequest("GET", url);
-      console.log('[SwapExercise] Response received:', { status: response.status });
       
       const alternativeExercises = await response.json();
-      console.log('[SwapExercise] Alternatives loaded:', alternativeExercises.length);
       setAlternatives(alternativeExercises);
     } catch (error: any) {
       console.error("Failed to fetch alternatives:", error);

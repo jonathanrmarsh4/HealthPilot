@@ -254,7 +254,6 @@ let instance: SecureStorageAdapter | null = null;
 export function getSecureStorage(): SecureStorageAdapter {
   if (!instance) {
     instance = isNativePlatform() ? new NativeSecureStorage() : new WebSecureStorage();
-    console.log(`[SecureStorage] Using ${isNativePlatform() ? 'Native' : 'Web'} implementation`);
   }
   return instance;
 }

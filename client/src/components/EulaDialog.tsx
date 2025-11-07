@@ -23,14 +23,7 @@ export function EulaDialog({ open, onAccept, isAccepting = false }: EulaDialogPr
   const checkIfAtBottom = (element: HTMLDivElement) => {
     const isAtBottom =
       Math.abs(element.scrollHeight - element.scrollTop - element.clientHeight) < 10;
-    console.log("Scroll check:", { 
-      scrollHeight: element.scrollHeight, 
-      scrollTop: element.scrollTop, 
-      clientHeight: element.clientHeight,
-      isAtBottom 
-    });
     if (isAtBottom && !hasScrolledToBottom) {
-      console.log("Setting hasScrolledToBottom to true");
       setHasScrolledToBottom(true);
     }
   };
@@ -41,10 +34,7 @@ export function EulaDialog({ open, onAccept, isAccepting = false }: EulaDialogPr
 
   const canAccept = hasScrolledToBottom && hasAgreed;
   
-  console.log("EULA Dialog state:", { hasScrolledToBottom, hasAgreed, canAccept });
-  
   const handleAccept = () => {
-    console.log("EULA Accept button clicked", { canAccept, hasScrolledToBottom, hasAgreed });
     onAccept();
   };
 

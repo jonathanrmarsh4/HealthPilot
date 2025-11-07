@@ -33,7 +33,6 @@ export function TimezoneDetector() {
       lastSyncedTimezone.current = timezone;
       queryClient.invalidateQueries({ queryKey: ['/api/profile'] });
       queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
-      console.log('✅ Timezone synced successfully:', timezone);
     },
     onError: (error: any) => {
       // Reset flags on error to allow retry
@@ -91,8 +90,6 @@ export function TimezoneDetector() {
     if (lastSyncedTimezone.current === currentTimezone) {
       return;
     }
-
-    console.log(`🌍 Timezone detected: ${currentTimezone}`, profile?.timezone ? `(stored: ${profile.timezone})` : '(first sync)');
     
     syncAttempted.current = true;
     // Note: lastSyncedTimezone is set in onSuccess handler to ensure update was successful

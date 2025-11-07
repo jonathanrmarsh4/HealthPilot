@@ -8,7 +8,6 @@ export class HealthKitStatsPluginWeb implements HealthKitStatsPlugin {
     startOfDay: string;
     endOfDay: string;
   }> {
-    console.log('[HealthKitStats] Web fallback - getDailySteps not supported');
     return {
       steps: 0,
       date: options.date,
@@ -24,7 +23,6 @@ export class HealthKitStatsPluginWeb implements HealthKitStatsPlugin {
       date: string;
     }>;
   }> {
-    console.log('[HealthKitStats] Web fallback - getMultiDayStats not supported');
     return {
       results: options.dates.map(date => ({
         steps: 0,

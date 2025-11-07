@@ -64,7 +64,6 @@ export function useTimezoneSync() {
       });
 
       lastSyncedTimezone.current = currentTimezone;
-      console.log(`✅ Timezone synced: ${currentTimezone}`);
     } catch (error) {
       console.error('Failed to sync timezone:', error);
       // Don't throw - timezone sync is not critical to app functionality

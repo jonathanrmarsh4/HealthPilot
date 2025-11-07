@@ -187,7 +187,6 @@ export default function Dashboard() {
     // Check version - if old or missing, clear localStorage and start fresh
     const storedVersion = localStorage.getItem(STORAGE_VERSION_KEY);
     if (storedVersion !== CURRENT_VERSION) {
-      console.log("Clearing old dashboard preferences (version mismatch)");
       localStorage.removeItem(STORAGE_KEY);
       localStorage.setItem(STORAGE_VERSION_KEY, CURRENT_VERSION);
       return { visible: DEFAULT_WIDGETS, order: DEFAULT_WIDGETS };

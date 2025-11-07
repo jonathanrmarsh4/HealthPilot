@@ -27,10 +27,7 @@ export default function Login() {
       if (!deviceId) {
         deviceId = `${Date.now()}-${Math.random().toString(36).substring(7)}`;
         await Preferences.set({ key: 'deviceId', value: deviceId });
-        console.log('[Login] Created new device ID:', deviceId);
       }
-      
-      console.log('[Login] Polling server with device ID...');
       
       // Poll the server using device ID (use full URL for mobile)
       const pollUrl = `${getApiBaseUrl()}/api/mobile-auth/poll?deviceId=${encodeURIComponent(deviceId)}`;
@@ -49,7 +46,6 @@ export default function Login() {
         return;
       }
       
-      console.log('[Login] Auth ready, exchanging token...');
       setIsProcessing(true);
       
       // Exchange token for session
@@ -64,7 +60,6 @@ export default function Login() {
       }
       
       const authData = await authResponse.json();
-      console.log('[Login] Session created successfully');
       
       // Store session token
       await SecureStorage.set('sessionToken', authData.sessionToken);
@@ -87,7 +82,6 @@ export default function Login() {
     // Listen for app state changes (when user returns from browser)
     const stateListener = CapacitorApp.addListener('appStateChange', ({ isActive }) => {
       if (isActive) {
-        console.log('[Login] App became active, checking for pending auth...');
         checkForPendingAuth();
       }
     });
@@ -114,11 +108,9 @@ export default function Login() {
         if (!deviceId) {
           deviceId = `${Date.now()}-${Math.random().toString(36).substring(7)}`;
           await Preferences.set({ key: 'deviceId', value: deviceId });
-          console.log('[Login] Created new device ID for auth:', deviceId);
         }
         
         const loginUrl = `${getApiBaseUrl()}/api/login?deviceId=${encodeURIComponent(deviceId)}`;
-        console.log('[Login] Opening browser for OAuth:', loginUrl);
         
         // Don't use presentationStyle: 'popover' on iPhone - it fails silently
         // Use fullscreen presentation which works on all iOS devices
@@ -127,8 +119,6 @@ export default function Login() {
           presentationStyle: 'fullscreen',
           toolbarColor: '#000000',
         });
-        
-        console.log('[Login] Browser opened successfully');
         // Polling will handle the token exchange when user returns
       } catch (error) {
         console.error('[Login] Failed to open browser:', error);

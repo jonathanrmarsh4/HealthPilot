@@ -25,7 +25,7 @@ export class PushNotificationService {
     
     // Listen for registration
     await PushNotifications.addListener('registration', (token) => {
-      console.log('[Push] Registration token:', token.value);
+      // Token registered successfully
     });
 
     // Listen for registration errors

@@ -99,14 +99,11 @@ class NativeHealthKitAdapter implements HealthKitAdapter {
     }
 
     try {
-      console.log('[HealthKit] Requesting authorization for:', permissions.read);
-      
       const result = await plugin.requestAuthorization({
         read: permissions.read,
         write: permissions.write || [],
       });
 
-      console.log('[HealthKit] Authorization result:', result);
       return result.granted === true;
     } catch (error: any) {
       console.error('[HealthKit] Authorization failed:', error);
@@ -139,8 +136,6 @@ class NativeHealthKitAdapter implements HealthKitAdapter {
     }
 
     try {
-      console.log('[HealthKit] Reading samples:', query);
-
       const result = await plugin.queryHKitSampleType({
         sampleName: query.dataType,
         startDate: query.startDate.toISOString(),
@@ -149,7 +144,6 @@ class NativeHealthKitAdapter implements HealthKitAdapter {
       });
 
       if (!result.resultData || result.resultData.length === 0) {
-        console.log('[HealthKit] No samples found');
         return [];
       }
 
@@ -220,8 +214,6 @@ export function getHealthKitAdapter(): HealthKitAdapter {
     instance = isNativePlatform() && getPlatform() === 'ios'
       ? new NativeHealthKitAdapter()
       : new MockHealthKitAdapter();
-    
-    console.log(`[HealthKit] Using ${instance.isAvailable() ? 'Native' : 'Mock'} adapter`);
   }
   return instance;
 }

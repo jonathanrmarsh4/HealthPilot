@@ -48,21 +48,12 @@ export async function initializeMobile(
 ): Promise<void> {
   const config = { ...defaultOptions, ...options };
 
-  // DIAGNOSTIC: Log platform detection details
   const platform = getPlatform();
   const isNative = isNativePlatform();
-  console.log('[MobileBootstrap] Platform Detection:', {
-    platform,
-    isNative,
-    capacitorVersion: Capacitor.getPlatform(),
-  });
 
   if (!isNative) {
-    console.log('[MobileBootstrap] Running on web, skipping native initialization');
     return;
   }
-
-  console.log(`[MobileBootstrap] Initializing on ${platform}...`);
 
   try {
     // Configure Status Bar
@@ -83,8 +74,6 @@ export async function initializeMobile(
 
     // Log app info
     await logAppInfo();
-
-    console.log('[MobileBootstrap] ✅ Mobile initialization complete');
   } catch (error) {
     console.error('[MobileBootstrap] ❌ Initialization error:', error);
   }
@@ -106,8 +95,6 @@ async function configureStatusBar(style: 'light' | 'dark' = 'dark'): Promise<voi
     if (getPlatform() === 'android') {
       await StatusBar.setBackgroundColor({ color: '#000000' });
     }
-
-    console.log('[MobileBootstrap] Status bar configured');
   } catch (error) {
     console.warn('[MobileBootstrap] Status bar configuration failed:', error);
   }
@@ -121,7 +108,6 @@ async function configureSplashScreen(): Promise<void> {
     // Splash screen will auto-hide based on capacitor.config.ts
     // But we can manually hide it after app is ready
     await SplashScreen.hide();
-    console.log('[MobileBootstrap] Splash screen hidden');
   } catch (error) {
     console.warn('[MobileBootstrap] Splash screen handling failed:', error);
   }
@@ -133,17 +119,12 @@ async function configureSplashScreen(): Promise<void> {
 async function configureKeyboard(): Promise<void> {
   try {
     Keyboard.addListener('keyboardWillShow', (info) => {
-      console.log('[MobileBootstrap] Keyboard will show', info.keyboardHeight);
       document.body.classList.add('keyboard-open');
     });
 
     Keyboard.addListener('keyboardWillHide', () => {
-      console.log('[MobileBootstrap] Keyboard will hide');
       document.body.classList.remove('keyboard-open');
     });
-
-    // Keyboard configuration is handled via capacitor.config.ts
-    console.log('[MobileBootstrap] Keyboard listeners configured');
   } catch (error) {
     console.warn('[MobileBootstrap] Keyboard configuration failed:', error);
   }
@@ -155,8 +136,6 @@ async function configureKeyboard(): Promise<void> {
 function configureBackButton(): void {
   try {
     CapApp.addListener('backButton', ({ canGoBack }) => {
-      console.log('[MobileBootstrap] Back button pressed, canGoBack:', canGoBack);
-      
       // Allow navigation back if possible
       if (canGoBack) {
         window.history.back();
@@ -167,8 +146,6 @@ function configureBackButton(): void {
         }
       }
     });
-
-    console.log('[MobileBootstrap] Back button handler configured');
   } catch (error) {
     console.warn('[MobileBootstrap] Back button configuration failed:', error);
   }
@@ -180,13 +157,7 @@ function configureBackButton(): void {
  */
 async function logAppInfo(): Promise<void> {
   try {
-    const info = await CapApp.getInfo();
-    console.log('[MobileBootstrap] App Info:', {
-      name: info.name,
-      id: info.id,
-      version: info.version,
-      build: info.build,
-    });
+    await CapApp.getInfo();
   } catch (error) {
     console.warn('[MobileBootstrap] Failed to get app info:', error);
   }

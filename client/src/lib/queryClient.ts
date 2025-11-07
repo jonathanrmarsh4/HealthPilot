@@ -21,7 +21,6 @@ export async function getAuthHeaders(): Promise<HeadersInit> {
       }
     } catch (error) {
       // Token not found or SecureStorage error, continue without auth header
-      console.log('[Auth] No session token found');
     }
   }
   

@@ -58,8 +58,6 @@ export function RecommendationCard({
   const handleAction = () => {
     if (onAction) {
       onAction();
-    } else {
-      console.log(`${actionLabel} triggered for: ${title}`);
     }
   };
 

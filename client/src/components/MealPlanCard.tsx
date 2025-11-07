@@ -100,7 +100,7 @@ export function MealPlanCard({
           variant="outline" 
           className="w-full" 
           size="sm"
-          onClick={() => console.log(`View recipe for: ${name}`)}
+          onClick={() => {}}
           data-testid="button-view-recipe"
         >
           <Info className="mr-2 h-4 w-4" />

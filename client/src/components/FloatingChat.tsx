@@ -41,7 +41,6 @@ export function VoiceChatModal({ isOpen, onClose, context }: VoiceChatModalProps
       }
 
       // Request microphone access with better error handling
-      console.log("🎤 Requesting microphone access...");
       const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: {
           echoCancellation: true,
@@ -49,7 +48,6 @@ export function VoiceChatModal({ isOpen, onClose, context }: VoiceChatModalProps
           autoGainControl: true
         }
       });
-      console.log("✅ Microphone access granted");
       mediaStreamRef.current = stream;
 
       // Create audio context
@@ -61,22 +59,18 @@ export function VoiceChatModal({ isOpen, onClose, context }: VoiceChatModalProps
       }
 
       // Get authentication token from backend
-      console.log("🔑 Requesting authentication token...");
       const tokenResponse = await apiRequest('/api/voice-chat/token', { method: 'POST' });
       const { token } = await tokenResponse.json();
-      console.log("✅ Got token, connecting to WebSocket...");
 
       // Connect to WebSocket with token (mobile-aware URL construction)
       const protocol = getWebSocketProtocol();
       const host = getWebSocketBaseUrl();
       const wsUrl = `${protocol}//${host}/api/voice-chat?token=${token}`;
       
-      console.log(`🔌 Connecting to: ${wsUrl}`);
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
       ws.onopen = () => {
-        console.log("✅ Voice chat connected");
         setIsConnected(true);
         toast({
           title: "Voice Chat Connected",
@@ -89,7 +83,7 @@ export function VoiceChatModal({ isOpen, onClose, context }: VoiceChatModalProps
         
         // Handle different event types
         if (data.type === 'session.created' || data.type === 'session.updated') {
-          console.log("Session configured:", data);
+          // Session configured
         } else if (data.type === 'input_audio_buffer.speech_started') {
           setIsListening(true);
         } else if (data.type === 'input_audio_buffer.speech_stopped') {
@@ -148,7 +142,6 @@ export function VoiceChatModal({ isOpen, onClose, context }: VoiceChatModalProps
       };
 
       ws.onclose = (event) => {
-        console.log("WebSocket closed:", event.code, event.reason);
         setIsConnected(false);
         setIsListening(false);
         setIsSpeaking(false);
