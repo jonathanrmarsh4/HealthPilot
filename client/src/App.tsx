@@ -22,6 +22,9 @@ import { EulaDialog } from "@/components/EulaDialog";
 import { HealthKitOnboarding } from "@/components/HealthKitOnboarding";
 import { getPlatform } from "@/mobile/MobileBootstrap";
 import { useSwipeToOpenSidebar } from "@/hooks/useSwipeToOpenSidebar";
+import { useIsMobile } from "@/hooks/use-mobile";
+import MobileNav from "@/components/MobileNav";
+import { Link } from "wouter";
 import Dashboard from "@/pages/Dashboard";
 import HealthRecords from "@/pages/HealthRecords";
 import Biomarkers from "@/pages/Biomarkers";
@@ -38,8 +41,10 @@ import InsightsHub from "@/pages/InsightsHub";
 import Goals from "@/pages/Goals";
 import Supplements from "@/pages/Supplements";
 import Symptoms from "@/pages/Symptoms";
+import NewSymptom from "@/pages/NewSymptom";
 import BiologicalAge from "@/pages/BiologicalAge";
 import AppleHealthSetup from "@/pages/AppleHealthSetup";
+import StartWorkout from "@/pages/StartWorkout";
 import Notifications from "@/pages/Notifications";
 import Chat from "@/pages/Chat";
 import VoiceChat from "@/pages/VoiceChat";
@@ -90,12 +95,14 @@ function Router() {
       <Route path="/meals/nutrition-profile" component={NutritionProfile} />
       <Route path="/smartfuel" component={SmartFuel} />
       <Route path="/training" component={Training} />
+      <Route path="/training/start" component={StartWorkout} />
       <Route path="/recovery" component={Recovery} />
       <Route path="/training/readiness-settings" component={ReadinessSettings} />
       <Route path="/training/fitness-profile" component={FitnessProfile} />
       <Route path="/workout/:id" component={WorkoutSession} />
       <Route path="/supplements" component={Supplements} />
       <Route path="/symptoms" component={Symptoms} />
+      <Route path="/symptoms/new" component={NewSymptom} />
       <Route path="/insights" component={InsightsHub} />
       <Route path="/daily-insights" component={() => {
         const [, setLocation] = useLocation();
@@ -147,6 +154,7 @@ function SidebarContentWrapper({
   const { user } = useAuth();
   const { setOpenMobile } = useSidebar();
   const [, setLocation] = useLocation();
+  const isMobile = useIsMobile();
 
   // Add context-aware swipe-to-open functionality for mobile
   // Dashboard: swipe opens sidebar
@@ -257,6 +265,15 @@ function SidebarContentWrapper({
         onClose={() => setIsVoiceChatOpen(false)}
         context={chatContext}
       />
+
+      {isMobile && (
+        <MobileNav
+          isAdmin={user?.role === 'admin'}
+          currentPath={location}
+          navigate={setLocation}
+          LinkComponent={Link}
+        />
+      )}
     </>
   );
 }
