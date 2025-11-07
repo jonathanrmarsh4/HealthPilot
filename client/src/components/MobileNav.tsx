@@ -396,10 +396,10 @@ export default function MobileNav({
         aria-label="Primary"
       >
         <div className="max-w-[420px] mx-auto">
-          <div className="relative grid grid-cols-3 items-center px-4 py-3">
+          <div className="relative grid grid-cols-3 items-center px-6 py-3">
             <button
               type="button"
-              className="flex flex-col items-center justify-center gap-1 min-h-12"
+              className="flex flex-col items-center justify-center gap-1 min-h-12 justify-self-start"
               onClick={() => setMenuOpen(true)}
               aria-label="Menu"
               data-testid="button-menu"

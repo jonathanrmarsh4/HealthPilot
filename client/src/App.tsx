@@ -183,9 +183,14 @@ function SidebarContentWrapper({
   return (
     <>
       <div className="flex h-screen w-full overflow-x-hidden bg-background">
-        <AppSidebar />
+        {/* Desktop-only sidebar */}
+        <div className="hidden md:block">
+          <AppSidebar />
+        </div>
+        
         <div className="flex flex-col flex-1 overflow-hidden">
-          <header className="flex items-center justify-between p-4 border-b border-border shrink-0">
+          {/* Desktop-only header */}
+          <header className="hidden md:flex items-center justify-between p-4 border-b border-border shrink-0">
             <SidebarTrigger data-testid="button-sidebar-toggle" />
             <div className="flex items-center gap-2">
               <NotificationBadge />
@@ -231,6 +236,8 @@ function SidebarContentWrapper({
               </Button>
             </div>
           </header>
+          
+          {/* Main content - padding for desktop, minimal for mobile */}
           <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 lg:p-8">
             <ErrorBoundary>
               {children}
@@ -239,6 +246,7 @@ function SidebarContentWrapper({
         </div>
       </div>
 
+      {/* Floating AI chat - visible on all devices */}
       {location !== "/chat" && !isChatOpen && !isVoiceChatOpen && (
         <FloatingChatTrigger 
           onClick={() => {
