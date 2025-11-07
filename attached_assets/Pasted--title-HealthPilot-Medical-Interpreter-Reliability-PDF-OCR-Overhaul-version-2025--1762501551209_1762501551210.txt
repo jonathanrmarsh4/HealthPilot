@@ -1,0 +1,328 @@
+{
+  "title": "HealthPilot Medical Interpreter — Reliability & PDF OCR Overhaul",
+  "version": "2025-11-07",
+  "goals": [
+    "Reduce PDF interpretation failures from ~80% to <15%",
+    "Make OCR/layout robust for native, scanned, mixed, and multi-column lab PDFs",
+    "Fix threshold edge-cases (0.50 vs ≥0.50) and replace brittle MIN() gating",
+    "Tighten extraction with schema-enforced JSON + per-field confidence",
+    "Add observability, test harness, and rollback-safe rollout plan"
+  ],
+  "high_impact_fixes": [
+    {
+      "id": "THRESH-001",
+      "name": "Floating-point safe thresholding + explicit ≥ rule",
+      "why": "Exact 0.50 results are being rejected due to float precision / comparison order or rounding.",
+      "changes": [
+        {
+          "file": "server/services/medical-interpreter/pipeline.ts",
+          "patch_type": "unified_diff",
+          "diff": "--- a/pipeline.ts\n+++ b/pipeline.ts\n@@\n-const overallConfidence = Math.min(typeDetection.confidence, extraction.confidence, normalization.confidence);\n-if (overallConfidence < THRESHOLDS.overall_accept_min) {\n+// Floating-point safe compare with epsilon\n+const EPS = 1e-6;\n+const overallConfidence = Math.min(typeDetection.confidence, extraction.confidence, normalization.confidence);\n+const passesOverall = overallConfidence + EPS >= THRESHOLDS.overall_accept_min;\n+if (!passesOverall) {\n   return createDiscardedResult(...);\n }\n"
+        }
+      ]
+    },
+    {
+      "id": "AGG-002",
+      "name": "Soft gating (weighted) + guardrails instead of hard MIN()",
+      "why": "A single weak stage collapses the whole pipeline, unlike ChatGPT direct behavior.",
+      "proposed_formula": "final = 0.3 * type + 0.5 * extraction + 0.2 * normalization",
+      "guardrails": [
+        "Hard floors remain: type ≥ type_detection_min, normalization ≥ normalization_min",
+        "Extraction ‘grey zone’ 0.40–0.50 -> mark output `partial=true`, DO NOT discard"
+      ],
+      "changes": [
+        {
+          "file": "server/services/medical-interpreter/config.ts",
+          "patch_type": "json_merge",
+          "patch": {
+            "aggregation": {
+              "weights": { "type": 0.3, "extraction": 0.5, "normalization": 0.2 },
+              "epsilon": 1e-6,
+              "use_weighted_average": true
+            },
+            "grey_zone": { "extraction_lower": 0.4, "extraction_upper": 0.5, "emit_partial_instead_of_discard": true }
+          }
+        },
+        {
+          "file": "server/services/medical-interpreter/pipeline.ts",
+          "patch_type": "unified_diff",
+          "diff": "--- a/pipeline.ts\n+++ b/pipeline.ts\n@@\n-const overallConfidence = Math.min(typeDetection.confidence, extraction.confidence, normalization.confidence);\n-const passesOverall = overallConfidence + EPS >= THRESHOLDS.overall_accept_min;\n+const weighted = (typeDetection.confidence * CFG.aggregation.weights.type)\n+  + (extraction.confidence * CFG.aggregation.weights.extraction)\n+  + (normalization.confidence * CFG.aggregation.weights.normalization);\n+const overallConfidence = weighted;\n+const passesFloors = typeDetection.confidence + EPS >= THRESHOLDS.type_detection\n+  && normalization.confidence + EPS >= THRESHOLDS.normalization_min;\n+const passesOverall = passesFloors && (overallConfidence + EPS >= THRESHOLDS.overall_accept_min);\n+\n+// Grey-zone handling for extraction\n+const inGreyZone = extraction.confidence >= CFG.grey_zone.extraction_lower && extraction.confidence < CFG.grey_zone.extraction_upper;\n"
+        },
+        {
+          "file": "server/services/medical-interpreter/pipeline.ts",
+          "patch_type": "code_insert_after",
+          "anchor": "if (!passesOverall) {",
+          "code": "  if (inGreyZone && CFG.grey_zone.emit_partial_instead_of_discard) {\n    return createPartialResult({ overallConfidence, stageScores: { typeDetection, extraction, normalization }, reason: 'EXTRACTION_GREY_ZONE' });\n  }\n"
+        }
+      ]
+    },
+    {
+      "id": "EXT-003",
+      "name": "Explicit extraction confidence (per-field) instead of implicit/flat 0.50",
+      "why": "Unknown/flat confidence values push many runs to exactly 0.50.",
+      "method": "confidence = (Σ field_weights[field] × field_quality[field]) / Σ field_weights; missing fields = 0 quality",
+      "field_quality_rules": [
+        "Has numeric value",
+        "Has units (UCUM/recognised)",
+        "Within plausible physiological bounds",
+        "Within stated reference range (if provided)",
+        "Source segment high OCR quality"
+      ],
+      "changes": [
+        {
+          "file": "server/services/medical-interpreter/extractors/labs.ts",
+          "patch_type": "code_insert",
+          "anchor": "// after JSON parse of model output",
+          "code": "const weights = getLabFieldWeights(spec);\nlet num = 0, den = 0;\nfor (const obs of output.observations) {\n  const w = weights[obs.code] ?? 1;\n  const qParts = [\n    isFiniteNumber(obs.value) ? 1 : 0,\n    validUnit(obs.unit) ? 1 : 0,\n    plausible(obs) ? 1 : 0,\n    withinRefRangeIfProvided(obs) ? 1 : 0,\n    (obs._ocrQuality ?? 0)\n  ];\n  const quality = qParts.reduce((a,b)=>a+b,0) / 5;\n  num += w * quality;\n  den += w;\n}\nextraction.confidence = den > 0 ? num / den : 0;\n"
+        }
+      ]
+    }
+  ],
+  "ocr_pdf_overhaul": {
+    "problems_addressed": [
+      "pdf-parse fails on scanned/mixed PDFs and loses layout (tables, multi-columns)",
+      "Vision calls too early/late and without pre-processing",
+      "No layout semantics (headers, tables, footers, rotated pages)"
+    ],
+    "strategy": {
+      "auto_type_detection": [
+        "Per-page: detect embedded text density, font extraction success, image-only pages",
+        "Mixed-mode PDFs supported (some pages native text, others scanned)"
+      ],
+      "native_text_pipeline": [
+        "Use pdfjs-dist (Node) to get text + x/y/width lines; reconstruct blocks by column/reading order",
+        "Detect tables with ruled line heuristics + whitespace grid; also run pdfplumber-like logic (JS port) if available"
+      ],
+      "scanned_pipeline": [
+        "Rasterize at 300–400 DPI (fit longest edge ≤ 2500px) via pdfjs or mupdf/wasm",
+        "Pre-process: auto-rotate, deskew, dewarp (mild), background clean, adaptive threshold, contrast, denoise",
+        "Run tesseract.js (eng+medical) or send selected crops to Vision model with strict OCR prompt",
+        "Layout detection (optional, high ROI): use lightweight YOLO layout or PaddleOCR layout to segment tables/paragraphs",
+        "Reconstruct reading order; preserve tables as CSV blocks with cell coordinates"
+      ],
+      "vision_usage_policy": [
+        "Call Vision only on low-quality or ambiguous regions (table zones, smudged values), not whole page, to control cost",
+        "Cache page image MD5 and crop hashes to skip repeated Vision calls"
+      ],
+      "table_specific_pass": [
+        "Separate table extractor: detect rulers/borders and consistent baselines; output structured rows with column headers",
+        "Map common lab headers (Test, Result, Units, Reference Range, Flag)"
+      ],
+      "confidence": {
+        "page_confidence": "blend of OCR engine confidence + detected noise/rotation + text density",
+        "region_confidence": "per table/paragraph; propagate to field-level `_ocrQuality` used by extraction stage"
+      }
+    },
+    "implementation": {
+      "new_packages": [
+        "pdfjs-dist",
+        "tesseract.js",
+        "sharp",
+        "opencv4nodejs (optional, prebuilt alt: @u4/opencv)",
+        "ucum-lhc (units)",
+        "@js-joda/core (for robust date parsing)"
+      ],
+      "new_files": [
+        "server/services/medical-interpreter/pdf/layout.ts",
+        "server/services/medical-interpreter/pdf/ocr-preprocess.ts",
+        "server/services/medical-interpreter/pdf/table-extractor.ts",
+        "server/services/medical-interpreter/pdf/page-router.ts"
+      ]
+    }
+  },
+  "extraction_prompt_hardening": {
+    "model": {
+      "parameterize_model_name": true,
+      "config_key": "models.medical_extractor",
+      "default": "gpt-4o",
+      "notes": "Allow easy upgrade without code changes"
+    },
+    "strict_json_schema": {
+      "enforce_function_calling": true,
+      "policy": "Reject any output not matching schema; auto-retry once with clarified error summary",
+      "schema_key_points": [
+        "observations[].{code, name, value, unit, referenceRange.low, referenceRange.high, flags[], source.page, source.xywh, _ocrQuality, confidence}"
+      ]
+    },
+    "prompt_upgrades": [
+      "Few-shot with 3 canonical lab tables (units: mg/dL, mmol/L, %), mixed locales, abnormal flags",
+      "Explicit instruction to copy units verbatim + normalize separately",
+      "Ask for per-observation `confidence` (self-rated 0–1) and `source` coordinates",
+      "For tables, ask to map columns explicitly then extract row-by-row"
+    ],
+    "files": [
+      {
+        "file": "server/services/medical-interpreter/extractors/labs.ts",
+        "action": "replace_prompt_block",
+        "notes": "Add few-shots and schema tool definition"
+      }
+    ]
+  },
+  "normalization_hardening": {
+    "units_library": "ucum-lhc",
+    "rules": [
+      "Reject unrecognized units -> mark observation `unit_status: 'unknown'`, do not zero-out confidence",
+      "Perform conversion in a separate pass; keep original value/unit in `raw` for audit",
+      "Add country/locale awareness for decimal comma vs point"
+    ],
+    "confidence_update": "normalization.confidence = valid_units_count / total_observations"
+  },
+  "validation_rules_extension": {
+    "additions": [
+      "Date plausibility: specimen/collection/report dates within 0–365 days of each other",
+      "Panel coherence: presence of expected sibling tests (e.g., lipid panel expects HDL/LDL/Trig/TC ≥2 present)",
+      "Cross-checks: HbA1c vs estimated average glucose; creatinine vs eGFR if age/sex known"
+    ],
+    "behavior": "Failures mark specific observations with `flags`, do not discard entire report unless >60% core panel invalid"
+  },
+  "classification_upgrade": {
+    "method": "hybrid",
+    "details": [
+      "Keep heuristics but add lightweight model (e.g., zero-shot label) gated by OCR quality",
+      "Use title/header lines and table headers; back-off to `Other` only if <0.15"
+    ],
+    "supported_types": [
+      "Observation_Labs",
+      "DiagnosticReport_Imaging",
+      "Cardiac_ECG",
+      "Cardiac_Echo",
+      "Pathology_Histology",
+      "Other"
+    ]
+  },
+  "observability_and_debuggability": {
+    "structured_logging": [
+      "Per stage: score, inputs hash, timing, model name, token/cost",
+      "Per observation: value/unit range checks, normalization decisions, flags"
+    ],
+    "artifacts": [
+      "Store per-page PNG (low-res) with overlay of extracted regions (red boxes) in /debug if DEBUG_OCR=1",
+      "Persist anonymized failing samples to /fixtures/failing for test harness"
+    ],
+    "feature_flags": [
+      "OCR_ENGINE: native|tesseract|vision|hybrid",
+      "AGGREGATION: min|weighted",
+      "GREY_ZONE: on|off"
+    ]
+  },
+  "test_harness_and_metrics": {
+    "golden_set": {
+      "path": "server/services/medical-interpreter/tests/golden/",
+      "content": "≥50 PDFs (native, scanned, mixed, rotated, low-contrast, multi-column, various labs)",
+      "ground_truth": "JSON targets aligned to extraction schema"
+    },
+    "metrics": [
+      "Document success rate",
+      "Per-field precision/recall (value, unit, ref range)",
+      "Table detection F1",
+      "Cost/time per document"
+    ],
+    "ci": [
+      "Run on PR with feature flags (min vs weighted, grey-zone on/off)",
+      "Block merge if regression >2% in success rate"
+    ]
+  },
+  "rollout_plan": [
+    "Phase 0: Add observability (no behavior change). Enable DEBUG_OCR for internal runs.",
+    "Phase 1: Land THRESH-001 (EPS), measure fail-at-0.50 drop.",
+    "Phase 2: Switch to weighted aggregation with floors + grey-zone partial outputs.",
+    "Phase 3: Ship explicit extraction confidence (EXT-003).",
+    "Phase 4: Introduce OCR/PDF overhaul behind OCR_ENGINE=hybrid flag.",
+    "Phase 5: Expand validation, classification upgrade, and prompts.",
+    "Phase 6: Remove legacy paths after 2 stable weeks."
+  ],
+  "config_overrides": {
+    "file": "server/services/medical-interpreter/config.ts",
+    "merge": {
+      "type_detection": 0.20,
+      "extraction_min": 0.40,
+      "normalization_min": 0.30,
+      "overall_accept_min": 0.50,
+      "aggregation": { "use_weighted_average": true, "weights": { "type": 0.3, "extraction": 0.5, "normalization": 0.2 }, "epsilon": 1e-6 },
+      "grey_zone": { "extraction_lower": 0.40, "extraction_upper": 0.50, "emit_partial_instead_of_discard": true },
+      "models": { "medical_extractor": "gpt-4o" },
+      "ocr": { "engine": "hybrid", "dpi": 350, "max_edge_px": 2500 }
+    }
+  },
+  "prompts": {
+    "labs_extractor_system": "You are a clinical document extractor. Output ONLY valid JSON per the provided schema. If uncertain, include nulls and lower confidence, do not guess units.",
+    "labs_extractor_few_shots": [
+      "Example 1: Lipid panel (mg/dL) with flags and ranges",
+      "Example 2: HbA1c (%) with eAG mapping",
+      "Example 3: Electrolytes (mmol/L) multi-column table"
+    ],
+    "labs_extractor_schema_tool": {
+      "name": "emit_lab_observations",
+      "strict": true,
+      "json_schema": {
+        "type": "object",
+        "properties": {
+          "observations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["name", "value", "unit"],
+              "properties": {
+                "code": { "type": ["string", "null"] },
+                "name": { "type": "string" },
+                "value": { "type": ["number", "string", "null"] },
+                "unit": { "type": ["string", "null"] },
+                "referenceRange": {
+                  "type": "object",
+                  "properties": {
+                    "low": { "type": ["number", "null"] },
+                    "high": { "type": ["number", "null"] }
+                  }
+                },
+                "flags": { "type": "array", "items": { "type": "string" } },
+                "source": {
+                  "type": "object",
+                  "properties": {
+                    "page": { "type": "integer" },
+                    "xywh": { "type": "array", "items": { "type": "number" }, "minItems": 4, "maxItems": 4 }
+                  }
+                },
+                "_ocrQuality": { "type": ["number", "null"] },
+                "confidence": { "type": ["number", "null"] }
+              }
+            }
+          }
+        },
+        "required": ["observations"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "safety_and_audit": {
+    "raw_preservation": "Keep raw extracted strings and original units side-by-side with normalized SI",
+    "provenance": "Store page indexes and bounding boxes for each observation",
+    "explainability": "Attach stageScores and reason codes in final payload",
+    "user_experience": "If partial, present extracted values with a banner: ‘Some items have low OCR confidence. Review recommended.’"
+  },
+  "debt_of_change_summary": {
+    "files_to_add": [
+      "server/services/medical-interpreter/pdf/layout.ts",
+      "server/services/medical-interpreter/pdf/ocr-preprocess.ts",
+      "server/services/medical-interpreter/pdf/table-extractor.ts",
+      "server/services/medical-interpreter/pdf/page-router.ts"
+    ],
+    "files_to_edit": [
+      "server/services/medical-interpreter/pipeline.ts",
+      "server/services/medical-interpreter/config.ts",
+      "server/services/medical-interpreter/extractors/labs.ts",
+      "server/services/medical-interpreter/ocr.ts",
+      "server/services/medical-interpreter/classifier.ts"
+    ],
+    "feature_flags": [
+      "OCR_ENGINE",
+      "AGGREGATION",
+      "GREY_ZONE",
+      "DEBUG_OCR"
+    ]
+  },
+  "quick_verification": [
+    "Run golden-set: success rate should increase immediately after THRESH-001",
+    "With AGG-002 on: expect fewer hard rejects; partial outputs appear for extraction 0.40–0.50",
+    "Enable OCR_ENGINE=hybrid on 10-sample canary: expect biggest gains on scanned/mixed PDFs"
+  ]
+}
