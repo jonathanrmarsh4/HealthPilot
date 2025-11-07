@@ -1,4 +1,5 @@
-import { OneSignalClient } from '@onesignal/node-onesignal';
+import OneSignalPkg from '@onesignal/node-onesignal';
+const { OneSignalClient } = OneSignalPkg as any;
 
 /**
  * Live Activities Service
