@@ -98,6 +98,51 @@ export default function MobileNav({
     const animationDuration = prefersReducedMotion ? "0ms" : "300ms";
     const backdropDuration = prefersReducedMotion ? "0ms" : "200ms";
     
+    const [dragOffset, setDragOffset] = React.useState(0);
+    const [isDragging, setIsDragging] = React.useState(false);
+    const startY = React.useRef(0);
+    const currentY = React.useRef(0);
+    const scrollContainerRef = React.useRef<HTMLDivElement>(null);
+
+    const handleHeaderTouchStart = (e: React.TouchEvent) => {
+      // Only enable drag from the header area
+      startY.current = e.touches[0].clientY;
+      currentY.current = e.touches[0].clientY;
+      setIsDragging(true);
+    };
+
+    const handleHeaderTouchMove = (e: React.TouchEvent) => {
+      if (!isDragging) return;
+      
+      currentY.current = e.touches[0].clientY;
+      const delta = currentY.current - startY.current;
+      
+      // Only allow downward drag
+      if (delta > 0) {
+        setDragOffset(delta);
+        // Prevent scrolling while dragging
+        e.preventDefault();
+      } else {
+        // Cancel drag on upward movement
+        setIsDragging(false);
+        setDragOffset(0);
+      }
+    };
+
+    const handleHeaderTouchEnd = () => {
+      if (!isDragging) return;
+      setIsDragging(false);
+      
+      const delta = currentY.current - startY.current;
+      
+      // Close if dragged down more than 100px
+      if (delta > 100) {
+        onClose();
+      }
+      
+      setDragOffset(0);
+    };
+    
     return (
       <>
         <div
@@ -115,24 +160,30 @@ export default function MobileNav({
         <div
           className={[
             "fixed left-0 right-0 bottom-0 z-50",
-            "transition-transform",
+            isDragging ? "" : "transition-transform",
             open ? "translate-y-0" : "translate-y-full",
           ].join(" ")}
           role="dialog"
           aria-modal="true"
           aria-label={title}
           style={{
+            transform: isDragging ? `translateY(${dragOffset}px)` : undefined,
             transitionDuration: animationDuration,
             transitionTimingFunction: 'cubic-bezier(0.22, 1, 0.36, 1)',
           }}
         >
           <div className="max-w-[420px] mx-auto px-3 pb-[env(safe-area-inset-bottom)]">
             <div className="rounded-2xl border border-black/10 dark:border-white/10 backdrop-blur-xl bg-white/70 dark:bg-zinc-900/70 overflow-hidden shadow-2xl">
-              <div className="pt-2 px-4 pb-3 border-b border-transparent">
+              <div 
+                className="pt-2 px-4 pb-3 border-b border-black/5 dark:border-white/5 cursor-grab active:cursor-grabbing"
+                onTouchStart={handleHeaderTouchStart}
+                onTouchMove={handleHeaderTouchMove}
+                onTouchEnd={handleHeaderTouchEnd}
+              >
                 <div className="w-24 h-1.5 mx-auto mb-2 rounded-full bg-black/15 dark:bg-white/20" />
-                <div className="font-extrabold tracking-wide">{title}</div>
+                <div className="font-extrabold tracking-wide text-black dark:text-white">{title}</div>
               </div>
-              <div className="max-h-[70vh] overflow-y-auto">{children}</div>
+              <div ref={scrollContainerRef} className="max-h-[70vh] overflow-y-auto">{children}</div>
             </div>
           </div>
         </div>
