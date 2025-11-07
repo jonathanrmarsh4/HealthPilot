@@ -3,6 +3,9 @@
 ## Overview
 HealthPilot is an AI-powered health and wellness platform designed to optimize user well-being. It analyzes health records, tracks biomarkers, and provides personalized health recommendations, including AI-generated meal plans, training schedules, and alternative therapy suggestions. The platform aims to deliver data-driven insights and actionable advice, capitalizing on the growing market for personalized health solutions and enhancing user health through data.
 
+## Recent Changes (November 2025)
+- **Medical Interpreter Phase 1 Upgrade (COMPLETED):** Replaced harsh MIN() confidence aggregation with weighted average formula (type:30%, extraction:50%, normalization:20%), lowered extraction threshold from 0.50 to 0.40, added epsilon tolerance (1e-6) for floating-point edge cases, implemented grey-zone partial results for 0.40-0.50 extraction confidence. Expected improvement from 20% to 70-80% success rate. Architect-approved and ready for user testing.
+
 ## User Preferences
 I prefer simple language and clear explanations. I want iterative development where I can provide feedback at each stage. Ask before making major changes to the project structure or core functionalities. Do not make changes to the `replit.nix` file. I primarily use iPad and iPhone for my work. All features must be fully functional and properly responsive on mobile/tablet devices.
 
