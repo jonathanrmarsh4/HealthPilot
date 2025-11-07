@@ -40,6 +40,11 @@ export default function MobileNav({
 }: MobileNavProps) {
   const [menuOpen, setMenuOpen] = React.useState(false);
   const [quickOpen, setQuickOpen] = React.useState(false);
+  
+  const prefersReducedMotion = React.useMemo(() => {
+    if (typeof window === "undefined") return false;
+    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  }, []);
 
   const doNavigate = React.useCallback(
     (path: string) => {
@@ -90,25 +95,36 @@ export default function MobileNav({
   const Sheet: React.FC<
     React.PropsWithChildren<{ open: boolean; onClose: () => void; title: string }>
   > = ({ open, onClose, title, children }) => {
+    const animationDuration = prefersReducedMotion ? "0ms" : "300ms";
+    const backdropDuration = prefersReducedMotion ? "0ms" : "200ms";
+    
     return (
       <>
         <div
           className={[
-            "fixed inset-0 bg-black/40 transition-opacity duration-200",
+            "fixed inset-0 bg-black/40 transition-opacity ease-out",
             open ? "opacity-100" : "pointer-events-none opacity-0",
           ].join(" ")}
           onClick={onClose}
           aria-hidden
+          style={{
+            transitionDuration: backdropDuration,
+            transitionTimingFunction: open ? 'cubic-bezier(0.22, 1, 0.36, 1)' : 'ease-out',
+          }}
         />
         <div
           className={[
             "fixed left-0 right-0 bottom-0 z-50",
-            "transition-transform duration-300",
+            "transition-transform",
             open ? "translate-y-0" : "translate-y-full",
           ].join(" ")}
           role="dialog"
           aria-modal="true"
           aria-label={title}
+          style={{
+            transitionDuration: animationDuration,
+            transitionTimingFunction: 'cubic-bezier(0.22, 1, 0.36, 1)',
+          }}
         >
           <div className="max-w-[420px] mx-auto px-3 pb-[env(safe-area-inset-bottom)]">
             <div className="rounded-2xl border border-black/10 dark:border-white/10 backdrop-blur-xl bg-white/70 dark:bg-zinc-900/70 overflow-hidden shadow-2xl">
@@ -138,7 +154,8 @@ export default function MobileNav({
       aria-label={ariaLabel}
       className={[
         "rounded-xl border border-black/10 dark:border-white/10 text-sm",
-        "flex items-center justify-center gap-2",
+        "flex items-center justify-center",
+        children ? "gap-2" : "",
         "bg-white/70 dark:bg-zinc-900/70 hover:bg-black/5 dark:hover:bg-white/10",
         "transition-colors",
         tileHeightClass,
@@ -147,7 +164,7 @@ export default function MobileNav({
       style={{ minHeight: 44 }}
     >
       {icon}
-      <span className="font-medium">{children}</span>
+      {children && <span className="font-medium">{children}</span>}
     </button>
   );
 
@@ -273,31 +290,25 @@ export default function MobileNav({
             doNavigate("/profile");
             setMenuOpen(false);
           }}
-          icon={<User className="w-4 h-4" />}
+          icon={<User className="w-5 h-5" />}
           ariaLabel="Profile"
-        >
-          Profile
-        </Tile>
+        />
         <Tile
           onClick={() => {
             doNavigate("/records");
             setMenuOpen(false);
           }}
-          icon={<ClipboardList className="w-4 h-4" />}
+          icon={<ClipboardList className="w-5 h-5" />}
           ariaLabel="Health Records"
-        >
-          Health Records
-        </Tile>
+        />
         <Tile
           onClick={() => {
             doNavigate("/training/fitness-profile");
             setMenuOpen(false);
           }}
-          icon={<ClipboardList className="w-4 h-4" />}
+          icon={<ClipboardList className="w-5 h-5" />}
           ariaLabel="Fitness Profile"
-        >
-          Fitness Profile
-        </Tile>
+        />
       </div>
 
       <div className="flex items-center justify-center flex-wrap gap-4 px-4 pb-5 pt-1 text-sm opacity-90">
