@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import {  Loader2, Activity, Heart, RefreshCw, Zap, Moon, Settings, AlertTriangle, ChevronDown, ChevronUp, History, Sparkles } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useMemo } from "react";
 import { format, subDays } from "date-fns";
@@ -115,6 +115,26 @@ export default function Training() {
       toast({
         title: "Recommendation Rescheduled",
         description: "Your workout has been moved to the new date",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const refreshPlanMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", "/api/training-plan/refresh");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/training-plan"] });
+      toast({
+        title: "Plan Refreshed",
+        description: "Your training plan has been regenerated",
       });
     },
     onError: (error: Error) => {
