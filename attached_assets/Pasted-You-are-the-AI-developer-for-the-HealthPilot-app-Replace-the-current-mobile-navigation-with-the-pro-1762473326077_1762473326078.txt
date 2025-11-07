@@ -1,0 +1,40 @@
+You are the AI developer for the HealthPilot app. Replace the current mobile navigation with the provided MobileNav component (below). Follow these instructions precisely:
+
+GOALS
+- Implement a best-practice mobile bottom navigation with three items: 
+  (1) Menu (left), (2) LARGE CIRCULAR Quick Actions button (center), (3) Insights (right).
+- Slide-up overflow menu grouped as:
+  • Today (2x2 tiles, equal height): Training (/training), Recovery (/recovery), Supplements (/supplements), SmartFuel (/smartfuel)
+  • Track (3-column tiles, equal height): Goals (/goals), Biomarkers (/biomarkers), Sleep (/sleep), Symptoms (/symptoms), Longevity (/biological-age)
+  • Data & Settings (single 3-tile row, equal height): Profile (/profile), Health Records (/records), Fitness Profile (/training/fitness-profile)
+  • Footer links (text only): Privacy Policy (/privacy), Privacy Dashboard (/privacy-dashboard); also include “Admin” (/admin) ONLY if isAdmin=true
+- Ensure perfect visual balance, safe-area awareness, and smooth sheet animations.
+- ALL icons must come from the lucide-react set (NO custom SVGs).
+
+TECH REQUIREMENTS
+- Keep React + TypeScript.
+- Use Tailwind (or the app’s existing utility classes). Do not introduce new dependencies beyond `lucide-react`.
+- Provide a prop to control admin visibility: `isAdmin?: boolean`.
+- Provide a navigation abstraction so this works in both SPA and static demos:
+  - Props:
+    - `navigate?: (path: string) => void` (optional; fallback to `window.location.assign(path)`)
+    - `currentPath?: string` (optional; used for active state)
+    - `LinkComponent?: React.ComponentType<{ to: string; className?: string; onClick?: React.MouseEventHandler; children?: React.ReactNode }>` (optional; if provided, render links with this component; otherwise use `<a>`)
+- Do not break existing routes. If any route is missing or renamed in the app, ASK for clarification before proceeding.
+- Ensure all interactive targets meet minimum 44x44 hit areas, tiles share equal heights, and the bottom bar is an exact 3-column balance on all device widths.
+
+VERIFICATION (the AI must self-check)
+- Confirm that clicking each tile/button navigates to the specified route. 
+- Confirm the Quick Actions sheet contains exactly: Workout (/training/start), Goals (/goals), Symptoms (/symptoms/new).
+- Confirm Admin link is visible only when `isAdmin` prop is true, and its absence does not affect layout balance.
+- Confirm Today tiles are equal height (can be wider) and Track/Data & Settings tiles are equal height.
+- Confirm the sheet animates (overlay fade-in; panel slides up) and is dismissible by tapping the overlay.
+- Confirm safe-area bottom padding is applied.
+- If ANY ambiguity remains (routes, theming, Link component, or Tailwind availability), ASK QUESTIONS.
+
+DELIVERABLE
+- Add the file `MobileNav.tsx` containing the provided code verbatim.
+- Integrate it into the main layout (e.g., render at app root). Wire `navigate`, `currentPath`, and `LinkComponent` to your router if available (e.g., React Router or Next.js Link).
+- Keep lucide-react icons. Replace no icons with custom SVGs.
+
+Now implement using the code below exactly, then wire it into the app shell. If you’re unsure about any detail, ask before changing behavior.
