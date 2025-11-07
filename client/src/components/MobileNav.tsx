@@ -11,6 +11,7 @@ import {
   Moon,
   Activity,
   Target,
+  Home,
 } from "lucide-react";
 
 type LinkishProps = {
@@ -321,7 +322,17 @@ export default function MobileNav({
 
   const QuickActions = (
     <Sheet open={quickOpen} onClose={() => setQuickOpen(false)} title="Quick Actions">
-      <div className="grid grid-cols-3 gap-3 px-4 py-4">
+      <div className="grid grid-cols-2 gap-3 px-4 py-4">
+        <Tile
+          onClick={() => {
+            doNavigate("/");
+            setQuickOpen(false);
+          }}
+          icon={<Home className="w-4 h-4" />}
+          ariaLabel="Home"
+        >
+          Home
+        </Tile>
         <Tile
           onClick={() => {
             doNavigate("/training/start");
@@ -416,7 +427,7 @@ export default function MobileNav({
             <button
               type="button"
               onClick={() => doNavigate("/insights")}
-              className="flex flex-col items-center justify-center gap-1 min-h-12 ml-auto"
+              className="flex flex-col items-center justify-center gap-1 min-h-12 justify-self-end"
               aria-current={isActive("/insights") ? "page" : undefined}
               aria-label="Insights"
               data-testid="button-insights"
