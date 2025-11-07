@@ -4,6 +4,7 @@ import tsParser from '@typescript-eslint/parser';
 import reactPlugin from 'eslint-plugin-react';
 import reactHooksPlugin from 'eslint-plugin-react-hooks';
 import jsxA11yPlugin from 'eslint-plugin-jsx-a11y';
+import globals from 'globals';
 
 export default [
   js.configs.recommended,
@@ -21,11 +22,9 @@ export default [
         // Use 'tsc --noEmit' for type checking instead
       },
       globals: {
-        window: 'readonly',
-        document: 'readonly',
-        navigator: 'readonly',
-        console: 'readonly',
-        process: 'readonly',
+        ...globals.browser,
+        ...globals.node,
+        React: 'readonly', // Vite JSX transformer provides React globally
       },
     },
     plugins: {
@@ -61,6 +60,9 @@ export default [
       // General
       'no-console': ['warn', { allow: ['warn', 'error'] }],
       'prefer-const': 'error',
+      
+      // Disable no-undef for TypeScript files - TypeScript handles this better
+      'no-undef': 'off',
     },
     settings: {
       react: {
