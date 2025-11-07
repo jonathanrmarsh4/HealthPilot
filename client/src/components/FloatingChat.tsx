@@ -289,6 +289,7 @@ export function VoiceChatModal({ isOpen, onClose, context }: VoiceChatModalProps
     if (isOpen && !isConnected) {
       connect();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
   // Cleanup on close
@@ -498,7 +499,7 @@ export function FloatingChat({ isOpen, onClose, currentPage, context }: Floating
   const clearedAtTimestamp = useMemo(() => {
     if (!isOpen) return null;
     return new Date().toISOString();
-  }, [sessionId]);
+  }, [isOpen]);
 
   // Voice recognition state
   const [isListening, setIsListening] = useState(false);

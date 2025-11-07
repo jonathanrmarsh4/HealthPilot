@@ -155,6 +155,7 @@ export function HealthKitOnboarding({ onComplete, onSkip }: HealthKitOnboardingP
       console.log('[HealthKitOnboarding] Auto-skipping (not on iOS or plugin unavailable)');
       handleSkip();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isChecking, isHealthKitAvailable, checkFailed]);
 
   // Show loader while checking availability or auto-skipping

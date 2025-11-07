@@ -776,6 +776,7 @@ export default function WorkoutSession() {
       setRestTimer(null);
       if (restTimerInterval) clearInterval(restTimerInterval);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [restTimer, toast]);
 
   // Update set mutation

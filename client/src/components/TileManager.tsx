@@ -99,7 +99,7 @@ export function TileManager({ page, tiles, defaultVisible = [] }: TileManagerPro
       };
       isInitializedRef.current = true;
     }
-  }, [savedPreferences]);
+  }, [savedPreferences, initialVisible, tiles]);
 
   // Save preferences mutation
   const savePreferencesMutation = useMutation({
@@ -128,6 +128,7 @@ export function TileManager({ page, tiles, defaultVisible = [] }: TileManagerPro
       }
     }, 500);
     return () => clearTimeout(timeoutId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [preferences]);
 
   const sensors = useSensors(

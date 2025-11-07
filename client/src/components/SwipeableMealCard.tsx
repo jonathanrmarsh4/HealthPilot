@@ -138,6 +138,7 @@ export function SwipeableMealCard({
       window.removeEventListener("mouseup", handleGlobalMouseUp);
       window.removeEventListener("mousemove", handleGlobalMouseMove);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isDragging]);
 
   const handleGlobalMouseMove = (e: MouseEvent) => {

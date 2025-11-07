@@ -297,6 +297,7 @@ export default function Dashboard() {
       savePreferencesMutation.mutate(preferences);
     }, 500);
     return () => clearTimeout(timeoutId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [preferences, isInitialLoad]);
 
   const toggleVisibility = (widget: string) => {
@@ -400,6 +401,7 @@ export default function Dashboard() {
   ];
 
   // Sync new widgets with order array
+  // Using join(',') to create stable dependency - ESLint wants array but that causes infinite loop
   useEffect(() => {
     setPreferences(prev => {
       const newWidgets = allAvailableWidgets.filter(w => !prev.order.includes(w));
@@ -411,6 +413,7 @@ export default function Dashboard() {
         visible: [...prev.visible, ...newWidgets]
       };
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allAvailableWidgets.join(',')]);
 
   const allWidgets = preferences.order.filter(w => allAvailableWidgets.includes(w));

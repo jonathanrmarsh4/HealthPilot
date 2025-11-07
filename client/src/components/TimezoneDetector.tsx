@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { apiRequest, queryClient } from '@/lib/queryClient';
@@ -65,7 +65,7 @@ export function TimezoneDetector() {
   /**
    * Sync timezone to backend if it has changed
    */
-  const syncTimezone = () => {
+  const syncTimezone = useCallback(() => {
     if (!isAuthenticated || updateTimezoneMutation.isPending) {
       return;
     }
@@ -97,14 +97,14 @@ export function TimezoneDetector() {
     syncAttempted.current = true;
     // Note: lastSyncedTimezone is set in onSuccess handler to ensure update was successful
     updateTimezoneMutation.mutate(currentTimezone);
-  };
+  }, [isAuthenticated, profile, updateTimezoneMutation]);
 
   // Initial sync on mount
   useEffect(() => {
     if (isAuthenticated && profile) {
       syncTimezone();
     }
-  }, [isAuthenticated, profile]);
+  }, [isAuthenticated, profile, syncTimezone]);
 
   // Listen for visibility changes to detect timezone changes
   // This happens when user travels and returns to the app
@@ -132,7 +132,7 @@ export function TimezoneDetector() {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       clearInterval(intervalId);
     };
-  }, [isAuthenticated, profile, updateTimezoneMutation.isPending]);
+  }, [isAuthenticated, syncTimezone]);
 
   return null;
 }

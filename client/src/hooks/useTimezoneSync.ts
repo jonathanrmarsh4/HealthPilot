@@ -98,6 +98,7 @@ export function useTimezoneSync() {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       clearInterval(intervalId);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Return the current timezone for components that need it
