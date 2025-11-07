@@ -273,7 +273,7 @@ class PersonalizationLayer {
     dietType?: string,
     allergies?: string[]
   ): { avoid: GuidanceItem[], include: GuidanceItem[] } {
-    let filteredAvoid = [...avoidList];
+    const filteredAvoid = [...avoidList];
     let filteredInclude = [...includeList];
     
     // Apply diet type filters

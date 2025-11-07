@@ -1850,7 +1850,7 @@ export class DbStorage implements IStorage {
   }
 
   async getReadinessScores(userId: string, startDate?: Date, endDate?: Date): Promise<ReadinessScore[]> {
-    let query = db
+    const query = db
       .select()
       .from(readinessScores)
       .where(eq(readinessScores.userId, userId));
@@ -2418,7 +2418,7 @@ export class DbStorage implements IStorage {
     const workoutData = workout.workoutData;
     
     // Handle both old format (main/accessories) and new format (blocks)
-    let exercisesToProcess = workoutData.blocks 
+    const exercisesToProcess = workoutData.blocks 
       ? workoutData.blocks.map((block: any) => ({
           exercise: block.display_name || block.pattern,
           sets: block.sets,
@@ -4557,7 +4557,7 @@ export class DbStorage implements IStorage {
       .orderBy(desc(reminderCompletions.date));
 
     let streak = 0;
-    let expectedDate = new Date();
+    const expectedDate = new Date();
     expectedDate.setHours(0, 0, 0, 0);
 
     for (const completion of completions) {

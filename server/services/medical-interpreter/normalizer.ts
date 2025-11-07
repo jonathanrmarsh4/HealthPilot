@@ -18,7 +18,7 @@ export function normalizeLabData(
 } {
   const conversions: UnitConversion[] = [];
   const normalizedObservations: LabObservation[] = [];
-  let totalObservations = data.observations.length;
+  const totalObservations = data.observations.length;
   let successfulConversions = 0;
 
   for (const obs of data.observations) {

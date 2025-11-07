@@ -3148,7 +3148,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       const { type } = req.params;
-      let { days = '7' } = req.query;
+      const { days = '7' } = req.query;
       
       // Enforce historical data limits for free users
       const isPremium = await isPremiumUser(userId);
@@ -3484,7 +3484,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Step 5: Check existing meals to determine start date
       const existingMeals = await storage.getMealPlans(userId);
-      let startDate = new Date();
+      const startDate = new Date();
       startDate.setHours(0, 0, 0, 0);
       
       // If there are existing future meals, start from tomorrow
@@ -3578,8 +3578,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // First, try to get meals from local library with smart filtering
             const libraryMeals = await storage.getFilteredMealLibraryItems(userId, libraryFilters);
             
-            let recipeToUse = null;
-            let isFromLibrary = false;
+            const recipeToUse = null;
+            const isFromLibrary = false;
             
             console.log(`📚 Found ${libraryMeals.length} ${mealType} meals in library before filtering`);
             
@@ -6143,8 +6143,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       
       let setsCreated = 0;
-      let exercisesNotFound: string[] = [];
-      let exercisesCreated: string[] = [];
+      const exercisesNotFound: string[] = [];
+      const exercisesCreated: string[] = [];
       
       // Create exercise sets for each exercise in the plan
       for (let i = 0; i < workoutPlan.exercises.length; i++) {

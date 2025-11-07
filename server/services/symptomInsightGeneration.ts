@@ -241,7 +241,7 @@ export async function generateHolisticSymptomAssessment(
       if (allRulesHit.some(h => h.ruleId === 'symptom_med_change_link')) sourceSignals.push('meds');
 
       // Build comprehensive description
-      let description = parsed.triage_reason || 'Symptom cluster analysis';
+      const description = parsed.triage_reason || 'Symptom cluster analysis';
       
       // Build comprehensive title from triage reason
       const title = parsed.triage_reason || 'Cluster of symptoms requiring evaluation';
@@ -385,7 +385,7 @@ function buildHolisticSymptomPrompt(
   healthSignals: HealthSignals
 ): string {
   // Build comprehensive symptom summary
-  let symptomsSummary = allSymptoms.map((data, idx) => {
+  const symptomsSummary = allSymptoms.map((data, idx) => {
     const { symptom, features, rulesHit } = data;
     const trendEmoji = symptom.lastTrend === 'worse' ? '📈' 
       : symptom.lastTrend === 'better' ? '📉' 
