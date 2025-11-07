@@ -72,7 +72,7 @@ export function HealthScoreWidget() {
     );
   }
 
-  // const getBadgeVariant = (quality: string) => {
+  const getBadgeVariant = (quality: string) => {
     switch (quality) {
       case 'Excellent':
         return 'default';

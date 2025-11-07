@@ -1,13 +1,12 @@
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {  Moon, Heart, TrendingUp, ChevronDown, ChevronUp, AlertTriangle } from "lucide-react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import {  Moon, Heart, TrendingUp, ChevronDown, ChevronUp, AlertTriangle, Activity, Sparkles } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format, subDays, startOfDay } from "date-fns";
-import { apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 type InsightCategory = "sleep" | "recovery" | "performance" | "health";
@@ -65,7 +64,7 @@ const categoryIcons = {
   sleep: Moon,
   recovery: Heart,
   performance: TrendingUp,
-  health: 
+  health: Activity,
 };
 
 const categoryColors = {
@@ -196,7 +195,6 @@ function DiagnosticCauseCard({ cause, rank }: { cause: DiagnosticCause; rank: nu
 
 export default function DailyInsights() {
   const [dateRange, setDateRange] = useState<7 | 14 | 30>(7);
-  const { toast } = useToast();
   
   const endDate = startOfDay(new Date());
   const startDate = startOfDay(subDays(endDate, dateRange));
@@ -206,28 +204,6 @@ export default function DailyInsights() {
       start_date: format(startDate, 'yyyy-MM-dd'), 
       end_date: format(endDate, 'yyyy-MM-dd') 
     }],
-  });
-
-  const generateInsightsMutation = useMutation({
-    mutationFn: async () => {
-      const res = await apiRequest("POST", "/api/insights/generate-v2");
-      return res.json();
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['/api/insights/history'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/insights/today'] });
-      toast({
-        title: "Insights Generated",
-        description: `Successfully generated ${data.insightsGenerated || 0} insights for today.`,
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to generate insights",
-        variant: "destructive",
-      });
-    },
   });
 
   const insights = response?.insights || [];

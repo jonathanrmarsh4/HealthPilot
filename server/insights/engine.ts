@@ -228,7 +228,7 @@ async function saveInsights(
 /**
  * Map family to category enum
  */
-// function mapFamilyToCategory(family: string): "sleep" | "recovery" | "performance" | "health" {
+function mapFamilyToCategory(family: string): "sleep" | "recovery" | "performance" | "health" {
   switch (family) {
     case "sleep":
       return "sleep";
