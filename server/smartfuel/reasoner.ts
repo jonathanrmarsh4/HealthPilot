@@ -484,7 +484,7 @@ export class SmartFuelReasoner {
     };
   }
   
-  private generateOverview(themes: string[], goals?: string[]): string {
+  private generateOverview(themes: string[], _goals?: string[]): string {
     const themeLabels: Record<string, string> = {
       'hypertension': 'blood pressure management',
       'elevated_ldl': 'cholesterol balance',

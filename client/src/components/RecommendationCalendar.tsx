@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Sparkles, MoveRigh
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { useMutation } from "@tanstack/react-query";
@@ -283,7 +283,7 @@ export function RecommendationCalendar({
     setTouchStartTime(0);
   };
 
-  const handleActivityTouchMove = (e: React.TouchEvent) => {
+  const handleActivityTouchMove = (_e: React.TouchEvent) => {
     // If user moves finger, cancel the long press
     if (longPressTimeout) {
       clearTimeout(longPressTimeout);

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, ReactNode } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/queryClient";
 import { 
   DndContext, 
   closestCenter, 
@@ -107,7 +107,7 @@ export function TileManager({ page, tiles, defaultVisible = [] }: TileManagerPro
       const response = await apiRequest("PATCH", `/api/user/tile-preferences/${page}`, prefs);
       return response.json();
     },
-    onSuccess: (data) => {
+    onSuccess: () => {
       // Update the last saved reference without invalidating (which would cause a refetch)
       lastSavedPreferencesRef.current = preferences;
     }

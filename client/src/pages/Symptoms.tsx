@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import {  apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, TrendingUp, TrendingDown, Minus, CheckCircle2, Activity, Clock, AlertCircle, RefreshCw, Sparkles, Heart, Moon, Apple, Brain, ChevronDown, ChevronUp, AlertTriangle } from "lucide-react";
+import { Plus, TrendingUp, TrendingDown, Minus, CheckCircle2, Activity, Clock, RefreshCw, Heart, Moon, Brain, ChevronDown, ChevronUp, AlertTriangle, AlertCircle, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDistanceToNow } from "date-fns";
@@ -93,7 +93,7 @@ const categoryIcons = {
   sleep: Moon,
   recovery: Heart,
   performance: TrendingUp,
-  health: Apple,
+  health: Activity,
 };
 
 const categoryColors = {
@@ -249,13 +249,12 @@ export default function Symptoms() {
   const { toast } = useToast();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [selectedContexts, setSelectedContexts] = useState<string[]>([]);
-  const [assessmentResult, setAssessmentResult] = useState<any | null>(null);
 
   const { data: activeEpisodes, isLoading: activeLoading } = useQuery<SymptomEvent[]>({
     queryKey: ["/api/symptoms/active"],
   });
 
-  const { data: allEvents, isLoading: historyLoading } = useQuery<SymptomEvent[]>({
+  const { data: allEvents } = useQuery<SymptomEvent[]>({
     queryKey: ["/api/symptoms/events"],
   });
 
@@ -269,7 +268,6 @@ export default function Symptoms() {
       return res.json();
     },
     onSuccess: (data) => {
-      setAssessmentResult(data);
       queryClient.invalidateQueries({ queryKey: ["/api/insights/today"] });
       toast({
         title: "AI Assessment Complete",

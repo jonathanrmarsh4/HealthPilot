@@ -47,7 +47,7 @@ export function AuditLogViewer({ open, onOpenChange }: AuditLogViewerProps) {
   const compliance = data?.compliance;
 
   // Get unique action types for filter
-  const actionTypes = ["all", ...new Set(logs.map(log => log.action))];
+  // const actionTypes = ["all", ...new Set(logs.map(log => log.action))];
 
   // Filter logs based on selected action
   const filteredLogs = filterAction === "all" 

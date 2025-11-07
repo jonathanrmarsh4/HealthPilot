@@ -50,7 +50,7 @@ export interface NextQuestion {
  */
 export async function generateNextQuestion(
   conversation: GoalConversation,
-  userProfile?: { age?: number; gender?: string }
+  _userProfile?: { age?: number; gender?: string }
 ): Promise<NextQuestion> {
   // Import OpenAI client lazily
   const { default: OpenAI } = await import('openai');

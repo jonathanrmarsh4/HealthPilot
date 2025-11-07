@@ -1,7 +1,6 @@
 import { HealthMetricCard } from "@/components/HealthMetricCard";
 import { BiomarkerChart } from "@/components/BiomarkerChart";
 import { BiomarkerChartWidget } from "@/components/BiomarkerChartWidget";
-import { RecommendationCard } from "@/components/RecommendationCard";
 import { QuickStats } from "@/components/QuickStats";
 import { TrendLineWidget } from "@/components/TrendLineWidget";
 import { AIInsightsWidget } from "@/components/AIInsightsWidget";
@@ -17,20 +16,18 @@ import { DailyRemindersWidget } from "@/components/DailyRemindersWidget";
 import { SymptomTile } from "@/components/SymptomTile";
 import { SmartFuelTile } from "@/components/SmartFuelTile";
 import { UpgradeBanner } from "@/components/UpgradeBanner";
-import { Heart, Activity, Scale, Droplet, TrendingUp, Zap, Apple, AlertCircle, Dumbbell, Settings2, Eye, EyeOff, GripVertical, Dna, TrendingDown, Upload, Shield } from "lucide-react";
+import { Heart, Activity, Droplet, TrendingUp, Zap, Settings2, Eye, EyeOff, GripVertical, Shield } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Link, useSearch } from "wouter";
-import type { Recommendation } from "@shared/schema";
 import { useLocale } from "@/contexts/LocaleContext";
 import { unitConfigs, convertValue, formatValue } from "@/lib/unitConversions";
 import { useState, useEffect } from "react";
 import { biomarkerDisplayConfig } from "@/lib/biomarkerConfig";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/queryClient";
 import { usePremiumTheme } from "@/components/PremiumThemeProvider";
 import { useToast } from "@/hooks/use-toast";
 import { 
@@ -359,14 +356,6 @@ export default function Dashboard() {
     queryKey: ["/api/biomarkers/chart/weight?days=180"],
   });
 
-  const { data: recommendations, isLoading: recommendationsLoading } = useQuery<Recommendation[]>({
-    queryKey: ["/api/recommendations"],
-  });
-
-  const { data: biologicalAgeData } = useQuery<{ canCalculate: boolean }>({
-    queryKey: ["/api/biological-age"],
-  });
-
   const { data: allBiomarkers } = useQuery<Array<{ type: string }>>({
     queryKey: ["/api/biomarkers"],
   });
@@ -416,19 +405,6 @@ export default function Dashboard() {
   }, [allAvailableWidgets.join(',')]);
 
   const allWidgets = preferences.order.filter(w => allAvailableWidgets.includes(w));
-
-  const getCategoryIcon = (category: string) => {
-    switch (category.toLowerCase()) {
-      case 'biomarker':
-        return AlertCircle;
-      case 'nutrition':
-        return Apple;
-      case 'exercise':
-        return Dumbbell;
-      default:
-        return AlertCircle;
-    }
-  };
 
   const convertedGlucoseData = glucoseData?.map(point => {
     const storedUnit = point.unit;

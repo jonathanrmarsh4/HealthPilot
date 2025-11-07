@@ -74,7 +74,7 @@ import HealthKitDiagnostics from "@/pages/HealthKitDiagnostics";
 import DiagnosticPage from "@/pages/DiagnosticPage";
 import { Loader2, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { App as CapacitorApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import { SecureStorage } from '@aparajita/capacitor-secure-storage';
@@ -210,7 +210,7 @@ function SidebarContentWrapper({
                       // Clear SFSafariViewController cookies (iOS 16+ only)
                       try {
                         await SafariData.clearData();
-                      } catch (error) {
+                      } catch {
                         // iOS 16+ required
                       }
                       
@@ -287,9 +287,8 @@ function SidebarContentWrapper({
 }
 
 function AppLayout() {
-  const [hasAutoOpened, setHasAutoOpened] = useState(false);
   const [location] = useLocation();
-  const { shouldShowOnboarding, status: onboardingStatus, isLoading: onboardingLoading } = useOnboarding();
+  const { status: onboardingStatus, isLoading: onboardingLoading } = useOnboarding();
   
   // Show HealthKit onboarding ONLY for iOS users who haven't completed it
   // (Android and web users skip this)
@@ -341,12 +340,6 @@ function AppLayout() {
     queryClient.invalidateQueries();
   }, [location]);
 
-  // Reset auto-open flag when onboarding is completed
-  useEffect(() => {
-    if (!shouldShowOnboarding) {
-      setHasAutoOpened(false);
-    }
-  }, [shouldShowOnboarding]);
   
   // Wait for onboarding status to load before deciding what to show
   // This prevents the dashboard from flashing before HealthKit onboarding

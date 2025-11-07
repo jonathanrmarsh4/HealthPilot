@@ -95,7 +95,7 @@ export function SleepScoreDonutWidget() {
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
 
-  const renderCustomLabel = (entry: any) => {
+  // const renderCustomLabel = (entry: any) => {
     return `${entry.name}: ${entry.percentage}%`;
   };
 

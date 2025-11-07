@@ -14,8 +14,8 @@ export default function DiagnosticPage() {
         try {
           const info = await CapacitorApp.getInfo();
           setAppInfo(info);
-        } catch (error) {
-          console.error('Failed to get app info:', error);
+        } catch (_error) {
+          console.error('Failed to get app info:', _error);
         }
       }
 
@@ -24,7 +24,7 @@ export default function DiagnosticPage() {
         try {
           const result = await navigator.permissions.query({ name: 'microphone' as PermissionName });
           setPermissionStatus(result.state);
-        } catch (error) {
+        } catch {
           setPermissionStatus('not supported');
         }
       } else {

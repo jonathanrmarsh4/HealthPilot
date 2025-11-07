@@ -48,7 +48,6 @@ export async function initializeMobile(
 ): Promise<void> {
   const config = { ...defaultOptions, ...options };
 
-  const platform = getPlatform();
   const isNative = isNativePlatform();
 
   if (!isNative) {
@@ -118,7 +117,7 @@ async function configureSplashScreen(): Promise<void> {
  */
 async function configureKeyboard(): Promise<void> {
   try {
-    Keyboard.addListener('keyboardWillShow', (info) => {
+    Keyboard.addListener('keyboardWillShow', () => {
       document.body.classList.add('keyboard-open');
     });
 

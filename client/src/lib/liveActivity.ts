@@ -104,8 +104,8 @@ export class LiveActivityManager {
       }
       
       return false;
-    } catch (error) {
-      console.error('Failed to start Live Activity:', error);
+    } catch (_error) {
+      console.error('Failed to start Live Activity:', _error);
       return false;
     }
   }
@@ -139,8 +139,8 @@ export class LiveActivityManager {
         heartRateZone: data.heartRateZone || 'Z1',
         isPaused: data.isPaused || false,
       });
-    } catch (error) {
-      console.error('Failed to update Live Activity:', error);
+    } catch (_error) {
+      console.error('Failed to update Live Activity:', _error);
     }
   }
   
@@ -205,8 +205,8 @@ export class LiveActivityManager {
       this.activityId = null;
       this.pushToken = null;
       this.sessionId = null;
-    } catch (error) {
-      console.error('Failed to end Live Activity:', error);
+    } catch (_error) {
+      console.error('Failed to end Live Activity:', _error);
     }
   }
   

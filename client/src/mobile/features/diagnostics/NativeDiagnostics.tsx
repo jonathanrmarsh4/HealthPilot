@@ -118,7 +118,7 @@ export function NativeDiagnostics() {
 
     // Test 6: Browser
     try {
-      const browser = getBrowserAdapter();
+      getBrowserAdapter();
       results.push({
         name: 'Browser Adapter',
         status: 'pass',

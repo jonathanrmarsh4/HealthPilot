@@ -17,7 +17,6 @@ export function HealthKitSync() {
     count?: number;
   } | null>(null);
   const { toast } = useToast();
-
   const platform = Capacitor.getPlatform();
 
   // Check HealthKit availability on mount

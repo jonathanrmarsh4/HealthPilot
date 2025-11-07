@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Sparkles, Heart, TrendingUp, Calendar } from "lucide-react";
+import {  TrendingUp, Calendar, Sparkles } from "lucide-react";
 import { useLocation } from "wouter";
 
 // Import existing page components
@@ -11,7 +11,7 @@ import DataInsights from "./DataInsights";
 type TabValue = "daily" | "ai-coach" | "trend-analysis";
 
 export default function InsightsHub() {
-  const [location, setLocation] = useLocation();
+  const [location] = useLocation();
   
   // Parse tab from URL query params or default to "daily"
   const urlParams = new URLSearchParams(window.location.search);

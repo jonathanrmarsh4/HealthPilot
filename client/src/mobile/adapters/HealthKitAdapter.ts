@@ -14,7 +14,6 @@
  */
 
 import { isNativePlatform, getPlatform } from '../MobileBootstrap';
-import { App, AppState } from '@capacitor/app';
 
 // Lazy load Health plugin only when needed (prevents bundling in web builds)
 let Health: any = null;
@@ -30,7 +29,7 @@ function getHealthPlugin(): any {
         if (healthModule) {
           Health = healthModule.Health;
         }
-      } catch (e) {
+      } catch {
         console.warn('[HealthKit] capacitor-health plugin not available');
       }
     }
@@ -123,7 +122,7 @@ class NativeHealthKitAdapter implements HealthKitAdapter {
       });
 
       return result.granted ? 'authorized' : 'denied';
-    } catch (error) {
+    } catch {
       return 'notDetermined';
     }
   }

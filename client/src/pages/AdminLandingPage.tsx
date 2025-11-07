@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { queryClient, apiRequest } from "@/lib/queryClient";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {  apiRequest } from "@/lib/queryClient";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,7 +14,6 @@ import {
   type LandingPageContent,
   type LandingPageFeature,
   type LandingPageTestimonial,
-  type LandingPagePricingPlan,
   type LandingPageSocialLink,
 } from "@shared/schema";
 
@@ -260,8 +259,8 @@ function HeroSection({
 
 function FeaturesSection({ 
   features, 
-  content,
-  onSaveContent
+  content: _content,
+  onSaveContent: _onSaveContent
 }: { 
   features: LandingPageFeature[];
   content: LandingPageContent | undefined;
@@ -269,7 +268,6 @@ function FeaturesSection({
 }) {
   const { toast } = useToast();
   const [showForm, setShowForm] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
 
   const createMutation = useMutation({
     mutationFn: async (feature: any) => {
@@ -295,7 +293,6 @@ function FeaturesSection({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/landing-page"] });
       toast({ title: "Feature updated successfully" });
-      setEditingId(null);
     },
   });
 
@@ -496,8 +493,8 @@ function FeatureForm({
 
 function TestimonialsSection({ 
   testimonials, 
-  content, 
-  onSaveContent 
+  content: _content, 
+  onSaveContent: _onSaveContent 
 }: { 
   testimonials: LandingPageTestimonial[];
   content: LandingPageContent | undefined;
@@ -785,7 +782,7 @@ function TestimonialForm({
   );
 }
 
-function PricingSection({ pricingPlans, content, onSaveContent }: any) {
+function PricingSection({ pricingPlans: _pricingPlans, content: _content, onSaveContent: _onSaveContent }: any) {
   return (
     <Card>
       <CardHeader>
@@ -1219,8 +1216,8 @@ function SEOSection({
 }
 
 function ThemeSection({
-  content,
-  onSave
+  content: _content,
+  onSave: _onSave
 }: {
   content: LandingPageContent | undefined;
   onSave: (data: Partial<LandingPageContent>) => void;

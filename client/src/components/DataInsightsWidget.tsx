@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
-import { TrendingUp, TrendingDown, Info, AlertTriangle, CheckCircle, ChevronDown, ChevronUp, ThumbsUp, ThumbsDown, Calendar } from "lucide-react";
+import { TrendingUp, Info, AlertTriangle, CheckCircle, ChevronDown, ChevronUp, ThumbsUp, ThumbsDown, Calendar } from "lucide-react";
 import { useState } from "react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -93,7 +93,7 @@ export function DataInsightsWidget() {
     }
   };
 
-  const getBadgeVariant = (type: string) => {
+  // const getBadgeVariant = (type: string) => {
     switch (type) {
       case 'positive':
         return 'default';

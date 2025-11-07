@@ -1,4 +1,4 @@
-import registry, { type MetricDef } from "./registry";
+import registry from "./registry";
 import {
   getLatestMeasurement,
   getEarliestMeasurement,

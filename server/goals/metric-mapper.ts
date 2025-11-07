@@ -4,7 +4,7 @@
  * over manual-only metrics for better user experience.
  */
 
-import { getCanonicalGoalType, CanonicalGoalMetric } from './seed-data';
+import { getCanonicalGoalType } from './seed-data';
 import type { InsertGoalMetric } from '@shared/schema';
 
 export interface AvailableDataSources {
@@ -158,7 +158,7 @@ function determineSource(metricKey: string, sources?: AvailableDataSources): str
 async function generateCustomMetrics(
   goalType: string,
   entities: Record<string, any>,
-  sources?: AvailableDataSources
+  _sources?: AvailableDataSources
 ): Promise<MetricSuggestion[]> {
   const customMetrics: MetricSuggestion[] = [];
 
@@ -302,7 +302,7 @@ export async function fetchMetricBaselines(
                 break; // Found recent data, no need to check other types
               }
             }
-          } catch (err) {
+          } catch {
             // Continue to next data type
           }
         }

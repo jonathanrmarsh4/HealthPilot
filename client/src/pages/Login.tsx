@@ -6,7 +6,7 @@ import { Browser } from '@capacitor/browser';
 import { App as CapacitorApp } from '@capacitor/app';
 import { Preferences } from '@capacitor/preferences';
 import { SecureStorage } from '@aparajita/capacitor-secure-storage';
-import { apiRequest, queryClient, getApiBaseUrl } from "@/lib/queryClient";
+import { apiRequest, getApiBaseUrl } from "@/lib/queryClient";
 import { useState, useEffect, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/components/ThemeProvider";
@@ -67,8 +67,8 @@ export default function Login() {
       // Invalidate queries and redirect
       await queryClient.invalidateQueries();
       window.location.href = '/';
-    } catch (error) {
-      console.error('[Login] Error checking for auth:', error);
+    } catch (_error) {
+      console.error('[Login] Error checking for auth:', _error);
       setIsProcessing(false);
     }
   };

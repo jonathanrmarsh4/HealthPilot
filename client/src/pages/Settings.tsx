@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -10,7 +10,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/queryClient";
 import { useTimezone } from "@/contexts/TimezoneContext";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -58,11 +58,6 @@ export default function Settings() {
     const platform = getPlatform();
     setCurrentPlatform(platform);
   }, []);
-
-  const { isLoading } = useQuery({
-    queryKey: ["/api/user/settings"],
-    enabled: false,
-  });
 
   const { data: notificationChannels = [], isLoading: channelsLoading } = useQuery({
     queryKey: ['/api/notifications/channels'],

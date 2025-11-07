@@ -2,9 +2,9 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Sparkles, RefreshCw, XCircle, CheckCircle2, Target, TrendingUp, Clock, ChevronDown, ChevronUp } from "lucide-react";
+import {  RefreshCw, XCircle, CheckCircle2, Target, TrendingUp, Clock, ChevronDown, ChevronUp, Sparkles } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/queryClient";
 import { useState } from "react";
 import { format } from "date-fns";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -51,24 +51,6 @@ export default function SmartFuel() {
   const handleGenerate = () => {
     setIsGenerating(true);
     generateGuidanceMutation.mutate();
-  };
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'high': return 'text-red-600 dark:text-red-400';
-      case 'medium': return 'text-yellow-600 dark:text-yellow-400';
-      case 'low': return 'text-blue-600 dark:text-blue-400';
-      default: return 'text-muted-foreground';
-    }
-  };
-
-  const getPriorityLabel = (priority: string) => {
-    switch (priority) {
-      case 'high': return 'High Priority';
-      case 'medium': return 'Medium Priority';
-      case 'low': return 'Low Priority';
-      default: return '';
-    }
   };
 
   if (isLoading) {

@@ -3,12 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Sparkles, Loader2, Activity, Heart, RefreshCw, ThumbsUp, ThumbsDown, Dumbbell, Zap, Moon, Settings, Info, AlertTriangle, ChevronDown, ChevronUp, History, Calendar } from "lucide-react";
+import {  Loader2, Activity, Heart, RefreshCw, Zap, Moon, Settings, AlertTriangle, ChevronDown, ChevronUp, History, Sparkles } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useMemo } from "react";
-import { format, isToday, startOfDay, endOfDay, subDays } from "date-fns";
+import { format, subDays } from "date-fns";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import { useLocation } from "wouter";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -21,22 +21,6 @@ import { DailyGeneratedWorkout } from "@/components/DailyGeneratedWorkout";
 import { AITrainingPlanTile } from "@/components/AITrainingPlanTile";
 import { MuscleRecoveryGrid } from "@/components/MuscleRecoveryGrid";
 import type { RecoveryState } from "@/types/recovery";
-
-interface TrainingSchedule {
-  id: string;
-  day: string;
-  workoutType: string;
-  duration: number;
-  intensity: string;
-  exercises: Array<{
-    name: string;
-    sets: number;
-    reps: string;
-  }>;
-  completed: number;
-  sessionType?: string;
-  createdAt?: string;
-}
 
 interface ReadinessSettings {
   sleepWeight: number;
@@ -67,64 +51,6 @@ interface ReadinessScore {
   recoveryEstimate?: RecoveryEstimate;
 }
 
-interface Exercise {
-  name: string;
-  sets?: number | null;
-  reps?: string | null;
-  duration?: string | null;
-  intensity: string;
-  notes?: string;
-}
-
-interface WorkoutPlan {
-  title: string;
-  exercises: Exercise[];
-  totalDuration: number;
-  intensity: string;
-  calorieEstimate: number;
-}
-
-interface AdjustmentsMade {
-  intensityReduced: boolean;
-  durationReduced: boolean;
-  exercisesModified: boolean;
-  reason: string;
-}
-
-interface MuscleGroupTargeting {
-  prioritized: string[];
-  avoided: string[];
-  rationale: string;
-}
-
-interface CompletedWorkoutToday {
-  id: string;
-  workoutType: string;
-  completedAt: string;
-  duration?: number;
-}
-
-interface DailyRecommendation {
-  readinessScore: number;
-  readinessRecommendation: "ready" | "caution" | "rest";
-  recommendation: {
-    primaryPlan: WorkoutPlan;
-    alternatePlan: WorkoutPlan;
-    restDayOption: {
-      title: string;
-      activities: string[];
-      duration: number;
-      benefits: string;
-    };
-    muscleGroupTargeting?: MuscleGroupTargeting;
-    aiReasoning: string;
-    safetyNote?: string;
-    adjustmentsMade?: AdjustmentsMade;
-  };
-  hasCompletedWorkoutToday: boolean;
-  completedWorkoutsToday: CompletedWorkoutToday[];
-}
-
 interface CompletedWorkout {
   id: number;
   date: string;
@@ -137,13 +63,8 @@ interface CompletedWorkout {
 export default function Training() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
-  const [selectedPlan, setSelectedPlan] = useState<'primary' | 'alternate' | 'rest'>('primary');
-  const [exerciseFeedback, setExerciseFeedback] = useState<Record<string, 'up' | 'down'>>({});
   const [historyOpen, setHistoryOpen] = useState(false);
   const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set());
-  const [showFullReasoning, setShowFullReasoning] = useState(false);
-  const [showFullAdjustments, setShowFullAdjustments] = useState(false);
-  const [acknowledgedOverride, setAcknowledgedOverride] = useState(false);
 
   const { data: readinessScore, isLoading: readinessLoading } = useQuery<ReadinessScore>({
     queryKey: ["/api/training/readiness"],
@@ -160,16 +81,6 @@ export default function Training() {
 
   const { data: recoveryState, isLoading: recoveryLoading } = useQuery<RecoveryState>({
     queryKey: ["/api/recovery/state"],
-  });
-
-  const { data: dailyRec, isLoading: recLoading, error: recError, refetch: refetchRec } = useQuery<DailyRecommendation>({
-    queryKey: ["/api/training/daily-recommendation"],
-    staleTime: 5 * 60 * 1000,
-    retry: 1,
-  });
-
-  const { data: trainingSchedules, isLoading: schedulesLoading } = useQuery<TrainingSchedule[]>({
-    queryKey: ["/api/training-schedules"],
   });
 
   const { data: completedWorkouts, isLoading: workoutsLoading } = useQuery<CompletedWorkout[]>({
@@ -281,144 +192,6 @@ export default function Training() {
     });
   };
 
-  const startWorkoutMutation = useMutation({
-    mutationFn: async (workoutPlan: WorkoutPlan) => {
-      // Step 1: Create workout session (which creates full exercise objects in DB)
-      const sessionResponse = await apiRequest("POST", "/api/workout-sessions/start", { 
-        workoutPlan 
-      });
-      const session = await sessionResponse.json();
-      
-      // Step 2: Fetch the created exercises with full details
-      const exercisesResponse = await apiRequest("GET", `/api/workout-sessions/${session.id}/exercises`);
-      const exercises = await exercisesResponse.json();
-      
-      // Step 3: Create immutable workout instance with snapshot of full exercise objects
-      const instanceResponse = await apiRequest("POST", "/api/workout-instances", {
-        workoutSessionId: session.id,
-        workoutType: workoutPlan.title,
-        sourceType: "daily_recommendation",
-        sourceId: null,
-        snapshotData: {
-          exercises, // Full exercise objects with all properties
-          workoutPlan, // Also store original workout plan for reference
-        },
-      });
-      const instance = await instanceResponse.json();
-      
-      return { session, instanceId: instance.id };
-    },
-    onSuccess: ({ session, instanceId }) => {
-      toast({
-        title: "Workout Started!",
-        description: "Get ready to train",
-      });
-      setLocation(`/workout/${session.id}?instanceId=${instanceId}`);
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  const refreshPlanMutation = useMutation({
-    mutationFn: async () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/training/daily-recommendation"] });
-      const result = await refetchRec();
-      return result.data;
-    },
-    onSuccess: () => {
-      toast({
-        title: "Plan Refreshed",
-        description: "Your training recommendation has been updated based on current readiness",
-      });
-      setSelectedPlan('primary');
-      setExerciseFeedback({});
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to refresh plan",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const exerciseFeedbackMutation = useMutation({
-    mutationFn: async ({ exerciseName, feedback }: { exerciseName: string; feedback: 'up' | 'down' }) => {
-      return apiRequest('POST', '/api/training/exercise-feedback', { exerciseName, feedback });
-    },
-    onSuccess: (_, variables) => {
-      toast({
-        title: "Feedback Recorded",
-        description: `Your preference for ${variables.exerciseName} has been saved`,
-      });
-    },
-  });
-
-  const toggleCompleteMutation = useMutation({
-    mutationFn: async ({ scheduleId, currentCompleted }: { scheduleId: string; currentCompleted: boolean }) => {
-      return apiRequest('PATCH', `/api/training-schedules/${scheduleId}/complete`, { 
-        completed: currentCompleted ? 0 : 1 
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/training-schedules"] });
-      toast({
-        title: "Status Updated",
-        description: "Workout completion status has been updated",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to update workout status",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const handleExerciseFeedback = (exerciseName: string, feedback: 'up' | 'down') => {
-    const currentFeedback = exerciseFeedback[exerciseName];
-    
-    if (currentFeedback === feedback) {
-      const { [exerciseName]: _, ...rest } = exerciseFeedback;
-      setExerciseFeedback(rest);
-      exerciseFeedbackMutation.mutate({ exerciseName, feedback: 'up' });
-    } else {
-      setExerciseFeedback({ ...exerciseFeedback, [exerciseName]: feedback });
-      exerciseFeedbackMutation.mutate({ exerciseName, feedback });
-    }
-  };
-
-  const handleToggleComplete = (scheduleId: string, currentCompleted: boolean) => {
-    toggleCompleteMutation.mutate({ scheduleId, currentCompleted });
-  };
-
-  // Readiness chart data
-  const readinessChartData = useMemo(() => {
-    if (!readinessScore) return [];
-    const score = readinessScore.score;
-    return [
-      { name: 'Ready', value: score, color: score >= 70 ? 'hsl(var(--chart-1))' : 'transparent' },
-      { name: 'Caution', value: score >= 40 && score < 70 ? score : 0, color: score >= 40 && score < 70 ? 'hsl(var(--chart-2))' : 'transparent' },
-      { name: 'Rest', value: score < 40 ? score : 0, color: score < 40 ? 'hsl(var(--chart-3))' : 'transparent' },
-      { name: 'Remaining', value: 100 - score, color: 'hsl(var(--muted))' }
-    ];
-  }, [readinessScore]);
-
-  const getRecommendationBadgeVariant = (rec: string) => {
-    if (rec === 'ready') return 'default';
-    if (rec === 'caution') return 'secondary';
-    return 'destructive';
-  };
-
-  const currentPlan = dailyRec?.recommendation ? 
-    (selectedPlan === 'primary' ? dailyRec.recommendation.primaryPlan : 
-     selectedPlan === 'alternate' ? dailyRec.recommendation.alternatePlan : null) : null;
 
   // Check if fitness profile is incomplete
   const isProfileIncomplete = useMemo(() => {
@@ -431,30 +204,6 @@ export default function Training() {
     
     return !hasBasicInfo || !hasEquipmentInfo || !hasGoals;
   }, [fitnessProfile]);
-
-  // Get today's AI-saved workouts
-  const todayScheduledWorkouts = useMemo(() => {
-    if (!trainingSchedules) return [];
-    const today = new Date().toISOString().split('T')[0];
-    return trainingSchedules.filter(schedule => 
-      schedule.scheduledFor && new Date(schedule.scheduledFor).toISOString().split('T')[0] === today
-    );
-  }, [trainingSchedules]);
-
-  // Calculate display plan with AI-added exercises included
-  const displayPlan = useMemo(() => {
-    if (!currentPlan) return null;
-    
-    // Calculate additional duration and calories from AI-added exercises
-    const aiDuration = todayScheduledWorkouts.reduce((sum, w) => sum + (w.duration || 0), 0);
-    const aiCalories = todayScheduledWorkouts.reduce((sum, w) => sum + Math.round((w.duration || 0) * 8), 0);
-    
-    return {
-      ...currentPlan,
-      totalDuration: currentPlan.totalDuration + aiDuration,
-      calorieEstimate: currentPlan.calorieEstimate + aiCalories,
-    };
-  }, [currentPlan, todayScheduledWorkouts]);
 
   // Define tiles for the Training page
   const tiles: TileConfig[] = [

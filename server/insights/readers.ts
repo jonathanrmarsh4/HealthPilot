@@ -240,7 +240,7 @@ function extractNumericValue(valueJson: any): number | null {
     }
     
     return null;
-  } catch (error) {
+  } catch {
     return null;
   }
 }

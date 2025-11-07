@@ -50,7 +50,7 @@ export function RecipeDetailModal({ meal, open, onOpenChange }: RecipeDetailModa
           ? "We'll suggest more meals like this." 
           : "We'll adjust future meal suggestions.",
       });
-    } catch (error) {
+    } catch {
       toast({
         variant: "destructive",
         title: "Error",
@@ -88,7 +88,7 @@ export function RecipeDetailModal({ meal, open, onOpenChange }: RecipeDetailModa
       
       // Invalidate meal plans cache to refresh the list
       queryClient.invalidateQueries({ queryKey: ["/api/meal-plans"] });
-    } catch (error) {
+    } catch {
       toast({
         variant: "destructive",
         title: "Error",

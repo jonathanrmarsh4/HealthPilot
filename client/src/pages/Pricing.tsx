@@ -1,10 +1,9 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, Sparkles, Zap, Crown } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { Check, Zap, Crown, Sparkles } from "lucide-react";
 import { useLocation } from "wouter";
 import { CheckoutModal } from "@/components/CheckoutModal";
 
@@ -76,7 +75,6 @@ const plans = [
 
 export default function Pricing() {
   const [, setLocation] = useLocation();
-  const { toast } = useToast();
   const [checkoutModal, setCheckoutModal] = useState<{ open: boolean; tier: string; tierName: string }>({
     open: false,
     tier: "",

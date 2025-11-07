@@ -4,8 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, RotateCcw, Sparkles } from "lucide-react";
 import type { MealPlan } from "@shared/schema";
 import { useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
 type MealType = "breakfast" | "lunch" | "dinner";
 
@@ -27,7 +26,6 @@ export function MealSwipeView({ meals, onMealTap, onBackToCalendar }: MealSwipeV
   const [selectedMealType, setSelectedMealType] = useState<MealType>(getCurrentMealType());
   const [currentIndex, setCurrentIndex] = useState(0);
   const [swipedMeals, setSwipedMeals] = useState<string[]>([]);
-  const { toast } = useToast();
 
   // Reset index and swiped meals when meal type changes
   useEffect(() => {
@@ -56,8 +54,8 @@ export function MealSwipeView({ meals, onMealTap, onBackToCalendar }: MealSwipeV
       const res = await apiRequest("POST", "/api/meal-feedback", feedback);
       return res.json();
     },
-    onError: (error: Error) => {
-      console.error("Failed to save feedback:", error);
+    onError: (_error: Error) => {
+      console.error("Failed to save feedback:", _error);
     },
   });
 

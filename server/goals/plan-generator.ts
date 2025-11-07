@@ -100,7 +100,7 @@ export async function generateComprehensivePlan(
  */
 async function enrichMetricsWithTargets(
   input: GeneratePlanInput,
-  weeksToGoal: number
+  _weeksToGoal: number
 ): Promise<void> {
   if (!input.metrics || input.metrics.length === 0) {
     return;
@@ -203,7 +203,7 @@ function buildMetricProgression(
   currentValue: number | null,
   targetValue: number,
   weeks: number,
-  metricKey: string
+  _metricKey: string
 ): Array<{ week: number; value: number }> {
   // If no current value, start from 80% of target (conservative)
   const startValue = currentValue || (targetValue * 0.8);
@@ -518,7 +518,7 @@ function buildUserContextString(input: GeneratePlanInput): string {
  */
 async function generateNutritionPlan(
   input: GeneratePlanInput,
-  weeksToGoal: number
+  _weeksToGoal: number
 ): Promise<InsertGoalPlan> {
   // Import OpenAI client lazily
   const { default: OpenAI } = await import('openai');
@@ -590,7 +590,7 @@ OUTPUT FORMAT (JSON):
  */
 async function generateSupplementPlan(
   input: GeneratePlanInput,
-  weeksToGoal: number
+  _weeksToGoal: number
 ): Promise<InsertGoalPlan> {
   return {
     goalId: input.goal_id,

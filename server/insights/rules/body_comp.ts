@@ -2,7 +2,7 @@
  * Body Composition Rule Pack
  */
 
-import { SeriesPoint, readSeriesMultiDay } from "../readers";
+import { SeriesPoint } from "../readers";
 import { MetricSpec } from "../registry";
 import { trendSlope, dayChange } from "../primitives";
 import { createHash } from "crypto";
@@ -23,7 +23,7 @@ export async function generate(
   
   if (series.length === 0) return insights;
   
-  const latest = series[series.length - 1].v;
+  // const latest = series[series.length - 1].v;
   
   // Get 7-day trend
   const endDate = ctx.win.localDate;

@@ -43,8 +43,8 @@ function routeToPath(url: string) {
       // Fallback: just use the path as-is
       window.location.hash = `#${basePath}${parsed.search}`;
     }
-  } catch (error) {
-    console.error('[DeepLink] Failed to route:', url, error);
+  } catch (_error) {
+    console.error('[DeepLink] Failed to route:', url, _error);
   }
 }
 
@@ -71,8 +71,8 @@ export function handleDeepLink(url: string) {
     }
 
     console.warn('[DeepLink] Unknown URL scheme:', url);
-  } catch (error) {
-    console.error('[DeepLink] Failed to parse URL:', url, error);
+  } catch (_error) {
+    console.error('[DeepLink] Failed to parse URL:', url, _error);
   }
 }
 

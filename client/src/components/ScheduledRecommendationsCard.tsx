@@ -150,7 +150,6 @@ function SwipeableRecommendation({
 
 export function ScheduledRecommendationsCard({ recommendations }: ScheduledRecommendationsCardProps) {
   const { toast } = useToast();
-  const [swipingId, setSwipingId] = useState<string | null>(null);
 
   const completeMutation = useMutation({
     mutationFn: async (recommendationId: string) => {

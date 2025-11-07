@@ -1,4 +1,3 @@
-import { useState } from "react";
 import {
   Card,
   CardContent,
@@ -12,15 +11,14 @@ import { Progress } from "@/components/ui/progress";
 import {
   Target,
   Trash2,
-  Calendar,
-  CheckCircle2,
   AlertCircle,
-  Clock,
+  CheckCircle2,
   Sparkles,
-  MessageCircle,
+  Clock,
+  Calendar,
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -233,8 +231,6 @@ export default function Goals() {
     // Handle edge case where start equals target
     if (start === target) return 100;
 
-    // Get metric to determine if it's a decrease or increase goal
-    const metric = getMetric(goal.metricType);
     // Most health metrics are decrease goals (lower is better)
     const isDecreaseGoal = ["blood-pressure", "blood-glucose", "cholesterol", "weight", "body-fat-percentage", "heart-rate"].includes(goal.metricType);
 

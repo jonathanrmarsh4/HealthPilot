@@ -29,8 +29,8 @@ export function useTimezoneSync() {
       // Use Intl.DateTimeFormat to get IANA timezone
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
       return timezone;
-    } catch (error) {
-      console.error('Failed to detect timezone:', error);
+    } catch (_error) {
+      console.error('Failed to detect timezone:', _error);
       // Fallback to UTC if detection fails
       return 'UTC';
     }
@@ -64,8 +64,8 @@ export function useTimezoneSync() {
       });
 
       lastSyncedTimezone.current = currentTimezone;
-    } catch (error) {
-      console.error('Failed to sync timezone:', error);
+    } catch (_error) {
+      console.error('Failed to sync timezone:', _error);
       // Don't throw - timezone sync is not critical to app functionality
     } finally {
       syncInProgress.current = false;

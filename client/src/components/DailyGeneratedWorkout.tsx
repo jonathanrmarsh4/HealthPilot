@@ -3,14 +3,11 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { 
   Sparkles, 
   Dumbbell, 
   Clock, 
-  Zap, 
-  Activity, 
   AlertTriangle,
   RefreshCw,
   CheckCircle2,

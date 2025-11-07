@@ -324,35 +324,35 @@ export class HealthKitService {
   /**
    * Get dietary energy (calories consumed) data
    */
-  async getDietaryEnergy(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
+  async getDietaryEnergy(_startDate: Date, _endDate: Date): Promise<HealthDataSample[]> {
     return [];
   }
 
   /**
    * Get dietary protein data
    */
-  async getDietaryProtein(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
+  async getDietaryProtein(_startDate: Date, _endDate: Date): Promise<HealthDataSample[]> {
     return [];
   }
 
   /**
    * Get dietary carbohydrates data
    */
-  async getDietaryCarbs(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
+  async getDietaryCarbs(_startDate: Date, _endDate: Date): Promise<HealthDataSample[]> {
     return [];
   }
 
   /**
    * Get dietary fat data
    */
-  async getDietaryFat(startDate: Date, endDate: Date): Promise<HealthDataSample[]> {
+  async getDietaryFat(_startDate: Date, _endDate: Date): Promise<HealthDataSample[]> {
     return [];
   }
 
   /**
    * Get workouts
    */
-  async getWorkouts(startDate: Date, endDate: Date): Promise<WorkoutSample[]> {
+  async getWorkouts(_startDate: Date, _endDate: Date): Promise<WorkoutSample[]> {
     return [];
   }
 

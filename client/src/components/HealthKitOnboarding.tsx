@@ -46,8 +46,8 @@ export function HealthKitOnboarding({ onComplete, onSkip }: HealthKitOnboardingP
       if (!available) {
         setCheckFailed(true);
       }
-    } catch (error) {
-      console.error('[HealthKitOnboarding] Error checking availability:', error);
+    } catch (_error) {
+      console.error('[HealthKitOnboarding] Error checking availability:', _error);
       setIsHealthKitAvailable(false);
       setCheckFailed(true);
       setIsChecking(false);
@@ -123,8 +123,8 @@ export function HealthKitOnboarding({ onComplete, onSkip }: HealthKitOnboardingP
       await apiRequest('POST', '/api/onboarding/complete-healthkit');
       queryClient.invalidateQueries({ queryKey: ['/api/onboarding/status'] });
       onSkip();
-    } catch (error) {
-      console.error('Failed to skip HealthKit setup:', error);
+    } catch (_error) {
+      console.error('Failed to skip HealthKit setup:', _error);
       onSkip(); // Skip anyway
     }
   };

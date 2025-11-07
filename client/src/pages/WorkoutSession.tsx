@@ -15,7 +15,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/queryClient";
 import { 
   ChevronLeft, 
   CheckCircle2, 
@@ -125,7 +125,7 @@ function SortableExerciseCard({
   handleAddSet,
   isExpanded,
   onToggleExpand,
-  wasDragging
+  wasDragging: _wasDragging
 }: {
   exercise: Exercise;
   exerciseSets: ExerciseSet[];

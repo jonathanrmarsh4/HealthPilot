@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Moon, Heart, TrendingUp, Apple, Calendar, ChevronLeft, ChevronRight, RefreshCw, ChevronDown, ChevronUp, AlertTriangle } from "lucide-react";
+import {  Moon, Heart, TrendingUp, ChevronDown, ChevronUp, AlertTriangle } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format, subDays, startOfDay } from "date-fns";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
@@ -65,7 +65,7 @@ const categoryIcons = {
   sleep: Moon,
   recovery: Heart,
   performance: TrendingUp,
-  health: Apple,
+  health: 
 };
 
 const categoryColors = {

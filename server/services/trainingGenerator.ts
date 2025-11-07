@@ -14,7 +14,7 @@
 import OpenAI from "openai";
 import type { IStorage } from "../storage";
 import { format, subDays } from "date-fns";
-import { StructuredWorkoutsKit, type WorkoutPlan, type LiftBlock, type AnyBlock, type Modality } from "./structured-workouts-kit";
+import { StructuredWorkoutsKit, type LiftBlock, type AnyBlock, type Modality } from "./structured-workouts-kit";
 import { RULES, PATTERN_TO_MUSCLES, getMusclesForPattern } from "./rules";
 import { getOrCreateExerciseForTemplate, type TemplateData } from "./templateExerciseBridge";
 import { getCurrentRecoveryState } from "./fatigue";
@@ -333,7 +333,7 @@ export async function generateDailySession(context: any, regenerationCount: numb
   console.log(`\n🧠 ═══ PRE-GENERATION RECOVERY ANALYSIS ═══`);
   console.log(`💪 Muscle recovery scores:`, muscleRecovery);
   
-  for (const [pattern, rules] of Object.entries(RULES)) {
+  for (const [pattern, _rules] of Object.entries(RULES)) {
     const { penalty, avgRecovery, affectedMuscles } = getRecoveryPenalty(pattern as Pattern, muscleRecovery);
     
     if (penalty <= -0.5) {
@@ -690,7 +690,7 @@ export async function enrichWorkoutBlocks(
         if (template) {
           templateDataMap.set(block.template_id, template);
         }
-      } catch (error) {
+      } catch {
         console.warn(`⚠️ Template ${block.template_id} not found in database`);
       }
     }

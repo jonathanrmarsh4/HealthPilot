@@ -19,7 +19,7 @@ export async function getAuthHeaders(): Promise<HeadersInit> {
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
-    } catch (error) {
+    } catch {
       // Token not found or SecureStorage error, continue without auth header
     }
   }

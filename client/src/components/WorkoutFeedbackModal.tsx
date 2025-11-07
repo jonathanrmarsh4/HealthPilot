@@ -12,7 +12,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useState, useEffect } from "react";
 import { MessageSquare, Zap, Heart, ThumbsUp, ThumbsDown, AlertCircle, Frown, Meh, Smile, SmilePlus, HeartHandshake } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 
 interface WorkoutFeedbackModalProps {
   open: boolean;

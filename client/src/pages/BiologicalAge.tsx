@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -42,7 +42,7 @@ export default function BiologicalAge() {
     );
   }
 
-  if (error) {
+  if (_error) {
     return (
       <div className="container mx-auto p-6 max-w-4xl">
         <Alert variant="destructive" data-testid="error-biological-age">

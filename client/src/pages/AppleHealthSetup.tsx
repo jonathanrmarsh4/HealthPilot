@@ -6,7 +6,7 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { healthKitService } from "@/services/healthkit";
 import { getPlatform } from "@/mobile/MobileBootstrap";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function AppleHealthSetup() {
   const { toast } = useToast();

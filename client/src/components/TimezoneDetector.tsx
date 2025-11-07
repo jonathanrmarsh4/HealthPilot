@@ -55,8 +55,8 @@ export function TimezoneDetector() {
     try {
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
       return timezone;
-    } catch (error) {
-      console.error('Failed to detect timezone:', error);
+    } catch (_error) {
+      console.error('Failed to detect timezone:', _error);
       return null;
     }
   };

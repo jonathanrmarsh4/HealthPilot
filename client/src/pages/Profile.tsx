@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -12,8 +12,8 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { useToast } from "@/hooks/use-toast";
-import { queryClient, apiRequest } from "@/lib/queryClient";
-import { Loader2, User, Heart, CreditCard, Settings, MapPin, Dumbbell, ArrowRight, Sparkles, Crown } from "lucide-react";
+import {  apiRequest } from "@/lib/queryClient";
+import { Loader2, User, Heart, CreditCard, Settings, MapPin, ArrowRight, Crown, Dumbbell, Sparkles } from "lucide-react";
 import { Link } from "wouter";
 import { format } from "date-fns";
 import { useLocale } from "@/contexts/LocaleContext";
@@ -120,8 +120,8 @@ export default function Profile() {
         );
         const data = await response.json();
         setLocationSuggestions(data);
-      } catch (error) {
-        console.error("Error fetching location suggestions:", error);
+      } catch (_error) {
+        console.error("Error fetching location suggestions:", _error);
       }
     }, 300);
 

@@ -1,14 +1,13 @@
 import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, TrendingDown, Calendar, BarChart3, ArrowRight, Loader2, Brain } from "lucide-react";
+import { TrendingUp, TrendingDown, BarChart3, ArrowRight, Loader2, Brain, Calendar } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { format, subDays, subWeeks, subMonths } from "date-fns";
 
 const BIOMARKER_OPTIONS = [
   { value: "weight", label: "Weight" },

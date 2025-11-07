@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { healthKitService, type HealthDataSample, type WorkoutSample, type SleepSample } from '@/services/healthkit';
-import { CheckCircle2, XCircle, AlertCircle, Activity, Database } from 'lucide-react';
+import { healthKitService } from '@/services/healthkit';
+import { CheckCircle2, XCircle, Activity, Database, AlertCircle } from 'lucide-react';
 
 type TestResult = {
   dataType: string;

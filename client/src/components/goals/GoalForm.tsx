@@ -23,7 +23,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, AlertCircle } from "lucide-react";
-import { listMetrics, getMetric, type MetricDef, listMetricsByCategory } from "@/lib/metrics/registry";
+import { getMetric, type MetricDef, listMetricsByCategory } from "@/lib/metrics/registry";
 import { prefillForMetric } from "@/lib/metrics/prefill";
 import { GoalFieldRenderer } from "./GoalFieldRenderer";
 
@@ -62,7 +62,6 @@ export function GoalForm({ goal, onSubmit, isPending = false }: GoalFormProps) {
 
   // Get all metrics organized by category
   const metricsByCategory = listMetricsByCategory();
-  const allMetrics = listMetrics();
 
   // Build dynamic schema based on selected metric
   const buildFormSchema = (metric: MetricDef | null) => {
@@ -162,8 +161,8 @@ export function GoalForm({ goal, onSubmit, isPending = false }: GoalFormProps) {
             setPrefillNote(result.note);
           }
         })
-        .catch((error) => {
-          console.error("Prefill error:", error);
+        .catch((_error) => {
+          console.error("Prefill error:", _error);
           setPrefillNote("Failed to load previous data");
         })
         .finally(() => {

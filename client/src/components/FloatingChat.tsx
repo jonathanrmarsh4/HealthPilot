@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import { Link } from "wouter";
-import { Send, X, MessageCircle, Loader2, Minimize2, Sparkles, Trash2, Mic, MicOff, Volume2, VolumeX, Activity, Shield, ExternalLink } from "lucide-react";
+import { Send, X, Loader2, Minimize2, Sparkles, Trash2, Mic, MicOff, Volume2, VolumeX, Shield, ExternalLink } from "lucide-react";
 import { useOnboarding } from "@/contexts/OnboardingContext";
 import type { ChatMessage } from "@shared/schema";
 import { ChatFeedback } from "@/components/ChatFeedback";
@@ -20,7 +20,7 @@ interface VoiceChatModalProps {
   context?: string | null;
 }
 
-export function VoiceChatModal({ isOpen, onClose, context }: VoiceChatModalProps) {
+export function VoiceChatModal({ isOpen, onClose, context: _context }: VoiceChatModalProps) {
   const { toast } = useToast();
   const [isConnected, setIsConnected] = useState(false);
   const [isListening, setIsListening] = useState(false);
@@ -132,8 +132,8 @@ export function VoiceChatModal({ isOpen, onClose, context }: VoiceChatModalProps
         }
       };
 
-      ws.onerror = (error) => {
-        console.error("WebSocket error:", error);
+      ws.onerror = (_error) => {
+        console.error("WebSocket error:", _error);
         toast({
           variant: "destructive",
           title: "Connection Error",
@@ -165,14 +165,14 @@ export function VoiceChatModal({ isOpen, onClose, context }: VoiceChatModalProps
       // Start capturing audio
       startAudioCapture(stream, ws);
 
-    } catch (error: any) {
-      console.error("❌ Failed to connect:", error);
+    } catch (_error: any) {
+      console.error("❌ Failed to connect:", _error);
       
       // Provide specific error message based on error type
       let errorTitle = "Microphone Access Required";
       let errorMessage = "Please allow microphone access to use voice chat";
       
-      if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+      if (_error.name === 'NotAllowedError' || _error.name === 'PermissionDeniedError') {
         errorTitle = "Permission Denied";
         // Detect if running on iOS
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
@@ -181,14 +181,14 @@ export function VoiceChatModal({ isOpen, onClose, context }: VoiceChatModalProps
         } else {
           errorMessage = "Microphone access was denied. Please allow microphone access in your browser settings and try again.";
         }
-      } else if (error.name === 'NotFoundError') {
+      } else if (_error.name === 'NotFoundError') {
         errorMessage = "No microphone found on this device. Please connect a microphone and try again.";
-      } else if (error.name === 'NotSupportedError') {
+      } else if (_error.name === 'NotSupportedError') {
         errorMessage = "Microphone access is not supported in this browser. Please use a supported browser like Safari or Chrome.";
-      } else if (error.name === 'SecurityError') {
+      } else if (_error.name === 'SecurityError') {
         errorMessage = "Microphone access is blocked due to security restrictions. Please ensure you're using HTTPS.";
-      } else if (error.message) {
-        errorMessage = error.message;
+      } else if (_error.message) {
+        errorMessage = _error.message;
       }
       
       toast({
@@ -200,7 +200,7 @@ export function VoiceChatModal({ isOpen, onClose, context }: VoiceChatModalProps
     }
   };
 
-  const startAudioCapture = (stream: MediaStream, ws: WebSocket) => {
+  const startAudioCapture = (stream: MediaStream, _ws: WebSocket) => {
     if (!audioContextRef.current) return;
 
     const audioContext = audioContextRef.current;
@@ -488,7 +488,6 @@ export function FloatingChat({ isOpen, onClose, currentPage, context }: Floating
   const { status: onboardingStatus } = useOnboarding();
   
   // Track chat session to reset UI synchronously when opening (prevents flash of old messages)
-  const [sessionId, setSessionId] = useState(0);
   const clearedAtTimestamp = useMemo(() => {
     if (!isOpen) return null;
     return new Date().toISOString();
@@ -554,8 +553,8 @@ export function FloatingChat({ isOpen, onClose, currentPage, context }: Floating
       try {
         recognitionRef.current.start();
         setIsListening(true);
-      } catch (error) {
-        console.error('Error starting speech recognition:', error);
+      } catch (_error) {
+        console.error('Error starting speech recognition:', _error);
         toast({
           title: "Error",
           description: "Could not start voice input",
@@ -978,7 +977,7 @@ export function FloatingChat({ isOpen, onClose, currentPage, context }: Floating
   );
 }
 
-export function FloatingChatTrigger({ onClick, subscriptionTier = 'free' }: { onClick: () => void; subscriptionTier?: string }) {
+export function FloatingChatTrigger({ onClick, subscriptionTier: _subscriptionTier = 'free' }: { onClick: () => void; subscriptionTier?: string }) {
   // Use primary gradient for all users to match theme
   const buttonClasses = "bg-primary hover:bg-primary/90 border-2 border-primary/50 hover:border-primary/70";
   

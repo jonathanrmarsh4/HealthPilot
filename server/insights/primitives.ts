@@ -63,7 +63,7 @@ export function rollingMean(series: SeriesPoint[], windowDays = 7): RollingMeanR
 /**
  * Calculate z-score of latest value vs baseline
  */
-export function zScoreLatest(series: SeriesPoint[], baselineWindowDays = 14): ZScoreResult {
+export function zScoreLatest(series: SeriesPoint[], _baselineWindowDays = 14): ZScoreResult {
   if (series.length < 2) {
     return {
       z: 0,
@@ -101,7 +101,7 @@ export function zScoreLatest(series: SeriesPoint[], baselineWindowDays = 14): ZS
 /**
  * Calculate trend slope using simple linear regression
  */
-export function trendSlope(series: SeriesPoint[], days = 7): TrendResult {
+export function trendSlope(series: SeriesPoint[], _days = 7): TrendResult {
   if (series.length < 3) {
     return {
       slope: 0,
@@ -125,7 +125,7 @@ export function trendSlope(series: SeriesPoint[], days = 7): TrendResult {
   const sumY = points.reduce((acc, p) => acc + p.y, 0);
   const sumXY = points.reduce((acc, p) => acc + p.x * p.y, 0);
   const sumX2 = points.reduce((acc, p) => acc + p.x * p.x, 0);
-  const sumY2 = points.reduce((acc, p) => acc + p.y * p.y, 0);
+  // const sumY2 = points.reduce((acc, p) => acc + p.y * p.y, 0);
   
   const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
   

@@ -79,7 +79,6 @@ describe('Goals v2 - Integration Tests (Real Code)', () => {
     
     it('should verify metric belongs to goal - PASS case', () => {
       // Simulating the actual endpoint logic
-      const goalId = 'goal-123';
       const metricId = 'metric-456';
       
       const mockMetrics = [
@@ -95,7 +94,6 @@ describe('Goals v2 - Integration Tests (Real Code)', () => {
     
     it('should verify metric belongs to goal - FAIL case (IDOR blocked)', () => {
       // Simulating an IDOR attack
-      const goalId = 'goal-123';
       const attackerMetricId = 'metric-999'; // From a different goal
       
       const goalMetrics = [
@@ -154,7 +152,6 @@ describe('Goals v2 - Integration Tests (Real Code)', () => {
       // This PostgreSQL operator is case-insensitive and equivalent to:
       // LOWER(workoutType) LIKE LOWER('%running%')
       
-      const testPattern = '%running%';
       const validMatches = ['Running', 'running', 'RUNNING', 'Outdoor Running'];
       
       validMatches.forEach(match => {

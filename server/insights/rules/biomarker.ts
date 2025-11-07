@@ -3,7 +3,7 @@
  * Comprehensive reference ranges for 50+ lab biomarkers
  */
 
-import { SeriesPoint, readSeriesMultiDay } from "../readers";
+import { SeriesPoint } from "../readers";
 import { MetricSpec } from "../registry";
 import { thresholdCross, trendSlope } from "../primitives";
 import { createHash } from "crypto";

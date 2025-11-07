@@ -24,13 +24,13 @@ export class PushNotificationService {
     await PushNotifications.register();
     
     // Listen for registration
-    await PushNotifications.addListener('registration', (token) => {
+    await PushNotifications.addListener('registration', (_token) => {
       // Token registered successfully
     });
 
     // Listen for registration errors
-    await PushNotifications.addListener('registrationError', (error) => {
-      console.error('[Push] Registration error:', error);
+    await PushNotifications.addListener('registrationError', (_error) => {
+      console.error('[Push] Registration error:', _error);
     });
   }
 

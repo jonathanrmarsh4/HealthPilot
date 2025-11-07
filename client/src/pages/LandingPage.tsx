@@ -4,9 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-  Shield, Activity, Brain, Calendar,
-  TrendingUp, CheckCircle, Star, ArrowRight, Apple, Heart, Target, Zap, Sparkles,
-  Lock, FileCheck, Database, Eye, Award
+  Shield, Activity, Brain,
+  TrendingUp, CheckCircle, Star, ArrowRight, Target, Zap,
+  Lock, FileCheck, Database, Eye, Award, Heart, Apple
 } from "lucide-react";
 import * as LucideIcons from "lucide-react";
 import digitalHumanImage from "@assets/IMG_0088_1760794249248.png";
@@ -17,7 +17,7 @@ import { useTheme } from "@/components/ThemeProvider";
 import type { LandingPageContent, LandingPageFeature, LandingPageTestimonial, LandingPagePricingPlan, LandingPageSocialLink } from "@shared/schema";
 
 export default function LandingPage() {
-  const [, setLocation] = useLocation();
+  const [,] = useLocation();
   const { theme } = useTheme();
   const [checkoutModal, setCheckoutModal] = useState<{ open: boolean; tier: string; tierName: string }>({
     open: false,

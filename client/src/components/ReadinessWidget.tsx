@@ -71,7 +71,7 @@ export function ReadinessWidget() {
     }
   };
 
-  const getBadgeVariant = (quality: string) => {
+  // const getBadgeVariant = (quality: string) => {
     switch (quality) {
       case "excellent":
         return "default";

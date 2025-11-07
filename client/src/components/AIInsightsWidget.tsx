@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Sparkles, TrendingUp, Activity, Brain, Check, X, RefreshCw, Heart, Zap, Moon, Apple, ArrowRight } from "lucide-react";
+import { Sparkles, TrendingUp, Brain, Check, X, Heart, Moon, Apple, ArrowRight } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";

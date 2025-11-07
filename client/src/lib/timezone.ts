@@ -1,4 +1,4 @@
-import { format, parseISO } from "date-fns";
+import { parseISO } from "date-fns";
 import { formatInTimeZone, toZonedTime } from "date-fns-tz";
 
 export function formatTimestamp(

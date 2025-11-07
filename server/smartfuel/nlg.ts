@@ -61,7 +61,7 @@ export class SmartFuelNLG {
   /**
    * Generate overview summary with appropriate tone
    */
-  generateOverview(themesDetected: string[], primaryGoal?: string): string {
+  generateOverview(themesDetected: string[], _primaryGoal?: string): string {
     const themeLabels: Record<string, string> = {
       'hypertension': 'blood pressure management',
       'elevated_ldl': 'cholesterol balance',
@@ -120,7 +120,7 @@ export class SmartFuelNLG {
   /**
    * Add context-aware emphasis to guidance text
    */
-  addEmphasis(text: string, severity: 'high' | 'moderate' | 'low' = 'moderate'): string {
+  addEmphasis(text: string, _severity: 'high' | 'moderate' | 'low' = 'moderate'): string {
     // This could be used in the future to adjust tone based on severity
     // For now, we keep consistent friendly tone
     return text;

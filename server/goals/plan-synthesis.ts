@@ -16,7 +16,7 @@ import type { ExtractedContext } from './conversation-intelligence';
 import type { InsertGoal, InsertGoalMetric, InsertGoalMilestone, InsertGoalPlan, InsertGoalPlanSession } from '@shared/schema';
 import { addWeeks, addMonths, format, differenceInWeeks } from 'date-fns';
 import OpenAI from 'openai';
-import { validateGoalPlanContent, flattenPlanToSessions, type GoalPlanContent } from '@shared/types/goal-plans';
+import { validateGoalPlanContent, type GoalPlanContent } from '@shared/types/goal-plans';
 import { db } from '../db';
 import { users } from '@shared/schema';
 import { eq } from 'drizzle-orm';
@@ -45,7 +45,6 @@ export async function synthesizeGoal(
 ): Promise<SynthesizedGoal> {
   const isBeginner = context.fitnessLevel === 'beginner' || context.goalType === 'beginner_fitness';
   const isRunningGoal = initialInput.toLowerCase().includes('run');
-  const isStrengthGoal = initialInput.toLowerCase().includes('lift') || initialInput.toLowerCase().includes('strength');
 
   // Determine goal parameters
   const targetDate = context.targetDetails?.targetDate 
@@ -98,7 +97,7 @@ export async function synthesizeGoal(
 /**
  * Generate a friendly display name for the goal
  */
-function generateDisplayName(initialInput: string, context: ExtractedContext): string {
+function generateDisplayName(initialInput: string, _context: ExtractedContext): string {
   // Clean up the initial input
   let name = initialInput.trim();
   
@@ -550,7 +549,7 @@ async function buildAIMilestones(
     const milestones: Omit<InsertGoalMilestone, 'id' | 'goalId'>[] = [];
     let accumulatedWeeks = 0;
 
-    planContent.phases.forEach((phase, phaseIndex) => {
+    planContent.phases.forEach((phase) => {
       // Add milestone at end of each phase
       accumulatedWeeks += phase.durationWeeks;
       const phaseEndDate = addWeeks(new Date(), accumulatedWeeks);
@@ -614,7 +613,7 @@ async function buildAIMilestones(
 function buildFallbackPlan(
   context: ExtractedContext,
   initialInput: string,
-  targetDate: Date
+  _targetDate: Date
 ): Omit<InsertGoalPlan, 'id' | 'goalId'> {
   return {
     planType: 'training',

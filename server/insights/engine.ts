@@ -5,7 +5,7 @@
 
 import { discoverMetrics } from "./discovery";
 import { readSeries, perthLocalDay } from "./readers";
-import { getRegistry, getFamilyWeight, MetricSpec } from "./registry";
+import { getRegistry, getFamilyWeight } from "./registry";
 import { config } from "./config";
 import { ilog, ilogSection, ilogInsight } from "./debug";
 import { db } from "../db";
@@ -56,7 +56,7 @@ export async function computeDailyInsights(
   ilogSection(`Computing Daily Insights for ${userId} on ${localDate}`);
   
   const win = perthLocalDay(localDate, tz);
-  const registry = getRegistry();
+  getRegistry();
   
   // 1. Discover all available metrics (pass timezone for proper UTC conversion)
   const { specs, counts } = await discoverMetrics(userId, localDate, tz);
@@ -228,7 +228,7 @@ async function saveInsights(
 /**
  * Map family to category enum
  */
-function mapFamilyToCategory(family: string): "sleep" | "recovery" | "performance" | "health" {
+// function mapFamilyToCategory(family: string): "sleep" | "recovery" | "performance" | "health" {
   switch (family) {
     case "sleep":
       return "sleep";

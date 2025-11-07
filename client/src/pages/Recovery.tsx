@@ -6,12 +6,11 @@ import { RecommendationCalendar } from "@/components/RecommendationCalendar";
 import { MuscleRecoveryGrid } from "@/components/MuscleRecoveryGrid";
 import { RecoveryTimelineChart } from "@/components/RecoveryTimelineChart";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Sparkles, HeartPulse, Activity, TrendingUp, Calendar } from "lucide-react";
+import {  HeartPulse, Activity, TrendingUp, Sparkles } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Link } from "wouter";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { format } from "date-fns";
 import { RecoveryState, TimelineEvent } from "@/types/recovery";
 
 interface ReadinessScore {
@@ -49,7 +48,7 @@ export default function Recovery() {
     queryKey: ["/api/training/readiness"],
   });
 
-  const { data: scheduledSessions = [], isLoading: isLoadingSessions } = useQuery<RecoverySession[]>({
+  const { data: scheduledSessions = [] } = useQuery<RecoverySession[]>({
     queryKey: ["/api/recovery/scheduled"],
   });
 

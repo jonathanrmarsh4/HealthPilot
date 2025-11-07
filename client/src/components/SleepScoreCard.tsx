@@ -7,7 +7,6 @@ import { formatTime } from "@/lib/timezone";
 interface SleepScoreCardProps {
   score: number;
   totalMinutes: number;
-  quality: string;
   bedtime?: Date | string;
   waketime?: Date | string;
   deepMinutes?: number;
@@ -17,7 +16,6 @@ interface SleepScoreCardProps {
 export function SleepScoreCard({ 
   score, 
   totalMinutes, 
-  quality, 
   bedtime, 
   waketime,
   deepMinutes = 0,

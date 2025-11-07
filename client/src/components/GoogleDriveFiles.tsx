@@ -6,7 +6,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useEffect, useState, useRef } from "react";
+import { useState, useRef } from "react";
 import type { HealthRecord } from "@shared/schema";
 
 interface GoogleDriveFile {
@@ -51,8 +51,8 @@ export function GoogleDriveFiles() {
       });
       abortControllers.current.delete(fileId);
     },
-    onError: (error: Error, fileId) => {
-      console.error("Error analyzing file:", error);
+    onError: (_error: Error, fileId) => {
+      console.error("Error analyzing file:", _error);
       setAnalyzingFiles(prev => {
         const next = new Set(prev);
         next.delete(fileId);

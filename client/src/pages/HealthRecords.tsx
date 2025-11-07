@@ -3,13 +3,13 @@ import { GoogleDriveFiles } from "@/components/GoogleDriveFiles";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FileText, Trash2, RefreshCw, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
+import { FileText, Trash2, RefreshCw, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { MedicalReport } from "@shared/schema";
 import { format } from "date-fns";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 export default function HealthRecords() {

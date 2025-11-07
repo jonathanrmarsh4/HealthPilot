@@ -4,9 +4,9 @@ import { ScheduleRecommendationDialog } from "@/components/ScheduleRecommendatio
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Apple, Dumbbell, AlertCircle, TrendingUp, Brain, Loader2, Waves, Activity } from "lucide-react";
+import {  TrendingUp, Brain, Loader2, Waves, Activity, AlertCircle, Dumbbell, Sparkles } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/queryClient";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import type { Recommendation, HealthRecord, Biomarker } from "@shared/schema";

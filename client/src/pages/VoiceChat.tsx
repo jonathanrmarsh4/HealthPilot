@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Mic, MicOff, Phone, PhoneOff, Sparkles } from "lucide-react";
@@ -58,7 +58,7 @@ export default function VoiceChat() {
           if (permissionStatus.state === 'denied') {
             throw new Error('Microphone permission was previously denied. Please enable it in your device settings.');
           }
-        } catch (permError) {
+        } catch {
           // Continue anyway - permission query might not be supported on iOS
         }
       }
@@ -217,7 +217,7 @@ export default function VoiceChat() {
     }
   };
 
-  const startAudioCapture = (stream: MediaStream, ws: WebSocket) => {
+  const startAudioCapture = (stream: MediaStream, _ws: WebSocket) => {
     if (!audioContextRef.current) return;
 
     const audioContext = audioContextRef.current;

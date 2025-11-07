@@ -32,8 +32,8 @@ export class OneSignalClient {
       });
 
       this.initialized = true;
-    } catch (error) {
-      console.error('[OneSignal] Initialization error:', error);
+    } catch (_error) {
+      console.error('[OneSignal] Initialization error:', _error);
     }
   }
 
@@ -41,8 +41,8 @@ export class OneSignalClient {
     if (!Capacitor.isNativePlatform()) return;
     try {
       await OneSignal.login(userId);
-    } catch (error) {
-      console.error('[OneSignal] Error setting user ID:', error);
+    } catch (_error) {
+      console.error('[OneSignal] Error setting user ID:', _error);
     }
   }
 
@@ -50,8 +50,8 @@ export class OneSignalClient {
     if (!Capacitor.isNativePlatform()) return;
     try {
       await OneSignal.logout();
-    } catch (error) {
-      console.error('[OneSignal] Error removing user ID:', error);
+    } catch (_error) {
+      console.error('[OneSignal] Error removing user ID:', _error);
     }
   }
 }

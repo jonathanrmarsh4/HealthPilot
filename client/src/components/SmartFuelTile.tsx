@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Sparkles, ArrowRight, XCircle, CheckCircle2, Target, RefreshCw } from "lucide-react";
 import { Link } from "wouter";
 import { Skeleton } from "@/components/ui/skeleton";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/queryClient";
+import { queryClient } from "@/lib/queryClient";
 import { useState } from "react";
 
 interface SmartFuelGuidance {
@@ -32,12 +33,12 @@ export function SmartFuelTile() {
       const result = await apiRequest("POST", "/api/smartfuel/guidance/generate");
       return result;
     },
-    onSuccess: (data) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/smartfuel/guidance/current"] });
       setIsGenerating(false);
     },
-    onError: (error) => {
-      console.error('[SmartFuel] Mutation onError', error);
+    onError: (_error) => {
+      console.error('[SmartFuel] Mutation onError', _error);
       setIsGenerating(false);
     },
   });

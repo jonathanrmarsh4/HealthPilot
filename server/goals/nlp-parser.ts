@@ -30,7 +30,7 @@ export interface ParseGoalOptions {
  */
 export async function parseGoal(
   inputText: string,
-  options?: ParseGoalOptions
+  _options?: ParseGoalOptions
 ): Promise<ParsedGoal> {
   // Import OpenAI client lazily to avoid issues with instrumentation setup
   const { default: OpenAI } = await import('openai');

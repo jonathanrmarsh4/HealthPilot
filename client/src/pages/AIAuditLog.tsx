@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { AlertCircle, CheckCircle, History, Database } from "lucide-react";
+import {  CheckCircle, History, Database } from "lucide-react";
 
 interface AIAction {
   id: string;
@@ -32,7 +32,7 @@ export default function AIAuditLog() {
     ? allActions 
     : allActions?.filter(action => action.actionType === filterType);
 
-  const actionTypes = allActions 
+  // const actionTypes = allActions 
     ? Array.from(new Set(allActions.map(a => a.actionType)))
     : [];
 

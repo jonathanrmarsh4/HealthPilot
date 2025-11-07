@@ -79,7 +79,7 @@ export function GoalsSummaryWidget() {
   };
 
   // Complementary colors for different goal types
-  const getGoalColor = (index: number, metricType: string) => {
+  const getGoalColor = (index: number, _metricType: string) => {
     // Different color for each goal based on position and type
     const colorSets = [
       { bg: 'bg-emerald-500', text: 'text-emerald-600 dark:text-emerald-400' },
