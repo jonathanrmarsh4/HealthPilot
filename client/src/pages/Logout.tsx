@@ -15,7 +15,7 @@ export default function Logout() {
           <div className="flex justify-center mb-4">
             <img src={logo} alt="HealthPilot" className="h-16 w-16" />
           </div>
-          <CardTitle className="text-2xl">You've been logged out</CardTitle>
+          <CardTitle className="text-2xl">You&apos;ve been logged out</CardTitle>
           <CardDescription>
             Thank you for using HealthPilot. Your session has ended successfully.
           </CardDescription>

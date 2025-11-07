@@ -33,7 +33,7 @@ export function TodaysMealsWidget() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Apple className="h-5 w-5 text-primary" />
-            Today's Meals
+            Today&apos;s Meals
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -49,7 +49,7 @@ export function TodaysMealsWidget() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Apple className="h-5 w-5 text-primary" />
-            Today's Meals
+            Today&apos;s Meals
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -100,7 +100,7 @@ export function TodaysMealsWidget() {
         <CardTitle className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Apple className="h-5 w-5 text-primary" />
-            Today's Meals
+            Today&apos;s Meals
           </div>
           <Badge variant="secondary" className="text-xs" data-testid="badge-total-calories">
             {totalCalories} cal

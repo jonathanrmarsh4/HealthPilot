@@ -706,7 +706,7 @@ export default function AdminMealLibrary() {
               Delete Meal from Library
             </AlertDialogTitle>
             <AlertDialogDescription data-testid="text-delete-dialog-description">
-              This will permanently remove "{mealToDelete?.title}" from the meal library. This action cannot be undone.
+              This will permanently remove &quot;{mealToDelete?.title}&quot; from the meal library. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

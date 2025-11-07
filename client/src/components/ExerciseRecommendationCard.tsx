@@ -258,7 +258,7 @@ export function ExerciseRecommendationCard({
           <DialogHeader>
             <DialogTitle>Pick Training Days</DialogTitle>
             <DialogDescription>
-              Select which days you'd like to do this exercise. Colored dates show existing commitments.
+              Select which days you&apos;d like to do this exercise. Colored dates show existing commitments.
             </DialogDescription>
           </DialogHeader>
 

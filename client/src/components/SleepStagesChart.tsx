@@ -71,7 +71,7 @@ export function SleepStagesChart({
     <Card data-testid="card-sleep-stages">
       <CardHeader>
         <CardTitle>Sleep Stages</CardTitle>
-        <CardDescription>Previous night's sleep breakdown</CardDescription>
+        <CardDescription>Previous night&apos;s sleep breakdown</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="h-[300px]">

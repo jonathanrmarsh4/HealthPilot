@@ -11,7 +11,7 @@ export default function SecurityWhitepaper() {
           <h1 className="text-3xl md:text-4xl font-bold">Security & Privacy Whitepaper</h1>
         </div>
         <p className="text-muted-foreground">
-          Comprehensive technical documentation of HealthPilot's security architecture, 
+          Comprehensive technical documentation of HealthPilot&apos;s security architecture, 
           privacy practices, and compliance implementations.
         </p>
         <p className="text-sm text-muted-foreground mt-2">
@@ -124,7 +124,7 @@ export default function SecurityWhitepaper() {
               <p>HealthPilot uses industry-standard OpenID Connect (OIDC) for authentication:</p>
               <ul className="list-disc ml-6 mt-2 space-y-1">
                 <li><strong>Protocol:</strong> OAuth 2.0 / OpenID Connect via Replit Auth</li>
-                <li><strong>Identity Provider:</strong> Replit's secure authentication service</li>
+                <li><strong>Identity Provider:</strong> Replit&apos;s secure authentication service</li>
                 <li><strong>Session Management:</strong> Passport.js with secure session storage</li>
                 <li><strong>Token Security:</strong> Short-lived access tokens with secure refresh mechanisms</li>
               </ul>

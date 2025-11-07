@@ -52,7 +52,7 @@ export function ScheduleRecommendationDialog({
         <DialogHeader>
           <DialogTitle>Schedule Workout</DialogTitle>
           <DialogDescription>
-            Choose when to add "{recommendationTitle}" to your training schedule
+            Choose when to add &quot;{recommendationTitle}&quot; to your training schedule
           </DialogDescription>
         </DialogHeader>
 

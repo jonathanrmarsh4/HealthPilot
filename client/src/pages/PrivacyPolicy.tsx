@@ -240,7 +240,7 @@ export default function PrivacyPolicy() {
         {/* Section 10 */}
         <Card>
           <CardHeader>
-            <CardTitle>10. Children's Privacy</CardTitle>
+            <CardTitle>10. Children&apos;s Privacy</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm text-muted-foreground">
             <p>HealthPilot is not intended for users under 18 years of age. We do not knowingly collect health information from minors. If we discover that a user under 18 has provided personal information, we will delete it immediately.</p>

@@ -68,7 +68,7 @@ export default function Notifications() {
               <Bell className="h-12 w-12 text-muted-foreground mb-4" />
               <h3 className="text-lg font-semibold mb-2">No notifications yet</h3>
               <p className="text-sm text-muted-foreground">
-                When you receive insights, alerts, or reminders, they'll appear here.
+                When you receive insights, alerts, or reminders, they&apos;ll appear here.
               </p>
             </div>
           ) : (

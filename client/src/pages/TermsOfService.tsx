@@ -45,10 +45,10 @@ export default function TermsOfService() {
           </CardHeader>
           <CardContent className="space-y-3 text-sm text-muted-foreground">
             <p>
-              By creating an account, accessing, or using HealthPilot (the "Service"), you agree to be bound by these Terms of Service ("Terms"). If you do not agree to these Terms, you may not use the Service.
+              By creating an account, accessing, or using HealthPilot (the &quot;Service&quot;), you agree to be bound by these Terms of Service (&quot;Terms&quot;). If you do not agree to these Terms, you may not use the Service.
             </p>
             <p>
-              These Terms constitute a legally binding agreement between you ("User," "you," or "your") and HealthPilot ("we," "us," or "our"). We reserve the right to modify these Terms at any time. If we make material changes, we will notify you via email or through a prominent notice in the application. Your continued use of the Service after such modifications constitutes acceptance of the updated Terms.
+              These Terms constitute a legally binding agreement between you (&quot;User,&quot; &quot;you,&quot; or &quot;your&quot;) and HealthPilot (&quot;we,&quot; &quot;us,&quot; or &quot;our&quot;). We reserve the right to modify these Terms at any time. If we make material changes, we will notify you via email or through a prominent notice in the application. Your continued use of the Service after such modifications constitutes acceptance of the updated Terms.
             </p>
             <p>
               You must be at least 18 years old to use HealthPilot. By using the Service, you represent and warrant that you are at least 18 years of age and have the legal capacity to enter into these Terms.
@@ -94,7 +94,7 @@ export default function TermsOfService() {
               HealthPilot is NOT a medical device and does NOT provide medical advice, diagnosis, or treatment.
             </p>
             <p>
-              The Service is designed for informational and educational purposes only. All content, including AI-generated insights, recommendations, and analysis, is provided "as is" without warranty of any kind, either express or implied.
+              The Service is designed for informational and educational purposes only. All content, including AI-generated insights, recommendations, and analysis, is provided &quot;as is&quot; without warranty of any kind, either express or implied.
             </p>
             <p>
               <strong className="text-foreground">You acknowledge and agree that:</strong>
@@ -171,7 +171,7 @@ export default function TermsOfService() {
                 <li>All payments are processed securely through Stripe</li>
                 <li>Subscription fees are non-refundable except as required by law</li>
                 <li>You authorize us to charge your payment method on a recurring basis</li>
-                <li>Prices may change with 30 days' advance notice to active subscribers</li>
+                <li>Prices may change with 30 days&apos; advance notice to active subscribers</li>
               </ul>
             </div>
             <div>
@@ -271,7 +271,7 @@ export default function TermsOfService() {
             <div>
               <h4 className="font-semibold text-foreground mb-2">8.2 Your Content</h4>
               <p>
-                You retain ownership of all health data and content you upload to HealthPilot ("User Content"). By uploading User Content, you grant us a limited, worldwide, non-exclusive, royalty-free license to use, store, process, and display your User Content solely to provide the Service to you.
+                You retain ownership of all health data and content you upload to HealthPilot (&quot;User Content&quot;). By uploading User Content, you grant us a limited, worldwide, non-exclusive, royalty-free license to use, store, process, and display your User Content solely to provide the Service to you.
               </p>
             </div>
             <div>
@@ -283,7 +283,7 @@ export default function TermsOfService() {
             <div>
               <h4 className="font-semibold text-foreground mb-2">8.4 Trademark</h4>
               <p>
-                "HealthPilot" and our logo are trademarks. You may not use our trademarks without prior written consent.
+                &quot;HealthPilot&quot; and our logo are trademarks. You may not use our trademarks without prior written consent.
               </p>
             </div>
           </CardContent>
@@ -321,7 +321,7 @@ export default function TermsOfService() {
             <div>
               <h4 className="font-semibold text-foreground mb-2">10.1 Service Availability</h4>
               <p>
-                THE SERVICE IS PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED. We do not warrant that the Service will be uninterrupted, error-free, secure, or free from viruses or harmful components.
+                THE SERVICE IS PROVIDED &quot;AS IS&quot; AND &quot;AS AVAILABLE&quot; WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED. We do not warrant that the Service will be uninterrupted, error-free, secure, or free from viruses or harmful components.
               </p>
             </div>
             <div>
@@ -355,7 +355,7 @@ export default function TermsOfService() {
           </CardHeader>
           <CardContent className="space-y-3 text-sm text-muted-foreground">
             <p>
-              You agree to indemnify, defend, and hold harmless HealthPilot, its officers, directors, employees, agents, and affiliates from and against any claims, liabilities, damages, losses, costs, or expenses (including reasonable attorneys' fees) arising out of or related to:
+              You agree to indemnify, defend, and hold harmless HealthPilot, its officers, directors, employees, agents, and affiliates from and against any claims, liabilities, damages, losses, costs, or expenses (including reasonable attorneys&apos; fees) arising out of or related to:
             </p>
             <ul className="list-disc ml-6 space-y-1">
               <li>Your use or misuse of the Service</li>
@@ -495,9 +495,9 @@ export default function TermsOfService() {
               We reserve the right to modify these Terms at any time. When we make material changes, we will:
             </p>
             <ul className="list-disc ml-6 space-y-1">
-              <li>Update the "Last Updated" date at the top of this page</li>
+              <li>Update the &quot;Last Updated&quot; date at the top of this page</li>
               <li>Notify you via email or through a prominent notice in the application</li>
-              <li>Provide at least 30 days' notice for material changes affecting your rights</li>
+              <li>Provide at least 30 days&apos; notice for material changes affecting your rights</li>
             </ul>
             <p className="mt-3">
               Your continued use of the Service after the effective date of any modifications constitutes your acceptance of the updated Terms. If you do not agree to the modified Terms, you must stop using the Service and may terminate your account.

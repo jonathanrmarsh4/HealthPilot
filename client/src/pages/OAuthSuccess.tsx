@@ -17,16 +17,16 @@ export default function OAuthSuccess() {
         </CardHeader>
         <CardContent className="space-y-4 text-center">
           <p className="text-gray-400">
-            You've successfully logged in to HealthPilot.
+            You&apos;ve successfully logged in to HealthPilot.
           </p>
           <div className="bg-[#00E0C6]/10 border border-[#00E0C6]/30 rounded-lg p-6">
             <p className="text-white font-semibold text-lg mb-3">Next Step:</p>
             <p className="text-base text-white mb-4">
-              Tap the blue <strong>"Done"</strong> button at the top-left corner of this screen
+              Tap the blue <strong>&quot;Done&quot;</strong> button at the top-left corner of this screen
             </p>
             <div className="flex items-center justify-center gap-2 text-sm text-gray-300">
               <ArrowLeft className="h-5 w-5" />
-              <span>Look for "Done" in the top-left</span>
+              <span>Look for &quot;Done&quot; in the top-left</span>
             </div>
           </div>
           <p className="text-xs text-gray-500">
