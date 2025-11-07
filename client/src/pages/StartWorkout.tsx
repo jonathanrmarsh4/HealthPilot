@@ -16,7 +16,7 @@ export default function StartWorkout() {
   const timezone = user?.timezone || "America/New_York";
   const today = format(toZonedTime(new Date(), timezone), "yyyy-MM-dd");
 
-  const { data: workout, isLoading } = useQuery<{
+  const { data: workout, isLoading, error, status } = useQuery<{
     id: number;
     workoutData?: {
       sessionType?: string;
@@ -35,6 +35,9 @@ export default function StartWorkout() {
       </div>
     );
   }
+  
+  // Handle error state (404 when no workout exists)
+  const hasWorkout = !error && status === "success" && workout;
 
   return (
     <div className="container max-w-2xl mx-auto p-4 space-y-6">
@@ -56,7 +59,7 @@ export default function StartWorkout() {
         </p>
       </div>
 
-      {workout ? (
+      {hasWorkout ? (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">

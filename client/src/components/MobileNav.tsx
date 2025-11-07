@@ -98,11 +98,33 @@ export default function MobileNav({
     const animationDuration = prefersReducedMotion ? "0ms" : "300ms";
     const backdropDuration = prefersReducedMotion ? "0ms" : "200ms";
     
+    // Presence management: track if sheet should be rendered (for exit animations)
+    const [isPresent, setIsPresent] = React.useState(false);
+    const [isAnimating, setIsAnimating] = React.useState(false);
+    
     const [dragOffset, setDragOffset] = React.useState(0);
     const [isDragging, setIsDragging] = React.useState(false);
     const startY = React.useRef(0);
     const currentY = React.useRef(0);
     const scrollContainerRef = React.useRef<HTMLDivElement>(null);
+
+    // Handle mount/unmount with animation
+    React.useEffect(() => {
+      if (open) {
+        setIsPresent(true);
+        // Start animation after mount
+        requestAnimationFrame(() => {
+          setIsAnimating(true);
+        });
+      } else {
+        setIsAnimating(false);
+        // Unmount after exit animation completes
+        const timer = setTimeout(() => {
+          setIsPresent(false);
+        }, prefersReducedMotion ? 0 : 300);
+        return () => clearTimeout(timer);
+      }
+    }, [open, prefersReducedMotion]);
 
     const handleHeaderTouchStart = (e: React.TouchEvent) => {
       // Only enable drag from the header area
@@ -143,25 +165,29 @@ export default function MobileNav({
       setDragOffset(0);
     };
     
+    // Don't render until needed (enables exit animation)
+    if (!isPresent) return null;
+    
     return (
       <>
         <div
           className={[
             "fixed inset-0 bg-black/40 transition-opacity ease-out",
-            open ? "opacity-100" : "pointer-events-none opacity-0",
+            isAnimating ? "opacity-100" : "opacity-0",
+            !isAnimating && "pointer-events-none",
           ].join(" ")}
           onClick={onClose}
           aria-hidden
           style={{
             transitionDuration: backdropDuration,
-            transitionTimingFunction: open ? 'cubic-bezier(0.22, 1, 0.36, 1)' : 'ease-out',
+            transitionTimingFunction: isAnimating ? 'cubic-bezier(0.22, 1, 0.36, 1)' : 'ease-out',
           }}
         />
         <div
           className={[
             "fixed left-0 right-0 bottom-0 z-50",
             isDragging ? "" : "transition-transform",
-            open ? "translate-y-0" : "translate-y-full",
+            isAnimating ? "translate-y-0" : "translate-y-full",
           ].join(" ")}
           role="dialog"
           aria-modal="true"
@@ -470,17 +496,21 @@ export default function MobileNav({
               <span className="text-[11px]">Menu</span>
             </button>
 
-            <div className="absolute left-1/2 -translate-x-1/2 -top-6">
+            <div className="absolute left-1/2 -translate-x-1/2 -top-6 touch-none pointer-events-none">
               <button
                 type="button"
                 className={[
-                  "rounded-full border shadow-xl flex items-center justify-center",
+                  "rounded-full border shadow-xl flex items-center justify-center pointer-events-auto",
                   fabSizeClass,
                   fabBg,
                 ].join(" ")}
                 aria-label="Quick Actions"
                 onClick={() => setQuickOpen(true)}
                 data-testid="button-quick-actions"
+                style={{ 
+                  touchAction: 'manipulation',
+                  WebkitTapHighlightColor: 'transparent'
+                }}
               >
                 <Bolt className="w-6 h-6" />
               </button>

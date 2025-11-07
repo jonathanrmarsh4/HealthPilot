@@ -482,7 +482,14 @@ body.premium-theme.dark {
   html, body {
     overflow-x: hidden;
     width: 100%;
+    min-height: 100vh;
+    min-height: 100dvh; /* Dynamic viewport height for mobile browsers */
     position: relative;
+  }
+  
+  /* Prevent white background showing during overscroll on mobile */
+  html {
+    background-color: hsl(var(--background));
   }
 
   /* Ensure all direct children respect container width */
