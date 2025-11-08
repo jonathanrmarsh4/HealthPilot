@@ -374,12 +374,12 @@ public class HealthKitStatsPluginV2: CAPPlugin {
             case HKQuantityTypeIdentifier.distanceWalkingRunning.rawValue:
                 return "distance"
             case HKQuantityTypeIdentifier.activeEnergyBurned.rawValue:
-                return "calories"
+                return "activeCalories"
             default:
                 return quantityType.identifier
             }
         } else if let categoryType = sampleType as? HKCategoryType {
-            if categoryType.identifier == HKCategoryTypeIdentifier.sleepAnalysis.rawValue {
+            if categoryType.identifier == HKCategoryTypeIdentifier.sleepAnalysis.rawValue:
                 return "sleepAnalysis"
             }
         }

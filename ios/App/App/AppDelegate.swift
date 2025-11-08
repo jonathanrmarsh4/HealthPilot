@@ -76,10 +76,44 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
     
     private func syncHealthKitData() async -> Bool {
-        // Call backend API to trigger HealthKit sync
-        // The mobile client will have already synced data on app lifecycle hooks
-        // For background fetch, we just ensure the backend has the latest data
-        guard let url = getBackendURL(path: "/api/healthkit/sync") else { return false }
+        // Drain the HealthKit background queue and upload to backend
+        print("📱 Draining HealthKit background queue...")
+        
+        // Get the plugin bridge
+        guard let bridge = CAPBridge.shared() else {
+            print("❌ Capacitor bridge not available")
+            return false
+        }
+        
+        // Call drainBackgroundQueue on the HealthKit plugin
+        let call = CAPPluginCall(callbackId: "bgSync", options: [:], success: { (result, _) in
+            print("✅ Queue drained successfully")
+        }, error: { (error) in
+            print("❌ Failed to drain queue: \(error?.localizedDescription ?? "unknown")")
+        })!
+        
+        // Get queued data synchronously
+        guard let plugin = bridge.plugin(withName: "HealthKitStatsPluginV2") as? HealthKitStatsPluginV2 else {
+            print("❌ HealthKit plugin not found")
+            return false
+        }
+        
+        // Access background queue directly
+        let queueKey = "healthkit_background_queue"
+        guard let queueData = UserDefaults.standard.dictionary(forKey: queueKey) as? [String: [[String: Any]]] else {
+            print("ℹ️ No queued HealthKit data")
+            return false
+        }
+        
+        if queueData.isEmpty {
+            print("ℹ️ Queue is empty")
+            return false
+        }
+        
+        print("📊 Found queued data: \(queueData.keys.joined(separator: ", "))")
+        
+        // Upload to backend
+        guard let url = getBackendURL(path: "/api/apple-health/sync") else { return false }
         
         do {
             var request = URLRequest(url: url)
@@ -87,11 +121,21 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
             request = await addAuthHeaders(to: request)
             
+            // Convert queue data to JSON
+            let jsonData = try JSONSerialization.data(withJSONObject: queueData)
+            request.httpBody = jsonData
+            
             let (_, response) = try await URLSession.shared.data(for: request)
             guard let httpResponse = response as? HTTPURLResponse,
                   (200...299).contains(httpResponse.statusCode) else {
+                print("❌ Server returned error: \((response as? HTTPURLResponse)?.statusCode ?? 0)")
                 return false
             }
+            
+            // Clear the queue after successful upload
+            UserDefaults.standard.removeObject(forKey: queueKey)
+            print("✅ HealthKit data uploaded and queue cleared")
+            
             return true
         } catch {
             print("❌ Failed to sync HealthKit: \(error)")
