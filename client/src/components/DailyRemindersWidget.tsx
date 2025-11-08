@@ -9,7 +9,7 @@ import { CheckCircle2, Clock, Pill, Activity, Target, GripVertical, EyeOff, Eye 
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from "@dnd-kit/core";
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 interface DailyReminder {
   id: string;
@@ -119,6 +119,7 @@ function SortableReminderItem({
 
 export function DailyRemindersWidget() {
   const { toast } = useToast();
+  const syncedRef = useRef(false);
 
   const { data: reminders = [], isLoading } = useQuery<DailyReminder[]>({
     queryKey: ["/api/daily-reminders/today"],
@@ -141,13 +142,15 @@ export function DailyRemindersWidget() {
     return { order: [], hidden: [] };
   });
 
-  // Sync with server preferences (only on initial load)
+  // Sync with server preferences once on initial load
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- One-time initialization from server data with ref guard
   useEffect(() => {
-    if (dashboardPrefs?.reminderPreferences && preferences.order.length === 0 && preferences.hidden.length === 0) {
+    if (dashboardPrefs?.reminderPreferences && !syncedRef.current) {
       setPreferences(dashboardPrefs.reminderPreferences);
       localStorage.setItem("reminder-preferences", JSON.stringify(dashboardPrefs.reminderPreferences));
+      syncedRef.current = true;
     }
-  }, [dashboardPrefs, preferences.order.length, preferences.hidden.length]);
+  }, [dashboardPrefs]);
 
   const updatePreferencesMutation = useMutation({
     mutationFn: async (newPrefs: ReminderPreferences) => {

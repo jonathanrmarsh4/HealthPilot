@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import {
   Dialog,
@@ -61,6 +61,7 @@ export function ConsentPreferencesDialog({ open, onOpenChange }: ConsentPreferen
   const { toast } = useToast();
   const [consents, setConsents] = useState<Record<string, boolean>>({});
   const [hasChanges, setHasChanges] = useState(false);
+  const initializedRef = useRef(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ["/api/privacy/consent"],
@@ -92,15 +93,20 @@ export function ConsentPreferencesDialog({ open, onOpenChange }: ConsentPreferen
     },
   });
 
-  // Initialize consents from API data (only when modal opens)
+  // Initialize consents from API data once when modal opens
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- One-time initialization from server data with ref guard
   useEffect(() => {
-    if (open && data?.consents) {
+    if (open && data?.consents && !initializedRef.current) {
       const initialConsents: Record<string, boolean> = {};
       CONSENT_TYPES.forEach((type) => {
         initialConsents[type.key] = data.consents[type.key]?.granted ?? type.required;
       });
       setConsents(initialConsents);
-      setHasChanges(false); // Reset changes flag when initializing
+      setHasChanges(false);
+      initializedRef.current = true;
+    } else if (!open) {
+      // Reset initialization flag when modal closes
+      initializedRef.current = false;
     }
   }, [open, data]);
 
