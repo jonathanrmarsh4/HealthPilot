@@ -27,9 +27,13 @@
     
     <style>
       /* Ensure no margin/padding and proper sizing */
-      body {
+      html, body {
         margin: 0;
         padding: 0;
+        background-color: hsl(0 0% 100%); /* Light mode background */
+      }
+      html.dark, html.dark body {
+        background-color: hsl(240 10% 3.9%); /* Dark mode background */
       }
       #root {
         min-height: 100vh;
