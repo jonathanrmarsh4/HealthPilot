@@ -18,6 +18,30 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { useLocation } from "wouter";
 
+interface WorkoutBlock {
+  display_name?: string;
+  pattern: string;
+  sets: number;
+  reps: string;
+  rest_s: number;
+  intensity?: {
+    scheme?: string;
+    target?: number | string;
+  };
+  preferred_modality?: string;
+}
+
+interface GeneratedWorkout {
+  id: string;
+  status: 'pending' | 'accepted' | 'rejected' | 'completed';
+  workoutData?: {
+    blocks?: WorkoutBlock[];
+    [key: string]: unknown;
+  };
+  sessionId?: string;
+  instanceId?: string;
+}
+
 export function DailyGeneratedWorkout() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
@@ -26,20 +50,21 @@ export function DailyGeneratedWorkout() {
   const today = format(new Date(), "yyyy-MM-dd");
   
   // Fetch today's generated workout
-  const { data: workout, isLoading, error } = useQuery({
+  const { data: workout, isLoading, error } = useQuery<GeneratedWorkout>({
     queryKey: ["/api/training/generated-workout", today],
     retry: false,
   });
 
   // Generate new workout mutation
   const generateMutation = useMutation({
-    mutationFn: async (regenerate = false) => {
-      return apiRequest("POST", "/api/training/generate-daily-session", {
+    mutationFn: async (params?: { regenerate?: boolean }) => {
+      const response = await apiRequest("POST", "/api/training/generate-daily-session", {
         date: today,
-        regenerate
+        regenerate: params?.regenerate || false
       });
+      return response.json();
     },
-    onSuccess: (data) => {
+    onSuccess: (data: { regenerated?: boolean }) => {
       queryClient.invalidateQueries({ queryKey: ["/api/training/generated-workout", today] });
       toast({
         title: data.regenerated ? "Workout Regenerated" : "Workout Generated",
@@ -137,7 +162,7 @@ export function DailyGeneratedWorkout() {
         {error && !workout && (
           <div className="text-center py-8">
             <Button 
-              onClick={() => generateMutation.mutate(false)}
+              onClick={() => generateMutation.mutate({ regenerate: false })}
               disabled={isGenerating}
               data-testid="button-generate-workout"
             >
@@ -297,7 +322,7 @@ export function DailyGeneratedWorkout() {
                 </Button>
                 <Button
                   variant="outline"
-                  onClick={() => generateMutation.mutate(true)}
+                  onClick={() => generateMutation.mutate({ regenerate: true })}
                   disabled={isGenerating}
                   data-testid="button-regenerate-workout"
                 >
@@ -342,7 +367,7 @@ export function DailyGeneratedWorkout() {
                   </Button>
                   <Button
                     variant="outline"
-                    onClick={() => generateMutation.mutate(true)}
+                    onClick={() => generateMutation.mutate({ regenerate: true })}
                     disabled={isGenerating}
                     data-testid="button-regenerate-workout"
                   >
@@ -374,7 +399,7 @@ export function DailyGeneratedWorkout() {
                 <Button
                   variant="outline"
                   className="w-full"
-                  onClick={() => generateMutation.mutate(true)}
+                  onClick={() => generateMutation.mutate({ regenerate: true })}
                   disabled={isGenerating}
                   data-testid="button-regenerate-workout"
                 >
@@ -400,7 +425,7 @@ export function DailyGeneratedWorkout() {
                 </p>
                 <Button
                   className="w-full"
-                  onClick={() => generateMutation.mutate(true)}
+                  onClick={() => generateMutation.mutate({ regenerate: true })}
                   disabled={isGenerating}
                   data-testid="button-regenerate-workout"
                 >

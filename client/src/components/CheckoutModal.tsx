@@ -20,20 +20,21 @@ export function CheckoutModal({ isOpen, onClose, defaultTier = "premium" }: Chec
   const [tier, setTier] = useState<SubscriptionTier>(defaultTier);
   const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
   const [promoCode, setPromoCode] = useState("");
-  const [validatedPromo, setValidatedPromo] = useState<any>(null);
+  const [validatedPromo, setValidatedPromo] = useState<{ code: string; discountPercent: number; description: string } | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
 
   const validatePromoMutation = useMutation({
     mutationFn: async (code: string) => {
-      return await apiRequest<any>("/api/checkout/validate-promo", {
+      const response = await apiRequest("/api/checkout/validate-promo", {
         method: "POST",
         body: JSON.stringify({ code, tier }),
       });
+      return response.json();
     },
-    onSuccess: (data) => {
-      if (data.valid) {
-        setValidatedPromo(data);
+    onSuccess: (data: { valid?: boolean; discountPercent?: number; description?: string; error?: string; code?: string }) => {
+      if (data.valid && data.code && data.discountPercent && data.description) {
+        setValidatedPromo({ code: data.code, discountPercent: data.discountPercent, description: data.description });
         toast({
           title: "Promo code applied!",
           description: `${data.discountPercent}% discount: ${data.description}`,
@@ -47,7 +48,7 @@ export function CheckoutModal({ isOpen, onClose, defaultTier = "premium" }: Chec
         });
       }
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Invalid promo code",
         description: error.message,

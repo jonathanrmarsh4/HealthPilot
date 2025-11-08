@@ -16,7 +16,7 @@ interface ExerciseCardProps {
 export function ExerciseCard({ exercise }: ExerciseCardProps) {
   // Fetch media via API (respects EXERCISE_MEDIA_AUTOMAP_ENABLED flag on backend)
   const { data: media, isLoading } = useQuery({
-    queryKey: ["exercise-media", exercise.id, exercise.externalId ?? null],
+    queryKey: ["exercise-media", exercise.id, exercise.exercisedbId ?? null],
     queryFn: () =>
       getExerciseMedia({
         id: exercise.id,
@@ -24,12 +24,12 @@ export function ExerciseCard({ exercise }: ExerciseCardProps) {
         target: exercise.target,
         bodyPart: exercise.bodyPart,
         equipment: exercise.equipment ?? null,
-        externalId: exercise.externalId ?? null,
+        externalId: exercise.exercisedbId ?? null,
       }),
     // Cache for 1 hour - media URLs are stable
     staleTime: 1000 * 60 * 60,
     // Don't retry on 404 (no media found is expected)
-    retry: (failureCount, error: any) => {
+    retry: (failureCount, error: Error) => {
       if (error?.message?.includes("404")) return false;
       return failureCount < 2;
     },

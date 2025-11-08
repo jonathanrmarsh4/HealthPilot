@@ -483,6 +483,7 @@ interface FloatingChatProps {
 export function FloatingChat({ isOpen, onClose, currentPage, context }: FloatingChatProps) {
   const { toast } = useToast();
   const [message, setMessage] = useState("");
+  const [sessionId, setSessionId] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isMinimized, setIsMinimized] = useState(true);
   const { status: onboardingStatus } = useOnboarding();

@@ -15,7 +15,7 @@ export function MedicalReportUpload() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const { toast } = useToast();
 
-  const { data: reports, isLoading: reportsLoading } = useQuery<MedicalReport[]>({
+  const { data: reports, isLoading: reportsLoading } = useQuery<Array<MedicalReport & { extractedBiomarkersCount?: number }>>({
     queryKey: ["/api/medical-reports"],
   });
 
@@ -58,9 +58,10 @@ export function MedicalReportUpload() {
 
   const interpretMutation = useMutation({
     mutationFn: async (reportId: string) => {
-      return await apiRequest("POST", `/api/medical-reports/${reportId}/interpret`);
+      const response = await apiRequest("POST", `/api/medical-reports/${reportId}/interpret`);
+      return response.json();
     },
-    onSuccess: (data: MedicalReport) => {
+    onSuccess: (data: MedicalReport & { extractedBiomarkersCount?: number }) => {
       // Complete progress
       setUploadProgress(100);
       
@@ -320,7 +321,7 @@ export function MedicalReportUpload() {
                       </p>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <span>{report.reportType || 'Unknown Type'}</span>
-                        {report.confidenceScores.overall && (
+                        {report.confidenceScores && typeof report.confidenceScores === 'object' && 'overall' in report.confidenceScores && typeof report.confidenceScores.overall === 'number' && (
                           <span>• {(report.confidenceScores.overall * 100).toFixed(0)}% confidence</span>
                         )}
                         {report.extractedBiomarkersCount !== undefined && report.extractedBiomarkersCount > 0 && (

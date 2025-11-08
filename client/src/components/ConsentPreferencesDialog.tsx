@@ -190,7 +190,7 @@ function ConsentForm({
 export function ConsentPreferencesDialog({ open, onOpenChange }: ConsentPreferencesDialogProps) {
   const { toast } = useToast();
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading } = useQuery<{ consents?: Record<string, ConsentInfo> }>({
     queryKey: ["/api/privacy/consent"],
     enabled: open,
   });
@@ -206,10 +206,11 @@ export function ConsentPreferencesDialog({ open, onOpenChange }: ConsentPreferen
 
   const saveMutation = useMutation({
     mutationFn: async (consents: Record<string, boolean>) => {
-      return apiRequest("/api/privacy/consent", {
+      const response = await apiRequest("/api/privacy/consent", {
         method: "POST",
         body: JSON.stringify({ consents }),
       });
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/privacy/consent"] });

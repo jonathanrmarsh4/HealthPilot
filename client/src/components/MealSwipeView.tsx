@@ -63,7 +63,7 @@ export function MealSwipeView({ meals, onMealTap, onBackToCalendar }: MealSwipeV
     // Left swipe = Session skip (temporary pass, might see again in future)
     feedbackMutation.mutate({
       mealPlanId: meal.id,
-      mealLibraryId: meal.mealLibraryId,
+      mealLibraryId: meal.mealLibraryId ?? undefined,
       feedback: "session_skip",
       swipeDirection: "left",
       mealName: meal.name,
@@ -81,7 +81,7 @@ export function MealSwipeView({ meals, onMealTap, onBackToCalendar }: MealSwipeV
     // Right swipe = Permanent dislike (never show again)
     feedbackMutation.mutate({
       mealPlanId: meal.id,
-      mealLibraryId: meal.mealLibraryId,
+      mealLibraryId: meal.mealLibraryId ?? undefined,
       feedback: "permanent_dislike",
       swipeDirection: "right",
       mealName: meal.name,

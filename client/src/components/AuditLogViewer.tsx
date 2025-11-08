@@ -32,13 +32,13 @@ interface AuditLog {
   ipAddress: string | null;
   userAgent: string | null;
   timestamp: string;
-  metadata: any;
+  metadata: Record<string, unknown> | null;
 }
 
 export function AuditLogViewer({ open, onOpenChange }: AuditLogViewerProps) {
   const [filterAction, setFilterAction] = useState<string>("all");
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading } = useQuery<{ logs?: AuditLog[]; compliance?: { standard: string; coverage: string } }>({
     queryKey: ["/api/privacy/audit-log"],
     enabled: open,
   });
@@ -47,7 +47,7 @@ export function AuditLogViewer({ open, onOpenChange }: AuditLogViewerProps) {
   const compliance = data?.compliance;
 
   // Get unique action types for filter
-  // const actionTypes = ["all", ...new Set(logs.map(log => log.action))];
+  const actionTypes = ["all", ...new Set(logs.map(log => log.action))];
 
   // Filter logs based on selected action
   const filteredLogs = filterAction === "all" 
