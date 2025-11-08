@@ -985,12 +985,11 @@ export function FloatingChatTrigger({ onClick, subscriptionTier: _subscriptionTi
   return (
     <Button
       size="icon"
-      style={{ position: 'fixed', bottom: '1rem', right: '1rem' }}
-      className={`z-40 h-10 w-10 rounded-full shadow-lg ${buttonClasses} animate-pulse hover:animate-none transition-all hover:scale-110`}
+      className={`fixed bottom-28 md:bottom-4 right-4 z-50 h-12 w-12 rounded-full shadow-lg ${buttonClasses} animate-pulse hover:animate-none transition-all hover:scale-110`}
       onClick={onClick}
       data-testid="button-open-floating-chat"
     >
-      <Sparkles className="h-5 w-5 text-primary-foreground" />
+      <Sparkles className="h-6 w-6 text-primary-foreground" />
     </Button>
   );
 }
