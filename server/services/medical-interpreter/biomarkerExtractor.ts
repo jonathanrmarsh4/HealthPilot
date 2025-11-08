@@ -37,10 +37,12 @@ const LAB_TO_BIOMARKER_MAP: Record<string, { type: string; unit?: string }> = {
 
   // Glucose & Diabetes
   'glucose': { type: 'fasting-glucose', unit: 'mmol/L' },
+  'glu': { type: 'fasting-glucose', unit: 'mmol/L' },
   'glucose_fasting': { type: 'fasting-glucose', unit: 'mmol/L' },
   'fasting glucose': { type: 'fasting-glucose', unit: 'mmol/L' },
   'blood glucose': { type: 'fasting-glucose', unit: 'mmol/L' },
   '1558-6': { type: 'fasting-glucose', unit: 'mmol/L' }, // LOINC
+  '2345-7': { type: 'fasting-glucose', unit: 'mmol/L' }, // LOINC
   
   'hba1c': { type: 'hba1c', unit: '%' },
   'a1c': { type: 'hba1c', unit: '%' },
@@ -91,7 +93,24 @@ const LAB_TO_BIOMARKER_MAP: Record<string, { type: string; unit?: string }> = {
   // Hormones
   'testosterone': { type: 'total-testosterone', unit: 'nmol/L' },
   'total testosterone': { type: 'total-testosterone', unit: 'nmol/L' },
+  'testo': { type: 'total-testosterone', unit: 'nmol/L' },
+  '2986-8': { type: 'total-testosterone', unit: 'nmol/L' }, // LOINC
   'cortisol': { type: 'serum-cortisol', unit: 'nmol/L' },
+  '2143-6': { type: 'serum-cortisol', unit: 'nmol/L' }, // LOINC
+  
+  // Electrolytes
+  'sodium': { type: 'sodium', unit: 'mmol/L' },
+  'na': { type: 'sodium', unit: 'mmol/L' },
+  '2951-2': { type: 'sodium', unit: 'mmol/L' }, // LOINC
+  'potassium': { type: 'potassium', unit: 'mmol/L' },
+  'k': { type: 'potassium', unit: 'mmol/L' },
+  '2823-3': { type: 'potassium', unit: 'mmol/L' }, // LOINC
+  'chloride': { type: 'chloride', unit: 'mmol/L' },
+  'cl': { type: 'chloride', unit: 'mmol/L' },
+  '2075-0': { type: 'chloride', unit: 'mmol/L' }, // LOINC
+  'bicarbonate': { type: 'bicarbonate', unit: 'mmol/L' },
+  'co2': { type: 'bicarbonate', unit: 'mmol/L' },
+  '2028-9': { type: 'bicarbonate', unit: 'mmol/L' }, // LOINC
 
   // Inflammation
   'crp': { type: 'crp', unit: 'mg/L' },
