@@ -36,7 +36,7 @@ I prefer simple language and clear explanations. I want iterative development wh
 - **Security & Authentication:** Replit Auth (OpenID Connect), role-based access control, IDOR protection, Zod validation, secure file uploads.
 - **Privacy & Compliance:** International privacy compliance (GDPR, HIPAA), granular consent, audit logging, account deletion, JSON data export, Privacy Dashboard.
 - **Native iOS App with HealthKit Integration v3.0:** Production-ready native iOS app with timezone-aware step counting.
-- **iOS Background Fetch System v2.0:** Native iOS background processing for automatic HealthKit sync, AI insights generation, daily workout creation, and notification updates.
+- **iOS Background Fetch System v3.0:** Native iOS background processing for automatic HealthKit sync (with proper queue draining and data loss prevention), AI insights generation, daily workout creation, and notification updates. Fixed critical bug where AppDelegate was calling non-existent endpoint and not properly draining HealthKit queue. Fixed Active Calories field name mismatch (calories → activeCalories) ensuring data syncs correctly since Oct 23rd.
 - **Progressive Overload Training System:** Double progression algorithm for training.
 - **HealthPilot Training Operating System v1.0 (AI Guardrails):** Evidence-based guardrail system for safety-first training prescription and AI recovery insights.
 - **AI Exercise Alternatives & Swap Feature:** AI-powered exercise alternative suggestions.
