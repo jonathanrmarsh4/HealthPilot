@@ -42,7 +42,7 @@ export default function BiologicalAge() {
     );
   }
 
-  if (_error) {
+  if (error) {
     return (
       <div className="container mx-auto p-6 max-w-4xl">
         <Alert variant="destructive" data-testid="error-biological-age">
