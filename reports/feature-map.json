@@ -1,0 +1,451 @@
+[
+  {
+    "route": "/",
+    "screen": "App",
+    "states": [
+      "loading",
+      "content",
+      "error",
+      "empty"
+    ],
+    "critical_flows": [],
+    "deps": [
+      "Lucide",
+      "tokens",
+      "Capacitor"
+    ]
+  },
+  {
+    "route": "/insights",
+    "screen": "AIInsightsWidget",
+    "states": [
+      "loading",
+      "content",
+      "error",
+      "empty"
+    ],
+    "critical_flows": [],
+    "deps": [
+      "Lucide"
+    ]
+  },
+  {
+    "route": "/training",
+    "screen": "AITrainingPlanTile",
+    "states": [
+      "loading",
+      "content",
+      "error",
+      "empty"
+    ],
+    "critical_flows": [
+      "start_workout",
+      "pause_resume",
+      "next_exercise"
+    ],
+    "deps": [
+      "Lucide"
+    ]
+  },
+  {
+    "route": "/workout",
+    "screen": "DailyGeneratedWorkout",
+    "states": [
+      "loading",
+      "content",
+      "error",
+      "empty"
+    ],
+    "critical_flows": [],
+    "deps": [
+      "Lucide"
+    ]
+  },
+  {
+    "route": "/insights",
+    "screen": "DataInsightsWidget",
+    "states": [
+      "loading",
+      "content",
+      "error",
+      "empty"
+    ],
+    "critical_flows": [],
+    "deps": [
+      "Lucide"
+    ]
+  },
+  {
+    "route": "/onboarding",
+    "screen": "HealthKitOnboarding",
+    "states": [
+      "loading",
+      "content",
+      "error",
+      "empty"
+    ],
+    "critical_flows": [],
+    "deps": [
+      "Lucide"
+    ]
+  },
+  {
+    "route": "/insights",
+    "screen": "InsightSchedulingModal",
+    "states": [
+      "loading",
+      "content",
+      "error",
+      "empty"
+    ],
+    "critical_flows": [],
+    "deps": [
+      "Lucide"
+    ]
+  },
+  {
+    "route": "/recovery",
+    "screen": "MuscleRecoveryGrid",
+    "states": [
+      "loading",
+      "content",
+      "error",
+      "empty"
+    ],
+    "critical_flows": [],
+    "deps": [
+      "Lucide"
+    ]
+  },
+  {
+    "route": "/workout",
+    "screen": "NextWorkoutWidget",
+    "states": [
+      "loading",
+      "content",
+      "error",
+      "empty"
+    ],
+    "critical_flows": [],
+    "deps": [
+      "Lucide"
+    ]
+  },
+  {
+    "route": "/recovery",
+    "screen": "RecoveryProtocols",
+    "states": [
+      "loading",
+      "content",
+      "error",
+      "empty"
+    ],
+    "critical_flows": [],
+    "deps": [
+      "Lucide"
+    ]
+  },
+  {
+    "route": "/recovery",
+    "screen": "RecoveryTimelineChart",
+    "states": [
+      "loading",
+      "content",
+      "error",
+      "empty"
+    ],
+    "critical_flows": [],
+    "deps": []
+  },
+  {
+    "route": "/insights",
+    "screen": "ScheduledInsightsCard",
+    "states": [
+      "loading",
+      "content",
+      "error",
+      "empty"
+    ],
+    "critical_flows": [],
+    "deps": [
+      "Lucide"
+    ]
+  },
+  {
+    "route": "/today",
+    "screen": "TodaysMealsWidget",
+    "states": [
+      "loading",
+      "content",
+      "error",
+      "empty"
+    ],
+    "critical_flows": [
+      "view_summary",
+      "open_workout",
+      "open_insight"
+    ],
+    "deps": [
+      "Lucide"
+    ]
+  },
+  {
+    "route": "/training",
+    "screen": "TrainingScheduleCard",
+    "states": [
+      "loading",
+      "content",
+      "error",
+      "empty"
+    ],
+    "critical_flows": [
+      "start_workout",
+      "pause_resume",
+      "next_exercise"
+    ],
+    "deps": [
+      "Lucide",
+      "tokens"
+    ]
+  },
+  {
+    "route": "/workout",
+    "screen": "WorkoutFeedbackModal",
+    "states": [
+      "loading",
+      "content",
+      "error",
+      "empty"
+    ],
+    "critical_flows": [],
+    "deps": [
+      "Lucide"
+    ]
+  },
+  {
+    "route": "/training",
+    "screen": "TrainingScheduleCard",
+    "states": [
+      "loading",
+      "content",
+      "error",
+      "empty"
+    ],
+    "critical_flows": [
+      "start_workout",
+      "pause_resume",
+      "next_exercise"
+    ],
+    "deps": []
+  },
+  {
+    "route": "/onboarding",
+    "screen": "OnboardingContext",
+    "states": [
+      "loading",
+      "content",
+      "error",
+      "empty"
+    ],
+    "critical_flows": [],
+    "deps": []
+  },
+  {
+    "route": "/insights",
+    "screen": "AIInsights",
+    "states": [
+      "loading",
+      "content",
+      "error",
+      "empty"
+    ],
+    "critical_flows": [],
+    "deps": [
+      "Lucide"
+    ]
+  },
+  {
+    "route": "/insights",
+    "screen": "DailyInsights",
+    "states": [
+      "loading",
+      "content",
+      "error",
+      "empty"
+    ],
+    "critical_flows": [],
+    "deps": [
+      "Lucide"
+    ]
+  },
+  {
+    "route": "/insights",
+    "screen": "DataInsights",
+    "states": [
+      "loading",
+      "content",
+      "error",
+      "empty"
+    ],
+    "critical_flows": [],
+    "deps": [
+      "Lucide"
+    ]
+  },
+  {
+    "route": "/profile",
+    "screen": "FitnessProfile",
+    "states": [
+      "loading",
+      "content",
+      "error",
+      "empty"
+    ],
+    "critical_flows": [],
+    "deps": [
+      "Lucide"
+    ]
+  },
+  {
+    "route": "/insights",
+    "screen": "InsightsHub",
+    "states": [
+      "loading",
+      "content",
+      "error",
+      "empty"
+    ],
+    "critical_flows": [],
+    "deps": [
+      "Lucide"
+    ]
+  },
+  {
+    "route": "/profile",
+    "screen": "NutritionProfile",
+    "states": [
+      "loading",
+      "content",
+      "error",
+      "empty"
+    ],
+    "critical_flows": [],
+    "deps": [
+      "Lucide"
+    ]
+  },
+  {
+    "route": "/profile",
+    "screen": "Profile",
+    "states": [
+      "loading",
+      "content",
+      "error",
+      "empty"
+    ],
+    "critical_flows": [],
+    "deps": [
+      "Lucide"
+    ]
+  },
+  {
+    "route": "/settings",
+    "screen": "ReadinessSettings",
+    "states": [
+      "loading",
+      "content",
+      "error",
+      "empty"
+    ],
+    "critical_flows": [],
+    "deps": [
+      "Lucide"
+    ]
+  },
+  {
+    "route": "/recovery",
+    "screen": "Recovery",
+    "states": [
+      "loading",
+      "content",
+      "error",
+      "empty"
+    ],
+    "critical_flows": [],
+    "deps": [
+      "Lucide"
+    ]
+  },
+  {
+    "route": "/settings",
+    "screen": "Settings",
+    "states": [
+      "loading",
+      "content",
+      "error",
+      "empty"
+    ],
+    "critical_flows": [],
+    "deps": [
+      "Lucide"
+    ]
+  },
+  {
+    "route": "/workout",
+    "screen": "StartWorkout",
+    "states": [
+      "loading",
+      "content",
+      "error",
+      "empty"
+    ],
+    "critical_flows": [],
+    "deps": [
+      "Lucide"
+    ]
+  },
+  {
+    "route": "/training",
+    "screen": "Training",
+    "states": [
+      "loading",
+      "content",
+      "error",
+      "empty"
+    ],
+    "critical_flows": [
+      "start_workout",
+      "pause_resume",
+      "next_exercise"
+    ],
+    "deps": [
+      "Lucide"
+    ]
+  },
+  {
+    "route": "/workout",
+    "screen": "WorkoutSession",
+    "states": [
+      "loading",
+      "content",
+      "error",
+      "empty"
+    ],
+    "critical_flows": [],
+    "deps": [
+      "Lucide"
+    ]
+  },
+  {
+    "route": "/recovery",
+    "screen": "recovery",
+    "states": [
+      "loading",
+      "content",
+      "error",
+      "empty"
+    ],
+    "critical_flows": [],
+    "deps": []
+  }
+]

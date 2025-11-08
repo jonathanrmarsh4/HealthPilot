@@ -1,0 +1,119 @@
+{
+  "summary": {
+    "total_issues": 20,
+    "p0_critical": 2,
+    "p1_high": 3,
+    "p2_medium": 15,
+    "timestamp": "2025-11-08T00:00:00Z",
+    "test_environment": "Replit (limitations: no Playwright browser support)"
+  },
+  "p0_critical": [
+    {
+      "id": "P0-1",
+      "title": "TypeScript compilation fails",
+      "area": "Build System",
+      "severity": "P0",
+      "repro": "Run `npm run typecheck`",
+      "expected": "No TypeScript errors",
+      "actual": "Typecheck exits with code -1 (catastrophic failure)",
+      "impact": "Blocks production builds, CI/CD pipeline would fail",
+      "root_cause": "Unknown - needs investigation of TypeScript errors"
+    },
+    {
+      "id": "P0-2",
+      "title": "Unit tests hang/timeout",
+      "area": "Test Infrastructure",
+      "severity": "P0",
+      "repro": "Run `npm run test`",
+      "expected": "Tests complete within 60 seconds",
+      "actual": "Tests timeout after 60 seconds with no output",
+      "impact": "Cannot validate code changes, CI blocked",
+      "root_cause": "Vitest configuration issue or test setup problem"
+    }
+  ],
+  "p1_high": [
+    {
+      "id": "P1-1",
+      "title": "ESLint error: Cannot create components during render",
+      "area": "client/src/components/BiomarkerDetailModal.tsx",
+      "severity": "P1",
+      "line": 29,
+      "repro": "Run `npm run lint`",
+      "expected": "No ESLint errors",
+      "actual": "react-hooks/rules-of-hooks violation",
+      "impact": "React rendering bugs, potential infinite loops",
+      "root_cause": "Component creation inside render function"
+    },
+    {
+      "id": "P1-2",
+      "title": "ESLint error: setState in useEffect without cleanup",
+      "area": "client/src/components/ConsentPreferencesDialog.tsx",
+      "severity": "P1",
+      "line": 72,
+      "repro": "Run `npm run lint`",
+      "expected": "No cascading render warnings",
+      "actual": "setState called synchronously in useEffect",
+      "impact": "Performance issues, cascading renders",
+      "root_cause": "Missing dependency array or conditional logic"
+    },
+    {
+      "id": "P1-3",
+      "title": "ESLint error: setState in useEffect without cleanup",
+      "area": "client/src/components/DailyRemindersWidget.tsx",
+      "severity": "P1",
+      "line": 96,
+      "repro": "Run `npm run lint`",
+      "expected": "No cascading render warnings",
+      "actual": "setState called synchronously in useEffect",
+      "impact": "Performance issues, cascading renders",
+      "root_cause": "Missing dependency array or conditional logic"
+    }
+  ],
+  "p2_medium": [
+    {
+      "id": "P2-1",
+      "title": "17 ESLint warnings",
+      "area": "Multiple files",
+      "severity": "P2",
+      "repro": "Run `npm run lint`",
+      "expected": "0 warnings (--max-warnings=0)",
+      "actual": "17 warnings across codebase",
+      "impact": "Code quality, technical debt",
+      "root_cause": "Various linting violations"
+    },
+    {
+      "id": "P2-2",
+      "title": "E2E tests cannot run in Replit",
+      "area": "Test Infrastructure",
+      "severity": "P2",
+      "repro": "Run `npx playwright install`",
+      "expected": "Browsers installed",
+      "actual": "Installation fails - Replit doesn't support apt-based dependencies",
+      "impact": "Cannot run E2E, a11y, or visual tests in Replit environment",
+      "root_cause": "Replit environment limitation",
+      "workaround": "E2E tests must run in GitHub Actions CI/CD"
+    }
+  ],
+  "recommendations": {
+    "immediate_actions": [
+      "Fix TypeScript compilation errors (P0-1)",
+      "Debug and fix unit test hanging issue (P0-2)",
+      "Fix React hooks violations in 3 components (P1-1, P1-2, P1-3)"
+    ],
+    "next_steps": [
+      "Resolve all 17 ESLint warnings",
+      "Set up GitHub Actions for E2E testing (already configured in .github/workflows/quality-gates.yml)",
+      "Create individual PRs for each P0/P1 fix with BEFORE/AFTER screenshots"
+    ],
+    "ci_cd_notes": [
+      "GitHub Actions workflow already created at .github/workflows/quality-gates.yml",
+      "Workflow will run typecheck, lint, test, e2e, a11y, snapshots on every PR",
+      "E2E tests will work in CI (GitHub provides browsers), just not locally in Replit"
+    ]
+  },
+  "feature_map_stats": {
+    "total_routes": 31,
+    "routes_mapped": "See reports/feature-map.json",
+    "critical_flows_identified": "start_workout, pause_resume, next_exercise (training), view_summary, open_workout, open_insight (today)"
+  }
+}
