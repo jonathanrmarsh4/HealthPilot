@@ -524,7 +524,7 @@ export default function Dashboard() {
       case "todays-meals":
         return <TodaysMealsWidget key={widget} />;
 
-      case "health-metrics":
+      case "health-metrics": {
         const glucoseConfig = biomarkerDisplayConfig["blood-glucose"];
         const glucoseRefRange = glucoseConfig?.referenceRange;
         
@@ -558,6 +558,7 @@ export default function Dashboard() {
             <TrendLineWidget type="weight" />
           </div>
         );
+      }
 
       case "blood-glucose-chart":
         return glucoseLoading ? (

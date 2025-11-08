@@ -121,6 +121,7 @@ export function validateMealQueryParams(
   
   if (baselineMode) {
     // In baseline mode, remove AI-related parameters
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { goalFilter, biomarkerFilter, preferenceWeighting, ...baselineParams } = parsed;
     return baselineParams;
   }

@@ -6,7 +6,8 @@
 
 import { classifyExerciseMuscleGroups, ENGAGEMENT_LEVELS } from "../config/muscleGroups";
 import type { IStorage } from "../storage";
-import type { Exercise, ExerciseSet } from "@shared/schema";
+// Unused types - kept for future reference
+// import type { Exercise, ExerciseSet } from "@shared/schema";
 
 /**
  * Analyze a completed workout session and record muscle group engagements
