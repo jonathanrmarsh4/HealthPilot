@@ -15,7 +15,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 import { 
   ChevronLeft, 
   CheckCircle2, 
@@ -1004,10 +1004,12 @@ export default function WorkoutSession() {
     if (!selectedExerciseForSwap || !sessionId) return;
 
     try {
-      await apiRequest("POST", `/api/workout-sessions/${sessionId}/swap-exercise`, {
+      const response = await apiRequest("POST", `/api/workout-sessions/${sessionId}/swap-exercise`, {
         oldExerciseId: selectedExerciseForSwap.id,
         newExerciseId: alternativeExercise.id,
       });
+      
+      await response.json();
 
       // Invalidate all relevant queries to ensure UI updates
       queryClient.invalidateQueries({ queryKey: ["/api/workout-sessions", sessionId, "exercises"] });
