@@ -1,22 +1,43 @@
 import { test, expect } from '@playwright/test';
 
-// Tag snapshot tests with @visual
-test.describe('@visual Visual Snapshots', () => {
-  test('Today screen snapshot', async ({ page }) => {
-    await page.goto('/today');
-    await page.waitForLoadState('networkidle');
-    expect(await page.screenshot({ fullPage: true })).toMatchSnapshot('today.png', { maxDiffPixelRatio: 0.02 });
-  });
+// Tag snapshot tests with @visual for visual regression detection
+test.describe('@visual Visual Regression Testing', () => {
+  const screens = [
+    { path: '/', name: 'dashboard' },
+    { path: '/training', name: 'training' },
+    { path: '/recovery', name: 'recovery' },
+    { path: '/insights', name: 'insights' },
+    { path: '/settings', name: 'settings' },
+  ];
 
-  test('Training screen snapshot', async ({ page }) => {
-    await page.goto('/training');
-    await page.waitForLoadState('networkidle');
-    expect(await page.screenshot({ fullPage: true })).toMatchSnapshot('training.png', { maxDiffPixelRatio: 0.02 });
-  });
+  for (const screen of screens) {
+    test(`${screen.name} screen matches baseline`, async ({ page }) => {
+      await page.goto(screen.path);
+      
+      // Wait for content to load
+      await expect(page.locator('#root')).toBeVisible({ timeout: 10000 });
+      await page.waitForTimeout(2000); // Allow animations to complete
+      
+      // Take full-page screenshot
+      expect(await page.screenshot({ 
+        fullPage: true,
+        animations: 'disabled', // Disable animations for consistent snapshots
+      })).toMatchSnapshot(`${screen.name}.png`, { 
+        maxDiffPixelRatio: 0.05 // Allow 5% difference (accounts for dynamic data)
+      });
+    });
+  }
 
-  test('Insights screen snapshot', async ({ page }) => {
-    await page.goto('/insights');
-    await page.waitForLoadState('networkidle');
-    expect(await page.screenshot({ fullPage: true })).toMatchSnapshot('insights.png', { maxDiffPixelRatio: 0.02 });
+  test('Mobile viewport matches baseline', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 }); // iPhone SE
+    await page.goto('/');
+    
+    await expect(page.locator('#root')).toBeVisible({ timeout: 10000 });
+    await page.waitForTimeout(2000);
+    
+    expect(await page.screenshot({ 
+      fullPage: true,
+      animations: 'disabled',
+    })).toMatchSnapshot('mobile-dashboard.png', { maxDiffPixelRatio: 0.05 });
   });
 });

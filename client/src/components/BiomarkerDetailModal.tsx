@@ -230,7 +230,7 @@ export function BiomarkerDetailModal({ open, onOpenChange, type, config }: Bioma
                     className="text-xs"
                   />
                   
-                  <Tooltip content={<CustomTooltip />} />
+                  <Tooltip content={CustomTooltip} />
                   
                   <Line
                     type="monotone"

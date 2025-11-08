@@ -141,13 +141,13 @@ export function DailyRemindersWidget() {
     return { order: [], hidden: [] };
   });
 
-  // Sync with server preferences
+  // Sync with server preferences (only on initial load)
   useEffect(() => {
-    if (dashboardPrefs?.reminderPreferences) {
+    if (dashboardPrefs?.reminderPreferences && preferences.order.length === 0 && preferences.hidden.length === 0) {
       setPreferences(dashboardPrefs.reminderPreferences);
       localStorage.setItem("reminder-preferences", JSON.stringify(dashboardPrefs.reminderPreferences));
     }
-  }, [dashboardPrefs]);
+  }, [dashboardPrefs, preferences.order.length, preferences.hidden.length]);
 
   const updatePreferencesMutation = useMutation({
     mutationFn: async (newPrefs: ReminderPreferences) => {

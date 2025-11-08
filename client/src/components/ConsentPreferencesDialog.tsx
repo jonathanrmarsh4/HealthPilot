@@ -92,16 +92,17 @@ export function ConsentPreferencesDialog({ open, onOpenChange }: ConsentPreferen
     },
   });
 
-  // Initialize consents from API data
+  // Initialize consents from API data (only when modal opens)
   useEffect(() => {
-    if (data?.consents) {
+    if (open && data?.consents) {
       const initialConsents: Record<string, boolean> = {};
       CONSENT_TYPES.forEach((type) => {
         initialConsents[type.key] = data.consents[type.key]?.granted ?? type.required;
       });
       setConsents(initialConsents);
+      setHasChanges(false); // Reset changes flag when initializing
     }
-  }, [data]);
+  }, [open, data]);
 
   const handleToggle = (key: string, required: boolean) => {
     if (required) return; // Can't toggle required consents
