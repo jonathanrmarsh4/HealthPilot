@@ -80,6 +80,11 @@ export default [
       'android/**',
       '*.config.js',
       '*.config.ts',
+      // Large files that cause ESLint to hang/crash (>150KB)
+      // TODO: Refactor these into smaller modules
+      'server/routes.ts',        // 571KB
+      'server/storage.ts',       // 231KB
+      'server/services/ai.ts',   // 169KB
     ],
   },
 ];
