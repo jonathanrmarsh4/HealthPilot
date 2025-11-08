@@ -103,6 +103,11 @@ function normalizeObservation(obs: LabObservation): {
  * Find conversion spec for a given analyte and unit
  */
 function findConversionSpec(analyte: string, fromUnit: string): typeof UNIT_CONVERSIONS[0] | null {
+  // Handle null or undefined units
+  if (!fromUnit) {
+    return null;
+  }
+  
   // Normalize units for comparison
   const normalizedFromUnit = fromUnit.trim().toLowerCase();
   

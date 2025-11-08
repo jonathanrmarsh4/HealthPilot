@@ -251,7 +251,7 @@ function mapObservationToBiomarker(
   }
 
   // Determine date
-  const date = obs.collected_at ? new Date(obs.collected_at) : new Date();
+  const recordedAt = obs.collected_at ? new Date(obs.collected_at) : new Date();
 
   // Build biomarker insert object
   const biomarker: InsertBiomarker = {
@@ -259,7 +259,7 @@ function mapObservationToBiomarker(
     type: mapping.type,
     value: numericValue,
     unit: obs.unit || mapping.unit || '',
-    date,
+    recordedAt,
     source: 'medical-interpreter',
     recordId: reportId,
     notes: `Auto-extracted from ${obs.display} (${obs.code})`,
