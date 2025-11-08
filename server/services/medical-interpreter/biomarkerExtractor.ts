@@ -101,8 +101,10 @@ export async function extractBiomarkersFromLabs(
 ): Promise<string[]> {
   const createdBiomarkers: string[] = [];
 
+  console.log('🔍 labData structure:', JSON.stringify(labData, null, 2).substring(0, 500));
+  
   if (!labData.observations || labData.observations.length === 0) {
-    console.log('No observations to extract biomarkers from');
+    console.log('⚠️ No observations to extract biomarkers from. labData.observations:', labData.observations);
     return createdBiomarkers;
   }
 
