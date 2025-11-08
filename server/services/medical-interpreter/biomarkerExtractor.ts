@@ -7,35 +7,60 @@ import { storage } from '../../storage';
 
 /**
  * Mapping from common lab codes/displays to HealthPilot biomarker types
+ * Includes LOINC codes, normalized variations, and common clinical names
  */
 const LAB_TO_BIOMARKER_MAP: Record<string, { type: string; unit?: string }> = {
   // Lipid Panel
   'ldl': { type: 'ldl-cholesterol', unit: 'mmol/L' },
+  'ldl_c': { type: 'ldl-cholesterol', unit: 'mmol/L' },
+  'ldlc': { type: 'ldl-cholesterol', unit: 'mmol/L' },
   'low-density lipoprotein': { type: 'ldl-cholesterol', unit: 'mmol/L' },
   'ldl cholesterol': { type: 'ldl-cholesterol', unit: 'mmol/L' },
+  '2089-1': { type: 'ldl-cholesterol', unit: 'mmol/L' }, // LOINC
+  '13457-7': { type: 'ldl-cholesterol', unit: 'mmol/L' }, // LOINC
+  
   'hdl': { type: 'hdl-cholesterol', unit: 'mmol/L' },
+  'hdl_c': { type: 'hdl-cholesterol', unit: 'mmol/L' },
+  'hdlc': { type: 'hdl-cholesterol', unit: 'mmol/L' },
   'high-density lipoprotein': { type: 'hdl-cholesterol', unit: 'mmol/L' },
   'hdl cholesterol': { type: 'hdl-cholesterol', unit: 'mmol/L' },
+  '2085-9': { type: 'hdl-cholesterol', unit: 'mmol/L' }, // LOINC
+  
   'cholesterol': { type: 'total-cholesterol', unit: 'mmol/L' },
   'total cholesterol': { type: 'total-cholesterol', unit: 'mmol/L' },
+  'total_cholesterol': { type: 'total-cholesterol', unit: 'mmol/L' },
+  '2093-3': { type: 'total-cholesterol', unit: 'mmol/L' }, // LOINC
+  
   'triglycerides': { type: 'triglycerides', unit: 'mmol/L' },
   'trig': { type: 'triglycerides', unit: 'mmol/L' },
+  '2571-8': { type: 'triglycerides', unit: 'mmol/L' }, // LOINC
 
   // Glucose & Diabetes
   'glucose': { type: 'fasting-glucose', unit: 'mmol/L' },
+  'glucose_fasting': { type: 'fasting-glucose', unit: 'mmol/L' },
   'fasting glucose': { type: 'fasting-glucose', unit: 'mmol/L' },
   'blood glucose': { type: 'fasting-glucose', unit: 'mmol/L' },
+  '1558-6': { type: 'fasting-glucose', unit: 'mmol/L' }, // LOINC
+  
   'hba1c': { type: 'hba1c', unit: '%' },
   'a1c': { type: 'hba1c', unit: '%' },
   'glycated hemoglobin': { type: 'hba1c', unit: '%' },
   'hemoglobin a1c': { type: 'hba1c', unit: '%' },
+  '4548-4': { type: 'hba1c', unit: '%' }, // LOINC
+  '17856-6': { type: 'hba1c', unit: '%' }, // LOINC
 
   // Thyroid
   'tsh': { type: 'tsh', unit: 'mIU/L' },
   'thyroid stimulating hormone': { type: 'tsh', unit: 'mIU/L' },
+  'thyroid_stimulating_hormone': { type: 'tsh', unit: 'mIU/L' },
+  '3016-3': { type: 'tsh', unit: 'mIU/L' }, // LOINC
+  
   't4': { type: 't4', unit: 'pmol/L' },
   'thyroxine': { type: 't4', unit: 'pmol/L' },
+  '3026-2': { type: 't4', unit: 'pmol/L' }, // LOINC
+  
   't3': { type: 't3', unit: 'pmol/L' },
+  '3051-0': { type: 't3', unit: 'pmol/L' }, // LOINC
 
   // Liver Function
   'alt': { type: 'alt', unit: 'U/L' },
@@ -132,6 +157,35 @@ export async function extractBiomarkersFromLabs(
 }
 
 /**
+ * Normalize a lab code or display name for lookup
+ * Handles LOINC codes, underscores, hyphens, and variations
+ */
+function normalizeLabKey(key: string): string[] {
+  const lower = key.toLowerCase().trim();
+  const variants = [lower];
+  
+  // Add version without hyphens and underscores
+  const normalized = lower.replace(/[-_]/g, ' ');
+  if (normalized !== lower) {
+    variants.push(normalized);
+  }
+  
+  // Add version without spaces
+  const compact = lower.replace(/[-_\s]/g, '');
+  if (compact !== lower) {
+    variants.push(compact);
+  }
+  
+  // Add version with underscores replaced by spaces
+  const underscoreToSpace = lower.replace(/_/g, ' ');
+  if (underscoreToSpace !== lower) {
+    variants.push(underscoreToSpace);
+  }
+  
+  return variants;
+}
+
+/**
  * Map a lab observation to a biomarker insert object
  */
 function mapObservationToBiomarker(
@@ -139,11 +193,29 @@ function mapObservationToBiomarker(
   userId: string,
   reportId: string
 ): InsertBiomarker | null {
-  // Try to find matching biomarker type
-  const searchKey = obs.code.toLowerCase();
-  const displayKey = obs.display.toLowerCase();
+  // Try to find matching biomarker type using normalized keys
+  const codeVariants = normalizeLabKey(obs.code);
+  const displayVariants = normalizeLabKey(obs.display);
   
-  const mapping = LAB_TO_BIOMARKER_MAP[searchKey] || LAB_TO_BIOMARKER_MAP[displayKey];
+  let mapping = null;
+  
+  // Try all variants of code first
+  for (const variant of codeVariants) {
+    if (LAB_TO_BIOMARKER_MAP[variant]) {
+      mapping = LAB_TO_BIOMARKER_MAP[variant];
+      break;
+    }
+  }
+  
+  // If not found, try all variants of display
+  if (!mapping) {
+    for (const variant of displayVariants) {
+      if (LAB_TO_BIOMARKER_MAP[variant]) {
+        mapping = LAB_TO_BIOMARKER_MAP[variant];
+        break;
+      }
+    }
+  }
   
   if (!mapping) {
     return null;

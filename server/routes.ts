@@ -13437,7 +13437,8 @@ DATA AVAILABILITY:
         userId
       );
 
-      console.log(`📊 Interpretation complete. Status: ${result.status}`);
+      console.log(`📊 Interpretation complete. Status: ${result.status}, Type: ${result.report_type}`);
+      console.log(`🔍 result.data type: ${typeof result.data}, structure:`, JSON.stringify(result.data, null, 2).substring(0, 500));
 
       // Determine final status based on interpretation result
       // 'accepted' → 'completed', 'discarded' → 'discarded', other → 'failed'
@@ -13455,17 +13456,25 @@ DATA AVAILABILITY:
       
       if (result.status === 'accepted' && result.report_type === 'Observation_Labs') {
         console.log('🧬 Auto-extracting biomarkers from lab observations');
-        try {
-          extractedBiomarkerIds = await extractBiomarkersFromLabs(
-            result.data as any,
-            userId,
-            id
-          );
-          console.log(`✅ Auto-extracted ${extractedBiomarkerIds.length} biomarkers from labs`);
-        } catch (biomarkerError) {
-          console.error('⚠️  Failed to auto-extract biomarkers from labs:', biomarkerError);
-          // Log the error but don't fail the entire request
-          // The interpretation was successful even if biomarker extraction failed
+        
+        // Type guard: verify result.data has observations array
+        const labData = result.data as any;
+        if (!labData || !Array.isArray(labData.observations)) {
+          console.error('⚠️ Invalid lab data structure: observations array missing or invalid');
+          console.log('⚠️ Actual structure:', JSON.stringify(labData, null, 2));
+        } else {
+          try {
+            extractedBiomarkerIds = await extractBiomarkersFromLabs(
+              labData,
+              userId,
+              id
+            );
+            console.log(`✅ Auto-extracted ${extractedBiomarkerIds.length} biomarkers from labs`);
+          } catch (biomarkerError) {
+            console.error('⚠️  Failed to auto-extract biomarkers from labs:', biomarkerError);
+            // Log the error but don't fail the entire request
+            // The interpretation was successful even if biomarker extraction failed
+          }
         }
       } else if (result.status === 'accepted' && result.report_type === 'DiagnosticReport_Imaging') {
         console.log('🧬 Auto-extracting biomarkers from imaging observations');
