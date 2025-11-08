@@ -781,7 +781,8 @@ export default function WorkoutSession() {
   // Update set mutation
   const updateSetMutation = useMutation({
     mutationFn: async ({ setId, data, startRest }: { setId: string; data: Partial<ExerciseSet>; startRest?: { duration: number } }) => {
-      const result = await apiRequest("PATCH", `/api/exercise-sets/${setId}`, data);
+      const response = await apiRequest("PATCH", `/api/exercise-sets/${setId}`, data);
+      const result = await response.json();
       return { result, startRest, data };
     },
     onSuccess: (responseData) => {
@@ -839,7 +840,8 @@ export default function WorkoutSession() {
       const url = instanceId 
         ? `/api/workout-sessions/${sessionId}/exercises/${exerciseId}/add-set?instanceId=${instanceId}`
         : `/api/workout-sessions/${sessionId}/exercises/${exerciseId}/add-set`;
-      return await apiRequest("POST", url, {});
+      const response = await apiRequest("POST", url, {});
+      return await response.json();
     },
     onSuccess: () => {
       // Invalidate both sets and exercises queries to ensure UI updates
@@ -865,7 +867,8 @@ export default function WorkoutSession() {
       const url = instanceId 
         ? `/api/workout-sessions/${sessionId}/finish?instanceId=${instanceId}`
         : `/api/workout-sessions/${sessionId}/finish`;
-      return await apiRequest("POST", url, {});
+      const response = await apiRequest("POST", url, {});
+      return await response.json();
     },
     onSuccess: async () => {
       // End Live Activity
