@@ -133,12 +133,11 @@ function NotificationSheet({
     currentY.current = e.touches[0].clientY;
     const delta = currentY.current - startY.current;
     
-    // Only allow upward drag (negative delta)
-    if (delta < 0) {
+    // Only allow downward drag (positive delta) - sheet slides down to dismiss
+    if (delta > 0) {
       setDragOffset(delta);
       e.preventDefault();
     } else {
-      setIsDragging(false);
       setDragOffset(0);
     }
   };
@@ -148,9 +147,10 @@ function NotificationSheet({
     setIsDragging(false);
     
     const delta = currentY.current - startY.current;
+    const velocity = Math.abs(delta);
     
-    // Close if dragged up more than 100px
-    if (delta < -100) {
+    // Close if dragged down more than 100px or with sufficient velocity (>50px)
+    if (delta > 100 || (delta > 50 && velocity > 50)) {
       onClose();
     }
     

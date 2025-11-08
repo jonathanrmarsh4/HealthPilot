@@ -493,11 +493,11 @@ export default function MobileNav({
         ].join(" ")}
         aria-label="Primary"
       >
-        <div className="max-w-[420px] mx-auto">
-          <div className="relative flex items-center justify-center py-3">
+        <div className="max-w-[420px] mx-auto px-4">
+          <div className="grid grid-cols-3 items-end py-3 gap-2">
             <button
               type="button"
-              className="flex flex-col items-center justify-center gap-1 min-h-12 absolute left-[15%] -translate-x-1/2"
+              className="flex flex-col items-center justify-center gap-1 min-h-12"
               onClick={() => setMenuOpen(true)}
               aria-label="Menu"
               data-testid="button-menu"
@@ -506,11 +506,11 @@ export default function MobileNav({
               <span className="text-[11px]">Menu</span>
             </button>
 
-            <div className="absolute left-1/2 -translate-x-1/2 -top-6 touch-none pointer-events-none">
+            <div className="flex justify-center relative -mt-6">
               <button
                 type="button"
                 className={[
-                  "rounded-full border shadow-xl flex items-center justify-center pointer-events-auto",
+                  "rounded-full border shadow-xl flex items-center justify-center",
                   fabSizeClass,
                   fabBg,
                 ].join(" ")}
@@ -529,7 +529,7 @@ export default function MobileNav({
             <button
               type="button"
               onClick={() => doNavigate("/insights")}
-              className="flex flex-col items-center justify-center gap-1 min-h-12 absolute right-[15%] translate-x-1/2"
+              className="flex flex-col items-center justify-center gap-1 min-h-12"
               aria-current={isActive("/insights") ? "page" : undefined}
               aria-label="Insights"
               data-testid="button-insights"
