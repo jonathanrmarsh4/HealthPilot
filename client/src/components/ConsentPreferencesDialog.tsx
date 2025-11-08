@@ -57,6 +57,14 @@ const CONSENT_TYPES: ConsentType[] = [
   },
 ];
 
+interface ConsentInfo {
+  granted: boolean;
+  grantedAt: string | null;
+  revokedAt: string | null;
+  ipAddress?: string;
+  userAgent?: string;
+}
+
 // Internal component with form logic - remounts when dialog opens
 function ConsentForm({ 
   serverConsents, 
@@ -67,7 +75,9 @@ function ConsentForm({
   serverConsents: Record<string, boolean>; 
   onSave: (consents: Record<string, boolean>) => void;
   onCancel: () => void;
-  data: any;
+  data: {
+    consents?: Record<string, ConsentInfo>;
+  } | undefined;
 }) {
   // Initialize local state from server consents
   const [consents, setConsents] = useState<Record<string, boolean>>(serverConsents);
@@ -209,7 +219,7 @@ export function ConsentPreferencesDialog({ open, onOpenChange }: ConsentPreferen
         description: "Your privacy preferences have been updated successfully.",
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Error Saving Preferences",
         description: error.message || "Failed to update consent preferences.",

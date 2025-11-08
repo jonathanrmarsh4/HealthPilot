@@ -60,6 +60,50 @@ interface CompletedWorkout {
   intensity: "Low" | "Moderate" | "High";
 }
 
+interface FitnessProfile {
+  id: number;
+  userId: number;
+  gender?: string;
+  age?: number;
+  heightCm?: number;
+  weightKg?: number;
+  fitnessLevel?: string;
+  healthConditions?: string[];
+  goals?: string[];
+  preferredActivities?: string[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+interface ScheduledRecommendation {
+  id: number;
+  title: string;
+  scheduledAt: string;
+  description?: string;
+  category?: string;
+  duration?: number;
+}
+
+interface ScheduledInsight {
+  id: number;
+  title: string;
+  status: string;
+  scheduledDates?: string[];
+  description?: string;
+  category?: string;
+  activityType?: string;
+  duration?: number;
+}
+
+interface ScheduledExercise {
+  id: number;
+  exerciseName: string;
+  scheduledDates?: string[];
+  description?: string;
+  exerciseType?: string;
+  duration?: number;
+}
+
 export default function Training() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
@@ -71,7 +115,7 @@ export default function Training() {
   });
 
   // Check if user has completed their fitness profile
-  const { data: fitnessProfile } = useQuery<any>({
+  const { data: fitnessProfile } = useQuery<FitnessProfile>({
     queryKey: ["/api/fitness-profile"],
   });
 
@@ -87,19 +131,19 @@ export default function Training() {
     queryKey: ["/api/workouts/completed"],
   });
 
-  const { data: scheduledRecommendations = [] } = useQuery<any[]>({
+  const { data: scheduledRecommendations = [] } = useQuery<ScheduledRecommendation[]>({
     queryKey: ["/api/recommendations/scheduled"],
   });
 
-  const { data: todayScheduledRecommendations = [] } = useQuery<any[]>({
+  const { data: todayScheduledRecommendations = [] } = useQuery<ScheduledRecommendation[]>({
     queryKey: ["/api/recommendations/today"],
   });
 
-  const { data: scheduledInsights = [] } = useQuery<any[]>({
+  const { data: scheduledInsights = [] } = useQuery<ScheduledInsight[]>({
     queryKey: ["/api/scheduled-insights"],
   });
 
-  const { data: scheduledExercises = [] } = useQuery<any[]>({
+  const { data: scheduledExercises = [] } = useQuery<ScheduledExercise[]>({
     queryKey: ["/api/scheduled-exercises"],
   });
 
@@ -431,10 +475,10 @@ export default function Training() {
           }))}
           insights={[
             ...scheduledInsights
-              .filter((insight: any) => 
+              .filter((insight) => 
                 insight.status === 'scheduled' || insight.status === 'active'
               )
-              .flatMap((insight: any) => 
+              .flatMap((insight) => 
                 (insight.scheduledDates || []).map((date: string) => ({
                   id: `${insight.id}-${date}`,
                   insightId: insight.id,
@@ -448,7 +492,7 @@ export default function Training() {
                 }))
               ),
             ...scheduledExercises
-              .flatMap((exercise: any) => 
+              .flatMap((exercise) => 
                 (exercise.scheduledDates || []).map((date: string) => ({
                   id: `${exercise.id}-${date}`,
                   insightId: exercise.id,

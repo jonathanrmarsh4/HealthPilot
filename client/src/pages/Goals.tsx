@@ -34,17 +34,17 @@ interface Goal {
   // V2 fields (NLP-powered goals with plans)
   canonicalGoalType?: string;
   inputText?: string;
-  goalEntitiesJson?: any;
+  goalEntitiesJson?: Record<string, unknown>;
   targetDate?: string | null;
   
   // V1 legacy fields
   metricType?: string;
   targetValue?: number | null;
-  targetValueData?: any;
+  targetValueData?: { value: number; unit?: string };
   currentValue?: number | null;
-  currentValueData?: any;
+  currentValueData?: { value: number; unit?: string };
   startValue?: number | null;
-  startValueData?: any;
+  startValueData?: { value: number; unit?: string };
   deadline?: string;
   unit?: string;
   
@@ -100,7 +100,7 @@ function GoalV2Card({
     enabled: !!goal.canonicalGoalType,
   });
 
-  const { data: plans } = useQuery<any[]>({
+  const { data: plans } = useQuery<Array<{ contentJson?: { safety_notes?: string[]; safety_warnings?: string[] } }>>({
     queryKey: ['/api/goals', goal.id, 'plans'],
     enabled: !!goal.canonicalGoalType,
   });
@@ -213,7 +213,7 @@ export default function Goals() {
     if (currentValue === null || startValue === null) return 0;
 
     // For complex values (pairs, multi), use first field for progress
-    const extractNumeric = (val: any): number | null => {
+    const extractNumeric = (val: unknown): number | null => {
       if (typeof val === "number") return val;
       if (typeof val === "object" && val !== null) {
         const firstKey = Object.keys(val)[0];
@@ -259,7 +259,7 @@ export default function Goals() {
     return metric?.unit || "";
   };
 
-  const formatValue = (value: any, metricType: string): string => {
+  const formatValue = (value: unknown, metricType: string): string => {
     const metric = getMetric(metricType);
     
     if (value === null || value === undefined) return "—";

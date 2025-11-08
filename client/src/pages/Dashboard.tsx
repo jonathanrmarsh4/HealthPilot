@@ -37,14 +37,16 @@ import {
   PointerSensor, 
   useSensor, 
   useSensors,
-  DragEndEvent
+  DragEndEvent,
+  DraggableAttributes
 } from "@dnd-kit/core";
 import {
   arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
-  useSortable
+  useSortable,
+  SyntheticListenerMap
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
@@ -127,7 +129,7 @@ const WIDGET_CONFIG: Record<string, { title: string; description: string }> = {
 };
 
 // Sortable item component for drag and drop
-function SortableTileItem({ id, children }: { id: string; children: (props: { attributes: any; listeners: any }) => React.ReactNode }) {
+function SortableTileItem({ id, children }: { id: string; children: (props: { attributes: DraggableAttributes; listeners: SyntheticListenerMap | undefined }) => React.ReactNode }) {
   const {
     attributes,
     listeners,

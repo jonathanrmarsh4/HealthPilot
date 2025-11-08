@@ -36,7 +36,7 @@ export default function AdminLandingPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/landing-page"] });
       toast({ title: "Content updated successfully" });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({ title: "Error updating content", description: error.message, variant: "destructive" });
     },
   });
@@ -270,7 +270,7 @@ function FeaturesSection({
   const [showForm, setShowForm] = useState(false);
 
   const createMutation = useMutation({
-    mutationFn: async (feature: any) => {
+    mutationFn: async (feature: Omit<LandingPageFeature, 'id' | 'createdAt' | 'updatedAt'>) => {
       return apiRequest("/api/admin/landing-page/features", {
         method: "POST",
         body: JSON.stringify(feature),
@@ -284,7 +284,7 @@ function FeaturesSection({
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+    mutationFn: async ({ id, data }: { id: string; data: Partial<LandingPageFeature> }) => {
       return apiRequest(`/api/admin/landing-page/features/${id}`, {
         method: "PUT",
         body: JSON.stringify(data),
@@ -436,7 +436,7 @@ function FeatureForm({
   onCancel,
 }: {
   section: string;
-  onSave: (data: any) => void;
+  onSave: (data: Omit<LandingPageFeature, 'id' | 'createdAt' | 'updatedAt'>) => void;
   onCancel: () => void;
 }) {
   const [formData, setFormData] = useState({
@@ -506,7 +506,7 @@ function TestimonialsSection({
   const [editingData, setEditingData] = useState<LandingPageTestimonial | null>(null);
 
   const createMutation = useMutation({
-    mutationFn: async (testimonial: any) => {
+    mutationFn: async (testimonial: Omit<LandingPageTestimonial, 'id' | 'createdAt' | 'updatedAt'>) => {
       return apiRequest("/api/admin/landing-page/testimonials", {
         method: "POST",
         body: JSON.stringify(testimonial),
@@ -521,7 +521,7 @@ function TestimonialsSection({
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+    mutationFn: async ({ id, data }: { id: string; data: Partial<LandingPageTestimonial> }) => {
       return apiRequest(`/api/admin/landing-page/testimonials/${id}`, {
         method: "PUT",
         body: JSON.stringify(data),
@@ -674,7 +674,7 @@ function TestimonialForm({
   onCancel,
 }: {
   initialData?: LandingPageTestimonial | null;
-  onSave: (data: any) => void;
+  onSave: (data: Omit<LandingPageTestimonial, 'id' | 'createdAt' | 'updatedAt'>) => void;
   onCancel: () => void;
 }) {
   const [formData, setFormData] = useState({
@@ -782,7 +782,11 @@ function TestimonialForm({
   );
 }
 
-function PricingSection({ pricingPlans: _pricingPlans, content: _content, onSaveContent: _onSaveContent }: any) {
+function PricingSection({ pricingPlans: _pricingPlans, content: _content, onSaveContent: _onSaveContent }: { 
+  pricingPlans: unknown[];
+  content: LandingPageContent | undefined;
+  onSaveContent: (data: Partial<LandingPageContent>) => void;
+}) {
   return (
     <Card>
       <CardHeader>
@@ -800,7 +804,7 @@ function SocialSection({ socialLinks }: { socialLinks: LandingPageSocialLink[] }
   const [editingData, setEditingData] = useState<LandingPageSocialLink | null>(null);
 
   const createMutation = useMutation({
-    mutationFn: async (socialLink: any) => {
+    mutationFn: async (socialLink: Omit<LandingPageSocialLink, 'id' | 'createdAt' | 'updatedAt'>) => {
       return apiRequest("/api/admin/landing-page/social", {
         method: "POST",
         body: JSON.stringify(socialLink),
@@ -815,7 +819,7 @@ function SocialSection({ socialLinks }: { socialLinks: LandingPageSocialLink[] }
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+    mutationFn: async ({ id, data }: { id: string; data: Partial<LandingPageSocialLink> }) => {
       return apiRequest(`/api/admin/landing-page/social/${id}`, {
         method: "PUT",
         body: JSON.stringify(data),
@@ -945,7 +949,7 @@ function SocialLinkForm({
   onCancel,
 }: {
   initialData?: LandingPageSocialLink | null;
-  onSave: (data: any) => void;
+  onSave: (data: Omit<LandingPageSocialLink, 'id' | 'createdAt' | 'updatedAt'>) => void;
   onCancel: () => void;
 }) {
   const [formData, setFormData] = useState({
@@ -1241,10 +1245,11 @@ function ThemeSection({
           ? "The coral-to-turquoise gradient theme is now active across the app"
           : "The standard theme is now active"
       });
-    } catch (error: any) {
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       toast({
         title: "Error updating theme",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive"
       });
     }

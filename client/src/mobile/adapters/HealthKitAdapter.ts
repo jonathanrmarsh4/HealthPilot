@@ -15,17 +15,37 @@
 
 import { isNativePlatform, getPlatform } from '../MobileBootstrap';
 
+// Type for the Health plugin
+interface HealthPlugin {
+  requestAuthorization(params: { read: string[]; write: string[] }): Promise<{ granted: boolean }>;
+  checkPermissions(params: { read: string[] }): Promise<{ granted: boolean }>;
+  query(params: { dataType: string; startDate: string; endDate: string; limit?: number }): Promise<{ resultData: unknown[] }>;
+  queryHKitSampleType(params: { sampleName: string; startDate: string; endDate: string; limit?: number }): Promise<{ resultData: RawHealthSample[] }>;
+  [key: string]: unknown;
+}
+
+// Type for raw data from HealthKit plugin
+interface RawHealthSample {
+  value?: number;
+  quantity?: number;
+  unit?: string;
+  startDate?: string;
+  date?: string;
+  sourceId?: string;
+  sourceName?: string;
+}
+
 // Lazy load Health plugin only when needed (prevents bundling in web builds)
-let Health: any = null;
+let Health: HealthPlugin | null = null;
 let healthPluginAttempted = false;
 
-function getHealthPlugin(): any {
+function getHealthPlugin(): HealthPlugin | null {
   if (!healthPluginAttempted) {
     healthPluginAttempted = true;
     if (typeof window !== 'undefined' && isNativePlatform()) {
       try {
         // Dynamic import only on native platforms
-        const healthModule = (window as any).capacitorHealth;
+        const healthModule = (window as unknown as { capacitorHealth?: { Health: HealthPlugin } }).capacitorHealth;
         if (healthModule) {
           Health = healthModule.Health;
         }
@@ -104,7 +124,7 @@ class NativeHealthKitAdapter implements HealthKitAdapter {
       });
 
       return result.granted === true;
-    } catch (error: any) {
+    } catch (error) {
       console.error('[HealthKit] Authorization failed:', error);
       return false;
     }
@@ -146,14 +166,14 @@ class NativeHealthKitAdapter implements HealthKitAdapter {
         return [];
       }
 
-      return result.resultData.map((sample: any) => ({
+      return result.resultData.map((sample) => ({
         value: parseFloat(sample.value || sample.quantity || 0),
         unit: sample.unit || '',
         date: new Date(sample.startDate || sample.date),
         sourceId: sample.sourceId,
         sourceName: sample.sourceName,
       }));
-    } catch (error: any) {
+    } catch (error) {
       console.error('[HealthKit] Failed to read samples:', error);
       return [];
     }
@@ -224,7 +244,11 @@ export async function testHealthKitAdapter(): Promise<{
   success: boolean;
   available: boolean;
   error?: string;
-  details?: any;
+  details?: {
+    message?: string;
+    platform?: string;
+    heartRatePermission?: string;
+  };
 }> {
   const adapter = getHealthKitAdapter();
   const available = adapter.isAvailable();
@@ -249,11 +273,12 @@ export async function testHealthKitAdapter(): Promise<{
         heartRatePermission: permission,
       },
     };
-  } catch (error: any) {
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return {
       success: false,
       available: true,
-      error: error.message,
+      error: errorMessage,
     };
   }
 }

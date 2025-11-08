@@ -12,6 +12,24 @@ import { useToast } from "@/hooks/use-toast";
 import type { Recommendation, HealthRecord, Biomarker } from "@shared/schema";
 import { useState } from "react";
 
+interface ExerciseRecommendation {
+  id: string;
+  status: string;
+  title?: string;
+  description?: string;
+  category?: string;
+  alternateExerciseId?: number;
+  muscleGroup?: string;
+  difficultyLevel?: string;
+  [key: string]: unknown;
+}
+
+interface CalendarCounts {
+  exercises?: number;
+  workouts?: number;
+  supplements?: number;
+}
+
 export default function AIInsights() {
   const { toast } = useToast();
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
@@ -29,17 +47,17 @@ export default function AIInsights() {
     queryKey: ["/api/biomarkers"],
   });
 
-  const { data: exerciseRecommendations, isLoading: exerciseLoading } = useQuery<any[]>({
+  const { data: exerciseRecommendations, isLoading: exerciseLoading } = useQuery<ExerciseRecommendation[]>({
     queryKey: ["/api/exercise-recommendations"],
   });
 
-  const { data: calendarResponse } = useQuery<any>({
+  const { data: calendarResponse } = useQuery<{ calendar?: Record<string, CalendarCounts> }>({
     queryKey: ["/api/schedule/calendar"],
   });
 
   // Transform calendar object to array format for components
   const calendarData = calendarResponse?.calendar
-    ? Object.entries(calendarResponse.calendar).map(([date, counts]: [string, any]) => ({
+    ? Object.entries(calendarResponse.calendar).map(([date, counts]) => ({
         date,
         exercises: counts.exercises,
         workouts: counts.workouts,
@@ -94,7 +112,7 @@ export default function AIInsights() {
       const res = await apiRequest("POST", `/api/recommendations/${id}/feedback`, { feedback });
       return res.json();
     },
-    onSuccess: (_: any, variables: { id: string; feedback: "positive" | "negative" }) => {
+    onSuccess: (_: unknown, variables: { id: string; feedback: "positive" | "negative" }) => {
       queryClient.invalidateQueries({ queryKey: ["/api/recommendations"] });
       toast({
         title: variables.feedback === "positive" ? "Thanks for your feedback!" : "Noted",
@@ -288,7 +306,7 @@ export default function AIInsights() {
         </Card>
       </div>
 
-      {exerciseRecommendations && exerciseRecommendations.filter((e: any) => e.status === "pending" || e.status === "scheduled").length > 0 && (
+      {exerciseRecommendations && exerciseRecommendations.filter((e) => e.status === "pending" || e.status === "scheduled").length > 0 && (
         <div>
           <h2 className="text-xl sm:text-2xl font-semibold mb-6 flex items-center gap-2 break-words">
             <Activity className="h-5 w-5 sm:h-6 sm:w-6 text-primary shrink-0" />
@@ -307,8 +325,8 @@ export default function AIInsights() {
           ) : (
             <div className="grid gap-4 mb-8">
               {exerciseRecommendations
-                .filter((e: any) => e.status === "pending" || e.status === "scheduled")
-                .map((exercise: any) => (
+                .filter((e) => e.status === "pending" || e.status === "scheduled")
+                .map((exercise) => (
                   <ExerciseRecommendationCard
                     key={exercise.id}
                     recommendation={exercise}
