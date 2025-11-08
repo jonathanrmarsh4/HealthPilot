@@ -76,7 +76,7 @@ interface ProfileData {
 
 export default function Profile() {
   const { toast } = useToast();
-  const { unitSystem } = useLocale();
+  const { unitSystem, setUnitSystem } = useLocale();
   const { timezone, setTimezone } = useTimezone();
   const [locationSearch, setLocationSearch] = useState("");
   const [locationSuggestions, setLocationSuggestions] = useState<Array<{ display_name: string }>>([]);
@@ -668,6 +668,29 @@ export default function Profile() {
                 </Select>
                 <p className="text-sm text-muted-foreground">
                   All timestamps in the application will be displayed in your selected timezone
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="unit-system">Unit System</Label>
+                <Select
+                  value={unitSystem}
+                  onValueChange={(value) => setUnitSystem(value as "metric" | "imperial")}
+                >
+                  <SelectTrigger id="unit-system" data-testid="select-unit-system">
+                    <SelectValue placeholder="Select unit system" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="metric" data-testid="option-metric">
+                      Metric (kg, cm, °C)
+                    </SelectItem>
+                    <SelectItem value="imperial" data-testid="option-imperial">
+                      Imperial (lbs, in, °F)
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-muted-foreground">
+                  Choose how measurements are displayed throughout the app
                 </p>
               </div>
             </CardContent>

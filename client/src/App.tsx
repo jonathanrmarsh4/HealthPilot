@@ -9,7 +9,6 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { PremiumThemeProvider } from "@/components/PremiumThemeProvider";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LocaleProvider } from "@/contexts/LocaleContext";
-import { LocaleSelector } from "@/components/LocaleSelector";
 import { NotificationBadge } from "@/components/NotificationBadge";
 import { TimezoneProvider } from "@/contexts/TimezoneContext";
 import { OnboardingProvider, useOnboarding } from "@/contexts/OnboardingContext";
@@ -198,7 +197,6 @@ function SidebarContentWrapper({
             <SidebarTrigger data-testid="button-sidebar-toggle" />
             <div className="flex items-center gap-2">
               <NotificationBadge />
-              <LocaleSelector />
               <ThemeToggle />
               <Button
                 variant="ghost"
@@ -231,6 +229,49 @@ function SidebarContentWrapper({
                   }
                 }}
                 data-testid="button-logout"
+              >
+                <LogOut className="h-5 w-5" />
+              </Button>
+            </div>
+          </header>
+
+          {/* Mobile-only header */}
+          <header className="md:hidden backdrop-blur-xl bg-white/70 dark:bg-zinc-900/70 border-b border-black/10 dark:border-white/10 shrink-0 pt-[env(safe-area-inset-top)]">
+            <div className="flex items-center justify-end gap-2 px-4 py-3">
+              <NotificationBadge />
+              <ThemeToggle />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="rounded-xl"
+                onClick={async () => {
+                  if (isNativePlatform()) {
+                    // Mobile logout: Clear local session, Safari cookies, AND Replit OAuth session
+                    try {
+                      // Clear SFSafariViewController cookies (iOS 16+ only)
+                      try {
+                        await SafariData.clearData();
+                      } catch {
+                        // iOS 16+ required
+                      }
+                      
+                      // Clear local session tokens
+                      await SecureStorage.remove('sessionToken');
+                      await Preferences.remove({ key: 'deviceId' });
+                      
+                      // Clear Replit OAuth session by calling server logout endpoint
+                      // This ensures the account picker appears on next login
+                      window.location.href = "/api/logout";
+                    } catch (error) {
+                      console.error('[Logout] Error clearing mobile session:', error);
+                      window.location.href = "/api/logout";
+                    }
+                  } else {
+                    // Web logout: Use server endpoint
+                    window.location.href = "/api/logout";
+                  }
+                }}
+                data-testid="button-logout-mobile"
               >
                 <LogOut className="h-5 w-5" />
               </Button>
