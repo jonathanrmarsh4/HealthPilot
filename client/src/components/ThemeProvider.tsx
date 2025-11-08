@@ -1,4 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react";
+import { Capacitor } from "@capacitor/core";
+import { StatusBar, Style } from "@capacitor/status-bar";
 
 type Theme = "light" | "dark";
 
@@ -39,6 +41,33 @@ export function ThemeProvider({
     root.classList.remove("light", "dark");
     root.classList.add(theme);
     localStorage.setItem("theme", theme);
+
+    // Update native status bar styling based on theme
+    if (Capacitor.isNativePlatform()) {
+      const updateStatusBar = async () => {
+        try {
+          if (theme === "dark") {
+            // Dark mode: Use Style.Light for LIGHT content (text/icons) on dark background
+            await StatusBar.setStyle({ style: Style.Light });
+            // Android only - set dark background color
+            if (Capacitor.getPlatform() === "android") {
+              await StatusBar.setBackgroundColor({ color: "#000000" });
+            }
+          } else {
+            // Light mode: Use Style.Dark for DARK content (text/icons) on light background
+            await StatusBar.setStyle({ style: Style.Dark });
+            // Android only - set light background color
+            if (Capacitor.getPlatform() === "android") {
+              await StatusBar.setBackgroundColor({ color: "#ffffff" });
+            }
+          }
+        } catch (error) {
+          console.warn("[ThemeProvider] Failed to update status bar:", error);
+        }
+      };
+
+      updateStatusBar();
+    }
   }, [theme]);
 
   return (

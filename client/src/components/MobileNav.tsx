@@ -12,7 +12,9 @@ import {
   Activity,
   Target,
   Home,
+  Sun,
 } from "lucide-react";
+import { useTheme } from "@/components/ThemeProvider";
 
 type LinkishProps = {
   to: string;
@@ -40,6 +42,7 @@ export default function MobileNav({
 }: MobileNavProps) {
   const [menuOpen, setMenuOpen] = React.useState(false);
   const [quickOpen, setQuickOpen] = React.useState(false);
+  const { theme, setTheme } = useTheme();
   
   const prefersReducedMotion = React.useMemo(() => {
     if (typeof window === "undefined") return false;
@@ -385,6 +388,13 @@ export default function MobileNav({
           }}
           icon={<ClipboardList className="w-5 h-5" />}
           ariaLabel="Fitness Profile"
+        />
+        <Tile
+          onClick={() => {
+            setTheme(theme === "dark" ? "light" : "dark");
+          }}
+          icon={theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+          ariaLabel={theme === "dark" ? "Light Mode" : "Dark Mode"}
         />
       </div>
 
