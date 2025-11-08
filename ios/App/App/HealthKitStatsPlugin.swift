@@ -6,7 +6,7 @@ import HealthKit
 public class HealthKitStatsPluginV2: CAPPlugin {
     private let healthStore = HKHealthStore()
     private var observers: [HKObserverQuery] = []
-    private var backgroundQueue: [String: [[String: Any]]] = [:]
+    internal var backgroundQueue: [String: [[String: Any]]] = [:]
     private let queueKey = "healthkit_background_queue"
     
     @objc func getDailySteps(_ call: CAPPluginCall) {
@@ -266,13 +266,24 @@ public class HealthKitStatsPluginV2: CAPPlugin {
     }
     
     @objc func drainBackgroundQueue(_ call: CAPPluginCall) {
+        let queueData = drainQueueData()
+        call.resolve(["data": queueData])
+    }
+    
+    // Helper method to drain queue data (can be called from AppDelegate or plugin)
+    public func drainQueueData() -> [String: [[String: Any]]] {
         let queueData = backgroundQueue
         
         // Clear the queue after draining
         backgroundQueue = [:]
         UserDefaults.standard.removeObject(forKey: queueKey)
         
-        call.resolve(["data": queueData])
+        return queueData
+    }
+    
+    // Helper method to persist queue to UserDefaults (can be called from AppDelegate)
+    public func persistQueue() {
+        UserDefaults.standard.set(backgroundQueue, forKey: queueKey)
     }
     
     @objc func getBackgroundQueueStats(_ call: CAPPluginCall) {

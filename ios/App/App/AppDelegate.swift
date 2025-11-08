@@ -85,25 +85,14 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             return false
         }
         
-        // Call drainBackgroundQueue on the HealthKit plugin
-        let call = CAPPluginCall(callbackId: "bgSync", options: [:], success: { (result, _) in
-            print("✅ Queue drained successfully")
-        }, error: { (error) in
-            print("❌ Failed to drain queue: \(error?.localizedDescription ?? "unknown")")
-        })!
-        
-        // Get queued data synchronously
+        // Get queued data from plugin (this also clears the queue)
         guard let plugin = bridge.plugin(withName: "HealthKitStatsPluginV2") as? HealthKitStatsPluginV2 else {
             print("❌ HealthKit plugin not found")
             return false
         }
         
-        // Access background queue directly
-        let queueKey = "healthkit_background_queue"
-        guard let queueData = UserDefaults.standard.dictionary(forKey: queueKey) as? [String: [[String: Any]]] else {
-            print("ℹ️ No queued HealthKit data")
-            return false
-        }
+        // Drain the queue - this clears both in-memory and UserDefaults
+        let queueData = plugin.drainQueueData()
         
         if queueData.isEmpty {
             print("ℹ️ Queue is empty")
@@ -129,16 +118,23 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             guard let httpResponse = response as? HTTPURLResponse,
                   (200...299).contains(httpResponse.statusCode) else {
                 print("❌ Server returned error: \((response as? HTTPURLResponse)?.statusCode ?? 0)")
+                // Re-queue the data if upload failed
+                for (dataType, samples) in queueData {
+                    plugin.backgroundQueue[dataType, default: []].append(contentsOf: samples)
+                }
+                plugin.persistQueue()
                 return false
             }
             
-            // Clear the queue after successful upload
-            UserDefaults.standard.removeObject(forKey: queueKey)
             print("✅ HealthKit data uploaded and queue cleared")
-            
             return true
         } catch {
             print("❌ Failed to sync HealthKit: \(error)")
+            // Re-queue the data if upload failed
+            for (dataType, samples) in queueData {
+                plugin.backgroundQueue[dataType, default: []].append(contentsOf: samples)
+            }
+            plugin.persistQueue()
             return false
         }
     }
