@@ -6,7 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ThumbsUp, ThumbsDown } from "lucide-react";
 
 interface ChatFeedbackProps {
-  messageId: number;
+  messageId: string;
   conversationType?: 'text' | 'voice';
   onFeedbackGiven?: () => void;
 }

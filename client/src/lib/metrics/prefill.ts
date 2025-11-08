@@ -26,7 +26,7 @@ export async function prefillForMetric(
   const latest = await getLatestMeasurement(metricId);
   const earliest = await getEarliestMeasurement(metricId, goalStartDate);
 
-  const wrap = (raw: any): PrefillValue | undefined => {
+  const wrap = (raw: { value?: unknown; [key: string]: unknown } | null | undefined): PrefillValue | undefined => {
     if (!raw) return undefined;
 
     // Handle pair schema (e.g., blood pressure)

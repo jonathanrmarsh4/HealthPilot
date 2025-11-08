@@ -209,7 +209,7 @@ export function CheckoutModal({ isOpen, onClose, defaultTier = "premium" }: Chec
             )}
             {pricing.discountAmount > 0 && (
               <div className="flex justify-between text-sm text-green-600 dark:text-green-400">
-                <span>Promo: {validatedPromo.code}</span>
+                <span>Promo: {validatedPromo?.code}</span>
                 <span>-${pricing.discountAmount.toFixed(2)}</span>
               </div>
             )}

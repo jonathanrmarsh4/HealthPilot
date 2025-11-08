@@ -37,7 +37,14 @@ export default function Chat() {
     queryKey: ["/api/chat/usage"],
   });
 
-  const { data: activeSuggestions } = useQuery<any[]>({
+  interface ActiveSuggestion {
+    id: string;
+    suggestedActivity: string;
+    activityType: string;
+    [key: string]: unknown;
+  }
+
+  const { data: activeSuggestions } = useQuery<ActiveSuggestion[]>({
     queryKey: ["/api/proactive-suggestions/active"],
     refetchInterval: 30000, // Refresh every 30 seconds
   });

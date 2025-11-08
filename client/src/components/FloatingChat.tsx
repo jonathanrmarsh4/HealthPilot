@@ -513,12 +513,12 @@ export function FloatingChat({ isOpen, onClose, currentPage, context }: Floating
       recognition.interimResults = false;
       recognition.lang = 'en-US';
       
-      recognition.onresult = (event: any) => {
+      recognition.onresult = (event: { results: Array<Array<{ transcript: string }>> }) => {
         const transcript = event.results[0][0].transcript;
         setMessage(prev => prev + (prev ? ' ' : '') + transcript);
       };
       
-      recognition.onerror = (event: any) => {
+      recognition.onerror = (event: { error: string }) => {
         console.error('Speech recognition error:', event.error);
         setIsListening(false);
         if (event.error !== 'no-speech' && event.error !== 'aborted') {

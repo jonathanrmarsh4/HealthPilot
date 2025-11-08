@@ -71,7 +71,8 @@ export function RecommendationCalendar({
   // Complete scheduled exercise mutation
   const completeExerciseMutation = useMutation({
     mutationFn: async (id: string | number) => {
-      return await apiRequest('POST', `/api/scheduled-exercises/${id}/complete`);
+      const response = await apiRequest('POST', `/api/scheduled-exercises/${id}/complete`);
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/scheduled-exercises'] });
@@ -94,7 +95,8 @@ export function RecommendationCalendar({
   // Delete scheduled exercise mutation
   const deleteExerciseMutation = useMutation({
     mutationFn: async (id: string | number) => {
-      return await apiRequest('DELETE', `/api/scheduled-exercises/${id}`);
+      const response = await apiRequest('DELETE', `/api/scheduled-exercises/${id}`);
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/scheduled-exercises'] });

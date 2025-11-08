@@ -30,8 +30,8 @@ export function SmartFuelTile() {
 
   const generateGuidanceMutation = useMutation({
     mutationFn: async () => {
-      const result = await apiRequest("POST", "/api/smartfuel/guidance/generate");
-      return result;
+      const response = await apiRequest("POST", "/api/smartfuel/guidance/generate");
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/smartfuel/guidance/current"] });

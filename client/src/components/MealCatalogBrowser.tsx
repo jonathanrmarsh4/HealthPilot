@@ -12,8 +12,22 @@ type MealType = "breakfast" | "lunch" | "dinner" | "snack";
 
 const ITEMS_PER_PAGE = 24;
 
+interface MealItem {
+  id: string;
+  name: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  servings: number;
+  dishTypes?: string[];
+  cuisines?: string[];
+  mealType: string;
+  [key: string]: unknown;
+}
+
 interface MealCatalogResponse {
-  items: any[];
+  items: MealItem[];
   page: number;
   limit: number;
   total: number;
@@ -30,7 +44,7 @@ const MEAL_TYPE_CONFIG = {
 export function MealCatalogBrowser() {
   const [selectedMealType, setSelectedMealType] = useState<MealType>("breakfast");
   const [currentPage, setCurrentPage] = useState(0);
-  const [selectedMeal, setSelectedMeal] = useState<any | null>(null);
+  const [selectedMeal, setSelectedMeal] = useState<MealItem | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
 
   // Fetch meals for the selected category and page

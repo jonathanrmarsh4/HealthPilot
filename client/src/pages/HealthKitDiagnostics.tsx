@@ -83,7 +83,7 @@ export default function HealthKitDiagnostics() {
     ]);
 
     try {
-      let result: any;
+      let result: { success?: boolean; count?: number; samples?: unknown[]; error?: string; [key: string]: unknown };
       const service = healthKitService as any;
 
       switch (dataTypeKey) {

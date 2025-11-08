@@ -37,14 +37,14 @@ export default function Biomarkers() {
       const res = await apiRequest("POST", "/api/biomarkers/cleanup-duplicates", {});
       return await res.json();
     },
-    onSuccess: (data: any) => {
+    onSuccess: (data: { message?: string; deletedCount?: number }) => {
       toast({
         title: "Cleanup Complete",
         description: data.message || `Removed ${data.deletedCount} duplicate biomarkers`,
       });
       queryClient.invalidateQueries({ queryKey: ["/api/biomarkers"] });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Cleanup Failed",
         description: error.message || "Failed to clean up duplicates",

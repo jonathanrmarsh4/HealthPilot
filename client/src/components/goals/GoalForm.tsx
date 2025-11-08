@@ -37,11 +37,11 @@ interface Goal {
   id: string;
   metricType: string;
   targetValue: number | null;
-  targetValueData?: any;
+  targetValueData?: Record<string, number | string> | null;
   currentValue: number | null;
-  currentValueData?: any;
+  currentValueData?: Record<string, number | string> | null;
   startValue: number | null;
-  startValueData?: any;
+  startValueData?: Record<string, number | string> | null;
   deadline: string;
   unit: string;
   status: string;
@@ -49,9 +49,18 @@ interface Goal {
   createdAt: string;
 }
 
+interface GoalFormData {
+  metricType: string;
+  deadline: string;
+  targetValue?: number | Record<string, number>;
+  currentValue?: number | Record<string, number>;
+  startValue?: number | Record<string, number>;
+  [key: string]: unknown;
+}
+
 interface GoalFormProps {
   goal?: Goal | null;
-  onSubmit: (data: any) => void;
+  onSubmit: (data: GoalFormData) => void;
   isPending?: boolean;
 }
 
@@ -124,11 +133,8 @@ export function GoalForm({ goal, onSubmit, isPending = false }: GoalFormProps) {
     resolver: zodResolver(formSchema),
     defaultValues: {
       metricType: goal?.metricType || "",
-      targetValue: undefined,
-      currentValue: undefined,
-      startValue: undefined,
       deadline: goal?.deadline ? format(new Date(goal.deadline), "yyyy-MM-dd") : "",
-    },
+    } as FormValues,
   });
 
   const metricType = form.watch("metricType");
@@ -155,7 +161,7 @@ export function GoalForm({ goal, onSubmit, isPending = false }: GoalFormProps) {
             form.setValue("currentValue", result.current as any);
           }
           if (result.starting !== undefined) {
-            form.setValue("startValue", result.starting as any);
+            form.setValue("startValue", result.starting);
           }
           if (result.note) {
             setPrefillNote(result.note);
@@ -200,7 +206,7 @@ export function GoalForm({ goal, onSubmit, isPending = false }: GoalFormProps) {
     }
 
     // Serialize values based on metric schema
-    const serializeValue = (value: any) => {
+    const serializeValue = (value: number | Record<string, number> | undefined) => {
       if (value === undefined || value === null) return { simple: null, data: null };
       if (selectedMetric.valueSchema === "single") {
         return { simple: Number(value), data: null };

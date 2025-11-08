@@ -31,7 +31,8 @@ export function ScheduledInsightsCard() {
 
   const completeMutation = useMutation({
     mutationFn: async (insightId: string) => {
-      return apiRequest(`/api/scheduled-insights/${insightId}/complete`, 'POST', {});
+      const response = await apiRequest('POST', `/api/scheduled-insights/${insightId}/complete`, {});
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/scheduled-insights'] });

@@ -59,7 +59,7 @@ class NativeSecureStorage implements SecureStorageAdapter {
   async getAuthToken(): Promise<string | null> {
     try {
       const result = await SecureStorage.get({ key: AUTH_TOKEN_KEY });
-      return result.value || null;
+      return (result as { value?: string }).value || null;
     } catch {
       return null;
     }
@@ -80,7 +80,7 @@ class NativeSecureStorage implements SecureStorageAdapter {
   async getRefreshToken(): Promise<string | null> {
     try {
       const result = await SecureStorage.get({ key: REFRESH_TOKEN_KEY });
-      return result.value || null;
+      return (result as { value?: string }).value || null;
     } catch {
       return null;
     }
@@ -101,7 +101,7 @@ class NativeSecureStorage implements SecureStorageAdapter {
   async getUserId(): Promise<string | null> {
     try {
       const result = await SecureStorage.get({ key: USER_ID_KEY });
-      return result.value || null;
+      return (result as { value?: string }).value || null;
     } catch {
       return null;
     }
@@ -122,7 +122,7 @@ class NativeSecureStorage implements SecureStorageAdapter {
   async getSecure(key: string): Promise<string | null> {
     try {
       const result = await SecureStorage.get({ key });
-      return result.value || null;
+      return (result as { value?: string }).value || null;
     } catch {
       return null;
     }

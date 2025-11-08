@@ -40,7 +40,7 @@ export default function MealPlans() {
       if (!res.ok) {
         const errorData = await res.json();
         // Include status code in error for upgrade prompt handling
-        const error: any = new Error(errorData.message || errorData.error || "Failed to generate meal plan");
+        const error = new Error(errorData.message || errorData.error || "Failed to generate meal plan") as Error & { status?: number };
         error.status = res.status;
         throw error;
       }
@@ -53,7 +53,7 @@ export default function MealPlans() {
         description: "New meal plan generated successfully!",
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error & { status?: number }) => {
       // If premium tier required, show upgrade prompt
       if (error.status === 402 || error.status === 403) {
         setUpgradePromptOpen(true);

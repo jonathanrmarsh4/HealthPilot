@@ -25,7 +25,7 @@ export function PremiumThemeProvider({ children }: PremiumThemeProviderProps) {
 
   useEffect(() => {
     if (data?.enabled !== undefined) {
-      setIsPremiumTheme(data.enabled);
+      setIsPremiumTheme(data?.enabled);
     }
   }, [data]);
 

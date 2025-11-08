@@ -244,12 +244,12 @@ export function PlanDetailsDialog({
                             )}
 
                             {/* Focus Areas */}
-                            {phase.focusAreas && phase.focusAreas.length > 0 && (
+                            {phase.focus && phase.focus.length > 0 && (
                               <div className="flex items-center gap-2 flex-wrap">
                                 <span className="text-xs font-medium text-muted-foreground">Focus:</span>
-                                {phase.focusAreas.map((focus, idx) => (
+                                {phase.focus.map((focusItem, idx) => (
                                   <Badge key={idx} variant="secondary" className="text-xs">
-                                    {focus}
+                                    {focusItem}
                                   </Badge>
                                 ))}
                               </div>

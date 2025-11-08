@@ -54,7 +54,7 @@ function ExerciseItem({ exercise, muscleGroups, idx }: { exercise: Exercise; mus
           target: muscleGroups[0]?.toLowerCase() || "unknown",
           bodyPart: muscleGroups[0]?.toLowerCase() || "unknown",
           equipment: null,
-          externalId: null,
+          exercisedbId: null,
           instructions: [],
         }}
         open={showDetails}

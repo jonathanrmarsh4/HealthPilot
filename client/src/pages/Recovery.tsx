@@ -23,6 +23,15 @@ interface ReadinessScore {
   };
 }
 
+interface RecoveryExercise {
+  name: string;
+  sets?: number;
+  reps?: string;
+  duration?: number;
+  notes?: string;
+  [key: string]: unknown;
+}
+
 interface RecoverySession {
   id: string;
   userId: string;
@@ -32,7 +41,7 @@ interface RecoverySession {
   duration: number;
   intensity: string;
   description?: string;
-  exercises: any[];
+  exercises: RecoveryExercise[];
   isOptional: number;
   coreProgram: number;
   scheduledFor: string;
@@ -56,7 +65,10 @@ export default function Recovery() {
     queryKey: ["/api/recovery/state"],
   });
 
-  const { data: recoveryTimelineData, isLoading: isLoadingTimeline } = useQuery<{ events: TimelineEvent[], currentState: any }>({
+  const { data: recoveryTimelineData, isLoading: isLoadingTimeline } = useQuery<{ 
+    events: TimelineEvent[];
+    currentState: { score?: number; timestamp?: string; [key: string]: unknown };
+  }>({
     queryKey: ["/api/recovery/timeline"],
     queryFn: async () => {
       const response = await fetch("/api/recovery/timeline?days=7");

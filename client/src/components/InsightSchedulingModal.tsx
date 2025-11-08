@@ -31,11 +31,12 @@ export function InsightSchedulingModal({ insightId, onClose }: InsightScheduling
 
   const scheduleMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest('POST', '/api/insights/schedule', {
+      const response = await apiRequest('POST', '/api/insights/schedule', {
         insightId,
         frequency,
         scheduledDates: frequency === 'custom' ? selectedDates.map(d => d.toISOString()) : undefined,
       });
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard/data-insights'] });

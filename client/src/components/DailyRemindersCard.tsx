@@ -40,7 +40,8 @@ export function DailyRemindersCard() {
 
   const markCompleteMutation = useMutation({
     mutationFn: async (reminderId: string) => {
-      return await apiRequest("POST", `/api/daily-reminders/${reminderId}/complete`);
+      const response = await apiRequest("POST", `/api/daily-reminders/${reminderId}/complete`);
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/daily-reminders/today"] });

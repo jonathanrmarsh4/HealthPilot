@@ -36,6 +36,17 @@ interface GeneratedWorkout {
   status: 'pending' | 'accepted' | 'rejected' | 'completed';
   workoutData?: {
     blocks?: WorkoutBlock[];
+    safety?: {
+      flag?: boolean;
+      notes?: string;
+      seek_medical_advice?: boolean;
+    };
+    plan?: {
+      focus?: string;
+      total_time_estimate_min?: number;
+    };
+    focus?: string;
+    total_time_estimate_min?: number;
     [key: string]: unknown;
   };
   sessionId?: string;
@@ -113,7 +124,16 @@ export function DailyGeneratedWorkout() {
   const isCompleted = workout?.status === 'completed';
 
   // Transform blocks array to exercise format for display
-  const exercises = workoutData?.blocks?.map((block: any) => ({
+  const exercises = workoutData?.blocks?.map((block: { 
+    display_name?: string; 
+    pattern?: string; 
+    sets?: number; 
+    reps?: string; 
+    rest_s?: number;
+    intensity?: { scheme?: string; target?: string | number };
+    preferred_modality?: string;
+    [key: string]: unknown;
+  }) => ({
     exercise: block.display_name || block.pattern,
     sets: block.sets,
     reps: block.reps,

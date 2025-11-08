@@ -24,7 +24,7 @@ interface NLGoalDialogProps {
 interface ParsedGoal {
   canonicalGoalType: string;
   displayName: string;
-  goalEntities: Record<string, any>;
+  goalEntities: Record<string, { value?: string; unit?: string; confidence?: number; [key: string]: unknown }>;
   confidence: number;
   suggestedDeadline: string | null;
   riskFlags: string[];

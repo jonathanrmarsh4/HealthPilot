@@ -41,7 +41,10 @@ interface TileManagerProps {
   defaultVisible?: string[]; // Default visible tile IDs
 }
 
-function SortableTileItem({ id, children }: { id: string; children: ReactNode }) {
+function SortableTileItem({ id, children }: { 
+  id: string; 
+  children: ReactNode | ((props: { attributes: any; listeners: any }) => ReactNode);
+}) {
   const {
     attributes,
     listeners,

@@ -16,12 +16,21 @@ export default function StartWorkout() {
   const timezone = user?.timezone || "America/New_York";
   const today = format(toZonedTime(new Date(), timezone), "yyyy-MM-dd");
 
+  interface WorkoutBlock {
+    name: string;
+    sets?: number;
+    reps?: string;
+    weight?: string;
+    notes?: string;
+    [key: string]: unknown;
+  }
+
   const { data: workout, isLoading, error, status } = useQuery<{
     id: number;
     workoutData?: {
       sessionType?: string;
       estimatedDuration?: number;
-      blocks?: any[];
+      blocks?: WorkoutBlock[];
     };
   }>({
     queryKey: ["/api/training/generated-workout", today],

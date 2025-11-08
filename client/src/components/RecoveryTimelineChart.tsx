@@ -35,7 +35,11 @@ export function RecoveryTimelineChart({ timeline, isLoading }: RecoveryTimelineC
     events: event.events || [],
   }));
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  const CustomTooltip = ({ active, payload, label }: { 
+    active?: boolean; 
+    payload?: Array<{ value: number; name: string; color: string }>;
+    label?: string;
+  }) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
       return (
@@ -49,7 +53,7 @@ export function RecoveryTimelineChart({ timeline, isLoading }: RecoveryTimelineC
             {data.events && data.events.length > 0 && (
               <div className="pt-2 border-t space-y-1">
                 <p className="text-xs text-muted-foreground font-medium">Events:</p>
-                {data.events.map((event: any, idx: number) => (
+                {data.events.map((event: { type?: string; name?: string; time?: string }, idx: number) => (
                   <p key={idx} className="text-xs">
                     <span className="capitalize">{event.type}: </span>
                     <span className="font-medium">{event.name}</span>

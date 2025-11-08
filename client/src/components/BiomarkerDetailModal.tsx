@@ -146,7 +146,10 @@ export function BiomarkerDetailModal({ open, onOpenChange, type, config }: Bioma
   };
 
   // Custom tooltip
-  const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: any[] }) => {
+  const CustomTooltip = ({ active, payload }: { 
+    active?: boolean; 
+    payload?: Array<{ value: number; payload: { date: string; value: number } }>;
+  }) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
       return (
