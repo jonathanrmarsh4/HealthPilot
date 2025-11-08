@@ -14,6 +14,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { 
@@ -682,6 +692,7 @@ export default function WorkoutSession() {
   // Store progressive overload suggestions
   const [progressiveSuggestions, setProgressiveSuggestions] = useState<Map<string, ProgressiveOverloadSuggestion>>(new Map());
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [showExitConfirmDialog, setShowExitConfirmDialog] = useState(false);
 
   // Fetch progressive overload suggestions for all exercises
   useEffect(() => {
@@ -1255,34 +1266,43 @@ export default function WorkoutSession() {
       )}
 
       {/* Sticky Footer - positioned above MobileNav (h-24 = 96px) */}
-      <div className="sticky bottom-24 z-20 bg-background border-t p-4">
-        <div className="flex gap-3">
-          <Button
-            variant="outline"
-            className="flex-1"
-            onClick={() => navigate("/training")}
-            data-testid="button-save-exit"
-          >
-            Save & Exit
-          </Button>
-          <Button
-            className="flex-1"
-            onClick={() => finishWorkoutMutation.mutate()}
-            disabled={finishWorkoutMutation.isPending}
-            data-testid="button-finish-workout"
-          >
-            {finishWorkoutMutation.isPending ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Finishing...
-              </>
-            ) : (
-              <>
-                <Trophy className="mr-2 h-4 w-4" />
-                Finish
-              </>
-            )}
-          </Button>
+      <div className="sticky bottom-24 z-20 bg-background border-t">
+        <div className="px-4 pt-2 pb-1">
+          <p className="text-xs text-center text-muted-foreground mb-2">
+            <Info className="inline h-3 w-3 mr-1" />
+            Finish your workout to update muscle recovery and training progress
+          </p>
+        </div>
+        <div className="px-4 pb-4">
+          <div className="flex flex-col gap-2">
+            <Button
+              className="w-full"
+              onClick={() => finishWorkoutMutation.mutate()}
+              disabled={finishWorkoutMutation.isPending}
+              data-testid="button-finish-workout"
+            >
+              {finishWorkoutMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Finishing...
+                </>
+              ) : (
+                <>
+                  <Trophy className="mr-2 h-4 w-4" />
+                  Finish Workout
+                </>
+              )}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full text-muted-foreground"
+              onClick={() => setShowExitConfirmDialog(true)}
+              data-testid="button-exit-without-finishing"
+            >
+              Exit Without Finishing
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -1379,6 +1399,43 @@ export default function WorkoutSession() {
         exercises={exercises.map((e: Exercise) => e.name)}
         onSubmit={handleSubmitFeedback}
       />
+
+      {/* Exit Without Finishing Confirmation Dialog */}
+      <AlertDialog open={showExitConfirmDialog} onOpenChange={setShowExitConfirmDialog}>
+        <AlertDialogContent data-testid="dialog-exit-confirm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Exit Without Finishing?</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>
+                If you exit now without finishing, your workout won't be recorded and:
+              </p>
+              <ul className="list-disc list-inside space-y-1 text-sm">
+                <li>Muscle recovery scores won't update</li>
+                <li>Training history won't include this session</li>
+                <li>Tomorrow's workout won't account for today's effort</li>
+              </ul>
+              <p className="font-medium">
+                Are you sure you want to exit without finishing?
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-exit">
+              Continue Workout
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setShowExitConfirmDialog(false);
+                navigate("/training");
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-testid="button-confirm-exit"
+            >
+              Exit Anyway
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
