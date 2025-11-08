@@ -2,9 +2,8 @@
 import fs from 'fs';
 import path from 'path';
 
-// Heuristic scanner: finds routes/screens by scanning src for react-router usage and screen components.
-// Works even if you use lazy() chunks; it will still map files.
-const SRC = path.resolve(process.cwd(), 'client/src');
+// Parse actual routes from App.tsx Router component
+const APP_TSX = path.resolve(process.cwd(), 'client/src/App.tsx');
 const outPath = path.resolve(process.cwd(), 'reports/feature-map.json');
 
 type Entry = {
@@ -15,70 +14,72 @@ type Entry = {
   deps: string[];
 };
 
-function walk(dir: string, acc: string[] = []): string[] {
-  const items = fs.readdirSync(dir, { withFileTypes: true });
-  for (const it of items) {
-    const p = path.join(dir, it.name);
-    if (it.isDirectory()) walk(p, acc);
-    else if (/\.(tsx?|jsx?)$/.test(p)) acc.push(p);
+// Critical flow mappings based on business logic
+const CRITICAL_FLOWS: Record<string, string[]> = {
+  '/training': ['start_workout', 'pause_resume', 'next_exercise', 'view_readiness'],
+  '/training/start': ['select_workout', 'configure_exercises', 'begin_session'],
+  '/workout/:id': ['log_set', 'pause_resume', 'skip_exercise', 'complete_workout'],
+  '/': ['view_dashboard', 'navigate_to_training', 'view_insights'],
+  '/insights': ['view_daily', 'view_trends', 'ai_chat'],
+  '/meals': ['view_plan', 'log_meal', 'generate_plan'],
+  '/recovery': ['view_muscle_recovery', 'schedule_protocol'],
+  '/biomarkers': ['view_trends', 'add_biomarker', 'analyze'],
+  '/goals': ['create_goal', 'track_progress', 'update_goal'],
+  '/settings': ['change_preferences', 'manage_privacy', 'logout'],
+};
+
+function parseRoutesFromApp(): Entry[] {
+  const content = fs.readFileSync(APP_TSX, 'utf8');
+  const routes: Entry[] = [];
+  
+  // Match patterns like: <Route path="/training" component={Training} />
+  const routePattern = /<Route\s+path="([^"]+)"\s+component=\{([^}]+)\}/g;
+  let match;
+  
+  while ((match = routePattern.exec(content)) !== null) {
+    const [, path, component] = match;
+    
+    // Skip NotFound catch-all route
+    if (component === 'NotFound') continue;
+    
+    routes.push({
+      route: path,
+      screen: component,
+      states: ['loading', 'content', 'error', 'empty'],
+      critical_flows: CRITICAL_FLOWS[path] || [],
+      deps: detectDeps(component),
+    });
   }
-  return acc;
+  
+  return routes;
 }
 
-function guessRoute(file: string): string | null {
-  // crude patterns for react-router elements like <Route path="/today" ... />
-  const text = fs.readFileSync(file, 'utf8');
-  const m = text.match(/<Route\s+path=["'`](.*?)["'`]/);
-  if (m?.[1]) return m[1];
-  // fallback: common screen naming
-  const base = path.basename(file).toLowerCase();
-  const known = ['today', 'training', 'insights', 'settings', 'onboarding', 'profile', 'recovery', 'nutrition', 'workout'];
-  for (const k of known) if (base.includes(k)) return `/${k}`;
-  return null;
-}
-
-function guessScreen(file: string): string {
-  const name = path.basename(file).replace(/\.(tsx?|jsx?)$/, '');
-  return name;
-}
-
-function depsFor(file: string): string[] {
-  const text = fs.readFileSync(file, 'utf8');
-  const d: string[] = [];
-  if (text.includes('lucide-react')) d.push('Lucide');
-  if (text.includes('tokens') || text.includes('--color-')) d.push('tokens');
-  if (text.includes('Capacitor') || text.includes('@capacitor')) d.push('Capacitor');
-  return Array.from(new Set(d));
+function detectDeps(component: string): string[] {
+  const deps: string[] = [];
+  
+  // Common dependencies based on component patterns
+  const componentPath = path.resolve(process.cwd(), `client/src/pages/${component}.tsx`);
+  
+  if (fs.existsSync(componentPath)) {
+    const content = fs.readFileSync(componentPath, 'utf8');
+    if (content.includes('lucide-react')) deps.push('Lucide');
+    if (content.includes('--color-') || content.includes('tokens')) deps.push('tokens');
+    if (content.includes('Capacitor') || content.includes('@capacitor')) deps.push('Capacitor');
+    if (content.includes('@tanstack/react-query')) deps.push('TanStack Query');
+  }
+  
+  return Array.from(new Set(deps));
 }
 
 function main() {
-  const files = walk(SRC);
-  const map: Entry[] = [];
-  const seen = new Set<string>();
-
-  for (const f of files) {
-    const route = guessRoute(f);
-    if (!route) continue;
-    const key = `${route}::${f}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-
-    map.push({
-      route,
-      screen: guessScreen(f),
-      states: ['loading', 'content', 'error', 'empty'], // default; refine later
-      critical_flows: route === '/training'
-        ? ['start_workout', 'pause_resume', 'next_exercise']
-        : route === '/today'
-        ? ['view_summary', 'open_workout', 'open_insight']
-        : [],
-      deps: depsFor(f),
-    });
-  }
-
+  const map = parseRoutesFromApp();
+  
   fs.mkdirSync(path.dirname(outPath), { recursive: true });
   fs.writeFileSync(outPath, JSON.stringify(map, null, 2));
-  console.log(`Feature map written: ${outPath} (${map.length} entries)`);
+  
+  console.log(`✅ Feature map written: ${outPath}`);
+  console.log(`📊 Found ${map.length} routes`);
+  console.log(`🎯 Critical flows identified: ${map.filter(m => m.critical_flows.length > 0).length} routes`);
 }
 
 main();

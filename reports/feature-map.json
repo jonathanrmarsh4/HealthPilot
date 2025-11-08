@@ -1,7 +1,26 @@
 [
   {
     "route": "/",
-    "screen": "App",
+    "screen": "Dashboard",
+    "states": [
+      "loading",
+      "content",
+      "error",
+      "empty"
+    ],
+    "critical_flows": [
+      "view_dashboard",
+      "navigate_to_training",
+      "view_insights"
+    ],
+    "deps": [
+      "Lucide",
+      "TanStack Query"
+    ]
+  },
+  {
+    "route": "/records",
+    "screen": "HealthRecords",
     "states": [
       "loading",
       "content",
@@ -11,27 +30,12 @@
     "critical_flows": [],
     "deps": [
       "Lucide",
-      "tokens",
-      "Capacitor"
+      "TanStack Query"
     ]
   },
   {
-    "route": "/insights",
-    "screen": "AIInsightsWidget",
-    "states": [
-      "loading",
-      "content",
-      "error",
-      "empty"
-    ],
-    "critical_flows": [],
-    "deps": [
-      "Lucide"
-    ]
-  },
-  {
-    "route": "/training",
-    "screen": "AITrainingPlanTile",
+    "route": "/biomarkers",
+    "screen": "Biomarkers",
     "states": [
       "loading",
       "content",
@@ -39,178 +43,18 @@
       "empty"
     ],
     "critical_flows": [
-      "start_workout",
-      "pause_resume",
-      "next_exercise"
-    ],
-    "deps": [
-      "Lucide"
-    ]
-  },
-  {
-    "route": "/workout",
-    "screen": "DailyGeneratedWorkout",
-    "states": [
-      "loading",
-      "content",
-      "error",
-      "empty"
-    ],
-    "critical_flows": [],
-    "deps": [
-      "Lucide"
-    ]
-  },
-  {
-    "route": "/insights",
-    "screen": "DataInsightsWidget",
-    "states": [
-      "loading",
-      "content",
-      "error",
-      "empty"
-    ],
-    "critical_flows": [],
-    "deps": [
-      "Lucide"
-    ]
-  },
-  {
-    "route": "/onboarding",
-    "screen": "HealthKitOnboarding",
-    "states": [
-      "loading",
-      "content",
-      "error",
-      "empty"
-    ],
-    "critical_flows": [],
-    "deps": [
-      "Lucide"
-    ]
-  },
-  {
-    "route": "/insights",
-    "screen": "InsightSchedulingModal",
-    "states": [
-      "loading",
-      "content",
-      "error",
-      "empty"
-    ],
-    "critical_flows": [],
-    "deps": [
-      "Lucide"
-    ]
-  },
-  {
-    "route": "/recovery",
-    "screen": "MuscleRecoveryGrid",
-    "states": [
-      "loading",
-      "content",
-      "error",
-      "empty"
-    ],
-    "critical_flows": [],
-    "deps": [
-      "Lucide"
-    ]
-  },
-  {
-    "route": "/workout",
-    "screen": "NextWorkoutWidget",
-    "states": [
-      "loading",
-      "content",
-      "error",
-      "empty"
-    ],
-    "critical_flows": [],
-    "deps": [
-      "Lucide"
-    ]
-  },
-  {
-    "route": "/recovery",
-    "screen": "RecoveryProtocols",
-    "states": [
-      "loading",
-      "content",
-      "error",
-      "empty"
-    ],
-    "critical_flows": [],
-    "deps": [
-      "Lucide"
-    ]
-  },
-  {
-    "route": "/recovery",
-    "screen": "RecoveryTimelineChart",
-    "states": [
-      "loading",
-      "content",
-      "error",
-      "empty"
-    ],
-    "critical_flows": [],
-    "deps": []
-  },
-  {
-    "route": "/insights",
-    "screen": "ScheduledInsightsCard",
-    "states": [
-      "loading",
-      "content",
-      "error",
-      "empty"
-    ],
-    "critical_flows": [],
-    "deps": [
-      "Lucide"
-    ]
-  },
-  {
-    "route": "/today",
-    "screen": "TodaysMealsWidget",
-    "states": [
-      "loading",
-      "content",
-      "error",
-      "empty"
-    ],
-    "critical_flows": [
-      "view_summary",
-      "open_workout",
-      "open_insight"
-    ],
-    "deps": [
-      "Lucide"
-    ]
-  },
-  {
-    "route": "/training",
-    "screen": "TrainingScheduleCard",
-    "states": [
-      "loading",
-      "content",
-      "error",
-      "empty"
-    ],
-    "critical_flows": [
-      "start_workout",
-      "pause_resume",
-      "next_exercise"
+      "view_trends",
+      "add_biomarker",
+      "analyze"
     ],
     "deps": [
       "Lucide",
-      "tokens"
+      "TanStack Query"
     ]
   },
   {
-    "route": "/workout",
-    "screen": "WorkoutFeedbackModal",
+    "route": "/sleep",
+    "screen": "Sleep",
     "states": [
       "loading",
       "content",
@@ -219,12 +63,62 @@
     ],
     "critical_flows": [],
     "deps": [
-      "Lucide"
+      "Lucide",
+      "TanStack Query"
+    ]
+  },
+  {
+    "route": "/meals",
+    "screen": "MealPlans",
+    "states": [
+      "loading",
+      "content",
+      "error",
+      "empty"
+    ],
+    "critical_flows": [
+      "view_plan",
+      "log_meal",
+      "generate_plan"
+    ],
+    "deps": [
+      "Lucide",
+      "TanStack Query"
+    ]
+  },
+  {
+    "route": "/meals/nutrition-profile",
+    "screen": "NutritionProfile",
+    "states": [
+      "loading",
+      "content",
+      "error",
+      "empty"
+    ],
+    "critical_flows": [],
+    "deps": [
+      "Lucide",
+      "TanStack Query"
+    ]
+  },
+  {
+    "route": "/smartfuel",
+    "screen": "SmartFuel",
+    "states": [
+      "loading",
+      "content",
+      "error",
+      "empty"
+    ],
+    "critical_flows": [],
+    "deps": [
+      "Lucide",
+      "TanStack Query"
     ]
   },
   {
     "route": "/training",
-    "screen": "TrainingScheduleCard",
+    "screen": "Training",
     "states": [
       "loading",
       "content",
@@ -234,25 +128,54 @@
     "critical_flows": [
       "start_workout",
       "pause_resume",
-      "next_exercise"
+      "next_exercise",
+      "view_readiness"
     ],
-    "deps": []
+    "deps": [
+      "Lucide",
+      "TanStack Query"
+    ]
   },
   {
-    "route": "/onboarding",
-    "screen": "OnboardingContext",
+    "route": "/training/start",
+    "screen": "StartWorkout",
     "states": [
       "loading",
       "content",
       "error",
       "empty"
     ],
-    "critical_flows": [],
-    "deps": []
+    "critical_flows": [
+      "select_workout",
+      "configure_exercises",
+      "begin_session"
+    ],
+    "deps": [
+      "Lucide",
+      "TanStack Query"
+    ]
   },
   {
-    "route": "/insights",
-    "screen": "AIInsights",
+    "route": "/recovery",
+    "screen": "Recovery",
+    "states": [
+      "loading",
+      "content",
+      "error",
+      "empty"
+    ],
+    "critical_flows": [
+      "view_muscle_recovery",
+      "schedule_protocol"
+    ],
+    "deps": [
+      "Lucide",
+      "TanStack Query"
+    ]
+  },
+  {
+    "route": "/training/readiness-settings",
+    "screen": "ReadinessSettings",
     "states": [
       "loading",
       "content",
@@ -261,39 +184,12 @@
     ],
     "critical_flows": [],
     "deps": [
-      "Lucide"
+      "Lucide",
+      "TanStack Query"
     ]
   },
   {
-    "route": "/insights",
-    "screen": "DailyInsights",
-    "states": [
-      "loading",
-      "content",
-      "error",
-      "empty"
-    ],
-    "critical_flows": [],
-    "deps": [
-      "Lucide"
-    ]
-  },
-  {
-    "route": "/insights",
-    "screen": "DataInsights",
-    "states": [
-      "loading",
-      "content",
-      "error",
-      "empty"
-    ],
-    "critical_flows": [],
-    "deps": [
-      "Lucide"
-    ]
-  },
-  {
-    "route": "/profile",
+    "route": "/training/fitness-profile",
     "screen": "FitnessProfile",
     "states": [
       "loading",
@@ -303,7 +199,73 @@
     ],
     "critical_flows": [],
     "deps": [
-      "Lucide"
+      "Lucide",
+      "TanStack Query"
+    ]
+  },
+  {
+    "route": "/workout/:id",
+    "screen": "WorkoutSession",
+    "states": [
+      "loading",
+      "content",
+      "error",
+      "empty"
+    ],
+    "critical_flows": [
+      "log_set",
+      "pause_resume",
+      "skip_exercise",
+      "complete_workout"
+    ],
+    "deps": [
+      "Lucide",
+      "TanStack Query"
+    ]
+  },
+  {
+    "route": "/supplements",
+    "screen": "Supplements",
+    "states": [
+      "loading",
+      "content",
+      "error",
+      "empty"
+    ],
+    "critical_flows": [],
+    "deps": [
+      "Lucide",
+      "TanStack Query"
+    ]
+  },
+  {
+    "route": "/symptoms",
+    "screen": "Symptoms",
+    "states": [
+      "loading",
+      "content",
+      "error",
+      "empty"
+    ],
+    "critical_flows": [],
+    "deps": [
+      "Lucide",
+      "TanStack Query"
+    ]
+  },
+  {
+    "route": "/symptoms/new",
+    "screen": "NewSymptom",
+    "states": [
+      "loading",
+      "content",
+      "error",
+      "empty"
+    ],
+    "critical_flows": [],
+    "deps": [
+      "Lucide",
+      "TanStack Query"
     ]
   },
   {
@@ -315,14 +277,64 @@
       "error",
       "empty"
     ],
-    "critical_flows": [],
+    "critical_flows": [
+      "view_daily",
+      "view_trends",
+      "ai_chat"
+    ],
     "deps": [
       "Lucide"
     ]
   },
   {
-    "route": "/profile",
-    "screen": "NutritionProfile",
+    "route": "/daily-insights",
+    "screen": "DailyInsightsRedirect",
+    "states": [
+      "loading",
+      "content",
+      "error",
+      "empty"
+    ],
+    "critical_flows": [],
+    "deps": []
+  },
+  {
+    "route": "/goals",
+    "screen": "Goals",
+    "states": [
+      "loading",
+      "content",
+      "error",
+      "empty"
+    ],
+    "critical_flows": [
+      "create_goal",
+      "track_progress",
+      "update_goal"
+    ],
+    "deps": [
+      "Lucide",
+      "TanStack Query"
+    ]
+  },
+  {
+    "route": "/biological-age",
+    "screen": "BiologicalAge",
+    "states": [
+      "loading",
+      "content",
+      "error",
+      "empty"
+    ],
+    "critical_flows": [],
+    "deps": [
+      "Lucide",
+      "TanStack Query"
+    ]
+  },
+  {
+    "route": "/notifications",
+    "screen": "Notifications",
     "states": [
       "loading",
       "content",
@@ -332,6 +344,64 @@
     "critical_flows": [],
     "deps": [
       "Lucide"
+    ]
+  },
+  {
+    "route": "/chat",
+    "screen": "Chat",
+    "states": [
+      "loading",
+      "content",
+      "error",
+      "empty"
+    ],
+    "critical_flows": [],
+    "deps": [
+      "Lucide",
+      "TanStack Query"
+    ]
+  },
+  {
+    "route": "/voice-chat",
+    "screen": "VoiceChat",
+    "states": [
+      "loading",
+      "content",
+      "error",
+      "empty"
+    ],
+    "critical_flows": [],
+    "deps": [
+      "Lucide",
+      "TanStack Query"
+    ]
+  },
+  {
+    "route": "/voice-chat-simple",
+    "screen": "VoiceChatSimple",
+    "states": [
+      "loading",
+      "content",
+      "error",
+      "empty"
+    ],
+    "critical_flows": [],
+    "deps": [
+      "Lucide"
+    ]
+  },
+  {
+    "route": "/diagnostics",
+    "screen": "DiagnosticPage",
+    "states": [
+      "loading",
+      "content",
+      "error",
+      "empty"
+    ],
+    "critical_flows": [],
+    "deps": [
+      "Capacitor"
     ]
   },
   {
@@ -345,26 +415,13 @@
     ],
     "critical_flows": [],
     "deps": [
-      "Lucide"
+      "Lucide",
+      "TanStack Query"
     ]
   },
   {
-    "route": "/settings",
-    "screen": "ReadinessSettings",
-    "states": [
-      "loading",
-      "content",
-      "error",
-      "empty"
-    ],
-    "critical_flows": [],
-    "deps": [
-      "Lucide"
-    ]
-  },
-  {
-    "route": "/recovery",
-    "screen": "Recovery",
+    "route": "/apple-health",
+    "screen": "AppleHealthSetup",
     "states": [
       "loading",
       "content",
@@ -385,46 +442,49 @@
       "error",
       "empty"
     ],
-    "critical_flows": [],
-    "deps": [
-      "Lucide"
-    ]
-  },
-  {
-    "route": "/workout",
-    "screen": "StartWorkout",
-    "states": [
-      "loading",
-      "content",
-      "error",
-      "empty"
-    ],
-    "critical_flows": [],
-    "deps": [
-      "Lucide"
-    ]
-  },
-  {
-    "route": "/training",
-    "screen": "Training",
-    "states": [
-      "loading",
-      "content",
-      "error",
-      "empty"
-    ],
     "critical_flows": [
-      "start_workout",
-      "pause_resume",
-      "next_exercise"
+      "change_preferences",
+      "manage_privacy",
+      "logout"
     ],
     "deps": [
-      "Lucide"
+      "Lucide",
+      "TanStack Query"
     ]
   },
   {
-    "route": "/workout",
-    "screen": "WorkoutSession",
+    "route": "/billing",
+    "screen": "Billing",
+    "states": [
+      "loading",
+      "content",
+      "error",
+      "empty"
+    ],
+    "critical_flows": [],
+    "deps": [
+      "Lucide",
+      "TanStack Query"
+    ]
+  },
+  {
+    "route": "/pricing",
+    "screen": "Pricing",
+    "states": [
+      "loading",
+      "content",
+      "error",
+      "empty"
+    ],
+    "critical_flows": [],
+    "deps": [
+      "Lucide",
+      "TanStack Query"
+    ]
+  },
+  {
+    "route": "/privacy",
+    "screen": "PrivacyPolicy",
     "states": [
       "loading",
       "content",
@@ -437,8 +497,144 @@
     ]
   },
   {
-    "route": "/recovery",
-    "screen": "recovery",
+    "route": "/privacy-dashboard",
+    "screen": "PrivacyDashboard",
+    "states": [
+      "loading",
+      "content",
+      "error",
+      "empty"
+    ],
+    "critical_flows": [],
+    "deps": [
+      "Lucide",
+      "TanStack Query"
+    ]
+  },
+  {
+    "route": "/security",
+    "screen": "SecurityWhitepaper",
+    "states": [
+      "loading",
+      "content",
+      "error",
+      "empty"
+    ],
+    "critical_flows": [],
+    "deps": [
+      "Lucide",
+      "tokens"
+    ]
+  },
+  {
+    "route": "/terms",
+    "screen": "TermsOfService",
+    "states": [
+      "loading",
+      "content",
+      "error",
+      "empty"
+    ],
+    "critical_flows": [],
+    "deps": [
+      "Lucide"
+    ]
+  },
+  {
+    "route": "/admin",
+    "screen": "Admin",
+    "states": [
+      "loading",
+      "content",
+      "error",
+      "empty"
+    ],
+    "critical_flows": [],
+    "deps": [
+      "Lucide",
+      "Capacitor",
+      "TanStack Query"
+    ]
+  },
+  {
+    "route": "/admin/meal-library",
+    "screen": "AdminMealLibrary",
+    "states": [
+      "loading",
+      "content",
+      "error",
+      "empty"
+    ],
+    "critical_flows": [],
+    "deps": [
+      "Lucide",
+      "TanStack Query"
+    ]
+  },
+  {
+    "route": "/admin/promo-codes",
+    "screen": "AdminPromoCodes",
+    "states": [
+      "loading",
+      "content",
+      "error",
+      "empty"
+    ],
+    "critical_flows": [],
+    "deps": [
+      "Lucide",
+      "TanStack Query"
+    ]
+  },
+  {
+    "route": "/admin/landing-page",
+    "screen": "AdminLandingPage",
+    "states": [
+      "loading",
+      "content",
+      "error",
+      "empty"
+    ],
+    "critical_flows": [],
+    "deps": [
+      "Lucide",
+      "TanStack Query"
+    ]
+  },
+  {
+    "route": "/admin/cost",
+    "screen": "AdminCostDashboard",
+    "states": [
+      "loading",
+      "content",
+      "error",
+      "empty"
+    ],
+    "critical_flows": [],
+    "deps": [
+      "Lucide",
+      "tokens",
+      "TanStack Query"
+    ]
+  },
+  {
+    "route": "/admin/ai-audit",
+    "screen": "AIAuditLog",
+    "states": [
+      "loading",
+      "content",
+      "error",
+      "empty"
+    ],
+    "critical_flows": [],
+    "deps": [
+      "Lucide",
+      "TanStack Query"
+    ]
+  },
+  {
+    "route": "/mobile-diagnostics",
+    "screen": "NativeDiagnostics",
     "states": [
       "loading",
       "content",
@@ -447,5 +643,105 @@
     ],
     "critical_flows": [],
     "deps": []
+  },
+  {
+    "route": "/healthkit-diagnostics",
+    "screen": "HealthKitDiagnostics",
+    "states": [
+      "loading",
+      "content",
+      "error",
+      "empty"
+    ],
+    "critical_flows": [],
+    "deps": [
+      "Lucide"
+    ]
+  },
+  {
+    "route": "/mobile-auth-redirect",
+    "screen": "MobileAuthRedirect",
+    "states": [
+      "loading",
+      "content",
+      "error",
+      "empty"
+    ],
+    "critical_flows": [],
+    "deps": [
+      "Lucide"
+    ]
+  },
+  {
+    "route": "/logged-out",
+    "screen": "Logout",
+    "states": [
+      "loading",
+      "content",
+      "error",
+      "empty"
+    ],
+    "critical_flows": [],
+    "deps": [
+      "Lucide"
+    ]
+  },
+  {
+    "route": "/pricing",
+    "screen": "Pricing",
+    "states": [
+      "loading",
+      "content",
+      "error",
+      "empty"
+    ],
+    "critical_flows": [],
+    "deps": [
+      "Lucide",
+      "TanStack Query"
+    ]
+  },
+  {
+    "route": "/privacy",
+    "screen": "PrivacyPolicy",
+    "states": [
+      "loading",
+      "content",
+      "error",
+      "empty"
+    ],
+    "critical_flows": [],
+    "deps": [
+      "Lucide"
+    ]
+  },
+  {
+    "route": "/security",
+    "screen": "SecurityWhitepaper",
+    "states": [
+      "loading",
+      "content",
+      "error",
+      "empty"
+    ],
+    "critical_flows": [],
+    "deps": [
+      "Lucide",
+      "tokens"
+    ]
+  },
+  {
+    "route": "/terms",
+    "screen": "TermsOfService",
+    "states": [
+      "loading",
+      "content",
+      "error",
+      "empty"
+    ],
+    "critical_flows": [],
+    "deps": [
+      "Lucide"
+    ]
   }
 ]

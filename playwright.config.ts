@@ -39,6 +39,16 @@ export default defineConfig({
         deviceScaleFactor: 1.2,
       },
     },
+    // iPhone 15 Pro — Dark / 120% text (simulate larger text in dark mode)
+    {
+      name: 'iphone15pro-dark-120',
+      use: {
+        ...devices['iPhone 15 Pro'],
+        colorScheme: 'dark',
+        // crude approximation of larger text via deviceScaleFactor
+        deviceScaleFactor: 1.2,
+      },
+    },
   ],
   fullyParallel: true,
   retries: 1,
