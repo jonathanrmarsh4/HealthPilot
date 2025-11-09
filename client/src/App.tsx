@@ -265,7 +265,7 @@ function SidebarContentWrapper({
           
           {/* Main content */}
           <main 
-            className="flex-1 md:p-6 lg:p-8 px-4 scrollbar-hide overflow-y-auto overflow-x-hidden w-full"
+            className="flex-1 md:p-6 lg:p-8 px-4 md:scrollbar-hide overflow-y-auto overflow-x-hidden w-full"
             style={{
               paddingTop: 'calc(env(safe-area-inset-top, 0px) + 3.5rem)',
               paddingBottom: '6rem',
