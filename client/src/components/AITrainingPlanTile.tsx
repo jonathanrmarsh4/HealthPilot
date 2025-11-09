@@ -148,7 +148,7 @@ export function AITrainingPlanTile() {
   return (
     <Card data-testid="card-ai-training-plan">
       <CardHeader>
-        <div className="flex items-start justify-between gap-2">
+        <div className="flex flex-wrap items-start justify-between gap-2 min-w-0">
           <div className="flex items-center gap-2 min-w-0">
             <Sparkles className="h-5 w-5 text-primary flex-shrink-0" />
             <CardTitle className="truncate">Your AI Training Plan</CardTitle>
@@ -181,7 +181,7 @@ export function AITrainingPlanTile() {
 
         {/* Week navigation */}
         {totalWeeks > 1 && (
-          <div className="flex items-center justify-between gap-2 pb-2 border-b">
+          <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b min-w-0">
             <Button
               variant="outline"
               size="sm"
@@ -226,7 +226,7 @@ export function AITrainingPlanTile() {
                 }`}
                 data-testid={`session-${session.day.toLowerCase()}`}
               >
-                <div className="flex items-start justify-between gap-2 mb-2">
+                <div className="flex flex-wrap items-start justify-between gap-2 mb-2 min-w-0">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <h4 className="font-medium">

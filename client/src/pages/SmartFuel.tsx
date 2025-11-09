@@ -56,8 +56,8 @@ export default function SmartFuel() {
   if (isLoading) {
     return (
       <div className="space-y-6 p-6">
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
+        <div className="flex flex-wrap items-center justify-between gap-2 min-w-0">
+          <div className="space-y-1 min-w-0">
             <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
               <Sparkles className="h-8 w-8 text-primary" />
               SmartFuel™
@@ -75,8 +75,8 @@ export default function SmartFuel() {
   if (error || !guidance) {
     return (
       <div className="space-y-6 p-6">
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
+        <div className="flex flex-wrap items-center justify-between gap-2 min-w-0">
+          <div className="space-y-1 min-w-0">
             <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2" data-testid="heading-smartfuel">
               <Sparkles className="h-8 w-8 text-primary" />
               SmartFuel™
@@ -147,8 +147,8 @@ export default function SmartFuel() {
 
   return (
     <div className="space-y-6 p-6">
-      <div className="flex items-center justify-between">
-        <div className="space-y-1">
+      <div className="flex flex-wrap items-center justify-between gap-2 min-w-0">
+        <div className="space-y-1 min-w-0">
           <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2" data-testid="heading-smartfuel">
             <Sparkles className="h-8 w-8 text-primary" />
             SmartFuel™
@@ -163,6 +163,7 @@ export default function SmartFuel() {
           disabled={isGenerating}
           variant="outline"
           data-testid="button-refresh-guidance"
+          className="flex-shrink-0"
         >
           {isGenerating ? (
             <>
@@ -181,9 +182,9 @@ export default function SmartFuel() {
       {/* Overview Section */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center justify-between">
+          <CardTitle className="flex flex-wrap items-center justify-between gap-2 min-w-0">
             <span>Overview</span>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               {guidance.themes.map((theme, idx) => (
                 <Badge key={idx} variant="secondary" data-testid={`badge-theme-${idx}`}>
                   {theme}
@@ -391,7 +392,7 @@ export default function SmartFuel() {
               {Object.entries(guidance.targets).map(([key, value], idx) => (
                 <div 
                   key={idx} 
-                  className="flex items-center justify-between p-3 rounded-lg bg-primary/5 border border-primary/20"
+                  className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-lg bg-primary/5 border border-primary/20 min-w-0"
                   data-testid={`target-${idx}`}
                 >
                   <span className="text-sm font-medium">{key}</span>
@@ -416,9 +417,9 @@ export default function SmartFuel() {
         <Card>
           <CollapsibleTrigger className="w-full">
             <CardHeader className="hover-elevate cursor-pointer">
-              <CardTitle className="flex items-center justify-between">
+              <CardTitle className="flex flex-wrap items-center justify-between gap-2 min-w-0">
                 <span>Guidance History</span>
-                {showHistory ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+                {showHistory ? <ChevronUp className="h-5 w-5 flex-shrink-0" /> : <ChevronDown className="h-5 w-5 flex-shrink-0" />}
               </CardTitle>
             </CardHeader>
           </CollapsibleTrigger>
@@ -432,9 +433,9 @@ export default function SmartFuel() {
                       className="p-3 rounded-lg border hover-elevate"
                       data-testid={`history-item-${idx}`}
                     >
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
+                      <div className="flex flex-wrap items-start justify-between gap-4 min-w-0">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-2 mb-1">
                             <Badge variant={item.status === 'active' ? 'default' : 'secondary'} className="text-xs">
                               {item.status}
                             </Badge>
@@ -443,7 +444,7 @@ export default function SmartFuel() {
                             </span>
                           </div>
                           <p className="text-sm text-muted-foreground">{item.overview}</p>
-                          <div className="flex gap-1 mt-2">
+                          <div className="flex flex-wrap gap-1 mt-2">
                             {item.themes.map((theme, themeIdx) => (
                               <Badge key={themeIdx} variant="outline" className="text-xs">
                                 {theme}
