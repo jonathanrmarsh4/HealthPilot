@@ -747,8 +747,8 @@ export function FloatingChat({ isOpen, onClose, currentPage, context }: Floating
 
   return (
     <div 
-      style={{ position: 'fixed', bottom: '1rem', right: '1rem' }}
-      className={`z-50 flex flex-col w-[calc(100vw-2rem)] sm:w-80 md:w-96 max-w-md ${
+      style={{ position: 'fixed', bottom: '1rem', right: '1rem', left: '1rem' }}
+      className={`z-50 flex flex-col w-full sm:w-80 md:w-96 max-w-md ${
         isMinimized ? "max-h-[60px]" : "h-[min(max(10rem,calc(100dvh-2rem)),600px)]"
       }`}
     >
