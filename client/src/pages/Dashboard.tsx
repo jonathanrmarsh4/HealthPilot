@@ -16,7 +16,7 @@ import { DailyRemindersWidget } from "@/components/DailyRemindersWidget";
 import { SymptomTile } from "@/components/SymptomTile";
 import { SmartFuelTile } from "@/components/SmartFuelTile";
 import { UpgradeBanner } from "@/components/UpgradeBanner";
-import { Heart, Activity, Droplet, TrendingUp, Zap, Settings2, Eye, EyeOff, GripVertical, Shield } from "lucide-react";
+import { Heart, Activity, Droplet, TrendingUp, Zap, Settings2, Eye, EyeOff, GripVertical } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
@@ -657,15 +657,6 @@ export default function Dashboard() {
         </div>
         
         <div className="flex gap-1 md:gap-2 flex-shrink-0">
-          {isAdmin && (
-            <Link href="/admin">
-              <Button variant="outline" size="icon" className="md:w-auto md:px-4" data-testid="button-admin-panel">
-                <Shield className="h-4 w-4" />
-                <span className="hidden md:inline md:ml-2">Admin</span>
-              </Button>
-            </Link>
-          )}
-          
           <Sheet>
             <SheetTrigger asChild>
               <Button variant="outline" size="icon" className="md:w-auto md:px-4" data-testid="button-manage-dashboard">

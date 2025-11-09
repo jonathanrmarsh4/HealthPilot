@@ -235,9 +235,9 @@ function SidebarContentWrapper({
             </div>
           </header>
 
-          {/* Mobile-only header */}
-          <header className="md:hidden backdrop-blur-xl bg-white/70 dark:bg-zinc-900/70 border-b border-black/10 dark:border-white/10 shrink-0 pt-[env(safe-area-inset-top)]">
-            <div className="flex items-center justify-end gap-2 px-4 py-3 pr-[env(safe-area-inset-right)] pl-[env(safe-area-inset-left)]">
+          {/* Mobile-only header - FIXED position with safe-area support */}
+          <header className="md:hidden fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-white/70 dark:bg-zinc-900/70 border-b border-black/10 dark:border-white/10 pt-[env(safe-area-inset-top)]">
+            <div className="flex items-center justify-end gap-2 px-4 py-3">
               <NotificationBadge />
               <ThemeToggle />
               <Button
@@ -278,8 +278,8 @@ function SidebarContentWrapper({
             </div>
           </header>
           
-          {/* Main content - padding for desktop, minimal for mobile */}
-          <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 lg:p-8">
+          {/* Main content - padding for desktop, top offset for mobile fixed header */}
+          <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 lg:p-8 md:pt-6 pt-[calc(env(safe-area-inset-top)+4rem)]">
             <ErrorBoundary>
               {children}
             </ErrorBoundary>
