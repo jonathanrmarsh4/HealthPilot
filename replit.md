@@ -23,6 +23,7 @@ I prefer simple language and clear explanations. I want iterative development wh
 - Premium Theme System v2.0 - Dual-Personality Liquid Glass Design.
 - Dual Schedule System: Separate schedules on Training page (training workouts, recommendations, insights) and Recovery page (recovery sessions).
 - Mobile-Optimized Workout UI: Streamlined workout generation interface and active workout session display.
+- Fixed-Position Mobile Header with iOS safe-area support and symmetric content padding (scrollbar-hide utility).
 
 **Technical Implementations:**
 - **AI Intelligence Layer:** Provides daily personalized insights, context-aware chat, multi-metric recommendations, and alternative therapy suggestions.

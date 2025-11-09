@@ -279,7 +279,7 @@ function SidebarContentWrapper({
           </header>
           
           {/* Main content - padding for desktop, top offset for mobile fixed header */}
-          <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 lg:p-8 md:pt-6 pt-[calc(env(safe-area-inset-top)+4rem)]">
+          <main className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide md:p-6 lg:p-8 px-4 py-4 md:pt-6 pt-[calc(env(safe-area-inset-top)+4rem)] pb-[calc(1rem+env(safe-area-inset-bottom))]">
             <ErrorBoundary>
               {children}
             </ErrorBoundary>
