@@ -1,0 +1,182 @@
+{
+  "title": "Eliminate unused code and fix iOS white-gap + right-padding overflow",
+  "context": {
+    "stack": "React + Vite + TypeScript + Tailwind + Capacitor (iOS WebView/Safari)",
+    "symptoms": [
+      "White bands appear at absolute top/bottom on scroll",
+      "Content pushed left due to right-side overflow/padding",
+      "Potential legacy/unused CSS/JS interfering"
+    ],
+    "non_goals": [
+      "Visual redesign",
+      "Changing functional logic outside layout/stylesheet concerns"
+    ]
+  },
+  "objectives": [
+    "Hunt down and remove unused/legacy CSS/JS/HTML that affects layout",
+    "Harden safe-area & viewport behavior on iOS to eliminate white bands",
+    "Eliminate horizontal overflow and right-side padding push",
+    "Add automated checks so the issue cannot regress"
+  ],
+  "tasks": [
+    {
+      "id": "prep-config-clean",
+      "description": "Enable strict unused checks and purge paths",
+      "edits": [
+        {
+          "file": "tsconfig.json",
+          "merge": {
+            "compilerOptions": {
+              "noUnusedLocals": true,
+              "noUnusedParameters": true
+            }
+          }
+        },
+        {
+          "file": ".eslintrc.cjs",
+          "instructions": "Install eslint-plugin-unused-imports and enable rules.",
+          "run": ["npm i -D eslint-plugin-unused-imports"],
+          "merge": {
+            "plugins": ["unused-imports"],
+            "rules": {
+              "no-unused-vars": "off",
+              "unused-imports/no-unused-imports": "error",
+              "unused-imports/no-unused-vars": ["error", { "args": "after-used", "ignoreRestSiblings": true }]
+            }
+          }
+        },
+        {
+          "file": "tailwind.config.ts",
+          "merge": {
+            "content": ["./index.html", "./src/**/*.{ts,tsx,js,jsx}"]
+          },
+          "notes": "Remove docs/storybook/demo paths that keep dead classes."
+        }
+      ]
+    },
+    {
+      "id": "global-layout-hardening",
+      "description": "Add iOS-safe viewport/meta + global CSS shell to prevent white seams and overflow",
+      "edits": [
+        {
+          "file": "index.html",
+          "ensureContains": [
+            "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover\" />"
+          ]
+        },
+        {
+          "file": "src/styles/global-ios-safe.css",
+          "createWithContents": "/* ---- Global reset & iOS-safe viewport ---- */\n*,*::before,*::after{box-sizing:border-box}\nhtml,body{margin:0;padding:0;height:100%;background:#0b0f14;color-scheme:dark}\n:root{--safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px);--header-h:56px;--footer-h:78px}\nbody{min-height:100dvh;overflow-x:hidden;overscroll-behavior-y:none;-webkit-text-size-adjust:100%}\n@supports not (height:100dvh){body{min-height:calc(var(--vh,1vh)*100)}}\n.app-shell{min-height:100dvh;padding-top:calc(var(--safe-top)+var(--header-h));padding-bottom:calc(var(--safe-bottom)+var(--footer-h));background:inherit}\n.app-header{position:fixed;top:0;left:0;right:0;height:calc(var(--safe-top)+var(--header-h));padding-top:var(--safe-top);z-index:1000;background:#0b0f14;transform:translateZ(0)}\n.app-footer{position:fixed;bottom:0;left:0;right:0;height:calc(var(--safe-bottom)+var(--footer-h));padding-bottom:var(--safe-bottom);z-index:1000;background:#0b0f14;transform:translateZ(0)}\n.app-shell,.app-content,.card,.section,.container{max-width:100%}\n.full-bleed{width:100%}\n:root,.app-shell,.app-header,.app-footer{background-color:#0b0f14}\nimg,canvas,svg,video{max-width:100%;height:auto}\n"
+        },
+        {
+          "file": "src/main.tsx",
+          "instructions": "Import the new global stylesheet as early as possible.",
+          "ensureContains": ["import './styles/global-ios-safe.css';"]
+        },
+        {
+          "file": "src/lib/ios-vh-fallback.ts",
+          "createWithContents": "export function installVHFallback(){\n  if (CSS && (CSS as any).supports && (CSS as any).supports('height','100dvh')) return;\n  const setVH=()=>document.documentElement.style.setProperty('--vh', `${window.innerHeight*0.01}px`);\n  setVH();\n  window.addEventListener('resize', setVH);\n}\n"
+        },
+        {
+          "file": "src/main.tsx",
+          "ensureContains": ["import { installVHFallback } from './lib/ios-vh-fallback';", "installVHFallback();"]
+        }
+      ]
+    },
+    {
+      "id": "pattern-rewrites",
+      "description": "Codemods to remove layout anti-patterns that cause right push/white gaps",
+      "codemods": [
+        {
+          "type": "regex-replace",
+          "scope": ["src/**/*.css", "src/**/*.tsx", "src/**/*.ts", "src/**/*.scss"],
+          "pattern": "(?<![-\\w])width:\\s*100vw\\s*;",
+          "replacement": "width: 100%;",
+          "note": "100vw includes safe-area and scrollbar on iOS; use 100% unless truly full-bleed."
+        },
+        {
+          "type": "regex-replace",
+          "scope": ["src/**/*.{css,scss}"],
+          "pattern": "padding-right:\\s*\\d+vw\\s*;",
+          "replacement": "padding-inline: 16px;",
+          "note": "Replace risky vw padding with logical inline padding."
+        },
+        {
+          "type": "regex-replace",
+          "scope": ["src/**/*.{css,scss,tsx}"],
+          "pattern": "min-width:\\s*(?:[3-9]\\d\\d|1\\d\\d\\d)px\\s*;",
+          "replacement": "min-width: 0;",
+          "note": "Kill oversized min-widths that force horizontal scroll."
+        }
+      ],
+      "notes": "If true full-bleed is required for a background, use the .full-bleed-bg utility below.",
+      "additions": {
+        "cssUtility": ".full-bleed-bg{position:relative;left:50%;right:50%;margin-left:-50vw;margin-right:-50vw;width:100vw;max-width:100vw}"
+      }
+    },
+    {
+      "id": "bundle-visualization",
+      "description": "Add bundle visualizer and remove unused modules",
+      "commands": ["npm i -D rollup-plugin-visualizer"],
+      "viteConfigPatch": "import { visualizer } from 'rollup-plugin-visualizer';\nexport default {\n  build: { rollupOptions: { plugins: [visualizer({ filename: 'stats.html', gzipSize: true })] } }\n};",
+      "verify": "Run `npm run build`. Inspect stats.html and list any orphan CSS/JS to delete."
+    },
+    {
+      "id": "runtime-audits",
+      "description": "Run coverage and overflow scanners; fix offenders",
+      "devtoolsCoverage": "Use Chrome DevTools > Coverage (or Safari) on all main screens. Anything <10% used must be removed or split.",
+      "consoleScripts": [
+        {
+          "name": "overflow-audit",
+          "script": "(function(){const vw=Math.max(document.documentElement.clientWidth,window.innerWidth||0);const offenders=[];document.querySelectorAll('body *').forEach(el=>{const r=el.getBoundingClientRect();if(r.width - vw > 1){offenders.push({el,w:r.width,tag:el.tagName,cls:(el.className||'').toString()});}});console.table(offenders.map(o=>({tag:o.tag,class:o.cls.slice(0,120),width:Math.round(o.w)})));})();",
+          "action": "For each offender: remove hard widths/min-widths, replace 100vw, remove negative margins and rogue padding-right on wrappers."
+        },
+        {
+          "name": "outline-scroll-overflow",
+          "script": "[...document.querySelectorAll('body *')].forEach(el=>{if(el.scrollWidth>el.clientWidth+1){el.style.outline='1px solid red';}});",
+          "action": "Visually identify wide elements and fix their CSS."
+        }
+      ]
+    },
+    {
+      "id": "purge-delete-dead-code",
+      "description": "Delete unused styles/scripts and ensure they do not enter the bundle",
+      "steps": [
+        "Remove CSS/SCSS files with <10% usage per Coverage report.",
+        "Delete legacy styles not imported anywhere.",
+        "Confirm Tailwind only scans real source paths; remove demo/storybook paths.",
+        "Rebuild and ensure removed files do not appear in stats.html."
+      ]
+    },
+    {
+      "id": "verification",
+      "description": "Cross-device checks to close the issue",
+      "checklist": [
+        "iPhone 15/17 (sim + device): scroll to absolute top and bottom — no white bands; header/footer show no 1px seams.",
+        "Rotate portrait/landscape — layout stable, no gaps.",
+        "No horizontal scrollbar at any route or breakpoint.",
+        "Overflow audit console table is empty on Dashboard, Insights, and any page with charts/cards.",
+        "Bundle visualizer shows no deleted legacy files; DevTools Coverage has no sub-10% CSS left in the build (except icon fonts).",
+        "All fixed elements use app background (#0b0f14) and are GPU-pinned via translateZ(0)."
+      ],
+      "artifacts": [
+        "Before/After screenshots (top/bottom edges)",
+        "stats.html",
+        "Coverage report export",
+        "List of removed files and offending selectors"
+      ]
+    }
+  ],
+  "acceptance_criteria": [
+    "No visual white bands at top/bottom during scroll bounce on iOS.",
+    "No content pushed left; no horizontal overflow.",
+    "Dead/unused CSS/JS removed from repo and from final bundle.",
+    "Automated lint rules prevent reintroduction of unused imports/vars.",
+    "Documented PR with artifacts and a brief root-cause summary."
+  ],
+  "notes_for_dev": [
+    "If header/footer heights differ, update --header-h and --footer-h.",
+    "Only use 100vw inside .full-bleed-bg for intentional edge-to-edge backgrounds.",
+    "If any 3rd-party lib injects global CSS causing overflow, isolate via CSS layering or local wrapper classes."
+  ]
+}
