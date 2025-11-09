@@ -1,0 +1,54 @@
+> const main = document.querySelector('main');
+const style = window.getComputedStyle(main);
+console.log({
+  paddingLeft: style.paddingLeft,
+  paddingRight: style.paddingRight,
+  width: style.width,
+  clientWidth: main.clientWidth,
+  offsetWidth: main.offsetWidth,
+  viewportWidth: window.innerWidth
+});
+[Log] {paddingLeft: "16px", paddingRight: "16px", width: "515.5px", clientWidth: 516, offsetWidth: 516, …}
+< undefined
+> console.log('Viewport width:', window.innerWidth);
+[Log] Viewport width: – 574
+< undefined
+> const main = document.querySelector('main');
+let el = main;
+while (el) {
+  const style = window.getComputedStyle(el);
+  console.log(el.tagName, el.className, {
+    width: style.width,
+    maxWidth: style.maxWidth,
+    flex: style.flex,
+    paddingLeft: style.paddingLeft,
+    paddingRight: style.paddingRight
+  });
+  el = el.parentElement;
+  if (el.tagName === 'BODY') break;
+}
+< SyntaxError: Can't create duplicate variable: 'main'
+> let element = document.querySelector('main');
+while (element) {
+  const style = window.getComputedStyle(element);
+  console.log(element.tagName, element.className, {
+    width: style.width,
+    maxWidth: style.maxWidth,
+    flex: style.flex,
+    paddingLeft: style.paddingLeft,
+    paddingRight: style.paddingRight
+  });
+  element = element.parentElement;
+  if (element.tagName === 'BODY') break;
+}
+[Log] MAIN – "flex-1 md:p-6 lg:p-8 px-4 scrollbar-hide overflow-y-auto overflow-x-hidden w-full" – {width: "515.5px", maxWidth: "574px", flex: "1 1 0%", …}
+{width: "515.5px", maxWidth: "574px", flex: "1 1 0%", paddingLeft: "16px", paddingRight: "16px"}Object
+[Log] DIV – "flex flex-col flex-1 min-w-0" – {width: "515.5px", maxWidth: "none", flex: "1 1 0%", …}
+{width: "515.5px", maxWidth: "none", flex: "1 1 0%", paddingLeft: "0px", paddingRight: "0px"}Object
+[Log] DIV – "flex min-h-dvh w-full max-w-full bg-background overflow-x-hidden" – {width: "515.5px", maxWidth: "100%", flex: "0 1 auto", …}
+{width: "515.5px", maxWidth: "100%", flex: "0 1 auto", paddingLeft: "0px", paddingRight: "0px"}Object
+[Log] DIV – "group/sidebar-wrapper has-data-[variant=inset]:bg-sidebar flex min-h-svh w-full" – {width: "560px", maxWidth: "none", flex: "0 1 auto", …}
+{width: "560px", maxWidth: "none", flex: "0 1 auto", paddingLeft: "0px", paddingRight: "0px"}Object
+[Log] DIV – "" – {width: "560px", maxWidth: "574px", flex: "0 1 auto", …}
+{width: "560px", maxWidth: "574px", flex: "0 1 auto", paddingLeft: "0px", paddingRight: "0px"}Object
+< undefined
