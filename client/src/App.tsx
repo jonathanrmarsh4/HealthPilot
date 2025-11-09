@@ -185,7 +185,7 @@ function SidebarContentWrapper({
 
   return (
     <>
-      <div className="flex h-screen w-full overflow-x-hidden bg-background">
+      <div className="flex min-h-dvh w-full overflow-x-hidden bg-background">
         {/* Desktop-only sidebar */}
         <div className="hidden md:block">
           <AppSidebar />
@@ -235,16 +235,22 @@ function SidebarContentWrapper({
             </div>
           </header>
 
-          {/* Mobile-only header - FIXED position with safe-area support */}
+          {/* Mobile-only header - FIXED at y=0, extends INTO safe area */}
           <header 
-            className="md:hidden fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-white/70 dark:bg-zinc-900/70 border-b border-black/10 dark:border-white/10"
+            className="md:hidden fixed left-0 right-0 z-50 backdrop-blur-xl bg-white/70 dark:bg-zinc-900/70 border-b border-black/10 dark:border-white/10"
             style={{
-              paddingTop: 'env(safe-area-inset-top, 0px)',
+              top: 0,
               paddingLeft: 'env(safe-area-inset-left, 0px)',
               paddingRight: 'env(safe-area-inset-right, 0px)'
             }}
           >
-            <div className="flex items-center justify-end gap-2 px-4 py-3">
+            <div 
+              className="flex items-center justify-end gap-2 px-4"
+              style={{
+                paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.75rem)',
+                paddingBottom: '0.75rem'
+              }}
+            >
               <NotificationBadge />
               <ThemeToggle />
               <Button

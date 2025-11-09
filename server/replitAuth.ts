@@ -489,6 +489,39 @@ export async function setupAuth(app: Express) {
 }
 
 export const isAuthenticated: RequestHandler = async (req, res, next) => {
+  // 🧪 TEST BYPASS MODE (Development Only)
+  // Enable with ENABLE_TEST_BYPASS=true for automated testing
+  if (process.env.NODE_ENV === 'development' && process.env.ENABLE_TEST_BYPASS === 'true') {
+    console.log("🧪 TEST BYPASS: Auto-authenticating request");
+    
+    // Create a test user session if one doesn't exist
+    let testUser = await storage.getUserByEmail('test@healthpilot.local');
+    if (!testUser) {
+      console.log("🧪 Creating test user...");
+      testUser = await storage.createUser({
+        id: 'test-user-001',
+        email: 'test@healthpilot.local',
+        firstName: 'Test',
+        lastName: 'User',
+        subscriptionTier: 'premium',
+        subscriptionStatus: 'active',
+        role: 'user'
+      });
+    }
+    
+    (req as any).user = {
+      claims: {
+        sub: testUser.id,
+        email: testUser.email,
+        first_name: testUser.firstName,
+        last_name: testUser.lastName,
+        profile_image_url: testUser.profileImageUrl,
+      },
+      expires_at: Math.floor(Date.now() / 1000) + (24 * 60 * 60), // 24 hours
+    };
+    return next();
+  }
+  
   // Check for mobile auth token in Authorization header
   const authHeader = req.headers['authorization'];
   if (authHeader && authHeader.startsWith('Bearer ')) {
