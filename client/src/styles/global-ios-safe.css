@@ -1,0 +1,44 @@
+/* ===== Global iOS-Safe Layout Foundation ===== */
+/* Prevent white gaps and overflow issues on iOS */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+}
+
+:root {
+  /* Safe area CSS variables for consistent reference */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+}
+
+body {
+  /* Prevent iOS bounce showing white background */
+  min-height: 100dvh;
+  overflow-x: hidden;
+  overscroll-behavior-y: none;
+  -webkit-overflow-scrolling: touch;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Fallback for older browsers without dvh support */
+@supports not (height: 100dvh) {
+  body {
+    min-height: calc(var(--vh, 1vh) * 100);
+  }
+}
+
+/* Prevent any element from causing horizontal overflow */
+#root {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
