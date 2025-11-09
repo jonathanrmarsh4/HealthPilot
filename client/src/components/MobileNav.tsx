@@ -483,7 +483,7 @@ export default function MobileNav({
   return (
     <>
       <nav
-        className="fixed left-0 right-0 bottom-0 z-40 backdrop-blur-xl bg-background/80 border-t border-border px-4"
+        className="fixed left-0 right-0 bottom-0 z-40 backdrop-blur-xl bg-background/80 border-t border-border pl-4 pr-4"
         style={{
           paddingBottom: 'env(safe-area-inset-bottom, 0px)'
         }}

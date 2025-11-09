@@ -185,13 +185,13 @@ function SidebarContentWrapper({
 
   return (
     <>
-      <div className="flex min-h-dvh w-full bg-background">
+      <div className="flex min-h-dvh w-full max-w-full bg-background overflow-x-hidden">
         {/* Desktop-only sidebar */}
         <div className="hidden md:block">
           <AppSidebar />
         </div>
         
-        <div className="flex flex-col flex-1">
+        <div className="flex flex-col flex-1 min-w-0">
           {/* Desktop-only header */}
           <header className="hidden md:flex items-center justify-between p-4 border-b border-border shrink-0">
             <SidebarTrigger data-testid="button-sidebar-toggle" />
@@ -265,10 +265,12 @@ function SidebarContentWrapper({
           
           {/* Main content */}
           <main 
-            className="flex-1 md:p-6 lg:p-8 px-4 scrollbar-hide overflow-y-auto overflow-x-hidden"
+            className="flex-1 md:p-6 lg:p-8 px-4 scrollbar-hide overflow-y-auto overflow-x-hidden w-full"
             style={{
               paddingTop: 'calc(env(safe-area-inset-top, 0px) + 3.5rem)',
-              paddingBottom: '6rem'
+              paddingBottom: '6rem',
+              maxWidth: '100vw',
+              boxSizing: 'border-box'
             }}
           >
             <ErrorBoundary>

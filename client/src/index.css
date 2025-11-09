@@ -350,11 +350,14 @@ body.premium-theme.dark {
 @layer base {
   * {
     @apply border-border;
+    box-sizing: border-box;
   }
 
   html {
     height: 100%;
     overflow-x: hidden;
+    width: 100%;
+    max-width: 100vw;
   }
 
   body {
@@ -363,12 +366,17 @@ body.premium-theme.dark {
     overflow-x: hidden;
     margin: 0;
     padding: 0;
+    width: 100%;
+    max-width: 100vw;
   }
 
   #root {
     min-height: 100dvh;
     display: flex;
     flex-direction: column;
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
   }
 }
 
