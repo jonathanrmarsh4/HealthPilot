@@ -186,12 +186,12 @@ export default function BiologicalAge() {
             {availableBiomarkers.map((biomarker) => (
               <div
                 key={biomarker.key}
-                className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
+                className="flex flex-wrap items-center justify-between gap-2 p-3 bg-muted/50 rounded-lg min-w-0"
                 data-testid={`biomarker-available-${biomarker.key}`}
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 min-w-0">
                   <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
-                  <div>
+                  <div className="min-w-0">
                     <p className="font-medium">{biomarker.name}</p>
                     <p className="text-sm text-muted-foreground">
                       {biomarker.value} {biomarker.unit}
@@ -206,12 +206,12 @@ export default function BiologicalAge() {
             {missingBiomarkers.map((biomarker) => (
               <div
                 key={biomarker.key}
-                className="flex items-center justify-between p-3 border-2 border-dashed rounded-lg"
+                className="flex flex-wrap items-center justify-between gap-2 p-3 border-2 border-dashed rounded-lg min-w-0"
                 data-testid={`biomarker-missing-${biomarker.key}`}
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 min-w-0">
                   <XCircle className="w-5 h-5 text-muted-foreground flex-shrink-0" />
-                  <div>
+                  <div className="min-w-0">
                     <p className="font-medium text-muted-foreground">{biomarker.name}</p>
                     <p className="text-sm text-muted-foreground">
                       Found in: {biomarker.source}

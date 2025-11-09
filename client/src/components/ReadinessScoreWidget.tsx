@@ -107,7 +107,7 @@ export function ReadinessScoreWidget() {
   return (
     <Card data-testid="card-readiness-score">
       <CardHeader>
-        <CardTitle className="flex items-center justify-between">
+        <CardTitle className="flex flex-wrap items-center justify-between gap-2 min-w-0">
           <div className="flex items-center gap-2">
             <Zap className="h-5 w-5" />
             Readiness Score
