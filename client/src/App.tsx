@@ -226,12 +226,14 @@ function SidebarContentWrapper({
           </header>
 
           {/* Mobile-only header */}
-          <header className="md:hidden fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-background/80 border-b border-border px-4">
+          <header className="md:hidden fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-background/80 border-b border-border">
             <div 
               className="flex items-center justify-end gap-2"
               style={{
                 paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.5rem)',
-                paddingBottom: '0.5rem'
+                paddingBottom: '0.5rem',
+                paddingLeft: 'calc(env(safe-area-inset-left, 0px) + 1rem)',
+                paddingRight: 'calc(env(safe-area-inset-right, 0px) + 1rem)'
               }}
             >
               <NotificationBadge />
@@ -265,10 +267,12 @@ function SidebarContentWrapper({
           
           {/* Main content */}
           <main 
-            className="flex-1 md:p-6 lg:p-8 px-4 md:scrollbar-hide overflow-y-auto overflow-x-hidden w-full"
+            className="flex-1 md:p-6 lg:p-8 md:scrollbar-hide overflow-y-auto overflow-x-hidden w-full"
             style={{
               paddingTop: 'calc(env(safe-area-inset-top, 0px) + 3.5rem)',
               paddingBottom: '6rem',
+              paddingLeft: 'calc(env(safe-area-inset-left, 0px) + 1rem)',
+              paddingRight: 'calc(env(safe-area-inset-right, 0px) + 1rem)',
               maxWidth: '100vw',
               boxSizing: 'border-box'
             }}
