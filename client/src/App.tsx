@@ -236,8 +236,8 @@ function SidebarContentWrapper({
           </header>
 
           {/* Mobile-only header */}
-          <header className="md:hidden backdrop-blur-xl bg-white/70 dark:bg-zinc-900/70 border-b border-black/10 dark:border-white/10 shrink-0 pt-[env(safe-area-inset-top)] pr-[env(safe-area-inset-right)] pl-[env(safe-area-inset-left)]">
-            <div className="flex items-center justify-end gap-2 px-4 py-3">
+          <header className="md:hidden backdrop-blur-xl bg-white/70 dark:bg-zinc-900/70 border-b border-black/10 dark:border-white/10 shrink-0 pt-[env(safe-area-inset-top)]">
+            <div className="flex items-center justify-end gap-2 px-4 py-3 pr-[env(safe-area-inset-right)] pl-[env(safe-area-inset-left)]">
               <NotificationBadge />
               <ThemeToggle />
               <Button
