@@ -226,12 +226,14 @@ function SidebarContentWrapper({
           </header>
 
           {/* Mobile-only header */}
-          <header className="md:hidden fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-background/80 border-b border-border">
-            <div className="flex items-center justify-end gap-2 h-14" style={{
-              paddingTop: 'env(safe-area-inset-top, 0px)',
-              paddingLeft: 'max(env(safe-area-inset-left, 0px), 1rem)',
-              paddingRight: 'max(env(safe-area-inset-right, 0px), 1rem)'
-            }}>
+          <header className="md:hidden fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-background/80 border-b border-border px-4">
+            <div 
+              className="flex items-center justify-end gap-2"
+              style={{
+                paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.5rem)',
+                paddingBottom: '0.5rem'
+              }}
+            >
               <NotificationBadge />
               <ThemeToggle />
               <Button
@@ -262,12 +264,13 @@ function SidebarContentWrapper({
           </header>
           
           {/* Main content */}
-          <main className="flex-1 md:p-6 lg:p-8 scrollbar-hide overflow-y-auto overflow-x-hidden" style={{
-            paddingTop: 'calc(env(safe-area-inset-top, 0px) + 3.5rem)',
-            paddingBottom: '6rem',
-            paddingLeft: 'max(env(safe-area-inset-left, 0px), 1rem)',
-            paddingRight: 'max(env(safe-area-inset-right, 0px), 1rem)'
-          }}>
+          <main 
+            className="flex-1 md:p-6 lg:p-8 px-4 scrollbar-hide overflow-y-auto overflow-x-hidden"
+            style={{
+              paddingTop: 'calc(env(safe-area-inset-top, 0px) + 3.5rem)',
+              paddingBottom: '6rem'
+            }}
+          >
             <ErrorBoundary>
               {children}
             </ErrorBoundary>
