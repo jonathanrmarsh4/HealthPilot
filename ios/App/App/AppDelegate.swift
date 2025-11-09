@@ -8,14 +8,15 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Clear WKWebView cache in development mode for live reload
-        #if DEBUG
-        let websiteDataTypes = Set([WKWebsiteDataTypeDiskCache, WKWebsiteDataTypeMemoryCache])
-        let date = Date(timeIntervalSince1970: 0)
-        WKWebsiteDataStore.default().removeData(ofTypes: websiteDataTypes, modifiedSince: date, completionHandler: {
-            print("🧹 WKWebView cache cleared for live reload")
-        })
-        #endif
+        // FORCE CLEAR ALL WKWebView DATA (including cached HTML/JS/CSS)
+        // This ensures fresh assets are loaded after each app launch
+        WKWebsiteDataStore.default().removeData(
+            ofTypes: WKWebsiteDataStore.allWebsiteDataTypes(),
+            modifiedSince: Date(timeIntervalSince1970: 0),
+            completionHandler: {
+                print("🧹 WKWebView cache FULLY cleared (all data types)")
+            }
+        )
         
         // Register for background fetch
         UIApplication.shared.setMinimumBackgroundFetchInterval(UIApplication.backgroundFetchIntervalMinimum)
