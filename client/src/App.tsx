@@ -82,6 +82,53 @@ import { isNativePlatform } from "@/mobile/MobileBootstrap";
 import SafariData from "@/lib/safariData";
 import { initializeDeepLinkHandling } from "@/lib/notifications/deeplink";
 import { oneSignalClient } from "@/lib/notifications/onesignal";
+import { useState } from 'react';
+
+// DEBUG COMPONENT - Shows computed padding values on mobile
+function DebugPaddingOverlay() {
+  const [debugInfo, setDebugInfo] = useState<any>(null);
+
+  useEffect(() => {
+    const updateDebugInfo = () => {
+      const main = document.getElementById('debug-main-container');
+      if (main) {
+        const computedStyle = window.getComputedStyle(main);
+        const html = document.documentElement;
+        const htmlStyle = window.getComputedStyle(html);
+        
+        setDebugInfo({
+          paddingLeft: computedStyle.paddingLeft,
+          paddingRight: computedStyle.paddingRight,
+          width: computedStyle.width,
+          viewportWidth: window.innerWidth,
+          safeAreaLeft: htmlStyle.getPropertyValue('--safe-area-inset-left') || 'N/A',
+          safeAreaRight: htmlStyle.getPropertyValue('--safe-area-inset-right') || 'N/A',
+        });
+      }
+    };
+
+    updateDebugInfo();
+    window.addEventListener('resize', updateDebugInfo);
+    return () => window.removeEventListener('resize', updateDebugInfo);
+  }, []);
+
+  if (!debugInfo) return null;
+
+  return (
+    <div 
+      className="md:hidden fixed top-20 left-2 z-[9999] bg-black/90 text-white text-[10px] p-2 rounded font-mono max-w-[200px]"
+      style={{ fontSize: '10px', lineHeight: '1.3' }}
+    >
+      <div><strong>DEBUG PADDING:</strong></div>
+      <div>Left: {debugInfo.paddingLeft}</div>
+      <div>Right: {debugInfo.paddingRight}</div>
+      <div>Width: {debugInfo.width}</div>
+      <div>Viewport: {debugInfo.viewportWidth}px</div>
+      <div>SAI-L: {debugInfo.safeAreaLeft}</div>
+      <div>SAI-R: {debugInfo.safeAreaRight}</div>
+    </div>
+  );
+}
 
 function DailyInsightsRedirect() {
   const [, setLocation] = useLocation();
@@ -267,6 +314,7 @@ function SidebarContentWrapper({
           
           {/* Main content */}
           <main 
+            id="debug-main-container"
             className="flex-1 md:p-6 lg:p-8 md:scrollbar-hide overflow-y-auto overflow-x-hidden w-full"
             style={{
               paddingTop: 'calc(env(safe-area-inset-top, 0px) + 3.5rem)',
@@ -277,6 +325,9 @@ function SidebarContentWrapper({
               boxSizing: 'border-box'
             }}
           >
+            {/* DEBUG OVERLAY - Shows computed padding values */}
+            <DebugPaddingOverlay />
+            
             <ErrorBoundary>
               {children}
             </ErrorBoundary>
