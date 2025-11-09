@@ -174,8 +174,8 @@ export default function Recovery() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
+              <div className="space-y-2 min-w-0">
+                <div className="flex items-center justify-between gap-2 min-w-0">
                   <span className="text-sm text-muted-foreground">Recovery Score</span>
                   <span className={`font-semibold ${status.color}`} data-testid="text-recovery-score">
                     {Math.round(recoveryScore)}/100
@@ -200,8 +200,8 @@ export default function Recovery() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
+              <div className="space-y-2 min-w-0">
+                <div className="flex items-center justify-between gap-2 min-w-0">
                   <span className="text-sm text-muted-foreground">Readiness Score</span>
                   <span className="font-semibold" data-testid="text-readiness-score">
                     {Math.round(overallReadiness)}/100

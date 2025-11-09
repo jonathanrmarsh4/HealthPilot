@@ -362,47 +362,55 @@ export default function Training() {
                     </p>
                   </div>
                 </div>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="flex items-center gap-2">
-                      <Moon className="h-4 w-4 text-blue-500" />
-                      Sleep Quality
-                      {readinessScore.factors.sleep.value && (
-                        <span className="text-xs text-muted-foreground">
-                          ({Math.round(readinessScore.factors.sleep.value)}h)
-                        </span>
-                      )}
-                    </span>
-                    <span className="font-medium">{Math.round(readinessScore.factors.sleep.score)}/100</span>
+                <div className="space-y-3 min-w-0">
+                  <div className="space-y-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2 text-sm min-w-0">
+                      <span className="flex items-center gap-2">
+                        <Moon className="h-4 w-4 text-blue-500" />
+                        Sleep Quality
+                        {readinessScore.factors.sleep.value && (
+                          <span className="text-xs text-muted-foreground">
+                            ({Math.round(readinessScore.factors.sleep.value)}h)
+                          </span>
+                        )}
+                      </span>
+                      <span className="font-medium">{Math.round(readinessScore.factors.sleep.score)}/100</span>
+                    </div>
+                    <Progress value={readinessScore.factors.sleep.score} className="h-2" />
                   </div>
-                  <Progress value={readinessScore.factors.sleep.score} className="h-2" />
                   
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="flex items-center gap-2">
-                      <Activity className="h-4 w-4 text-green-500" />
-                      HRV
-                    </span>
-                    <span className="font-medium">{Math.round(readinessScore.factors.hrv.score)}/100</span>
+                  <div className="space-y-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2 text-sm min-w-0">
+                      <span className="flex items-center gap-2">
+                        <Activity className="h-4 w-4 text-green-500" />
+                        HRV
+                      </span>
+                      <span className="font-medium">{Math.round(readinessScore.factors.hrv.score)}/100</span>
+                    </div>
+                    <Progress value={readinessScore.factors.hrv.score} className="h-2" />
                   </div>
-                  <Progress value={readinessScore.factors.hrv.score} className="h-2" />
                   
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="flex items-center gap-2">
-                      <Heart className="h-4 w-4 text-red-500" />
-                      Resting HR
-                    </span>
-                    <span className="font-medium">{Math.round(readinessScore.factors.restingHR.score)}/100</span>
+                  <div className="space-y-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2 text-sm min-w-0">
+                      <span className="flex items-center gap-2">
+                        <Heart className="h-4 w-4 text-red-500" />
+                        Resting HR
+                      </span>
+                      <span className="font-medium">{Math.round(readinessScore.factors.restingHR.score)}/100</span>
+                    </div>
+                    <Progress value={readinessScore.factors.restingHR.score} className="h-2" />
                   </div>
-                  <Progress value={readinessScore.factors.restingHR.score} className="h-2" />
                   
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="flex items-center gap-2">
-                      <Zap className="h-4 w-4 text-purple-500" />
-                      Workout Load Recovery
-                    </span>
-                    <span className="font-medium">{Math.round(readinessScore.factors.workloadRecovery.score)}/100</span>
+                  <div className="space-y-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2 text-sm min-w-0">
+                      <span className="flex items-center gap-2">
+                        <Zap className="h-4 w-4 text-purple-500" />
+                        Workout Load Recovery
+                      </span>
+                      <span className="font-medium">{Math.round(readinessScore.factors.workloadRecovery.score)}/100</span>
+                    </div>
+                    <Progress value={readinessScore.factors.workloadRecovery.score} className="h-2" />
                   </div>
-                  <Progress value={readinessScore.factors.workloadRecovery.score} className="h-2" />
 
                   {readinessScore.recoveryEstimate && readinessScore.recoveryEstimate.daysUntilReady > 0 && (
                     <div className="mt-4 pt-4 border-t">
