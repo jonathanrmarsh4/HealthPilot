@@ -483,15 +483,15 @@ export default function MobileNav({
   return (
     <>
       <nav
-        className={[
-          "fixed left-0 right-0 bottom-0 z-40",
-          "backdrop-blur-xl bg-white/70 dark:bg-zinc-900/70",
-          "border-t border-black/10 dark:border-white/10",
-          "pb-[env(safe-area-inset-bottom)]",
-        ].join(" ")}
+        className="fixed left-0 right-0 bottom-0 z-40 backdrop-blur-xl bg-background/80 border-t border-border"
+        style={{
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+          paddingLeft: 'max(env(safe-area-inset-left, 0px), 1rem)',
+          paddingRight: 'max(env(safe-area-inset-right, 0px), 1rem)'
+        }}
         aria-label="Primary"
       >
-        <div className="max-w-[420px] mx-auto px-4">
+        <div className="max-w-[420px] mx-auto">
           <div className="grid grid-cols-3 items-end py-3 gap-2">
             <button
               type="button"

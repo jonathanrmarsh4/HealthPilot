@@ -226,8 +226,12 @@ function SidebarContentWrapper({
           </header>
 
           {/* Mobile-only header */}
-          <header className="md:hidden fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-white/70 dark:bg-zinc-900/70 border-b border-black/10 dark:border-white/10 pt-[env(safe-area-inset-top)] px-4">
-            <div className="flex items-center justify-end gap-2 py-3">
+          <header className="md:hidden fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-background/80 border-b border-border">
+            <div className="flex items-center justify-end gap-2 h-14" style={{
+              paddingTop: 'env(safe-area-inset-top, 0px)',
+              paddingLeft: 'max(env(safe-area-inset-left, 0px), 1rem)',
+              paddingRight: 'max(env(safe-area-inset-right, 0px), 1rem)'
+            }}>
               <NotificationBadge />
               <ThemeToggle />
               <Button
@@ -258,7 +262,12 @@ function SidebarContentWrapper({
           </header>
           
           {/* Main content */}
-          <main className="flex-1 md:p-6 lg:p-8 md:pt-4 pt-[calc(env(safe-area-inset-top)+4rem)] pb-24 px-4 scrollbar-hide overflow-y-auto">
+          <main className="flex-1 md:p-6 lg:p-8 scrollbar-hide overflow-y-auto overflow-x-hidden" style={{
+            paddingTop: 'calc(env(safe-area-inset-top, 0px) + 3.5rem)',
+            paddingBottom: '6rem',
+            paddingLeft: 'max(env(safe-area-inset-left, 0px), 1rem)',
+            paddingRight: 'max(env(safe-area-inset-right, 0px), 1rem)'
+          }}>
             <ErrorBoundary>
               {children}
             </ErrorBoundary>
