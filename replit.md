@@ -69,7 +69,7 @@ I prefer simple language and clear explanations. I want iterative development wh
 - **Advanced Recovery Scheduling System v1.0:** Comprehensive recovery protocol scheduling with frequency patterns and AI-powered timing recommendations.
 - **Multi-Dimensional Recovery System v1.0:** Muscle-group-specific recovery tracking system using fatigue modeling with exponential decay curves.
 - **iOS Live Activities for Workout Tracking v1.0:** Real-time lock screen workout tracking with Live Activities.
-- **Mobile Layout Overflow Fix v1.0:** System-wide responsive layout improvements preventing horizontal overflow on narrow viewports (<360px). Applied flex-wrap, min-w-0, and gap utilities to 25+ flex containers across Symptoms, Recovery, Training, SmartFuel, BiologicalAge, ReadinessScoreWidget, and AITrainingPlanTile components. Global max-width constraints ensure content stays within viewport boundaries.
+- **Mobile Layout Overflow Fix v2.0:** System-wide responsive layout improvements preventing horizontal overflow on narrow viewports (<360px). Applied flex-wrap, min-w-0, and gap utilities to 25+ flex containers across Symptoms, Recovery, Training, SmartFuel, BiologicalAge, ReadinessScoreWidget, and AITrainingPlanTile components. Global max-width constraints ensure content stays within viewport boundaries. Fixed persistent right-padding issue on iOS by restricting scrollbar-hide utility to desktop breakpoints (md:scrollbar-hide), eliminating safe-area-inset compensation artifact.
 
 ## External Dependencies
 - **Database:** PostgreSQL
