@@ -185,13 +185,13 @@ function SidebarContentWrapper({
 
   return (
     <>
-      <div className="flex min-h-dvh w-full overflow-x-hidden bg-background">
+      <div className="flex min-h-dvh w-full bg-background">
         {/* Desktop-only sidebar */}
         <div className="hidden md:block">
           <AppSidebar />
         </div>
         
-        <div className="flex flex-col flex-1 overflow-hidden">
+        <div className="flex flex-col flex-1">
           {/* Desktop-only header */}
           <header className="hidden md:flex items-center justify-between p-4 border-b border-border shrink-0">
             <SidebarTrigger data-testid="button-sidebar-toggle" />
@@ -203,28 +203,18 @@ function SidebarContentWrapper({
                 size="icon"
                 onClick={async () => {
                   if (isNativePlatform()) {
-                    // Mobile logout: Clear local session, Safari cookies, AND Replit OAuth session
                     try {
-                      // Clear SFSafariViewController cookies (iOS 16+ only)
                       try {
                         await SafariData.clearData();
-                      } catch {
-                        // iOS 16+ required
-                      }
-                      
-                      // Clear local session tokens
+                      } catch {}
                       await SecureStorage.remove('sessionToken');
                       await Preferences.remove({ key: 'deviceId' });
-                      
-                      // Clear Replit OAuth session by calling server logout endpoint
-                      // This ensures the account picker appears on next login
                       window.location.href = "/api/logout";
                     } catch (error) {
                       console.error('[Logout] Error clearing mobile session:', error);
                       window.location.href = "/api/logout";
                     }
                   } else {
-                    // Web logout: Use server endpoint
                     window.location.href = "/api/logout";
                   }
                 }}
@@ -235,52 +225,28 @@ function SidebarContentWrapper({
             </div>
           </header>
 
-          {/* Mobile-only header - FIXED at y=0, extends INTO safe area */}
-          <header 
-            className="md:hidden fixed left-0 right-0 z-50 backdrop-blur-xl bg-white/70 dark:bg-zinc-900/70 border-b border-black/10 dark:border-white/10"
-            style={{
-              top: 0,
-              paddingLeft: 'env(safe-area-inset-left, 0px)',
-              paddingRight: 'env(safe-area-inset-right, 0px)'
-            }}
-          >
-            <div 
-              className="flex items-center justify-end gap-2 px-4"
-              style={{
-                paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.75rem)',
-                paddingBottom: '0.75rem'
-              }}
-            >
+          {/* Mobile-only header */}
+          <header className="md:hidden fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-white/70 dark:bg-zinc-900/70 border-b border-black/10 dark:border-white/10 pt-[env(safe-area-inset-top)] px-4">
+            <div className="flex items-center justify-end gap-2 py-3">
               <NotificationBadge />
               <ThemeToggle />
               <Button
                 variant="ghost"
                 size="icon"
-                className="rounded-xl"
                 onClick={async () => {
                   if (isNativePlatform()) {
-                    // Mobile logout: Clear local session, Safari cookies, AND Replit OAuth session
                     try {
-                      // Clear SFSafariViewController cookies (iOS 16+ only)
                       try {
                         await SafariData.clearData();
-                      } catch {
-                        // iOS 16+ required
-                      }
-                      
-                      // Clear local session tokens
+                      } catch {}
                       await SecureStorage.remove('sessionToken');
                       await Preferences.remove({ key: 'deviceId' });
-                      
-                      // Clear Replit OAuth session by calling server logout endpoint
-                      // This ensures the account picker appears on next login
                       window.location.href = "/api/logout";
                     } catch (error) {
-                      console.error('[Logout] Error clearing mobile session:', error);
+                      console.error('[Logout] Error:', error);
                       window.location.href = "/api/logout";
                     }
                   } else {
-                    // Web logout: Use server endpoint
                     window.location.href = "/api/logout";
                   }
                 }}
@@ -291,16 +257,8 @@ function SidebarContentWrapper({
             </div>
           </header>
           
-          {/* Main content - padding for desktop, top offset for mobile fixed header */}
-          <main 
-            className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide md:p-6 lg:p-8"
-            style={{
-              paddingTop: 'calc(env(safe-area-inset-top, 0px) + 4rem)',
-              paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 5rem)',
-              paddingLeft: 'calc(env(safe-area-inset-left, 0px) + 1rem)',
-              paddingRight: 'calc(env(safe-area-inset-right, 0px) + 1rem)'
-            }}
-          >
+          {/* Main content */}
+          <main className="flex-1 md:p-6 lg:p-8 md:pt-4 pt-[calc(env(safe-area-inset-top)+4rem)] pb-24 px-4 scrollbar-hide overflow-y-auto">
             <ErrorBoundary>
               {children}
             </ErrorBoundary>

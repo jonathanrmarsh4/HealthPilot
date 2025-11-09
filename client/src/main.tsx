@@ -1,6 +1,5 @@
 import { createRoot } from "react-dom/client";
 import App from "./App";
-import "./styles/global-ios-safe.css";
 import "./index.css";
 import { initializeMobile } from "./mobile/MobileBootstrap";
 
