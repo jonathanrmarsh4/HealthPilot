@@ -485,7 +485,10 @@ function AppLayout() {
   }
 
   return (
-    <SidebarProvider style={style as React.CSSProperties}>
+    <SidebarProvider 
+      style={style as React.CSSProperties}
+      className={isMobile ? "max-md:[&>.flex]:px-0 max-md:[&>*]:px-0" : undefined}
+    >
       <SidebarContentWrapper currentPage={currentPage} location={location}>
         <Router />
       </SidebarContentWrapper>
