@@ -191,13 +191,7 @@ function NotificationSheet({
       >
         <div className="max-w-[420px] mx-auto px-3 pt-[env(safe-area-inset-top)]">
           <div className="rounded-b-2xl border border-black/10 dark:border-white/10 backdrop-blur-xl bg-white/90 dark:bg-zinc-900/90 overflow-hidden shadow-2xl">
-            <div 
-              className="pt-3 px-4 pb-2 border-b border-black/5 dark:border-white/5 cursor-grab active:cursor-grabbing"
-              onTouchStart={handleHeaderTouchStart}
-              onTouchMove={handleHeaderTouchMove}
-              onTouchEnd={handleHeaderTouchEnd}
-            >
-              <div className="w-24 h-1.5 mx-auto mb-2 rounded-full bg-black/15 dark:bg-white/20" />
+            <div className="pt-3 px-4 pb-2 border-b border-black/5 dark:border-white/5">
               <div className="flex items-center justify-between mb-2">
                 <div className="font-extrabold tracking-wide text-black dark:text-white">
                   Notifications
@@ -290,6 +284,14 @@ function NotificationSheet({
                   ))}
                 </div>
               )}
+            </div>
+            <div 
+              className="pt-2 px-4 pb-3 border-t border-black/5 dark:border-white/5 cursor-grab active:cursor-grabbing"
+              onTouchStart={handleHeaderTouchStart}
+              onTouchMove={handleHeaderTouchMove}
+              onTouchEnd={handleHeaderTouchEnd}
+            >
+              <div className="w-24 h-1.5 mx-auto rounded-full bg-black/15 dark:bg-white/20" />
             </div>
           </div>
         </div>
