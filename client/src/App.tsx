@@ -378,6 +378,7 @@ function SidebarContentWrapper({
 function AppLayout() {
   const [location] = useLocation();
   const { status: onboardingStatus, isLoading: onboardingLoading } = useOnboarding();
+  const isMobile = useIsMobile();
   
   // Show HealthKit onboarding ONLY for iOS users who haven't completed it
   // (Android and web users skip this)
@@ -385,9 +386,10 @@ function AppLayout() {
     onboardingStatus && 
     !onboardingStatus.healthKitSetupComplete;
   
+  // Set sidebar width to 0 on mobile to prevent layout width restrictions
   const style = {
-    "--sidebar-width": "16rem",
-    "--sidebar-width-icon": "3rem",
+    "--sidebar-width": isMobile ? "0px" : "16rem",
+    "--sidebar-width-icon": isMobile ? "0px" : "3rem",
   };
 
   const pageNames: Record<string, string> = {
