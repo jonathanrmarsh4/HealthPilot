@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Copy, CreditCard, TrendingUp, Users, DollarSign, Calendar } from "lucide-react";
 import { format } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 interface SubscriptionData {
   tier: string;

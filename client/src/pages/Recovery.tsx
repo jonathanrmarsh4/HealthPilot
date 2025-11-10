@@ -9,7 +9,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import {  HeartPulse, Activity, TrendingUp, Sparkles } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Link } from "wouter";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { RecoveryState, TimelineEvent } from "@/types/recovery";
 

@@ -465,6 +465,40 @@ export interface IStorage {
     milestones: GoalMilestone[];
     plans: GoalPlan[];
   }>;
+  
+  // Simplified V2 goal creation for AI chat
+  createV2Goal(params: {
+    userId: string;
+    inputText: string;
+    canonicalGoalType: string;
+    goalEntitiesJson?: any;
+    targetDate: Date | null;
+    metrics: Array<{
+      metricKey: string;
+      label: string;
+      targetValue?: string;
+      unit?: string;
+      direction?: 'increase' | 'decrease' | 'maintain' | 'achieve';
+      baselineValue?: string;
+      priority?: number;
+    }>;
+    milestones: Array<{
+      title: string;
+      description?: string;
+      dueDate: Date;
+      completionRule?: any;
+    }>;
+    plan: {
+      planType: 'training' | 'nutrition' | 'supplement' | 'habit' | 'recovery';
+      contentJson: any;
+    } | null;
+  }): Promise<{
+    goal: Goal;
+    metrics: GoalMetric[];
+    milestones: GoalMilestone[];
+    plans: GoalPlan[];
+  }>;
+  
   getUserAvailableDataSources(userId: string): Promise<{
     healthkit: string[];
     oura: string[];
@@ -3737,6 +3771,92 @@ export class DbStorage implements IStorage {
         milestones: createdMilestones,
         plans: createdPlans,
       };
+    });
+  }
+
+  // Simplified V2 goal creation for AI chat
+  async createV2Goal(params: {
+    userId: string;
+    inputText: string;
+    canonicalGoalType: string;
+    goalEntitiesJson?: any;
+    targetDate: Date | null;
+    metrics: Array<{
+      metricKey: string;
+      label: string;
+      targetValue?: string;
+      unit?: string;
+      direction?: 'increase' | 'decrease' | 'maintain' | 'achieve';
+      baselineValue?: string;
+      priority?: number;
+    }>;
+    milestones: Array<{
+      title: string;
+      description?: string;
+      dueDate: Date;
+      completionRule?: any;
+    }>;
+    plan: {
+      planType: 'training' | 'nutrition' | 'supplement' | 'habit' | 'recovery';
+      contentJson: any;
+    } | null;
+  }): Promise<{
+    goal: Goal;
+    metrics: GoalMetric[];
+    milestones: GoalMilestone[];
+    plans: GoalPlan[];
+  }> {
+    // Construct InsertGoal from parameters
+    const goalInsert: InsertGoal = {
+      userId: params.userId,
+      inputText: params.inputText,
+      canonicalGoalType: params.canonicalGoalType,
+      goalEntitiesJson: params.goalEntitiesJson || null,
+      targetDate: params.targetDate,
+      status: 'active',
+      createdByAI: 1,
+    };
+
+    // Map metrics to InsertGoalMetric
+    const metricsInsert: InsertGoalMetric[] = params.metrics.map(m => ({
+      goalId: '', // Will be filled by createGoalWithPlan
+      metricKey: m.metricKey,
+      label: m.label,
+      targetValue: m.targetValue || null,
+      unit: m.unit || null,
+      direction: m.direction || 'increase',
+      baselineValue: m.baselineValue || null,
+      currentValue: m.baselineValue || null, // Start with baseline
+      priority: m.priority || 1,
+      source: 'manual', // Default to manual, can be updated later
+    }));
+
+    // Map milestones to InsertGoalMilestone
+    const milestonesInsert: InsertGoalMilestone[] = params.milestones.map(m => ({
+      goalId: '', // Will be filled by createGoalWithPlan
+      title: m.title,
+      description: m.description || null,
+      dueDate: m.dueDate,
+      completionRule: m.completionRule || null,
+      status: 'pending',
+      progressPct: 0,
+    }));
+
+    // Map plan to InsertGoalPlan array
+    const plansInsert: InsertGoalPlan[] = params.plan ? [{
+      goalId: '', // Will be filled by createGoalWithPlan
+      planType: params.plan.planType,
+      contentJson: params.plan.contentJson,
+      version: 2, // V2 plans
+      isActive: 1,
+    }] : [];
+
+    // Use createGoalWithPlan to handle transaction
+    return await this.createGoalWithPlan({
+      goal: goalInsert,
+      metrics: metricsInsert,
+      milestones: milestonesInsert,
+      plans: plansInsert,
     });
   }
 

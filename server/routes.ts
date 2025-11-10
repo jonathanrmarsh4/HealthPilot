@@ -9039,6 +9039,243 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
     }
   });
 
+  // ============================================================================
+  // AI CHAT TOOL DISPATCHER
+  // ============================================================================
+  
+  type ToolContext = {
+    userId: string;
+    message: string;
+    storage: typeof storage;
+  };
+  
+  type ToolHandler = (payload: any, context: ToolContext) => Promise<{
+    success: boolean;
+    data?: any;
+    error?: string;
+  }>;
+  
+  // Map tool names to actual database table names for audit logging
+  const toolTableMap: Record<string, string> = {
+    'CREATE_V2_GOAL': 'goals',
+    'UPDATE_GOAL': 'goals',
+    'CREATE_GOAL': 'goals',
+    'SAVE_TRAINING_PLAN': 'training_schedules',
+    'SAVE_MEAL_PLAN': 'meal_plans',
+    'SAVE_SUPPLEMENT': 'supplement_stack',
+    'SAVE_SYMPTOM': 'symptom_events',
+    'SAVE_EXERCISE': 'recommendations',
+    'UPDATE_BIOMARKER': 'biomarkers',
+    'UPDATE_FITNESS_PROFILE': 'fitness_profiles',
+    'UPDATE_USER_PROFILE': 'users',
+    'SAVE_PERSONAL_MEMORY': 'users',
+  };
+  
+  /**
+   * Extract and parse tool payload from AI response
+   * Returns { success: boolean, payload?: any, error?: string }
+   */
+  function extractToolPayload(toolName: string, aiResponse: string): { 
+    success: boolean; 
+    payload?: any; 
+    error?: string 
+  } {
+    const regex = new RegExp(`<<<${toolName}>>>([\\s\\S]*?)<<<END_${toolName}>>>`, 'g');
+    const match = regex.exec(aiResponse);
+    
+    if (!match) {
+      return { success: false };
+    }
+    
+    try {
+      const jsonPayload = match[1].trim();
+      const parsed = JSON.parse(jsonPayload);
+      return { success: true, payload: parsed };
+    } catch (e) {
+      const error = e instanceof Error ? e.message : String(e);
+      console.error(`Failed to parse ${toolName} payload:`, error);
+      return { success: false, error: `JSON parse error: ${error}` };
+    }
+  }
+  
+  /**
+   * Process a tool marker with standardized error handling and audit logging
+   */
+  async function processToolMarker(
+    toolName: string,
+    aiResponse: string,
+    handler: ToolHandler,
+    context: ToolContext
+  ): Promise<{ success: boolean; data?: any; error?: string; fatal?: boolean }> {
+    const extraction = extractToolPayload(toolName, aiResponse);
+    
+    // No marker found - this is normal, not an error
+    if (!extraction.success && !extraction.error) {
+      return { success: false };
+    }
+    
+    // Marker found but malformed JSON - this is a fatal error that should be logged and surfaced
+    if (!extraction.success && extraction.error) {
+      console.error(`❌ ${toolName} marker found but payload is malformed:`, extraction.error);
+      
+      const targetTable = toolTableMap[toolName] || 'unknown';
+      
+      await context.storage.createAiAction({
+        userId: context.userId,
+        actionType: toolName,
+        targetTable,
+        targetId: null,
+        changesBefore: null,
+        changesAfter: null,
+        reasoning: `AI emitted ${toolName} marker but payload was malformed`,
+        conversationContext: context.message,
+        success: 0,
+        errorMessage: extraction.error,
+      });
+      
+      return { success: false, error: extraction.error, fatal: true };
+    }
+    
+    console.log(`🔧 Processing ${toolName} tool marker...`);
+    
+    const targetTable = toolTableMap[toolName] || 'unknown';
+    
+    try {
+      const result = await handler(extraction.payload, context);
+      
+      if (result.success) {
+        console.log(`✅ ${toolName} completed successfully`);
+      } else {
+        console.error(`❌ ${toolName} failed:`, result.error);
+        
+        // Log handler failure to audit trail
+        await context.storage.createAiAction({
+          userId: context.userId,
+          actionType: toolName,
+          targetTable,
+          targetId: null,
+          changesBefore: null,
+          changesAfter: null,
+          reasoning: `${toolName} handler failed`,
+          conversationContext: context.message,
+          success: 0,
+          errorMessage: result.error || 'Handler returned success: false',
+        });
+        
+        // Handler failures are also fatal errors that should be surfaced
+        return { ...result, fatal: true };
+      }
+      
+      return result;
+    } catch (error: any) {
+      console.error(`❌ ${toolName} threw exception:`, error);
+      
+      // Log failure to audit trail
+      await context.storage.createAiAction({
+        userId: context.userId,
+        actionType: toolName,
+        targetTable,
+        targetId: null,
+        changesBefore: null,
+        changesAfter: null,
+        reasoning: `${toolName} handler threw exception`,
+        conversationContext: context.message,
+        success: 0,
+        errorMessage: error.message || String(error),
+      });
+      
+      return { success: false, error: error.message, fatal: true };
+    }
+  }
+  
+  /**
+   * Zod schema for CREATE_V2_GOAL payload validation
+   */
+  const createV2GoalSchema = z.object({
+    inputText: z.string().min(1, "Goal text is required"),
+    canonicalGoalType: z.string().min(1, "Goal type is required"),
+    goalEntitiesJson: z.any().optional(),
+    targetDate: z.string().optional().nullable(),
+    metrics: z.array(z.object({
+      metricKey: z.string(),
+      label: z.string(),
+      targetValue: z.string().optional(),
+      unit: z.string().optional(),
+      direction: z.enum(['increase', 'decrease', 'maintain', 'achieve']).optional(),
+      baselineValue: z.string().optional(),
+      priority: z.number().optional(),
+    })).optional().default([]),
+    milestones: z.array(z.object({
+      title: z.string(),
+      description: z.string().optional(),
+      dueDate: z.string(), // ISO date string
+      completionRule: z.any().optional(),
+    })).optional().default([]),
+    plan: z.object({
+      planType: z.enum(['training', 'nutrition', 'supplement', 'habit', 'recovery']),
+      contentJson: z.any(), // Flexible content structure
+    }).optional().nullable(),
+    reasoning: z.string().optional(),
+  });
+
+  /**
+   * Registry of tool handlers
+   */
+  const toolHandlers: Record<string, ToolHandler> = {
+    CREATE_V2_GOAL: async (payload, context) => {
+      // Validate payload against schema
+      const validation = createV2GoalSchema.safeParse(payload);
+      
+      if (!validation.success) {
+        const errorMessage = validation.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join('; ');
+        console.error('❌ CREATE_V2_GOAL payload validation failed:', errorMessage);
+        return { 
+          success: false, 
+          error: `Payload validation failed: ${errorMessage}` 
+        };
+      }
+      
+      const validatedData = validation.data;
+      const {
+        inputText,
+        canonicalGoalType,
+        goalEntitiesJson,
+        targetDate,
+        metrics,
+        milestones,
+        plan,
+        reasoning
+      } = validatedData;
+      
+      // Create goal with full V2 structure in a transaction
+      const result = await context.storage.createV2Goal({
+        userId: context.userId,
+        inputText,
+        canonicalGoalType,
+        goalEntitiesJson,
+        targetDate: targetDate ? new Date(targetDate) : null,
+        metrics: metrics || [],
+        milestones: milestones || [],
+        plan: plan || null,
+      });
+      
+      // Log to audit trail
+      await context.storage.createAiAction({
+        userId: context.userId,
+        actionType: 'CREATE_V2_GOAL',
+        targetTable: 'goals',
+        targetId: result.goal.id,
+        changesBefore: null,
+        changesAfter: result,
+        reasoning: reasoning || 'AI created V2 goal from natural language input',
+        conversationContext: context.message,
+        success: 1,
+      });
+      
+      return { success: true, data: result };
+    },
+  };
+
   app.post("/api/chat", isAuthenticated, checkMessageLimit, async (req, res) => {
     const userId = (req.user as any).claims.sub;
 
@@ -9238,6 +9475,7 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
       cleanResponse = cleanResponse.replace(/<<<UPDATE_FITNESS_PROFILE>>>[\s\S]*?<<<END_UPDATE_FITNESS_PROFILE>>>/g, '');
       cleanResponse = cleanResponse.replace(/<<<UPDATE_GOAL>>>[\s\S]*?<<<END_UPDATE_GOAL>>>/g, '');
       cleanResponse = cleanResponse.replace(/<<<CREATE_GOAL>>>[\s\S]*?<<<END_CREATE_GOAL>>>/g, '');
+      cleanResponse = cleanResponse.replace(/<<<CREATE_V2_GOAL>>>[\s\S]*?<<<END_CREATE_V2_GOAL>>>/g, '');
       cleanResponse = cleanResponse.replace(/<<<UPDATE_BIOMARKER>>>[\s\S]*?<<<END_UPDATE_BIOMARKER>>>/g, '');
       cleanResponse = cleanResponse.replace(/<<<SAVE_PERSONAL_MEMORY>>>[\s\S]*?<<<END_SAVE_PERSONAL_MEMORY>>>/g, '');
       cleanResponse = cleanResponse.trim();
@@ -9248,7 +9486,20 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
         content: cleanResponse,
       });
 
-      // Check if AI response contains a training plan to save
+      // ============================================================================
+      // PROCESS AI TOOL MARKERS USING DISPATCHER
+      // ============================================================================
+      
+      const toolContext: ToolContext = {
+        userId,
+        message,
+        storage,
+      };
+
+      // Process CREATE_V2_GOAL using new dispatcher system
+      const v2GoalResult = await processToolMarker('CREATE_V2_GOAL', aiResponse, toolHandlers.CREATE_V2_GOAL, toolContext);
+
+      // Check if AI response contains a training plan to save (legacy handler)
       let trainingPlanSaved = false;
       console.log("🔍 Checking for SAVE_TRAINING_PLAN markers in AI response...");
       console.log("📝 AI Response (first 500 chars):", aiResponse.substring(0, 500));
@@ -10089,6 +10340,7 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
         userProfileUpdated,
         goalUpdated,
         goalCreated,
+        v2GoalCreated: v2GoalResult.success,
         biomarkerUpdated,
         personalMemorySaved,
         contextualOnboardingTriggered: contextualOnboardingTriggered || false,
