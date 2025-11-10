@@ -30,6 +30,7 @@ type MobileNavProps = {
   LinkComponent?: React.ComponentType<LinkishProps>;
   tileHeightClass?: string;
   fabSizeClass?: string;
+  onChatClick?: () => void;
 };
 
 export default function MobileNav({
@@ -39,6 +40,7 @@ export default function MobileNav({
   LinkComponent,
   tileHeightClass = "h-16",
   fabSizeClass = "w-16 h-16",
+  onChatClick,
 }: MobileNavProps) {
   const [menuOpen, setMenuOpen] = React.useState(false);
   const [quickOpen, setQuickOpen] = React.useState(false);
@@ -491,16 +493,29 @@ export default function MobileNav({
       >
         <div className="max-w-[420px] mx-auto">
           <div className="grid grid-cols-3 items-end py-3 gap-2">
-            <button
-              type="button"
-              className="flex flex-col items-center justify-center gap-1 min-h-12"
-              onClick={() => setMenuOpen(true)}
-              aria-label="Menu"
-              data-testid="button-menu"
-            >
-              <MenuIcon className="w-5 h-5" />
-              <span className="text-[11px]">Menu</span>
-            </button>
+            <div className="flex items-center justify-start gap-2">
+              {onChatClick && (
+                <button
+                  type="button"
+                  className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors"
+                  onClick={onChatClick}
+                  aria-label="AI Chat"
+                  data-testid="button-open-floating-chat"
+                >
+                  <Sparkles className="w-5 h-5 text-primary" />
+                </button>
+              )}
+              <button
+                type="button"
+                className="flex flex-col items-center justify-center gap-1 min-h-12"
+                onClick={() => setMenuOpen(true)}
+                aria-label="Menu"
+                data-testid="button-menu"
+              >
+                <MenuIcon className="w-5 h-5" />
+                <span className="text-[11px]">Menu</span>
+              </button>
+            </div>
 
             <div className="flex justify-center relative -mt-6">
               <button
