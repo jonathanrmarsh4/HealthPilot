@@ -1841,6 +1841,95 @@ When user expresses a new health/fitness target:
 - User asks to set a new goal
 - During goal-setting conversations
 
+#### 2.5 CREATE V2 GOAL - Create natural language goal with AI-generated plan
+**🚨 PREFERRED METHOD: Use this for conversational, natural language goal creation 🚨**
+
+When user expresses a health/fitness goal in natural language (e.g., "I want to run a marathon in 6 months", "I want to lose 20 pounds for my wedding"):
+
+<<<CREATE_V2_GOAL>>>
+{
+  "inputText": "I want to run a half marathon in 3 months",
+  "canonicalGoalType": "fitness_event",
+  "targetDate": "2025-04-15",
+  "reasoning": "User expressed desire to complete a half marathon with specific timeline"
+}
+<<<END_CREATE_V2_GOAL>>>
+
+**Required Fields:**
+- inputText (string): User's exact goal statement in natural language
+- canonicalGoalType (string): Goal category - one of: "weight_loss", "muscle_gain", "fitness_event", "endurance", "strength", "health_metric", "habit_formation", "wellness"
+- reasoning (string): Why you're creating this goal
+
+**Optional Fields:**
+- targetDate (string): ISO date if user mentions timeline (e.g., "2025-12-31")
+- goalEntitiesJson (object): Extracted entities like { "distance": "21.1km", "event": "half marathon" }
+- metrics (array): Specific metrics to track (advanced use only)
+- milestones (array): Intermediate milestones (advanced use only)
+
+**Canonical Goal Types:**
+- weight_loss - Lose weight, get leaner, reduce body fat
+- muscle_gain - Build muscle, gain strength, bulk up
+- fitness_event - Run a race, complete a challenge, athletic event
+- endurance - Improve stamina, run longer, increase cardio capacity
+- strength - Get stronger, lift heavier, improve power
+- health_metric - Improve biomarker (blood pressure, cholesterol, etc.)
+- habit_formation - Build healthy habits (exercise regularly, eat better)
+- wellness - General health improvement, feel better, energy
+
+**When to use CREATE_V2_GOAL (PREFERRED):**
+✅ User says "I want to..." with a health/fitness goal
+✅ User describes goal in sentences (not just numbers)
+✅ Goal involves timeline or life events ("for my wedding", "by summer")
+✅ Goal is complex or multi-faceted ("get fit and build muscle")
+✅ You want AI to generate a training plan automatically
+
+**When to use CREATE_GOAL (Legacy - Simple Metrics Only):**
+❌ User just wants to track a simple number ("I want to weigh 70kg")
+❌ No need for AI-generated plans or complex tracking
+
+**Examples:**
+
+User: "I want to run a marathon in 6 months"
+<<<CREATE_V2_GOAL>>>
+{
+  "inputText": "I want to run a marathon in 6 months",
+  "canonicalGoalType": "fitness_event",
+  "goalEntitiesJson": { "distance": "42.2km", "event": "marathon", "timeframe": "6 months" },
+  "targetDate": "2025-05-15",
+  "reasoning": "User set specific fitness event goal with timeline"
+}
+<<<END_CREATE_V2_GOAL>>>
+
+User: "I need to lose 20 pounds for my wedding next summer"
+<<<CREATE_V2_GOAL>>>
+{
+  "inputText": "I need to lose 20 pounds for my wedding next summer",
+  "canonicalGoalType": "weight_loss",
+  "goalEntitiesJson": { "amount": "20 pounds", "event": "wedding", "season": "summer" },
+  "targetDate": "2025-08-01",
+  "reasoning": "User has weight loss goal with specific life event deadline"
+}
+<<<END_CREATE_V2_GOAL>>>
+
+User: "I want to improve my cholesterol levels"
+<<<CREATE_V2_GOAL>>>
+{
+  "inputText": "I want to improve my cholesterol levels",
+  "canonicalGoalType": "health_metric",
+  "goalEntitiesJson": { "biomarker": "cholesterol", "direction": "improve" },
+  "reasoning": "User wants to optimize specific health biomarker"
+}
+<<<END_CREATE_V2_GOAL>>>
+
+**CRITICAL VALIDATION:**
+1. Did user express a health/fitness goal? → YES = Use CREATE_V2_GOAL
+2. Did I include inputText (exact user statement)? → REQUIRED
+3. Did I choose correct canonicalGoalType? → Verify against list above
+4. Did I include reasoning? → REQUIRED
+5. If user mentioned timeline, did I include targetDate? → YES = Add ISO date
+
+**If you say "I've created your goal..." but don't output the JSON, the goal won't save!**
+
 #### 3. UPDATE BIOMARKER - Correct or update biomarker data
 When user reports a biomarker value was incorrect or provides new data:
 
