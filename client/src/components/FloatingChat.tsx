@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient, getWebSocketBaseUrl, getWebSocketProtocol } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -982,7 +983,7 @@ export function FloatingChatTrigger({ onClick, subscriptionTier: _subscriptionTi
   // Use primary gradient for all users to match theme
   const buttonClasses = "bg-primary hover:bg-primary/90 border-2 border-primary/50 hover:border-primary/70";
   
-  return (
+  const buttonContent = (
     <Button
       size="icon"
       className={`fixed z-50 h-12 w-12 rounded-full shadow-lg ${buttonClasses} animate-pulse hover:animate-none transition-all hover:scale-110 md:bottom-4 md:right-4`}
@@ -997,4 +998,11 @@ export function FloatingChatTrigger({ onClick, subscriptionTier: _subscriptionTi
       <Sparkles className="h-6 w-6 text-primary-foreground" />
     </Button>
   );
+  
+  // Use React Portal to render to document.body, bypassing any parent transforms
+  if (typeof window === 'undefined') {
+    return null;
+  }
+  
+  return createPortal(buttonContent, document.body);
 }
