@@ -10,7 +10,7 @@ I prefer simple language and clear explanations. I want iterative development wh
 **Frontend:** React 18, Vite 5.x, Wouter, shadcn/ui + Radix UI, Tailwind CSS, TanStack Query v5, React Hook Form + Zod, Lucide React + React Icons.
 **Backend:** Express.js, RESTful APIs with Zod validation, express-session, WebSocket (for Voice Chat), Multer, date-fns-tz for timezone-aware date handling.
 **Database:** PostgreSQL (Neon-backed), Drizzle ORM, Drizzle-Zod.
-**Mobile:** Capacitor 7 (iOS native app), custom @healthpilot/healthkit plugin for comprehensive HealthKit integration (26 data types vs standard 5).
+**Mobile:** Capacitor 7 (iOS native app), custom @healthpilot/healthkit plugin for comprehensive HealthKit integration (26 data types vs standard 5). **CRITICAL:** Plugin must remain in package.json as `"@healthpilot/healthkit": "file:ios/HealthKitPlugin"` - if accidentally removed during npm operations, reinstall with `npm install file:./ios/HealthKitPlugin` on Mac build machine.
 **Timezone Support:** All date-based features are fully timezone-aware using user's stored timezone preference.
 
 **UI/UX Decisions:**
@@ -70,6 +70,8 @@ I prefer simple language and clear explanations. I want iterative development wh
 - **Multi-Dimensional Recovery System v1.0:** Muscle-group-specific recovery tracking system using fatigue modeling with exponential decay curves.
 - **iOS Live Activities for Workout Tracking v1.0:** Real-time lock screen workout tracking with Live Activities.
 - **Mobile Layout Overflow Fix v2.0:** System-wide responsive layout improvements preventing horizontal overflow on narrow viewports (<360px). Applied flex-wrap, min-w-0, and gap utilities to 25+ flex containers across Symptoms, Recovery, Training, SmartFuel, BiologicalAge, ReadinessScoreWidget, and AITrainingPlanTile components. Global max-width constraints ensure content stays within viewport boundaries. Fixed persistent right-padding issue on iOS by restricting scrollbar-hide utility to desktop breakpoints (md:scrollbar-hide), eliminating safe-area-inset compensation artifact.
+- **iOS White Bars Fix (Nov 2024):** Fixed white gaps at top/bottom of iOS viewport by changing html/body/#root to use height:100% instead of min-height:100vh, ensuring full viewport coverage.
+- **Notification Panel Radix Sheet Migration (Nov 2024):** Refactored NotificationBadge to use Radix UI Sheet component (side="top") for reliable backdrop dismissal on mobile, replacing custom animation/swipe implementation with built-in accessibility features.
 
 ## External Dependencies
 - **Database:** PostgreSQL
