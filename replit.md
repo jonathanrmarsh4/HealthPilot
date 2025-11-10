@@ -77,6 +77,9 @@ I prefer simple language and clear explanations. I want iterative development wh
 
 ## Known Technical Debt
 - **AI Tool Dispatcher Refactoring (Nov 2024):** Chat tool marker processing in server/routes.ts has grown to 20+ regex-based handlers creating maintenance and scalability issues. Architectural recommendation: Create dedicated dispatcher abstraction with map of markers → handler modules including shared parsing/logging. Current implementation deferred to ship critical goal scheduling feature; recommend refactoring when adding future AI tools.
+- **Storage Layer TypeScript Errors (Nov 2024):** 552 TypeScript errors remain in codebase, primarily concentrated in server/storage.ts due to schema/type drift between shared/schema.ts and storage function signatures. Not blocking production (tsx builds succeed), but may hide runtime type mismatches. Recommended remediation: incremental typing fixes starting with storage layer, add unit tests for high-impact changes, avoid repo-wide blitz approach. See POST_DEPLOYMENT_REVIEW.md for detailed analysis.
+- **Type Suppressions (Nov 2024):** SecureStorageAdapter.ts uses @ts-expect-error comments to suppress Capacitor API type mismatches (object params vs outdated type definitions). Push notification badge methods use @ts-ignore for optional API availability. Recommend replacing with proper module augmentation in future cleanup sprint.
+- **Unused Dependencies (Nov 2024):** 10+ packages identified as potentially unused (next-themes, react-icons/si, supertest, vitest, memorystore, node-cron, pdf-to-png-converter, tw-animate-css, @types/memoizee, @types/ws). Recommend audit and removal after storage typing is resolved to avoid npm operation conflicts.
 
 ## External Dependencies
 - **Database:** PostgreSQL
