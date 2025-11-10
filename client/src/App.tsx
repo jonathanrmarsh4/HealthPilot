@@ -389,9 +389,19 @@ function AppLayout() {
     !onboardingStatus.healthKitSetupComplete;
   
   // Set sidebar width to 0 on mobile to prevent layout width restrictions
-  const style = {
-    "--sidebar-width": isMobile ? "0px" : "16rem",
-    "--sidebar-width-icon": isMobile ? "0px" : "3rem",
+  // Force wrapper to full viewport width on mobile
+  const style = isMobile ? {
+    "--sidebar-width": "0px",
+    "--sidebar-width-icon": "0px",
+    width: "100vw",
+    minWidth: "100vw",
+    maxWidth: "100vw",
+    flexBasis: "100vw",
+    marginLeft: 0,
+    marginRight: 0,
+  } : {
+    "--sidebar-width": "16rem",
+    "--sidebar-width-icon": "3rem",
   };
 
   const pageNames: Record<string, string> = {
