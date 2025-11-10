@@ -232,7 +232,17 @@ function SidebarContentWrapper({
 
   return (
     <>
-      <div className="flex min-h-dvh w-full max-w-full bg-background overflow-x-hidden">
+      <div 
+        className="flex min-h-dvh w-full max-w-full bg-background overflow-x-hidden"
+        style={isMobile ? {
+          width: '100%',
+          maxWidth: '100%',
+          paddingLeft: 0,
+          paddingRight: 0,
+          marginLeft: 0,
+          marginRight: 0
+        } : undefined}
+      >
         {/* Desktop-only sidebar - only render on desktop to prevent gap element */}
         {!isMobile && (
           <div className="hidden md:block">
