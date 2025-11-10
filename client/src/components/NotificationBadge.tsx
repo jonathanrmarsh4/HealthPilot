@@ -163,13 +163,12 @@ function NotificationSheet({
     <>
       <div
         className={[
-          "fixed inset-0 bg-black/60 transition-opacity ease-out",
-          isAnimating ? "opacity-100" : "opacity-0",
-          !isAnimating && "pointer-events-none",
+          "fixed inset-0 bg-black/60 transition-opacity ease-out z-40",
+          isPresent ? "opacity-100" : "opacity-0",
+          !isPresent && "pointer-events-none",
         ].join(" ")}
         onTouchStart={onClose}
-        onPointerDown={onClose}
-        onMouseDown={onClose}
+        onClick={onClose}
         aria-hidden
         style={{
           transitionDuration: backdropDuration,
