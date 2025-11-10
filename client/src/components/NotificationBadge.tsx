@@ -167,8 +167,10 @@ function NotificationSheet({
           isPresent ? "opacity-100" : "opacity-0",
           !isPresent && "pointer-events-none",
         ].join(" ")}
-        onTouchStart={onClose}
-        onClick={onClose}
+        onPointerDown={(e) => {
+          e.stopPropagation();
+          onClose();
+        }}
         aria-hidden
         style={{
           transitionDuration: backdropDuration,

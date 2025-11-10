@@ -188,7 +188,7 @@ function SidebarContentWrapper({
   return (
     <>
       <div 
-        className={`flex ${isNativePlatform() ? 'h-screen' : 'min-h-dvh'} w-full max-w-full bg-background overflow-x-hidden`}
+        className={`flex ${isNativePlatform() ? 'h-screen overflow-hidden' : 'min-h-dvh'} w-full max-w-full bg-background overflow-x-hidden`}
         style={isMobile ? {
           width: '100%',
           maxWidth: '100%',
