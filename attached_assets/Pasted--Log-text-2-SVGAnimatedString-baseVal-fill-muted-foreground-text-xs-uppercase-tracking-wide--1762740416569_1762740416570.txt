@@ -1,0 +1,1122 @@
+[Log] text (2)
+SVGAnimatedString {baseVal: "fill-muted-foreground text-xs uppercase tracking-wide", animVal: "fill-muted-foreground text-xs uppercase tracking-wide"}
+"54.03125px"
+[Log] SPAN – "text-muted-foreground" – "43.515625px"
+[Log] SPAN – "text-muted-foreground" – "50.765625px"
+[Log] text (2)
+SVGAnimatedString {baseVal: "recharts-text text-4xl font-bold", animVal: "recharts-text text-4xl font-bold"}
+"41.1875px"
+[Log] DIV – "text-center mt-12" – "56.9375px"
+[Log] DIV – "text-xs text-muted-foreground" – "56.9375px"
+[Log] text (2)
+SVGAnimatedString {baseVal: "fill-muted-foreground text-xs", animVal: "fill-muted-foreground text-xs"}
+"56.9375px"
+[Log] SPAN – "font-semibold" – "49.90625px"
+[Log] DIV – "text-4xl font-bold bg-gradient-to-br from-primary to-primary/60 bg-clip-text text-transparent" – "41.171875px"
+[Log] SPAN – "text-lg text-muted-foreground" – "45.0625px"
+[Log] DIV (2) (x3)
+"whitespace-nowrap rounded-md px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 hover-elevate border [border-color:var(--badge-outline)] shadow-xs flex items-center gap-1 ml-2"
+"59.265625px"
+[Log] BUTTON (2)
+"inline-flex items-center justify-center gap-2 whitespace-nowrap font-medium focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover-elevate active-elevate-2 border border-transparent min-h-8 rounded-md px-3 text-xs"
+"42px"
+[Log] DIV – "flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-primary/10" – "48px" (x4)
+[Log] SPAN – "" – "44.734375px"
+[Log] SPAN – "text-4xl font-bold tracking-tight" – "48.734375px"
+[Log] SPAN – "text-2xl font-bold" – "48.015625px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-line", animVal: "recharts-cartesian-axis-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-line", animVal: "recharts-cartesian-axis-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-line", animVal: "recharts-cartesian-axis-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-line", animVal: "recharts-cartesian-axis-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-line", animVal: "recharts-cartesian-axis-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-line", animVal: "recharts-cartesian-axis-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-line", animVal: "recharts-cartesian-axis-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-line", animVal: "recharts-cartesian-axis-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-line", animVal: "recharts-cartesian-axis-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-line", animVal: "recharts-cartesian-axis-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-line", animVal: "recharts-cartesian-axis-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-line", animVal: "recharts-cartesian-axis-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-line", animVal: "recharts-cartesian-axis-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-line", animVal: "recharts-cartesian-axis-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-line", animVal: "recharts-cartesian-axis-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-line", animVal: "recharts-cartesian-axis-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-line", animVal: "recharts-cartesian-axis-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-line", animVal: "recharts-cartesian-axis-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-line", animVal: "recharts-cartesian-axis-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-line", animVal: "recharts-cartesian-axis-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-line", animVal: "recharts-cartesian-axis-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-line", animVal: "recharts-cartesian-axis-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] text (2)
+SVGAnimatedString {baseVal: "recharts-text recharts-label", animVal: "recharts-text recharts-label"}
+"43.140625px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-line", animVal: "recharts-cartesian-axis-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] text (2)
+SVGAnimatedString {baseVal: "recharts-text recharts-label", animVal: "recharts-text recharts-label"}
+"43.140625px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-line", animVal: "recharts-cartesian-axis-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] text (2)
+SVGAnimatedString {baseVal: "recharts-text recharts-label", animVal: "recharts-text recharts-label"}
+"43.140625px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-line", animVal: "recharts-cartesian-axis-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] text (2)
+SVGAnimatedString {baseVal: "recharts-text recharts-label", animVal: "recharts-text recharts-label"}
+"43.140625px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-line", animVal: "recharts-cartesian-axis-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-line", animVal: "recharts-cartesian-axis-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-line", animVal: "recharts-cartesian-axis-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-line", animVal: "recharts-cartesian-axis-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-line", animVal: "recharts-cartesian-axis-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-line", animVal: "recharts-cartesian-axis-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-line", animVal: "recharts-cartesian-axis-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-line", animVal: "recharts-cartesian-axis-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-line", animVal: "recharts-cartesian-axis-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-line", animVal: "recharts-cartesian-axis-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-line", animVal: "recharts-cartesian-axis-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-line", animVal: "recharts-cartesian-axis-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-line", animVal: "recharts-cartesian-axis-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-line", animVal: "recharts-cartesian-axis-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-line", animVal: "recharts-cartesian-axis-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-line", animVal: "recharts-cartesian-axis-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-line", animVal: "recharts-cartesian-axis-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-line", animVal: "recharts-cartesian-axis-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-line", animVal: "recharts-cartesian-axis-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-line", animVal: "recharts-cartesian-axis-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-line", animVal: "recharts-cartesian-axis-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-line", animVal: "recharts-cartesian-axis-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-line", animVal: "recharts-cartesian-axis-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-line", animVal: "recharts-cartesian-axis-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-line", animVal: "recharts-cartesian-axis-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-line", animVal: "recharts-cartesian-axis-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-line", animVal: "recharts-cartesian-axis-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-line", animVal: "recharts-cartesian-axis-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-line", animVal: "recharts-cartesian-axis-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] text (2)
+SVGAnimatedString {baseVal: "recharts-text recharts-label", animVal: "recharts-text recharts-label"}
+"43.140625px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-line", animVal: "recharts-cartesian-axis-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-line", animVal: "recharts-cartesian-axis-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-line", animVal: "recharts-cartesian-axis-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-line", animVal: "recharts-cartesian-axis-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-line", animVal: "recharts-cartesian-axis-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-line", animVal: "recharts-cartesian-axis-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] line (2)
+SVGAnimatedString {baseVal: "recharts-cartesian-axis-tick-line", animVal: "recharts-cartesian-axis-tick-line"}
+"60px"
+[Log] BUTTON (2)
+"inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover-elevate active-elevate-2 text-primary-foreground fixed bottom-28 md:bottom-4 right-4 z-50 h-12 w-12 rounded-full shadow-lg bg-primary hover:bg-primary/90 border-2 border-primary/50 hover:border-primary/70 animate-pulse hover:animate-none transition-all hover:scale-110"
+"44.5px"
+[Log] SPAN – "text-[11px] font-medium" – "40.640625px"
