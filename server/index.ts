@@ -21,7 +21,7 @@ app.use(express.urlencoded({ extended: false, limit: '10mb' }));
 
 // Disable caching for iOS live reload to prevent WKWebView from serving stale assets
 // This must come BEFORE all routes to ensure headers apply to all responses
-const useViteDevServer = process.env.CAPACITOR_LIVE_RELOAD === "true" || process.env.NODE_ENV === "development";
+const useViteDevServer = process.env.CAPACITOR_LIVE_RELOAD === "true" || process.env.NODE_ENV !== "production";
 if (useViteDevServer) {
   app.use((req, res, next) => {
     res.set("Cache-Control", "no-store, no-cache, must-revalidate, private");
