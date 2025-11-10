@@ -985,7 +985,7 @@ export function FloatingChatTrigger({ onClick, subscriptionTier: _subscriptionTi
   return (
     <Button
       size="icon"
-      className={`fixed bottom-28 md:bottom-4 right-4 z-50 h-12 w-12 rounded-full shadow-lg ${buttonClasses} animate-pulse hover:animate-none transition-all hover:scale-110`}
+      className={`fixed bottom-20 md:bottom-4 left-1/2 -translate-x-1/2 md:left-auto md:right-4 md:translate-x-0 z-50 h-12 w-12 rounded-full shadow-lg ${buttonClasses} animate-pulse hover:animate-none transition-all hover:scale-110`}
       onClick={onClick}
       data-testid="button-open-floating-chat"
     >
