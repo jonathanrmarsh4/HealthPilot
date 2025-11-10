@@ -227,10 +227,21 @@ export const trainingSchedules = pgTable("training_schedules", {
   isOptional: integer("is_optional").notNull().default(0), // 1 if optional recovery session
   coreProgram: integer("core_program").notNull().default(0), // 1 if this is essential to user's goals
   scheduledFor: timestamp("scheduled_for"), // Specific date/time when user schedules recovery session
+  // Goal plan linkage (for scheduled goal-based training)
+  goalPlanSessionId: varchar("goal_plan_session_id"), // FK to goal_plan_sessions if scheduled from a goal plan
+  sourceGoalPlanId: varchar("source_goal_plan_id"), // FK to goal_plans for quick lookups
+  phaseContext: jsonb("phase_context"), // {phaseNumber, phaseName, weekNumber, weekLabel} for display
+  scheduledBy: varchar("scheduled_by").notNull().default("manual"), // 'manual', 'ai_chat', 'auto_scheduler'
+  scheduleVersion: integer("schedule_version").notNull().default(1), // Version for tracking re-schedules
+  isActive: integer("is_active").notNull().default(1), // 0 if superseded by newer version
   completed: integer("completed").notNull().default(0),
   completedAt: timestamp("completed_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (table) => [
+  index("training_schedules_user_scheduled_idx").on(table.userId, table.scheduledFor),
+  index("training_schedules_goal_plan_idx").on(table.sourceGoalPlanId),
+  index("training_schedules_goal_plan_session_idx").on(table.goalPlanSessionId),
+]);
 
 export const workoutSessions = pgTable("workout_sessions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -551,6 +562,20 @@ export const fitnessProfiles = pgTable("fitness_profiles", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
+
+// Training Availabilities - User's preferred training schedule
+export const trainingAvailabilities = pgTable("training_availabilities", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  days: text("days").array().notNull(), // ['Monday', 'Wednesday', 'Friday']
+  timePreference: varchar("time_preference"), // 'morning', 'afternoon', 'evening', 'flexible'
+  blackoutDates: jsonb("blackout_dates"), // [{start: '2025-12-24', end: '2025-12-26', reason: 'holiday'}]
+  isActive: integer("is_active").notNull().default(1), // 1 if currently active preference
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => [
+  index("training_availabilities_user_idx").on(table.userId),
+]);
 
 export const exerciseFeedback = pgTable("exercise_feedback", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -924,6 +949,12 @@ export const insertReadinessSettingsSchema = createInsertSchema(readinessSetting
 });
 
 export const insertFitnessProfileSchema = createInsertSchema(fitnessProfiles).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertTrainingAvailabilitySchema = createInsertSchema(trainingAvailabilities).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
@@ -1421,6 +1452,9 @@ export type ReadinessSettings = typeof readinessSettings.$inferSelect;
 
 export type InsertFitnessProfile = z.infer<typeof insertFitnessProfileSchema>;
 export type FitnessProfile = typeof fitnessProfiles.$inferSelect;
+
+export type InsertTrainingAvailability = z.infer<typeof insertTrainingAvailabilitySchema>;
+export type TrainingAvailability = typeof trainingAvailabilities.$inferSelect;
 
 export type InsertInsight = z.infer<typeof insertInsightSchema>;
 export type Insight = typeof insights.$inferSelect;

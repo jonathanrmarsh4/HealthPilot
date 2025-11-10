@@ -8099,6 +8099,96 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
     }
   });
 
+  // Training Availability API
+  app.get("/api/training/availability", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    try {
+      const availability = await storage.getActiveTrainingAvailability(userId);
+      res.json(availability || null);
+    } catch (error: any) {
+      console.error('Error fetching training availability:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/training/availability", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    try {
+      const { days, timePreference, blackoutDates } = req.body;
+      
+      const availability = await storage.upsertTrainingAvailability({
+        userId,
+        days,
+        timePreference,
+        blackoutDates,
+        isActive: 1,
+      });
+      
+      res.json(availability);
+    } catch (error: any) {
+      console.error('Error saving training availability:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Goal Plan Scheduling API
+  app.post("/api/goals/plans/:planId/schedule", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { planId } = req.params;
+    const { startDate, trainingDays, timezone } = req.body;
+    
+    try {
+      const { goalSchedulerService } = await import("./services/goal-scheduler");
+      
+      const scheduledSessions = await goalSchedulerService.scheduleGoalPlan({
+        userId,
+        goalPlanId: planId,
+        startDate,
+        trainingDays,
+        timezone: timezone || 'UTC',
+      });
+      
+      res.json({
+        success: true,
+        scheduledCount: scheduledSessions.length,
+        sessions: scheduledSessions,
+      });
+    } catch (error: any) {
+      console.error('Error scheduling goal plan:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/goals/plans/:planId/scheduled-sessions", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { planId } = req.params;
+    
+    try {
+      const { goalSchedulerService } = await import("./services/goal-scheduler");
+      
+      const sessions = await goalSchedulerService.getScheduledSessions(userId, planId);
+      res.json(sessions);
+    } catch (error: any) {
+      console.error('Error fetching scheduled sessions:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/goals/plans/:planId/scheduled-sessions", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).claims.sub;
+    const { planId } = req.params;
+    
+    try {
+      const { goalSchedulerService } = await import("./services/goal-scheduler");
+      
+      await goalSchedulerService.deleteScheduledSessions(userId, planId);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error('Error deleting scheduled sessions:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Symptom Tracking API
   app.get("/api/symptoms/active", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;

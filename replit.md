@@ -72,6 +72,10 @@ I prefer simple language and clear explanations. I want iterative development wh
 - **Mobile Layout Overflow Fix v2.0:** System-wide responsive layout improvements preventing horizontal overflow on narrow viewports (<360px). Applied flex-wrap, min-w-0, and gap utilities to 25+ flex containers across Symptoms, Recovery, Training, SmartFuel, BiologicalAge, ReadinessScoreWidget, and AITrainingPlanTile components. Global max-width constraints ensure content stays within viewport boundaries. Fixed persistent right-padding issue on iOS by restricting scrollbar-hide utility to desktop breakpoints (md:scrollbar-hide), eliminating safe-area-inset compensation artifact.
 - **iOS White Bars Fix (Nov 2024):** Fixed white gaps at top/bottom of iOS viewport by changing html/body/#root to use height:100% instead of min-height:100vh, ensuring full viewport coverage.
 - **Notification Panel Radix Sheet Migration (Nov 2024):** Refactored NotificationBadge to use Radix UI Sheet component (side="top") for reliable backdrop dismissal on mobile, replacing custom animation/swipe implementation with built-in accessibility features.
+- **Goal Plan Scheduling System v1.0 (In Progress - Nov 2024):** Infrastructure for scheduling AI-generated goal-based training plans to user's calendar. Features: training_availabilities table for user preferences, goal-scheduler service with transaction-safe atomic scheduling, version management for re-scheduling, API endpoints for availability and scheduling operations.
+
+## Known Technical Debt
+- **AI Tool Dispatcher Refactoring (Nov 2024):** Chat tool marker processing in server/routes.ts has grown to 20+ regex-based handlers creating maintenance and scalability issues. Architectural recommendation: Create dedicated dispatcher abstraction with map of markers → handler modules including shared parsing/logging. Current implementation deferred to ship critical goal scheduling feature; recommend refactoring when adding future AI tools.
 
 ## External Dependencies
 - **Database:** PostgreSQL

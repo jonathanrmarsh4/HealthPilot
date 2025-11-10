@@ -26,6 +26,8 @@ import {
   type InsertReadinessSettings,
   type FitnessProfile,
   type InsertFitnessProfile,
+  type TrainingAvailability,
+  type InsertTrainingAvailability,
   type Insight,
   type InsertInsight,
   type WorkoutSession,
@@ -157,6 +159,7 @@ import {
   readinessScores,
   readinessSettings,
   fitnessProfiles,
+  trainingAvailabilities,
   insights,
   workoutSessions,
   workoutInstances,
@@ -335,6 +338,9 @@ export interface IStorage {
   
   getFitnessProfile(userId: string): Promise<FitnessProfile | undefined>;
   upsertFitnessProfile(profile: InsertFitnessProfile): Promise<FitnessProfile>;
+  
+  getActiveTrainingAvailability(userId: string): Promise<TrainingAvailability | undefined>;
+  upsertTrainingAvailability(availability: InsertTrainingAvailability): Promise<TrainingAvailability>;
   
   createInsight(insight: InsertInsight): Promise<Insight>;
   getInsights(userId: string, limit?: number): Promise<Insight[]>;
@@ -1932,6 +1938,29 @@ export class DbStorage implements IStorage {
       const result = await db.insert(fitnessProfiles).values(profile).returning();
       return result[0];
     }
+  }
+
+  async getActiveTrainingAvailability(userId: string): Promise<TrainingAvailability | undefined> {
+    const result = await db
+      .select()
+      .from(trainingAvailabilities)
+      .where(and(
+        eq(trainingAvailabilities.userId, userId),
+        eq(trainingAvailabilities.isActive, 1)
+      ))
+      .orderBy(desc(trainingAvailabilities.createdAt))
+      .limit(1);
+    return result[0];
+  }
+
+  async upsertTrainingAvailability(availability: InsertTrainingAvailability): Promise<TrainingAvailability> {
+    await db
+      .update(trainingAvailabilities)
+      .set({ isActive: 0 })
+      .where(eq(trainingAvailabilities.userId, availability.userId));
+    
+    const result = await db.insert(trainingAvailabilities).values(availability).returning();
+    return result[0];
   }
 
   async getAllUsers(limit: number, offset: number, search?: string): Promise<{ users: User[], total: number }> {
