@@ -493,11 +493,11 @@ export default function MobileNav({
       >
         <div className="max-w-[420px] mx-auto">
           <div className="grid grid-cols-3 items-end py-3 gap-2">
-            <div className="flex items-center justify-start gap-2">
+            <div className="flex items-center justify-start gap-3">
               {onChatClick && (
                 <button
                   type="button"
-                  className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors"
+                  className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors ml-2"
                   onClick={onChatClick}
                   aria-label="AI Chat"
                   data-testid="button-open-floating-chat"
