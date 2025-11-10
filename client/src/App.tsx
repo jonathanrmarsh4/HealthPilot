@@ -389,7 +389,7 @@ function AppLayout() {
     !onboardingStatus.healthKitSetupComplete;
   
   // Set sidebar width to 0 on mobile to prevent layout width restrictions
-  // Force wrapper to full viewport width on mobile
+  // Force wrapper to full viewport width on mobile and zero out padding
   const style = isMobile ? {
     "--sidebar-width": "0px",
     "--sidebar-width-icon": "0px",
@@ -399,6 +399,9 @@ function AppLayout() {
     flexBasis: "100vw",
     marginLeft: 0,
     marginRight: 0,
+    paddingInline: 0,
+    paddingLeft: 0,
+    paddingRight: 0,
   } : {
     "--sidebar-width": "16rem",
     "--sidebar-width-icon": "3rem",
