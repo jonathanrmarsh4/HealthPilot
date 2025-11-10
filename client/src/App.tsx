@@ -233,10 +233,12 @@ function SidebarContentWrapper({
   return (
     <>
       <div className="flex min-h-dvh w-full max-w-full bg-background overflow-x-hidden">
-        {/* Desktop-only sidebar */}
-        <div className="hidden md:block">
-          <AppSidebar />
-        </div>
+        {/* Desktop-only sidebar - only render on desktop to prevent gap element */}
+        {!isMobile && (
+          <div className="hidden md:block">
+            <AppSidebar />
+          </div>
+        )}
         
         <div className="flex flex-col flex-1 min-w-0">
           {/* Desktop-only header */}
