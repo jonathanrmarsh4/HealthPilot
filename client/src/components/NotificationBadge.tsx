@@ -167,8 +167,9 @@ function NotificationSheet({
           isAnimating ? "opacity-100" : "opacity-0",
           !isAnimating && "pointer-events-none",
         ].join(" ")}
+        onTouchStart={onClose}
         onPointerDown={onClose}
-        onTouchEnd={onClose}
+        onMouseDown={onClose}
         aria-hidden
         style={{
           transitionDuration: backdropDuration,
@@ -184,8 +185,9 @@ function NotificationSheet({
         role="dialog"
         aria-modal="true"
         aria-label="Notifications"
+        onTouchStart={(e) => e.stopPropagation()}
         onPointerDown={(e) => e.stopPropagation()}
-        onTouchEnd={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
         style={{
           transform: isDragging ? `translate(-50%, ${dragOffset}px)` : undefined,
           transitionDuration: animationDuration,
