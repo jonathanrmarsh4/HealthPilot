@@ -1,0 +1,35 @@
+{
+  "task": "Post-deployment codebase validation and cleanup",
+  "objectives": [
+    "Conduct a full code review of the current project after the latest fix or feature integration.",
+    "Ensure there are no syntax errors, console warnings, or TypeScript validation issues.",
+    "Check for broken imports, unused dependencies, outdated packages, or circular references.",
+    "Verify that all internal and external links, routes, and API endpoints resolve correctly.",
+    "Run automated linting and static analysis — confirm adherence to ESLint, Prettier, and project coding standards.",
+    "Test for UI/UX consistency in all screen sizes (desktop, tablet, mobile) and confirm no layout shifts or padding anomalies.",
+    "Perform dependency integrity check (npm/yarn lockfiles, Capacitor/iOS modules, etc.) and resolve mismatches.",
+    "Identify and remove any unused or deprecated code, assets, images, or readme fragments left over from earlier versions.",
+    "Validate that the current build runs cleanly in dev and production modes with zero build warnings.",
+    "Prepare a concise report outlining issues found, fixes applied, and potential future conflicts or optimizations."
+  ],
+  "actions": [
+    "Run a static code analysis using TypeScript compiler checks and project linter.",
+    "Execute a simulated build (or dry-run) to detect runtime or dependency errors.",
+    "Automatically patch or refactor minor issues (typos, redundant code, etc.) and confirm the build passes.",
+    "For major issues, describe root cause and suggest the minimal, safest fix without breaking current functionality.",
+    "Confirm compatibility with latest Capacitor, React, and iOS SDK versions."
+  ],
+  "verification_gates": [
+    "No build or runtime errors.",
+    "No unused imports or variables.",
+    "No dead code or broken navigation links.",
+    "All components load correctly across responsive breakpoints.",
+    "No console warnings during runtime."
+  ],
+  "final_output_format": {
+    "summary": "Short summary of findings.",
+    "fixed_items": "List of all automatic fixes and code cleanups applied.",
+    "remaining_issues": "List of unresolved issues, if any, with recommendations.",
+    "status": "✅ PASS if fully clean, ⚠️ WARN if issues remain."
+  }
+}

@@ -1,6 +1,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useQuery } from "@tanstack/react-query";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceArea, ReferenceLine } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceArea, ReferenceLine, TooltipProps } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useLocale } from "@/contexts/LocaleContext";
 import { useTimezone } from "@/contexts/TimezoneContext";
@@ -12,6 +12,12 @@ interface ChartDataPoint {
   date: string;
   value: number;
   unit: string;
+}
+
+interface ChartDatum {
+  date: number;
+  displayDate: string;
+  value: number;
 }
 
 interface BiomarkerDetailModalProps {
@@ -109,7 +115,7 @@ export function BiomarkerDetailModal({ open, onOpenChange, type, config }: Bioma
   const convertedReferenceRange = getConvertedReferenceRange();
 
   // Format chart data for Recharts
-  const formattedData = convertedData?.map(point => ({
+  const formattedData: ChartDatum[] = convertedData?.map(point => ({
     date: new Date(point.date).getTime(),
     displayDate: formatDate(point.date, timezone, 'MMM d, yyyy'),
     value: point.value,
@@ -145,23 +151,31 @@ export function BiomarkerDetailModal({ open, onOpenChange, type, config }: Bioma
     return formatDate(date.toISOString(), timezone, 'MMM yyyy');
   };
 
+  // Type guard for ChartDatum
+  const isChartDatum = (obj: any): obj is ChartDatum => {
+    return (
+      obj &&
+      typeof obj.date === 'number' &&
+      typeof obj.displayDate === 'string' &&
+      typeof obj.value === 'number'
+    );
+  };
+
   // Custom tooltip
-  const CustomTooltip = ({ active, payload }: { 
-    active?: boolean; 
-    payload?: Array<{ value: number; payload: { date: string; value: number } }>;
-  }) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload;
-      return (
-        <div className="bg-card border rounded-lg p-3 shadow-lg">
-          <p className="text-sm font-semibold">{data.displayDate}</p>
-          <p className="text-lg font-bold text-primary">
-            {data.value.toFixed(config.decimals || 1)} {displayUnit}
-          </p>
-        </div>
-      );
-    }
-    return null;
+  const CustomTooltip = ({ active, payload }: TooltipProps<number, string>) => {
+    if (!active || !payload || payload.length === 0) return null;
+    
+    const datum = payload[0].payload;
+    if (!isChartDatum(datum)) return null;
+    
+    return (
+      <div className="bg-card border rounded-lg p-3 shadow-lg">
+        <p className="text-sm font-semibold">{datum.displayDate}</p>
+        <p className="text-lg font-bold text-primary">
+          {datum.value.toFixed(config.decimals || 1)} {displayUnit}
+        </p>
+      </div>
+    );
   };
 
   return (

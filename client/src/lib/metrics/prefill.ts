@@ -16,6 +16,19 @@ export type PrefillResult = {
   note?: string;
 };
 
+type Measurement = {
+  value?: unknown;
+  [key: string]: unknown;
+};
+
+type PairValue = {
+  systolic?: unknown;
+  sys?: unknown;
+  diastolic?: unknown;
+  dia?: unknown;
+  [key: string]: unknown;
+};
+
 export async function prefillForMetric(
   metricId: string,
   goalStartDate?: Date
@@ -26,15 +39,16 @@ export async function prefillForMetric(
   const latest = await getLatestMeasurement(metricId);
   const earliest = await getEarliestMeasurement(metricId, goalStartDate);
 
-  const wrap = (raw: { value?: unknown; [key: string]: unknown } | null | undefined): PrefillValue | undefined => {
+  const wrap = (raw: Measurement | null | undefined): PrefillValue | undefined => {
     if (!raw) return undefined;
 
     // Handle pair schema (e.g., blood pressure)
     if (def.valueSchema === "pair") {
       const value = raw.value ?? raw;
       if (typeof value === "object" && value !== null) {
-        const systolic = value.systolic ?? value.sys;
-        const diastolic = value.diastolic ?? value.dia;
+        const pairValue = value as PairValue;
+        const systolic = pairValue.systolic ?? pairValue.sys;
+        const diastolic = pairValue.diastolic ?? pairValue.dia;
         return {
           systolic: coerce(systolic, def.fields?.systolic),
           diastolic: coerce(diastolic, def.fields?.diastolic),
@@ -47,10 +61,11 @@ export async function prefillForMetric(
     if (def.valueSchema === "multi") {
       const value = raw.value ?? raw;
       if (typeof value === "object" && value !== null) {
+        const objValue = value as Record<string, unknown>;
         const result: Record<string, number> = {};
         Object.keys(def.fields ?? {}).forEach((key) => {
-          if (value[key] !== undefined) {
-            const coerced = coerce(value[key], def.fields?.[key]);
+          if (objValue[key] !== undefined) {
+            const coerced = coerce(objValue[key], def.fields?.[key]);
             if (coerced !== undefined) {
               result[key] = coerced;
             }
@@ -62,10 +77,11 @@ export async function prefillForMetric(
     }
 
     // Handle single value schema
-    let v = raw.value ?? raw;
-    if (typeof v === "object") {
+    let v: unknown = raw.value ?? raw;
+    if (typeof v === "object" && v !== null) {
       // Extract numeric value from object
-      v = v.value ?? Object.values(v)[0];
+      const objValue = v as Record<string, unknown>;
+      v = objValue.value ?? Object.values(objValue)[0];
     }
 
     // Apply conversion if specified

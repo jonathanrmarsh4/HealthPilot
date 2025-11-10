@@ -167,9 +167,9 @@ class NativeHealthKitAdapter implements HealthKitAdapter {
       }
 
       return result.resultData.map((sample) => ({
-        value: parseFloat(sample.value || sample.quantity || 0),
+        value: parseFloat((sample.value || sample.quantity || '0').toString()),
         unit: sample.unit || '',
-        date: new Date(sample.startDate || sample.date),
+        date: new Date(sample.startDate || sample.date || Date.now()),
         sourceId: sample.sourceId,
         sourceName: sample.sourceName,
       }));

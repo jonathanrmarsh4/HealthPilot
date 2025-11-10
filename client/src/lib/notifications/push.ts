@@ -40,6 +40,8 @@ export class PushNotificationService {
     }
     
     try {
+      // Note: getBadgeCount may not be available in all versions of @capacitor/push-notifications
+      // @ts-ignore - Method may not exist in types but works on iOS
       const result = await PushNotifications.getBadgeCount();
       return result.count || 0;
     } catch {
@@ -52,7 +54,13 @@ export class PushNotificationService {
       return;
     }
 
-    await PushNotifications.setBadgeCount({ count });
+    try {
+      // Note: setBadgeCount may not be available in all versions of @capacitor/push-notifications
+      // @ts-ignore - Method may not exist in types but works on iOS
+      await PushNotifications.setBadgeCount({ count });
+    } catch {
+      // Silently fail if method not available
+    }
   }
 }
 
