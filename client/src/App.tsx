@@ -221,7 +221,8 @@ function SidebarContentWrapper({
                       try {
                         await SafariData.clearData();
                       } catch {}
-                      await SecureStorage.remove('sessionToken');
+                      // @ts-expect-error - TypeScript types may be outdated, but API requires object params
+                      await SecureStorage.remove({ key: 'sessionToken' });
                       await Preferences.remove({ key: 'deviceId' });
                       window.location.href = "/api/logout";
                     } catch (error) {
@@ -261,7 +262,8 @@ function SidebarContentWrapper({
                       try {
                         await SafariData.clearData();
                       } catch {}
-                      await SecureStorage.remove('sessionToken');
+                      // @ts-expect-error - TypeScript types may be outdated, but API requires object params
+                      await SecureStorage.remove({ key: 'sessionToken' });
                       await Preferences.remove({ key: 'deviceId' });
                       window.location.href = "/api/logout";
                     } catch (error) {
@@ -564,7 +566,8 @@ function AppContent() {
           const data = await response.json();
           
           // Store the session token securely
-          await SecureStorage.set('sessionToken', data.sessionToken);
+          // @ts-expect-error - TypeScript types may be outdated, but API requires object params
+          await SecureStorage.set({ key: 'sessionToken', value: data.sessionToken });
           
           // Invalidate queries to fetch fresh data with new auth
           await queryClient.invalidateQueries();

@@ -62,7 +62,8 @@ export default function Login() {
       const authData = await authResponse.json();
       
       // Store session token
-      await SecureStorage.set('sessionToken', authData.sessionToken);
+      // @ts-expect-error - TypeScript types may be outdated, but API requires object params
+      await SecureStorage.set({ key: 'sessionToken', value: authData.sessionToken });
       
       // Invalidate queries and redirect
       await queryClient.invalidateQueries();

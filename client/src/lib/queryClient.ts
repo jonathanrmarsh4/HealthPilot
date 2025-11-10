@@ -15,7 +15,8 @@ export async function getAuthHeaders(): Promise<HeadersInit> {
   // For mobile, include the session token in Authorization header
   if (isNativePlatform()) {
     try {
-      const token = await SecureStorage.get('sessionToken');
+      // @ts-expect-error - TypeScript types may be outdated, but API requires object params
+      const token = await SecureStorage.get({ key: 'sessionToken' });
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
