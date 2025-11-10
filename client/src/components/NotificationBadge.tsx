@@ -163,7 +163,7 @@ function NotificationSheet({
     <>
       <div
         className={[
-          "fixed inset-0 bg-black/60 transition-opacity ease-out z-40",
+          "fixed inset-0 bg-black/60 transition-opacity ease-out",
           isAnimating ? "opacity-100" : "opacity-0",
           !isAnimating && "pointer-events-none",
         ].join(" ")}
@@ -176,7 +176,7 @@ function NotificationSheet({
       />
       <div
         className={[
-          "fixed left-0 right-0 top-0 z-50 pointer-events-none",
+          "fixed left-1/2 top-0 z-50 -translate-x-1/2",
           isDragging ? "" : "transition-transform",
           isAnimating ? "translate-y-0" : "-translate-y-full",
         ].join(" ")}
@@ -184,13 +184,13 @@ function NotificationSheet({
         aria-modal="true"
         aria-label="Notifications"
         style={{
-          transform: isDragging ? `translateY(${dragOffset}px)` : undefined,
+          transform: isDragging ? `translate(-50%, ${dragOffset}px)` : undefined,
           transitionDuration: animationDuration,
           transitionTimingFunction: 'cubic-bezier(0.22, 1, 0.36, 1)',
         }}
       >
-        <div className="max-w-[420px] mx-auto px-3 pt-[env(safe-area-inset-top)]">
-          <div className="rounded-b-2xl border border-black/10 dark:border-white/10 backdrop-blur-xl bg-white/90 dark:bg-zinc-900/90 overflow-hidden shadow-2xl pointer-events-auto">
+        <div className="w-[360px] max-w-[calc(100vw-3rem)] px-3 pt-[env(safe-area-inset-top)]">
+          <div className="rounded-b-2xl border border-black/10 dark:border-white/10 backdrop-blur-xl bg-white/90 dark:bg-zinc-900/90 overflow-hidden shadow-2xl">
             <div className="pt-3 px-4 pb-2 border-b border-black/5 dark:border-white/5">
               <div className="flex items-center justify-between mb-2">
                 <div className="font-extrabold tracking-wide text-black dark:text-white">
