@@ -8,7 +8,6 @@ packages = ["gut"]
 
 [deployment]
 deploymentTarget = "gce"
-build = ["npm", "run", "build"]
 run = ["npm", "run", "start"]
 
 [[ports]]
