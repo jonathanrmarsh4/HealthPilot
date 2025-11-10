@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { Bell, CheckCheck, X, AlertTriangle, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { useNotifications } from '@/hooks/useNotifications';
 import { formatDistanceToNow } from 'date-fns';
 import { handleDeepLink } from '@/lib/notifications/deeplink';
@@ -93,109 +94,16 @@ function NotificationSheet({
   getPriorityIcon,
   getPriorityColor,
 }: NotificationSheetProps) {
-  const [isPresent, setIsPresent] = useState(false);
-  const [isAnimating, setIsAnimating] = useState(false);
-  const [dragOffset, setDragOffset] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
-  const startY = useRef(0);
-  const currentY = useRef(0);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  const prefersReducedMotion = typeof window !== 'undefined' 
-    && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const animationDuration = prefersReducedMotion ? '0ms' : '300ms';
-  const backdropDuration = prefersReducedMotion ? '0ms' : '200ms';
-
-  useEffect(() => {
-    if (open) {
-      setIsPresent(true);
-      requestAnimationFrame(() => {
-        setIsAnimating(true);
-      });
-    } else {
-      setIsAnimating(false);
-      const timer = setTimeout(() => {
-        setIsPresent(false);
-      }, prefersReducedMotion ? 0 : 300);
-      return () => clearTimeout(timer);
-    }
-  }, [open, prefersReducedMotion]);
-
-  const handleHeaderTouchStart = (e: React.TouchEvent) => {
-    startY.current = e.touches[0].clientY;
-    currentY.current = e.touches[0].clientY;
-    setIsDragging(true);
-  };
-
-  const handleHeaderTouchMove = (e: React.TouchEvent) => {
-    if (!isDragging) return;
-    
-    currentY.current = e.touches[0].clientY;
-    const delta = currentY.current - startY.current;
-    
-    // Only allow downward drag (positive delta) - sheet slides down to dismiss
-    if (delta > 0) {
-      setDragOffset(delta);
-      e.preventDefault();
-    } else {
-      setDragOffset(0);
-    }
-  };
-
-  const handleHeaderTouchEnd = () => {
-    if (!isDragging) return;
-    setIsDragging(false);
-    
-    const delta = currentY.current - startY.current;
-    const velocity = Math.abs(delta);
-    
-    // Close if dragged down more than 100px or with sufficient velocity (>50px)
-    if (delta > 100 || (delta > 50 && velocity > 50)) {
-      onClose();
-    }
-    
-    setDragOffset(0);
-  };
-
-  if (!isPresent) return null;
-
   return (
-    <>
-      <div
-        className={[
-          "fixed inset-0 bg-black/60 transition-opacity ease-out z-40",
-          isPresent ? "opacity-100" : "opacity-0",
-          !isPresent && "pointer-events-none",
-        ].join(" ")}
-        onPointerDown={(e) => {
-          e.stopPropagation();
-          onClose();
-        }}
-        aria-hidden
-        style={{
-          transitionDuration: backdropDuration,
-          transitionTimingFunction: isAnimating ? 'cubic-bezier(0.22, 1, 0.36, 1)' : 'ease-out',
-        }}
-      />
-      <div
-        className={[
-          "fixed left-1/2 top-0 z-50 -translate-x-1/2",
-          isDragging ? "" : "transition-transform",
-          isAnimating ? "translate-y-0" : "-translate-y-full",
-        ].join(" ")}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Notifications"
-        onTouchStart={(e) => e.stopPropagation()}
-        onPointerDown={(e) => e.stopPropagation()}
-        onMouseDown={(e) => e.stopPropagation()}
-        style={{
-          transform: isDragging ? `translate(-50%, ${dragOffset}px)` : undefined,
-          transitionDuration: animationDuration,
-          transitionTimingFunction: 'cubic-bezier(0.22, 1, 0.36, 1)',
-        }}
+    <Sheet open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
+      <SheetContent 
+        side="top" 
+        className="w-[360px] max-w-[calc(100vw-3rem)] mx-auto p-0 border-0 bg-transparent shadow-none"
+        style={{ paddingTop: 'env(safe-area-inset-top)' }}
       >
-        <div className="w-[360px] max-w-[calc(100vw-3rem)] px-3 pt-[env(safe-area-inset-top)]">
+        <div className="px-3">
           <div className="rounded-b-2xl border border-black/10 dark:border-white/10 backdrop-blur-xl bg-white/90 dark:bg-zinc-900/90 overflow-hidden shadow-2xl">
             <div className="pt-3 px-4 pb-2 border-b border-black/5 dark:border-white/5">
               <div className="flex items-center justify-between mb-2">
@@ -291,17 +199,9 @@ function NotificationSheet({
                 </div>
               )}
             </div>
-            <div 
-              className="pt-2 px-4 pb-3 border-t border-black/5 dark:border-white/5 cursor-grab active:cursor-grabbing"
-              onTouchStart={handleHeaderTouchStart}
-              onTouchMove={handleHeaderTouchMove}
-              onTouchEnd={handleHeaderTouchEnd}
-            >
-              <div className="w-24 h-1.5 mx-auto rounded-full bg-black/15 dark:bg-white/20" />
-            </div>
           </div>
         </div>
-      </div>
-    </>
+      </SheetContent>
+    </Sheet>
   );
 }
