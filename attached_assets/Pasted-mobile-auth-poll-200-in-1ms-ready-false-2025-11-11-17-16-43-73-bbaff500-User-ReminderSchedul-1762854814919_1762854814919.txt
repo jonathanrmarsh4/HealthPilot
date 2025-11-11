@@ -1,0 +1,117 @@
+mobile-auth/poll 200 in 1ms :: {"ready":false}
+2025-11-11 17:16:43.73
+bbaff500
+User
+[ReminderScheduler] Checking reminders at 09:16
+2025-11-11 17:17:43.74
+bbaff500
+User
+[ReminderScheduler] Checking reminders at 09:17
+2025-11-11 17:20:43.77
+bbaff500
+User
+[ReminderScheduler] Checking reminders at 09:20
+2025-11-11 17:21:43.78
+bbaff500
+User
+[ReminderScheduler] Checking reminders at 09:21
+2025-11-11 17:22:43.79
+bbaff500
+User
+[ReminderScheduler] Checking reminders at 09:22
+2025-11-11 17:23:43.80
+bbaff500
+User
+[ReminderScheduler] Checking reminders at 09:23
+2025-11-11 17:24:43.81
+bbaff500
+User
+[ReminderScheduler] Checking reminders at 09:24
+2025-11-11 17:25:32.80
+bbaff500
+User
+9:25:32 AM [express] 🔄 Running proactive suggestion monitoring...
+2025-11-11 17:25:43.81
+bbaff500
+User
+[ReminderScheduler] Checking reminders at 09:25
+2025-11-11 17:26:43.81
+bbaff500
+User
+[ReminderScheduler] Checking reminders at 09:26
+2025-11-11 17:29:43.83
+bbaff500
+User
+[ReminderScheduler] Checking reminders at 09:29
+2025-11-11 17:30:43.83
+bbaff500
+User
+[ReminderScheduler] Checking reminders at 09:30
+2025-11-11 17:31:43.85
+bbaff500
+User
+[ReminderScheduler] Checking reminders at 09:31
+2025-11-11 17:32:43.86
+bbaff500
+User
+[ReminderScheduler] Checking reminders at 09:32
+2025-11-11 17:33:43.86
+bbaff500
+User
+[ReminderScheduler] Checking reminders at 09:33
+2025-11-11 17:34:43.87
+bbaff500
+User
+[ReminderScheduler] Checking reminders at 09:34
+2025-11-11 17:35:42.39
+73568426
+System
+starting up user application
+2025-11-11 17:35:42.39
+73568426
+System
+metasidecar: loaded enterprise status from environment is_enterprise=false
+2025-11-11 17:35:42.39
+73568426
+System
+forwarding local port 5000 to external port 80 (mapped as 1104)
+2025-11-11 17:35:43.89
+bbaff500
+User
+[ReminderScheduler] Checking reminders at 09:35
+2025-11-11 17:35:50.94
+bbaff500
+System
+system: received signal terminated
+2025-11-11 17:44:57.57
+73568426
+User
+userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.1 Mobile/15E148 Safari/604.1'
+2025-11-11 17:44:57.57
+73568426
+User
+}
+2025-11-11 17:44:57.57
+73568426
+User
+📱 Generating stateless mobile auth URL with PKCE
+2025-11-11 17:44:57.58
+73568426
+User
+📱 Redirecting to: https://replit.com/oidc/auth?redirect_uri=https%3A%2F%2Fhealthpilot.pro%2Fapi%2Fcallback&scope=openid+email+profile+offline_access&state=eyJuYXRpdmVBcHAiOnRydWUsImRldmljZUlkIjoiMTc2Mjg1NDI5MjUzNC1uZ25heWkiLCJ2ZXJpZmllciI6IjJyaFdBR1hlbHp4SWVlSVR5c1RJRHR1Z3UyTlV5WjFCZUV4dU9GYVhPdXcifQ&code_challenge=SBLDYQK9B8xAWTehe8w_joNrmKnDQddKlf9j2rA-ZLw&code_challenge_method=S256&client_id=73568426-7b34-4184-96dc-59594be5a851&response_type=code
+2025-11-11 17:44:57.58
+73568426
+User
+9:44:57 AM [express] GET /api/login 302 in 12ms
+2025-11-11 17:44:57.69
+73568426
+User
+9:44:57 AM [express] GET /api/mobile-auth/poll 200 in 2ms :: {"ready":false}
+2025-11-11 17:44:58.69
+73568426
+User
+9:44:58 AM [express] GET /api/mobile-auth/poll 200 in 2ms :: {"ready":false}
+2025-11-11 17:44:59.69
+73568426
+User
+9:44:59 AM [express] GET /api/mobile-auth/poll 200 in 2ms :: {"ready":false}
