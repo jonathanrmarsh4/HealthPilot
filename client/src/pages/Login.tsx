@@ -288,6 +288,11 @@ export default function Login() {
           <a href="/terms" className="underline">Terms of Service</a>
         </p>
 
+        {/* Build Version */}
+        <p className="text-xs text-white/50 font-mono">
+          Build v19
+        </p>
+
         {/* Hidden dev trigger - triple tap to show dev tools */}
         {isNativePlatform() && (
           <div
