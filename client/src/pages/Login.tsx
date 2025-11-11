@@ -6,10 +6,11 @@ import { Browser } from '@capacitor/browser';
 import { App as CapacitorApp } from '@capacitor/app';
 import { Preferences } from '@capacitor/preferences';
 import { SecureStorage } from '@aparajita/capacitor-secure-storage';
-import { apiRequest, getApiBaseUrl } from "@/lib/queryClient";
+import { apiRequest, getApiBaseUrl, queryClient } from "@/lib/queryClient";
 import { useState, useEffect, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/components/ThemeProvider";
+import type { PluginListenerHandle } from '@capacitor/core';
 
 export default function Login() {
   const [isProcessing, setIsProcessing] = useState(false);
@@ -80,12 +81,17 @@ export default function Login() {
     // Check immediately when component mounts
     checkForPendingAuth();
 
+    let listenerHandle: PluginListenerHandle | null = null;
+
     // Listen for app state changes (when user returns from browser)
-    const stateListener = CapacitorApp.addListener('appStateChange', ({ isActive }) => {
-      if (isActive) {
-        checkForPendingAuth();
-      }
-    });
+    const setupListener = async () => {
+      listenerHandle = await CapacitorApp.addListener('appStateChange', ({ isActive }) => {
+        if (isActive) {
+          checkForPendingAuth();
+        }
+      });
+    };
+    setupListener();
 
     // Also poll every second while on this page
     pollIntervalRef.current = window.setInterval(() => {
@@ -93,7 +99,9 @@ export default function Login() {
     }, 1000);
 
     return () => {
-      stateListener.remove();
+      if (listenerHandle) {
+        listenerHandle.remove();
+      }
       if (pollIntervalRef.current) {
         clearInterval(pollIntervalRef.current);
       }
