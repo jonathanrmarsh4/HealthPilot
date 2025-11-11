@@ -1,0 +1,315 @@
+`UIScene` lifecycle will soon be required. Failure to adopt will result in an assert in the future.
+Could not create a sandbox extension for '/var/containers/Bundle/Application/386276FA-7E9B-41B1-A00C-CA188F1A0C1A/App.app'
+KeyboardPlugin: resize mode - body
+⚡️  Loading app at capacitor://localhost...
+Networking process (0x116048190) took 7.864529 seconds to launch
+SplashScreen.hideSplash: SplashScreen was automatically hidden after default timeout. You should call `SplashScreen.hide()` as soon as your web app is loaded (or increase the timeout). Read more at https://capacitorjs.com/docs/apis/splash-screen#hiding-the-splash-screen
+🧹 WKWebView cache FULLY cleared (all data types)
+0x116104100 - [PID=12381] WebProcessProxy::didBecomeUnresponsive:
+0x10a78ce18 - [pageProxyID=7, webPageID=8, PID=12381] WebPageProxy::processDidBecomeUnresponsive:
+WebContent[12381] Unable to hide query parameters from script (missing data)
+⚡️  [log] - onscript loading complete
+⚡️  To Native ->  StatusBar setStyle 99085099
+⚡️  TO JS {}
+⚡️  WebView loaded
+⚡️  To Native ->  SplashScreen hide 99085100
+⚡️  TO JS undefined
+⚡️  To Native ->  Keyboard addListener 99085101
+⚡️  To Native ->  Keyboard addListener 99085102
+⚡️  To Native ->  App addListener 99085103
+⚡️  To Native ->  App getInfo 99085104
+⚡️  TO JS {"name":"HealthPilot","build":"1","version":"1.0","id":"com.nuvitae.healthpilot"}
+⚡️  To Native ->  SecureStoragePlugin get 99085105
+⚡️  To Native ->  App addListener 99085106
+⚡️  To Native ->  App addListener 99085107
+⚡️  To Native ->  SecureStoragePlugin get 99085108
+⚡️  To Native ->  StatusBar setStyle 99085109
+ERROR MESSAGE:  {"errorMessage":"Item with given key does not exist","message":"Item with given key does not exist"}
+⚡️  TO JS {}
+ERROR MESSAGE:  ⚡️  [error] - {"errorMessage":"Item with given key does not exist","message":"Item with given key does not exist"}
+{"message":"Item with given key does not exist","errorMessage":"Item with given key does not exist"}
+⚡️  [error] - [getAuthHeaders] Error retrieving token: {"errorMessage":"Item with given key does not exist"}
+⚡️  [error] - {"message":"Item with given key does not exist","errorMessage":"Item with given key does not exist"}
+⚡️  [error] - [getAuthHeaders] Error retrieving token: {"errorMessage":"Item with given key does not exist"}
+⚡️  To Native ->  Preferences get 99085110
+⚡️  To Native ->  App addListener 99085111
+⚡️  TO JS {"value":null}
+⚡️  To Native ->  Preferences set 99085112
+⚡️  TO JS undefined
+⚡️  To Native ->  Preferences get 99085113
+⚡️  TO JS {"value":"1762867392230-glrmpa"}
+⚡️  To Native ->  Preferences get 99085114
+⚡️  TO JS {"value":"1762867392230-glrmpa"}
+⚡️  To Native ->  Preferences get 99085115
+⚡️  TO JS {"value":"1762867392230-glrmpa"}
+⚡️  To Native ->  Preferences get 99085116
+⚡️  TO JS {"value":"1762867392230-glrmpa"}
+⚡️  To Native ->  Preferences get 99085117
+⚡️  TO JS {"value":"1762867392230-glrmpa"}
+⚡️  To Native ->  Browser open 99085118
+(501) Invalidation handler invoked, clearing connection
+(501) personaAttributesForPersonaType for type:0 failed with error Error Domain=NSCocoaErrorDomain Code=4099 "The connection to service named com.apple.mobile.usermanagerd.xpc was invalidated: Connection init failed at lookup with error 159 - Sandbox restriction." UserInfo={NSDebugDescription=The connection to service named com.apple.mobile.usermanagerd.xpc was invalidated: Connection init failed at lookup with error 159 - Sandbox restriction.}
+Received port for identifier response: <(null)> with error:Error Domain=RBSServiceErrorDomain Code=1 "Client not entitled" UserInfo={RBSEntitlement=com.apple.runningboard.process-state, NSLocalizedFailureReason=Client not entitled, RBSPermanent=false}
+elapsedCPUTimeForFrontBoard couldn't generate a task port
+Received port for identifier response: <(null)> with error:Error Domain=RBSServiceErrorDomain Code=1 "Client not entitled" UserInfo={RBSEntitlement=com.apple.runningboard.process-state, NSLocalizedFailureReason=Client not entitled, RBSPermanent=false}
+elapsedCPUTimeForFrontBoard couldn't generate a task port
+⚡️  To Native ->  Preferences get 99085119
+⚡️  To Native ->  Preferences get 99085120
+⚡️  TO JS {"value":"1762867392230-glrmpa"}
+⚡️  TO JS {"value":"1762867392230-glrmpa"}
+Received port for identifier response: <(null)> with error:Error Domain=RBSServiceErrorDomain Code=1 "Client not entitled" UserInfo={RBSEntitlement=com.apple.runningboard.process-state, NSLocalizedFailureReason=Client not entitled, RBSPermanent=false}
+elapsedCPUTimeForFrontBoard couldn't generate a task port
+Received port for identifier response: <(null)> with error:Error Domain=RBSServiceErrorDomain Code=1 "Client not entitled" UserInfo={RBSEntitlement=com.apple.runningboard.process-state, NSLocalizedFailureReason=Client not entitled, RBSPermanent=false}
+elapsedCPUTimeForFrontBoard couldn't generate a task port
+⚡️  To Native ->  Preferences get 99085121
+⚡️  TO JS {"value":"1762867392230-glrmpa"}
+⚡️  TO JS undefined
+⚡️  To Native ->  Preferences get 99085122
+⚡️  TO JS {"value":"1762867392230-glrmpa"}
+⚡️  To Native ->  Preferences get 99085123
+⚡️  TO JS {"value":"1762867392230-glrmpa"}
+⚡️  To Native ->  Preferences get 99085124
+⚡️  TO JS {"value":"1762867392230-glrmpa"}
+⚡️  To Native ->  Preferences get 99085125
+⚡️  TO JS {"value":"1762867392230-glrmpa"}
+⚡️  To Native ->  Preferences get 99085126
+⚡️  TO JS {"value":"1762867392230-glrmpa"}
+⚡️  To Native ->  Preferences get 99085127
+⚡️  TO JS {"value":"1762867392230-glrmpa"}
+⚡️  To Native ->  Preferences get 99085128
+⚡️  TO JS {"value":"1762867392230-glrmpa"}
+⚡️  To Native ->  Preferences get 99085129
+⚡️  TO JS {"value":"1762867392230-glrmpa"}
+⚡️  To Native ->  Preferences get 99085130
+⚡️  TO JS {"value":"1762867392230-glrmpa"}
+⚡️  To Native ->  Preferences get 99085131
+⚡️  TO JS {"value":"1762867392230-glrmpa"}
+⚡️  To Native ->  Preferences get 99085132
+⚡️  TO JS {"value":"1762867392230-glrmpa"}
+⚡️  To Native ->  Preferences get 99085133
+⚡️  TO JS {"value":"1762867392230-glrmpa"}
+⚡️  To Native ->  Preferences get 99085134
+⚡️  TO JS {"value":"1762867392230-glrmpa"}
+⚡️  TO JS {"keyboardHeight":17}
+⚡️  TO JS {"keyboardHeight":443}
+⚡️  TO JS {"keyboardHeight":443}
+XPC connection interrupted
+⚡️  TO JS {"keyboardHeight":443}
+⚡️  TO JS {"keyboardHeight":443}
+⚡️  To Native ->  Preferences get 99085135
+⚡️  To Native ->  Preferences get 99085136
+⚡️  To Native ->  Preferences get 99085137
+⚡️  TO JS ⚡️  To Native ->  {"value":"1762867392230-glrmpa"}
+Preferences get 99085138
+⚡️  To Native ->  ⚡️  TO JS {"value":"1762867392230-glrmpa"}
+Preferences get 99085139
+⚡️  TO JS {"value":"1762867392230-glrmpa"}
+⚡️  To Native ->  Preferences get 99085140
+⚡️  TO JS {"value":"1762867392230-glrmpa"}
+⚡️  To Native ->  Preferences get 99085141
+⚡️  TO JS {"value":"1762867392230-glrmpa"}
+⚡️  To Native ->  Preferences get 99085142
+⚡️  TO JS {"value":"1762867392230-glrmpa"}
+⚡️  TO JS {"value":"1762867392230-glrmpa"}
+⚡️  TO JS {"value":"1762867392230-glrmpa"}
+⚡️  To Native ->  Preferences get 99085143
+⚡️  TO JS {"value":"1762867392230-glrmpa"}
+⚡️  TO JS {"keyboardHeight":443}
+⚡️  TO JS {"keyboardHeight":443}
+⚡️  TO JS {"keyboardHeight":443}
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  To Native ->  Preferences get 99085144
+⚡️  TO JS {"value":"1762867392230-glrmpa"}
+⚡️  To Native ->  Preferences get 99085145
+⚡️  TO JS {"value":"1762867392230-glrmpa"}
+⚡️  To Native ->  Preferences get 99085146
+⚡️  TO JS {"value":"1762867392230-glrmpa"}
+⚡️  To Native ->  Preferences get 99085147
+⚡️  TO JS {"value":"1762867392230-glrmpa"}
+⚡️  To Native ->  Preferences get 99085148
+⚡️  TO JS {"value":"1762867392230-glrmpa"}
+⚡️  To Native ->  Preferences get 99085149
+⚡️  TO JS {"value":"1762867392230-glrmpa"}
+⚡️  To Native ->  Preferences get 99085150
+⚡️  TO JS {"value":"1762867392230-glrmpa"}
+⚡️  To Native ->  Preferences get 99085151
+⚡️  TO JS {"value":"1762867392230-glrmpa"}
+⚡️  To Native ->  SecureStoragePlugin get 99085152
+ERROR MESSAGE:  {"message":"Item with given key does not exist","errorMessage":"Item with given key does not exist"}
+⚡️  [error] - {"message":"Item with given key does not exist","errorMessage":"Item with given key does not exist"}
+⚡️  [error] - [getAuthHeaders] Error retrieving token: {"errorMessage":"Item with given key does not exist"}
+⚡️  To Native ->  Preferences get 99085153
+⚡️  TO JS {"value":"1762867392230-glrmpa"}
+⚡️  [log] - [Login] Received authData: {"hasSessionToken":true,"sessionTokenType":"string","sessionTokenLength":64}
+⚡️  To Native ->  SecureStoragePlugin set 99085154
+⚡️  [log] - [Login] Storing sessionToken in SecureStorage...
+⚡️  [log] - [Login] Token encoded: {"original":"8859bffddf","base64":"ODg1OWJmZm","base64Length":88}
+⚡️  TO JS {"value":true}
+⚡️  [log] - [Login] SessionToken stored successfully
+⚡️  To Native ->  SecureStoragePlugin get 99085155
+⚡️  To Native ->  SecureStoragePlugin get 99085156
+⚡️  TO JS {"value":"ODg1OWJmZmRkZjVmMzRhYWVjYWQzMDUzYjQxNDI5YjJjZjIzM2ZjZWZjMmVkNmIzODc1MGQ1ZTI1MDliNzE2YQ=="}
+⚡️  TO JS {"value":"ODg1OWJmZmRkZjVmMzRhYWVjYWQzMDUzYjQxNDI5YjJjZjIzM2ZjZWZjMmVkNmIzODc1MGQ1ZTI1MDliNzE2YQ=="}
+⚡️  [log] - [getAuthHeaders] Token retrieved and decoded: 8859bffddf...
+⚡️  [log] - [getAuthHeaders] Added Authorization header
+⚡️  [log] - [getAuthHeaders] Token retrieved and decoded: 8859bffddf...
+⚡️  [log] - [getAuthHeaders] Added Authorization header
+⚡️  To Native ->  Preferences get 99085157
+⚡️  TO JS {"value":"1762867392230-glrmpa"}
+⚡️  To Native ->  SecureStoragePlugin get 99085158
+⚡️  To Native ->  SecureStoragePlugin get 99085159
+⚡️  To Native ->  SecureStoragePlugin get 99085160
+⚡️  To Native ->  SecureStoragePlugin get 99085161
+⚡️  To Native ->  SecureStoragePlugin get 99085162
+⚡️  To Native ->  App removeListener 99085163
+⚡️  TO JS {"value":"ODg1OWJmZmRkZjVmMzRhYWVjYWQzMDUzYjQxNDI5YjJjZjIzM2ZjZWZjMmVkNmIzODc1MGQ1ZTI1MDliNzE2YQ=="}
+⚡️  TO JS {"value":"ODg1OWJmZmRkZjVmMzRhYWVjYWQzMDUzYjQxNDI5YjJjZjIzM2ZjZWZjMmVkNmIzODc1MGQ1ZTI1MDliNzE2YQ=="}
+⚡️  TO JS {"value":"ODg1OWJmZmRkZjVmMzRhYWVjYWQzMDUzYjQxNDI5YjJjZjIzM2ZjZWZjMmVkNmIzODc1MGQ1ZTI1MDliNzE2YQ=="}
+⚡️  TO JS {"value":"ODg1OWJmZmRkZjVmMzRhYWVjYWQzMDUzYjQxNDI5YjJjZjIzM2ZjZWZjMmVkNmIzODc1MGQ1ZTI1MDliNzE2YQ=="}
+⚡️  TO JS {"value":"ODg1OWJmZmRkZjVmMzRhYWVjYWQzMDUzYjQxNDI5YjJjZjIzM2ZjZWZjMmVkNmIzODc1MGQ1ZTI1MDliNzE2YQ=="}
+⚡️  [log] - [getAuthHeaders] Token retrieved and decoded: 8859bffddf...
+⚡️  [log] - [getAuthHeaders] Added Authorization header
+⚡️  [log] - [getAuthHeaders] Token retrieved and decoded: 8859bffddf...
+⚡️  [log] - [getAuthHeaders] Added Authorization header
+⚡️  [log] - [getAuthHeaders] Token retrieved and decoded: 8859bffddf...
+⚡️  [log] - [getAuthHeaders] Added Authorization header
+⚡️  [log] - [getAuthHeaders] Token retrieved and decoded: 8859bffddf...
+⚡️  [log] - [getAuthHeaders] Added Authorization header
+⚡️  [log] - onscript loading complete
+⚡️  WebView loaded
+⚡️  To Native ->  StatusBar setStyle 27719672
+⚡️  TO JS {}
+⚡️  To Native ->  SplashScreen hide 27719673
+⚡️  TO JS undefined
+⚡️  To Native ->  Keyboard addListener 27719674
+⚡️  To Native ->  Keyboard addListener 27719675
+⚡️  To Native ->  App addListener 27719676
+⚡️  To Native ->  App getInfo 27719677
+⚡️  TO JS {"id":"com.nuvitae.healthpilot","build":"1","name":"HealthPilot","version":"1.0"}
+⚡️  To Native ->  SecureStoragePlugin get 27719678
+⚡️  To Native ->  App addListener 27719679
+⚡️  To Native ->  App addListener 27719680
+⚡️  To Native ->  SecureStoragePlugin get 27719681
+⚡️  To Native ->  StatusBar setStyle 27719682
+⚡️  TO JS {"value":"ODg1OWJmZmRkZjVmMzRhYWVjYWQzMDUzYjQxNDI5YjJjZjIzM2ZjZWZjMmVkNmIzODc1MGQ1ZTI1MDliNzE2YQ=="}
+⚡️  TO JS {"value":"ODg1OWJmZmRkZjVmMzRhYWVjYWQzMDUzYjQxNDI5YjJjZjIzM2ZjZWZjMmVkNmIzODc1MGQ1ZTI1MDliNzE2YQ=="}
+⚡️  TO JS {}
+⚡️  [log] - [getAuthHeaders] Token retrieved and decoded: 8859bffddf...
+⚡️  [log] - [getAuthHeaders] Added Authorization header
+⚡️  [log] - [getAuthHeaders] Token retrieved and decoded: 8859bffddf...
+⚡️  [log] - [getAuthHeaders] Added Authorization header
+⚡️  To Native ->  SecureStoragePlugin get 27719683
+⚡️  To Native ->  SecureStoragePlugin get 27719684
+⚡️  To Native ->  SecureStoragePlugin get 27719685
+⚡️  To Native ->  SecureStoragePlugin get 27719686
+⚡️  To Native ->  SecureStoragePlugin get 27719687
+⚡️  TO JS {"value":"ODg1OWJmZmRkZjVmMzRhYWVjYWQzMDUzYjQxNDI5YjJjZjIzM2ZjZWZjMmVkNmIzODc1MGQ1ZTI1MDliNzE2YQ=="}
+⚡️  TO JS {"value":"ODg1OWJmZmRkZjVmMzRhYWVjYWQzMDUzYjQxNDI5YjJjZjIzM2ZjZWZjMmVkNmIzODc1MGQ1ZTI1MDliNzE2YQ=="}
+⚡️  TO JS {"value":"ODg1OWJmZmRkZjVmMzRhYWVjYWQzMDUzYjQxNDI5YjJjZjIzM2ZjZWZjMmVkNmIzODc1MGQ1ZTI1MDliNzE2YQ=="}
+⚡️  TO JS {"value":"ODg1OWJmZmRkZjVmMzRhYWVjYWQzMDUzYjQxNDI5YjJjZjIzM2ZjZWZjMmVkNmIzODc1MGQ1ZTI1MDliNzE2YQ=="}
+⚡️  TO JS {"value":"ODg1OWJmZmRkZjVmMzRhYWVjYWQzMDUzYjQxNDI5YjJjZjIzM2ZjZWZjMmVkNmIzODc1MGQ1ZTI1MDliNzE2YQ=="}
+⚡️  [log] - [getAuthHeaders] Token retrieved and decoded: 8859bffddf...
+⚡️  [log] - [getAuthHeaders] Added Authorization header
+⚡️  [log] - [getAuthHeaders] Token retrieved and decoded: 8859bffddf...
+⚡️  [log] - [getAuthHeaders] Added Authorization header
+⚡️  [log] - [getAuthHeaders] Token retrieved and decoded: 8859bffddf...
+⚡️  [log] - [getAuthHeaders] Added Authorization header
+⚡️  [log] - [getAuthHeaders] Token retrieved and decoded: 8859bffddf...
+⚡️  [log] - [getAuthHeaders] Added Authorization header
+⚡️  [log] - [getAuthHeaders] Token retrieved and decoded: 8859bffddf...
+⚡️  [log] - [getAuthHeaders] Added Authorization header
+⚡️  To Native ->  SecureStoragePlugin get 27719688
+⚡️  To Native ->  SecureStoragePlugin get 27719689
+⚡️  To Native ->  SecureStoragePlugin get 27719690
+⚡️  To Native ->  SecureStoragePlugin get 27719691
+⚡️  To Native ->  SecureStoragePlugin get 27719692
+⚡️  To Native ->  SecureStoragePlugin get 27719693
+⚡️  To Native ->  SecureStoragePlugin get 27719694
+⚡️  To Native ->  SecureStoragePlugin get 27719695
+⚡️  To Native ->  SecureStoragePlugin get 27719696
+⚡️  To Native ->  SecureStoragePlugin get 27719697
+⚡️  To Native ->  SecureStoragePlugin get 27719698
+⚡️  To Native ->  SecureStoragePlugin get 27719699
+⚡️  To Native ->  SecureStoragePlugin get 27719700
+⚡️  To Native ->  SecureStoragePlugin get 27719701
+⚡️  To Native ->  SecureStoragePlugin get 27719702
+⚡️  TO JS {"value":"ODg1OWJmZmRkZjVmMzRhYWVjYWQzMDUzYjQxNDI5YjJjZjIzM2ZjZWZjMmVkNmIzODc1MGQ1ZTI1MDliNzE2YQ=="}
+⚡️  TO JS {"value":"ODg1OWJmZmRkZjVmMzRhYWVjYWQzMDUzYjQxNDI5YjJjZjIzM2ZjZWZjMmVkNmIzODc1MGQ1ZTI1MDliNzE2YQ=="}
+⚡️  TO JS {"value":"ODg1OWJmZmRkZjVmMzRhYWVjYWQzMDUzYjQxNDI5YjJjZjIzM2ZjZWZjMmVkNmIzODc1MGQ1ZTI1MDliNzE2YQ=="}
+⚡️  TO JS {"value":"ODg1OWJmZmRkZjVmMzRhYWVjYWQzMDUzYjQxNDI5YjJjZjIzM2ZjZWZjMmVkNmIzODc1MGQ1ZTI1MDliNzE2YQ=="}
+⚡️  TO JS {"value":"ODg1OWJmZmRkZjVmMzRhYWVjYWQzMDUzYjQxNDI5YjJjZjIzM2ZjZWZjMmVkNmIzODc1MGQ1ZTI1MDliNzE2YQ=="}
+⚡️  TO JS {"value":"ODg1OWJmZmRkZjVmMzRhYWVjYWQzMDUzYjQxNDI5YjJjZjIzM2ZjZWZjMmVkNmIzODc1MGQ1ZTI1MDliNzE2YQ=="}
+⚡️  TO JS {"value":"ODg1OWJmZmRkZjVmMzRhYWVjYWQzMDUzYjQxNDI5YjJjZjIzM2ZjZWZjMmVkNmIzODc1MGQ1ZTI1MDliNzE2YQ=="}
+⚡️  TO JS {"value":"ODg1OWJmZmRkZjVmMzRhYWVjYWQzMDUzYjQxNDI5YjJjZjIzM2ZjZWZjMmVkNmIzODc1MGQ1ZTI1MDliNzE2YQ=="}
+⚡️  To Native ->  SecureStoragePlugin get 27719703
+⚡️  To Native ->  SecureStoragePlugin get 27719704
+⚡️  To Native ->  SecureStoragePlugin get 27719705
+⚡️  To Native ->  SecureStoragePlugin get 27719706
+⚡️  To Native ->  SecureStoragePlugin get 27719707
+⚡️  To Native ->  SecureStoragePlugin get 27719708
+⚡️  TO JS {"value":"ODg1OWJmZmRkZjVmMzRhYWVjYWQzMDUzYjQxNDI5YjJjZjIzM2ZjZWZjMmVkNmIzODc1MGQ1ZTI1MDliNzE2YQ=="}
+⚡️  TO JS {"value":"ODg1OWJmZmRkZjVmMzRhYWVjYWQzMDUzYjQxNDI5YjJjZjIzM2ZjZWZjMmVkNmIzODc1MGQ1ZTI1MDliNzE2YQ=="}
+⚡️  TO JS {"value":"ODg1OWJmZmRkZjVmMzRhYWVjYWQzMDUzYjQxNDI5YjJjZjIzM2ZjZWZjMmVkNmIzODc1MGQ1ZTI1MDliNzE2YQ=="}
+⚡️  TO JS {"value":"ODg1OWJmZmRkZjVmMzRhYWVjYWQzMDUzYjQxNDI5YjJjZjIzM2ZjZWZjMmVkNmIzODc1MGQ1ZTI1MDliNzE2YQ=="}
+⚡️  TO JS {"value":"ODg1OWJmZmRkZjVmMzRhYWVjYWQzMDUzYjQxNDI5YjJjZjIzM2ZjZWZjMmVkNmIzODc1MGQ1ZTI1MDliNzE2YQ=="}
+⚡️  TO JS {"value":"ODg1OWJmZmRkZjVmMzRhYWVjYWQzMDUzYjQxNDI5YjJjZjIzM2ZjZWZjMmVkNmIzODc1MGQ1ZTI1MDliNzE2YQ=="}
+⚡️  TO JS {"value":"ODg1OWJmZmRkZjVmMzRhYWVjYWQzMDUzYjQxNDI5YjJjZjIzM2ZjZWZjMmVkNmIzODc1MGQ1ZTI1MDliNzE2YQ=="}
+⚡️  [log] - [getAuthHeaders] Token retrieved and decoded: 8859bffddf...
+⚡️  [log] - [getAuthHeaders] Added Authorization header
+⚡️  [log] - [getAuthHeaders] Token retrieved and decoded: 8859bffddf...
+⚡️  [log] - [getAuthHeaders] Added Authorization header
+⚡️  [log] - [getAuthHeaders] Token retrieved and decoded: 8859bffddf...
+⚡️  [log] - [getAuthHeaders] Added Authorization header
+⚡️  TO JS {"value":"ODg1OWJmZmRkZjVmMzRhYWVjYWQzMDUzYjQxNDI5YjJjZjIzM2ZjZWZjMmVkNmIzODc1MGQ1ZTI1MDliNzE2YQ=="}
+⚡️  TO JS {"value":"ODg1OWJmZmRkZjVmMzRhYWVjYWQzMDUzYjQxNDI5YjJjZjIzM2ZjZWZjMmVkNmIzODc1MGQ1ZTI1MDliNzE2YQ=="}
+⚡️  TO JS {"value":"ODg1OWJmZmRkZjVmMzRhYWVjYWQzMDUzYjQxNDI5YjJjZjIzM2ZjZWZjMmVkNmIzODc1MGQ1ZTI1MDliNzE2YQ=="}
+⚡️  TO JS {"value":"ODg1OWJmZmRkZjVmMzRhYWVjYWQzMDUzYjQxNDI5YjJjZjIzM2ZjZWZjMmVkNmIzODc1MGQ1ZTI1MDliNzE2YQ=="}
+⚡️  TO JS {"value":"ODg1OWJmZmRkZjVmMzRhYWVjYWQzMDUzYjQxNDI5YjJjZjIzM2ZjZWZjMmVkNmIzODc1MGQ1ZTI1MDliNzE2YQ=="}
+⚡️  TO JS {"value":"ODg1OWJmZmRkZjVmMzRhYWVjYWQzMDUzYjQxNDI5YjJjZjIzM2ZjZWZjMmVkNmIzODc1MGQ1ZTI1MDliNzE2YQ=="}
+⚡️  [log] - [getAuthHeaders] Token retrieved and decoded: 8859bffddf...
+⚡️  [log] - [getAuthHeaders] Added Authorization header
+⚡️  [log] - [getAuthHeaders] Token retrieved and decoded: 8859bffddf...
+⚡️  [log] - [getAuthHeaders] Added Authorization header
+⚡️  [log] - [getAuthHeaders] Token retrieved and decoded: 8859bffddf...
+⚡️  [log] - [getAuthHeaders] Added Authorization header
+⚡️  [log] - [getAuthHeaders] Token retrieved and decoded: 8859bffddf...
+⚡️  [log] - [getAuthHeaders] Added Authorization header
+⚡️  [log] - [getAuthHeaders] Token retrieved and decoded: 8859bffddf...
+⚡️  [log] - [getAuthHeaders] Added Authorization header
+⚡️  [log] - [getAuthHeaders] Token retrieved and decoded: 8859bffddf...
+⚡️  [log] - [getAuthHeaders] Added Authorization header
+⚡️  [log] - [getAuthHeaders] Token retrieved and decoded: 8859bffddf...
+⚡️  [log] - [getAuthHeaders] Added Authorization header
+⚡️  [log] - [getAuthHeaders] Token retrieved and decoded: 8859bffddf...
+⚡️  [log] - [getAuthHeaders] Added Authorization header
+⚡️  [log] - [getAuthHeaders] Token retrieved and decoded: 8859bffddf...
+⚡️  [log] - [getAuthHeaders] Added Authorization header
+⚡️  [log] - [getAuthHeaders] Token retrieved and decoded: 8859bffddf...
+⚡️  [log] - [getAuthHeaders] Added Authorization header
+⚡️  [log] - [getAuthHeaders] Token retrieved and decoded: 8859bffddf...
+⚡️  [log] - [getAuthHeaders] Added Authorization header
+⚡️  [log] - [getAuthHeaders] Token retrieved and decoded: 8859bffddf...
+⚡️  [log] - [getAuthHeaders] Added Authorization header
+⚡️  [log] - [getAuthHeaders] Token retrieved and decoded: 8859bffddf...
+⚡️  [log] - [getAuthHeaders] Added Authorization header
+⚡️  [log] - [getAuthHeaders] Token retrieved and decoded: 8859bffddf...
+⚡️  [log] - [getAuthHeaders] Added Authorization header
+⚡️  [log] - [getAuthHeaders] Token retrieved and decoded: 8859bffddf...
+⚡️  [log] - [getAuthHeaders] Added Authorization header
+⚡️  [log] - [getAuthHeaders] Token retrieved and decoded: 8859bffddf...
+⚡️  [log] - [getAuthHeaders] Added Authorization header
+⚡️  [log] - [getAuthHeaders] Token retrieved and decoded: 8859bffddf...
+⚡️  [log] - [getAuthHeaders] Added Authorization header
+⚡️  [log] - [getAuthHeaders] Token retrieved and decoded: 8859bffddf...
+⚡️  [log] - [getAuthHeaders] Added Authorization header
+To Native Cordova ->  OneSignalPush logout OneSignalPush1069103906 ["options": []]
+WARNING: Your application has called logout before app ID has been set. Please call `initialize:appId withLaunchOptions:launchOptions` in order to set the app ID
+⚡️  [warn] - [App] VITE_ONESIGNAL_APP_ID not configured
+⚡️  To Native ->  SecureStoragePlugin get 27719709
+⚡️  TO JS {"value":"ODg1OWJmZmRkZjVmMzRhYWVjYWQzMDUzYjQxNDI5YjJjZjIzM2ZjZWZjMmVkNmIzODc1MGQ1ZTI1MDliNzE2YQ=="}
+⚡️  [log] - [getAuthHeaders] Token retrieved and decoded: 8859bffddf...
+⚡️  [log] - [getAuthHeaders] Added Authorization header
+⚡️  To Native ->  SecureStoragePlugin get 27719710
+⚡️  TO JS {"value":"ODg1OWJmZmRkZjVmMzRhYWVjYWQzMDUzYjQxNDI5YjJjZjIzM2ZjZWZjMmVkNmIzODc1MGQ1ZTI1MDliNzE2YQ=="}
+⚡️  [log] - [getAuthHeaders] Token retrieved and decoded: 8
