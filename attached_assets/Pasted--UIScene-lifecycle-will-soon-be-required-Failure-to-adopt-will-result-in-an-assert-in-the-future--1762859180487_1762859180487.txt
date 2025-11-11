@@ -1,0 +1,89 @@
+`UIScene` lifecycle will soon be required. Failure to adopt will result in an assert in the future.
+Could not create a sandbox extension for '/var/containers/Bundle/Application/1EE6DFEC-2D8D-4DDA-8EAB-FD2BBC55D06C/App.app'
+KeyboardPlugin: resize mode - body
+⚡️  Loading app at capacitor://localhost...
+Networking process (0x113048190) took 6.989027 seconds to launch
+SplashScreen.hideSplash: SplashScreen was automatically hidden after default timeout. You should call `SplashScreen.hide()` as soon as your web app is loaded (or increase the timeout). Read more at https://capacitorjs.com/docs/apis/splash-screen#hiding-the-splash-screen
+🧹 WKWebView cache FULLY cleared (all data types)
+0x1130f0100 - [PID=11742] WebProcessProxy::didBecomeUnresponsive:
+0x15c390e18 - [pageProxyID=7, webPageID=8, PID=11742] WebPageProxy::processDidBecomeUnresponsive:
+WebContent[11742] Unable to hide query parameters from script (missing data)
+⚡️  [log] - onscript loading complete
+⚡️  To Native ->  StatusBar setStyle 50859423
+⚡️  TO JS {}
+⚡️  WebView loaded
+⚡️  To Native ->  SplashScreen hide 50859424
+⚡️  TO JS undefined
+⚡️  To Native ->  Keyboard addListener 50859425
+⚡️  To Native ->  Keyboard addListener 50859426
+⚡️  To Native ->  App addListener 50859427
+⚡️  To Native ->  App getInfo 50859428
+⚡️  TO JS {"name":"HealthPilot","build":"1","id":"com.nuvitae.healthpilot","version":"1.0"}
+⚡️  To Native ->  App addListener 50859429
+⚡️  To Native ->  App addListener 50859430
+⚡️  To Native ->  StatusBar setStyle 50859431
+⚡️  TO JS {}
+⚡️  To Native ->  SecureStorage internalGetItem 50859432
+⚡️  To Native ->  SecureStorage internalGetItem 50859433
+⚡️  TO JS {"data":null}
+⚡️  TO JS {"data":null}
+⚡️  [error] - [getAuthHeaders] Error retrieving token: {}
+⚡️  [error] - [getAuthHeaders] Error retrieving token: {}
+⚡️  To Native ->  Preferences get 50859434
+⚡️  To Native ->  App addListener 50859435
+⚡️  TO JS {"value":"1762858730368-ecz2y0n"}
+⚡️  To Native ->  Preferences get 50859436
+⚡️  TO JS {"value":"1762858730368-ecz2y0n"}
+⚡️  To Native ->  Preferences get 50859437
+⚡️  TO JS {"value":"1762858730368-ecz2y0n"}
+⚡️  To Native ->  Preferences get 50859438
+⚡️  TO JS {"value":"1762858730368-ecz2y0n"}
+⚡️  To Native ->  Preferences get 50859439
+⚡️  TO JS {"value":"1762858730368-ecz2y0n"}
+⚡️  To Native ->  Preferences get 50859440
+⚡️  TO JS {"value":"1762858730368-ecz2y0n"}
+⚡️  To Native ->  Preferences get 50859441
+⚡️  TO JS {"value":"1762858730368-ecz2y0n"}
+⚡️  To Native ->  Browser open 50859442
+(501) Invalidation handler invoked, clearing connection
+(501) personaAttributesForPersonaType for type:0 failed with error Error Domain=NSCocoaErrorDomain Code=4099 "The connection to service named com.apple.mobile.usermanagerd.xpc was invalidated: Connection init failed at lookup with error 159 - Sandbox restriction." UserInfo={NSDebugDescription=The connection to service named com.apple.mobile.usermanagerd.xpc was invalidated: Connection init failed at lookup with error 159 - Sandbox restriction.}
+Received port for identifier response: <(null)> with error:Error Domain=RBSServiceErrorDomain Code=1 "Client not entitled" UserInfo={RBSEntitlement=com.apple.runningboard.process-state, NSLocalizedFailureReason=Client not entitled, RBSPermanent=false}
+elapsedCPUTimeForFrontBoard couldn't generate a task port
+Received port for identifier response: <(null)> with error:Error Domain=RBSServiceErrorDomain Code=1 "Client not entitled" UserInfo={RBSEntitlement=com.apple.runningboard.process-state, NSLocalizedFailureReason=Client not entitled, RBSPermanent=false}
+elapsedCPUTimeForFrontBoard couldn't generate a task port
+Received port for identifier response: <(null)> with error:Error Domain=RBSServiceErrorDomain Code=1 "Client not entitled" UserInfo={RBSEntitlement=com.apple.runningboard.process-state, NSLocalizedFailureReason=Client not entitled, RBSPermanent=false}
+elapsedCPUTimeForFrontBoard couldn't generate a task port
+Received port for identifier response: <(null)> with error:Error Domain=RBSServiceErrorDomain Code=1 "Client not entitled" UserInfo={RBSEntitlement=com.apple.runningboard.process-state, NSLocalizedFailureReason=Client not entitled, RBSPermanent=false}
+elapsedCPUTimeForFrontBoard couldn't generate a task port
+⚡️  TO JS undefined
+⚡️  To Native ->  Preferences get 50859443
+⚡️  TO JS {"value":"1762858730368-ecz2y0n"}
+⚡️  To Native ->  Preferences get 50859444
+⚡️  TO JS {"value":"1762858730368-ecz2y0n"}
+⚡️  To Native ->  SecureStorage internalGetItem 50859445
+⚡️  TO JS {"data":null}
+⚡️  [error] - [getAuthHeaders] Error retrieving token: {}
+⚡️  To Native ->  Preferences get 50859446
+⚡️  TO JS {"value":"1762858730368-ecz2y0n"}
+⚡️  [log] - [Login] Received authData: {"hasSessionToken":true,"sessionTokenType":"string","sessionTokenLength":64}
+⚡️  [log] - [Login] Storing sessionToken in SecureStorage...
+⚡️  To Native ->  SecureStorage internalSetItem 50859447
+ERROR MESSAGE:  {"code":"invalidData","message":"The data is in an invalid format","errorMessage":"The data is in an invalid format"}
+⚡️  [error] - {"code":"invalidData","message":"The data is in an invalid format","errorMessage":"The data is in an invalid format"}
+⚡️  [error] - [Login] Error checking for auth: {"name":"StorageError","code":"invalidData"}
+⚡️  To Native ->  Preferences get 50859448
+⚡️  TO JS {"value":"1762858730368-ecz2y0n"}
+⚡️  To Native ->  Preferences get 50859449
+⚡️  TO JS {"value":"1762858730368-ecz2y0n"}
+⚡️  To Native ->  Preferences get 50859450
+⚡️  TO JS {"value":"1762858730368-ecz2y0n"}
+⚡️  To Native ->  Preferences get 50859451
+⚡️  TO JS {"value":"1762858730368-ecz2y0n"}
+⚡️  To Native ->  Preferences get 50859452
+⚡️  TO JS {"value":"1762858730368-ecz2y0n"}
+⚡️  To Native ->  Preferences get 50859453
+⚡️  TO JS {"value":"1762858730368-ecz2y0n"}
+⚡️  To Native ->  Preferences get 50859454
+⚡️  TO JS {"value":"1762858730368-ecz2y0n"}
+⚡️  To Native ->  Preferences get 50859455
+⚡️  TO JS {"value":"1762858730368-ecz2y0n"}
