@@ -26,6 +26,8 @@ I prefer simple language and clear explanations. I want iterative development wh
 - Fixed-Position Mobile Header with iOS safe-area support.
 - System-wide responsive layout improvements, including `flex-wrap`, `min-w-0`, `gap` utilities, and global `max-width` constraints to prevent horizontal overflow on narrow viewports.
 - iOS-specific fixes for full viewport coverage and reliable backdrop dismissal for notifications.
+- Workout Session liquid glass footer: Fixed-position footer with elapsed timer, rest timer, and Finish Workout button using backdrop-blur-xl and semi-transparent background with iOS safe-area support.
+- Profile Settings: Embedded full Fitness Profile form directly in Fitness tab using reusable FitnessProfileForm component with react-hook-form for consistent form patterns.
 
 **Technical Implementations:**
 - **AI Intelligence Layer:** Provides daily personalized insights, context-aware chat, multi-metric recommendations, and alternative therapy suggestions.
