@@ -16,7 +16,7 @@ export async function getAuthHeaders(): Promise<HeadersInit> {
   if (isNativePlatform()) {
     try {
       // @ts-expect-error - TypeScript types may be outdated, but API requires object params
-      const token = await SecureStorage.get({ key: 'sessionToken' });
+      const { value: token } = await SecureStorage.get({ key: 'sessionToken' });
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
