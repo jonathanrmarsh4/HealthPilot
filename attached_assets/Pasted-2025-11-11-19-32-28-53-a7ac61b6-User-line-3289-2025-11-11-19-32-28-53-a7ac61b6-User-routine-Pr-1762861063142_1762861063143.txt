@@ -1,0 +1,132 @@
+2025-11-11 19:32:28.53
+a7ac61b6
+User
+line: '3289',
+2025-11-11 19:32:28.53
+a7ac61b6
+User
+routine: 'ProcessInterrupts',
+2025-11-11 19:32:28.53
+a7ac61b6
+User
+client: NeonClient {
+2025-11-11 19:32:28.53
+a7ac61b6
+User
+_events: [Object: null prototype] { error: [Function (anonymous)] },
+2025-11-11 19:32:28.53
+a7ac61b6
+User
+_eventsCount: 1,
+2025-11-11 19:32:28.53
+a7ac61b6
+User
+_maxListeners: undefined,
+2025-11-11 19:32:28.53
+a7ac61b6
+User
+connectionParameters: ConnectionParameters {
+2025-11-11 19:32:28.53
+a7ac61b6
+User
+user: 'neondb_owner',
+2025-11-11 19:32:28.53
+a7ac61b6
+User
+database: 'neondb',
+2025-11-11 19:32:28.53
+a7ac61b6
+User
+port: 5432,
+2025-11-11 19:32:28.53
+a7ac61b6
+User
+host: 'ep-rapid-bird-aftp4ba4.c-2.us-west-2.aws.neon.tech',
+2025-11-11 19:32:28.53
+a7ac61b6
+User
+binary: false,
+2025-11-11 19:32:28.53
+a7ac61b6
+User
+options: undefined,
+2025-11-11 19:32:28.53
+a7ac61b6
+User
+ssl: {},
+2025-11-11 19:32:28.53
+a7ac61b6
+User
+client_encoding: '',
+2025-11-11 19:32:28.53
+a7ac61b6
+User
+replication: undefined,
+2025-11-11 19:32:28.53
+a7ac61b6
+User
+isDomainSocket: false,
+2025-11-11 19:32:28.53
+a7ac61b6
+User
+application_name: undefined,
+2025-11-11 19:32:28.53
+a7ac61b6
+User
+fallback_application_name: undefined,
+2025-11-11 19:32:28.53
+a7ac61b6
+User
+statement_timeout: false,
+2025-11-11 19:32:28.53
+a7ac61b6
+User
+lock_timeout: false,
+2025-11-11 19:32:28.53
+a7ac61b6
+User
+idle_in_transaction_session_timeout: false,
+2025-11-11 19:32:28.53
+a7ac61b6
+User
+query_timeout: false,
+2025-11-11 19:32:28.53
+a7ac61b6
+User
+connect_timeout: 0
+2025-11-11 19:32:28.53
+a7ac61b6
+User
+},
+2025-11-11 19:32:28.53
+a7ac61b6
+User
+user: 'neondb_owner',
+2025-11-11 19:32:28.53
+a7ac61b6
+User
+database: 'neondb',
+2025-11-11 19:32:28.53
+a7ac61b6
+User
+port: 5432,
+2025-11-11 19:32:28.53
+a7ac61b6
+User
+host: 'ep-rapid-bird-aftp4ba4.c-2.us-west-2.aws.neon.tech',
+2025-11-11 19:32:28.53
+a7ac61b6
+User
+replication: undefined,
+2025-11-11 19:32:28.53
+a7ac61b6
+User
+_types: TypeOverrides { _types: [Object], text: {}, binary: {} },
+2025-11-11 19:32:28.53
+a7ac61b6
+User
+_ending: true,
+2025-11-11 19:32:28.53
+a7ac61b6
+User
+_connecting: false,
