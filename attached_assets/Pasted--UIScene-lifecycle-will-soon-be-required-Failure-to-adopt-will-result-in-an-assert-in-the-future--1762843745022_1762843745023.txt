@@ -1,0 +1,152 @@
+`UIScene` lifecycle will soon be required. Failure to adopt will result in an assert in the future.
+Could not create a sandbox extension for '/var/containers/Bundle/Application/6D5CBF7B-7A4A-4A2A-957A-1EA3D46B9532/App.app'
+KeyboardPlugin: resize mode - body
+⚡️  Loading app at capacitor://localhost...
+Networking process (0x111048190) took 9.271234 seconds to launch
+SplashScreen.hideSplash: SplashScreen was automatically hidden after default timeout. You should call `SplashScreen.hide()` as soon as your web app is loaded (or increase the timeout). Read more at https://capacitorjs.com/docs/apis/splash-screen#hiding-the-splash-screen
+🧹 WKWebView cache FULLY cleared (all data types)
+0x1110f0100 - [PID=10064] WebProcessProxy::didBecomeUnresponsive:
+0x12237ce18 - [pageProxyID=7, webPageID=8, PID=10064] WebPageProxy::processDidBecomeUnresponsive:
+WebContent[10064] Unable to hide query parameters from script (missing data)
+⚡️  [log] - onscript loading complete
+⚡️  To Native ->  StatusBar setStyle 55180807
+⚡️  TO JS {}
+⚡️  WebView loaded
+⚡️  To Native ->  SplashScreen hide 55180808
+⚡️  TO JS undefined
+⚡️  To Native ->  Keyboard addListener 55180809
+⚡️  To Native ->  Keyboard addListener 55180810
+⚡️  To Native ->  App addListener 55180811
+⚡️  To Native ->  App getInfo 55180812
+⚡️  TO JS {"id":"com.nuvitae.healthpilot","name":"HealthPilot","build":"1","version":"1.0"}
+⚡️  To Native ->  App addListener 55180813
+⚡️  To Native ->  App addListener 55180814
+⚡️  To Native ->  StatusBar setStyle 55180815
+⚡️  TO JS {}
+⚡️  To Native ->  SecureStorage internalGetItem 55180816
+⚡️  To Native ->  SecureStorage internalGetItem 55180817
+⚡️  TO JS {"data":null}
+⚡️  TO JS {"data":null}
+⚡️  [error] - [getAuthHeaders] Error retrieving token: {}
+⚡️  [error] - [getAuthHeaders] Error retrieving token: {}
+⚡️  To Native ->  Preferences get 55180818
+⚡️  To Native ->  App addListener 55180819
+⚡️  TO JS {"value":null}
+⚡️  To Native ->  Preferences set 55180820
+⚡️  TO JS undefined
+⚡️  To Native ->  Preferences get 55180821
+⚡️  TO JS {"value":"1762843690675-u3l8li"}
+⚡️  To Native ->  Preferences get 55180822
+⚡️  TO JS {"value":"1762843690675-u3l8li"}
+⚡️  To Native ->  Preferences get 55180823
+⚡️  TO JS {"value":"1762843690675-u3l8li"}
+⚡️  To Native ->  Preferences get 55180824
+⚡️  TO JS {"value":"1762843690675-u3l8li"}
+⚡️  To Native ->  Browser open 55180825
+(501) Invalidation handler invoked, clearing connection
+(501) personaAttributesForPersonaType for type:0 failed with error Error Domain=NSCocoaErrorDomain Code=4099 "The connection to service named com.apple.mobile.usermanagerd.xpc was invalidated from this process." UserInfo={NSDebugDescription=The connection to service named com.apple.mobile.usermanagerd.xpc was invalidated from this process.}
+Received port for identifier response: <(null)> with error:Error Domain=RBSServiceErrorDomain Code=1 "Client not entitled" UserInfo={RBSEntitlement=com.apple.runningboard.process-state, NSLocalizedFailureReason=Client not entitled, RBSPermanent=false}
+elapsedCPUTimeForFrontBoard couldn't generate a task port
+Received port for identifier response: <(null)> with error:Error Domain=RBSServiceErrorDomain Code=1 "Client not entitled" UserInfo={RBSEntitlement=com.apple.runningboard.process-state, NSLocalizedFailureReason=Client not entitled, RBSPermanent=false}
+elapsedCPUTimeForFrontBoard couldn't generate a task port
+⚡️  To Native ->  Preferences get 55180826
+⚡️  To Native ->  Preferences get 55180827
+⚡️  TO JS {"value":"1762843690675-u3l8li"}
+⚡️  TO JS {"value":"1762843690675-u3l8li"}
+Received port for identifier response: <(null)> with error:Error Domain=RBSServiceErrorDomain Code=1 "Client not entitled" UserInfo={RBSEntitlement=com.apple.runningboard.process-state, NSLocalizedFailureReason=Client not entitled, RBSPermanent=false}
+elapsedCPUTimeForFrontBoard couldn't generate a task port
+Received port for identifier response: <(null)> with error:Error Domain=RBSServiceErrorDomain Code=1 "Client not entitled" UserInfo={RBSEntitlement=com.apple.runningboard.process-state, NSLocalizedFailureReason=Client not entitled, RBSPermanent=false}
+elapsedCPUTimeForFrontBoard couldn't generate a task port
+⚡️  To Native ->  Preferences get 55180828
+⚡️  TO JS {"value":"1762843690675-u3l8li"}
+⚡️  TO JS undefined
+⚡️  To Native ->  Preferences get 55180829
+⚡️  TO JS {"value":"1762843690675-u3l8li"}
+⚡️  To Native ->  Preferences get 55180830
+⚡️  TO JS {"value":"1762843690675-u3l8li"}
+⚡️  To Native ->  Preferences get 55180831
+⚡️  TO JS {"value":"1762843690675-u3l8li"}
+⚡️  To Native ->  Preferences get 55180832
+⚡️  TO JS {"value":"1762843690675-u3l8li"}
+⚡️  To Native ->  Preferences get 55180833
+⚡️  TO JS {"value":"1762843690675-u3l8li"}
+⚡️  To Native ->  Preferences get 55180834
+⚡️  TO JS {"value":"1762843690675-u3l8li"}
+⚡️  To Native ->  Preferences get 55180835
+⚡️  TO JS {"value":"1762843690675-u3l8li"}
+⚡️  To Native ->  Preferences get 55180836
+⚡️  TO JS {"value":"1762843690675-u3l8li"}
+⚡️  To Native ->  Preferences get 55180837
+⚡️  TO JS {"value":"1762843690675-u3l8li"}
+⚡️  To Native ->  Preferences get 55180838
+⚡️  TO JS {"value":"1762843690675-u3l8li"}
+⚡️  To Native ->  Preferences get 55180839
+⚡️  TO JS {"value":"1762843690675-u3l8li"}
+⚡️  TO JS {"keyboardHeight":17}
+⚡️  TO JS {"keyboardHeight":443}
+⚡️  TO JS {"keyboardHeight":443}
+⚡️  TO JS {"keyboardHeight":443}
+⚡️  To Native ->  Preferences get 55180840
+⚡️  To Native ->  Preferences get 55180841
+⚡️  To Native ->  Preferences get 55180842
+⚡️  To Native ->  Preferences get 55180843
+⚡️  TO JS {"value":"1762843690675-u3l8li"}
+⚡️  TO JS {"value":"1762843690675-u3l8li"}
+⚡️  TO JS {"value":"1762843690675-u3l8li"}
+⚡️  TO JS {"value":"1762843690675-u3l8li"}
+⚡️  TO JS {"keyboardHeight":443}
+⚡️  TO JS {"keyboardHeight":443}
+⚡️  TO JS {"keyboardHeight":443}
+⚡️  TO JS {"keyboardHeight":443}
+⚡️  TO JS {"isActive":false}
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  TO JS {"isActive":true}
+⚡️  To Native ->  Preferences get 55180844
+⚡️  TO JS {"value":"1762843690675-u3l8li"}
+⚡️  To Native ->  Preferences get 55180845
+⚡️  TO JS {"value":"1762843690675-u3l8li"}
+⚡️  To Native ->  Preferences get 55180846
+⚡️  TO JS {"value":"1762843690675-u3l8li"}
+⚡️  To Native ->  Preferences get 55180847
+⚡️  TO JS {"value":"1762843690675-u3l8li"}
+⚡️  To Native ->  Preferences get 55180848
+⚡️  TO JS {"value":"1762843690675-u3l8li"}
+⚡️  To Native ->  Preferences get 55180849
+⚡️  TO JS {"value":"1762843690675-u3l8li"}
+⚡️  To Native ->  Preferences get 55180850
+⚡️  TO JS {"value":"1762843690675-u3l8li"}
+⚡️  To Native ->  Preferences get 55180851
+⚡️  TO JS {"value":"1762843690675-u3l8li"}
+⚡️  To Native ->  Preferences get 55180852
+⚡️  TO JS {"value":"1762843690675-u3l8li"}
+⚡️  To Native ->  Preferences get 55180853
+⚡️  TO JS {"value":"1762843690675-u3l8li"}
+⚡️  To Native ->  Preferences get 55180854
+⚡️  TO JS {"value":"1762843690675-u3l8li"}
+⚡️  To Native ->  Preferences get 55180855
+⚡️  TO JS {"value":"1762843690675-u3l8li"}
+⚡️  To Native ->  SecureStorage internalGetItem 55180856
+⚡️  TO JS {"data":null}
+⚡️  [error] - [getAuthHeaders] Error retrieving token: {}
+⚡️  To Native ->  Preferences get 55180857
+⚡️  TO JS {"value":"1762843690675-u3l8li"}
+⚡️  [log] - [Login] Received authData: {"hasSessionToken":true,"sessionTokenType":"string","sessionTokenLength":43}
+⚡️  [log] - [Login] Storing sessionToken in SecureStorage...
+⚡️  To Native ->  SecureStorage internalSetItem 55180858
+ERROR MESSAGE:  {"code":"invalidData","message":"The data is in an invalid format","errorMessage":"The data is in an invalid format"}
+⚡️  [error] - {"code":"invalidData","message":"The data is in an invalid format","errorMessage":"The data is in an invalid format"}
+⚡️  [error] - [Login] Error checking for auth: {"name":"StorageError","code":"invalidData"}
+⚡️  To Native ->  Preferences get 55180859
+⚡️  TO JS {"value":"1762843690675-u3l8li"}
+⚡️  To Native ->  Preferences get 55180860
+⚡️  TO JS {"value":"1762843690675-u3l8li"}
+⚡️  To Native ->  Preferences get 55180861
+⚡️  TO JS {"value":"1762843690675-u3l8li"}
+⚡️  To Native ->  Preferences get 55180862
+⚡️  TO JS {"value":"1762843690675-u3l8li"}
+⚡️  To Native ->  Preferences get 55180863
+⚡️  TO JS {"value":"1762843690675-u3l8li"}
+⚡️  To Native ->  Preferences get 55180864
+⚡️  TO JS {"value":"1762843690675-u3l8li"}
+⚡️  To Native ->  Preferences get 55180865

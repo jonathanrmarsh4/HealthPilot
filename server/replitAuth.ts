@@ -439,7 +439,8 @@ export async function setupAuth(app: Express) {
       }
       
       // Create a long-lived session token for the mobile app
-      const sessionToken = crypto.randomBytes(32).toString('base64url');
+      // Use hex encoding instead of base64url to avoid SecureStorage issues with special chars
+      const sessionToken = crypto.randomBytes(32).toString('hex');
       
       console.log("📱 Generated sessionToken:", {
         length: sessionToken.length,
