@@ -1,0 +1,172 @@
+2025-11-11 18:27:46.91
+f7465cc3
+User
+at async NeonPreparedQuery.execute (file:///home/runner/workspace/node_modules/drizzle-orm/neon-serverless/session.js:76:20)
+2025-11-11 18:27:46.91
+f7465cc3
+User
+at async MetricMonitorService.checkMetrics (file:///home/runner/workspace/dist/index.js:3210:30)
+2025-11-11 18:27:46.91
+f7465cc3
+User
+at async DbStorage.checkUserMetrics (file:///home/runner/workspace/dist/index.js:6405:26)
+2025-11-11 18:27:46.91
+f7465cc3
+User
+length: 53,
+2025-11-11 18:27:46.91
+f7465cc3
+User
+code: 'XX000',
+2025-11-11 18:27:46.91
+f7465cc3
+User
+schema: undefined,
+2025-11-11 18:28:24.39
+f7465cc3
+User
+[ReminderScheduler] Checking reminders at 10:28
+2025-11-11 18:28:29.82
+f7465cc3
+User
+10:28:29 AM [express] POST /api/proactive-suggestions/monitor-all 200 in 190306ms :: {"success":true,…
+2025-11-11 18:28:29.82
+f7465cc3
+User
+10:28:29 AM [express] ✅ Initial monitoring complete: 0 suggestions generated for 362 users
+2025-11-11 18:29:24.41
+f7465cc3
+User
+[ReminderScheduler] Checking reminders at 10:29
+2025-11-11 18:30:24.42
+f7465cc3
+User
+[ReminderScheduler] Checking reminders at 10:30
+2025-11-11 18:31:24.43
+f7465cc3
+User
+[ReminderScheduler] Checking reminders at 10:31
+2025-11-11 18:31:34.35
+72e92d71
+System
+starting up user application
+2025-11-11 18:31:34.35
+72e92d71
+System
+metasidecar: loaded enterprise status from environment is_enterprise=false
+2025-11-11 18:31:34.35
+72e92d71
+System
+forwarding local port 5000 to external port 80 (mapped as 1104)
+2025-11-11 18:31:41.04
+72e92d71
+User
+> rest-express@1.0.0 start
+2025-11-11 18:31:41.04
+72e92d71
+User
+> NODE_ENV=production node dist/index.js
+2025-11-11 18:32:02.27
+72e92d71
+User
+✅ Registered OAuth strategy for: healthpilotpro.replit.app
+2025-11-11 18:32:02.27
+72e92d71
+User
+✅ Registered OAuth strategy for: healthpilot.pro
+2025-11-11 18:32:02.28
+72e92d71
+User
+10:32:02 AM [express] 🌱 Seeding exercise templates...
+2025-11-11 18:32:02.28
+72e92d71
+User
+🌱 Seeding exercise templates...
+2025-11-11 18:32:02.28
+72e92d71
+User
+Found 43 templates to seed
+2025-11-11 18:32:05.73
+72e92d71
+User
+✅ Exercise templates seeded successfully
+2025-11-11 18:32:05.74
+72e92d71
+User
+🔍 Validating template system integrity...
+2025-11-11 18:32:05.88
+72e92d71
+User
+✅ Template system validation passed
+2025-11-11 18:32:05.90
+72e92d71
+User
+[NotificationOrchestrator] Initializing event handlers...
+2025-11-11 18:32:05.90
+72e92d71
+User
+[NotificationOrchestrator] Event handlers registered successfully
+2025-11-11 18:32:05.90
+72e92d71
+User
+10:32:05 AM [express] 📦 Serving static production build
+2025-11-11 18:32:05.91
+72e92d71
+User
+10:32:05 AM [express] serving on port 5000
+2025-11-11 18:32:10.91
+72e92d71
+User
+10:32:10 AM [express] 🔄 Running initial proactive suggestion monitoring...
+2025-11-11 18:32:12.91
+72e92d71
+User
+10:32:12 AM [express] 🔮 Starting Daily Insights Scheduler...
+2025-11-11 18:32:12.91
+72e92d71
+User
+🔮 Starting Daily Insights Scheduler...
+2025-11-11 18:32:12.93
+72e92d71
+User
+✅ Daily Insights Scheduler started (runs hourly)
+2025-11-11 18:32:13.91
+72e92d71
+User
+10:32:13 AM [express] 💪 Starting Daily Training Generator Scheduler...
+2025-11-11 18:32:13.91
+72e92d71
+User
+💪 Starting Daily Training Generator Scheduler...
+2025-11-11 18:32:13.91
+72e92d71
+User
+✅ Daily Training Generator Scheduler started (runs hourly)
+2025-11-11 18:32:14.91
+72e92d71
+User
+10:32:14 AM [express] 💰 Starting Cost Rollup Scheduler...
+2025-11-11 18:32:14.91
+72e92d71
+User
+💰 Starting Cost Rollup Scheduler...
+2025-11-11 18:32:14.91
+72e92d71
+User
+✅ Cost Rollup Scheduler started (runs daily at 02:30 UTC)
+2025-11-11 18:32:15.91
+72e92d71
+User
+10:32:15 AM [express] ⏰ Starting Reminder Scheduler...
+2025-11-11 18:32:15.91
+72e92d71
+User
+[ReminderScheduler] Starting...
+2025-11-11 18:32:15.91
+72e92d71
+User
+[ReminderScheduler] Checking reminders at 10:32
+2025-11-11 18:33:15.91
+72e92d71
+User
+[ReminderScheduler] Checking reminders at 10:33
