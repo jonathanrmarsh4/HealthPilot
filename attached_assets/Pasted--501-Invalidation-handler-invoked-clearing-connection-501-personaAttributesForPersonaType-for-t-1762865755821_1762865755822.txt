@@ -1,0 +1,104 @@
+(501) Invalidation handler invoked, clearing connection
+(501) personaAttributesForPersonaType for type:0 failed with error Error Domain=NSCocoaErrorDomain Code=4099 "The connection to service named com.apple.mobile.usermanagerd.xpc was invalidated: Connection init failed at lookup with error 159 - Sandbox restriction." UserInfo={NSDebugDescription=The connection to service named com.apple.mobile.usermanagerd.xpc was invalidated: Connection init failed at lookup with error 159 - Sandbox restriction.}
+Received port for identifier response: <(null)> with error:Error Domain=RBSServiceErrorDomain Code=1 "Client not entitled" UserInfo={RBSEntitlement=com.apple.runningboard.process-state, NSLocalizedFailureReason=Client not entitled, RBSPermanent=false}
+elapsedCPUTimeForFrontBoard couldn't generate a task port
+Received port for identifier response: <(null)> with error:Error Domain=RBSServiceErrorDomain Code=1 "Client not entitled" UserInfo={RBSEntitlement=com.apple.runningboard.process-state, NSLocalizedFailureReason=Client not entitled, RBSPermanent=false}
+elapsedCPUTimeForFrontBoard couldn't generate a task port
+⚡️  To Native ->  Preferences get 39811510
+⚡️  To Native ->  Preferences get 39811511
+⚡️  TO JS {"value":"1762865653335-6y39r"}
+⚡️  TO JS {"value":"1762865653335-6y39r"}
+Received port for identifier response: <(null)> with error:Error Domain=RBSServiceErrorDomain Code=1 "Client not entitled" UserInfo={RBSEntitlement=com.apple.runningboard.process-state, NSLocalizedFailureReason=Client not entitled, RBSPermanent=false}
+elapsedCPUTimeForFrontBoard couldn't generate a task port
+Received port for identifier response: <(null)> with error:Error Domain=RBSServiceErrorDomain Code=1 "Client not entitled" UserInfo={RBSEntitlement=com.apple.runningboard.process-state, NSLocalizedFailureReason=Client not entitled, RBSPermanent=false}
+elapsedCPUTimeForFrontBoard couldn't generate a task port
+⚡️  TO JS undefined
+⚡️  To Native ->  Preferences get 39811512
+⚡️  TO JS {"value":"1762865653335-6y39r"}
+⚡️  To Native ->  Preferences get 39811513
+⚡️  TO JS {"value":"1762865653335-6y39r"}
+⚡️  To Native ->  Preferences get 39811514
+⚡️  TO JS {"value":"1762865653335-6y39r"}
+⚡️  To Native ->  Preferences get 39811515
+⚡️  TO JS {"value":"1762865653335-6y39r"}
+⚡️  To Native ->  Preferences get 39811516
+⚡️  TO JS {"value":"1762865653335-6y39r"}
+⚡️  To Native ->  Preferences get 39811517
+⚡️  TO JS {"value":"1762865653335-6y39r"}
+⚡️  To Native ->  Preferences get 39811518
+⚡️  TO JS {"value":"1762865653335-6y39r"}
+⚡️  To Native ->  Preferences get 39811519
+⚡️  TO JS {"value":"1762865653335-6y39r"}
+⚡️  To Native ->  Preferences get 39811520
+⚡️  TO JS {"value":"1762865653335-6y39r"}
+⚡️  To Native ->  Preferences get 39811521
+⚡️  TO JS {"value":"1762865653335-6y39r"}
+⚡️  To Native ->  Preferences get 39811522
+⚡️  TO JS {"value":"1762865653335-6y39r"}
+⚡️  To Native ->  Preferences get 39811523
+⚡️  TO JS {"value":"1762865653335-6y39r"}
+⚡️  To Native ->  Preferences get 39811524
+⚡️  TO JS {"value":"1762865653335-6y39r"}
+⚡️  TO JS {"keyboardHeight":17}
+⚡️  TO JS {"keyboardHeight":17}
+XPC connection interrupted
+⚡️  TO JS {"keyboardHeight":443}
+⚡️  To Native ->  Preferences get 39811525
+⚡️  To Native ->  Preferences get 39811526
+⚡️  To Native ->  Preferences get 39811527
+⚡️  TO JS {"value":"1762865653335-6y39r"}
+⚡️  To Native ->  Preferences get 39811528
+⚡️  To Native ->  Preferences get 39811529
+⚡️  TO JS {"value":"1762865653335-6y39r"}
+⚡️  To Native ->  Preferences get 39811530
+⚡️  To Native ->  ⚡️  TO JS Preferences {"value":"1762865653335-6y39r"}
+get 39811531
+⚡️  TO JS {"value":"1762865653335-6y39r"}
+⚡️  To Native ->  Preferences get 39811532
+⚡️  TO JS {"value":"1762865653335-6y39r"}
+⚡️  TO JS {"value":"1762865653335-6y39r"}
+⚡️  TO JS {"value":"1762865653335-6y39r"}
+⚡️  TO JS {"value":"1762865653335-6y39r"}
+⚡️  To Native ->  Preferences get 39811533
+⚡️  TO JS {"value":"1762865653335-6y39r"}
+⚡️  TO JS {"keyboardHeight":443}
+⚡️  TO JS {"keyboardHeight":443}
+⚡️  TO JS {"keyboardHeight":443}
+⚡️  TO JS {"keyboardHeight":443}
+⚡️  TO JS {"keyboardHeight":0}
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  To Native ->  Preferences get 39811534
+⚡️  TO JS {"value":"1762865653335-6y39r"}
+⚡️  To Native ->  Preferences get 39811535
+⚡️  TO JS {"value":"1762865653335-6y39r"}
+⚡️  To Native ->  Preferences get 39811536
+⚡️  TO JS {"value":"1762865653335-6y39r"}
+⚡️  To Native ->  Preferences get 39811537
+⚡️  TO JS {"value":"1762865653335-6y39r"}
+⚡️  To Native ->  Preferences get 39811538
+⚡️  TO JS {"value":"1762865653335-6y39r"}
+⚡️  To Native ->  Preferences get 39811539
+⚡️  TO JS {"value":"1762865653335-6y39r"}
+⚡️  To Native ->  Preferences get 39811540
+⚡️  TO JS {"value":"1762865653335-6y39r"}
+⚡️  To Native ->  SecureStorage internalGetItem 39811541
+⚡️  TO JS {"data":null}
+⚡️  [error] - [getAuthHeaders] Error retrieving token: {}
+⚡️  To Native ->  Preferences get 39811542
+⚡️  TO JS {"value":"1762865653335-6y39r"}
+⚡️  [log] - [Login] Received authData: {"hasSessionToken":true,"sessionTokenType":"string","sessionTokenLength":64}
+⚡️  [log] - [Login] Storing sessionToken in SecureStorage...
+⚡️  To Native ->  SecureStorage internalSetItem 39811543
+ERROR MESSAGE:  {"message":"The data is in an invalid format","errorMessage":"The data is in an invalid format","code":"invalidData"}
+⚡️  [error] - {"message":"The data is in an invalid format","errorMessage":"The data is in an invalid format","code":"invalidData"}
+⚡️  [error] - [Login] Error checking for auth: {"name":"StorageError","code":"invalidData"}
+⚡️  To Native ->  Preferences get 39811544
+⚡️  TO JS {"value":"1762865653335-6y39r"}
+⚡️  To Native ->  Preferences get 39811545
+⚡️  TO JS {"value":"1762865653335-6y39r"}
+⚡️  To Native ->  Preferences get 39811546
+⚡️  TO JS {"value":"1762865653335-6y39r"}
+⚡️  To Native ->  Preferences get 39811547
+⚡️  TO JS {"value":"1762865653335-6y39r"}
+⚡️  To Native ->  Preferences get 39811548
