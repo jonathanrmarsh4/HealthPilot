@@ -529,17 +529,23 @@ export async function applyWorkoutFatigue(
   completedAt: Date,
   onlyCompleted: boolean = false
 ): Promise<void> {
+  console.log(`💪 [applyWorkoutFatigue] Starting for session ${workoutSessionId}, user ${userId}`);
+  
   // Calculate fatigue from this workout
   const fatigue = await calculateWorkoutFatigue(userId, workoutSessionId, onlyCompleted);
+  console.log(`📊 [applyWorkoutFatigue] Calculated fatigue for ${fatigue.size} muscle groups`);
   
   // Update each affected muscle group
   for (const [muscleGroup, damage] of fatigue) {
+    console.log(`🔧 [applyWorkoutFatigue] Updating ${muscleGroup}: +${damage.toFixed(1)} fatigue points`);
     await storage.updateMuscleGroupRecovery(userId, muscleGroup, {
       fatigueDamage: damage,
       lastWorkoutAt: completedAt,
       lastUpdatedAt: completedAt,
     });
   }
+  
+  console.log(`✅ [applyWorkoutFatigue] Complete - updated ${fatigue.size} muscle groups`);
 }
 
 /**

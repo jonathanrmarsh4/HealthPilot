@@ -320,7 +320,7 @@ function SidebarContentWrapper({
         context={chatContext}
       />
 
-      {isMobile && (
+      {isMobile && !location.startsWith('/workout/') && (
         <MobileNav
           isAdmin={user?.role === 'admin'}
           currentPath={location}

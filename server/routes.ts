@@ -7138,7 +7138,7 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
   app.post("/api/workouts/:id/complete", isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
     const { id } = req.params;
-    const { entries } = req.body;
+    const { entries, workoutSessionId } = req.body;
     
     try {
       // Get workout
@@ -7162,6 +7162,21 @@ Return ONLY a JSON array of exercise indices (numbers) from the list above, orde
       
       // Update workout status
       await storage.updateGeneratedWorkoutStatus(id, "completed");
+      
+      // Apply workout fatigue to muscle group recovery (CRITICAL for recovery tile updates)
+      if (workoutSessionId) {
+        console.log(`🏋️ Applying workout fatigue for session ${workoutSessionId}...`);
+        try {
+          const { recordWorkoutCompletion } = await import("./services/recoveryTimeline");
+          await recordWorkoutCompletion(userId, workoutSessionId, new Date());
+          console.log(`✅ Recovery fatigue applied successfully`);
+        } catch (recoveryError: any) {
+          // Log but don't fail the workout completion if recovery update fails
+          console.error(`⚠️ Error applying recovery fatigue (non-critical):`, recoveryError);
+        }
+      } else {
+        console.warn(`⚠️ No workoutSessionId provided - skipping recovery fatigue update`);
+      }
       
       res.json({
         ok: true,
