@@ -473,7 +473,8 @@ export async function setupAuth(app: Express) {
       console.log("📤 Sending mobile auth response:", {
         hasSessionToken: !!responseData.sessionToken,
         sessionTokenType: typeof responseData.sessionToken,
-        sessionTokenLength: responseData.sessionToken?.length
+        sessionTokenLength: responseData.sessionToken?.length,
+        encoding: 'HEX_v19' // Version marker to verify production deployment
       });
       
       res.json(responseData);
