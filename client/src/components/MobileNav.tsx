@@ -366,31 +366,29 @@ export default function MobileNav({
       <h3 className="px-4 text-[13px] font-extrabold uppercase tracking-widest opacity-75">
         Data &amp; Settings
       </h3>
-      <div className="grid grid-cols-3 gap-3 px-4 py-3">
+      <div className="grid grid-cols-2 gap-3 px-4 py-3">
         <Tile
           onClick={() => {
             doNavigate("/profile");
             setMenuOpen(false);
           }}
-          icon={<User className="w-5 h-5" />}
-          ariaLabel="Profile"
-        />
+          icon={<User className="w-4 h-4" />}
+          ariaLabel="Profile Settings"
+        >
+          Profile Settings
+        </Tile>
         <Tile
           onClick={() => {
             doNavigate("/records");
             setMenuOpen(false);
           }}
-          icon={<ClipboardList className="w-5 h-5" />}
+          icon={<ClipboardList className="w-4 h-4" />}
           ariaLabel="Health Records"
-        />
-        <Tile
-          onClick={() => {
-            doNavigate("/training/fitness-profile");
-            setMenuOpen(false);
-          }}
-          icon={<ClipboardList className="w-5 h-5" />}
-          ariaLabel="Fitness Profile"
-        />
+        >
+          Health Records
+        </Tile>
+      </div>
+      <div className="grid grid-cols-2 gap-3 px-4 pb-3">
         <Tile
           onClick={() => {
             setTheme(theme === "dark" ? "light" : "dark");
