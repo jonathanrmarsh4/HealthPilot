@@ -19,7 +19,6 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.37.0",
-    "@aparajita/capacitor-secure-storage": "^7.1.6",
     "@axe-core/playwright": "^4.11.0",
     "@capacitor/app": "^7.1.0",
     "@capacitor/browser": "^7.0.2",
@@ -80,6 +79,7 @@
     "@typescript-eslint/eslint-plugin": "^8.46.3",
     "@typescript-eslint/parser": "^8.46.3",
     "axios": "^1.12.2",
+    "capacitor-secure-storage-plugin": "^0.12.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",

@@ -5,7 +5,7 @@ import { isNativePlatform } from "@/mobile/MobileBootstrap";
 import { Browser } from '@capacitor/browser';
 import { App as CapacitorApp } from '@capacitor/app';
 import { Preferences } from '@capacitor/preferences';
-import { SecureStorage } from '@aparajita/capacitor-secure-storage';
+import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin';
 import { apiRequest, getApiBaseUrl, queryClient } from "@/lib/queryClient";
 import { useState, useEffect, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -77,8 +77,7 @@ export default function Login() {
       
       // Store session token in SecureStorage (iOS Keychain)
       console.log('[Login] Storing sessionToken in SecureStorage...');
-      // @ts-expect-error - TypeScript types may be outdated, but API requires object params
-      await SecureStorage.set({ key: 'sessionToken', value: authData.sessionToken });
+      await SecureStoragePlugin.set({ key: 'sessionToken', value: authData.sessionToken });
       console.log('[Login] SessionToken stored successfully');
       
       // Invalidate queries and redirect
@@ -181,7 +180,7 @@ export default function Login() {
     if (!confirmed) return;
 
     try {
-      await SecureStorage.clear();
+      await SecureStoragePlugin.clear();
       await Preferences.remove({ key: 'deviceId' });
       
       toast({

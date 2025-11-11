@@ -1,6 +1,6 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 import { isNativePlatform } from "@/mobile/MobileBootstrap";
-import { SecureStorage } from '@aparajita/capacitor-secure-storage';
+import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin';
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
@@ -15,8 +15,8 @@ export async function getAuthHeaders(): Promise<HeadersInit> {
   // For mobile, include the session token in Authorization header
   if (isNativePlatform()) {
     try {
-      // @ts-expect-error - TypeScript types may be outdated, but API requires object params
-      const { value: token } = await SecureStorage.get({ key: 'sessionToken' });
+      const result = await SecureStoragePlugin.get({ key: 'sessionToken' });
+      const token = result.value;
       console.log('[getAuthHeaders] Token retrieved:', token ? `${token.substring(0, 10)}...` : 'null');
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;

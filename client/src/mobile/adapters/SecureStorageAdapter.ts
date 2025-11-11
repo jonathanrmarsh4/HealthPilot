@@ -6,13 +6,13 @@
  * 
  * IMPORTANT: Never store auth tokens in localStorage - use this adapter instead.
  * 
- * Uses @aparajita/capacitor-secure-storage which provides:
+ * Uses capacitor-secure-storage-plugin which provides:
  * - iOS: Keychain storage
  * - Android: EncryptedSharedPreferences (Android Keystore)
  * - Web: localStorage fallback (dev only)
  */
 
-import { SecureStorage } from '@aparajita/capacitor-secure-storage';
+import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin';
 import { Preferences } from '@capacitor/preferences';
 import { isNativePlatform } from '../MobileBootstrap';
 
@@ -51,30 +51,27 @@ export interface SecureStorageAdapter {
 }
 
 /**
- * Native implementation using @aparajita/capacitor-secure-storage
+ * Native implementation using capacitor-secure-storage-plugin
  * iOS: Keychain
  * Android: EncryptedSharedPreferences (Android Keystore)
  */
 class NativeSecureStorage implements SecureStorageAdapter {
   async getAuthToken(): Promise<string | null> {
     try {
-      // @ts-expect-error - TypeScript types may be outdated, but API requires object params
-      const result = await SecureStorage.get({ key: AUTH_TOKEN_KEY });
-      return (result as any) || null;
+      const result = await SecureStoragePlugin.get({ key: AUTH_TOKEN_KEY });
+      return result.value || null;
     } catch {
       return null;
     }
   }
 
   async setAuthToken(token: string): Promise<void> {
-    // @ts-expect-error - TypeScript types may be outdated, but API requires object params
-    await SecureStorage.set({ key: AUTH_TOKEN_KEY, value: token });
+    await SecureStoragePlugin.set({ key: AUTH_TOKEN_KEY, value: token });
   }
 
   async clearAuthToken(): Promise<void> {
     try {
-      // @ts-expect-error - TypeScript types may be outdated, but API requires object params
-      await SecureStorage.remove({ key: AUTH_TOKEN_KEY });
+      await SecureStoragePlugin.remove({ key: AUTH_TOKEN_KEY });
     } catch {
       // Key might not exist, ignore error
     }
@@ -82,23 +79,20 @@ class NativeSecureStorage implements SecureStorageAdapter {
 
   async getRefreshToken(): Promise<string | null> {
     try {
-      // @ts-expect-error - TypeScript types may be outdated, but API requires object params
-      const result = await SecureStorage.get({ key: REFRESH_TOKEN_KEY });
-      return (result as any) || null;
+      const result = await SecureStoragePlugin.get({ key: REFRESH_TOKEN_KEY });
+      return result.value || null;
     } catch {
       return null;
     }
   }
 
   async setRefreshToken(token: string): Promise<void> {
-    // @ts-expect-error - TypeScript types may be outdated, but API requires object params
-    await SecureStorage.set({ key: REFRESH_TOKEN_KEY, value: token });
+    await SecureStoragePlugin.set({ key: REFRESH_TOKEN_KEY, value: token });
   }
 
   async clearRefreshToken(): Promise<void> {
     try {
-      // @ts-expect-error - TypeScript types may be outdated, but API requires object params
-      await SecureStorage.remove({ key: REFRESH_TOKEN_KEY });
+      await SecureStoragePlugin.remove({ key: REFRESH_TOKEN_KEY });
     } catch {
       // Key might not exist, ignore error
     }
@@ -106,23 +100,20 @@ class NativeSecureStorage implements SecureStorageAdapter {
 
   async getUserId(): Promise<string | null> {
     try {
-      // @ts-expect-error - TypeScript types may be outdated, but API requires object params
-      const result = await SecureStorage.get({ key: USER_ID_KEY });
-      return (result as any) || null;
+      const result = await SecureStoragePlugin.get({ key: USER_ID_KEY });
+      return result.value || null;
     } catch {
       return null;
     }
   }
 
   async setUserId(userId: string): Promise<void> {
-    // @ts-expect-error - TypeScript types may be outdated, but API requires object params
-    await SecureStorage.set({ key: USER_ID_KEY, value: userId });
+    await SecureStoragePlugin.set({ key: USER_ID_KEY, value: userId });
   }
 
   async clearUserId(): Promise<void> {
     try {
-      // @ts-expect-error - TypeScript types may be outdated, but API requires object params
-      await SecureStorage.remove({ key: USER_ID_KEY });
+      await SecureStoragePlugin.remove({ key: USER_ID_KEY });
     } catch {
       // Key might not exist, ignore error
     }
@@ -130,23 +121,20 @@ class NativeSecureStorage implements SecureStorageAdapter {
 
   async getSecure(key: string): Promise<string | null> {
     try {
-      // @ts-expect-error - TypeScript types may be outdated, but API requires object params
-      const result = await SecureStorage.get({ key });
-      return (result as any) || null;
+      const result = await SecureStoragePlugin.get({ key });
+      return result.value || null;
     } catch {
       return null;
     }
   }
 
   async setSecure(key: string, value: string): Promise<void> {
-    // @ts-expect-error - TypeScript types may be outdated, but API requires object params
-    await SecureStorage.set({ key, value });
+    await SecureStoragePlugin.set({ key, value });
   }
 
   async removeSecure(key: string): Promise<void> {
     try {
-      // @ts-expect-error - TypeScript types may be outdated, but API requires object params
-      await SecureStorage.remove({ key });
+      await SecureStoragePlugin.remove({ key });
     } catch {
       // Key might not exist, ignore error
     }
@@ -160,7 +148,7 @@ class NativeSecureStorage implements SecureStorageAdapter {
     
     // Clear all keys from secure storage
     try {
-      await SecureStorage.clear();
+      await SecureStoragePlugin.clear();
     } catch {
       // Ignore errors
     }

@@ -76,7 +76,7 @@ import { Button } from "@/components/ui/button";
 import { useEffect } from "react";
 import { App as CapacitorApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
-import { SecureStorage } from '@aparajita/capacitor-secure-storage';
+import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin';
 import { Preferences } from '@capacitor/preferences';
 import { isNativePlatform } from "@/mobile/MobileBootstrap";
 import SafariData from "@/lib/safariData";
