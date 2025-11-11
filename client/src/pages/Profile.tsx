@@ -196,14 +196,19 @@ export default function Profile() {
       </div>
 
       <Tabs defaultValue="personal" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4 lg:w-[600px]">
+        <TabsList className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 w-full gap-2 h-auto p-2">
           <TabsTrigger value="personal" data-testid="tab-personal">
             <User className="h-4 w-4 mr-2" />
-            Personal
+            <span className="hidden sm:inline">Personal</span>
+            <span className="sm:hidden">Info</span>
           </TabsTrigger>
           <TabsTrigger value="health" data-testid="tab-health">
             <Heart className="h-4 w-4 mr-2" />
             Health
+          </TabsTrigger>
+          <TabsTrigger value="fitness" data-testid="tab-fitness">
+            <Dumbbell className="h-4 w-4 mr-2" />
+            Fitness
           </TabsTrigger>
           <TabsTrigger value="billing" data-testid="tab-billing">
             <CreditCard className="h-4 w-4 mr-2" />
@@ -211,7 +216,8 @@ export default function Profile() {
           </TabsTrigger>
           <TabsTrigger value="preferences" data-testid="tab-preferences">
             <Settings className="h-4 w-4 mr-2" />
-            Preferences
+            <span className="hidden sm:inline">Preferences</span>
+            <span className="sm:hidden">Prefs</span>
           </TabsTrigger>
         </TabsList>
 
@@ -692,6 +698,68 @@ export default function Profile() {
                 <p className="text-sm text-muted-foreground">
                   Choose how measurements are displayed throughout the app
                 </p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="fitness" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Fitness Profile</CardTitle>
+              <CardDescription>
+                Configure your fitness preferences, equipment, goals, and training schedule for personalized workout recommendations
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                <p className="text-sm text-muted-foreground">
+                  Your fitness profile helps the AI generate customized workouts tailored to your experience level, available equipment, goals, and schedule.
+                </p>
+                
+                <div className="rounded-lg border p-6 space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 rounded-full bg-primary/10">
+                      <Dumbbell className="h-6 w-6 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold">Complete Your Fitness Profile</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Set up your training preferences, equipment access, and fitness goals
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <ul className="space-y-2 text-sm">
+                    <li className="flex items-center gap-2">
+                      <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                      Training experience & fitness level
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                      Gym access & available equipment
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                      Primary & secondary fitness goals
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                      Workout preferences & schedule
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                      Injuries & limitations
+                    </li>
+                  </ul>
+
+                  <Link to="/training/fitness-profile">
+                    <Button className="w-full" data-testid="button-manage-fitness-profile">
+                      <Dumbbell className="mr-2 h-4 w-4" />
+                      Manage Fitness Profile
+                    </Button>
+                  </Link>
+                </div>
               </div>
             </CardContent>
           </Card>
