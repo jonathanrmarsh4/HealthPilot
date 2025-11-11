@@ -441,6 +441,12 @@ export async function setupAuth(app: Express) {
       // Create a long-lived session token for the mobile app
       const sessionToken = crypto.randomBytes(32).toString('base64url');
       
+      console.log("📱 Generated sessionToken:", {
+        length: sessionToken.length,
+        type: typeof sessionToken,
+        first10: sessionToken.substring(0, 10)
+      });
+      
       // Store session token in database (you'll need to add this to schema)
       await storage.createMobileSession({
         token: sessionToken,
@@ -450,7 +456,7 @@ export async function setupAuth(app: Express) {
       
       console.log("✅ Mobile session created for user:", userId);
       
-      res.json({ 
+      const responseData = { 
         sessionToken,
         user: {
           id: user.id,
@@ -461,7 +467,15 @@ export async function setupAuth(app: Express) {
           role: user.role,
           subscriptionTier: user.subscriptionTier,
         }
+      };
+      
+      console.log("📤 Sending mobile auth response:", {
+        hasSessionToken: !!responseData.sessionToken,
+        sessionTokenType: typeof responseData.sessionToken,
+        sessionTokenLength: responseData.sessionToken?.length
       });
+      
+      res.json(responseData);
     } catch (error) {
       console.error("❌ Error creating mobile session:", error);
       res.status(500).json({ message: "Internal server error" });

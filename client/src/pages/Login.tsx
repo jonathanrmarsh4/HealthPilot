@@ -57,14 +57,29 @@ export default function Login() {
       });
       
       if (!authResponse.ok) {
+        const errorText = await authResponse.text();
+        console.error('[Login] Failed to exchange token:', errorText);
         throw new Error('Failed to exchange token');
       }
       
       const authData = await authResponse.json();
+      console.log('[Login] Received authData:', { 
+        hasSessionToken: !!authData.sessionToken,
+        sessionTokenType: typeof authData.sessionToken,
+        sessionTokenLength: authData.sessionToken?.length 
+      });
+      
+      // Validate sessionToken before storing
+      if (!authData.sessionToken || typeof authData.sessionToken !== 'string') {
+        console.error('[Login] Invalid sessionToken:', authData.sessionToken);
+        throw new Error('Invalid session token received from server');
+      }
       
       // Store session token
+      console.log('[Login] Storing sessionToken in SecureStorage...');
       // @ts-expect-error - TypeScript types may be outdated, but API requires object params
       await SecureStorage.set({ key: 'sessionToken', value: authData.sessionToken });
+      console.log('[Login] SessionToken stored successfully');
       
       // Invalidate queries and redirect
       await queryClient.invalidateQueries();
