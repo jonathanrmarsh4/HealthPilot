@@ -22,6 +22,7 @@ import { useTimezone } from "@/contexts/TimezoneContext";
 import { Label } from "@/components/ui/label";
 import { CheckoutModal } from "@/components/CheckoutModal";
 import { Badge } from "@/components/ui/badge";
+import { FitnessProfileForm } from "@/components/FitnessProfileForm";
 
 const COMMON_TIMEZONES = [
   { value: "Pacific/Auckland", label: "Auckland (GMT+12)" },
@@ -704,65 +705,7 @@ export default function Profile() {
         </TabsContent>
 
         <TabsContent value="fitness" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Fitness Profile</CardTitle>
-              <CardDescription>
-                Configure your fitness preferences, equipment, goals, and training schedule for personalized workout recommendations
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                <p className="text-sm text-muted-foreground">
-                  Your fitness profile helps the AI generate customized workouts tailored to your experience level, available equipment, goals, and schedule.
-                </p>
-                
-                <div className="rounded-lg border p-6 space-y-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-3 rounded-full bg-primary/10">
-                      <Dumbbell className="h-6 w-6 text-primary" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold">Complete Your Fitness Profile</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Set up your training preferences, equipment access, and fitness goals
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <ul className="space-y-2 text-sm">
-                    <li className="flex items-center gap-2">
-                      <div className="h-1.5 w-1.5 rounded-full bg-primary" />
-                      Training experience & fitness level
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <div className="h-1.5 w-1.5 rounded-full bg-primary" />
-                      Gym access & available equipment
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <div className="h-1.5 w-1.5 rounded-full bg-primary" />
-                      Primary & secondary fitness goals
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <div className="h-1.5 w-1.5 rounded-full bg-primary" />
-                      Workout preferences & schedule
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <div className="h-1.5 w-1.5 rounded-full bg-primary" />
-                      Injuries & limitations
-                    </li>
-                  </ul>
-
-                  <Link to="/training/fitness-profile">
-                    <Button className="w-full" data-testid="button-manage-fitness-profile">
-                      <Dumbbell className="mr-2 h-4 w-4" />
-                      Manage Fitness Profile
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <FitnessProfileForm showHeader={false} />
         </TabsContent>
       </Tabs>
     </div>
