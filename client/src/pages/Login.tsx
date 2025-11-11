@@ -75,10 +75,8 @@ export default function Login() {
         throw new Error('Invalid session token received from server');
       }
       
-      // Store session token
+      // Store session token in SecureStorage (iOS Keychain)
       console.log('[Login] Storing sessionToken in SecureStorage...');
-      console.log('[Login] Token value (first 20 chars):', authData.sessionToken.substring(0, 20));
-      console.log('[Login] Token value (last 20 chars):', authData.sessionToken.substring(authData.sessionToken.length - 20));
       // @ts-expect-error - TypeScript types may be outdated, but API requires object params
       await SecureStorage.set({ key: 'sessionToken', value: authData.sessionToken });
       console.log('[Login] SessionToken stored successfully');
