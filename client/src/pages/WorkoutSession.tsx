@@ -1198,7 +1198,7 @@ export default function WorkoutSession() {
       </div>
 
       {/* Exercise List with Drag-and-Drop */}
-      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3 pb-24">
+      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3 pb-48">
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
@@ -1236,17 +1236,21 @@ export default function WorkoutSession() {
         </DndContext>
       </div>
 
-      {/* Rest Timer (floating) */}
-      {restTimer !== null && (
-        <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-30 w-11/12 max-w-md">
-          <Card className="bg-primary text-primary-foreground shadow-lg" data-testid="card-rest-timer">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between gap-4">
+      {/* Fixed Footer with Liquid Glass Effect */}
+      <div 
+        className="fixed inset-x-0 bottom-0 z-40 backdrop-blur-xl bg-background/70 dark:bg-background/60 border-t border-border/60 shadow-lg"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom, 16px)' }}
+      >
+        <div className="max-w-md mx-auto px-4">
+          {/* Rest Timer (when active) */}
+          {restTimer !== null && (
+            <div className="pt-3 pb-2">
+              <div className="flex items-center justify-between gap-4 p-3 rounded-xl bg-primary/10 dark:bg-primary/20 border border-primary/20" data-testid="card-rest-timer">
                 <div className="flex items-center gap-3">
-                  <Timer className="h-6 w-6" />
+                  <Timer className="h-5 w-5 text-primary" />
                   <div>
-                    <p className="text-sm font-medium">Rest Timer</p>
-                    <p className="text-2xl font-bold" data-testid="text-rest-timer">
+                    <p className="text-xs font-medium text-muted-foreground">Rest Timer</p>
+                    <p className="text-xl font-bold" data-testid="text-rest-timer">
                       {formatRestTimer(restTimer)}
                     </p>
                   </div>
@@ -1260,21 +1264,19 @@ export default function WorkoutSession() {
                   Skip
                 </Button>
               </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+            </div>
+          )}
 
-      {/* Sticky Footer - positioned above MobileNav (h-24 = 96px) */}
-      <div className="sticky bottom-24 z-20 bg-background border-t">
-        <div className="px-4 pt-2 pb-1">
-          <p className="text-xs text-center text-muted-foreground mb-2">
-            <Info className="inline h-3 w-3 mr-1" />
-            Finish your workout to update muscle recovery and training progress
-          </p>
-        </div>
-        <div className="px-4 pb-4">
-          <div className="flex flex-col gap-2">
+          {/* Elapsed Time (always visible) */}
+          <div className="flex items-center justify-center gap-2 py-2">
+            <Clock className="h-4 w-4 text-muted-foreground" />
+            <p className="text-sm font-semibold" data-testid="text-footer-elapsed-time">
+              {formatElapsedTime(elapsedTime)}
+            </p>
+          </div>
+
+          {/* Finish Workout Button */}
+          <div className="pb-3 pt-1 space-y-2">
             <Button
               className="w-full"
               onClick={() => finishWorkoutMutation.mutate()}
