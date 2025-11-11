@@ -17,11 +17,16 @@ export async function getAuthHeaders(): Promise<HeadersInit> {
     try {
       // @ts-expect-error - TypeScript types may be outdated, but API requires object params
       const { value: token } = await SecureStorage.get({ key: 'sessionToken' });
+      console.log('[getAuthHeaders] Token retrieved:', token ? `${token.substring(0, 10)}...` : 'null');
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
+        console.log('[getAuthHeaders] Added Authorization header');
+      } else {
+        console.log('[getAuthHeaders] No token found in SecureStorage');
       }
-    } catch {
+    } catch (error) {
       // Token not found or SecureStorage error, continue without auth header
+      console.error('[getAuthHeaders] Error retrieving token:', error);
     }
   }
   
