@@ -1,0 +1,141 @@
+`UIScene` lifecycle will soon be required. Failure to adopt will result in an assert in the future.
+Could not create a sandbox extension for '/var/containers/Bundle/Application/6009659B-18BC-4DFA-A711-18BC03505A05/App.app'
+KeyboardPlugin: resize mode - body
+⚡️  Loading app at capacitor://localhost...
+Networking process (0x111058190) took 8.973467 seconds to launch
+SplashScreen.hideSplash: SplashScreen was automatically hidden after default timeout. You should call `SplashScreen.hide()` as soon as your web app is loaded (or increase the timeout). Read more at https://capacitorjs.com/docs/apis/splash-screen#hiding-the-splash-screen
+🧹 WKWebView cache FULLY cleared (all data types)
+0x1110fc100 - [PID=11255] WebProcessProxy::didBecomeUnresponsive:
+0x15439ce18 - [pageProxyID=7, webPageID=8, PID=11255] WebPageProxy::processDidBecomeUnresponsive:
+WebContent[11255] Unable to hide query parameters from script (missing data)
+⚡️  [log] - onscript loading complete
+⚡️  To Native ->  StatusBar setStyle 124117194
+⚡️  TO JS {}
+⚡️  WebView loaded
+⚡️  To Native ->  SplashScreen hide 124117195
+⚡️  TO JS undefined
+⚡️  To Native ->  Keyboard addListener 124117196
+⚡️  To Native ->  Keyboard addListener 124117197
+⚡️  To Native ->  App addListener 124117198
+⚡️  To Native ->  App getInfo 124117199
+⚡️  TO JS {"name":"HealthPilot","build":"1","version":"1.0","id":"com.nuvitae.healthpilot"}
+⚡️  To Native ->  App addListener 124117200
+⚡️  To Native ->  App addListener 124117201
+⚡️  To Native ->  StatusBar setStyle 124117202
+⚡️  TO JS {}
+⚡️  To Native ->  SecureStorage internalGetItem 124117203
+⚡️  To Native ->  SecureStorage internalGetItem 124117204
+⚡️  TO JS {"data":null}
+⚡️  TO JS {"data":null}
+⚡️  [error] - [getAuthHeaders] Error retrieving token: {}
+⚡️  [error] - [getAuthHeaders] Error retrieving token: {}
+⚡️  To Native ->  Preferences get 124117205
+⚡️  To Native ->  App addListener 124117206
+⚡️  TO JS {"value":null}
+⚡️  To Native ->  Preferences set 124117207
+⚡️  TO JS undefined
+⚡️  To Native ->  Preferences get 124117208
+⚡️  TO JS {"value":"1762854292534-ngnayi"}
+⚡️  To Native ->  Preferences get 124117209
+⚡️  TO JS {"value":"1762854292534-ngnayi"}
+⚡️  To Native ->  Browser open 124117210
+⚡️  To Native ->  Preferences get 124117211
+⚡️  To Native ->  ⚡️  TO JS Preferences get 124117212
+{"value":"1762854292534-ngnayi"}
+⚡️  TO JS {"value":"1762854292534-ngnayi"}
+(501) Invalidation handler invoked, clearing connection
+(501) personaAttributesForPersonaType for type:0 failed with error Error Domain=NSCocoaErrorDomain Code=4099 "The connection to service named com.apple.mobile.usermanagerd.xpc was invalidated: Connection init failed at lookup with error 159 - Sandbox restriction." UserInfo={NSDebugDescription=The connection to service named com.apple.mobile.usermanagerd.xpc was invalidated: Connection init failed at lookup with error 159 - Sandbox restriction.}
+Received port for identifier response: <(null)> with error:Error Domain=RBSServiceErrorDomain Code=1 "Client not entitled" UserInfo={RBSEntitlement=com.apple.runningboard.process-state, NSLocalizedFailureReason=Client not entitled, RBSPermanent=false}
+elapsedCPUTimeForFrontBoard couldn't generate a task port
+Received port for identifier response: <(null)> with error:Error Domain=RBSServiceErrorDomain Code=1 "Client not entitled" UserInfo={RBSEntitlement=com.apple.runningboard.process-state, NSLocalizedFailureReason=Client not entitled, RBSPermanent=false}
+elapsedCPUTimeForFrontBoard couldn't generate a task port
+Received port for identifier response: <(null)> with error:Error Domain=RBSServiceErrorDomain Code=1 "Client not entitled" UserInfo={RBSEntitlement=com.apple.runningboard.process-state, NSLocalizedFailureReason=Client not entitled, RBSPermanent=false}
+elapsedCPUTimeForFrontBoard couldn't generate a task port
+⚡️  To Native ->  Preferences get 124117213
+⚡️  TO JS {"value":"1762854292534-ngnayi"}
+Received port for identifier response: <(null)> with error:Error Domain=RBSServiceErrorDomain Code=1 "Client not entitled" UserInfo={RBSEntitlement=com.apple.runningboard.process-state, NSLocalizedFailureReason=Client not entitled, RBSPermanent=false}
+elapsedCPUTimeForFrontBoard couldn't generate a task port
+⚡️  TO JS undefined
+⚡️  To Native ->  Preferences get 124117214
+⚡️  TO JS {"value":"1762854292534-ngnayi"}
+⚡️  To Native ->  Preferences get 124117215
+⚡️  TO JS {"value":"1762854292534-ngnayi"}
+⚡️  To Native ->  Preferences get 124117216
+⚡️  TO JS {"value":"1762854292534-ngnayi"}
+⚡️  To Native ->  Preferences get 124117217
+⚡️  TO JS {"value":"1762854292534-ngnayi"}
+⚡️  To Native ->  Preferences get 124117218
+⚡️  TO JS {"value":"1762854292534-ngnayi"}
+⚡️  To Native ->  Preferences get 124117219
+⚡️  TO JS {"value":"1762854292534-ngnayi"}
+⚡️  To Native ->  Preferences get 124117220
+⚡️  TO JS {"value":"1762854292534-ngnayi"}
+⚡️  To Native ->  Preferences get 124117221
+⚡️  TO JS {"value":"1762854292534-ngnayi"}
+⚡️  To Native ->  Preferences get 124117222
+⚡️  TO JS {"value":"1762854292534-ngnayi"}
+⚡️  To Native ->  Preferences get 124117223
+⚡️  TO JS {"value":"1762854292534-ngnayi"}
+⚡️  To Native ->  Preferences get 124117224
+⚡️  TO JS {"value":"1762854292534-ngnayi"}
+⚡️  To Native ->  Preferences get 124117225
+⚡️  TO JS {"value":"1762854292534-ngnayi"}
+⚡️  TO JS {"keyboardHeight":17}
+⚡️  TO JS {"keyboardHeight":17}
+⚡️  TO JS {"keyboardHeight":443}
+⚡️  To Native ->  Preferences get 124117226
+⚡️  To Native ->  Preferences get 124117227
+⚡️  To Native ->  Preferences get 124117228
+⚡️  TO JS {"value":"1762854292534-ngnayi"}
+⚡️  To Native ->  Preferences get 124117229
+⚡️  TO JS {"value":"1762854292534-ngnayi"}
+⚡️  To Native ->  Preferences get 124117230
+⚡️  TO JS {"value":"1762854292534-ngnayi"}
+⚡️  TO JS {"value":"1762854292534-ngnayi"}
+⚡️  TO JS {"value":"1762854292534-ngnayi"}
+⚡️  To Native ->  Preferences get 124117231
+⚡️  TO JS {"value":"1762854292534-ngnayi"}
+⚡️  TO JS {"keyboardHeight":443}
+⚡️  TO JS {"keyboardHeight":443}
+⚡️  TO JS {"keyboardHeight":443}
+⚡️  TO JS {"keyboardHeight":443}
+⚡️  TO JS {"keyboardHeight":0}
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  To Native ->  Preferences get 124117232
+⚡️  TO JS {"value":"1762854292534-ngnayi"}
+⚡️  To Native ->  Preferences get 124117233
+⚡️  TO JS {"value":"1762854292534-ngnayi"}
+⚡️  To Native ->  Preferences get 124117234
+⚡️  TO JS {"value":"1762854292534-ngnayi"}
+⚡️  To Native ->  Preferences get 124117235
+⚡️  TO JS {"value":"1762854292534-ngnayi"}
+⚡️  To Native ->  Preferences get 124117236
+⚡️  TO JS {"value":"1762854292534-ngnayi"}
+⚡️  To Native ->  Preferences get 124117237
+⚡️  TO JS {"value":"1762854292534-ngnayi"}
+⚡️  To Native ->  Preferences get 124117238
+⚡️  TO JS {"value":"1762854292534-ngnayi"}
+⚡️  To Native ->  Preferences get 124117239
+⚡️  TO JS {"value":"1762854292534-ngnayi"}
+⚡️  To Native ->  Preferences get 124117240
+⚡️  TO JS {"value":"1762854292534-ngnayi"}
+⚡️  To Native ->  SecureStorage internalGetItem 124117241
+⚡️  TO JS {"data":null}
+⚡️  [error] - [getAuthHeaders] Error retrieving token: {}
+⚡️  To Native ->  Preferences get 124117242
+⚡️  TO JS {"value":"1762854292534-ngnayi"}
+⚡️  [log] - [Login] Received authData: {"hasSessionToken":true,"sessionTokenType":"string","sessionTokenLength":43}
+⚡️  [log] - [Login] Storing sessionToken in SecureStorage...
+⚡️  To Native ->  SecureStorage internalSetItem 124117243
+ERROR MESSAGE:  {"message":"The data is in an invalid format","errorMessage":"The data is in an invalid format","code":"invalidData"}
+⚡️  [error] - {"message":"The data is in an invalid format","errorMessage":"The data is in an invalid format","code":"invalidData"}
+⚡️  [error] - [Login] Error checking for auth: {"name":"StorageError","code":"invalidData"}
+⚡️  To Native ->  Preferences get 124117244
+⚡️  TO JS {"value":"1762854292534-ngnayi"}
+⚡️  To Native ->  Preferences get 124117245
+⚡️  TO JS {"value":"1762854292534-ngnayi"}
+⚡️  To Native ->  Preferences get 124117246
+⚡️  TO JS {"value":"1762854292534-ngnayi"}
+⚡️  To Native ->  Preferences get 124117247
+⚡️  TO JS {"value":"1762854292534-ngnayi"}
