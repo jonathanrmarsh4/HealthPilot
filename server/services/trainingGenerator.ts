@@ -170,6 +170,8 @@ export async function buildUserContext(storage: IStorage, userId: string, target
     shoulders: 70,
     arms: 70,
     core: 70,
+    glutes: 70,
+    calves: 70,
   };
 
   try {
@@ -234,11 +236,13 @@ function getRecoveryPenalty(
   pattern: Pattern, 
   muscleRecovery: Record<string, number>
 ): { penalty: number; avgRecovery: number; affectedMuscles: string[] } {
-  // Map our 6 muscle groups to pattern muscle names
+  // Map our 8 muscle groups to pattern muscle names
   const muscleGroupMapping: Record<string, string[]> = {
     chest: ['chest', 'pectorals', 'front delts', 'pecs'],
     back: ['back', 'lats', 'traps', 'rear delts', 'rhomboids', 'lower back'],
-    legs: ['legs', 'quads', 'quadriceps', 'hamstrings', 'glutes', 'calves', 'hip flexors'],
+    legs: ['legs', 'quads', 'quadriceps', 'hamstrings', 'hip flexors'],
+    glutes: ['glutes', 'gluteus'],
+    calves: ['calves', 'calf', 'gastrocnemius', 'soleus'],
     shoulders: ['shoulders', 'delts', 'deltoids', 'front delts', 'side delts', 'rear delts'],
     arms: ['arms', 'biceps', 'triceps', 'forearms'],
     core: ['core', 'abs', 'abdominals', 'obliques']

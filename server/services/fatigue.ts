@@ -5,14 +5,14 @@ import { storage } from "../storage";
  * 
  * This service calculates muscle-group-specific fatigue from workouts and models
  * recovery using exponential decay curves. It provides a sophisticated alternative
- * to simple readiness scores by tracking 6 muscle groups independently.
+ * to simple readiness scores by tracking 8 muscle groups independently.
  */
 
-// The 6 muscle groups we track
-export const MUSCLE_GROUPS = ['chest', 'back', 'legs', 'shoulders', 'arms', 'core'] as const;
+// The 8 muscle groups we track
+export const MUSCLE_GROUPS = ['chest', 'back', 'legs', 'shoulders', 'arms', 'core', 'glutes', 'calves'] as const;
 export type MuscleGroup = typeof MUSCLE_GROUPS[number];
 
-// Muscle group mapping - maps exercise library muscle tags to our 6 groups
+// Muscle group mapping - maps exercise library muscle tags to our 8 groups
 const MUSCLE_GROUP_MAPPING: Record<string, MuscleGroup[]> = {
   // Chest
   'chest': ['chest'],
@@ -26,14 +26,22 @@ const MUSCLE_GROUP_MAPPING: Record<string, MuscleGroup[]> = {
   'upper back': ['back'],
   'lower back': ['back'],
   
-  // Legs
+  // Legs (quads, hamstrings only - glutes and calves are separate)
   'legs': ['legs'],
   'quads': ['legs'],
   'quadriceps': ['legs'],
   'hamstrings': ['legs'],
-  'glutes': ['legs'],
-  'calves': ['legs'],
   'hip flexors': ['legs'],
+  
+  // Glutes (independent tracking)
+  'glutes': ['glutes'],
+  'gluteus': ['glutes'],
+  
+  // Calves (independent tracking)
+  'calves': ['calves'],
+  'calf': ['calves'],
+  'gastrocnemius': ['calves'],
+  'soleus': ['calves'],
   
   // Shoulders
   'shoulders': ['shoulders'],
