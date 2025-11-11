@@ -1,0 +1,173 @@
+2025-11-11 18:20:01.66
+f7465cc3
+User
+> NODE_ENV=production node dist/index.js
+2025-11-11 18:20:12.32
+f7465cc3
+User
+throw new Errors.OpenAIError('Missing credentials. Please pass an `apiKey`, or set the `OPENAI_API_KEY` environment variable.');
+2025-11-11 18:20:12.32
+f7465cc3
+User
+^
+2025-11-11 18:20:12.32
+f7465cc3
+User
+2025-11-11 18:20:12.32
+f7465cc3
+User
+OpenAIError: Missing credentials. Please pass an `apiKey`, or set the `OPENAI_API_KEY` environment variable.
+2025-11-11 18:20:12.32
+f7465cc3
+User
+at new OpenAI (file:///home/runner/workspace/node_modules/openai/client.mjs:89:19)
+2025-11-11 18:20:12.32
+f7465cc3
+User
+at file:///home/runner/workspace/dist/index.js:19422:17
+2025-11-11 18:20:12.32
+f7465cc3
+User
+at ModuleJob.run (node:internal/modules/esm/module_job:263:25)
+2025-11-11 18:20:12.32
+f7465cc3
+User
+at async ModuleLoader.import (node:internal/modules/esm/loader:540:24)
+2025-11-11 18:20:12.32
+f7465cc3
+User
+at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+2025-11-11 18:20:12.32
+f7465cc3
+User
+2025-11-11 18:20:12.32
+f7465cc3
+User
+Node.js v20.19.3
+2025-11-11 18:20:12.35
+f7465cc3
+System
+command finished with error [npm run start]: exit status 1
+2025-11-11 18:20:14.30
+f7465cc3
+User
+> rest-express@1.0.0 start
+2025-11-11 18:20:14.30
+f7465cc3
+User
+> NODE_ENV=production node dist/index.js
+2025-11-11 18:20:17.26
+f7465cc3
+System
+a port configuration was specified but the required port was never opened
+2025-11-11 18:21:10.38
+f7465cc3
+System
+starting up user application
+2025-11-11 18:21:10.39
+f7465cc3
+System
+metasidecar: loaded enterprise status from environment is_enterprise=false
+2025-11-11 18:21:10.39
+f7465cc3
+System
+forwarding local port 5000 to external port 80 (mapped as 1104)
+2025-11-11 18:21:11.47
+f7465cc3
+User
+> rest-express@1.0.0 start
+2025-11-11 18:21:11.47
+f7465cc3
+User
+> NODE_ENV=production node dist/index.js
+2025-11-11 18:21:17.37
+f7465cc3
+User
+file:///home/runner/workspace/node_modules/openai/client.mjs:89
+2025-11-11 18:21:17.37
+f7465cc3
+User
+throw new Errors.OpenAIError('Missing credentials. Please pass an `apiKey`, or set the `OPENAI_API_KEY` environment variable.');
+2025-11-11 18:21:17.37
+f7465cc3
+User
+^
+2025-11-11 18:21:17.37
+f7465cc3
+User
+2025-11-11 18:21:17.37
+f7465cc3
+User
+OpenAIError: Missing credentials. Please pass an `apiKey`, or set the `OPENAI_API_KEY` environment variable.
+2025-11-11 18:21:17.37
+f7465cc3
+User
+at new OpenAI (file:///home/runner/workspace/node_modules/openai/client.mjs:89:19)
+2025-11-11 18:21:17.37
+f7465cc3
+User
+at file:///home/runner/workspace/dist/index.js:19422:17
+2025-11-11 18:21:17.37
+f7465cc3
+User
+at ModuleJob.run (node:internal/modules/esm/module_job:263:25)
+2025-11-11 18:21:17.37
+f7465cc3
+User
+at async ModuleLoader.import (node:internal/modules/esm/loader:540:24)
+2025-11-11 18:21:17.37
+f7465cc3
+User
+at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+2025-11-11 18:21:17.37
+f7465cc3
+User
+2025-11-11 18:21:17.37
+f7465cc3
+User
+Node.js v20.19.3
+2025-11-11 18:21:17.39
+f7465cc3
+User
+npm notice
+2025-11-11 18:21:17.39
+f7465cc3
+User
+npm notice New major version of npm available! 10.8.2 -> 11.6.2
+2025-11-11 18:21:17.39
+f7465cc3
+User
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.6.2
+2025-11-11 18:21:17.39
+f7465cc3
+User
+npm notice To update run: npm install -g npm@11.6.2
+2025-11-11 18:21:17.39
+f7465cc3
+User
+npm notice
+2025-11-11 18:21:17.40
+f7465cc3
+System
+command finished with error [npm run start]: exit status 1
+2025-11-11 18:21:17.72
+f7465cc3
+User
+> rest-express@1.0.0 start
+2025-11-11 18:21:17.72
+f7465cc3
+User
+> NODE_ENV=production node dist/index.js
+2025-11-11 18:21:21.41
+f7465cc3
+User
+file:///home/runner/workspace/node_modules/openai/client.mjs:89
+2025-11-11 18:21:21.41
+f7465cc3
+User
+throw new Errors.OpenAIError('Missing credentials. Please pass an `apiKey`, or set the `OPENAI_API_KEY` environment variable.');
+2025-11-11 18:21:21.41
+f7465cc3
+User
+^
+
