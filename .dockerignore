@@ -1,0 +1,95 @@
+# Dependencies - will be reinstalled during build
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Testing artifacts and screenshots
+*.png
+*.jpg
+*.jpeg
+*.gif
+artifacts/
+attached_assets/
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+playwright-report/
+test-results/
+coverage/
+
+# Documentation
+docs/
+*.md
+!README.md
+BASELINE_MODE.md
+CAPACITOR_IOS_SETUP.md
+EXERCISE_MEDIA_*.md
+HEALTHPILOT_CAPABILITIES.md
+IOS_BUILD_GUIDE.md
+JUNCTION_COMPARISON.md
+MOBILE_READINESS_CHECKLIST.md
+NOTIFICATIONS_SETUP.md
+OPERATIONS.md
+PERSIST_EXTERNAL_ID_IMPLEMENTATION.md
+POST_DEPLOYMENT_REVIEW.md
+PRIVACY_COMPLIANCE_IMPLEMENTATION.md
+SECURITY_COMPLIANCE_ASSESSMENT.md
+STRIPE_SETUP.md
+TEST_PLAN_IOS.md
+TRAINING_PHASE_1_SUMMARY.md
+USER_PAYMENT_GUIDE.md
+WEBHOOK-TESTING-QUICKSTART.md
+WORKOUT_PLANNER_README.md
+
+# JSON artifacts and backfill data
+backfill-audit-*.json
+exercise-resolver-documentation.json
+demo_*.ts
+
+# Development files
+.env.local
+.env.development
+.env.test
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# iOS build artifacts (not needed for web deployment)
+ios/
+capacitor.config.ts
+CAPACITOR_IOS_SETUP.md
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+
+# Build output (will be rebuilt)
+dist/
+.vite/
+.cache/
+
+# Type checking and linting
+tsconfig.json
+eslint.config.js
+.eslintrc*
+.prettierrc*
+
+# Replit specific
+.replit
+replit.nix
+.config/
+
+# Misc
+*.log
+.npm/
+.pnpm-debug.log
