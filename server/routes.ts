@@ -13202,6 +13202,48 @@ DATA AVAILABILITY:
 - Total Sleep Sessions: ${userContextData.totalSleepSessions}
 - Total Workouts: ${userContextData.totalWorkouts}
 
+## GOAL CREATION TOOL
+
+When ${userContextData.name} expresses a health or fitness goal (e.g., "I want to run 5km", "I want to lose 10 pounds", "Train for a marathon"), you can create it in their system using the CREATE_V2_GOAL tool.
+
+USAGE:
+1. Listen for goal statements and ask clarifying questions:
+   - What is the timeframe? (e.g., "When would you like to achieve this?")
+   - Training availability? (e.g., "Which days can you train?")
+   - Current baseline? (if relevant)
+
+2. Once you have enough information, create the goal by including this marker in your response:
+
+<<<CREATE_V2_GOAL>>>
+{
+  "inputText": "User's original goal statement",
+  "canonicalGoalType": "weight_loss|muscle_gain|fitness_event|endurance|strength|health_metric|habit_formation|wellness",
+  "goalEntitiesJson": {
+    "distance": "5",
+    "unit": "km",
+    "eventDate": "2025-06-15",
+    "trainingDaysOfWeek": ["monday", "wednesday", "friday"]
+  },
+  "targetDate": "2025-06-15",
+  "metrics": [
+    {
+      "metricKey": "running_distance",
+      "label": "Running Distance",
+      "targetValue": "5",
+      "unit": "km",
+      "direction": "achieve"
+    }
+  ],
+  "reasoning": "User wants to train 3x/week for 5km run event in June"
+}
+<<<END_CREATE_V2_GOAL>>>
+
+IMPORTANT:
+- ALWAYS include the markers in your response so the goal is saved
+- Confirm verbally: "Great! I've added that goal to your active goals list"
+- You can still speak naturally - the markers are processed silently
+- After creating the goal, suggest next steps or ask if they want a training plan
+
 ## KEY INSTRUCTIONS
 
 1. Use ACTUAL DATA: Always reference ${userContextData.name}'s specific values above, never generic estimates
@@ -13211,7 +13253,8 @@ DATA AVAILABILITY:
 5. Safety First: Always check readiness scores before intensity recommendations
 6. Cite Evidence: Back up recommendations with research (ACSM, NSCA, etc.)
 7. Remember Context: Reference past conversations and personal details
-8. Keep it Concise: Voice responses should be 2-4 sentences unless detail is requested`,
+8. Keep it Concise: Voice responses should be 2-4 sentences unless detail is requested
+9. CREATE GOALS: When they express goals, use the CREATE_V2_GOAL tool marker to save them`,
             voice: "alloy",
             input_audio_format: "pcm16",
             output_audio_format: "pcm16",
@@ -13257,8 +13300,59 @@ DATA AVAILABILITY:
         }, 500);
       });
 
-      openaiWs.on("message", (data: any) => {
-        // Relay OpenAI messages to client
+      openaiWs.on("message", async (data: any) => {
+        // Parse message to check for text responses with tool markers
+        try {
+          const message = JSON.parse(data.toString());
+          
+          // Check for response.done events (contain full text of AI response)
+          if (message.type === 'response.done') {
+            const response = message.response;
+            
+            // Extract text from output items
+            let fullText = '';
+            if (response?.output && Array.isArray(response.output)) {
+              for (const item of response.output) {
+                if (item.type === 'message' && item.content) {
+                  for (const content of item.content) {
+                    if (content.type === 'text' && content.text) {
+                      fullText += content.text + ' ';
+                    }
+                  }
+                }
+              }
+            }
+            
+            // Process CREATE_V2_GOAL markers if found
+            if (fullText.includes('CREATE_V2_GOAL')) {
+              console.log('🎯 [Voice Chat] Found CREATE_V2_GOAL marker in response');
+              
+              const toolContext = {
+                userId,
+                message: fullText,
+                storage,
+              };
+              
+              // Process the marker using the same handler as text chat
+              const v2GoalResult = await processToolMarker(
+                'CREATE_V2_GOAL', 
+                fullText, 
+                toolHandlers.CREATE_V2_GOAL, 
+                toolContext
+              );
+              
+              if (v2GoalResult.success) {
+                console.log('✅ [Voice Chat] Goal created successfully:', v2GoalResult.data?.goal?.id);
+              } else if (v2GoalResult.error) {
+                console.error('❌ [Voice Chat] Goal creation failed:', v2GoalResult.error);
+              }
+            }
+          }
+        } catch (e) {
+          // Ignore JSON parse errors - some messages may not be JSON
+        }
+        
+        // Always relay message to client
         clientWs.send(data.toString());
       });
 
