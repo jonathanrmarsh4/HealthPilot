@@ -76,8 +76,15 @@ export default function Login() {
       }
       
       // Store session token in SecureStorage (iOS Keychain)
+      // Base64 encode to ensure proper format for iOS Keychain
       console.log('[Login] Storing sessionToken in SecureStorage...');
-      await SecureStoragePlugin.set({ key: 'sessionToken', value: authData.sessionToken });
+      const base64Token = btoa(authData.sessionToken);
+      console.log('[Login] Token encoded:', { 
+        original: authData.sessionToken.substring(0, 10),
+        base64: base64Token.substring(0, 10),
+        base64Length: base64Token.length 
+      });
+      await SecureStoragePlugin.set({ key: 'sessionToken', value: base64Token });
       console.log('[Login] SessionToken stored successfully');
       
       // Invalidate queries and redirect

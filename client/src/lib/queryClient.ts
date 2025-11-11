@@ -16,9 +16,11 @@ export async function getAuthHeaders(): Promise<HeadersInit> {
   if (isNativePlatform()) {
     try {
       const result = await SecureStoragePlugin.get({ key: 'sessionToken' });
-      const token = result.value;
-      console.log('[getAuthHeaders] Token retrieved:', token ? `${token.substring(0, 10)}...` : 'null');
-      if (token) {
+      const base64Token = result.value;
+      if (base64Token) {
+        // Decode from base64 (stored encoded for iOS Keychain compatibility)
+        const token = atob(base64Token);
+        console.log('[getAuthHeaders] Token retrieved and decoded:', token ? `${token.substring(0, 10)}...` : 'null');
         headers['Authorization'] = `Bearer ${token}`;
         console.log('[getAuthHeaders] Added Authorization header');
       } else {
