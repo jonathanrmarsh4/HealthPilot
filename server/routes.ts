@@ -6788,18 +6788,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Exercise set not found" });
       }
       
-      // If completion state changed (comparing actual stored values), update recovery status in real-time
-      if (existingSet.completed !== updatedSet.completed && updatedSet.workoutSessionId) {
-        try {
-          // Recalculate fatigue from only completed sets in this workout
-          // This ensures fatigue resets to zero if no sets are completed,
-          // or accurately reflects remaining completed sets
-          await applyWorkoutFatigue(userId, updatedSet.workoutSessionId, new Date(), true);
-        } catch (error) {
-          console.error("Error updating recovery status:", error);
-          // Don't fail the request if recovery update fails
-        }
-      }
+      // Note: We do NOT update recovery status in real-time during workouts.
+      // Recovery fatigue is applied only once when the workout is completed via recordWorkoutCompletion.
+      // This prevents double-counting of fatigue from multiple calls to applyWorkoutFatigue.
       
       res.json(updatedSet);
     } catch (error: any) {

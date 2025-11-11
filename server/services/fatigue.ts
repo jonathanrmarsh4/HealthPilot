@@ -522,6 +522,10 @@ async function getBiometricFactors(userId: string): Promise<{
 /**
  * Apply fatigue damage from a workout to muscle group recovery states
  * @param onlyCompleted - If true, only count completed sets (for real-time updates)
+ * 
+ * Note: This function REPLACES fatigue damage for each muscle group (does not accumulate).
+ * This is called only once per workout completion to prevent double-counting.
+ * Decay is applied during reads (calculateRecoveryScore) based on lastWorkoutAt timestamp.
  */
 export async function applyWorkoutFatigue(
   userId: string,
@@ -535,9 +539,10 @@ export async function applyWorkoutFatigue(
   const fatigue = await calculateWorkoutFatigue(userId, workoutSessionId, onlyCompleted);
   console.log(`📊 [applyWorkoutFatigue] Calculated fatigue for ${fatigue.size} muscle groups`);
   
-  // Update each affected muscle group
+  // Update each affected muscle group - REPLACES fatigue (no accumulation)
   for (const [muscleGroup, damage] of fatigue) {
-    console.log(`🔧 [applyWorkoutFatigue] Updating ${muscleGroup}: +${damage.toFixed(1)} fatigue points`);
+    console.log(`🔧 [applyWorkoutFatigue] ${muscleGroup}: fatigue=${damage.toFixed(1)}`);
+    
     await storage.updateMuscleGroupRecovery(userId, muscleGroup, {
       fatigueDamage: damage,
       lastWorkoutAt: completedAt,
