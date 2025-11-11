@@ -1,0 +1,94 @@
+-11 18:13:06.20
+f7465cc3
+User
+file:///home/runner/workspace/node_modules/openai/client.mjs:89
+2025-11-11 18:13:06.20
+f7465cc3
+User
+throw new Errors.OpenAIError('Missing credentials. Please pass an `apiKey`, or set the `OPENAI_API_KEY` environment variable.');
+2025-11-11 18:13:06.20
+f7465cc3
+User
+^
+2025-11-11 18:13:06.20
+f7465cc3
+User
+2025-11-11 18:13:06.20
+f7465cc3
+User
+OpenAIError: Missing credentials. Please pass an `apiKey`, or set the `OPENAI_API_KEY` environment variable.
+2025-11-11 18:13:06.20
+f7465cc3
+User
+at new OpenAI (file:///home/runner/workspace/node_modules/openai/client.mjs:89:19)
+2025-11-11 18:13:06.20
+f7465cc3
+User
+at file:///home/runner/workspace/dist/index.js:19422:17
+2025-11-11 18:13:06.20
+f7465cc3
+User
+at ModuleJob.run (node:internal/modules/esm/module_job:263:25)
+2025-11-11 18:13:06.20
+f7465cc3
+User
+at async ModuleLoader.import (node:internal/modules/esm/loader:540:24)
+2025-11-11 18:13:06.20
+f7465cc3
+User
+at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+2025-11-11 18:13:06.20
+f7465cc3
+User
+2025-11-11 18:13:06.20
+f7465cc3
+User
+Node.js v20.19.3
+2025-11-11 18:13:06.23
+f7465cc3
+User
+npm notice
+2025-11-11 18:13:06.23
+f7465cc3
+User
+npm notice New major version of npm available! 10.8.2 -> 11.6.2
+2025-11-11 18:13:06.23
+f7465cc3
+User
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.6.2
+2025-11-11 18:13:06.23
+f7465cc3
+User
+npm notice To update run: npm install -g npm@11.6.2
+2025-11-11 18:13:06.23
+f7465cc3
+User
+npm notice
+2025-11-11 18:13:06.24
+f7465cc3
+System
+command finished with error [npm run start]: exit status 1
+2025-11-11 18:13:06.61
+f7465cc3
+User
+> rest-express@1.0.0 start
+2025-11-11 18:13:06.61
+f7465cc3
+User
+> NODE_ENV=production node dist/index.js
+2025-11-11 18:13:10.49
+f7465cc3
+User
+file:///home/runner/workspace/node_modules/openai/client.mjs:89
+2025-11-11 18:13:10.49
+f7465cc3
+User
+throw new Errors.OpenAIError('Missing credentials. Please pass an `apiKey`, or set the `OPENAI_API_KEY` environment variable.');
+2025-11-11 18:13:10.49
+f7465cc3
+User
+^
+2025-11-11 18:13:10.49
+f7465cc3
+User
+
