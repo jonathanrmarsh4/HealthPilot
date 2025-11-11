@@ -10,7 +10,7 @@ I prefer simple language and clear explanations. I want iterative development wh
 **Frontend:** React 18, Vite 5.x, Wouter, shadcn/ui + Radix UI, Tailwind CSS, TanStack Query v5, React Hook Form + Zod, Lucide React + React Icons.
 **Backend:** Express.js, RESTful APIs with Zod validation, express-session, WebSocket (for Voice Chat), Multer, date-fns-tz for timezone-aware date handling.
 **Database:** PostgreSQL (Neon-backed), Drizzle ORM, Drizzle-Zod.
-**Mobile:** Capacitor 7 (iOS native app), custom @healthpilot/healthkit plugin for comprehensive HealthKit integration (26 data types vs standard 5), capacitor-secure-storage-plugin for iOS Keychain integration. **CRITICAL:** Plugin must remain in package.json as `"@healthpilot/healthkit": "file:ios/HealthKitPlugin"` - if accidentally removed during npm operations, reinstall with `npm install file:./ios/HealthKitPlugin` on Mac build machine.
+**Mobile:** Capacitor 7 (iOS native app), custom @healthpilot/healthkit plugin for comprehensive HealthKit integration, capacitor-secure-storage-plugin for iOS Keychain integration.
 **Timezone Support:** All date-based features are fully timezone-aware using user's stored timezone preference.
 
 **UI/UX Decisions:**
@@ -21,65 +21,52 @@ I prefer simple language and clear explanations. I want iterative development wh
 - Glass-morphism modal UI for Voice Chat.
 - Swipe-to-Open Sidebar for mobile gesture navigation.
 - Premium Theme System v2.0 - Dual-Personality Liquid Glass Design.
-- Dual Schedule System: Separate schedules on Training page (training workouts, recommendations, insights) and Recovery page (recovery sessions).
-- Mobile-Optimized Workout UI: Streamlined workout generation interface and active workout session display.
-- Fixed-Position Mobile Header with iOS safe-area support and symmetric content padding (scrollbar-hide utility).
+- Dual Schedule System for training and recovery.
+- Mobile-Optimized Workout UI with streamlined generation and active session display.
+- Fixed-Position Mobile Header with iOS safe-area support.
+- System-wide responsive layout improvements, including `flex-wrap`, `min-w-0`, `gap` utilities, and global `max-width` constraints to prevent horizontal overflow on narrow viewports.
+- iOS-specific fixes for full viewport coverage and reliable backdrop dismissal for notifications.
 
 **Technical Implementations:**
 - **AI Intelligence Layer:** Provides daily personalized insights, context-aware chat, multi-metric recommendations, and alternative therapy suggestions.
 - **Freemium Model:** Subscription tiers (free/premium/enterprise).
-- **Data Tracking & Management:** Biomarker tracking, smart deduplication, comprehensive workout tracking.
-- **Universal HealthKit Ingest System v1.0:** Append-only raw data warehouse for HealthKit events with idempotent ingestion and unit normalization.
+- **Data Tracking & Management:** Biomarker tracking, smart deduplication, comprehensive workout tracking, Universal HealthKit Ingest System with idempotent ingestion and unit normalization.
 - **Personalized Recommendations & Automation:** AI-generated meal plans, macro, and exercise recommendations with auto-scheduling.
 - **Readiness Score System:** Multi-factor weighted scoring.
 - **Scheduling & Reminders:** AI insights scheduling, supplement tracking, daily reminders.
 - **User Profiling & Onboarding:** Fitness profile personalization, contextual AI onboarding.
 - **Security & Authentication:** Replit Auth (OpenID Connect), role-based access control, IDOR protection, Zod validation, secure file uploads.
 - **Privacy & Compliance:** International privacy compliance (GDPR, HIPAA), granular consent, audit logging, account deletion, JSON data export, Privacy Dashboard.
-- **Native iOS App with HealthKit Integration v3.0:** Production-ready native iOS app with timezone-aware step counting.
-- **iOS Background Fetch System v3.0:** Native iOS background processing for automatic HealthKit sync (with proper queue draining and data loss prevention), AI insights generation, daily workout creation, and notification updates. Fixed critical bug where AppDelegate was calling non-existent endpoint and not properly draining HealthKit queue. Fixed Active Calories field name mismatch (calories → activeCalories) ensuring data syncs correctly since Oct 23rd.
-- **Progressive Overload Training System:** Double progression algorithm for training.
+- **Native iOS App with HealthKit Integration v3.0:** Production-ready native iOS app with timezone-aware step counting and background fetch system for automatic HealthKit sync, AI insights, daily workout creation, and notification updates.
+- **Progressive Overload Training System:** Double progression algorithm.
 - **HealthPilot Training Operating System v1.0 (AI Guardrails):** Evidence-based guardrail system for safety-first training prescription and AI recovery insights.
 - **AI Exercise Alternatives & Swap Feature:** AI-powered exercise alternative suggestions.
-- **Intelligent Exercise-Specific Tracking:** Smart classification system for exercise tracking.
+- **Intelligent Exercise-Specific Tracking:** Smart classification system.
 - **Muscle Group Frequency Tracking System:** Tracks training frequency across 8 major muscle groups.
 - **Voice Chat System (Premium Feature):** WebSocket + OpenAI Realtime API for natural voice interaction.
 - **Universal Medical Data Interpreter:** AI-powered system for ingesting and interpreting medical data (PDFs, images, FHIR, HL7).
 - **Native Exercise Library:** Comprehensive library of 1,000+ exercises with internal metadata.
-- **Landing Page CMS:** Custom-built content management system for landing page content.
+- **Landing Page CMS:** Custom-built content management system.
 - **Unified Insights Hub:** Integration of Daily Health, AI Coach, and Trend Analysis into a single tabbed interface.
 - **Baseline Mode & Feature Flag System:** Comprehensive feature flag infrastructure for progressive AI/ML feature rollout.
-- **Daily AI Training Generator:** Standards-based AI workout generation system following ACSM/NSCA/WHO guidelines.
-- **Muscle Group Balance + Anti-Duplication Enforcement v1.0.0:** Advanced workout generation preventing duplicates and enforcing muscle group balance.
-- **Dynamic Time Budget System:** AI workout generator respects user's `preferredDuration`.
+- **Daily AI Training Generator:** Standards-based AI workout generation system following ACSM/NSCA/WHO guidelines, including Muscle Group Balance + Anti-Duplication Enforcement and Dynamic Time Budget System.
 - **Comprehensive Biomarker Insights Analysis:** Daily Insights system analyzing 60+ biomarker types alongside HealthKit metrics.
-- **Sleep Scoring v2.0 Algorithm:** Advanced sleep analysis system processing HealthKit data.
+- **Sleep Scoring v2.0 Algorithm:** Advanced sleep analysis system.
 - **SmartFuel™ Precision Nutrition Guidance System v1.0:** Complete evidence-based nutrition guidance system.
-- **Symptoms Tracking System:** Comprehensive symptom monitoring system.
-- **AI Symptom Correlation Engine v2.0:** Intelligent analysis system combining active symptoms with comprehensive biomarkers.
+- **Symptoms Tracking System:** Comprehensive symptom monitoring system with AI Symptom Correlation Engine v2.0.
 - **Dynamic Insights Engine v1.0:** Modular insights generation architecture.
-- **Automatic Timezone Synchronization v2.0:** Intelligent timezone detection system ensuring accurate scheduling and time-based features.
-- **Exercise Template Auto-Seeding System:** Automatic database seeding system.
-- **Template-to-Exercise Enrichment System v1.1:** Ensures workout generation properly resolves template_ids to exercise_ids.
-- **Cost Rollup Scheduler & Telemetry System:** Automated daily cost aggregation system.
-- **Advanced Goals System v2:** Enhanced goal tracking system with automatic detection of distances from HealthKit.
+- **Automatic Timezone Synchronization v2.0:** Intelligent timezone detection system.
+- **Exercise Template Auto-Seeding System & Template-to-Exercise Enrichment System v1.1.**
+- **Cost Rollup Scheduler & Telemetry System:** Automated daily cost aggregation.
+- **Advanced Goals System v2:** Enhanced goal tracking with automatic detection of distances from HealthKit.
 - **AI-Powered Training Plan Generation System v2.0:** Replaces hardcoded training templates with GPT-4o-generated phased plans.
 - **Native Apple Pay + Stripe Integration v1.0:** Production-ready dual-platform payment system.
-- **Comprehensive Notifications Layer v1.0:** Event-driven notification system featuring OneSignal push notifications, local scheduled reminders, in-app notification center, deep linking, and iOS Background Fetch integration.
+- **Comprehensive Notifications Layer v1.0:** Event-driven notification system with OneSignal, local reminders, in-app center, deep linking, and iOS Background Fetch integration.
 - **Advanced Recovery Scheduling System v1.0:** Comprehensive recovery protocol scheduling with frequency patterns and AI-powered timing recommendations.
-- **Multi-Dimensional Recovery System v1.0:** Muscle-group-specific recovery tracking system using fatigue modeling with exponential decay curves.
-- **iOS Live Activities for Workout Tracking v1.0:** Real-time lock screen workout tracking with Live Activities.
-- **Mobile Layout Overflow Fix v2.0:** System-wide responsive layout improvements preventing horizontal overflow on narrow viewports (<360px). Applied flex-wrap, min-w-0, and gap utilities to 25+ flex containers across Symptoms, Recovery, Training, SmartFuel, BiologicalAge, ReadinessScoreWidget, and AITrainingPlanTile components. Global max-width constraints ensure content stays within viewport boundaries. Fixed persistent right-padding issue on iOS by restricting scrollbar-hide utility to desktop breakpoints (md:scrollbar-hide), eliminating safe-area-inset compensation artifact.
-- **iOS White Bars Fix (Nov 2024):** Fixed white gaps at top/bottom of iOS viewport by changing html/body/#root to use height:100% instead of min-height:100vh, ensuring full viewport coverage.
-- **Notification Panel Radix Sheet Migration (Nov 2024):** Refactored NotificationBadge to use Radix UI Sheet component (side="top") for reliable backdrop dismissal on mobile, replacing custom animation/swipe implementation with built-in accessibility features.
-- **Goal Plan Scheduling System v1.0 (Nov 2024):** Infrastructure for scheduling AI-generated goal-based training plans to user's calendar. Features: training_availabilities table for user preferences, goal-scheduler service with transaction-safe atomic scheduling, version management for re-scheduling, API endpoints for availability and scheduling operations.
-- **Natural Language Goal Creation (CREATE_V2_GOAL) v1.0 (Nov 2024):** AI-powered goal creation system enabling users to express health/fitness goals in natural language (e.g., "I want to run a marathon in 6 months"). Features: CREATE_V2_GOAL tool marker in AI chat prompts with comprehensive schema and examples, Zod validation for AI payloads, transactional goal creation via storage.createV2Goal(), goal categorization into 8 canonical types (weight_loss, muscle_gain, fitness_event, endurance, strength, health_metric, habit_formation, wellness), automatic entity extraction from goal text, full audit trail logging for all goal creation actions.
-
-## Known Technical Debt
-- **AI Tool Dispatcher Refactoring (Nov 2024):** Chat tool marker processing in server/routes.ts has grown to 20+ regex-based handlers creating maintenance and scalability issues. Architectural recommendation: Create dedicated dispatcher abstraction with map of markers → handler modules including shared parsing/logging. Current implementation deferred to ship critical goal scheduling feature; recommend refactoring when adding future AI tools.
-- **Storage Layer TypeScript Errors (Nov 2024):** 552 TypeScript errors remain in codebase, primarily concentrated in server/storage.ts due to schema/type drift between shared/schema.ts and storage function signatures. Not blocking production (tsx builds succeed), but may hide runtime type mismatches. Recommended remediation: incremental typing fixes starting with storage layer, add unit tests for high-impact changes, avoid repo-wide blitz approach. See POST_DEPLOYMENT_REVIEW.md for detailed analysis.
-- **iOS Keychain Security Fix (Nov 2024):** Migrated from @aparajita/capacitor-secure-storage to capacitor-secure-storage-plugin after identifying critical iOS Keychain bug that rejected valid hex session tokens with "invalidData" error. New plugin properly handles 64-character hex tokens in iOS Keychain. Updated SecureStorageAdapter.ts, Login.tsx, queryClient.ts, and App.tsx. Server already using secure hex encoding (replaced base64url to avoid Keychain rejection of `-` and `_` characters).
-- **Unused Dependencies (Nov 2024):** 10+ packages identified as potentially unused (next-themes, react-icons/si, supertest, vitest, memorystore, node-cron, pdf-to-png-converter, tw-animate-css, @types/memoizee, @types/ws). Recommend audit and removal after storage typing is resolved to avoid npm operation conflicts.
+- **Multi-Dimensional Recovery System v1.0:** Muscle-group-specific recovery tracking using fatigue modeling.
+- **iOS Live Activities for Workout Tracking v1.0:** Real-time lock screen workout tracking.
+- **Goal Plan Scheduling System v1.0:** Infrastructure for scheduling AI-generated goal-based training plans to user's calendar.
+- **Natural Language Goal Creation (CREATE_V2_GOAL) v1.0:** AI-powered goal creation system enabling users to express health/fitness goals in natural language with automatic entity extraction and categorization.
 
 ## External Dependencies
 - **Database:** PostgreSQL
