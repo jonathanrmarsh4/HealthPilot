@@ -875,11 +875,16 @@ export default function WorkoutSession() {
   // Finish workout mutation - records muscle group engagements
   const finishWorkoutMutation = useMutation({
     mutationFn: async () => {
+      console.log(`🏁 [Frontend] Finishing workout - SessionID: ${sessionId}, InstanceID: ${instanceId || 'none'}`);
       const url = instanceId 
         ? `/api/workout-sessions/${sessionId}/finish?instanceId=${instanceId}`
         : `/api/workout-sessions/${sessionId}/finish`;
+      console.log(`🏁 [Frontend] POST URL: ${url}`);
       const response = await apiRequest("POST", url, {});
-      return await response.json();
+      console.log(`🏁 [Frontend] Response status: ${response.status}`);
+      const data = await response.json();
+      console.log(`🏁 [Frontend] Response data:`, data);
+      return data;
     },
     onSuccess: async () => {
       // End Live Activity
