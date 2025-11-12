@@ -142,7 +142,7 @@ export async function calculateWorkoutFatigue(
   MUSCLE_GROUPS.forEach(g => totalFatigue.set(g, 0));
   
   // Get all exercise sets from this workout
-  const allSets = await storage.getExerciseSets(userId, workoutSessionId);
+  const allSets = await storage.getSetsForSession(workoutSessionId, userId);
   
   // Filter to only completed sets if requested
   const exerciseSets = onlyCompleted 
