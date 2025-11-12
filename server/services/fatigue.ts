@@ -17,14 +17,18 @@ const MUSCLE_GROUP_MAPPING: Record<string, MuscleGroup[]> = {
   // Chest
   'chest': ['chest'],
   'pectorals': ['chest'],
+  'upper chest': ['chest'],
   
   // Back
   'back': ['back'],
   'lats': ['back'],
+  'latissimus dorsi': ['back'],
   'traps': ['back'],
+  'trapezius': ['back'],
   'rhomboids': ['back'],
   'upper back': ['back'],
   'lower back': ['back'],
+  'lower_back': ['back'],
   
   // Legs (quads, hamstrings only - glutes and calves are separate)
   'legs': ['legs'],
@@ -32,6 +36,8 @@ const MUSCLE_GROUP_MAPPING: Record<string, MuscleGroup[]> = {
   'quadriceps': ['legs'],
   'hamstrings': ['legs'],
   'hip flexors': ['legs'],
+  'inner thighs': ['legs'],
+  'groin': ['legs'],
   
   // Glutes (independent tracking)
   'glutes': ['glutes'],
@@ -42,6 +48,7 @@ const MUSCLE_GROUP_MAPPING: Record<string, MuscleGroup[]> = {
   'calf': ['calves'],
   'gastrocnemius': ['calves'],
   'soleus': ['calves'],
+  'shins': ['calves'],
   
   // Shoulders
   'shoulders': ['shoulders'],
@@ -53,18 +60,38 @@ const MUSCLE_GROUP_MAPPING: Record<string, MuscleGroup[]> = {
   'front delts': ['shoulders'],
   'side delts': ['shoulders'],
   'rear delts': ['shoulders'],
+  'rear deltoids': ['shoulders'],
+  'rear-delts': ['shoulders'],
+  'rotator cuff': ['shoulders'],
   
   // Arms
   'arms': ['arms'],
   'biceps': ['arms'],
+  'brachialis': ['arms'],
   'triceps': ['arms'],
   'forearms': ['arms'],
+  'wrist flexors': ['arms'],
+  'wrist extensors': ['arms'],
+  'grip muscles': ['arms'],
+  'wrists': ['arms'],
+  'hands': ['arms'],
   
   // Core
   'core': ['core'],
   'abs': ['core'],
   'abdominals': ['core'],
   'obliques': ['core'],
+  'lower abs': ['core'],
+  
+  // Non-tracked muscle groups (these don't map to our 8 groups but are valid tags)
+  // Cardio/flexibility exercises
+  'cardio': [],
+  'cardiovascular': [],
+  'full_body': [],
+  'ankle stabilizers': [],
+  'ankles': [],
+  'feet': [],
+  'sternocleidomastoid': [], // neck muscle - not tracked
 };
 
 /**
