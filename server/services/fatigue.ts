@@ -47,6 +47,12 @@ const MUSCLE_GROUP_MAPPING: Record<string, MuscleGroup[]> = {
   'shoulders': ['shoulders'],
   'delts': ['shoulders'],
   'deltoids': ['shoulders'],
+  'front_delts': ['shoulders'],
+  'side_delts': ['shoulders'],
+  'rear_delts': ['shoulders'],
+  'front delts': ['shoulders'],
+  'side delts': ['shoulders'],
+  'rear delts': ['shoulders'],
   
   // Arms
   'arms': ['arms'],
