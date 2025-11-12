@@ -155,7 +155,7 @@ export async function calculateWorkoutFatigue(
   }
   
   // Get exercise library data for muscle mapping
-  const exercises = await storage.getExercises();
+  const exercises = await storage.getAllExercises();
   const exerciseMap = new Map(exercises.map(e => [e.id, e]));
   
   // Group sets by exercise
