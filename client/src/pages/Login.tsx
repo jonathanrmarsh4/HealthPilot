@@ -296,7 +296,7 @@ export default function Login() {
 
         {/* Build Version */}
         <p className="text-xs text-white/50 font-mono">
-          Build v19
+          Build v20
         </p>
 
         {/* Hidden dev trigger - triple tap to show dev tools */}
