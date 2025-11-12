@@ -25,16 +25,23 @@ export async function recordWorkoutCompletion(
   workoutSessionId: string,
   completedAt: Date = new Date()
 ): Promise<void> {
+  console.log(`🎯 [recordWorkoutCompletion] STARTING - Session: ${workoutSessionId}, User: ${userId}`);
+  
   // Apply workout fatigue to muscle group recovery states
+  console.log(`🎯 [recordWorkoutCompletion] Calling applyWorkoutFatigue...`);
   await applyWorkoutFatigue(userId, workoutSessionId, completedAt);
+  console.log(`🎯 [recordWorkoutCompletion] applyWorkoutFatigue COMPLETED`);
   
   // Get current recovery state after applying fatigue
+  console.log(`🎯 [recordWorkoutCompletion] Getting current recovery state...`);
   const recoveryState = await getCurrentRecoveryState(userId);
+  console.log(`🎯 [recordWorkoutCompletion] Recovery state:`, recoveryState);
   
   // Get workout details for metadata
   const workout = await storage.getWorkoutSession(workoutSessionId, userId);
   
   // Create timeline event
+  console.log(`🎯 [recordWorkoutCompletion] Creating timeline event...`);
   await storage.createRecoveryTimelineEvent({
     userId,
     timestamp: completedAt.toISOString(),
@@ -48,6 +55,7 @@ export async function recordWorkoutCompletion(
       calories: workout?.calories,
     },
   });
+  console.log(`🎯 [recordWorkoutCompletion] COMPLETE`);
 }
 
 /**
